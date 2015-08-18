@@ -1,0 +1,155 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r3261 - /trunk/lua/lib.desktop.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2010-February/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3261%20-%20/trunk/lua/lib.desktop.lua&In-Reply-To=%3C20100227130620.7BCFE54D0039%40simon%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="002020.html">
+   <LINK REL="Next"  HREF="002022.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r3261 - /trunk/lua/lib.desktop.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3261%20-%20/trunk/lua/lib.desktop.lua&In-Reply-To=%3C20100227130620.7BCFE54D0039%40simon%3E"
+       TITLE="[Iris-commit] [IRIS] r3261 - /trunk/lua/lib.desktop.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat Feb 27 14:06:19 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="002020.html">[Iris-commit] [IRIS] r3260 - in /trunk/lua: lib.macrolist.lua lib.mainmenu.accountlist.lua lib.mainmenu.charlist.lua lib.shardlist.lua net/net.uoam.lua
+</A></li>
+        <LI>Next message: <A HREF="002022.html">[Iris-commit] [IRIS] r3262 - in /trunk/lua: gui/gui.gumpparser.lua	lib.gfxconfig.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2021">[ date ]</a>
+              <a href="thread.html#2021">[ thread ]</a>
+              <a href="subject.html#2021">[ subject ]</a>
+              <a href="author.html#2021">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sat Feb 27 14:06:16 2010
+New Revision: 3261
+
+Log:
+lib.desktop : window position storage : healthbars only stored for player, =
+no filewrite on corpse-container close
+
+Modified:
+    trunk/lua/lib.desktop.lua
+
+Modified: trunk/lua/lib.desktop.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.desktop.lua (original)
++++ trunk/lua/lib.desktop.lua Sat Feb 27 14:06:16 2010
+@@ -115,12 +115,14 @@
+     end,
+ }
+ RegisterListener(&quot;Hook_CloseHealthbar&quot;,function(widget,serial) =
+
+-    RemoveDesktopElement(&quot;healthbar&quot;,serial) =
+
+-    SaveDesktop() =
+
++	if (serial =3D=3D GetPlayerSerial()) then
++		RemoveDesktopElement(&quot;healthbar&quot;,serial) =
+
++		SaveDesktop() =
+
++	end
+ end)
+ RegisterListener(&quot;Hook_OpenHealthbar&quot;,function(widget,serial) =
+
+     local serial =3D widget.mobile.serial
+-    if widget and serial then
++    if widget and serial and serial =3D=3D GetPlayerSerial() then
+         local x,y =3D widget:GetPos()
+         ReplaceDesktopElement(&quot;healthbar&quot;,x,y,serial)   =
+
+         SaveDesktop()
+@@ -139,14 +141,21 @@
+         if e.param =3D=3D serial then e.x,e.y =3D widget:GetPos() return t=
+rue end
+     end,
+ }
++
++function Desktop_ShouldContainerBeSaved (widget) -- ignore corpses here (m=
+assive with autoloot)
++	return widget and widget.uoContainer and widget.uoContainer.gumpid ~=3D k=
+CorpseContainerGumpID =
+
++end
++
+ RegisterListener(&quot;Hook_CloseContainer&quot;,function(widget) =
+
+-    local serial =3D widget.uoContainer.serial
+-    RemoveDesktopElement(&quot;container&quot;,serial) =
+
+-    SaveDesktop() =
+
++	if (Desktop_ShouldContainerBeSaved(widget)) then =
+
++		local serial =3D widget.uoContainer.serial
++		RemoveDesktopElement(&quot;container&quot;,serial) =
+
++		SaveDesktop() =
+
++	end
+ end)
+ RegisterListener(&quot;Hook_CreateContainerWidget&quot;,function(widget) =
+
+-    local serial =3D widget.uoContainer.serial
+-    if widget and serial and widget.uoContainer.gumpid ~=3D kCorpseContain=
+erGumpID then -- ignore corpses here (massive with autoloot)
++    if Desktop_ShouldContainerBeSaved(widget) then
++		local serial =3D widget.uoContainer.serial
+         local x,y =3D widget:GetPos()
+         ReplaceDesktopElement(&quot;container&quot;,x,y,serial)   =
+
+         SaveDesktop()
+@@ -216,6 +225,7 @@
+ =
+
+ -- stores the current desktop into a file, if file is nil the current open=
+ed file will be used
+ function SaveDesktop    (file)
++	print(&quot;#####SaveDesktop&quot;,debug.traceback())
+     file =3D file or gDesktopFile
+     if file then
+         local path =3D gDesktopDir..file
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="002020.html">[Iris-commit] [IRIS] r3260 - in /trunk/lua: lib.macrolist.lua lib.mainmenu.accountlist.lua lib.mainmenu.charlist.lua lib.shardlist.lua net/net.uoam.lua
+</A></li>
+	<LI>Next message: <A HREF="002022.html">[Iris-commit] [IRIS] r3262 - in /trunk/lua: gui/gui.gumpparser.lua	lib.gfxconfig.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2021">[ date ]</a>
+              <a href="thread.html#2021">[ thread ]</a>
+              <a href="subject.html#2021">[ subject ]</a>
+              <a href="author.html#2021">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

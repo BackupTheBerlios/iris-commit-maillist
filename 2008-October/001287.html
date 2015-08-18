@@ -1,0 +1,244 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2482 - /trunk/lua/gui/gui.skill.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-October/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2482%20-%20/trunk/lua/gui/gui.skill.lua&In-Reply-To=%3C20080930230014.2A2C01524032%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001286.html">
+   <LINK REL="Next"  HREF="001288.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2482 - /trunk/lua/gui/gui.skill.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2482%20-%20/trunk/lua/gui/gui.skill.lua&In-Reply-To=%3C20080930230014.2A2C01524032%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2482 - /trunk/lua/gui/gui.skill.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Wed Oct  1 00:56:44 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001286.html">[Iris-commit] [IRIS] r2481 - in /trunk/lua: gui/gui.spellbook.lua net/net.other.lua obj/obj.container.lua
+</A></li>
+        <LI>Next message: <A HREF="001288.html">[Iris-commit] [IRIS] r2483 - in /trunk/lua: lib.2d.dynamic.lua lib.2d.mobile.lua lib.2d.renderer.lua lib.2d.spriteblock.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1287">[ date ]</a>
+              <a href="thread.html#1287">[ thread ]</a>
+              <a href="subject.html#1287">[ subject ]</a>
+              <a href="author.html#1287">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: hagish
+Date: Wed Oct  1 00:56:39 2008
+New Revision: 2482
+
+Log:
+improved skill dialog (different orders)
+
+Modified:
+    trunk/lua/gui/gui.skill.lua
+
+Modified: trunk/lua/gui/gui.skill.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.skill.lua (original)
++++ trunk/lua/gui/gui.skill.lua Wed Oct  1 00:56:39 2008
+@@ -17,7 +17,8 @@
+ 	 &quot;{ button 255 61 2084 2084 1 0 1 skillscrollup }&quot; ..
+ 	 &quot;{ button 255 291 2085 2085 1 0 2 skillscrolldown }&quot; ..
+ 	 &quot;{ button 139 4 2093 2093 1 0 3 skillclose }&quot; ..
+-	 &quot;{ button 259 76 2088 2088 1 0 4 skillscroll }&quot;
++	 &quot;{ button 259 76 2088 2088 1 0 4 skillscroll }&quot; ..
++	 &quot;{ button 50 10 0x28DC 0x28DC 1 0 5 skillsort }&quot;
+ skillGump.textline =3D {
+ }
+ skillGump.functions =3D {
+@@ -39,7 +40,43 @@
+  [4]	=3D function (widget,mousebutton)
+ 			if (mousebutton =3D=3D 1) then widget.dialog:BringToFront() gui.StartMo=
+veDialog(widget) end
+ 		  end,
++ -- update skill sorting order
++ [5]	=3D function (widget,mousebutton)
++			if (mousebutton =3D=3D 1) then widget.dialog:BringToFront() widget.dial=
+og:NextOrder() end
++		  end,
+ }
++
++giNumberOfVisibleSkills =3D 12
++
++-- -------------- compare functions for skill order ------
++function SkillComp_Name	(a,b)
++	return a.name &lt; b.name
++end
++
++function SkillComp_Value	(a,b)
++	local va =3D gPlayerSkills[a.skillid].value
++	local vb =3D gPlayerSkills[b.skillid].value
++	if va ~=3D vb then =
+
++		return va &gt; vb =
+
++	else
++		return SkillComp_Name	(a,b)
++	end
++end
++
++function SkillComp_SkillId	(a,b)
++	return a.skillid &lt; b.skillid
++end
++
++function SkillComp_Active	(a,b)
++	return glSkillActive[a.skillid] &gt; glSkillActive[b.skillid]
++end
++
++function SkillComp_LockState	(a,b)
++	return gPlayerSkills[a.skillid].lockstate &lt; gPlayerSkills[b.skillid].lock=
+state =
+
++end
++
++glSkillCompList =3D {SkillComp_Value, SkillComp_Name, SkillComp_SkillId, S=
+killComp_Active, SkillComp_LockState}
++---------------------------------------------------------------
+ =
+
+ -- Created 11.03.2008 15:41:19, with GumpStudio &amp; Iris2 Lua Export Plugin
+ -- Exported Iris2 GumpExporter ver 1.0.
+@@ -245,10 +282,6 @@
+ 	NotifyListener(&quot;Hook_CreateQuickWeaponAbility&quot;,d,x,y,weaponabilityid)
+ 	return d
+ end
+-
+-
+-
+-
+ =
+
+ =
+
+ =
+
+@@ -336,6 +369,26 @@
+ 			dialog:ScrollToIndex(dialog.miScrollPosition + d)
+ 		end
+ 		=
+
++		-- order table
++		dialog.Order =3D function (dialog, comp)
++			table.sort(dialog.lSkill, comp or SkillComp_Value)
++			local i =3D 0
++			for k,v in pairs(dialog.lSkill) do
++				v.index =3D i
++				i =3D i + 1
++			end
++		end
++		=
+
++		dialog.NextOrder =3D function (dialog)
++			local len =3D #glSkillCompList
++			local index =3D (dialog.current_order_function_index or 0) + 1
++			dialog:Order(glSkillCompList[math.fmod(index - 1, len) + 1])
++			dialog.current_order_function_index =3D index
++			dialog:ScrollToIndex(0)
++			dialog:ScrollToIndex(1)
++			dialog:ScrollToIndex(0)
++		end
++		=
+
+ 		-- scroll the skilllist that index is at the top most position
+ 		dialog.ScrollToIndex =3D function (dialog, index)
+ 			if index ~=3D dialog.miScrollPosition then
+@@ -345,7 +398,7 @@
+ 				-- startposition
+ 				local x,y =3D 40,80
+ 				-- number of visible skills
+-				local h =3D 10
++				local h =3D giNumberOfVisibleSkills
+ =
+
+ 				-- scroll limit
+ 				local maxindex =3D table.getn(dialog.lSkill) - h
+@@ -408,8 +461,13 @@
+ 				skill.button_use_drag =3D nil
+ 				skill.skillid =3D k
+ 				skill.name =3D name
++				=
+
++				local sname =3D name				=
+
++				if string.len(sname) &gt; 17 then
++					sname =3D string.sub(sname,0,17)..&quot;..&quot; =
+
++				end
+ 								=
+
+-				skill.text =3D guimaker.MakeText (curparent, x, y, name, gFontDefs[&quot;Gu=
+mp&quot;].size, gFontDefs[&quot;Gump&quot;].col, gFontDefs[&quot;Gump&quot;].name)
++				skill.text =3D guimaker.MakeText (curparent, x, y, sname, gFontDefs[&quot;G=
+ump&quot;].size, gFontDefs[&quot;Gump&quot;].col, gFontDefs[&quot;Gump&quot;].name)
+ 				--[[
+ 				skill.text.onMouseDown 		=3D function (widget,mousebutton)
+ 					if (mousebutton =3D=3D 1) then =
+
+@@ -473,6 +531,11 @@
+ 			end
+ 		end
+ =
+
++		-- order the list with previous comp function
++		if dialog.current_order_function_index and glSkillCompList[dialog.curren=
+t_order_function_index] then
++			dialog:Order(glSkillCompList[dialog.current_order_function_index])
++		end
++		=
+
+ 		-- scroll to last position if available
+ 		if gSkillDialog_LastPositionScrollIndex then =
+
+ 			dialog:ScrollToIndex(gSkillDialog_LastPositionScrollIndex)
+@@ -483,5 +546,7 @@
+ 		-- resize limits
+ 		dialog.resize_min_total_x,dialog.resize_min_total_y =3D -100,-66
+ 		dialog.resize_max_total_x,dialog.resize_max_total_y =3D 334,212
+-	end
+-end
++		=
+
++		dialog:NextOrder()
++	end
++end
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001286.html">[Iris-commit] [IRIS] r2481 - in /trunk/lua: gui/gui.spellbook.lua net/net.other.lua obj/obj.container.lua
+</A></li>
+	<LI>Next message: <A HREF="001288.html">[Iris-commit] [IRIS] r2483 - in /trunk/lua: lib.2d.dynamic.lua lib.2d.mobile.lua lib.2d.renderer.lua lib.2d.spriteblock.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1287">[ date ]</a>
+              <a href="thread.html#1287">[ thread ]</a>
+              <a href="subject.html#1287">[ subject ]</a>
+              <a href="author.html#1287">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

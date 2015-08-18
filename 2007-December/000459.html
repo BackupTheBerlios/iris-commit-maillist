@@ -1,0 +1,189 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1643 - in /trunk/data/lua: lib.3d.dynamic.lua	lib.3d.map.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2007-December/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1643%20-%20in%20/trunk/data/lua%3A%20lib.3d.dynamic.lua%0A%09lib.3d.map.lua&In-Reply-To=%3C20071218140006.12D521C18700%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000458.html">
+   <LINK REL="Next"  HREF="000460.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1643 - in /trunk/data/lua: lib.3d.dynamic.lua	lib.3d.map.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1643%20-%20in%20/trunk/data/lua%3A%20lib.3d.dynamic.lua%0A%09lib.3d.map.lua&In-Reply-To=%3C20071218140006.12D521C18700%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1643 - in /trunk/data/lua: lib.3d.dynamic.lua	lib.3d.map.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Tue Dec 18 15:00:05 CET 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000458.html">[Iris-commit] [IRIS] r1642 - in /trunk: include/data.h include/terrain.h include/tiledterrain.h src/scripting.iris.cpp src/terrain_multitex.cpp
+</A></li>
+        <LI>Next message: <A HREF="000460.html">[Iris-commit] [IRIS] r1644 - /trunk/src/builder.cpp
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#459">[ date ]</a>
+              <a href="thread.html#459">[ thread ]</a>
+              <a href="subject.html#459">[ subject ]</a>
+              <a href="author.html#459">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: hagish
+Date: Tue Dec 18 15:00:04 2007
+New Revision: 1643
+
+Log:
+improved mapchunk rebuild due to multis
+
+Modified:
+    trunk/data/lua/lib.3d.dynamic.lua
+    trunk/data/lua/lib.3d.map.lua
+
+Modified: trunk/data/lua/lib.3d.dynamic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.3d.dynamic.lua (original)
++++ trunk/data/lua/lib.3d.dynamic.lua Tue Dec 18 15:00:04 2007
+@@ -55,12 +55,12 @@
+ =
+
+ 				-- add part
+ 				table.insert(multi.lparts, {iTileTypeID,iX,iY,iZ,iHue})
++				Renderer3D:RebuildChunkAtUOPos(iX,iY)
+ 			end
+ =
+
+ 			item.multi =3D multi
+ 			item.gfx =3D nil
+ 			Renderer3D.gMultis[multi] =3D true
+-			Renderer3D:RebuildChunkAtUOPos(item.xloc, item.yloc)
+ 			=
+
+ 		-- otherwise ist a Clientside Multi
+ 		elseif gMultiLoader then
+@@ -89,7 +89,7 @@
+ 				if iFlags =3D=3D 1 then
+ 					-- add part
+ 					table.insert(multi.lparts, {iTileTypeID,iX,iY,iZ,iHue})
+-					=
+
++					Renderer3D:RebuildChunkAtUOPos(iX,iY)
+ 					--print(&quot;DEBUG&quot;,iTileTypeID,iX,iY,iZ,iHue)
+ 				end
+ 			end
+@@ -99,9 +99,8 @@
+ 			item.multi =3D multi
+ 			item.gfx =3D nil
+ 			Renderer3D.gMultis[multi] =3D true
+-			Renderer3D:RebuildChunkAtUOPos(item.xloc, item.yloc)
+ 		else =
+
+-			printdebug(&quot;missing&quot;,sprintf(&quot;Renderer3D:CreateDynamicGfx: failed loadi=
+ng mesh for dynamic (multi): artid=3D%i z_typename=3D%s\n&quot;,item.artid or -1=
+,item.z_typename or &quot;&quot;))
++			printdebug(&quot;missing&quot;,sprintf(&quot;Renderer3D:CreateDynamicGfx: failed loadi=
+ng mesh for dynamic (multi): artid=3D%i z_typename=3D%s\n&quot;,item.artid or -1=
+,GetStaticTileTypeName(item.artid) or &quot;&quot;))
+ 		end
+ 	else
+ 		-- normal 1 part object
+@@ -139,7 +138,7 @@
+ 				item.yadd =3D item.yadd + 0.5
+ 				item.zadd =3D item.zadd + 0.5
+ 				self:CreateArtBillBoard(item.gfx.billboard,iTranslatedTileTypeID,item.=
+hue)
+-				printdebug(&quot;missing&quot;,sprintf(&quot;Renderer3D:CreateDynamicGfx: failed load=
+ing mesh for dynamic: artid=3D%i z_typename=3D%s\n&quot;,item.artid or -1,item.z=
+_typename or &quot;&quot;))
++				printdebug(&quot;missing&quot;,sprintf(&quot;Renderer3D:CreateDynamicGfx: failed load=
+ing mesh for dynamic: artid=3D%i z_typename=3D%s\n&quot;,item.artid or -1,GetSta=
+ticTileTypeName(item.artid) or &quot;&quot;))
+ 			end
+ 		end
+ 		item.gfx:SetRenderingDistance(self.gDynamicMaxRenderDist)
+
+Modified: trunk/data/lua/lib.3d.map.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.3d.map.lua (original)
++++ trunk/data/lua/lib.3d.map.lua Tue Dec 18 15:00:04 2007
+@@ -63,9 +63,20 @@
+ 		iMidY =3D math.floor(iMidY / self.ROBMAP_CHUNK_SIZE)
+ 		=
+
+ 			=
+
+-		-- release invisible chunks
+ 		local y,row,x,chunk,k,v
+ 		local bHit,fHitDist
++
++		-- rebuild chunks if needed
++		for y,row in pairs(self.gMapChunks) do
++			for x,chunk in pairs(row) do
++				if (chunk.mbRebuild) then
++					self:DestroyMapChunk(x,y,chunk)
++					self:LoadMapChunk(x,y)
++				end
++			end
++		end
++
++		-- release invisible chunks
+ 		for y,row in pairs(self.gMapChunks) do
+ 			for x,chunk in pairs(row) do
+ 				if (chunk.miX &lt; minx or chunk.miY &lt; miny or chunk.miX &gt; maxx or chunk.=
+miY &gt; maxy) then
+@@ -95,9 +106,7 @@
+ 	for y,row in pairs(self.gMapChunks) do
+ 		for x,chunk in pairs(row) do
+ 			if (chunk.miX =3D=3D chunkx and chunk.miY =3D=3D chunky)  then
+-				--print(&quot;DEBUG&quot;,&quot;chunk&quot;,x,y,chunk.miX,chunk.miY)
+-				self:DestroyMapChunk(x,y,chunk)
+-				self:LoadMapChunk(x,y)
++				chunk.mbRebuild =3D true
+ 			end
+ 		end
+ 	end
+@@ -469,6 +478,7 @@
+ -- coords in chunks
+ -- TODO : release anything else that was allocated in CreateMapChunk
+ function Renderer3D:DestroyMapChunk (x,y,chunk)
++	chunk.mbRebuild =3D nil
+ 	if (not chunk.bIsDead) then
+ 		--print(&quot;DestroyMapChunk&quot;,x,y)
+ 		chunk.bIsDead =3D true
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000458.html">[Iris-commit] [IRIS] r1642 - in /trunk: include/data.h include/terrain.h include/tiledterrain.h src/scripting.iris.cpp src/terrain_multitex.cpp
+</A></li>
+	<LI>Next message: <A HREF="000460.html">[Iris-commit] [IRIS] r1644 - /trunk/src/builder.cpp
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#459">[ date ]</a>
+              <a href="thread.html#459">[ thread ]</a>
+              <a href="subject.html#459">[ subject ]</a>
+              <a href="author.html#459">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

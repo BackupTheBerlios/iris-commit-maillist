@@ -1,0 +1,124 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r3362 - /trunk/lua/net/net.buff.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2011-January/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3362%20-%20/trunk/lua/net/net.buff.lua&In-Reply-To=%3C20110121215719.80D637A98530%40simon%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   <LINK REL="Next"  HREF="002103.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r3362 - /trunk/lua/net/net.buff.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3362%20-%20/trunk/lua/net/net.buff.lua&In-Reply-To=%3C20110121215719.80D637A98530%40simon%3E"
+       TITLE="[Iris-commit] [IRIS] r3362 - /trunk/lua/net/net.buff.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Fri Jan 21 22:57:19 CET 2011</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="002103.html">[Iris-commit] [IRIS] r3363 - in /trunk: config/shards/pangaea.xml lua/gui/gui.gumpparser.lua lua/gui/gui.helper.lua lua/lib.gump.samples.lua lua/lib.macrolist.lua lua/net/net.other.lua lua/widgets/widget.uoedittext.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2102">[ date ]</a>
+              <a href="thread.html#2102">[ thread ]</a>
+              <a href="subject.html#2102">[ subject ]</a>
+              <a href="author.html#2102">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Fri Jan 21 22:57:19 2011
+New Revision: 3362
+
+Log:
+kPacket_BuffDebuff_System underrun guards
+
+Modified:
+    trunk/lua/net/net.buff.lua
+
+Modified: trunk/lua/net/net.buff.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.buff.lua (original)
++++ trunk/lua/net/net.buff.lua Fri Jan 21 22:57:19 2011
+@@ -110,6 +110,7 @@
+ 	local buffinfos =3D {}
+ 	local input =3D GetRecvFIFO()
+ 	local id =3D input:PopNetUint8()
++	local popped_start =3D input:GetTotalPopped()
+ 	local packetsize =3D input:PopNetUint16()
+ =
+
+ 	--print(&quot;spell buff packet received !!!!!!!!!!&quot;,packetsize)
+@@ -119,7 +120,8 @@
+ 	buffinfos.icon_show1		=3D input:PopNetUint16() -- runuo : 0x1 //Type 0 fo=
+r removal. 1 for add 2 for Data
+ 	buffinfos.temp1			=3D input:PopNetUint32()
+ =
+
+-	if (packetsize &gt; 15) then
++	local rest =3D packetsize - (input:GetTotalPopped() - popped_start)
++	if (packetsize &gt; 15 and rest &gt;=3D 2+2+4+2+2+1+4+4+4+2+2) then
+ 		buffinfos.icon_buffid2		=3D input:PopNetUint16() -- same as above
+ 		buffinfos.icon_show2		=3D input:PopNetUint16() -- runuo : 0x1 //Type 0 f=
+or removal. 1 for add 2 for Data, same as above
+ 		buffinfos.temp2			=3D input:PopNetUint32()
+@@ -144,6 +146,8 @@
+ 			local argument_string =3D &quot;&quot;
+ 			local argument_char
+ 			repeat
++				local rest =3D packetsize - (input:GetTotalPopped() - popped_start)
++				if (rest &lt;=3D 0) then print(&quot;WARNING: kPacket_BuffDebuff_System underr=
+un while reading argument_string&quot;) break end
+ 				argument_char	=3D input:PopNetUint8()
+ 				argument_string =3D argument_string .. argument_char
+ 				--print(argument_char)
+@@ -152,7 +156,9 @@
+ 			--print(argument_string)
+ 		end
+ 	=
+
+-		buffinfos.argumentsmode_end		=3D input:PopNetUint16()
++		local rest =3D packetsize - (input:GetTotalPopped() - popped_start)
++		if (rest &lt; 2) then print(&quot;WARNING: kPacket_BuffDebuff_System underrun wh=
+ile reading argumentsmode_end&quot;) end
++		buffinfos.argumentsmode_end		=3D (rest &gt;=3D 2) and (input:PopNetUint16()=
+) or 0
+ 	end
+ 	=
+
+ 	--print(vardump2(buffinfos))
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="002103.html">[Iris-commit] [IRIS] r3363 - in /trunk: config/shards/pangaea.xml lua/gui/gui.gumpparser.lua lua/gui/gui.helper.lua lua/lib.gump.samples.lua lua/lib.macrolist.lua lua/net/net.other.lua lua/widgets/widget.uoedittext.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2102">[ date ]</a>
+              <a href="thread.html#2102">[ thread ]</a>
+              <a href="subject.html#2102">[ subject ]</a>
+              <a href="author.html#2102">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

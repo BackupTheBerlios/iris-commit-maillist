@@ -1,0 +1,682 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2054 - in /trunk/lua: ./ gui/ net/ obj/
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-April/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2054%20-%20in%20/trunk/lua%3A%20./%20gui/%20net/%20obj/&In-Reply-To=%3C20080417161302.6E642152402A%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000864.html">
+   <LINK REL="Next"  HREF="000866.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2054 - in /trunk/lua: ./ gui/ net/ obj/</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2054%20-%20in%20/trunk/lua%3A%20./%20gui/%20net/%20obj/&In-Reply-To=%3C20080417161302.6E642152402A%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2054 - in /trunk/lua: ./ gui/ net/ obj/">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Thu Apr 17 18:13:01 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000864.html">[Iris-commit] [IRIS] r2053 - in /trunk: include/data.h src/data.cpp	src/data_L.cpp
+</A></li>
+        <LI>Next message: <A HREF="000866.html">[Iris-commit] [IRIS] r2055 - in /trunk: bin/iris2.exe lua/lib.3d.mousepick.lua lua/lib.uoids.lua vs8/iris.sln vs8/iris.vcproj
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#865">[ date ]</a>
+              <a href="thread.html#865">[ thread ]</a>
+              <a href="subject.html#865">[ subject ]</a>
+              <a href="author.html#865">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: hagish
+Date: Thu Apr 17 18:12:59 2008
+New Revision: 2054
+
+Log:
+some bugfixes and stuff
+
+Modified:
+    trunk/lua/gui/gui.helper.lua
+    trunk/lua/gui/gui.paperdoll.lua
+    trunk/lua/gui/gui.spellbook.lua
+    trunk/lua/lib.3d.mousepick.lua
+    trunk/lua/lib.cursor.lua
+    trunk/lua/lib.data.lua
+    trunk/lua/lib.macrolist.lua
+    trunk/lua/lib.mousepick.lua
+    trunk/lua/lib.tilefreewalk.lua
+    trunk/lua/lib.uoids.lua
+    trunk/lua/net/net.mobile.lua
+    trunk/lua/net/net.other.lua
+    trunk/lua/net/net.uodragdrop.lua
+    trunk/lua/obj/obj.container.lua
+    trunk/lua/obj/obj.mobile.lua
+
+Modified: trunk/lua/gui/gui.helper.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.helper.lua (original)
++++ trunk/lua/gui/gui.helper.lua Thu Apr 17 18:12:59 2008
+@@ -47,4 +47,21 @@
+ function Client_SetBottomLine (text) if (not gDisableBottomLine) then SetB=
+ottomLine(text) end end -- from lugre
+ =
+
+ -- function is called by Lugre (lib.chatline.lua) from ChatLine_RepeatLast=
+ and ChatLine_Init
+-function SendChat (curtext) Send_UnicodeSpeech(curtext) end =
+
++function SendChat (curtext) =
+
++	if string.sub(curtext, 1, 4) =3D=3D &quot;/lua&quot; then
++		local cmd =3D string.sub(curtext, 5)
++		-- interpret this a lua command
++		-- /lua print(&quot;lalal&quot;)
++		if cmd then =
+
++			local f =3D loadstring(cmd)
++			local ok,result =3D pcall(f)
++			if not ok then
++				print(&quot;ERROR in lua call&quot;,cmd,&quot;-&gt;&quot;,result)
++			else
++				print(&quot;OK in lua call&quot;,cmd,&quot;-&gt;&quot;,result)
++			end
++		end
++	else =
+
++		Send_UnicodeSpeech(curtext) =
+
++	end
++end =
+
+
+Modified: trunk/lua/gui/gui.paperdoll.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.paperdoll.lua (original)
++++ trunk/lua/gui/gui.paperdoll.lua Thu Apr 17 18:12:59 2008
+@@ -186,7 +186,7 @@
+ =
+
+ -- Don't call this directly, use RebuildPaperdoll() instead (need to rebui=
+ld completely on change because of layerorder)
+ -- item fields : serial artid layer hue (=3D-1 if not set)
+-local function CreatePaperdollItemWidget(paperdoll, item, base_id)
++local function CreatePaperdollItemWidget(layer, paperdoll, item, base_id)
+ 	local dialog =3D paperdoll.dialog
+ 	local animid =3D nil
+ 	local typename =3D &quot;&quot;
+@@ -208,8 +208,22 @@
+ 	if (GetGumpMat(gumpid) =3D=3D &quot;&quot; and base_id =3D=3D kGumpBaseId_Female) t=
+hen gumpid =3D animid+kGumpBaseId_Male end -- fallback to male
+ 	if (item.layer =3D=3D kLayer_Backpack) then gumpid =3D animid+kGumpBaseId=
+_Male end -- no female backpack ;)
+ =
+
+-	local widget =3D MakeBorderGumpPart(dialog.rootwidget, gumpid, BodyWidget=
+_x, BodyWidget_y, 0, 0, 0, item.hue)
+-
++	local widget
++	=
+
++	-- position and art overwrite?
++	if gLayerOrderPositionAndArtOverwrite[layer] then
++
++		local x,y =3D unpack(gLayerOrderPositionAndArtOverwrite[layer])
++		=
+
++		local minx,miny,maxx,maxy =3D GetArtVisibleAABB(item.artid + 16384)
++		local cx =3D (maxx - minx)/2
++		local cy =3D (maxy - miny)/2
++
++		widget =3D MakeArtGumpPart(  dialog.rootwidget, item.artid, x-cx,y-cy, n=
+il,nil,nil, item.hue)
++	else
++		widget =3D MakeBorderGumpPart(dialog.rootwidget, gumpid, BodyWidget_x, B=
+odyWidget_y, 0, 0, 0, item.hue)
++	end
++	=
+
+ 	widget.mbIgnoreMouseOver =3D false
+ 	widget.uoPaperdoll =3D paperdoll
+ 	widget.item =3D item
+@@ -344,7 +358,7 @@
+ 		for index,layer in pairs(gLayerOrder) do =
+
+ 			local k =3D gLayerTypeName[layer]
+ 			local item =3D GetMobileEquipmentItem(mobile,layer)
+-			if (item) then CreatePaperdollItemWidget(paperdoll,item,base_id) end
++			if (item) then CreatePaperdollItemWidget(layer,paperdoll,item,base_id) =
+end
+ 		end
+ 	end
+ =
+
+
+Modified: trunk/lua/gui/gui.spellbook.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.spellbook.lua (original)
++++ trunk/lua/gui/gui.spellbook.lua Thu Apr 17 18:12:59 2008
+@@ -148,9 +148,9 @@
+ 				local spellcounter=3D0
+ =
+
+ 				for spell=3D1, spellnumber do
+-					print(&quot;SPELL&quot;,gSpellBooks[spellbook.itemid].ignore_available_flags,sp=
+ell,spellnumber,spellbook.matrix[circle],BitwiseSHL(1,spell-1))
++					-- print(&quot;SPELL&quot;,gSpellBooks[spellbook.itemid].ignore_available_flags=
+,spell,spellnumber,spellbook.matrix[circle],BitwiseSHL(1,spell-1))
+ 					if (gSpellBooks[spellbook.itemid].ignore_available_flags or TestBit(s=
+pellbook.matrix[circle], BitwiseSHL(1,spell-1))) then
+-						print(&quot;ADD&quot;)
++						-- print(&quot;ADD&quot;)
+ 						-- increase number of available spells
+ 						spellcounter=3Dspellcounter+1
+ 						local spellbutton =3D MakeBorderGumpPart(curparent, hex2num(&quot;0x837&quot;)=
+, 60 + rightspacer, 20+((spellcounter+1)*15) - top_align)
+@@ -175,7 +175,7 @@
+ 							local x,y =3D GetMousePos()
+ 							CreateQuickCastButton(x,y,spellname,function () =
+
+ 								-- quick cast function
+-								print(&quot;CAST SPELL&quot;,spellname)
++								-- print(&quot;CAST SPELL&quot;,spellname)
+ 								Send_Spell(spellbutton.spell+gSpellBooks[spellbook.itemid].startin=
+dex,gSpellbookExpansion[&quot;AOS&quot;])
+ 							end)
+ 							spellbutton.gfx:SetPos(spellbutton.mStartX,spellbutton.mStartY)
+
+Modified: trunk/lua/lib.3d.mousepick.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.mousepick.lua (original)
++++ trunk/lua/lib.3d.mousepick.lua Thu Apr 17 18:12:59 2008
+@@ -60,11 +60,15 @@
+ 			gMousePickFoundHit.hittype =3D kMousePickHitType_ContainerItem
+ 			gMousePickFoundHit.item =3D widget.item
+ 			gMousePickFoundHit.is2DHit =3D true
+-		end
+-		if (widget.uoPaperdoll and widget.item) then
++		elseif (widget.uoPaperdoll and widget.item) then
+ 			gMousePickFoundHit =3D {}
+ 			gMousePickFoundHit.hittype =3D kMousePickHitType_PaperdollItem
+ 			gMousePickFoundHit.item =3D widget.item
++			gMousePickFoundHit.is2DHit =3D true
++		elseif widget.dialog and widget.dialog.uoContainer then
++			gMousePickFoundHit =3D {}
++			gMousePickFoundHit.hittype =3D kMousePickHitType_Container
++			gMousePickFoundHit.container =3D widget.dialog.uoContainer
+ 			gMousePickFoundHit.is2DHit =3D true
+ 		end
+ 	end
+@@ -367,13 +371,16 @@
+ 			self.gMousePickBBox:SetVisible(true) =
+
+ 		end
+ 	elseif (o.hittype =3D=3D kMousePickHitType_ContainerItem) then
+-		local mouseover =3D sprintf(&quot;(ContainerItem %s)&quot;,GetStaticTileTypeName(o=
+.item.artid) or &quot;unknown&quot;)
++		local mouseover =3D sprintf(&quot;(ContainerItem %s serial=3D0x%08x)&quot;,GetStat=
+icTileTypeName(o.item.artid) or &quot;unknown&quot;, o.item.serial)
+ 		Client_SetBottomLine(self.gMousePickTippOverride or mouseover)
+ 		-- see also gCurrentRenderer.gMousePickTippOverride ./net.container.lua:=
+253:	=
+
+ 	elseif (o.hittype =3D=3D kMousePickHitType_PaperdollItem) then
+ 		local mouseover =3D sprintf(&quot;(PaperdollItem %s)&quot;,GetStaticTileTypeName(o=
+.item.artid) or &quot;unknown&quot;)
+ 		Client_SetBottomLine(self.gMousePickTippOverride or mouseover)
+ 		-- see also gCurrentRenderer.gMousePickTippOverride ./net.paperdoll.lua:=
+224:	=
+
++	elseif (o.hittype =3D=3D kMousePickHitType_Container) then
++		local mouseover =3D sprintf(&quot;(Container serial=3D0x%08x)&quot;,o.container.se=
+rial)
++		Client_SetBottomLine(self.gMousePickTippOverride or mouseover)
+ 	end
+ end
+ =
+
+@@ -408,6 +415,7 @@
+ 		if (gMousePickFoundHit.hittype =3D=3D kMousePickHitType_Mobile)  	then r=
+eturn gMousePickFoundHit.mobile.serial end
+ 		if (gMousePickFoundHit.hittype =3D=3D kMousePickHitType_ContainerItem) t=
+hen return gMousePickFoundHit.item.serial end
+ 		if (gMousePickFoundHit.hittype =3D=3D kMousePickHitType_PaperdollItem) t=
+hen return gMousePickFoundHit.item.serial end
++		print(vardump(gMousePickFoundHit))
+ 	end
+ 	return 0
+ end
+
+Modified: trunk/lua/lib.cursor.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.cursor.lua (original)
++++ trunk/lua/lib.cursor.lua Thu Apr 17 18:12:59 2008
+@@ -147,6 +147,13 @@
+ 		local x,y,z =3D gCurrentRenderer:GetMouseHitTileCoords()
+ 		Send_Target_Static(x,y,z,hitobject.entity)
+ 	end
++	=
+
++	-- ground hit
++	if (hitobject.hittype =3D=3D kMousePickHitType_Ground) then
++		bSendPos =3D false =
+
++
++		Send_Target_Ground(hitobject.x,hitobject.y,hitobject.z)
++	end
+ 		=
+
+ 	if (bSendPos) then
+ 		-- target ground
+
+Modified: trunk/lua/lib.data.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.data.lua (original)
++++ trunk/lua/lib.data.lua Thu Apr 17 18:12:59 2008
+@@ -147,6 +147,26 @@
+ 	return res
+ end
+ =
+
++-- minx,miny,maxx,maxy =3D GetArtVisibleAABB(artid) : from gArtMatCache or=
+ calculateSize
++gArtMatVisibleAABBCache =3D {}
++function GetArtVisibleAABB (iArtID)
++	local res =3D gArtMatVisibleAABBCache[iArtID]
++
++	if (not res and gArtMapLoader) then
++		gArtMapLoader:Load(iArtID)
++		local minx,miny,maxx,maxy =3D gArtMapLoader:CalcVisibleAABB()
++		gArtMatVisibleAABBCache[iArtID] =3D {minx,miny,maxx,maxy}
++		return minx,miny,maxx,maxy
++	end
++
++	if (res) then
++		return unpack(res)
++	end
++	=
+
++	return 0, 0
++end
++
++
+ -- GetArtSize from gArtMatCache or generateSize
+ function GetArtSize (iArtID,iHue)
+ 	if (not(iHue) or (tonumber(iHue) &gt; gMaxHueValue)) then iHue=3D0 end
+@@ -182,6 +202,12 @@
+ 	local res =3D gGumpMatCache[iGumpID..&quot;_&quot;..iHue]
+ 	if (not res and gGumpLoader) then
+ 		res =3D gGumpLoader:CreateMaterial(iGumpID,true,gHueLoader,iHue)
++		=
+
++		if ((not res) or res =3D=3D &quot;&quot;) then
++			print(&quot;WARNING ! MakeBorderGumpPart : material load failed for gumpid=
+=3D&quot;, iGumpID)
++			res =3D &quot;hudUnknown&quot;
++		end
++		=
+
+ 		gGumpMatCache[iGumpID..&quot;_&quot;..iHue] =3D res
+ 	end
+ 	return res
+
+Modified: trunk/lua/lib.macrolist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.macrolist.lua (original)
++++ trunk/lua/lib.macrolist.lua Thu Apr 17 18:12:59 2008
+@@ -26,6 +26,8 @@
+ gMacroReadMobileStats.maxMana		=3D true
+ gMacroReadMobileStats.curStamina	=3D true
+ gMacroReadMobileStats.maxStamina	=3D true
++gMacroReadMobileStats.curWeight		=3D true
++gMacroReadMobileStats.maxWeight		=3D true
+ =
+
+ gMacroSpellsByName =3D nil
+ =
+
+@@ -62,6 +64,21 @@
+ 	RegisterListener(&quot;Hook_StartTargetMode&quot;,function () =
+
+ 			if (gMacroLastTargetMemory) then CompleteTargetMode(gMacroLastTargetMem=
+ory) end
+ 			gMacroTargetLastRunning =3D false
++			if (completefun) then completefun() end
++			return true
++		end)
++end
++
++function MacroCmd_TargetGround	(x,y,z, completefun)
++	if (gMacroWaitForTargetActive) then return end
++	gMacroWaitForTargetActive =3D true
++	RegisterListener(&quot;Hook_StartTargetMode&quot;,function () =
+
++			print(&quot;MacroCmd_TargetGround hook triggered&quot;)
++			if x and y and z then =
+
++				print(&quot;#&quot;,x,y,z)
++				CompleteTargetMode({hittype=3DkMousePickHitType_Ground,x=3Dx,y=3Dy,z=
+=3Dz}) =
+
++			end
++			gMacroWaitForTargetActive =3D false
+ 			if (completefun) then completefun() end
+ 			return true
+ 		end)
+
+Modified: trunk/lua/lib.mousepick.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mousepick.lua (original)
++++ trunk/lua/lib.mousepick.lua Thu Apr 17 18:12:59 2008
+@@ -4,6 +4,8 @@
+ kMousePickHitType_Mobile =3D 3
+ kMousePickHitType_ContainerItem =3D 4
+ kMousePickHitType_PaperdollItem =3D 5
++kMousePickHitType_Container =3D 6
++kMousePickHitType_Ground =3D 7
+ =
+
+ gMousePickFoundHit =3D false
+ =
+
+@@ -63,6 +65,11 @@
+ 		else
+ 			-- TODO is this too removey?
+ 			-- gCurrentRenderer:DeselectMobile()
++			=
+
++			if not GetWidgetUnderMouse() then
++				local x,y =3D gCurrentRenderer:GetMouseHitTileCoords()
++				SetAutoWalkTo(x,y)
++			end
+ 		end
+ 	end
+ end
+
+Modified: trunk/lua/lib.tilefreewalk.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.tilefreewalk.lua (original)
++++ trunk/lua/lib.tilefreewalk.lua Thu Apr 17 18:12:59 2008
+@@ -223,7 +223,7 @@
+ 			end
+ 		end
+ 	end
+-	=
+
++
+ 	-- execute movement (and collision/block handling)
+ 	if (bMoved) then	=
+
+ 		-- block movement here
+@@ -271,6 +271,16 @@
+ 		self:UpdateClientPosMarker()
+ 	end
+ 	=
+
++	-- if the player does not move due to collision stop autowalk
++	if gFreewalkLastX and gWalkPathToGo then
++		local d =3D Vector.len(Vector.sub(x,y,z, gFreewalkLastX,gFreewalkLastY,g=
+FreewalkLastZ))
++		if d &lt; 0.001 then
++			gWalkPathToGo =3D nil
++		end
++	end
++	-- store current position
++	gFreewalkLastX,gFreewalkLastY,gFreewalkLastZ =3D x,y,z
++
+ 	-- debug markers
+ 	if (gShowTileFreeDebug) then
+ 		local x,y,z =3D self:GetPos_LastConfirmed()
+
+Modified: trunk/lua/lib.uoids.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.uoids.lua (original)
++++ trunk/lua/lib.uoids.lua Thu Apr 17 18:12:59 2008
+@@ -172,6 +172,15 @@
+     hex2num(&quot;0x02&quot;),                       -- - Two-Hand item/weapon (incl=
+uding Shield)
+     hex2num(&quot;0x15&quot;),                       -- - BackPack
+     hex2num(&quot;0x0F&quot;)
++}
++
++-- you can add a paperdoll layer here with a position to overwrite the pos=
+tition in paperdoll (centered)
++-- if you overwrite something the artid is used instead of the gumpid
++-- this is used for brace/ring list ob the left side of the paperdoll
++gLayerOrderPositionAndArtOverwrite =3D {
++	[0x12] =3D {8,100},	-- Earrings
++	[0x0E] =3D {8,130},	-- Bracelet
++	[0x08] =3D {8,160},	-- Ring
+ }
+ =
+
+ -- Tiledata Flags
+
+Modified: trunk/lua/net/net.mobile.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.mobile.lua (original)
++++ trunk/lua/net/net.mobile.lua Thu Apr 17 18:12:59 2008
+@@ -178,7 +178,7 @@
+ 				gPlayerLastOverloadCheckWeight =3D stats.curWeight
+ 			end
+ 			if stats.curWeight &lt; stats.maxWeight and gPlayerLastOverloadCheckWeight=
+ then
+-				AddFadeLines(&quot;Weight is normal! &quot;..stats.curWeight.. &quot; / &quot;..stats.maxW=
+eight)
++				AddFadeLines(&quot;Weight is normal! &quot;..stats.curWeight.. &quot; / &quot;..stats.maxW=
+eight,gStatsInfoFadeLineColor)
+ 				gPlayerLastOverloadCheckWeight =3D nil
+ 			end
+ 		end
+
+Modified: trunk/lua/net/net.other.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.other.lua (original)
++++ trunk/lua/net/net.other.lua Thu Apr 17 18:12:59 2008
+@@ -202,6 +202,7 @@
+ 			end
+ 			popupmenu.entries[i] =3D entry
+ 		end
++		=
+
+ 		DisplayPopupMenu(popupmenu) -- see net.popup.lua
+ 	end
+ =
+
+
+Modified: trunk/lua/net/net.uodragdrop.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.uodragdrop.lua (original)
++++ trunk/lua/net/net.uodragdrop.lua Thu Apr 17 18:12:59 2008
+@@ -1,6 +1,6 @@
+ -- Equip Item Request   (answer is 0x2E, see also 0x78). 0x13
+ function Send_Equip_Item_Request(serial,layer,player_serial)
+-	printdebug(&quot;NET&quot;,&quot;NET: Send_Equip_Item_Request:&quot;,sprintf(&quot;0x%08x&quot;,serial)=
+,layer,player_serial)
++	printdebug(&quot;net&quot;,&quot;NET: Send_Equip_Item_Request:&quot;,sprintf(&quot;0x%08x&quot;,serial)=
+,layer,player_serial)
+ 	local out =3D GetSendFIFO()
+ 	out:PushNetUint8(kPacket_Equip_Item_Request)
+ 	out:PushNetUint32(serial)
+@@ -11,7 +11,7 @@
+ =
+
+ -- This is sent by the client when the player picks up an item. 0x07
+ function Send_Take_Object(serial,amount)
+-	--print(&quot;NET: Send_Take_Object:&quot;,sprintf(&quot;0x%08x&quot;,serial),serial,amount)
++	printdebug(&quot;net&quot;,&quot;NET: Send_Take_Object:&quot;,sprintf(&quot;0x%08x&quot;,serial),serial=
+,amount)
+ 	local out =3D GetSendFIFO()
+ 	out:PushNetUint8(kPacket_Take_Object)
+ 	out:PushNetUint32(serial)
+@@ -22,7 +22,7 @@
+ -- This is sent by the client when the player drops an item. 0x08
+ -- containerid =3D 0xFFFFFFFF  when the container is the ground
+ function Send_Drop_Object(serial,x,y,z,containerid)
+-	printdebug(&quot;NET&quot;,&quot;NET: Send_Drop_Object:&quot;,sprintf(&quot;0x%08x&quot;,serial),x,y,z,=
+containerid)
++	printdebug(&quot;net&quot;,&quot;NET: Send_Drop_Object:&quot;,sprintf(&quot;0x%08x&quot;,serial),x,y,z,=
+containerid)
+ 	local out =3D GetSendFIFO()
+ 	out:PushNetUint8(kPacket_Drop_Object)
+ 	out:PushNetUint32(serial)
+@@ -50,7 +50,7 @@
+ 	if (reason =3D=3D hex2num(&quot;0x06&quot;)) then -- No message.
+ 		reasontxt =3D false
+ 	end
+-	printdebug(&quot;NET&quot;,&quot;NET : Get_Item_Failed&quot;,reasontxt)
++	printdebug(&quot;net&quot;,&quot;NET : Get_Item_Failed&quot;,reasontxt)
+ 	CancelUODragDrop() -- server side cancel
+ end
+ =
+
+@@ -61,13 +61,13 @@
+ 	local xloc =3D input:PopNetUint16()
+ 	local yloc =3D input:PopNetUint16()
+ 	-- TODO ?
+-	printdebug(&quot;NET&quot;,&quot;NET : Drop_Item_Failed --&gt; nothing todo?&quot;)
++	printdebug(&quot;net&quot;,&quot;NET : Drop_Item_Failed --&gt; nothing todo?&quot;)
+ end
+ =
+
+ -- Drop Item OK ? Paperdoll Clothing Added ? (servers response to 0x08 ?)
+ function gPacketHandler.kPacket_Drop_Item_OK() -- 0x29
+ 	local input =3D GetRecvFIFO()
+ 	local id =3D input:PopNetUint8()
+-	printdebug(&quot;NET&quot;,&quot;NET : Drop_Item_OK --&gt; nothing todo?&quot;)
++	printdebug(&quot;net&quot;,&quot;NET : Drop_Item_OK --&gt; nothing todo?&quot;)
+ end
+  =
+
+
+Modified: trunk/lua/obj/obj.container.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/obj/obj.container.lua (original)
++++ trunk/lua/obj/obj.container.lua Thu Apr 17 18:12:59 2008
+@@ -173,6 +173,8 @@
+ 		dialog.backpane.mbIgnoreMouseOver =3D false
+ 		dialog.backpane.on_mouse_right_down	=3D function (widget) CloseContainer=
+(widget.dialog.uoContainer.serial) end
+ 		dialog.backpane.on_mouse_left_down	=3D function (widget) widget.dialog:B=
+ringToFront() gui.StartMoveDialog(widget.dialog.rootwidget) end
++		=
+
++		NotifyListener(&quot;Hook_Open_Container&quot;, dialog, container)
+ 	end
+ 	gLastDebugContainer =3D container
+ 	RefreshContainerItemWidgets(container)
+
+Modified: trunk/lua/obj/obj.mobile.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/obj/obj.mobile.lua (original)
++++ trunk/lua/obj/obj.mobile.lua Thu Apr 17 18:12:59 2008
+@@ -202,21 +202,21 @@
+ 		local value =3D stats.str
+ 		if value and last_value and (last_value ~=3D value) then
+ 			-- display change
+-			AddFadeLines(&quot;Attribute Strength is now &quot;..sprintf(&quot;%3f&quot;,value)..&quot; -&gt; &quot;=
+..sprintf(&quot;%3f&quot;,(value-last_value)),gStatsInfoFadeLineColor)
++			AddFadeLines(&quot;Attribute Strength is now &quot;..sprintf(&quot;%3.0f&quot;,value)..&quot; -&gt;=
+ &quot;..sprintf(&quot;%3.0f&quot;,(value-last_value)),gStatsInfoFadeLineColor)
+ 		end
+ 		=
+
+ 		last_value =3D oldstats.dex
+ 		value =3D stats.dex
+ 		if value and last_value and (last_value ~=3D value) then
+ 			-- display change
+-			AddFadeLines(&quot;Attribute Dexterity is now &quot;..sprintf(&quot;%3f&quot;,value)..&quot; -&gt; =
+&quot;..sprintf(&quot;%3f&quot;,(value-last_value)),gStatsInfoFadeLineColor)
++			AddFadeLines(&quot;Attribute Dexterity is now &quot;..sprintf(&quot;%3.0f&quot;,value)..&quot; -=
+&gt;<i> &quot;..sprintf(&quot;%3.0f&quot;,(value-last_value)),gStatsInfoFadeLineColor)
+</I> 		end
+ 		=
+
+ 		last_value =3D oldstats.int
+ 		value =3D stats.int
+ 		if value and last_value and (last_value ~=3D value) then
+ 			-- display change
+-			AddFadeLines(&quot;Attribute Intelligence is now &quot;..sprintf(&quot;%3f&quot;,value)..&quot; =
+-&gt; &quot;..sprintf(&quot;%3f&quot;,(value-last_value)),gStatsInfoFadeLineColor)
++			AddFadeLines(&quot;Attribute Intelligence is now &quot;..sprintf(&quot;%3.0f&quot;,value)..=
+&quot; -&gt; &quot;..sprintf(&quot;%3.0f&quot;,(value-last_value)),gStatsInfoFadeLineColor)
+ 		end
+ 	end
+ 	=
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000864.html">[Iris-commit] [IRIS] r2053 - in /trunk: include/data.h src/data.cpp	src/data_L.cpp
+</A></li>
+	<LI>Next message: <A HREF="000866.html">[Iris-commit] [IRIS] r2055 - in /trunk: bin/iris2.exe lua/lib.3d.mousepick.lua lua/lib.uoids.lua vs8/iris.sln vs8/iris.vcproj
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#865">[ date ]</a>
+              <a href="thread.html#865">[ thread ]</a>
+              <a href="subject.html#865">[ subject ]</a>
+              <a href="author.html#865">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

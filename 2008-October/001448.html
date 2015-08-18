@@ -1,0 +1,348 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2643 - in /trunk/lua: lib.2d.map.lua lib.2d.mobile.lua lib.2d.renderer.lua lib.unifont.lua lib.uoanim.lua net.walk.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-October/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2643%20-%20in%20/trunk/lua%3A%20lib.2d.map.lua%0A%20lib.2d.mobile.lua%20lib.2d.renderer.lua%20lib.unifont.lua%20lib.uoanim.lua%0A%20net.walk.lua&In-Reply-To=%3C20081023232003.91F281C18635%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001447.html">
+   <LINK REL="Next"  HREF="001449.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2643 - in /trunk/lua: lib.2d.map.lua lib.2d.mobile.lua lib.2d.renderer.lua lib.unifont.lua lib.uoanim.lua net.walk.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2643%20-%20in%20/trunk/lua%3A%20lib.2d.map.lua%0A%20lib.2d.mobile.lua%20lib.2d.renderer.lua%20lib.unifont.lua%20lib.uoanim.lua%0A%20net.walk.lua&In-Reply-To=%3C20081023232003.91F281C18635%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2643 - in /trunk/lua: lib.2d.map.lua lib.2d.mobile.lua lib.2d.renderer.lua lib.unifont.lua lib.uoanim.lua net.walk.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Fri Oct 24 01:20:03 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001447.html">[Iris-commit] [IRIS] r2642 - /trunk/lua/main.lua
+</A></li>
+        <LI>Next message: <A HREF="001449.html">[Iris-commit] [IRIS] r2644 - in /trunk: lua/net/net.other.lua	plugins/lib.spellbar.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1448">[ date ]</a>
+              <a href="thread.html#1448">[ thread ]</a>
+              <a href="subject.html#1448">[ subject ]</a>
+              <a href="author.html#1448">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Fri Oct 24 01:20:02 2008
+New Revision: 2643
+
+Log:
+2d : mobile walk animation
+
+Modified:
+    trunk/lua/lib.2d.map.lua
+    trunk/lua/lib.2d.mobile.lua
+    trunk/lua/lib.2d.renderer.lua
+    trunk/lua/lib.unifont.lua
+    trunk/lua/lib.uoanim.lua
+    trunk/lua/net.walk.lua
+
+Modified: trunk/lua/lib.2d.map.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.map.lua (original)
++++ trunk/lua/lib.2d.map.lua Fri Oct 24 01:20:02 2008
+@@ -96,7 +96,6 @@
+ end
+ =
+
+ function Renderer2D:MapStep		()
+-	self:MobileTestStep()
+ 	local t =3D Client_GetTicks()
+ 	local x,y,z =3D self:GetCamPos()
+ 	for k,spawner in pairs(self.map2d_spawners) do spawner:Step(t,x,y,z) end
+
+Modified: trunk/lua/lib.2d.mobile.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.mobile.lua (original)
++++ trunk/lua/lib.2d.mobile.lua Fri Oct 24 01:20:02 2008
+@@ -1,5 +1,7 @@
+ -- mobiles (animals,players,monsters,npcs..)
+ -- TODO : Equipconv.def ?
++
++Renderer2D.gStepMobiles =3D {}
+ =
+
+ -- main updater, create, position ...
+ function Renderer2D:MobileSetVisible			(mobile,bVisible) =
+
+@@ -12,9 +14,18 @@
+ 		local spriteblock =3D cUOSpriteBlock:New()
+ 		mobile.gfx2d =3D spriteblock
+ 	end
++	if (mobile.xloc ~=3D mobile.r2d_lastxloc or
++		mobile.yloc ~=3D mobile.r2d_lastyloc) then
++		mobile.r2d_lastxloc =3D mobile.xloc
++		mobile.r2d_lastyloc =3D mobile.yloc
++		mobile.r2d_lastmoved =3D gMyTicks
++	end
+ 	self:UpdateMobileGfx(mobile)
+ end =
+
+ =
+
++function Renderer2D:MobileStepOne(mobile)
++	self:UpdateMobileGfx(mobile)
++end
+ =
+
+ =
+
+ function My2DMobileDebug (a)
+@@ -58,6 +69,14 @@
+ 	local spriteblock =3D mobile.gfx2d
+ 	if (not spriteblock) then return end
+ 	spriteblock:Clear()
++	=
+
++	local mount	=3D mobile:GetEquipmentAtLayer(kLayer_Mount)
++	=
+
++	local fTimeSinceLastMove =3D gMyTicks - (mobile.r2d_lastmoved or 0)
++	local bRun =3D true
++	local iMoveInterval =3D WalkGetIntervalEx(mount,mobile.artid,bRun)
++	local bMoving =3D fTimeSinceLastMove &lt;=3D iMoveInterval + 50
++	self.gStepMobiles[mobile] =3D bMoving and (gMyTicks + 10) or (gMyTicks + =
+500)
+ =
+
+ 	local xloc,yloc,zloc =3D mobile.xloc,mobile.yloc,mobile.zloc
+ 	local tx,ty,tz,iIndex,fIndexRel =3D 0,0,0,0
+@@ -67,7 +86,6 @@
+ 	local parts =3D {}
+ 	local iDirAdd,bMirrorX =3D GetAnimDirAdd(DirWrap(mobile.dir))
+ 	=
+
+-	local mount	=3D mobile:GetEquipmentAtLayer(kLayer_Mount)
+ 	--~ table.insert(parts,{self:GetMobileMountModelAndHue(mobile)}) -- kLaye=
+r_Mount
+ 	if (mount) then table.insert(parts,{gMountTranslate2D[mount.artid],mount.=
+hue,gStandardHorse}) end
+ 	=
+
+@@ -98,10 +116,16 @@
+ 			iIndex =3D iIndex + 1 =
+
+ 			fIndexRel =3D 200 * (1 - 1/iIndex) -- dirty hack to avoid zbuffer flick=
+er
+ 			=
+
+-			local iAnimID =3D gMy2DMobileDebugAnim or ( Anim_GetIdleAnim(iModelID,i=
+LoaderIndex,mount) + iDirAdd )
+-			local iFrameCount =3D Anim2D_GetFrameCount(Anim_GetRealID(iModelID,iAni=
+mID,iLoaderIndex),iLoaderIndex) or 1000
++			local iAnimID =3D		bMoving and	(Anim_GetMoveAnim(iModelID,iLoaderIndex,=
+mount,bRun) + iDirAdd) or
++											(Anim_GetIdleAnim(iModelID,iLoaderIndex,mount) + iDirAdd)
++			=
+
++			if (gMy2DMobileDebugAnim) then iAnimID =3D gMy2DMobileDebugAnim end
++			=
+
++			=
+
++			local iFrameCount =3D Anim2D_GetFrameCount(Anim_GetRealID(iModelID,iAni=
+mID,iLoaderIndex),iLoaderIndex) or 1
+ 			if (iFrameCount &lt; 1) then iFrameCount =3D 1 end
+-			local iFrame =3D floor((gMy2DDebugFrame or 0) / 15) % iFrameCount
++			--~ local iFrame =3D floor((gMy2DDebugFrame or 0) / 15) % iFrameCount
++			local iFrame =3D (floor(gMyTicks/100)) % iFrameCount
+ 			local iFallBackAnim =3D iFallBackModel and Anim_GetIdleAnim(iFallBackMo=
+del,1)
+ 			spriteblock:AddAnimModel(tx,ty,tz,iModelID,iHue,iLoaderIndex,iFallBackM=
+odel,iFallBackAnim,iAnimID,iFrame,bMirrorX,CalcSortBonus(nil,sorttx,sortty,=
+sorttz,fIndexRel,4),mobile) =
+
+ 		end
+@@ -112,7 +136,10 @@
+ 	mobile.gfx2d:SetPosition(x,y,z)
+ end
+ =
+
+-function Renderer2D:DestroyMobileGfx			(mobile) if (mobile.gfx2d) then mob=
+ile.gfx2d:Destroy() mobile.gfx2d =3D nil end end
++function Renderer2D:DestroyMobileGfx			(mobile) =
+
++	if (mobile.gfx2d) then mobile.gfx2d:Destroy() mobile.gfx2d =3D nil end
++	self.gStepMobiles[mobile] =3D nil
++end
+ =
+
+ function Renderer2D:CreateMobileGfx				(mobile) self:UpdateMobile(mobile) =
+end	=
+
+ =
+
+@@ -121,12 +148,19 @@
+ function Renderer2D:MobileAnimStep				() end -- from mainstep
+ function Renderer2D:MobileStartServerSideAnim	(animdata) end
+ =
+
+-function Renderer2D:MobileTestStep()
+-	local playermobile =3D GetPlayerMobile()
++
++function Renderer2D:MobileStep()
++	local curt =3D gMyTicks
++	for mobile,t in pairs(self.gStepMobiles) do =
+
++		if (curt &gt;=3D t) then self:MobileStepOne(mobile) end
++	end
++	=
+
++	--~ local playermobile =3D GetPlayerMobile()
+ 	--~ print(&quot;playermobile.dir&quot;,playermobile and DirWrap(playermobile.dir)) =
+
+ 	--~ gMy2DDebugFrame =3D floor(gMy2DDebugFrame or 0) + 1
+ 	--~ Renderer2D:UpdateMobileGfx(GetPlayerMobile())
+-	if true then return end
++	--~ if true then return end
++	=
+
+ 	=
+
+ 	--~ local iRealID =3D Anim_GetRealID(iModelID,iAnimID,iLoaderIndex) =
+
+ 	--~ local o =3D gfx.animinfo   =3D GetAnimDataInfo(iModelID) -- o.miFrame=
+s,o.miUnknown,o.miCount,o.miFrameInterval,o.miFrameStart
+
+Modified: trunk/lua/lib.2d.renderer.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.renderer.lua (original)
++++ trunk/lua/lib.2d.renderer.lua Fri Oct 24 01:20:02 2008
+@@ -135,6 +135,7 @@
+ =
+
+ 	self:EffectAnimStep() -- should be after player pos is updated, for effec=
+ts moving with player
+ 	self:MapStep()
++	self:MobileStep()
+ 	self:HUDFX_MainStep()
+ 	self:Dynamics_MainStep()
+ 	self:MousePickStep()
+
+Modified: trunk/lua/lib.unifont.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.unifont.lua (original)
++++ trunk/lua/lib.unifont.lua Fri Oct 24 01:20:02 2008
+@@ -148,7 +148,7 @@
+ 		local res	=3D {}
+ 		local uvw, uvh =3D u1-u0,v1-v0
+ 		res.matname	=3D matname
+-		res.xmove	=3D w - overlapx*s + xoff*s
++		res.xmove	=3D ceil(w - overlapx*s + xoff*s)
+ 		res.xoff	=3D xoff
+ 		res.yoff	=3D yoff - 1*self.defaultlineh
+ 		res.w	=3D w
+
+Modified: trunk/lua/lib.uoanim.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.uoanim.lua (original)
++++ trunk/lua/lib.uoanim.lua Fri Oct 24 01:20:02 2008
+@@ -281,8 +281,15 @@
+ 	if (iModelID &lt; high			) then return  5 end
+ 	if (iModelID &lt; high + low	) then return 10 end
+ 	return bHasMount and 125 or 20  -- Human
+-	--~ return 20 -- Human
+-end
++end
++function Anim_GetMoveAnim (iModelID,iLoaderIndex,bHasMount,bRun)
++	local high,low =3D unpack(gUOAnimRealIDCatBoundsByLoaderIndex[iLoaderInde=
+x])
++	if (iModelID &lt; high			) then return  0 end
++	if (iModelID &lt; high + low	) then return bRun and 5 or 0 end
++	return bHasMount and (bRun and 120 or 115) or (bRun and 5 or 0)  -- Human
++end
++
++
+ function Anim_GetCorpseAnim (iModelID,iLoaderIndex)
+ 	local high,low =3D unpack(gUOAnimRealIDCatBoundsByLoaderIndex[iLoaderInde=
+x])
+ 	if (iModelID &lt; high			) then return bForward and 15 or 10 end
+@@ -464,7 +471,7 @@
+ -- iAnimID : 100- gethit/flinch/pain
+ -- iAnimID : 105- die backwards
+ -- iAnimID : 110- die forwards
+--- iAnimID : 115- mount-wal
++-- iAnimID : 115- mount-walk
+ -- iAnimID : 120- mount-run
+ -- iAnimID : 125- mount-idle
+ -- iAnimID : 130- mount-attack-swing?
+
+Modified: trunk/lua/net.walk.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net.walk.lua (original)
++++ trunk/lua/net.walk.lua Fri Oct 24 01:20:02 2008
+@@ -161,6 +161,11 @@
+ 								and	(	bRunFlag and gWalkTimeout_MountRunningSpeed	or gWalkTimeout_=
+MountMovingSpeed) or =
+
+ 									(	bRunFlag and gWalkTimeout_RunningSpeed		or gWalkTimeout_MovingS=
+peed)
+ end
++function WalkGetIntervalEx (bHasMount,iBodyID,bRunFlag)
++	return	( bHasMount or gIncreasedMovementSpeedBodyIDs[iBodyID] )
++								and	(	bRunFlag and gWalkTimeout_MountRunningSpeed	or gWalkTimeout_=
+MountMovingSpeed) or =
+
++									(	bRunFlag and gWalkTimeout_RunningSpeed		or gWalkTimeout_MovingS=
+peed)
++end
+ =
+
+ -- returns false if the walk queue is full and the next request should wait
+ function WalkQueueOkForNextSend ()
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001447.html">[Iris-commit] [IRIS] r2642 - /trunk/lua/main.lua
+</A></li>
+	<LI>Next message: <A HREF="001449.html">[Iris-commit] [IRIS] r2644 - in /trunk: lua/net/net.other.lua	plugins/lib.spellbar.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1448">[ date ]</a>
+              <a href="thread.html#1448">[ thread ]</a>
+              <a href="subject.html#1448">[ subject ]</a>
+              <a href="author.html#1448">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

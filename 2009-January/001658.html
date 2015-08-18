@@ -1,0 +1,222 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2856 - in /trunk/lua: lib.3d.dynamicspawner.lua lib.mapblock.3d.water.lua lib.tilefreewalk.lua lib.walking3.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2009-January/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2856%20-%20in%20/trunk/lua%3A%0A%20lib.3d.dynamicspawner.lua%20lib.mapblock.3d.water.lua%20lib.tilefreewalk.lua%0A%20lib.walking3.lua&In-Reply-To=%3C20090111024851.DC25C1C18808%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001657.html">
+   <LINK REL="Next"  HREF="001659.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2856 - in /trunk/lua: lib.3d.dynamicspawner.lua lib.mapblock.3d.water.lua lib.tilefreewalk.lua lib.walking3.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2856%20-%20in%20/trunk/lua%3A%0A%20lib.3d.dynamicspawner.lua%20lib.mapblock.3d.water.lua%20lib.tilefreewalk.lua%0A%20lib.walking3.lua&In-Reply-To=%3C20090111024851.DC25C1C18808%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2856 - in /trunk/lua: lib.3d.dynamicspawner.lua lib.mapblock.3d.water.lua lib.tilefreewalk.lua lib.walking3.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sun Jan 11 03:48:51 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001657.html">[Iris-commit] [IRIS] r2855 - in /trunk: lua/lib.2d.mousepick.lua lua/lib.3d.mousepick.lua lua/lib.mapblock.2d.terrain.lua lua/lib.mapblock.base.lua src/terrain_multitex.cpp
+</A></li>
+        <LI>Next message: <A HREF="001659.html">[Iris-commit] [IRIS] r2857 - /trunk/premake.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1658">[ date ]</a>
+              <a href="thread.html#1658">[ thread ]</a>
+              <a href="subject.html#1658">[ subject ]</a>
+              <a href="author.html#1658">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: hagish
+Date: Sun Jan 11 03:48:50 2009
+New Revision: 2856
+
+Log:
+greatly improved walking speed next to dynamics (ie. playercities)
+
+Modified:
+    trunk/lua/lib.3d.dynamicspawner.lua
+    trunk/lua/lib.mapblock.3d.water.lua
+    trunk/lua/lib.tilefreewalk.lua
+    trunk/lua/lib.walking3.lua
+
+Modified: trunk/lua/lib.3d.dynamicspawner.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.dynamicspawner.lua (original)
++++ trunk/lua/lib.3d.dynamicspawner.lua Sun Jan 11 03:48:50 2009
+@@ -14,10 +14,15 @@
+ 	local b =3D cMapBlockSpawner.CreateMapBlock(self, bx,by)
+ 	=
+
+ 	-- add already existing dynamics
+-	for k,dynamic in pairs(GetDynamicList()) do =
+
+-		if b:IsUOLocationInsideBlock(dynamic.xloc, dynamic.yloc) and (DynamicIsI=
+nWorld(dynamic)) then =
+
+-			b:AddDynamic(dynamic)
+-		end =
+
++	local d =3D self.iBlockSize
++	local tbx =3D d * bx
++	local tby =3D d * by
++	for x =3D tbx,tbx+d-1 do
++	for y =3D tby,tby+d-1 do
++	for k,dynamic in pairs(GetDynamicsAtPosition(x,y)) do =
+
++		b:AddDynamic(dynamic)
++	end
++	end
+ 	end
+ =
+
+ 	return b
+
+Modified: trunk/lua/lib.mapblock.3d.water.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mapblock.3d.water.lua (original)
++++ trunk/lua/lib.mapblock.3d.water.lua Sun Jan 11 03:48:50 2009
+@@ -259,12 +259,21 @@
+ 	self:Yield()
+ 	=
+
+ 	-- check dynamics
+-	for k,dynamic in pairs(GetDynamicList()) do if (DynamicIsInWorld(dynamic)=
+) then
+-		if not gConfig:Get(&quot;gWaterAsGroundTiles&quot;) and dynamic.artid and FilterIs=
+StaticWater(dynamic.artid) then
+-			self:SetWaterZ(dynamic.xloc-basex,dynamic.yloc-basey,dynamic.zloc)					=
+
+-		end
+-	end end
+-
++	if not gConfig:Get(&quot;gWaterAsGroundTiles&quot;) then
++		local d =3D self.iBlockSize
++		local tbx =3D d * self.bx
++		local tby =3D d * self.by
++		for x =3D tbx,tbx+d-1 do
++		for y =3D tby,tby+d-1 do
++		for k,dynamic in pairs(GetDynamicsAtPosition(x,y)) do =
+
++			if dynamic.artid and FilterIsStaticWater(dynamic.artid) then
++				self:SetWaterZ(dynamic.xloc-basex,dynamic.yloc-basey,dynamic.zloc)					=
+
++			end
++		end
++		end
++		end
++	end
++	=
+
+ 	-- WATER
+ 	local count =3D Array2DGetElementCount(self.mWaterZMap) -- might be slow
+ 	=
+
+
+Modified: trunk/lua/lib.tilefreewalk.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.tilefreewalk.lua (original)
++++ trunk/lua/lib.tilefreewalk.lua Sun Jan 11 03:48:50 2009
+@@ -383,7 +383,7 @@
+ =
+
+ =
+
+ function gTileFreeWalk:UpdateGroundCache (xloc,yloc,zloc)
+-	--~ print(&quot;##### gTileFreeWalk:UpdateGroundCache&quot;,xloc,yloc,zloc)
++	-- print(&quot;##### gTileFreeWalk:UpdateGroundCache&quot;,xloc,yloc,zloc)
+ 	if (not gGroundBlockLoader) then print(&quot;gTileFreeWalk:UpdateGroundCache :=
+ warning, no maploader(yet)&quot;) return end
+ 	xloc =3D floor(xloc)
+ 	yloc =3D floor(yloc)
+@@ -399,8 +399,12 @@
+ -- triggers a rescan of the collision information around the given location
+ function gTileFreeWalk:IvalidateCacheAround(xloc,yloc,radius)
+ 	radius =3D radius or 5
+-	if self.lastscanxloc and self.lastscanyloc then
+-		if dist2(xloc,yloc, self.lastscanxloc,self.lastscanyloc) &lt; radius then
++	local lsx =3D self.lastscanxloc
++	local lsy =3D self.lastscanyloc
++	if lsx and lsy then
++		local d =3D dist2max(xloc,yloc,lsx,lsy)
++		if d &lt; radius then
++			-- print(&quot;##### gTileFreeWalk:IvalidateCacheAround&quot;,lsx,lsy,&quot;:&quot;,xloc,yl=
+oc,radius,&quot;:&quot;,d)
+ 			self.lastscanxloc =3D nil
+ 			self.lastscanyloc =3D nil
+ 		end
+@@ -412,6 +416,7 @@
+ 	if (self.lastscanxloc ~=3D xloc or self.lastscanyloc ~=3D yloc) then
+ 		self.lastscanxloc =3D xloc
+ 		self.lastscanyloc =3D yloc
++	-- print(&quot;##### gTileFreeWalk:ScanGroundIfNeeded&quot;,xloc,yloc,zloc,rx,ry,rz)
+ 		-- read surrounding height info
+ 		if (self.groundcache) then
+ 			local myzloc =3D self.groundcache[xloc..&quot;,&quot;..yloc] =
+
+
+Modified: trunk/lua/lib.walking3.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.walking3.lua (original)
++++ trunk/lua/lib.walking3.lua Sun Jan 11 03:48:50 2009
+@@ -119,11 +119,9 @@
+ function W3_ForAllItemsAtPos	(xloc,yloc,fun,param)
+ 	W3_ForAllMultiPartsAtPos(xloc,yloc,fun,param)
+ 	for k,static in pairs(MapGetStatics(xloc,yloc)) do fun(static,param) end
+-	for k,dynamic in pairs(GetDynamicList()) do
+-		if (DynamicIsInWorld(dynamic) and dynamic.artid) then
+-			if (dynamic.xloc =3D=3D xloc and dynamic.yloc =3D=3D yloc and dynamic.a=
+rtid &lt; gMulti_ID) then -- non-multi
+-				fun(dynamic,param)
+-			end
++	for k,dynamic in pairs(GetDynamicsAtPosition(xloc,yloc)) do
++		if dynamic.artid and dynamic.artid &lt; gMulti_ID then -- non-multi
++			fun(dynamic,param)
+ 		end
+ 	end
+ end
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001657.html">[Iris-commit] [IRIS] r2855 - in /trunk: lua/lib.2d.mousepick.lua lua/lib.3d.mousepick.lua lua/lib.mapblock.2d.terrain.lua lua/lib.mapblock.base.lua src/terrain_multitex.cpp
+</A></li>
+	<LI>Next message: <A HREF="001659.html">[Iris-commit] [IRIS] r2857 - /trunk/premake.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1658">[ date ]</a>
+              <a href="thread.html#1658">[ thread ]</a>
+              <a href="subject.html#1658">[ subject ]</a>
+              <a href="author.html#1658">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

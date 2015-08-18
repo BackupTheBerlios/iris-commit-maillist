@@ -1,0 +1,330 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1873 - in /trunk/lua: lib.3d.map.lua	lib.devtool.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-February/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1873%20-%20in%20/trunk/lua%3A%20lib.3d.map.lua%0A%09lib.devtool.lua&In-Reply-To=%3C20080202171502.AB5621C1868D%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000685.html">
+   <LINK REL="Next"  HREF="000687.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1873 - in /trunk/lua: lib.3d.map.lua	lib.devtool.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1873%20-%20in%20/trunk/lua%3A%20lib.3d.map.lua%0A%09lib.devtool.lua&In-Reply-To=%3C20080202171502.AB5621C1868D%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1873 - in /trunk/lua: lib.3d.map.lua	lib.devtool.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat Feb  2 18:15:00 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000685.html">[Iris-commit] [IRIS] r1872 - in /trunk: bin/iris2.exe data/config.lua.dist data/grannys/materials/grannybase.material data/models/materials/textures.material data/terrain/materials/terrain.material lua/lib.3d.renderer.lua
+</A></li>
+        <LI>Next message: <A HREF="000687.html">[Iris-commit] [IRIS] r1874 - in /trunk: data/grannys/materials/grannybase.material data/profiles/gfx_high.lua lua/lib.granny.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#686">[ date ]</a>
+              <a href="thread.html#686">[ thread ]</a>
+              <a href="subject.html#686">[ subject ]</a>
+              <a href="author.html#686">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: hagish
+Date: Sat Feb  2 18:14:57 2008
+New Revision: 1873
+
+Log:
+first ingame position adjust tool
+
+Modified:
+    trunk/lua/lib.3d.map.lua
+    trunk/lua/lib.devtool.lua
+
+Modified: trunk/lua/lib.3d.map.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.map.lua (original)
++++ trunk/lua/lib.3d.map.lua Sat Feb  2 18:14:57 2008
+@@ -232,6 +232,18 @@
+ 	return true
+ end
+ =
+
++-- rebuilds the map. this is slow!!!! so dont do this during normal gamepl=
+ay
++function Renderer3D:RebuildMap ()
++	-- Renderer3D:ClearMapCache()
++	-- Renderer3D:UpdateMap()
++
++	for y,row in pairs(self.gMapChunks) do
++		for x,chunk in pairs(row) do
++			chunk.mbRebuild =3D true
++		end
++	end
++end
++
+ function Renderer3D:ClearMapCache ()
+ 	--print(&quot;ClearMapCache&quot;)
+ 	local y,row,x,chunk
+
+Modified: trunk/lua/lib.devtool.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.devtool.lua (original)
++++ trunk/lua/lib.devtool.lua Sat Feb  2 18:14:57 2008
+@@ -13,6 +13,12 @@
+ 		-- ListStuffUnderMouse
+ 		{	{type=3D&quot;Button&quot;,text=3D&quot;ListStuffUnderMouse&quot;,onMouseDown=3Dfunction (=
+widget) =
+
+ 				DevToolListStuffUnderMouse(x,y,z,radius)
++				widget.dialog:Destroy()
++				end}, },
++				=
+
++		-- Adjust Art Position
++		{	{type=3D&quot;Button&quot;,text=3D&quot;AdjustArtPosition&quot;,onMouseDown=3Dfunction (wi=
+dget) =
+
++				AdjustArtPosition(x,y,z)
+ 				widget.dialog:Destroy()
+ 				end}, },
+ 				=
+
+@@ -122,6 +128,21 @@
+ 	GetMainCam():SetPos(x,y,z+1)
+ end
+ =
+
++function AdjustArtPositionSplitRotationStringToXYZ(txt)
++	local arr =3D strsplit(&quot;,&quot;,txt)
++	local x,y,z =3D 0,0,0
++	for k,axis_ang in pairs(arr) do
++		local axis,ang =3D unpack(strsplit(&quot;:&quot;,axis_ang))
++
++			if (axis =3D=3D &quot;x&quot;) then x =3D ang
++		elseif (axis =3D=3D &quot;y&quot;) then y =3D ang
++		elseif (axis =3D=3D &quot;z&quot;) then z =3D ang
++		end
++	end
++	=
+
++	return x,y,z
++end
++
+ -- shows memory usage in a nice dialog
+ function ShowMemoryUsage ()
+ 	local rows =3D { =
+
+@@ -140,6 +161,127 @@
+ =
+
+ 	guimaker.MakeTableDlg(rows,100,10,true,true,gGuiDefaultStyleSet,&quot;window&quot;) =
+
+ end
++
++function AdjustArtPositionInfoString(xadd,yadd,zadd,xrot,yrot,zrot)
++	return &quot;xadd=3D&quot;..xadd..&quot;, yadd=3D&quot;..yadd..&quot;, zadd=3D&quot;..zadd..&quot;, rot=3Dx:=
+&quot;..xrot..&quot;,y:&quot;..yrot..&quot;,z:&quot;..zrot
++end
++
++function AdjustArtPositionAdjustButtonHandler(dialog, xadd,yadd,zadd,xrot,=
+yrot,zrot)
++	-- update values
++	dialog.xadd =3D dialog.xadd + xadd
++	dialog.yadd =3D dialog.yadd + yadd
++	dialog.zadd =3D dialog.zadd + zadd
++	dialog.xrot =3D dialog.xrot + xrot
++	dialog.yrot =3D dialog.yrot + yrot
++	dialog.zrot =3D dialog.zrot + zrot
++	-- update art filter map
++	local otherid =3D dialog.tileid
++	if gArtFilter[dialog.tileid] and gArtFilter[dialog.tileid][&quot;maptoid&quot;] then
++		otherid =3D gArtFilter[dialog.tileid][&quot;maptoid&quot;]
++	end
++	gArtFilter[dialog.tileid] =3D {
++		maptoid=3Dotherid,
++		rotation=3D&quot;x:&quot;..dialog.xrot..&quot;,y:&quot;..dialog.yrot..&quot;,z:&quot;..dialog.zrot,
++		xadd=3Ddialog.xadd,yadd=3Ddialog.yadd,zadd=3Ddialog.zadd,
++	}
++	print(&quot;filter.art.lua&quot;,&quot;gArtFilter[&quot;..dialog.tileid..&quot;]=3D{maptoid=3D&quot;..o=
+therid..&quot;,rotation=3D\&quot;x:&quot;..dialog.xrot..&quot;,y:&quot;..dialog.yrot..&quot;,z:&quot;..dialog.=
+zrot..&quot;\&quot;,xadd=3D&quot;..dialog.xadd..&quot;,yadd=3D&quot;..dialog.yadd..&quot;,zadd=3D&quot;..dialo=
+g.zadd..&quot;}&quot;)
++	-- update geometry
++	Renderer3D:RebuildMap()
++end
++
++function AdjustArtPositionControlDialog(tileid)
++	print(&quot;AdjustArtPositionControlDialog&quot;,tileid)
++	=
+
++	local xadd,yadd,zadd,xrot,yrot,zrot =3D 0,0,0, 0,0,0
++	=
+
++	-- read out start values
++	if gArtFilter[tileid] then
++		-- rotation=3D&quot;x:0,y:0,z:90&quot;,xadd=3D0,yadd=3D1.85,zadd=3D0}
++		xadd =3D gArtFilter[tileid][&quot;xadd&quot;] or 0
++		yadd =3D gArtFilter[tileid][&quot;yadd&quot;] or 0
++		zadd =3D gArtFilter[tileid][&quot;zadd&quot;] or 0
++		local rot =3D gArtFilter[tileid][&quot;rotation&quot;] or &quot;x:0,y:0,z:0&quot;
++		xrot,yrot,zrot =3D AdjustArtPositionSplitRotationStringToXYZ(rot)
++	end
++	=
+
++	print(&quot;DEBUG&quot;,xadd,yadd,zadd,xrot,yrot,zrot)
++	=
+
++	local name =3D GetStaticTileTypeName(tileid) or &quot;unknown&quot;
++	local rows =3D { =
+
++		{{ type=3D&quot;Label&quot;,		text=3D&quot;adjust position of #&quot;..tileid..&quot;: &quot;..name }},
++		-- {{ type=3D&quot;EditText&quot;,	w=3D300,h=3D16,text=3DAdjustArtPositionInfoStri=
+ng(xadd,yadd,zadd,xrot,yrot,zrot),controlname=3D&quot;info&quot; }},
++		=
+
++		{{ type=3D&quot;Label&quot;,		text=3D&quot;move&quot; }},
++		{{ type=3D&quot;Button&quot;,text=3D&quot;x + 0.1&quot;,onMouseDown=3Dfunction(widget) Adjus=
+tArtPositionAdjustButtonHandler(widget.dialog, 0.1,0,0, 0,0,0) end }},
++		{{ type=3D&quot;Button&quot;,text=3D&quot;x - 0.1&quot;,onMouseDown=3Dfunction(widget) Adjus=
+tArtPositionAdjustButtonHandler(widget.dialog, -0.1,0,0, 0,0,0) end }},
++		{{ type=3D&quot;Button&quot;,text=3D&quot;y + 0.1&quot;,onMouseDown=3Dfunction(widget) Adjus=
+tArtPositionAdjustButtonHandler(widget.dialog, 0,0.1,0, 0,0,0) end }},
++		{{ type=3D&quot;Button&quot;,text=3D&quot;y - 0.1&quot;,onMouseDown=3Dfunction(widget) Adjus=
+tArtPositionAdjustButtonHandler(widget.dialog, 0,-0.1,0, 0,0,0) end }},
++		{{ type=3D&quot;Button&quot;,text=3D&quot;z + 0.1&quot;,onMouseDown=3Dfunction(widget) Adjus=
+tArtPositionAdjustButtonHandler(widget.dialog, 0,0,0.1, 0,0,0) end }},
++		{{ type=3D&quot;Button&quot;,text=3D&quot;z - 0.1&quot;,onMouseDown=3Dfunction(widget) Adjus=
+tArtPositionAdjustButtonHandler(widget.dialog, 0,0,-0.1, 0,0,0) end }},
++		=
+
++		{{ type=3D&quot;Label&quot;,		text=3D&quot;rotate&quot; }},
++		{{ type=3D&quot;Button&quot;,text=3D&quot;x + 45&quot;,onMouseDown=3Dfunction(widget) Adjust=
+ArtPositionAdjustButtonHandler(widget.dialog, 0,0,0, 45,0,0) end }},
++		{{ type=3D&quot;Button&quot;,text=3D&quot;x - 45&quot;,onMouseDown=3Dfunction(widget) Adjust=
+ArtPositionAdjustButtonHandler(widget.dialog, 0,0,0, -45,0,0) end }},
++		{{ type=3D&quot;Button&quot;,text=3D&quot;y + 45&quot;,onMouseDown=3Dfunction(widget) Adjust=
+ArtPositionAdjustButtonHandler(widget.dialog, 0,0,0, 0,45,0) end }},
++		{{ type=3D&quot;Button&quot;,text=3D&quot;y - 45&quot;,onMouseDown=3Dfunction(widget) Adjust=
+ArtPositionAdjustButtonHandler(widget.dialog, 0,0,0, 0,-45,0) end }},
++		{{ type=3D&quot;Button&quot;,text=3D&quot;z + 45&quot;,onMouseDown=3Dfunction(widget) Adjust=
+ArtPositionAdjustButtonHandler(widget.dialog, 0,0,0, 0,0,45) end }},
++		{{ type=3D&quot;Button&quot;,text=3D&quot;z - 45&quot;,onMouseDown=3Dfunction(widget) Adjust=
+ArtPositionAdjustButtonHandler(widget.dialog, 0,0,0, 0,0,-45) end }},
++
++		{{ type=3D&quot;Button&quot;,text=3D&quot;close&quot;,onMouseDown=3Dfunction(widget) widget.=
+dialog:Destroy() end }},
++	}
++
++	local d =3D guimaker.MakeTableDlg(rows,100,10,true,true,gGuiDefaultStyleS=
+et,&quot;window&quot;) =
+
++	=
+
++	-- store current values in dialog
++	d.xadd,d.yadd,d.zadd,d.xrot,d.yrot,d.zrot =3D xadd,yadd,zadd,xrot,yrot,zr=
+ot
++	d.tileid =3D tileid
++end
++
++function AdjustArtPosition (x,y,z)
++	print(&quot;AdjustArtPosition&quot;,x,y,z)
++	if (not x) then =
+
++		-- default params : read current mousepos
++		gCurrentRenderer:MousePick()
++		if (not gMousePickFoundHit) then return end
++		x,y,z =3D gCurrentRenderer:GetMouseHitTileCoords() =
+
++	end
++	print(&quot;AdjustArtPosition2&quot;,x,y,z)
++	=
+
++	=
+
++	local rows =3D { =
+
++		{ {type=3D&quot;Label&quot;,		text=3D&quot;AdjustArtPosition&quot;}, },
++		{},{},{},{},
++	}
++	=
+
++	-- statics
++	local statics =3D ListStaticsNearPos(x,y,z,0)
++	for k,entity in pairs(statics) do =
+
++		local i =3D entity.iTileTypeID
++		local meshpath =3D GetModelPath(i)
++		local name =3D GetStaticTileTypeName(i) or &quot;unknown&quot;
++		table.insert(rows,{ =
+
++			{type=3D&quot;Button&quot;,text=3D&quot;#&quot;..i..&quot;: &quot;..name,onMouseDown=3Dfunction(widge=
+t) widget.dialog:Destroy() AdjustArtPositionControlDialog(i) end},
++		})
++
++		print(&quot;DEBUG&quot;,&quot;static&quot;,i,meshpath)
++	end
++	=
+
++	-- dynamics
++	local dynamics =3D ListDynamicsNearPos(x,y,z,0)
++	for k,item in pairs(dynamics) do =
+
++		local i =3D item.artid
++		local meshpath =3D GetModelPath(i)
++		local texlist =3D meshpath and OgreMeshTextures(meshpath)
++		print(&quot;DEBUG&quot;,&quot;dynamic&quot;,i,meshpath)
++	end
++
++	table.insert(rows,{ =
+
++		{type=3D&quot;Button&quot;,text=3D&quot;close&quot;,onMouseDown=3Dfunction(widget) widget.di=
+alog:Destroy() end},
++	})
++	=
+
++	guimaker.MakeTableDlg(rows,100,10,true,true,gGuiDefaultStyleSet,&quot;window&quot;) =
+
++end
++
+ =
+
+ =
+
+ function DevToolListStuffUnderMouse (x,y,z,radius)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000685.html">[Iris-commit] [IRIS] r1872 - in /trunk: bin/iris2.exe data/config.lua.dist data/grannys/materials/grannybase.material data/models/materials/textures.material data/terrain/materials/terrain.material lua/lib.3d.renderer.lua
+</A></li>
+	<LI>Next message: <A HREF="000687.html">[Iris-commit] [IRIS] r1874 - in /trunk: data/grannys/materials/grannybase.material data/profiles/gfx_high.lua lua/lib.granny.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#686">[ date ]</a>
+              <a href="thread.html#686">[ thread ]</a>
+              <a href="subject.html#686">[ subject ]</a>
+              <a href="author.html#686">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

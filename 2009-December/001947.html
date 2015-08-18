@@ -1,0 +1,314 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r3187 - /trunk/lua/lib.granny.debug.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2009-December/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3187%20-%20/trunk/lua/lib.granny.debug.lua&In-Reply-To=%3C20091210221813.D55497A9812A%40simon%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001946.html">
+   <LINK REL="Next"  HREF="001948.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r3187 - /trunk/lua/lib.granny.debug.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3187%20-%20/trunk/lua/lib.granny.debug.lua&In-Reply-To=%3C20091210221813.D55497A9812A%40simon%3E"
+       TITLE="[Iris-commit] [IRIS] r3187 - /trunk/lua/lib.granny.debug.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Thu Dec 10 23:18:13 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001946.html">[Iris-commit] [IRIS] r3186 - /trunk/scripts/luabindheader.lua
+</A></li>
+        <LI>Next message: <A HREF="001948.html">[Iris-commit] [IRIS] r3188 - /trunk/premake.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1947">[ date ]</a>
+              <a href="thread.html#1947">[ thread ]</a>
+              <a href="subject.html#1947">[ subject ]</a>
+              <a href="author.html#1947">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Thu Dec 10 23:18:13 2009
+New Revision: 3187
+
+Log:
+grannydebug : new ogrebinding to create mesh entity works
+
+Modified:
+    trunk/lua/lib.granny.debug.lua
+
+Modified: trunk/lua/lib.granny.debug.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.granny.debug.lua (original)
++++ trunk/lua/lib.granny.debug.lua Thu Dec 10 23:18:13 2009
+@@ -280,6 +280,8 @@
+ 		local combos =3D {}
+ 		=
+
+ 		-- assembling vertex-buffer, this block doesn't need ogre
++		=
+
++		local rr =3D 0
+ 		for k,poly in pairs(polygons) do =
+
+ 			local texpoly =3D texpolys and texpolys[k] =
+
+ 			for i=3D0,2 do =
+
+@@ -291,15 +293,17 @@
+ 				if (not comboi) then =
+
+ 					comboi =3D combo_next_i
+ 					combo_next_i =3D combo_next_i + 1
+-					vb0:Vertex(	positions[pi].x,
+-								positions[pi].y,
+-								positions[pi].z,
+-								normals[ni].x,
+-								normals[ni].y,
+-								normals[ni].z)
+-					if (texcoords) then =
+
+-						vb1:Vertex(	texcoords[ti].x,
+-									texcoords[ti].y)
++					local p =3D positions[pi]
++					local n =3D normals[ni]
++					local x =3D p.x
++					local y =3D p.y
++					local z =3D p.z
++					local dd =3D x*x + y*y + z*z
++					if (dd &gt; rr) then rr =3D dd end
++					vb0:Vertex(	x,y,z, n.x,n.y,n.z)
++					if (texcoords) then
++						local t =3D texcoords[ti]
++						vb1:Vertex(t.x,t.y)
+ 					else
+ 						vb1:Vertex(math.random(),math.random())
+ 					end
+@@ -310,12 +314,12 @@
+ 		end
+ 		vb0:CheckSize()
+ 		vb1:CheckSize()
++		local fSquareRadius =3D rr
+ 		--~ print(&quot;vb0.vc&quot;,vb0.vc,vb0.iFirstSize)
+ 		--~ print(&quot;vb1.vc&quot;,vb1.vc,vb1.iFirstSize)
+ 		--~ print(&quot;ib.ic&quot;,ib.ic)
+ 		=
+
+ 		=
+
+-		--[[
+ 		=
+
+ 		=
+
+ 		local msMatName =3D matname -- TODO!
+@@ -324,13 +328,22 @@
+ 		local sub =3D pOgreMesh:createSubMesh();
+ 		sub:setMaterialName(msMatName);
+ 		sub:setUseSharedVertices(false)
+-		--~ sub-&gt;operationType =3D OT_POINT_LIST;
+-		=
+
++		=
+
++		sub:setOperationType(OT_TRIANGLE_LIST)
++		--~ sub:setOperationType(OT_POINT_LIST)
++		=
+
++		local vertexData =3D CreateVertexData()
++		local indexData =3D CreateIndexData()
++		sub:setVertexData(vertexData)
++		sub:setIndexData(indexData)
++		=
+
++		--[[
+ 		=
+
+ 		-- prepare vertex buffer
+-		sub:setVertexData(CreateVertexData())
+-		sub:getVertexData():setVertexCount(iComboVertexCount)
+-		sub:getVertexData():setVertexDecl(vdecl:GetOgreVertexDecl())
++		local vd =3D CreateVertexData()
++		sub:setVertexData(vd)
++		vd:setVertexCount(iComboVertexCount)
++		vd:setVertexDecl(vdecl:GetOgreVertexDecl())
+ 		=
+
+ 		VertexDeclaration* decl =3D sub-&gt;vertexData-&gt;vertexDeclaration;
+ 		VertexBufferBinding* bind =3D sub-&gt;vertexData-&gt;vertexBufferBinding;
+@@ -360,32 +373,29 @@
+ 		assert(myIndices.size() =3D=3D ibuf-&gt;getSizeInBytes());
+ 		ibuf-&gt;writeData(0, myIndices.size(),myIndices.HackGetRawReader(), true);
+ 		=
+
+-		// todo : calc for whole mesh, not only for this submesh
+-		// calculate bounds
+-		mpMesh-&gt;_setBounds(AxisAlignedBox(vMin.x,vMin.y,vMin.z,vMax.x,vMax.y,vMa=
+x.z), true);
+-		mpMesh-&gt;_setBoundingSphereRadius(mymax(Vector3(vMin.x,vMin.y,vMin.z).len=
+gth(),Vector3(vMax.x,vMax.y,vMax.z).length()));
+ 		]]--
+ 		=
+
+ 		=
+
+ 		=
+
+ 		--~ now ogre stuff : vertexbuffer,renderop,renderable,movable
+ 		=
+
+-		local robmovable =3D CreateRobMovable()
+-		=
+
+-		local robrenderable =3D CreateRobRenderable(robmovable)
+-		robmovable:AddRenderable(robrenderable)
+-		=
+
+-		local e =3D 10
+-		robmovable:SetBounds({-e,-e,-e},{e,e,e})
+-		robmovable:ParentNeedsUpdate()
+-		robrenderable:SetMaterial(matname)
++		=
+
++		--~ local robmovable =3D CreateRobMovable()
++		=
+
++		--~ local robrenderable =3D CreateRobRenderable(robmovable)
++		--~ robmovable:AddRenderable(robrenderable)
++		=
+
++		--~ local e =3D 10
++		--~ robmovable:SetBounds({-e,-e,-e},{e,e,e})
++		--~ robmovable:ParentNeedsUpdate()
++		--~ robrenderable:SetMaterial(matname)
+ 		--~ robrenderable:SetMaterial(&quot;BaseWhiteNoLighting&quot;)
+ 		=
+
+ 		-- Ogre::Renderable::getRenderOperation(RenderOperation &amp;op) ? hard to l=
+uabind, also we'd get only a copy...
+-		local renderop =3D robrenderable:GetRenderOperationPtr() -- Ogre::Render=
+Operation
+-		renderop:setOperationType(OT_TRIANGLE_LIST)
+-		local vertexData =3D renderop:getVertexData()
+-		local indexData =3D renderop:getIndexData()
++		--~ local renderop =3D robrenderable:GetRenderOperationPtr() -- Ogre::Re=
+nderOperation
++		--~ renderop:setOperationType(OT_TRIANGLE_LIST)
++		--~ local vertexData =3D renderop:getVertexData()
++		--~ local indexData =3D renderop:getIndexData()
+ 		=
+
+ 		vertexData:setVertexDecl(vdecl:GetOgreVertexDecl())
+ 		--~ print(&quot;vb0:GetVertexSize()&quot;,vb0:GetVertexSize(),vb0:GetVertexNum())
+@@ -403,9 +413,9 @@
+ 		vertexData:writeToVertexBuffer(vb1:GetFIFO(),1)
+ 		indexData:writeToIndexBuffer(ib:GetFIFO()) =
+
+ 		=
+
+-		local gfx =3D CreateRootGfx3D()
+-		local scenenode =3D gfx:GetSceneNode()
+-		scenenode:attachObject(robmovable)
++		--~ local gfx =3D CreateRootGfx3D()
++		--~ local scenenode =3D gfx:GetSceneNode()
++		--~ scenenode:attachObject(robmovable)
+ 		=
+
+ 		-- todo : mousepick
+ 		=
+
+@@ -419,13 +429,19 @@
+ 		end
+ 		]]--
+ 		=
+
+-		=
+
+-	end
+-	=
+
+-	local szMeshName =3D GetUniqueName() or &quot;MyGrannyMeshName01&quot;
+-	--~ local pOgreMesh =3D MeshManager_createManual(szMeshName)
+-	--~ pOgreMesh:_setBounds({0,0,0,0,0,0}, true)
+-	--~ pOgreMesh:_setBoundingSphereRadius(0)
++		--~ // todo : calc for whole mesh, not only for this submesh
++		--~ // calculate bounds
++		--~ pOgreMesh:_setBounds(AxisAlignedBox(vMin.x,vMin.y,vMin.z,vMax.x,vMax=
+.y,vMax.z), true);
++		--~ pOgreMesh:_setBoundingSphereRadius(mymax(Vector3(vMin.x,vMin.y,vMin.=
+z).length(),Vector3(vMax.x,vMax.y,vMax.z).length()));
++		local r =3D math.sqrt(fSquareRadius)
++		pOgreMesh:_setBounds({-r,-r,-r,r,r,r},false)
++		pOgreMesh:_setBoundingSphereRadius(r)
++	end
++	=
+
++	local sMeshName =3D GetUniqueName() or &quot;MyGrannyMeshName01&quot;
++	local pOgreMesh =3D MeshManager_createManual(sMeshName)
++	pOgreMesh:_setBounds({0,0,0,0,0,0}, true)
++	pOgreMesh:_setBoundingSphereRadius(0)
+ 	=
+
+ 	--~ local mesh			=3D Object.mesh_list.childs[1] -- .mesh*26
+ 	--~ local texture_poly	=3D Object.texture_list.texture.texture_sublist.ch=
+ilds[1] -- .texture_poly -- *26
+@@ -434,7 +450,16 @@
+ 		MyMakeGrannyGfx(mesh,texture_poly,pOgreMesh) =
+
+ 	end
+ 	=
+
+-	--~ pOgreMesh:load()
++	pOgreMesh:load(false)
++	=
+
++	local sceneManager =3D GetSceneManager()
++	local sEntityName =3D GetUniqueName()
++	local entity =3D sceneManager:createEntity(sEntityName,sMeshName)
++		--~ //~ LUABIND_DIRECTWRAP_RETURN_ONE_NAMEADD(			PushEntity*,									cr=
+eateEntity,										,(ParamString(L,2),ParamString(L,3))	);
++		=
+
++	local gfx =3D CreateRootGfx3D()
++	local scenenode =3D gfx:GetSceneNode()
++	scenenode:attachObject(entity)
+ 	=
+
+ 	--~ os.exit(0)
+ end
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001946.html">[Iris-commit] [IRIS] r3186 - /trunk/scripts/luabindheader.lua
+</A></li>
+	<LI>Next message: <A HREF="001948.html">[Iris-commit] [IRIS] r3188 - /trunk/premake.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1947">[ date ]</a>
+              <a href="thread.html#1947">[ thread ]</a>
+              <a href="subject.html#1947">[ subject ]</a>
+              <a href="author.html#1947">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

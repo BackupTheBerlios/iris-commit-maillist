@@ -1,0 +1,167 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2569 - /trunk/lua/net/net.other.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-October/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2569%20-%20/trunk/lua/net/net.other.lua&In-Reply-To=%3C20081014181652.696161C1865A%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001373.html">
+   <LINK REL="Next"  HREF="001375.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2569 - /trunk/lua/net/net.other.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2569%20-%20/trunk/lua/net/net.other.lua&In-Reply-To=%3C20081014181652.696161C1865A%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2569 - /trunk/lua/net/net.other.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Tue Oct 14 20:16:52 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001373.html">[Iris-commit] [IRIS] r2568 - /trunk/lua/gui/gui.chat.lua
+</A></li>
+        <LI>Next message: <A HREF="001375.html">[Iris-commit] [IRIS] r2570 - in /trunk: lua/ lua/gui/ lua/net/ lua/obj/ lua/widgets/ plugins/
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1374">[ date ]</a>
+              <a href="thread.html#1374">[ thread ]</a>
+              <a href="subject.html#1374">[ subject ]</a>
+              <a href="author.html#1374">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Tue Oct 14 20:16:51 2008
+New Revision: 2569
+
+Log:
+added iris-info request and answer packet, for iris-aware servers
+
+Modified:
+    trunk/lua/net/net.other.lua
+
+Modified: trunk/lua/net/net.other.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.other.lua (original)
++++ trunk/lua/net/net.other.lua Tue Oct 14 20:16:51 2008
+@@ -36,6 +36,7 @@
+ gGenericSubCommands.kPacket_Generic_SubCommand_EnableSESpellIcons	=3D 0x25
+ gGenericSubCommands.kPacket_Generic_SubCommand_SpeedMode			=3D 0x26
+ gGenericSubCommands.kPacket_Generic_SubCommand_NewRaceGender		=3D 0x2A
++gGenericSubCommands.kPacket_Generic_SubCommand_IrisInfo				=3D 0xA0 -- iri=
+s-special, for iris aware servers
+ --[[
+ -race_gender-packet
+ Client -&gt; Server =
+
+@@ -145,7 +146,7 @@
+ 	local id =3D input:PopNetUint8()
+ 	local size =3D input:PopNetUint16()
+ 	local subcmd =3D input:PopNetUint16()
+-	printf(&quot;NET: kPacket_Generic_Command size=3D0x%04x subcmd=3D0x%04x=3D%s\n=
+&quot;,size,subcmd,tostring(gGenericSubCommandNamesByID[subcmd]))
++	--~ printf(&quot;NET: kPacket_Generic_Command size=3D0x%04x subcmd=3D0x%04x=3D=
+%s\n&quot;,size,subcmd,tostring(gGenericSubCommandNamesByID[subcmd]))
+ 	printdebug(&quot;net&quot;,sprintf(&quot;NET: kPacket_Generic_Command size=3D0x%04x subc=
+md=3D0x%04x=3D%s\n&quot;,size,subcmd,tostring(gGenericSubCommandNamesByID[subcmd=
+])))
+ =
+
+ 	-- FastWalkInit : 6 keys (runuo's fifosize 0-255)
+@@ -247,7 +248,7 @@
+ 	-- States LockInfo	-- bonded status
+ 	if (subcmd =3D=3D kPacket_Generic_SubCommand_ExtendedStats) then -- 0x19
+ 		local party_cmd =3D input:PopNetUint8()
+-		print(&quot;kPacket_Generic_SubCommand_ExtendedStats&quot;,party_cmd)
++		--~ print(&quot;kPacket_Generic_SubCommand_ExtendedStats&quot;,party_cmd)
+ 		if (party_cmd =3D=3D hex2num(&quot;0x00&quot;)) then
+ 			local party_serial =3D input:PopNetUint32()
+ 			local party_value  =3D input:PopNetUint8()
+@@ -320,11 +321,11 @@
+ 		printf(&quot;ABILITY\tSE Spell Icons abilityID: 0x%02x active: 0x%02x\n&quot;, abi=
+lityID, active)
+ 	end
+ =
+
+-	-- Subcommand 0x21: (AOS) Ability icon confirm.
++	-- Subcommand 0x21: (AOS) weapon-Ability icon confirm/end.  see also Send=
+_AOSCommand_WeaponAbility
+ 	-- Note: no data, just (bf 00 05 21) =
+
+ 	if (subcmd =3D=3D kPacket_Generic_SubCommand_Ability_Icon) then	-- 0x21
++		EndWeaponAbility()
+ 		NotifyListener(&quot;Hook_Deactivate_Ability&quot;)
+-		print(&quot;ABILITY&quot;,&quot;kPacket_Generic_SubCommand_Ability_Icon&quot;)
+ 	end
+ =
+
+ 	-- Receives a CustomHouse Serial &amp; Revision Hash Number
+@@ -379,6 +380,11 @@
+ 		local player_race =3D input:PopNetUint8()
+ --		printf(&quot;NET: Gender: %s Race: %s\n&quot;, gGender[player_gender], gRace[pla=
+yer_race])
+ 	end
++	=
+
++	-- iris info request, only sent by iris aware servers
++	if (subcmd =3D=3D kPacket_Generic_SubCommand_IrisInfo) then
++		Send_IrisInfo()
++	end
+ =
+
+ 	-- check if all data was used
+ 	local used =3D input:GetTotalPopped() - popped_start
+@@ -392,6 +398,17 @@
+ 		printf(&quot;WARNING ! kPacket_Generic_Command : subcmd 0x%02x (used=3D%d siz=
+e=3D%d) popped to few\n&quot;,subcmd,used,size)
+ 		input:PopRaw(rest)
+ 	end
++end
++
++
++-- sends iris specific infos to the server, in response to kPacket_Generic=
+_SubCommand_IrisInfo
++function Send_IrisInfo()
++	local out =3D GetSendFIFO()
++	out:PushNetUint8(kPacket_Generic_Command)
++	out:PushNetUint16(0x06)
++	out:PushNetUint16(kPacket_Generic_SubCommand_IrisInfo) -- 0x00A0
++	out:PushNetUint8(0x01)
++	out:SendPacket()
+ end
+ =
+
+ -- Tracking Arrow
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001373.html">[Iris-commit] [IRIS] r2568 - /trunk/lua/gui/gui.chat.lua
+</A></li>
+	<LI>Next message: <A HREF="001375.html">[Iris-commit] [IRIS] r2570 - in /trunk: lua/ lua/gui/ lua/net/ lua/obj/ lua/widgets/ plugins/
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1374">[ date ]</a>
+              <a href="thread.html#1374">[ thread ]</a>
+              <a href="subject.html#1374">[ subject ]</a>
+              <a href="author.html#1374">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

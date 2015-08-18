@@ -1,0 +1,156 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r3277 - /trunk/lua/lib.thread.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2010-March/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3277%20-%20/trunk/lua/lib.thread.lua&In-Reply-To=%3C20100319232317.3EC277A9807B%40simon%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="002036.html">
+   <LINK REL="Next"  HREF="002039.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r3277 - /trunk/lua/lib.thread.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3277%20-%20/trunk/lua/lib.thread.lua&In-Reply-To=%3C20100319232317.3EC277A9807B%40simon%3E"
+       TITLE="[Iris-commit] [IRIS] r3277 - /trunk/lua/lib.thread.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat Mar 20 00:23:16 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="002036.html">[Iris-commit] [IRIS] r3276 - in /trunk/lua: lib.thread.lua main.lua
+</A></li>
+        <LI>Next message: <A HREF="002039.html">[Iris-commit] [IRIS] r3278 - /trunk/lua/lib.thread.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2037">[ date ]</a>
+              <a href="thread.html#2037">[ thread ]</a>
+              <a href="subject.html#2037">[ subject ]</a>
+              <a href="author.html#2037">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: hagish
+Date: Sat Mar 20 00:23:16 2010
+New Revision: 3277
+
+Log:
+duplex communication from parent to child thread
+
+Modified:
+    trunk/lua/lib.thread.lua
+
+Modified: trunk/lua/lib.thread.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.thread.lua (original)
++++ trunk/lua/lib.thread.lua Sat Mar 20 00:23:16 2010
+@@ -1,22 +1,23 @@
+ function RunThreadTest () RunThreadTest_Main() end =
+
+ =
+
+ function RunThreadTest_Main ()
+-	print(&quot;main: Threads_GetHardwareConcurrency:&quot;,Threads_GetHardwareConcurre=
+ncy())
++	print(&quot;main: Threads_GetHardwareConcurrency:&quot;, Threads_GetHardwareConcurr=
+ency())
+ 	=
+
+ 	local thread =3D CreateLuaThread(&quot;../mythread.lua&quot;)
+ 	print(&quot;main: child started&quot;)
+ 	--~ thread:Interrupt()
+ 	--~ Client_Sleep(1) =
+
+ 	=
+
+-	=
+
+-	=
+
+ 	--~ Client_USleep(1*1000)
+ 	--~ Thread_Sleep(1*1000)
+ 	=
+
+ 	print(&quot;main: lock and send..&quot;)
+ 	thread:LockMutex()
+-	local fifo =3D thread:CreateFifoHandle()
+-	fifo:PushUint8(10)
++	local fifo_send =3D thread:CreateFifoParent2ChildHandle()
++	local fifo_recv =3D thread:CreateFifoChild2ParentHandle()
++	=
+
++	fifo_send:PushUint8(10)
++	=
+
+ 	thread:UnLockMutex()
+ 	print(&quot;main: sleep...&quot;)
+ 	Client_USleep(5*1000) =
+
+@@ -29,15 +30,10 @@
+ end
+ =
+
+ function RunThreadTest_Child () =
+
+-	print(&quot;child: hello world,this_thread=3D&quot;,this_thread,this_thread:CreateF=
+ifoHandle())
++	print(&quot;child: hello world,this_thread=3D&quot;,this_thread)
+ 	Thread_Sleep(5*1000)
+ =
+
+ 	print(&quot;child: getmutex&quot;)
+-
+-	this_thread:LockMutex()
+-	local fifo =3D this_thread:CreateFifoHandle()
+-	this_thread:UnLockMutex()
+-
+ =
+
+ 	for i=3D1,211 do =
+
+ 		print(&quot;child: sleeping&quot;)
+@@ -46,7 +42,8 @@
+ =
+
+ 	print(&quot;child: lock and read...&quot;)
+ 	this_thread:LockMutex()
+-	print(&quot;child: FifoSize&quot;,fifo:Size())
++	print(&quot;child: FifoSizeRecv&quot;,this_fifo_recv:Size())
++	print(&quot;child: FifoSizeSend&quot;,this_fifo_send:Size())
+ 	this_thread:UnLockMutex()
+ =
+
+ 	print(&quot;child: ended&quot;)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="002036.html">[Iris-commit] [IRIS] r3276 - in /trunk/lua: lib.thread.lua main.lua
+</A></li>
+	<LI>Next message: <A HREF="002039.html">[Iris-commit] [IRIS] r3278 - /trunk/lua/lib.thread.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2037">[ date ]</a>
+              <a href="thread.html#2037">[ thread ]</a>
+              <a href="subject.html#2037">[ subject ]</a>
+              <a href="author.html#2037">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

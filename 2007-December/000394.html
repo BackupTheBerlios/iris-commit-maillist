@@ -1,0 +1,595 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1579 - in /trunk/data/lua: net.other.lua net/net.buff.lua net/net.main.lua net/net.packethandlers.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2007-December/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1579%20-%20in%20/trunk/data/lua%3A%20net.other.lua%0A%20net/net.buff.lua%20net/net.main.lua%20net/net.packethandlers.lua&In-Reply-To=%3C20071202010007.F2EEE1C186E4%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000393.html">
+   <LINK REL="Next"  HREF="000396.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1579 - in /trunk/data/lua: net.other.lua net/net.buff.lua net/net.main.lua net/net.packethandlers.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1579%20-%20in%20/trunk/data/lua%3A%20net.other.lua%0A%20net/net.buff.lua%20net/net.main.lua%20net/net.packethandlers.lua&In-Reply-To=%3C20071202010007.F2EEE1C186E4%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1579 - in /trunk/data/lua: net.other.lua net/net.buff.lua net/net.main.lua net/net.packethandlers.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sun Dec  2 01:52:20 CET 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000393.html">[Iris-commit] [IRIS] r1578 - /trunk/data/lua/net/net.buff.lua
+</A></li>
+        <LI>Next message: <A HREF="000396.html">[Iris-commit] [IRIS] r1580 - in /trunk/data: config.lua.dist lua/lib.keybinds.lua lua/main.lua lua/net.other.lua mymacros.lua.dist
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#394">[ date ]</a>
+              <a href="thread.html#394">[ thread ]</a>
+              <a href="subject.html#394">[ subject ]</a>
+              <a href="author.html#394">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: sience
+Date: Sun Dec  2 01:52:19 2007
+New Revision: 1579
+
+Log:
+-updated to packethandlers
+
+Removed:
+    trunk/data/lua/net/net.buff.lua
+Modified:
+    trunk/data/lua/net.other.lua
+    trunk/data/lua/net/net.main.lua
+    trunk/data/lua/net/net.packethandlers.lua
+
+Modified: trunk/data/lua/net.other.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/net.other.lua (original)
++++ trunk/data/lua/net.other.lua Sun Dec  2 01:52:19 2007
+@@ -9,8 +9,10 @@
+ kPacket_Generic_SubCommand_PartySystem			=3D hex2num(&quot;0x06&quot;)
+ kPacket_Generic_SubCommand_QuestArrow			=3D hex2num(&quot;0x07&quot;)
+ kPacket_Generic_SubCommand_MapChange			=3D hex2num(&quot;0x08&quot;)
++
++kPacket_Generic_SubCommand_AOSTooltip			=3D hex2num(&quot;0x10&quot;)
+ --(0x0A) Sent by using the client Wrestle Stun Macro key in Options.
+---This is no longer used since AoS was introduced. The Macro selection tha=
+t used it was removed. =
+
++--This is no longer used since AoS was introduced. The Macro selection tha=
+t used it was removed.
+ kPacket_Generic_SubCommand_Wrestling_Stun		=3D hex2num(&quot;0x0A&quot;)
+ kPacket_Generic_SubCommand_ClientLanguage		=3D hex2num(&quot;0x0B&quot;)	-- Client s=
+ends Client-language to Server
+ kPacket_Generic_SubCommand_3DClientAction		=3D hex2num(&quot;0x0E&quot;)	-- Client S=
+ent. Server responds with Play Animation packets.
+@@ -107,7 +109,6 @@
+ 	return text
+ end
+ =
+
+-
+ -- TODO : implement all subpackets
+ function gPacketHandler.kPacket_Generic_Command()
+ 	local input =3D GetRecvFIFO()
+@@ -161,7 +162,16 @@
+ 		MapChangeRequest(mapid)
+ 		-- PROBABLY WRONG NOW we index internally with 1, OSi with 0
+ 	end
+-	=
+
++
++	-- AOSTooltip
++	if (subcmd =3D=3D kPacket_Generic_SubCommand_AOSTooltip) then -- 0x10
++		local objserial =3D input:PopNetUint32()
++		local listID =3D input:PopNetUint32()
++		printdebug(&quot;net&quot;, sprintf(&quot;0xbf sub: kPacket_Generic_SubCommand_AOSToolt=
+ip objserial=3D0x%08x listID=3D0x%08x\n&quot;,
++									objserial,listID) )
++		Send_AosToolTipRequest(objserial)
++	end
++
+ 	-- display popup
+ 	-- TODO : check if PopUp is already opened - use a popuplist with serials=
+ !?
+ 	if (subcmd =3D=3D kPacket_Generic_SubCommand_DisplayPopup) then -- 0x14
+@@ -613,42 +623,7 @@
+ 	local out =3D GetSendFIFO()
+ 	out:PushNetUint8(kPacket_Attack)
+ 	out:PushNetUint32(mobile_serial)
+-	printf(&quot;NET: Attack -&gt; serial=3D0x%08x\n&quot;,mobile_serial)
+-end
+-
+--- Newer packet as of late 2004.
+--- Is now used on OSI to handle the Revision of Tooltips instead of the or=
+iginal 0xBF methods it appears.
+-function gPacketHandler.kPacket_AOSObjProp()	--0xDC (9 bytes)
+-	local input =3D GetRecvFIFO()
+-	local id =3D input:PopNetUint8()
+-	local mobile_serial =3D input:PopNetUint32()			--Item/Mob-Serial
+-	local mobile_revision_hash =3D input:PopNetUint32()
+-	--printf(&quot;NET: AOSObjProp mobile_serial=3D0x%08x mobile_revision_hash=3D0=
+x%08x\n&quot;,mobile_serial,mobile_revision_hash)
+-end
+-
+--- Mega Cliloc - server sends new Clilocs - just add them to the Cliloc
+--- TODO : this cliloc additions might be local to a specific mobile, e.g. =
+vendor or container...
+-function gPacketHandler.kPacket_Mega_Cliloc()	--0xD6
+-	local input =3D GetRecvFIFO()
+-	local id =3D input:PopNetUint8()
+-	local size =3D input:PopNetUint16()
+-	local temp1 =3D input:PopNetUint16()			--0x0001 or 0x4000 !?
+-	local item_serial =3D input:PopNetUint32()	--Serial of item/creature
+-	local temp2 =3D input:PopNetUint16()			--0x0000 !?
+-	local mobile_serial =3D input:PopNetUint32()	--Serial of item/creature in=
+ all tests.
+-												--This could be the serial of the item the entry to appear ove=
+r!?
+-	while true do =
+
+-		local cliloc_id =3D input:PopNetUint32()
+-		if (cliloc_id =3D=3D hex2num(&quot;0x00000000&quot;)) then break end
+-		=
+
+-		local cliloc_size =3D input:PopNetUint16()
+-		local textline =3D &quot;&quot;
+-		if (cliloc_size &gt; 0) then
+-			textline =3D input:PopUnicodeString(cliloc_size/2)
+-			gClilocLoader:Set(cliloc_id,textline) -- register in cliloc
+-		end
+-		printf(&quot;NET: Mega_Cliloc : id=3D%d 0x%08x len=3D%d text=3D%s\n&quot;,cliloc_i=
+d,cliloc_id,cliloc_size,textline)
+-	end
++	printdebug(&quot;net&quot;, sprintf(&quot;NET: Attack -&gt; serial=3D0x%08x\n&quot;,mobile_seria=
+l) )
+ end
+ =
+
+ -- Generic Gump
+
+Modified: trunk/data/lua/net/net.main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/net/net.main.lua (original)
++++ trunk/data/lua/net/net.main.lua Sun Dec  2 01:52:19 2007
+@@ -9,7 +9,6 @@
+ dofile(libpath .. &quot;net/net.sound.lua&quot;)
+ dofile(libpath .. &quot;net/net.login.lua&quot;)
+ dofile(libpath .. &quot;net/net.skill.lua&quot;)
+-dofile(libpath .. &quot;net/net.buff.lua&quot;)
+ =
+
+ -- only things that have at least 2 packets get its own file, everything e=
+lse is handled here:
+ dofile(libpath .. &quot;net/net.packethandlers.lua&quot;)
+
+Modified: trunk/data/lua/net/net.packethandlers.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/net/net.packethandlers.lua (original)
++++ trunk/data/lua/net/net.packethandlers.lua Sun Dec  2 01:52:19 2007
+@@ -31,3 +31,337 @@
+ 	local unknown2 =3D input:PopNetUint16()
+ 	NotifyWarmode(flag)
+ end
++
++--[[
++Buff/DeBuff System
++--------------------
++<A HREF="http://update.uo.com/design_523.html">http://update.uo.com/design_523.html</A>
++
++Packet Build:
++BYTE[1] Cmd					-- 0xDF
++BYTE[2] Length =
+
++BYTE[4] Serial of player =
+
++
++BYTE[2] Icon Number to show =
+
++BYTE[2] 0x1 =3D Show, 0x0 =3D Remove. On remove byte, packet ends here. =
+
++BYTE[4] 0x00000000
++
++BYTE[2] Icon Number to show. =
+
++BYTE[2] 0x1 =3D Show =
+
++BYTE[4] 0x00000000
++
++BYTE[2] Buff Duration in seconds - Time in seconds (simple countdown witho=
+ut automatic remove) =
+
++BYTE[2] 0x0000 =
+
++BYTE[1] 0x00 =
+
++BYTE[4] Buff Title Cliloc - Cliloc ID of title of icon. =
+
++BYTE[4] Buff Secondary Cliloc - Cliloc ID for the Description of the icon.=
+ If no arguments for cliloc, then add 10 more bytes 0x00000000000000000000 =
+and end packet =
+
++BYTE[4] 0x00000000 =
+
++BYTE[2] 0x00 01			-Arguments Mode
++
++BYTE[2] 0x00 00			-If (Arguments Mode =3D 0x01)
++BYTE[len(str)*2] Flipped Unicode String (&quot; &quot;+str) (To seperate the entrys =
+add &quot; &quot;) =
+
++BYTE[2] 0x00 01			-EndIf Arguments Mode
++
++BYTE[2] 0x00 00			-EndIf Type
++]]--
++
++-- buff / debuff  (0xDF)
++function gPacketHandler.kPacket_BuffDebuff_System()
++	local buffinfos =3D {}
++	local input =3D GetRecvFIFO()
++	local id =3D input:PopNetUint8()
++	local packetsize =3D input:PopNetUint16()
++
++	buffinfos.player_serial	=3D input:PopNetUint32()
++	buffinfos.icon_artid1		=3D input:PopNetUint16()
++	buffinfos.icon_show1		=3D input:PopNetUint16()
++	buffinfos.temp1			=3D input:PopNetUint32()
++
++	if (packetsize &gt; 15) then
++		buffinfos.icon_artid2		=3D input:PopNetUint16()			-- ??
++		buffinfos.icon_show2		=3D input:PopNetUint16()
++		buffinfos.temp2			=3D input:PopNetUint32()
++	=
+
++		buffinfos.buff_duration	=3D input:PopNetUint16()
++	=
+
++		buffinfos.temp3			=3D input:PopNetUint16()
++		buffinfos.temp4			=3D input:PopNetUint8()
++	=
+
++		buffinfos.clilocid1		=3D input:PopNetUint32()
++		buffinfos.clilocid2		=3D input:PopNetUint32()
++	=
+
++		buffinfos.temp5			=3D input:PopNetUint32()
++	=
+
++		buffinfos.argumentsmode_start	=3D input:PopNetUint16()
++	=
+
++		buffinfos.argumentsmode_startif	=3D input:PopNetUint16()
++	=
+
++		if (buffinfos.argumentsmode_start =3D=3D 1) then
++	=
+
++			local argument_string =3D &quot;&quot;
++			repeat
++				local argument_char	=3D input:PopNetUint8()
++				argument_string =3D argument_string..argument_char
++				print(argument_char)
++			until (argument_char =3D=3D 1)
++			=
+
++			print(argument_string)
++		end
++	=
+
++		buffinfos.argumentsmode_end		=3D input:PopNetUint16()
++	end
++	=
+
++	print(&quot;spell buff packet received !!!!!!!!!!&quot;)
++end
++
++-- if clilochash is wrong, request new megacliloc tooltip from server
++-- used in function gPacketHandler.kPacket_AOSObjProp()  &amp;  gPacketHandler=
+.kPacket_Generic_Command()
++function Send_AosToolTipRequest(objserial)
++	local out =3D GetSendFIFO()
++	out:PushNetUint8(kPacket_Generic_Command)
++	out:PushNetUint16(hex2num(&quot;0x0009&quot;))
++	out:PushNetUint16(hex2num(&quot;0x0010&quot;))
++	out:PushNetUint32(objserial)
++	out:SendPacket()
++end
++
++-- Newer packet as of late 2004.
++-- Is now used on OSI to handle the Revision of Tooltips instead of the or=
+iginal 0xBF methods it appears.
++function gPacketHandler.kPacket_AOSObjProp()	--0xDC (9 bytes)
++	local input =3D GetRecvFIFO()
++	local id =3D input:PopNetUint8()
++	local objserial =3D input:PopNetUint32()			--Item/Mob-Serial
++	local objrevision_hash =3D input:PopNetUint32()
++	printdebug(&quot;net&quot;, sprintf(&quot;NET: AOSObjProp objserial=3D0x%08x objrevision=
+_hash=3D0x%08x\n&quot;,
++								objserial,objrevision_hash) )
++	Send_AosToolTipRequest(objserial)
++end
++
++-- Mega Cliloc - server sends new Clilocs - just add them to the Cliloc
++-- TODO : this cliloc additions might be local to a specific mobile, e.g. =
+vendor or container...
++function gPacketHandler.kPacket_Mega_Cliloc()	--0xD6
++	local input =3D GetRecvFIFO()
++	local id =3D input:PopNetUint8()
++	local size =3D input:PopNetUint16()
++	local temp1 =3D input:PopNetUint16()			--0x0001 or 0x4000 !?
++	local item_serial =3D input:PopNetUint32()	--Serial of item/creature
++	local temp2 =3D input:PopNetUint16()			--0x0000 !?
++	local serial =3D input:PopNetUint32()	--Serial of item/creature in all te=
+sts.
++												--This could be the serial of the item the entry to appear ove=
+r!?
++	while true do =
+
++		local cliloc_id =3D input:PopNetUint32()
++		if (cliloc_id =3D=3D hex2num(&quot;0x00000000&quot;)) then break end
++		=
+
++		local cliloc_size =3D input:PopNetUint16()
++		local textline =3D &quot;&quot;
++		if (cliloc_size &gt; 0) then
++			textline =3D input:PopUnicodeString(cliloc_size/2)			 =
+
++			gClilocLoader:Set(cliloc_id,textline) -- register in cliloc
++		end
++		printf(&quot;NET: Mega_Cliloc : id=3D%d 0x%08x len=3D%d text=3D%s\n&quot;,cliloc_i=
+d,cliloc_id,cliloc_size,textline)
++	end
++end
++
++--[[
++void cClient::Act_AOSTooltip (cPacket * packet)
++{
++
++  if (!Config::GetAOSToolTips())
++    return;
++  if ( !Config::GetClilocs() )
++    return;
++  packet-&gt;SetPosition (5);
++  Uint32 id =3D packet-&gt;GetDword ();
++  Uint16 unkn =3D packet-&gt;GetWord ();
++  Uint32 listID =3D packet-&gt;GetDword ();
++  cCharacter *character =3D NULL;
++  cDynamicObject *obj =3D NULL;
++
++  character =3D pCharacterList.Get (id);
++  obj =3D pDynamicObjectList.Get (id);
++
++  if (character)
++      {
++        character-&gt;ClearAOSTooltip ();
++        character-&gt;SetAOSTooltipID (listID);
++      }
++  if (obj)
++      {
++        obj-&gt;ClearAOSTooltip ();
++        obj-&gt;SetAOSTooltipID (listID);
++      }
++
++  Uint32 clilocID;
++  do
++      {
++        clilocID =3D packet-&gt;GetDword ();
++        if (!clilocID)
++          break;
++
++        Uint16 textlen =3D packet-&gt;GetWord ();
++
++        char *arguments;
++        arguments =3D new char[textlen];
++        packet-&gt;GetData (arguments, textlen);
++
++        char *str2 =3D new char[(textlen / 2) + 1];
++        int idx2 =3D 0;
++        for (int i =3D 0; i &lt; textlen; i++)
++            {
++              if (arguments[i] !=3D 0)
++                str2[i / 2] =3D arguments[i];
++            }
++        str2[textlen / 2] =3D 0;
++
++
++        vector &lt; std::string &gt; arglist;
++        std::string arg_string =3D std::string (str2);
++        char tab[2];
++        tab[0] =3D 9;
++        tab[1] =3D 0;
++        std::string delim =3D std::string (tab);
++
++
++        stringSplit (arglist, arg_string, delim);
++
++
++        std::string message =3D
++          pClilocLoader.GetMessageWithArguments ((int) clilocID,
++                                                  (int) arglist.size (),
++                                                  arglist);
++
++        if (character)
++          character-&gt;AddAOSTooltip (message);
++
++        if (obj)
++          obj-&gt;AddAOSTooltip (message);
++
++          delete[] str2;
++          delete[] arguments;
++      }
++  while (clilocID !=3D 0);
++
++}
++]]--
++
++--[[
++std::string cClilocLoader::GetMessageWithArguments (int id, int args_num, =
+vector &lt; std::string &gt; &amp;args)
++{
++
++	vector &lt; std::string &gt; splitted_str;
++	std::string word;
++
++	std::string ret_msg =3D &quot;&quot;;
++	std::string message =3D GetMessage (id);
++	char *tags =3D new char[message.size () + 1];
++	memset(tags,0,message.size ()+1);
++	strcpy (tags, message.c_str ());
++
++
++	char *tag =3D strtok (tags, &quot;~~&quot;);
++
++	while (tag !=3D NULL)
++	{
++		char *copy_str =3D new char[strlen (tag) + 1];
++		copy_str[strlen (tag)] =3D 0;
++		strcpy (copy_str, tag);
++		splitted_str.push_back (string (copy_str));
++		tag =3D strtok (NULL, &quot;~~&quot;);
++		delete[] copy_str;
++	}
++
++	int args_index =3D 0;
++	for (unsigned int i =3D 0; i &lt; splitted_str.size (); i++)
++	{
++
++		word =3D splitted_str.at (i);
++
++		if (word.empty ())
++			continue;
++
++		char *newstr =3D (char *) word.c_str ();
++
++		if (((newstr[0] &gt;=3D 0x30) &amp;&amp; (newstr[0] &lt;=3D 0x39)) &amp;&amp; newstr[1] =3D=3D=
+ 95)
++		{
++			word =3D args.at (args_index);
++			args_index++;
++			if (word[0] =3D=3D 35)
++			{
++				std::string sub =3D word.substr (1);
++				int msgid =3D atoi (sub.c_str ());
++				word =3D GetMessage (msgid);
++			}
++		}
++		ret_msg +=3D word;
++		// HARKON: why delete?
++		// delete[] newstr;
++	}
++
++
++	delete[] tags;
++	delete[] tag;
++
++	return ret_msg;
++}
++]]--
++
++
++--[[
++var tooltip =3D 0;
++
++net_onaostooltip(const id, const count, const x, const y)
++{
++//log(&quot;TOOLTIP&quot;);
++	control_close(tooltip);
++	=
+
++	if(id =3D=3D 0) {
++		control_close(tooltip);
++		//tooltip =3D 0;
++		return;
++	}
++
++	tooltip =3D gui_addcontainer(x+10,y+10,100,100);
++	=
+
++	if(tooltip &gt; 6000000){
++		control_close(tooltip);
++		return;
++	}
++	=
+
++	gui_setcontainer(tooltip);
++	=
+
++	var gump =3D gui_addgump(0,0,0x588,0);
++
++	control_setsize(gump, 80, 15 * count);
++	control_setalpha(gump, 220);
++	gui_setcontainershape(gump);
++	=
+
++	var message, lab, highlight, labheight;
++	var maxsize =3D 0;
++	var yalign =3D 0;
++
++	for(var i =3D 0; i &lt; count; i++) {
++		message =3D net_getaostooltip(id, i);
++//log(&quot;MSG: &quot; + message);
++		highlight =3D char_gethighlighthue(id);
++		lab =3D gui_addlabel(1, yalign, message, 1);
++		var labsize =3D label_getwidth(lab);
++		labheight =3D label_getheight(lab);
++		if(labsize&gt;maxsize)
++			maxsize =3D labsize;
++		=
+
++		if(i =3D=3D 0) {
++			if(highlight !=3D -1)
++				label_sethue(lab, highlight);
++			else
++				label_sethue(lab, 55);
++		}
++		=
+
++		yalign +=3D labheight + 2;
++	}
++
++	control_setsize(gump, maxsize + 1, (labheight + 2) * count);
++	control_setalpha(gump, 170);
++	gui_setcontainershape(gump);
++	gui_setcontainer();
++}
++]]--
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000393.html">[Iris-commit] [IRIS] r1578 - /trunk/data/lua/net/net.buff.lua
+</A></li>
+	<LI>Next message: <A HREF="000396.html">[Iris-commit] [IRIS] r1580 - in /trunk/data: config.lua.dist lua/lib.keybinds.lua lua/main.lua lua/net.other.lua mymacros.lua.dist
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#394">[ date ]</a>
+              <a href="thread.html#394">[ thread ]</a>
+              <a href="subject.html#394">[ subject ]</a>
+              <a href="author.html#394">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,229 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2546 - in /trunk: lua/lib.2d.mousepick.lua lua/lib.uotooltip.lua plugins/lib.spellbar.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-October/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2546%20-%20in%20/trunk%3A%20lua/lib.2d.mousepick.lua%0A%20lua/lib.uotooltip.lua%20plugins/lib.spellbar.lua&In-Reply-To=%3C20081011210004.AEB571C187B7%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001350.html">
+   <LINK REL="Next"  HREF="001352.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2546 - in /trunk: lua/lib.2d.mousepick.lua lua/lib.uotooltip.lua plugins/lib.spellbar.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2546%20-%20in%20/trunk%3A%20lua/lib.2d.mousepick.lua%0A%20lua/lib.uotooltip.lua%20plugins/lib.spellbar.lua&In-Reply-To=%3C20081011210004.AEB571C187B7%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2546 - in /trunk: lua/lib.2d.mousepick.lua lua/lib.uotooltip.lua plugins/lib.spellbar.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat Oct 11 22:02:19 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001350.html">[Iris-commit] [IRIS] r2545 - in /trunk: lua/obj/obj.mobile.lua	plugins/lib.spellbar.lua
+</A></li>
+        <LI>Next message: <A HREF="001352.html">[Iris-commit] [IRIS] r2547 - /trunk/plugins/lib.spellbar.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1351">[ date ]</a>
+              <a href="thread.html#1351">[ thread ]</a>
+              <a href="subject.html#1351">[ subject ]</a>
+              <a href="author.html#1351">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sat Oct 11 22:02:19 2008
+New Revision: 2546
+
+Log:
+improved tooltip hashing
+
+Modified:
+    trunk/lua/lib.2d.mousepick.lua
+    trunk/lua/lib.uotooltip.lua
+    trunk/plugins/lib.spellbar.lua
+
+Modified: trunk/lua/lib.2d.mousepick.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.mousepick.lua (original)
++++ trunk/lua/lib.2d.mousepick.lua Sat Oct 11 22:02:19 2008
+@@ -19,6 +19,8 @@
+ end
+ =
+
+ function Renderer2D:MousePick_Scene () =
+
++	if (not self.map2d_spawners) then return end -- not yet initialised
++	=
+
+ 	-- raypick
+ 	local founddist =
+
+ 	local rx,ry,rz, rvx,rvy,rvz =3D GetMouseRay()
+
+Modified: trunk/lua/lib.uotooltip.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.uotooltip.lua (original)
++++ trunk/lua/lib.uotooltip.lua Sat Oct 11 22:02:19 2008
+@@ -1,5 +1,7 @@
+ gUOToolTipSerial =3D nil
+ gUOToolTipDialog =3D nil
++
++kToolTipHashMask =3D 0x3fffFFFF
+ =
+
+ function StartUOToolTipAtMouse_Serial (serial)
+ 	if (gUOToolTipSerial =3D=3D serial) then return end
+@@ -82,10 +84,11 @@
+ 	local id =3D input:PopNetUint8()
+ 	local objserial =3D input:PopNetUint32()			--Item/Mob-Serial
+ 	local objrevision_hash =3D input:PopNetUint32()
+-	printdebug(&quot;net&quot;,sprintf(&quot;NET: AOSObjProp objserial=3D0x%08x objrevision_=
+hash=3D0x%08x\n&quot;,objserial,objrevision_hash))
+-	if (AosToolTip_GetHash(objserial) ~=3D objrevision_hash) then
+-		AosToolTip_SetHash(objserial,objrevision_hash)
+-		-- print(&quot;Send_ToolTipRequest&quot;,objserial,objrevision_hash)
++	local hash =3D BitwiseAND(objrevision_hash,kToolTipHashMask)
++	printdebug(&quot;net&quot;,sprintf(&quot;NET: AOSObjProp objserial=3D0x%08x hash=3D0x%08=
+x\n&quot;,objserial,hash))
++	if (AosToolTip_GetHash(objserial) ~=3D hash) then
++		AosToolTip_SetHash(objserial,hash)
++		-- print(&quot;Send_ToolTipRequest&quot;,objserial,hash)
+ 		Send_ToolTipRequest(objserial)
+ 	end
+ end
+@@ -93,14 +96,15 @@
+ -- Mega Cliloc - server sends new Clilocs - just add them to the Cliloc
+ -- TODO : this cliloc additions might be local to a specific mobile, e.g. =
+vendor or container...
+ function gPacketHandler.kPacket_Mega_Cliloc()	--0xD6
+-	local input			=3D GetRecvFIFO()
+-	local id			=3D input:PopNetUint8()
+-	local size			=3D input:PopNetUint16()
+-	local unknown1		=3D input:PopNetUint16()	--0x0001 or 0x4000 !?
+-	local serial		=3D input:PopNetUint32()	--Serial of item/creature
+-	local unknown2		=3D input:PopNetUint16()	--0x0000 !?
+-	local unknown3		=3D input:PopNetUint32()	--another serial? hash? weird fl=
+ags ? position ? 0x030c0ca3
+-		-- unknown3 in old iris code : obj/character-&gt;SetAOSTooltipID(listID);
++	local input				=3D GetRecvFIFO()
++	local id				=3D input:PopNetUint8()
++	local size				=3D input:PopNetUint16()
++	local unknown1			=3D input:PopNetUint16()	--0x0001 or 0x4000 !?
++	local serial			=3D input:PopNetUint32()	--Serial of item/creature
++	local unknown2			=3D input:PopNetUint16()	--0x0000 !?
++	local objrevision_hash	=3D input:PopNetUint32()	--another serial? hash? w=
+eird flags ? position ? 0x030c0ca3
++	local hash =3D BitwiseAND(objrevision_hash,kToolTipHashMask) =
+
++		-- objrevision_hash in old iris code : obj/character-&gt;SetAOSTooltipID(li=
+stID);
+ 	=
+
+ 	local totaltext =3D &quot;&quot;
+ 	local bFirst =3D true
+@@ -136,7 +140,9 @@
+ 		totaltext =3D totaltext..text
+ 		--~ printf(&quot;NET: Mega_Cliloc LINE : text=3D'%s' clilocbase=3D'%s' totalp=
+aramtext=3D'%s' debug=3D%s\n&quot;,text,cliloctext,totalparamtext,debugtxt)
+ 	end
+-	printdebug(&quot;net&quot;, sprintf(&quot;NET: Mega_Cliloc : serial=3D%d u3=3D%d text=3D=
+'%s'\n&quot;,serial,unknown3,totaltext) )
++	printdebug(&quot;net&quot;, sprintf(&quot;NET: Mega_Cliloc : serial=3D%d u3=3D%d text=3D=
+'%s'\n&quot;,serial,hash,totaltext) )
++	--~ print(&quot;recv-tooltip&quot;,hash=3D=3DAosToolTip_GetHash(serial),sprintf(&quot;0x=
+%08x&quot;,hash),sprintf(&quot;0x%08x&quot;,AosToolTip_GetHash(serial) or 0),SmartDump(unk=
+nown2),SmartDump(unknown1))
++	AosToolTip_SetHash(serial,hash)
+ 	AosToolTip_SetText(serial,totaltext)
+ end
+ =
+
+
+Modified: trunk/plugins/lib.spellbar.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/plugins/lib.spellbar.lua (original)
++++ trunk/plugins/lib.spellbar.lua Sat Oct 11 22:02:19 2008
+@@ -2,12 +2,21 @@
+ =
+
+ if (not gDisabledPlugins.spellbar) then =
+
+ =
+
++function SpellBarEquipChanged (mobile)
++	print(&quot;SpellBarEquipChanged&quot;)
++	=
+
++	for index,layer in pairs(gLayerOrder) do =
+
++		local item =3D GetMobileEquipmentItem(mobile,layer)
++		if (item) then =
+
++			local tooltip =3D AosToolTip_GetText(item.serial)
++			--~ if (tooltip) then print(&quot;+&quot;,tooltip) end
++		end
++	end
++end
+ =
+
+ RegisterListener(&quot;Hook_MobileEquipmentChanged&quot;,function (mobile)
+ 	if (not IsPlayerMobile(mobile)) then return end
+-	print(&quot;spellbar : Hook_MobileEquipmentChanged&quot;)
+-	=
+
+-	=
+
++	SpellBarEquipChanged(mobile)
+ end)
+ 	=
+
+ RegisterListener(&quot;Hook_HUDStep&quot;,function ()
+@@ -17,6 +26,7 @@
+ RegisterListener(&quot;Hook_SendSpell&quot;,function (spellid)
+ 	local spellname =3D GetSpellNameByID(spellid)
+ 	print(&quot;spellbar:Hook_SendSpell&quot;,spellid,spellname)
++	SpellBarEquipChanged(GetPlayerMobile())
+ 	SpellBarRiseTextOnMob(GetPlayerSerial(),spellname,1,1,1) =
+
+ end)
+ =
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001350.html">[Iris-commit] [IRIS] r2545 - in /trunk: lua/obj/obj.mobile.lua	plugins/lib.spellbar.lua
+</A></li>
+	<LI>Next message: <A HREF="001352.html">[Iris-commit] [IRIS] r2547 - /trunk/plugins/lib.spellbar.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1351">[ date ]</a>
+              <a href="thread.html#1351">[ thread ]</a>
+              <a href="subject.html#1351">[ subject ]</a>
+              <a href="author.html#1351">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

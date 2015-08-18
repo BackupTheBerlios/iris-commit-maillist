@@ -1,0 +1,517 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1758 - /trunk/lua/lib.walking2.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-January/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1758%20-%20/trunk/lua/lib.walking2.lua&In-Reply-To=%3C20080115170827.1F8061C181A7%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000571.html">
+   <LINK REL="Next"  HREF="000578.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1758 - /trunk/lua/lib.walking2.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1758%20-%20/trunk/lua/lib.walking2.lua&In-Reply-To=%3C20080115170827.1F8061C181A7%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1758 - /trunk/lua/lib.walking2.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat Jan 12 04:34:38 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000571.html">[Iris-commit] [IRIS] r1757 - /trunk/lua/lib.3d.map.lua
+</A></li>
+        <LI>Next message: <A HREF="000578.html">[Iris-commit] [IRIS] r1759 - /trunk/lua/lib.walking2.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#574">[ date ]</a>
+              <a href="thread.html#574">[ thread ]</a>
+              <a href="subject.html#574">[ subject ]</a>
+              <a href="author.html#574">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sat Jan 12 04:34:37 2008
+New Revision: 1758
+
+Log:
+optimized walk code a bit, commented out debugprint calls to avoid expenesi=
+ve string concat
+
+Modified:
+    trunk/lua/lib.walking2.lua
+
+Modified: trunk/lua/lib.walking2.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.walking2.lua (original)
++++ trunk/lua/lib.walking2.lua Sat Jan 12 04:34:37 2008
+@@ -4,6 +4,8 @@
+ gDebugWalkingDetailed =3D true =
+
+ =
+
+ function printwalkdebug (...) if (gDebugWalkingDetailed) then printdebug(&quot;=
+walking&quot;,unpack(arg)) end end =
+
++
++kHex02 =3D hex2num(&quot;0x02&quot;)
+ =
+
+ -- returns tiletype,zloc
+ function GetAbsTile (xloc,yloc) =
+
+@@ -72,7 +74,7 @@
+ 	local t =3D GetStaticTileType(artid)
+ 	if (t) then
+ 		if ( not(isBridge(t.miFlags)) and not(isImpassable(t.miFlags)) and not(i=
+sSurface(t.miFlags)) ) then
+-			printwalkdebug(&quot;----&quot; .. t.msName ..&quot;  !impassable  !bridge  !surfacebl=
+ocking&quot;)
++			--~ printwalkdebug(&quot;----&quot; .. t.msName ..&quot;  !impassable  !bridge  !surfa=
+ceblocking&quot;)
+ 		else
+ 			local iHeight =3D t.miHeight
+ 			if (isBridge(t.miFlags)) then iHeight =3D iHeight/2 + 0.5 end -- TODO :=
+ 2 is the right value, but playerpos is to low
+@@ -80,29 +82,32 @@
+ 			if (flaglist[zloc] =3D=3D nil) then
+ 				flaglist[zloc] =3D { }
+ 			end
++			local myflaglist =3D flaglist[zloc]
+ 			=
+
+-			flaglist[zloc].bSurface =3D flaglist[zloc].bSurface or isSurface(t.miFl=
+ags)
+-			flaglist[zloc].bBridge =3D flaglist[zloc].bBridge or isBridge (t.miFlag=
+s)
++			myflaglist.bSurface =3D myflaglist.bSurface or isSurface(t.miFlags)
++			myflaglist.bBridge =3D myflaglist.bBridge or isBridge(t.miFlags)
+ 			=
+
+ 			if (iHeight &gt; 0) then
+-				flaglist[zloc].bImpassable =3D flaglist[zloc].bImpassable or isImpassa=
+ble(t.miFlags)
++				myflaglist.bImpassable =3D myflaglist.bImpassable or isImpassable(t.mi=
+Flags)
+ 				for j=3D1, iHeight-1, 1 do
+ 					if (flaglist[zloc + j] =3D=3D nil) then
+ 						flaglist[zloc + j] =3D { }
+ 					end
+-					flaglist[zloc + j].bImpassable =3D flaglist[zloc + j].bImpassable or =
+isImpassable(t.miFlags)
+-					flaglist[zloc + j].bSurface =3D flaglist[zloc + j].bSurface or isSurf=
+ace(t.miFlags)
+-					flaglist[zloc + j].bBridge =3D flaglist[zloc + j].bBridge or isBridge=
+ (t.miFlags) =
+
++					local myflaglist =3D flaglist[zloc + j]
++					myflaglist.bImpassable =3D myflaglist.bImpassable or isImpassable(t.m=
+iFlags)
++					myflaglist.bSurface =3D myflaglist.bSurface or isSurface(t.miFlags)
++					myflaglist.bBridge =3D myflaglist.bBridge or isBridge (t.miFlags) =
+
+ 				end
+ 				=
+
+ 				if (flaglist[zloc + iHeight] =3D=3D nil) then
+ 					flaglist[zloc + iHeight] =3D { }
+ 				end
+-				flaglist[zloc + iHeight].bSurface =3D flaglist[zloc + iHeight].bSurfac=
+e or isSurface(t.miFlags)
+-				flaglist[zloc + iHeight].bBridge =3D flaglist[zloc + iHeight].bBridge =
+or isBridge(t.miFlags) =
+
++				local myflaglist =3D flaglist[zloc + iHeight]
++				myflaglist.bSurface =3D myflaglist.bSurface or isSurface(t.miFlags)
++				myflaglist.bBridge =3D myflaglist.bBridge or isBridge(t.miFlags) =
+
+ 			end
+ 			=
+
+-			printwalkdebug(&quot;----&quot; .. t.msName ..&quot;  z=3D&quot; .. zloc .. &quot;  height=3D&quot; .=
+. iHeight .. &quot; bImpassable=3D&quot; .. tostring(isImpassable(t.miFlags)) .. &quot; bS=
+urface=3D&quot; .. tostring(isSurface(t.miFlags)) .. &quot; isBridge=3D&quot; .. tostring(=
+isBridge(t.miFlags)))
++			--~ printwalkdebug(&quot;----&quot; .. t.msName ..&quot;  z=3D&quot; .. zloc .. &quot;  height=
+=3D&quot; .. iHeight .. &quot; bImpassable=3D&quot; .. tostring(isImpassable(t.miFlags)) .=
+. &quot; bSurface=3D&quot; .. tostring(isSurface(t.miFlags)) .. &quot; isBridge=3D&quot; .. tos=
+tring(isBridge(t.miFlags)))
+ 		end
+ 	end
+ end
+@@ -110,13 +115,13 @@
+ -- returns an array of flags (impassable, surface, maptile)
+ -- array might contain empty entries (meaning on the specific z level is n=
+either something blocking nor a surface/maptile)
+ function GetWalkingBlockFlags(bx, by, tx, ty)
+-	printwalkdebug(&quot;--GetWalkingBlockFlags() for bx=3D&quot;..bx..&quot;  by=3D&quot;..by..&quot;=
+  tx=3D&quot;..tx..&quot;  ty=3D&quot;..ty..&quot;  (&quot;..(bx*8 + tx)..&quot;/&quot;..(by*8+ty)..&quot;)&quot;) =
+
++	--~ printwalkdebug(&quot;--GetWalkingBlockFlags() for bx=3D&quot;..bx..&quot;  by=3D&quot;..b=
+y..&quot;  tx=3D&quot;..tx..&quot;  ty=3D&quot;..ty..&quot;  (&quot;..(bx*8 + tx)..&quot;/&quot;..(by*8+ty)..&quot;)&quot;) =
+
+ 	=
+
+ 	if ( not(gTileTypeLoader) ) then return {} end
+ 	local flaglist =3D { }
+ 	=
+
+ 	-- map
+-	printwalkdebug(&quot;---Map&quot;)
++	--~ printwalkdebug(&quot;---Map&quot;)
+ 	=
+
+ 	local iMapTileType =3D gGroundBlockLoader:GetTile(bx,by,tx,ty)
+ 	local iMapTileZ =3D tonumber(AverageGroundHeight( bx, by, tx, ty))
+@@ -126,17 +131,18 @@
+ 	local miFlags,miTexID,msName =3D gTileTypeLoader:GetGroundTileType(iTrans=
+tile)
+ 	=
+
+ 	-- ignore NoDraw Tiles
+-	if (iMapTileType ~=3D hex2num(&quot;0x02&quot;)) then
+-		flaglist[iMapTileZ] =3D { }
+-		flaglist[iMapTileZ].bSurface =3D true
+-		flaglist[iMapTileZ].bImpassable =3D isImpassable(miFlags)
+-		flaglist[iMapTileZ].bMaptile =3D true
+-		printwalkdebug(&quot;----Map Name=3D&quot; .. msName ..&quot;  Heigt=3D&quot; .. iMapTileZ .=
+.&quot;   bSurface=3Dtrue  bImpassable=3D&quot; .. tostring(flaglist[iMapTileZ].bImpa=
+ssable))
++	if (iMapTileType ~=3D kHex02) then
++		local myflaglist =3D { }
++		myflaglist.bSurface =3D true
++		myflaglist.bImpassable =3D isImpassable(miFlags)
++		myflaglist.bMaptile =3D true
++		flaglist[iMapTileZ] =3D myflaglist
++		--~ printwalkdebug(&quot;----Map Name=3D&quot; .. msName ..&quot;  Heigt=3D&quot; .. iMapTil=
+eZ ..&quot;   bSurface=3Dtrue  bImpassable=3D&quot; .. tostring(flaglist[iMapTileZ].b=
+Impassable))
+ 	end
+ 	=
+
+ 	=
+
+ 	-- statics
+-	printwalkdebug(&quot;---Statics&quot;)
++	--~ printwalkdebug(&quot;---Statics&quot;)
+ 	=
+
+ 	local iStaticCount
+ 	if (gStaticBlockLoader) then
+@@ -151,7 +157,7 @@
+ 	for i =3D 0,iStaticCount-1 do
+ 		iTileTypeID,iX,iY,iZ,iHue =3D gStaticBlockLoader:GetStatic(i)
+ 		if (iX =3D=3D tx and iY =3D=3D ty) then
+-			printwalkdebug(&quot;----new Static ID=3D&quot; .. iTileTypeID)
++			--~ printwalkdebug(&quot;----new Static ID=3D&quot; .. iTileTypeID)
+ 			GetWalkingBlockFlagsHelper(iZ,iTileTypeID,flaglist)
+ 		end
+ 	end
+@@ -161,7 +167,7 @@
+ 	local yloc=3Dby*8+ty
+ 	=
+
+ 	-- multis
+-	printwalkdebug(&quot;---Multis&quot;)
++	--~ printwalkdebug(&quot;---Multis&quot;)
+ 	=
+
+ 	for k,v in pairs(gMultis) do
+ 		local multi =3D k
+@@ -178,7 +184,7 @@
+ 	end
+ 	=
+
+ 	-- dynamics
+-	printwalkdebug(&quot;---Dynamics&quot;)
++	--~ printwalkdebug(&quot;---Dynamics&quot;)
+ 	=
+
+ 	for k,dynamic in pairs(GetDynamicList()) do
+ 		if(DynamicIsInWorld(dynamic) and dynamic.artid) then
+@@ -192,7 +198,7 @@
+ 				if (dynamic.lTile) then
+ 					for k,v in pairs(dynamic.lTile) do
+ 						if ((dynamic.xloc+v.x) =3D=3D xloc and (dynamic.yloc+v.y) =3D=3D ylo=
+c) then
+-							printwalkdebug(&quot;----new serverside multi tile ID=3D&quot; .. v.artid)
++							--~ printwalkdebug(&quot;----new serverside multi tile ID=3D&quot; .. v.artid)
+ 							GetWalkingBlockFlagsHelper(v.z,v.artid,flaglist)	-- todo flaglist
+ 						end
+ 					end
+@@ -200,7 +206,7 @@
+ 				-- multi found, special collision handling
+ 					local id =3D dynamic.artid - gMulti_ID
+ 					local parts =3D gMultiLoader:CountMultiParts(id)
+-					printwalkdebug(&quot;---Dynamics multi id=3D&quot; .. id .. &quot; parts=3D&quot; .. part=
+s)
++					--~ printwalkdebug(&quot;---Dynamics multi id=3D&quot; .. id .. &quot; parts=3D&quot; .. =
+parts)
+ 					for p =3D 0, parts-1 do
+ 						local blocknum,x,y,z,flags
+ 						blocknum,x,y,z,flags =3D gMultiLoader:GetMultiParts(id,p)
+@@ -211,26 +217,26 @@
+ 						pzloc =3D dynamic.zloc + z
+ 	=
+
+ 						if (flags =3D=3D 1 and pxloc =3D=3D xloc and pyloc =3D=3D yloc) then
+-							printwalkdebug(&quot;----new dynamic ID=3D&quot; .. blocknum)
++							--~ printwalkdebug(&quot;----new dynamic ID=3D&quot; .. blocknum)
+ 							GetWalkingBlockFlagsHelper(pzloc,blocknum,flaglist)
+ 						end						=
+
+ 					end
+ 				else
+-					printwalkdebug(&quot;no Multi found&quot;)
++					--~ printwalkdebug(&quot;no Multi found&quot;)
+ 				end
+ 				]]--
+ 			else
+ 				--elseif(dynamic.artid &lt; gMulti_ID + 100) then
+ 				-- no mulit just a normal tile
+ 				if (dynamic.xloc =3D=3D xloc and dynamic.yloc =3D=3D yloc) then
+-					printwalkdebug(&quot;----new dynamic ID=3D&quot; .. dynamic.artid)
++					--~ printwalkdebug(&quot;----new dynamic ID=3D&quot; .. dynamic.artid)
+ 					GetWalkingBlockFlagsHelper(dynamic.zloc,dynamic.artid,flaglist)
+ 				end
+ 			end
+ 		end
+ 	end
+ 	=
+
+-	printwalkdebug(&quot;End GetWalkingBlockFlags()&quot;)
++	--~ printwalkdebug(&quot;End GetWalkingBlockFlags()&quot;)
+ 	return flaglist
+ end
+ =
+
+@@ -242,15 +248,16 @@
+ 	diagonalCheck =3D diagonalCheck or false =
+
+ 	height =3D height or 15
+ 	for i=3D1, height, 1 do
+-		if (flaglist[zloc+i] ~=3D nil) then
++		local myflaglist =3D flaglist[zloc+i]
++		if (myflaglist ~=3D nil) then
+ 			if (diagonalCheck) then
+-				if (flaglist[zloc+i].bImpassable
+-					or (flaglist[zloc+i].bMaptile and (i &gt; gMaxZ_Climb + 5)) =
+
+-					or (flaglist[zloc+i].bSurface and (i &gt; gMaxZ_Climb))
++				if (myflaglist.bImpassable
++					or (myflaglist.bMaptile and (i &gt; gMaxZ_Climb + 5)) =
+
++					or (myflaglist.bSurface and (i &gt; gMaxZ_Climb))
+ 				) then
+ 					return false =
+
+ 				end
+-			elseif (flaglist[zloc+i].bImpassable or flaglist[zloc+i].bSurface) then =
+
++			elseif (myflaglist.bImpassable or myflaglist.bSurface) then =
+
+ 				return false
+ 			end
+ 		end
+@@ -267,7 +274,7 @@
+ function CheckAdjacentTiles(bx, by, tx, ty, iDir, iStartZ)
+ 	local bDiagonal
+ 	local diagonalFlagList1, diagonalFlagList2
+-	printwalkdebug(&quot;------direction: &quot;..iDir)
++	--~ printwalkdebug(&quot;------direction: &quot;..iDir)
+ 	if (iDir =3D=3D 1) then --northeast (right)
+ 		bDiagonal =3D true
+ 		if (tx =3D=3D 0) then
+@@ -326,13 +333,13 @@
+ 	end
+ 			=
+
+ 	if (bDiagonal) then
+-		printwalkdebug(&quot;------walking diagonally&quot;)
++		--~ printwalkdebug(&quot;------walking diagonally&quot;)
+ 				=
+
+ 		if (CheckZSpace(diagonalFlagList1, iStartZ, true) and CheckZSpace(diagon=
+alFlagList2, iStartZ, true)) then
+-			printwalkdebug(&quot;-------no obstacles on adjacent coordinates&quot;)
++			--~ printwalkdebug(&quot;-------no obstacles on adjacent coordinates&quot;)
+ 			return true
+ 		else
+-			printwalkdebug(&quot;-------adjacent tiles are not free to walk, blocking&quot;)
++			--~ printwalkdebug(&quot;-------adjacent tiles are not free to walk, blockin=
+g&quot;)
+ 			return false
+ 		end
+ 	else
+@@ -348,23 +355,23 @@
+ function GetNearestGroundLevel (xloc,yloc,iStartZ,iDir)
+ 	local bx,by,tx,ty =3D math.floor(xloc/8),math.floor(yloc/8),math.mod(xloc=
+,8),math.mod(yloc,8)
+ 	local Walking_Start =3D Client_GetTicks()
+-	printwalkdebug(&quot;-------------------&quot;)
+-	printwalkdebug(&quot;GetNearestGroundLevel()&quot;)
++	--~ printwalkdebug(&quot;-------------------&quot;)
++	--~ printwalkdebug(&quot;GetNearestGroundLevel()&quot;)
+ 	=
+
+ 	if ( (tx &gt;=3D 8) or (ty &gt;=3D 8) or (tx &lt; 0) or (ty &lt; 0)) then return fals=
+e, 255 end
+ 	if (not gGroundBlockLoader) then return false, 255 end
+ =
+
+-	printwalkdebug(&quot;iStartZ=3D&quot;..iStartZ)
++	--~ printwalkdebug(&quot;iStartZ=3D&quot;..iStartZ)
+ 	=
+
+ 	local flaglist =3D GetWalkingBlockFlags(bx, by, tx, ty)
+ 	=
+
+-	printwalkdebug(&quot;--------------------&quot;)
+-	printwalkdebug(&quot;List output:&quot;)
+-	for index, value in pairs(flaglist) do
+-		printwalkdebug(&quot;z=3D&quot; .. index .. &quot;   bSurface=3D&quot; .. tostring(flaglist[=
+index].bSurface) .. &quot;  bImpassable=3D&quot; .. tostring(flaglist[index].bImpassa=
+ble).. &quot;  bBridge=3D&quot; .. tostring(flaglist[index].bBridge))
+-	end
+-
+-	printwalkdebug(&quot;--------------------&quot;)
++	--~ printwalkdebug(&quot;--------------------&quot;)
++	--~ printwalkdebug(&quot;List output:&quot;)
++	--~ for index, value in pairs(flaglist) do
++		--~ printwalkdebug(&quot;z=3D&quot; .. index .. &quot;   bSurface=3D&quot; .. tostring(flagl=
+ist[index].bSurface) .. &quot;  bImpassable=3D&quot; .. tostring(flaglist[index].bImp=
+assable).. &quot;  bBridge=3D&quot; .. tostring(flaglist[index].bBridge))
++	--~ end
++
++	--~ printwalkdebug(&quot;--------------------&quot;)
+ 	=
+
+ 	=
+
+ 	-- find closest surface (z + 0, -1, +1, -2, +2 etc)
+@@ -374,20 +381,21 @@
+ 	local iCur
+ 	for i=3D0, math.max((gMaxZ_Climb + 5), gMaxZ_Fall), 1 do
+ 		iCur =3D iStartZ + i
+-		if (i ~=3D 0 and flaglist[iCur] ~=3D nil) then
+-			printwalkdebug(&quot;-----iCur=3D&quot; .. iCur)
+-			if (i &lt; gMaxZ_Climb or (i &lt; (gMaxZ_Climb + 5) and (flaglist[iCur].bMapt=
+ile or flaglist[iCur].bBridge))) then
+-				if ((not flaglist[iCur].bImpassable) and flaglist[iCur].bSurface) then
+-					printwalkdebug(&quot;------found Surface&quot;);
++		local myflaglist =3D flaglist[iCur] =
+
++		if (i ~=3D 0 and myflaglist ~=3D nil) then
++			--~ printwalkdebug(&quot;-----iCur=3D&quot; .. iCur)
++			if (i &lt; gMaxZ_Climb or (i &lt; (gMaxZ_Climb + 5) and (myflaglist.bMaptile =
+or myflaglist.bBridge))) then
++				if ((not myflaglist.bImpassable) and myflaglist.bSurface) then
++					--~ printwalkdebug(&quot;------found Surface&quot;);
+ 					if (CheckZSpace(flaglist, iCur)) then
+-						printwalkdebug(&quot;------checkSpace successful&quot;)
++						--~ printwalkdebug(&quot;------checkSpace successful&quot;)
+ 						=
+
+ 						local bAdjacent =3D CheckAdjacentTiles(bx, by, tx, ty, iDir, iStartZ)
+ 						=
+
+-						printwalkdebug(&quot;End GetNearestGroundLevel()&quot;)
+-						printwalkdebug(&quot;----------------------------&quot;)
+-						printwalkdebug()
+-						printdebug(&quot;walking&quot;,sprintf( &quot;Walking calculations took %d msec.\n&quot;=
+, Client_GetTicks() - Walking_Start ))
++						--~ printwalkdebug(&quot;End GetNearestGroundLevel()&quot;)
++						--~ printwalkdebug(&quot;----------------------------&quot;)
++						--~ printwalkdebug()
++						--~ printdebug(&quot;walking&quot;,sprintf( &quot;Walking calculations took %d msec=
+.\n&quot;, Client_GetTicks() - Walking_Start ))
+ 						if (bAdjacent) then
+ 							return true, iCur
+ 						else
+@@ -401,19 +409,19 @@
+ 		=
+
+ 		iCur =3D iStartZ - i
+ 		if (flaglist[iCur] ~=3D nil) then
+-			printwalkdebug(&quot;-----iCur=3D&quot; .. iCur)
++			--~ printwalkdebug(&quot;-----iCur=3D&quot; .. iCur)
+ 			if (i &lt; gMaxZ_Fall) then
+ 				if ((not flaglist[iCur].bImpassable) and flaglist[iCur].bSurface) then
+-					printwalkdebug(&quot;------found Surface&quot;);
++					--~ printwalkdebug(&quot;------found Surface&quot;);
+ 					if (CheckZSpace(flaglist, iCur)) then
+-						printwalkdebug(&quot;------ checkSpace successful&quot;)
++						--~ printwalkdebug(&quot;------ checkSpace successful&quot;)
+ 						=
+
+ 						local bAdjacent =3D CheckAdjacentTiles(bx, by, tx, ty, iDir, iStartZ)
+ 						=
+
+-						printwalkdebug(&quot;End GetNearestGroundLevel()&quot;)
+-						printwalkdebug(&quot;----------------------------&quot;)
+-						printwalkdebug()
+-						printdebug(&quot;walking&quot;,sprintf( &quot;Walking calculations took %d msec.\n&quot;=
+, Client_GetTicks() - Walking_Start ))
++						--~ printwalkdebug(&quot;End GetNearestGroundLevel()&quot;)
++						--~ printwalkdebug(&quot;----------------------------&quot;)
++						--~ printwalkdebug()
++						--~ printdebug(&quot;walking&quot;,sprintf( &quot;Walking calculations took %d msec=
+.\n&quot;, Client_GetTicks() - Walking_Start ))
+ 						if (bAdjacent) then
+ 							return true, iCur
+ 						else
+@@ -426,10 +434,10 @@
+ 	end
+ 	=
+
+ 	-- if there was no space to walk through found, return false
+-	printwalkdebug(&quot;End GetNearestGroundLevel()&quot;)
+-	printwalkdebug(&quot;returning false&quot;)
+-	printwalkdebug(&quot;----------------------------&quot;)
+-	=
+
+-	printdebug(&quot;walking&quot;,sprintf( &quot;Walking calculations took %d msec.\n&quot;, Cli=
+ent_GetTicks() - Walking_Start ))
++	--~ printwalkdebug(&quot;End GetNearestGroundLevel()&quot;)
++	--~ printwalkdebug(&quot;returning false&quot;)
++	--~ printwalkdebug(&quot;----------------------------&quot;)
++	=
+
++	--~ printdebug(&quot;walking&quot;,sprintf( &quot;Walking calculations took %d msec.\n&quot;,=
+ Client_GetTicks() - Walking_Start ))
+ 	return false, 255 =
+
+ end
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000571.html">[Iris-commit] [IRIS] r1757 - /trunk/lua/lib.3d.map.lua
+</A></li>
+	<LI>Next message: <A HREF="000578.html">[Iris-commit] [IRIS] r1759 - /trunk/lua/lib.walking2.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#574">[ date ]</a>
+              <a href="thread.html#574">[ thread ]</a>
+              <a href="subject.html#574">[ subject ]</a>
+              <a href="author.html#574">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,161 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2215 - in /trunk/lua: lib.2d.dynamic.lua lib.2d.mobile.lua lib.2d.renderer.lua lib.artatlas.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-May/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2215%20-%20in%20/trunk/lua%3A%20lib.2d.dynamic.lua%0A%20lib.2d.mobile.lua%20lib.2d.renderer.lua%20lib.artatlas.lua&In-Reply-To=%3C20080531022508.C6F051C180F2%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001023.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2215 - in /trunk/lua: lib.2d.dynamic.lua lib.2d.mobile.lua lib.2d.renderer.lua lib.artatlas.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2215%20-%20in%20/trunk/lua%3A%20lib.2d.dynamic.lua%0A%20lib.2d.mobile.lua%20lib.2d.renderer.lua%20lib.artatlas.lua&In-Reply-To=%3C20080531022508.C6F051C180F2%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2215 - in /trunk/lua: lib.2d.dynamic.lua lib.2d.mobile.lua lib.2d.renderer.lua lib.artatlas.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat May 31 04:25:07 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001023.html">[Iris-commit] [IRIS] r2214 - in /trunk/lua: lib.2d.renderer.lua	lib.artatlas.lua
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1024">[ date ]</a>
+              <a href="thread.html#1024">[ thread ]</a>
+              <a href="subject.html#1024">[ subject ]</a>
+              <a href="author.html#1024">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sat May 31 04:25:04 2008
+New Revision: 2215
+
+Log:
+2d dynamics
+
+Added:
+    trunk/lua/lib.2d.dynamic.lua
+Modified:
+    trunk/lua/lib.2d.mobile.lua
+    trunk/lua/lib.2d.renderer.lua
+    trunk/lua/lib.artatlas.lua
+
+Modified: trunk/lua/lib.2d.mobile.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.mobile.lua (original)
++++ trunk/lua/lib.2d.mobile.lua Sat May 31 04:25:04 2008
+@@ -3,7 +3,6 @@
+ kSq2			=3D math.sqrt(2)
+ k2D_ScaleH		=3D kSq2 / 44
+ k2D_ScaleW05	=3D 0.5 / 44 -- 0.5 : applied left and right
+-k2D_MobileZAdd	=3D 0.0
+ =
+
+ -- main updater, create, position ...
+ function Renderer2D:UpdateMobile				(mobile) =
+
+@@ -26,7 +25,6 @@
+ 	end
+ 	=
+
+ 	local x,y,z =3D self:UOPosToLocal(mobile.xloc,mobile.yloc,mobile.zloc)
+-	z =3D z + k2D_MobileZAdd
+ 	gfx:SetPosition(x,y,z*0.1)
+ 	self:MobileGfxUpdateGeometry(gfx,iModelID,iAnimID,gfx.iFrame,iHue)
+ end =
+
+
+Modified: trunk/lua/lib.2d.renderer.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.renderer.lua (original)
++++ trunk/lua/lib.2d.renderer.lua Sat May 31 04:25:04 2008
+@@ -10,6 +10,7 @@
+ dofile(libpath .. &quot;lib.2d.cam.lua&quot;)
+ dofile(libpath .. &quot;lib.2d.map.lua&quot;)
+ dofile(libpath .. &quot;lib.2d.mobile.lua&quot;)
++dofile(libpath .. &quot;lib.2d.dynamic.lua&quot;)
+ =
+
+ function Renderer2D:FirstInit ()
+ 	if (self.bFirstInitDone) then return end
+@@ -67,9 +68,6 @@
+ =
+
+  =
+
+ function Renderer2D:DestroyMousePickItemBySerial	() end
+-function Renderer2D:RemoveDynamicItem				() end
+-function Renderer2D:AddDynamicItem					() end
+-function Renderer2D:UpdateDynamicItemPos			() end
+ function Renderer2D:AddEffect						(effectdata) end
+ function Renderer2D:CamKeyDown						(key) end
+ function Renderer2D:CamKeyUp						(key) end
+
+Modified: trunk/lua/lib.artatlas.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.artatlas.lua (original)
++++ trunk/lua/lib.artatlas.lua Sat May 31 04:25:04 2008
+@@ -6,6 +6,19 @@
+ gArtAtlasCache =3D {}
+ kArtAtlasDebugDumpAtlas =3D false
+ =
+
++
++-- returns sMatName,iWidth,iHeight,iCenterX,iCenterY,u0,v0,u1,v1 =3D ArtAt=
+lasLoadAndLockDirect(iTileTypeID,iHue,pLockKeeper)
++-- immediately load material, useful for dynamics
++function ArtAtlasLoadAndLockDirect (iTileTypeID,iHue,pLockKeeper)
++	local o =3D ArtAtlasLoadAndLock(iTileTypeID,iHue,pLockKeeper)
++	if (not o) then return end
++	local sMatName =3D ArtAtlasLoadMaterial(o.atlas)
++	local iCenterX,iCenterY =3D o.w/2,o.h-22
++	return sMatName,o.w,o.h,iCenterX,iCenterY,o.u0,o.v0,o.u1,o.v1
++end
++
++
++-- material is not immediately loaded, useful for statics
+ function ArtAtlasLoadAndLock (iTileTypeID,iHue,pLockKeeper)
+ 	local n =3D iTileTypeID..&quot;_&quot;..iHue
+ 	local o =3D gArtAtlasCache[n] =
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001023.html">[Iris-commit] [IRIS] r2214 - in /trunk/lua: lib.2d.renderer.lua	lib.artatlas.lua
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1024">[ date ]</a>
+              <a href="thread.html#1024">[ thread ]</a>
+              <a href="subject.html#1024">[ subject ]</a>
+              <a href="author.html#1024">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,258 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1856 - in /trunk/lua: lib.3d.dynamic.lua lib.3d.map.lua lib.mainmenu.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-January/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1856%20-%20in%20/trunk/lua%3A%20lib.3d.dynamic.lua%0A%20lib.3d.map.lua%20lib.mainmenu.lua&In-Reply-To=%3C20080126030025.46B391C1868C%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000668.html">
+   <LINK REL="Next"  HREF="000670.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1856 - in /trunk/lua: lib.3d.dynamic.lua lib.3d.map.lua lib.mainmenu.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1856%20-%20in%20/trunk/lua%3A%20lib.3d.dynamic.lua%0A%20lib.3d.map.lua%20lib.mainmenu.lua&In-Reply-To=%3C20080126030025.46B391C1868C%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1856 - in /trunk/lua: lib.3d.dynamic.lua lib.3d.map.lua lib.mainmenu.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat Jan 26 03:29:19 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000668.html">[Iris-commit] [IRIS] r1855 - in /trunk/lua: lib.3d.cam.lua	lib.3d.map.lua
+</A></li>
+        <LI>Next message: <A HREF="000670.html">[Iris-commit] [IRIS] r1857 - /trunk/lua/lib.3d.map.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#669">[ date ]</a>
+              <a href="thread.html#669">[ thread ]</a>
+              <a href="subject.html#669">[ subject ]</a>
+              <a href="author.html#669">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sat Jan 26 03:29:18 2008
+New Revision: 1856
+
+Log:
+fastbatch blendout uses new feature now, dynamic blendout works as well
+
+Modified:
+    trunk/lua/lib.3d.dynamic.lua
+    trunk/lua/lib.3d.map.lua
+    trunk/lua/lib.mainmenu.lua
+
+Modified: trunk/lua/lib.3d.dynamic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.dynamic.lua (original)
++++ trunk/lua/lib.3d.dynamic.lua Sat Jan 26 03:29:18 2008
+@@ -12,6 +12,12 @@
+ -- helperfunction for CreateDynamicGfx. Please use always for function call
+ function Renderer3D:AddDynamicItem( item )
+ 	self:CreateDynamicGfx(item)
++end
++
++-- for fastbatch
++function Renderer3D:UpdateDynamicDisplayRange ()
++	if (not self.gFastBatchDynamics) then return end
++	self.gFastBatchDynamics:FastBatch_SetDisplayRange(self:BlendoutGetVisible=
+Range())
+ end
+ =
+
+ function Renderer3D:CheckForFastBatchDynamicsUpdate ()
+@@ -35,17 +41,16 @@
+ 		for k,dynamic in pairs(GetDynamicList()) do
+ 			-- print(&quot;DEBUG&quot;,&quot;ADD DYNAMIC&quot;,dynamic.meshname)
+ 			if (dynamic.meshname and DynamicIsInWorld(dynamic)) then
+-				if (self:IsZLayerVisible(dynamic.zloc)) then
+-						x,y,z =3D Renderer3D:UOPosToLocal (dynamic.xloc,dynamic.yloc,dynamic=
+.zloc * 0.1) =
+
+-						qw,qx,qy,qz =3D GetStaticMeshOrientation(dynamic.artid)
+-
+-						local r,g,b,a =3D 1,1,1,1
+-						if (gHueLoader and dynamic.hue &gt; 0) then
+-							r,g,b =3D gHueLoader:GetColor(dynamic.hue - 1,31) -- get first color
+-						end
+-
+-						Renderer3D.gFastBatchDynamics:FastBatch_AddMesh(dynamic.meshname, x,=
+y,z, qw,qx,qy,qz, -1,1,1, r,g,b,a)
+-				end
++				x,y,z =3D Renderer3D:UOPosToLocal(dynamic.xloc,dynamic.yloc,dynamic.zl=
+oc * 0.1) =
+
++				qw,qx,qy,qz =3D GetStaticMeshOrientation(dynamic.artid)
++
++				local r,g,b,a =3D 1,1,1,1
++				if (gHueLoader and dynamic.hue &gt; 0) then
++					r,g,b =3D gHueLoader:GetColor(dynamic.hue - 1,31) -- get first color
++				end
++
++				local orderval =3D dynamic.zloc -- used for blendout later (fastbatch =
+feature)
++				Renderer3D.gFastBatchDynamics:FastBatch_AddMeshBuffer(GetMeshBuffer(dy=
+namic.meshname), orderval, x,y,z, qw,qx,qy,qz, -1,1,1, r,g,b,a)
+ 			end
+ 		end
+ =
+
+@@ -53,6 +58,7 @@
+ 		Renderer3D.gFastBatchDynamics:FastBatch_Build()
+ =
+
+ 		Renderer3D.gFastBatchDynamicsUpdateNext =3D gMyTicks + Renderer3D.gFastB=
+atchDynamicsUpdateNextTimout
++		self:UpdateDynamicDisplayRange()
+ 	end
+ end
+ =
+
+
+Modified: trunk/lua/lib.3d.map.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.map.lua (original)
++++ trunk/lua/lib.3d.map.lua Sat Jan 26 03:29:18 2008
+@@ -333,17 +333,15 @@
+ 		entity.sz =3D sz
+ =
+
+ 		if (gFastBatchStatics) then
++			local r,g,b,a =3D 1,1,1,1
++			if (gHueLoader and entity.iHue &gt; 0) then
++				r,g,b =3D gHueLoader:GetColor(entity.iHue - 1,31) -- get first color
++			end
++
+ 			entity.meshbuffer =3D GetMeshBuffer(meshname) -- for mousepicking
+ 			TexAtlas_AdjustMeshBufferIfNeeded(meshname,entity.meshbuffer)
+-			if (not self.giBlendOutCurZ) or entity.zloc &lt;=3D self.giBlendOutCurZ th=
+en
+-
+-				local r,g,b,a =3D 1,1,1,1
+-				if (gHueLoader and entity.iHue &gt; 0) then
+-					r,g,b =3D gHueLoader:GetColor(entity.iHue - 1,31) -- get first color
+-				end
+-
+-				chunk.fastbatch:FastBatch_AddMesh(meshname,entity.x,entity.y,entity.z,=
+ qw,qx,qy,qz, sx,sy,sz, r,g,b,a)
+-			end
++			local orderval =3D entity.zloc -- used for blendout later (fastbatch fe=
+ature)
++			chunk.fastbatch:FastBatch_AddMeshBuffer(entity.meshbuffer, orderval ,en=
+tity.x,entity.y,entity.z, qw,qx,qy,qz, sx,sy,sz, r,g,b,a)
+ 		else
+ 			entity.staticentity =3D CreateMeshEntity(meshname)
+ 			local myLayer =3D Renderer3D:ZToLayer(entity.zloc)
+@@ -533,6 +531,7 @@
+ 	if (gFastBatchStatics) then
+ 		chunk.fastbatch:SetCastShadows(gStaticsCastShadows)
+ 		chunk.fastbatch:FastBatch_Build()
++		chunk.fastbatch:FastBatch_SetDisplayRange(self:BlendoutGetVisibleRange())
+ 	else
+ 		for layerZ,layerStaticGeom in pairs(chunk.pStaticGeometryLayers) do =
+
+ 			layerStaticGeom:SetCastShadows(gStaticsCastShadows)
+@@ -606,6 +605,13 @@
+ 	end
+ end
+ =
+
++-- returns fMinZ,fMaxZ
++function Renderer3D:BlendoutGetVisibleRange ()
++	local fMinZ =3D -1000
++	local fMaxZ =3D (self.giBlendOutCurZ or 1000) -- inclusive
++	return fMinZ,fMaxZ
++end
++
+ -- TODO: blend out mounts
+ function Renderer3D:BlendOutLayersAbovePlayer ()
+ 	local x,y,z =3D GetPlayerPos()
+@@ -718,7 +724,8 @@
+ 					-- update fast batch
+ 					if gFastBatchStatics then
+ 						-- invalidate map chunk and trigger rebuild
+-						chunk.mbRebuild =3D true
++						--~ chunk.mbRebuild =3D true
++						chunk.fastbatch:FastBatch_SetDisplayRange(self:BlendoutGetVisibleRan=
+ge())
+ 					end
+ 					=
+
+ 					-- update terrain
+@@ -731,9 +738,11 @@
+ 			end
+ 		end
+ 		=
+
+-		-- update dynamics
++		-- update dynamics =
+
+ 		for k,dynamic in pairs(GetDynamicList()) do if (DynamicIsInWorld(dynamic=
+)) then self:UpdateDynamicVisibility(dynamic) end end
+-
++		=
+
++		self:UpdateDynamicDisplayRange()
++		=
+
+ 		-- update mobiles
+ 		for k,mobile in pairs(GetMobileList()) do self:UpdateMobileVisibility(mo=
+bile) end
+ 	end
+
+Modified: trunk/lua/lib.mainmenu.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mainmenu.lua (original)
++++ trunk/lua/lib.mainmenu.lua Sat Jan 26 03:29:18 2008
+@@ -284,7 +284,8 @@
+ 	local qw,qx,qy,qz =3D 1,0,0,0
+ 	local sx,sy,sz =3D 1,1,1
+ 	local r,g,b,a =3D 1,1,1,1
+-	fastbatch:FastBatch_AddMeshBuffer(mymeshbuffer, x,y,z, qw,qx,qy,qz, sx,sy=
+,sz, r,g,b,a)
++	local orderval =3D 0 -- not used here
++	fastbatch:FastBatch_AddMeshBuffer(mymeshbuffer, orderval, x,y,z, qw,qx,qy=
+,qz, sx,sy,sz, r,g,b,a)
+ 	fastbatch:FastBatch_Build()
+ end
+ =
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000668.html">[Iris-commit] [IRIS] r1855 - in /trunk/lua: lib.3d.cam.lua	lib.3d.map.lua
+</A></li>
+	<LI>Next message: <A HREF="000670.html">[Iris-commit] [IRIS] r1857 - /trunk/lua/lib.3d.map.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#669">[ date ]</a>
+              <a href="thread.html#669">[ thread ]</a>
+              <a href="subject.html#669">[ subject ]</a>
+              <a href="author.html#669">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

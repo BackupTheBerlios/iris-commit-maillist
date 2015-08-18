@@ -1,0 +1,475 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2863 - in /trunk/lua: lib.2d.mobile.lua lib.2d.spriteblock.lua main.lua net/net.text.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2009-January/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2863%20-%20in%20/trunk/lua%3A%20lib.2d.mobile.lua%0A%20lib.2d.spriteblock.lua%20main.lua%20net/net.text.lua&In-Reply-To=%3C20090113035150.00F251C18775%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001664.html">
+   <LINK REL="Next"  HREF="001666.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2863 - in /trunk/lua: lib.2d.mobile.lua lib.2d.spriteblock.lua main.lua net/net.text.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2863%20-%20in%20/trunk/lua%3A%20lib.2d.mobile.lua%0A%20lib.2d.spriteblock.lua%20main.lua%20net/net.text.lua&In-Reply-To=%3C20090113035150.00F251C18775%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2863 - in /trunk/lua: lib.2d.mobile.lua lib.2d.spriteblock.lua main.lua net/net.text.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Tue Jan 13 04:51:48 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001664.html">[Iris-commit] [IRIS] r2862 - in /trunk/lua: lib.2d.dynamic.lua	main.lua
+</A></li>
+        <LI>Next message: <A HREF="001666.html">[Iris-commit] [IRIS] r2864 - in /trunk: lua/gui/gui.chat.lua lua/lib.2d.mousepick.lua lua/lib.macrolist.lua lua/lib.unifont.lua lua/main.lua lua/net/net.text.lua plugins/lib.spellbar.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1665">[ date ]</a>
+              <a href="thread.html#1665">[ thread ]</a>
+              <a href="subject.html#1665">[ subject ]</a>
+              <a href="author.html#1665">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Tue Jan 13 04:51:46 2009
+New Revision: 2863
+
+Log:
+2d reduced memory allocation during mobile anim by reusing sprite structs f=
+or mainbody and equip items, added detail profiling to mobanim and localize=
+d text packet
+
+Modified:
+    trunk/lua/lib.2d.mobile.lua
+    trunk/lua/lib.2d.spriteblock.lua
+    trunk/lua/main.lua
+    trunk/lua/net/net.text.lua
+
+Modified: trunk/lua/lib.2d.mobile.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.mobile.lua (original)
++++ trunk/lua/lib.2d.mobile.lua Tue Jan 13 04:51:46 2009
+@@ -33,7 +33,9 @@
+ 		mobile.r2d_bSmoothWalk =3D bSmoothWalk
+ 		self.gStepMobilesSmoothWalk[mobile] =3D bSmoothWalk or nil
+ 	end
++	gProfiler_R2D_MobileStep:Start(gEnableProfiler_R2D_MobileStep)
+ 	self:UpdateMobileGfx(mobile)
++	gProfiler_R2D_MobileStep:End()
+ end
+ =
+
+ =
+
+@@ -115,8 +117,10 @@
+ function Renderer2D:UpdateMobileGfx				(mobile) =
+
+ 	local spriteblock =3D mobile.gfx2d
+ 	if (not spriteblock) then return end
++	gProfiler_R2D_MobileStep:Section(&quot;UpdateMobileGfx:Clear&quot;)
+ 	spriteblock:Clear()
+ 	=
+
++	gProfiler_R2D_MobileStep:Section(&quot;UpdateMobileGfx:prep&quot;)
+ 	local mount	=3D mobile:GetEquipmentAtLayer(kLayer_Mount)
+ 	--~ if (mount) then mount.artid =3D 0x3e90 print(&quot;mount:chimera test&quot;) en=
+d  -- =
+
+ 	=
+
+@@ -136,10 +140,13 @@
+ 	--~ table.insert(parts,{self:GetMobileMountModelAndHue(mobile)}) -- kLaye=
+r_Mount
+ 	if (mount) then table.insert(parts,{gMountTranslate2D[mount.artid],mount.=
+hue,gStandardHorse}) end
+ 	=
+
++	local main_spritearr =3D mobile.r2d_main_spritearr
++	if (not main_spritearr) then main_spritearr =3D {} mobile.r2d_main_sprite=
+arr =3D main_spritearr end
+ 	if (mobile.artid ~=3D 402 and
+-		mobile.artid ~=3D 403) then table.insert(parts,{mobile.artid,mobile.hue,=
+13}) end -- fallback=3D13=3Devortex  402=3Dghost
++		mobile.artid ~=3D 403) then table.insert(parts,{mobile.artid,mobile.hue,=
+13,main_spritearr}) end -- fallback=3D13=3Devortex  402=3Dghost
+ 		=
+
+ 	--~ print(&quot;######### mobart&quot;,mobile.artid)
++	gProfiler_R2D_MobileStep:Section(&quot;UpdateMobileGfx:human&quot;)
+ 	if (self:MobileHasVisibleEquip(mobile.artid)) then -- only humans have eq=
+uip
+ 		for index,layer in pairs(gLayerOrderByDir[DirWrap(mobile.dir)]) do =
+
+ 			local item =3D GetMobileEquipmentItem(mobile,layer)
+@@ -148,20 +155,26 @@
+ 				local t =3D GetStaticTileType(item.artid)
+ 				local iFallBackModel
+ 				if (layer =3D=3D kLayer_TorsoOuter) then iFallBackModel =3D 469 end --=
+ standard robe
+-				if (t and t.miAnimID and t.miAnimID &gt; 0) then table.insert(parts,{t.mi=
+AnimID,item.hue,iFallBackModel}) end
++				if (t and t.miAnimID and t.miAnimID &gt; 0) then =
+
++					local item_spritearr =3D item.r2d_spritearr
++					if (not item_spritearr) then item_spritearr =3D {} item.r2d_spritearr=
+ =3D item_spritearr end
++					table.insert(parts,{t.miAnimID,item.hue,iFallBackModel,item_spritearr=
+}) =
+
++				end
+ 			end
+ 		end
+ 	end
+ 	=
+
+ 	for k,v in pairs(parts) do =
+
+-		local iModelID,iHue,iFallBackModel =3D unpack(v)
++		local iModelID,iHue,iFallBackModel,spritearr =3D unpack(v)
+ 		if iModelID then =
+
++			gProfiler_R2D_MobileStep:Section(&quot;UpdateMobileGfx:UOAnimTranslateBodyID=
+&quot;)
+ 			local iLoaderIndex =3D 1
+ 			local iOldModelID =3D iModelID
+ 			iModelID,iHue,iLoaderIndex =3D UOAnimTranslateBodyID(iModelID,iHue)
+ 			=
+
+ 			if (mobile.flag_hidden) then iHue =3D kHiddenMobileHue end
+ 			=
+
++			gProfiler_R2D_MobileStep:Section(&quot;UpdateMobileGfx:Anim_Get.Anim&quot;)
+ 			--~ if (iOldModelID =3D=3D 309) then print(&quot;UOAnimTranslateBodyID trans=
+lated to &quot;,iOldModelID,iModelID,iHue,iLoaderIndex) end
+ 			iIndex =3D iIndex + 1 =
+
+ 			fIndexRel =3D 200 * (1 - 1/iIndex) -- dirty hack to avoid zbuffer flick=
+er
+@@ -178,17 +191,22 @@
+ 			if (gMy2DMobileDebugAnim) then iAnimID =3D gMy2DMobileDebugAnim end
+ 			=
+
+ 			=
+
++			gProfiler_R2D_MobileStep:Section(&quot;UpdateMobileGfx:Anim2D_GetFrameCount&quot;)
+ 			local iFrameCount =3D		Anim2D_GetFrameCount(Anim_GetRealID(iModelID,iAn=
+imID,iLoaderIndex),iLoaderIndex) or
+ 									(iFallBackModel and Anim2D_GetFrameCount(Anim_GetRealID(iFallBack=
+Model,iFallBackAnim,1),1)) or =
+
+ 									1
+ 			if (iFrameCount &lt; 1) then iFrameCount =3D 1 end
+ 			--~ local iFrame =3D floor((gMy2DDebugFrame or 0) / 15) % iFrameCount
+ 			local iFrame =3D (floor(gMyTicks/100)) % iFrameCount
+-			spriteblock:AddAnimModel(tx,ty,tz,iModelID,iHue,iLoaderIndex,iFallBackM=
+odel,iFallBackAnim,iAnimID,iFrame,bMirrorX,CalcSortBonus(nil,sorttx,sortty,=
+sorttz,fIndexRel,4),mobile) =
+
++			gProfiler_R2D_MobileStep:Section(&quot;UpdateMobileGfx:AddAnimModel (start:L=
+oadAtlasPiece)&quot;)
++			spriteblock:AddAnimModel(tx,ty,tz,iModelID,iHue,iLoaderIndex,iFallBackM=
+odel,iFallBackAnim,iAnimID,iFrame,bMirrorX,CalcSortBonus(nil,sorttx,sortty,=
+sorttz,fIndexRel,4),mobile,	spritearr) =
+
+ 		end
+ 	end
++	gProfiler_R2D_MobileStep:Section(&quot;UpdateMobileGfx:Build&quot;)
+ 	spriteblock:Build(Renderer2D.kSpriteBaseMaterial,false)
++	gProfiler_R2D_MobileStep:Section(&quot;UpdateMobileGfx:UpdateMobilePos&quot;)
+ 	self:UpdateMobilePos(mobile)
++	gProfiler_R2D_MobileStep:Section(&quot;UpdateMobileGfx:End&quot;)
+ end
+ =
+
+ function Renderer2D:DestroyMobileGfx			(mobile) =
+
+@@ -205,12 +223,17 @@
+ function Renderer2D:MobileStartServerSideAnim	(animdata) end
+ =
+
+ =
+
++gProfiler_R2D_MobileStep =3D CreateRoughProfiler(&quot;2D:MobileStep&quot;)
++
+ function Renderer2D:MobileStep()
++	gProfiler_R2D_MobileStep:Start(gEnableProfiler_R2D_MobileStep)
+ 	local curt =3D gMyTicks
+ 	for mobile,t in pairs(self.gStepMobiles) do =
+
+ 		if (curt &gt;=3D t) then self:MobileStepOne(mobile) end
+ 	end
++	gProfiler_R2D_MobileStep:Section(&quot;UpdateMobilePos&quot;)
+ 	for mobile,v in pairs(self.gStepMobilesSmoothWalk) do self:UpdateMobilePo=
+s(mobile) end
++	gProfiler_R2D_MobileStep:End()
+ 	=
+
+ 	--~ local playermobile =3D GetPlayerMobile()
+ 	--~ print(&quot;playermobile.dir&quot;,playermobile and DirWrap(playermobile.dir)) =
+
+
+Modified: trunk/lua/lib.2d.spriteblock.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.spriteblock.lua (original)
++++ trunk/lua/lib.2d.spriteblock.lua Tue Jan 13 04:51:46 2009
+@@ -158,7 +158,7 @@
+ 	end
+ end
+ =
+
+-function cUOSpriteBlock:AddAnimModel (tx,ty,tz,iTranslatedModelID,iHue,iLo=
+aderIndex,iFallBackModel,iFallBackAnim,iAnimID,iFrame,bMirrorX,sortbonus,da=
+ta)
++function cUOSpriteBlock:AddAnimModel (tx,ty,tz,iTranslatedModelID,iHue,iLo=
+aderIndex,iFallBackModel,iFallBackAnim,iAnimID,iFrame,bMirrorX,sortbonus,da=
+ta,	spritearr)
+ 	iHue =3D BitwiseAND(iHue or 0,0x7fff) -- 0x03F4 : human skin hue (0x83F4=
+=3D33780, but 0x8* is partial hue and turned out all gray here)
+ 	local pAtlasPiece =3D Anim2DAtlas_LoadAtlasPiece(iTranslatedModelID,iAnim=
+ID,iFrame,iHue,iLoaderIndex)
+ 	if (not pAtlasPiece) then
+@@ -174,8 +174,9 @@
+ 			pAtlasPiece			=3D Anim2DAtlas_LoadAtlasPiece(iTranslatedModelID,iAnimID=
+,iFrame,iHue,iLoaderIndex)
+ 		end
+ 	end
++	gProfiler_R2D_MobileStep:SectionIfActive(&quot;UpdateMobileGfx:AddAnimModel:Ad=
+dSpriteEx&quot;)
+ 	if (pAtlasPiece) then
+-		local sprite =3D self:AddSpriteEx(tx,ty,tz,sortbonus,data,pAtlasPiece,bM=
+irrorX)
++		local sprite =3D self:AddSpriteEx(tx,ty,tz,sortbonus,data,pAtlasPiece,bM=
+irrorX,	spritearr)
+ 		sprite.bMirrorX =3D bMirrorX
+ 		sprite.uoanim_ModelID		=3D iTranslatedModelID
+ 		sprite.uoanim_AnimID		=3D iAnimID
+@@ -212,8 +213,8 @@
+ 	return sprite
+ end
+ 	=
+
+--- pAtlasPiece=3D{atlas=3D?,origw=3D?,origh=3D?,u0=3D?,v0=3D?,u1=3D?,v1=3D=
+?}
+-function cUOSpriteBlock:AddSpriteEx (tx,ty,zloc,sortbonus,data,pAtlasPiece=
+,bMirrorX)
++-- pAtlasPiece=3D{atlas=3D?,origw=3D?,origh=3D?,u0=3D?,v0=3D?,u1=3D?,v1=3D=
+?}      sprite:usually nil, can be set to old table for overwriting (mobile=
+ anim)
++function cUOSpriteBlock:AddSpriteEx (tx,ty,zloc,sortbonus,data,pAtlasPiece=
+,bMirrorX,	sprite)
+ 	local atlas =3D pAtlasPiece.atlas
+ 	local group =3D self.pSpritesByAtlas[atlas]
+ 	if (not group) then group =3D {} self.pSpritesByAtlas[atlas] =3D group end
+@@ -258,20 +259,35 @@
+ 		z =3D z + yo
+ 	end
+ 	=
+
+-	local sprite =3D {
+-		x =3D x,
+-		y =3D y,
+-		z =3D z,
+-		xa =3D xa,
+-		za =3D za,
+-		u0 =3D pAtlasPiece.u0,
+-		v0 =3D pAtlasPiece.v0,
+-		u1 =3D pAtlasPiece.u1,
+-		v1 =3D pAtlasPiece.v1,
+-		pw =3D pw, -- in pixels
+-		ph =3D ph, -- in pixels
+-		data =3D data
+-	}
++	if (sprite) then =
+
++		sprite.x =3D x
++		sprite.y =3D y
++		sprite.z =3D z
++		sprite.xa =3D xa
++		sprite.za =3D za
++		sprite.u0 =3D pAtlasPiece.u0
++		sprite.v0 =3D pAtlasPiece.v0
++		sprite.u1 =3D pAtlasPiece.u1
++		sprite.v1 =3D pAtlasPiece.v1
++		sprite.pw =3D pw -- in pixels
++		sprite.ph =3D ph -- in pixels
++		sprite.data =3D data
++	else =
+
++		sprite =3D {
++			x =3D x,
++			y =3D y,
++			z =3D z,
++			xa =3D xa,
++			za =3D za,
++			u0 =3D pAtlasPiece.u0,
++			v0 =3D pAtlasPiece.v0,
++			u1 =3D pAtlasPiece.u1,
++			v1 =3D pAtlasPiece.v1,
++			pw =3D pw, -- in pixels
++			ph =3D ph, -- in pixels
++			data =3D data
++		}
++	end
+ 	table.insert(group,sprite)
+ 	return sprite
+ end
+
+Modified: trunk/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/main.lua (original)
++++ trunk/lua/main.lua Tue Jan 13 04:51:46 2009
+@@ -456,7 +456,7 @@
+ 	table.sort(arr_tspikeframe	,function (a,b) return a.v &gt; b.v end)
+ 	local topx =3D 10
+ 	for k,o in pairs(arr_t) do =
+
+-		if (k &lt;=3D topx) then print(&quot; #&quot;..k,sprintf(&quot;%5dmsec (%3d%%)&quot;,o.v,floor(=
+100*o.v/gMyProfilerTopCPUTSum)),o.name) end =
+
++		if (k &lt;=3D topx and (not gEnableRoughProfileSum_SkipCPU)) then print(&quot; #=
+&quot;..k,sprintf(&quot;%5dmsec (%3d%%)&quot;,o.v,floor(100*o.v/gMyProfilerTopCPUTSum)),o.=
+name) end =
+
+ 	end
+ 	print(sprintf(&quot; total time=3D%dsec cpu=3D%d%% gpu=3D%d%% idle/maxfpswait=
+=3D%d%%&quot;	=
+
+ 															,	floor(gMyProfilerTopInterval/1000)
+@@ -467,19 +467,19 @@
+ 															=
+
+ 	print(Client_GetTicks(),&quot;=3D=3D=3D MyProfilerTop tspike (single sections =
+causing delays/lags) =3D=3D=3D&quot;)
+ 	for k,o in pairs(arr_tspike) do =
+
+-		if (k &lt;=3D topx) then print(&quot; #&quot;..k,sprintf(&quot;%5dmsec&quot;,o.v),o.name) end =
+
++		if (k &lt;=3D topx and (not gEnableRoughProfileSum_SkipSpike)) then print(&quot;=
+ #&quot;..k,sprintf(&quot;%5dmsec&quot;,o.v),o.name) end =
+
+ 	end
+ 	print(Client_GetTicks(),&quot;=3D=3D=3D MyProfilerTop tspikeframe (the summed =
+cpu usage of all things during delay/lag-frames) =3D=3D=3D&quot;)
+ 	for k,o in pairs(arr_tspikeframe) do =
+
+-		if (k &lt;=3D topx) then print(&quot; #&quot;..k,sprintf(&quot;%5dmsec&quot;,o.v),o.name) end =
+
++		if (k &lt;=3D topx and (not gEnableRoughProfileSum_SkipSpikeFrame)) then pr=
+int(&quot; #&quot;..k,sprintf(&quot;%5dmsec&quot;,o.v),o.name) end =
+
+ 	end
+ 	print(Client_GetTicks(),&quot;=3D=3D=3D MyProfilerTop memLua =3D=3D=3D&quot;)
+ 	for k,o in pairs(arr_memL) do =
+
+-		if (k &lt;=3D topx and o.v &gt; 0) then print(&quot; #&quot;..k,sprintf(&quot;%5dkb&quot;,floor(o.=
+v/1024)),o.name) end =
+
++		if (k &lt;=3D topx and o.v &gt; 0 and (not gEnableRoughProfileSum_SkipMemL)) t=
+hen print(&quot; #&quot;..k,sprintf(&quot;%5dkb&quot;,floor(o.v/1024)),o.name) end =
+
+ 	end
+ 	print(Client_GetTicks(),&quot;=3D=3D=3D MyProfilerTop memOgre =3D=3D=3D&quot;)
+ 	for k,o in pairs(arr_memO) do =
+
+-		if (k &lt;=3D topx and o.v &gt; 0) then print(&quot; #&quot;..k,sprintf(&quot;%5dkb&quot;,floor(o.=
+v/1024)),o.name) end =
+
++		if (k &lt;=3D topx and o.v &gt; 0 and (not gEnableRoughProfileSum_SkipMemO)) t=
+hen print(&quot; #&quot;..k,sprintf(&quot;%5dkb&quot;,floor(o.v/1024)),o.name) end =
+
+ 	end
+ 	print(Client_GetTicks(),&quot; . . . . . &quot;)
+ 	=
+
+
+Modified: trunk/lua/net/net.text.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.text.lua (original)
++++ trunk/lua/net/net.text.lua Tue Jan 13 04:51:46 2009
+@@ -255,9 +255,12 @@
+ 	HandleUOText(data)
+ end
+ =
+
++gProfiler_Packet_Localized_Text =3D CreateRoughProfiler(&quot;Packet_Localized_=
+Text&quot;)
+ =
+
+ -- Predefined Message (localized Message) 0xC1
+ function gPacketHandler.kPacket_Localized_Text ()
++	gProfiler_Packet_Localized_Text:Start(gEnableProfiler_Packet_Localized_Te=
+xt)
++	gProfiler_Packet_Localized_Text:Section(&quot;Pop&quot;)
+ 	local input		=3D GetRecvFIFO()
+ 	local id		=3D input:PopNetUint8()
+ 	local size		=3D input:PopNetUint16()
+@@ -270,13 +273,18 @@
+ 	data.clilocid	=3D input:PopNetUint32()
+ 	data.name		=3D input:PopFilledString(30)
+ 	=
+
++	gProfiler_Packet_Localized_Text:Section(&quot;strsplit&quot;)
+ 	data.params		=3D strsplit(&quot;\t&quot;,input:PopUnicodeLEString((size - 48 - 2)/2=
+))	--little-endian_ unicode string, tabs ('\t') seperate the arguments. Nul=
+l Terminated 0x0000
+ 	local terminator =3D input:PopNetUint16() -- probably the seperator unico=
+de char for text_params, &quot;\t&quot; is hardcoded below, string.char(math.floor(te=
+rminator)/256)
+ 	=
+
++	gProfiler_Packet_Localized_Text:Section(&quot;ParameterizedClilocText&quot;)
+ 	data.text 		=3D ParameterizedClilocText(data.clilocid,data.params)
+ 	=
+
++	gProfiler_Packet_Localized_Text:Section(&quot;HandleUOText&quot;)
+ 	HandleUOText(data)
++	gProfiler_Packet_Localized_Text:Section(&quot;Hook_Packet_Localized_Text&quot;)
+ 	NotifyListener(&quot;Hook_Packet_Localized_Text&quot;,data.serial,data.text,data.cl=
+ilocid,data.type,data)
++	gProfiler_Packet_Localized_Text:End()
+ end
+ =
+
+ --server response packet for kPacket_Speech_Unicode (0xAD)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001664.html">[Iris-commit] [IRIS] r2862 - in /trunk/lua: lib.2d.dynamic.lua	main.lua
+</A></li>
+	<LI>Next message: <A HREF="001666.html">[Iris-commit] [IRIS] r2864 - in /trunk: lua/gui/gui.chat.lua lua/lib.2d.mousepick.lua lua/lib.macrolist.lua lua/lib.unifont.lua lua/main.lua lua/net/net.text.lua plugins/lib.spellbar.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1665">[ date ]</a>
+              <a href="thread.html#1665">[ thread ]</a>
+              <a href="subject.html#1665">[ subject ]</a>
+              <a href="author.html#1665">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,859 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1237 - in /branches/knut/data/lua: gui/gui.gumpmanager.lua gui/gui.main.lua gui/gui.paperdoll.lua gui/gui.status.lua gui/gui.widget.lua lib.loading.lua lib.skill.lua net/net.mobile.lua obj/obj.mobile.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2007-June/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1237%20-%20in%20/branches/knut/data/lua%3A%0A%20gui/gui.gumpmanager.lua%20gui/gui.main.lua%20gui/gui.paperdoll.lua%0A%20gui/gui.status.lua%20gui/gui.widget.lua%20lib.loading.lua%20lib.skill.lua%0A%20net/net.mobile.lua%20obj/obj.mobile.lua&In-Reply-To=%3C20070624202616.92A73109007F%40localhost.localdomain%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000052.html">
+   <LINK REL="Next"  HREF="000054.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1237 - in /branches/knut/data/lua: gui/gui.gumpmanager.lua gui/gui.main.lua gui/gui.paperdoll.lua gui/gui.status.lua gui/gui.widget.lua lib.loading.lua lib.skill.lua net/net.mobile.lua obj/obj.mobile.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1237%20-%20in%20/branches/knut/data/lua%3A%0A%20gui/gui.gumpmanager.lua%20gui/gui.main.lua%20gui/gui.paperdoll.lua%0A%20gui/gui.status.lua%20gui/gui.widget.lua%20lib.loading.lua%20lib.skill.lua%0A%20net/net.mobile.lua%20obj/obj.mobile.lua&In-Reply-To=%3C20070624202616.92A73109007F%40localhost.localdomain%3E"
+       TITLE="[Iris-commit] [IRIS] r1237 - in /branches/knut/data/lua: gui/gui.gumpmanager.lua gui/gui.main.lua gui/gui.paperdoll.lua gui/gui.status.lua gui/gui.widget.lua lib.loading.lua lib.skill.lua net/net.mobile.lua obj/obj.mobile.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sun Jun 24 22:26:16 CEST 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000052.html">[Iris-commit] [IRIS] r1236 - in /branches/knut/src: data.cpp	scripting.cpp
+</A></li>
+        <LI>Next message: <A HREF="000054.html">[Iris-commit] [IRIS] r1238 -	/branches/knut/data/lua/2d/lib.2d.renderer.luac
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#53">[ date ]</a>
+              <a href="thread.html#53">[ thread ]</a>
+              <a href="subject.html#53">[ subject ]</a>
+              <a href="author.html#53">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: varan
+Date: Sun Jun 24 22:26:15 2007
+New Revision: 1237
+
+Log:
+fixed many small bugs and rewrote status gump
+
+Modified:
+    branches/knut/data/lua/gui/gui.gumpmanager.lua
+    branches/knut/data/lua/gui/gui.main.lua
+    branches/knut/data/lua/gui/gui.paperdoll.lua
+    branches/knut/data/lua/gui/gui.status.lua
+    branches/knut/data/lua/gui/gui.widget.lua
+    branches/knut/data/lua/lib.loading.lua
+    branches/knut/data/lua/lib.skill.lua
+    branches/knut/data/lua/net/net.mobile.lua
+    branches/knut/data/lua/obj/obj.mobile.lua
+
+Modified: branches/knut/data/lua/gui/gui.gumpmanager.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- branches/knut/data/lua/gui/gui.gumpmanager.lua (original)
++++ branches/knut/data/lua/gui/gui.gumpmanager.lua Sun Jun 24 22:26:15 2007
+@@ -413,7 +413,7 @@
+ function gGumpmanager._GumpRegisterGumpObject( gump, gumpobject )
+ 	table.insert( gump.objectlist, gumpobject )
+ 	if (gumpobject.page ~=3D 0 and gumpobject.page ~=3D gump.currentpage) then
+-		gumpobject.setVisible( false )
++		gumpobject:setVisible( false )
+ 	end
+ end
+ =
+
+@@ -447,7 +447,7 @@
+ =
+
+ function gGumpmanager._SetPage( gump, page )
+ 	gump.currentpage =3D page
+-	for i, gumpobject in table.getn( gump.objectlist ) do
++	for i, gumpobject in pairs( gump.objectlist ) do
+ 		if (gumpobject.page =3D=3D 0 or gumpobject.page =3D=3D gump.currentpage)=
+ then
+ 			gumpobject:setVisible( true )
+ 		else
+@@ -781,8 +781,8 @@
+ 	textfield.border =3D border
+ 	textfield.gump =3D gump
+ 	textfield.widget =3D gump.dialog:CreateText( text, x, y, &quot;font_unifont&quot;..=
+sprintf(&quot;%d&quot;,font) )
+-	textfield.widget:SetAutoWrap( w )
+-	textfield.widget:SetClipAbsolute( 0, 0, w, h )
++	--textfield.widget:SetAutoWrap( w )
++	--textfield.widget:SetClipAbsolute( 0, 0, w, h )
+ 	textfield.widget.gumpobject =3D textfield
+ 	textfield.type =3D gGumpmanager.gumpObjectType_CroppedText
+ 	=
+
+@@ -790,9 +790,14 @@
+ 		textfield.widget:SetPos( textfield.x, textfield.y )
+ 		textfield.widget:SetText( textfield.text )
+ 		textfield.widget:SetFont( &quot;font_unifont&quot;..sprintf(&quot;%d&quot;,textfield.font) )
+-		textfield.widget:SetAutoWrap( textfield.width )
+-		textfield.widget:SetClipAbsolute( 0, 0, textfield.width, textfield.heigh=
+t )
+-	end
++		--textfield.widget:SetAutoWrap( textfield.width )
++		--textfield.widget:SetClipAbsolute( 0, 0, textfield.width, textfield.hei=
+ght )
++	end
++	=
+
++	textfield.settext =3D function( textfield, text )
++		textfield.text =3D text
++		textfield:update()
++	end	=
+
+ 	=
+
+ 	gump:registerGumpObject( textfield )
+ 	return textfield
+@@ -1294,6 +1299,11 @@
+ 		textfield.widget:SetFont( &quot;font_unifont&quot;..sprintf(&quot;%d&quot;,textfield.font) )
+ 	end
+ 	=
+
++	textfield.settext =3D function( textfield, text )
++		textfield.text =3D text
++		textfield:update()
++	end
++	=
+
+ 	gump:registerGumpObject( textfield )
+ 	return textfield
+ end
+
+Modified: branches/knut/data/lua/gui/gui.main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- branches/knut/data/lua/gui/gui.main.lua (original)
++++ branches/knut/data/lua/gui/gui.main.lua Sun Jun 24 22:26:15 2007
+@@ -4,3 +4,4 @@
+ dofile(libpath .. &quot;gui/gui.paperdoll.lua&quot;)
+ dofile(libpath .. &quot;gui/gui.journal.lua&quot;)
+ dofile(libpath .. &quot;gui/gui.quit.lua&quot;)
++dofile(libpath .. &quot;gui/gui.status.lua&quot;)
+
+Modified: branches/knut/data/lua/gui/gui.paperdoll.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- branches/knut/data/lua/gui/gui.paperdoll.lua (original)
++++ branches/knut/data/lua/gui/gui.paperdoll.lua Sun Jun 24 22:26:15 2007
+@@ -35,17 +35,14 @@
+ 	Gump.name =3D &quot;paperdoll&quot;
+ 	Gump.mobileserial =3D packet.serial
+ 	=
+
+-	local IsPlayer =3D (mobile =3D=3D GetPlayerMobile())
+-	if IsPlayer then
+-		Gump.background =3D Gump:addImage( 0, 0, hex2num(&quot;0x7D0&quot;), 0, 0 )
+-	else
+-		Gump.background =3D Gump:addImage( 0, 0, hex2num(&quot;0x7D1&quot;), 0, 0 )
+-	end
++	local IsPlayer =3D (mobile =3D=3D GetPlayerMobile()) if IsPlayer then =
+
++	Gump.background =3D Gump:addImage( 0, 0, hex2num(&quot;0x7D0&quot;), 0, 0 ) else =
+
++	Gump.background =3D Gump:addImage( 0, 0, hex2num(&quot;0x7D1&quot;), 0, 0 ) end
+ 	=
+
+ 	Gump.chargump =3D Gump:addImage( 10, 20, GetPaperdollBodyAndBaseID( mobil=
+e.body ), mobile.hue, 0 )
+ 	=
+
+ 	-- Name, Title
+-	Gump.text =3D Gump:addCroppedText( 40, 260, 180, 40, packet.name, 0, 0, 0=
+, false )
++	Gump.text =3D Gump:addCroppedText( 23, 265, 180, 40, packet.name, 0, 0, 0=
+, false )
+ =
+
+ 	if IsPlayer then
+ 		if (mobile.warmode) then
+@@ -273,14 +270,14 @@
+ 		local paperdolls =3D gGumpmanager.GetGumpsByName( &quot;paperdoll&quot; )
+ 		local paperdoll =3D nil
+ 		for s, gump in pairs( paperdolls ) do
+-			if (gump.serial =3D=3D player.serial) then
++			if (gump.mobileserial =3D=3D player.serial) then
+ 				paperdoll =3D gump
+ 				break
+ 			end
+ 		end
+ 		=
+
+ 		if (paperdoll) then
+-			paperdoll.setVisible( not paperdoll.visible )
++			paperdoll:setVisible( not paperdoll.visible )
+ 		else
+ 			Send_DoubleClick( player.serial )
+ 		end
+
+Modified: branches/knut/data/lua/gui/gui.status.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- branches/knut/data/lua/gui/gui.status.lua (original)
++++ branches/knut/data/lua/gui/gui.status.lua Sun Jun 24 22:26:15 2007
+@@ -1,4 +1,199 @@
+ gStatusAosDialog_LastPositionX =3D nil
+ gStatusAosDialog_LastPositionY =3D nil
++
++function CreateStatusGump( serial )
++	local mobile =3D gObjectList[ serial ]
++	if (not mobile) then
++		return
++	end
++	=
+
++	local Gump =3D gGumpmanager.CreateGump( 100, 100 )
++	Gump.name =3D &quot;status&quot;
++	Gump.mobileserial =3D serial
++	Gump:setpage( 1 )
++	=
+
++	local stats =3D mobile.stats	=
+
++	=
+
++	if (not stats.flag) or (stats.flag =3D=3D 0) then
++		Gump.background =3D Gump:addImage( 0, 0, hex2num(&quot;0x804&quot;), 0, 0 )
++		Gump.charname =3D Gump:addCroppedText( 16, 14, 100, 30, &quot;&quot;, 0, 0, 0 )
++		Gump.healthbackground =3D Gump:addImage( 34, 38, hex2num(&quot;0x805&quot;), 0, 0 =
+) =
+
++                Gump.healthbar =3D Gump:addTiledImage( 34, 38, 109, 11, he=
+x2num(&quot;0x806&quot;), 0, 0 )
++	elseif (stats.flag =3D=3D 1) then
++		Gump.background =3D Gump:addImage( 0, 0, hex2num(&quot;0x802&quot;), 0, 0 )
++                Gump.charname =3D Gump:addCroppedText( 90, 39, 100, 30, &quot;&quot;=
+, 0, 0, 0 )
++
++                Gump.str =3D Gump:addText( 85, 57, &quot;&quot;, 0, 0, 0 )
++                Gump.dex =3D Gump:addText( 85, 69, &quot;&quot;, 0, 0, 0 )
++                Gump.int =3D Gump:addText( 85, 81, &quot;&quot;, 0, 0, 0 )
++                Gump.sex =3D Gump:addText( 85, 93, &quot;&quot;, 0, 0, 0 )
++
++                Gump.armor =3D AddText( 85, 105, &quot;&quot;, 0, 0, 1 )
++
++                Gump.health =3D Gump:addText( 175, 57, &quot;&quot;, 0, 0, 1 )
++                Gump.stamina =3D Gump:addText( 175, 69, &quot;&quot;, 0, 0, 1 )
++                Gump.mana =3D Gump:addText( 175, 81, &quot;&quot;, 0, 0, 1 )
++                Gump.gold =3D Gump:addText( 175, 93, &quot;&quot;, 0, 0, 1 )
++                Gump.weight =3D Gump:addText( 175, 105, &quot;&quot;, 0, 0, 1 )
++        elseif (stats.flag =3D=3D 3) or (stats.flag =3D=3D 4) then
++                Gump.background =3D Gump:addImage( 0, 0, hex2num(&quot;0x2A6C&quot;)=
+, 0, 1 )
++                Gump.charname =3D Gump:addCroppedText( 80, 48, 100, 30, &quot;&quot;=
+, 0, 0, 1 )
++
++                Gump.str =3D Gump:addText( 90, 73, &quot;&quot;, 0, 0, 1 )
++                Gump.dex =3D Gump:addText( 90, 101, &quot;&quot;, 0, 0, 1 )
++                Gump.int =3D Gump:addText( 90, 129, &quot;&quot;, 0, 0, 1 )
++
++                Gump.health =3D Gump:addText( 155, 66, &quot;&quot;, 0, 0, 1 )
++                Gump.maxhealth =3D Gump:addText( 155, 79, &quot;&quot;, 0, 0, 1 )
++                Gump.stamina =3D Gump:addText( 155, 94, &quot;&quot;, 0, 0, 1 )
++                Gump.maxstamina =3D Gump:addText( 155, 107, &quot;&quot;, 0, 0, 1 )
++                Gump.mana =3D Gump:addText( 155, 122, &quot;&quot;, 0, 0, 1 )
++                Gump.maxmana =3D Gump:addText( 155, 135, &quot;&quot;, 0, 0, 1 )
++
++                Gump.statcap =3D Gump:addText( 222, 73, &quot;&quot;, 0, 0, 1 )
++                Gump.weight =3D Gump:addText( 222, 122, &quot;&quot;, 0, 0, 1 )
++                Gump.maxweight =3D Gump:addText( 222, 135, &quot;&quot;, 0, 0, 1 )
++
++                Gump.gold =3D Gump:addText( 287, 101, &quot;&quot;, 0, 0, 1 )
++                Gump.pets =3D Gump:addText( 287, 129, &quot;&quot;, 0, 0, 1 )
++
++                Gump.damage =3D Gump:addText( 282, 73, '0 - 0', 0, 0, 1 )
++                Gump.luck =3D Gump:addText( 222, 101, '0', 0, 0, 1 )
++
++                Gump.armor =3D Gump:addText( 357, 70, '0', 0, 0, 1 )
++                Gump.fireresist =3D Gump:addText( 357, 87, '0', 0, 0, 1 )
++                Gump.coldresist =3D Gump:addText( 357, 102, '0', 0, 0, 1 )
++                Gump.poisonresist =3D Gump:addText( 357, 115, '0', 0, 0, 1=
+ )
++                Gump.energyresist =3D Gump:addText( 357, 129, '0', 0, 0, 1=
+ )
++                =
+
++                Gump.background =3D Gump:addImage( 0, 0, hex2num(&quot;0x803&quot;),=
+ 0, 2 )
++                Gump.healthbackground =3D Gump:addImage( 34, 10, hex2num(&quot;=
+0x805&quot;), 0, 2 )
++                Gump.healthbar =3D Gump:addTiledImage( 34, 10, 109, 11, he=
+x2num(&quot;0x806&quot;), 0, 2 )
++                Gump.manabackground =3D Gump:addImage( 34, 24, hex2num(&quot;0x=
+805&quot;), 0, 2 )
++                Gump.manabar =3D Gump:addTiledImage( 34, 24, 109, 11, hex2=
+num(&quot;0x806&quot;), 0, 2 )
++                Gump.staminabackground =3D Gump:addImage( 34, 38, hex2num(=
+&quot;0x805&quot;), 0, 2 )
++                Gump.staminabar =3D Gump:addTiledImage( 34, 38, 109, 11, h=
+ex2num(&quot;0x806&quot;), 0, 2 )
++	end
++	=
+
++	Gump.OnMobileStatUpdate =3D function()
++		local mobile =3D gObjectList[ Gump.mobileserial ]
++		if (not mobile) then
++			Gump:destroy()
++		end
++		=
+
++		UpdateStatusGump( Gump )
++	end
++	=
+
++	RegisterListener( &quot;MobileStatUpdate&quot;..sprintf(&quot;%d&quot;,Gump.mobileserial), Gu=
+mp.OnMobileStatUpdate )
++	=
+
++	Gump.OnMobileDelete =3D function()
++		Gump:destroy()
++	end
++	=
+
++	RegisterListener( &quot;DeleteMobile&quot;..sprintf(&quot;%d&quot;,Gump.mobileserial), Gump.O=
+nMobileDelete )
++	=
+
++	Gump.customdestroy =3D function( Gump )
++		UnregisterListener( &quot;MobileStatUpdate&quot;..sprintf(&quot;%d&quot;,Gump.mobileserial),=
+ Gump.OnMobileStatUpdate )
++		UnregisterListener( &quot;DeleteMobile&quot;..sprintf(&quot;%d&quot;,Gump.mobileserial), Gum=
+p.OnMobileDelete )
++	end
++	=
+
++	UpdateStatusGump( Gump )
++end
++
++function UpdateStatusGump( Gump )
++	local mobile =3D gObjectList[ Gump.mobileserial ]
++	if (not mobile) then
++		Gump:destroy()
++	end
++	=
+
++	stats =3D mobile.stats
++	=
+
++	if (Gump.charname) and (stats.name) then Gump.charname:settext( stats.nam=
+e ) end
++	=
+
++	if (Gump.healthbar) and (stats.curHits) and (stats.maxHits) then
++		Gump.healthbar.width =3D math.floor( 109*math.min( stats.curHits / stats=
+.maxHits, 1 ) )
++		Gump.healthbar:update()
++	end
++	if (Gump.manabar) and (stats.curMana) and (stats.maxMana) then
++		Gump.manabar.width =3D math.floor( 109*math.min( stats.curMana / stats.m=
+axMana, 1 ) )
++		Gump.manabar:update()
++	end
++	if (Gump.staminabar) and (stats.curStamina) and (stats.maxStamina) then
++		Gump.staminabar.width =3D math.floor( 109*math.min( stats.curStamina / s=
+tats.maxStamina, 1 ) )
++		Gump.staminabar:update()
++	end
++	=
+
++	if (stats.flag =3D=3D 1) then
++		if (Gump.health) and (stats.curHits) and (stats.maxHits) then Gump.healt=
+h:settext( sprintf( &quot;%d / %d&quot;, stats.curHits, stats.maxHits ) ) end
++		if (Gump.stamina) and (stats.curStamina) and (stats.maxStamina) then Gum=
+p.stamina:settext( sprintf( &quot;%d / %d&quot;, stats.curStamina, stats.maxStamina )=
+ ) end
++		if (Gump.mana) and (stats.curMana) and (stats.maxMana) then Gump.mana:se=
+ttext( sprintf( &quot;%d / %d&quot;, stats.curMana, stats.maxMana ) ) end
++	end
++	=
+
++	if (Gump.health) and (stats.curHits) then Gump.health:settext( sprintf( &quot;=
+%d&quot;, stats.curHits ) ) end
++	if (Gump.maxhealth) and (stats.maxHits) then Gump.maxhealth:settext( spri=
+ntf( &quot;%d&quot;, stats.maxHits ) ) end
++	if (Gump.stamina) and (stats.curStamina) then Gump.stamina:settext( sprin=
+tf( &quot;%d&quot;, stats.curStamina ) ) end
++	if (Gump.maxstamina) and (stats.maxStamina) then Gump.maxstamina:settext(=
+ sprintf( &quot;%d&quot;, stats.maxStamina ) ) end
++	if (Gump.mana) and (stats.curMana) then Gump.mana:settext( sprintf( &quot;%d&quot;,=
+ stats.curMana ) ) end
++	if (Gump.maxmana) and (stats.maxMana) then Gump.maxmana:settext( sprintf(=
+ &quot;%d&quot;, stats.maxMana ) ) end
++	=
+
++	if (Gump.str) and (stats.str) then Gump.str:settext( sprintf( &quot;%d&quot;, stats=
+.str ) ) end
++	if (Gump.dex) and (stats.dex) then Gump.dex:settext( sprintf( &quot;%d&quot;, stats=
+.dex ) ) end
++	if (Gump.int) and (stats.int) then Gump.int:settext( sprintf( &quot;%d&quot;, stats=
+.int ) ) end
++
++	if (Gump.sex) and (stats.sex) then
++		if (stats.sex =3D=3D 0) then Gump.sex:settext( &quot;m&quot; )
++		else Gump.sex:settext( &quot;w&quot; ) end
++	end
++
++	if (Gump.armor) and (stats.armor) then Gump.armor:settext( sprintf( &quot;%d&quot;,=
+ stats.armor ) ) end
++	if (Gump.gold) and (stats.gold) then Gump.gold:settext( sprintf( &quot;%d&quot;, st=
+ats.gold ) ) end
++	if (Gump.weight) and (stats.weight) then Gump.weight:settext( sprintf( &quot;%=
+d&quot;, stats.weight ) ) end
++	if (Gump.maxweight) and (stats.str) then Gump.maxweight:settext( sprintf(=
+ &quot;%d&quot;, 40+math.floor(stats.str*35/10) ) ) end
++	if (Gump.statcap) and (stats.statcap) then Gump.statcap:settext( sprintf(=
+ &quot;%d&quot;, stats.statcap ) ) end
++	if (Gump.pets) and (stats.curPet) and (stats.maxPet) then Gump.pets:sette=
+xt( sprintf( &quot;%d / %d&quot;, stats.curPet, stats.maxPet ) ) end
++
++	if (Gump.damage) and (stats.minDamage) and (stats.maxDamage) then Gump.da=
+mage:settext( sprintf( &quot;%d - %d&quot;, stats.minDamage, stats.maxDamage ) )
++	elseif (Gump.damage) then Gump.damage:settext( &quot;0 - 0&quot; ) end
++	=
+
++	if (Gump.luck) then
++		if (stats.luck) then Gump.luck:settext( sprintf( &quot;%d&quot;, stats.luck ) )
++		else Gump.luck:settext( &quot;0&quot; ) end
++	end
++	=
+
++	if (Gump.fireresist) then
++		if (stats.fireresist) then Gump.fireresist:settext( sprintf( &quot;%d&quot;, stats=
+.fireresist ) )
++		else Gump.fireresist:settext( &quot;0&quot; ) end
++	end
++	if (Gump.coldresist) then
++		if (stats.coldresist) then Gump.coldresist:settext( sprintf( &quot;%d&quot;, stats=
+.coldresist ) )
++		else Gump.coldresist:settext( &quot;0&quot; ) end
++	end
++	if (Gump.poisonresist) then
++		if (stats.poisonresist) then Gump.poisonresist:settext( sprintf( &quot;%d&quot;, s=
+tats.poisonresist ) )
++		else Gump.poisonresist:settext( &quot;0&quot; ) end
++	end
++	if (Gump.energyresist) then
++		if (stats.energyresist) then Gump.energyresist:settext( sprintf( &quot;%d&quot;, s=
+tats.energyresist ) )
++		else Gump.energyresist:settext( &quot;0&quot; ) end
++	end
++end
++
+ function ToggleStatusAos ()
++	player =3D GetPlayerMobile()
++	if (player) then
++		local statusgumps =3D gGumpmanager.GetGumpsByName( &quot;status&quot; )
++		local statusgump =3D nil
++		for s, gump in pairs( statusgumps ) do
++			if (gump.mobileserial =3D=3D player.serial) then
++				statusgump =3D gump
++				break
++			end
++		end
++		=
+
++		if (statusgump) then
++			statusgump:setVisible( not statusgump.visible )
++		else
++			CreateStatusGump( player.serial )
++		end
++	end
+ end =
+
+
+Modified: branches/knut/data/lua/gui/gui.widget.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- branches/knut/data/lua/gui/gui.widget.lua (original)
++++ branches/knut/data/lua/gui/gui.widget.lua Sun Jun 24 22:26:15 2007
+@@ -166,6 +166,7 @@
+ function gui._SecureGetMaterial			(matname) =
+
+ 	if (not OgreMaterialNameKnown(matname)) then =
+
+ 		print(&quot;WARNING ! material not found in gui._SecureGetMaterial&quot;,matname)
++		CrashSegFault()
+ 		return kGUISystemFallbackMaterial =
+
+ 	end		=
+
+ 	return matname
+
+Modified: branches/knut/data/lua/lib.loading.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- branches/knut/data/lua/lib.loading.lua (original)
++++ branches/knut/data/lua/lib.loading.lua Sun Jun 24 22:26:15 2007
+@@ -95,7 +95,7 @@
+ 	DebugCallLogStartIgnore()
+ 	LoadingProfile(&quot;init unifonts&quot;)
+ 	if (gUniFontLoaderType) then
+-		CreateUniFont(CorrectPath(gUOPath..&quot;unifont.mul&quot;),&quot;font_unifont&quot;)
++		CreateUniFont(CorrectPath(gUOPath..&quot;unifont.mul&quot;),&quot;font_unifont0&quot;)
+ 		for i=3D1,2 do
+ 			CreateUniFont(CorrectPath(gUOPath..&quot;unifont&quot;..i..&quot;.mul&quot;),&quot;font_unifont&quot;=
+..i)
+ 		end
+
+Modified: branches/knut/data/lua/lib.skill.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- branches/knut/data/lua/lib.skill.lua (original)
++++ branches/knut/data/lua/lib.skill.lua Sun Jun 24 22:26:15 2007
+@@ -323,134 +323,6 @@
+ 	end
+ end
+ =
+
+--- update the aos stats display
+-function UpdateStatusAos ()
+-	if gStatusAosDialog then
+-		gStatusAosDialog:UpdateStats()
+-	end
+-end
+-
+-
+-		=
+
+--- toggles the display of the extended aos stats
+-gStatusAosDialog_LastPositionX =3D nil
+-gStatusAosDialog_LastPositionY =3D nil
+-function ToggleStatusAos ()
+-	if (gStatusAosDialog) then
+-		-- store current positoin
+-		gStatusAosDialog_LastPositionX, gStatusAosDialog_LastPositionY =3D gStat=
+usAosDialog.rootwidget.gfx:GetPos()
+-		-- and close
+-		gStatusAosDialog:Close()
+-	else
+-		-- request stats update of player body
+-		if gPlayerBodySerial then Send_ClientQuery(gRequest_States,gPlayerBodySe=
+rial) end
+-	=
+
+-		gStatusAosDialog =3D CreateGumpDlgFromGfm(datapath..&quot;gfm/status_aos.gfm&quot;)
+-
+-		-- restore last positoin if available
+-		if gStatusAosDialog_LastPositionX and gStatusAosDialog_LastPositionY the=
+n gStatusAosDialog.rootwidget.gfx:SetPos(gStatusAosDialog_LastPositionX, gS=
+tatusAosDialog_LastPositionY) end
+-		=
+
+-		-- init StatusAos dialog
+-		local dialog =3D gStatusAosDialog
+-		dialog.Close =3D function (dialog)
+-			gStatusAosDialog:Destroy()
+-			gStatusAosDialog =3D nil
+-		end
+-		dialog.onMouseDown =3D function (widget,mousebutton)
+-			if (mousebutton =3D=3D 2) then widget.dialog:Close() end
+-			if (mousebutton =3D=3D 1) then widget.dialog:BringToFront() gui.StartMo=
+veDialog(widget.dialog.rootwidget) end
+-		end
+-	=
+
+-		--[[
+-		stats.char_sex		=3D input:PopNetUint8() -- * 0x00 - Male     * 0x01 - Fe=
+male
+-		stats.char_gold		=3D input:PopNetUint32()
+-		stats.char_armorC	=3D input:PopNetUint16() -- resistPhysical (old client=
+s: AC).
+-		stats.char_curWeight=3D input:PopNetUint16()
+-		stats.char_maxWeight =3D input:PopNetUint16()
+-		stats.char_race		 =3D input:PopNetUint8()
+-		stats.char_statcap	=3D input:PopNetUint16()		-- The character's total al=
+lowable sum of Strength, Intelligence, and Dexterity
+-		stats.char_curPet	=3D input:PopNetUint8()			=
+
+-		stats.char_maxPet	=3D input:PopNetUint8()
+-		stats.char_fireresist	=3D input:PopNetUint16()			=
+
+-		stats.char_coldresist	=3D input:PopNetUint16()			=
+
+-		stats.char_poisonresist	=3D input:PopNetUint16()			=
+
+-		stats.char_energyresist	=3D input:PopNetUint16()			=
+
+-		stats.char_minDamage	=3D input:PopNetUint16()			=
+
+-		stats.char_maxDamage	=3D input:PopNetUint16()			=
+
+-		stats.char_tithing		=3D input:PopNetUint32()		=
+
+-		]]--		=
+
+-
+-				-- stats update function
+-		dialog.UpdateStats =3D function (dialog)
+-			if gPlayerBodySerial and gObjectList then
+-				local m =3D gObjectList[gPlayerBodySerial]
+-				if m and m.stats then
+-					local s =3D m.stats
+-					=
+
+-					local l =3D {	char_str =3D &quot;status_str&quot;, char_dex =3D &quot;status_dex&quot;, c=
+har_int =3D &quot;status_int&quot;,
+-								curHits =3D &quot;status_hits&quot;, maxHits =3D &quot;status_maxhits&quot;,
+-								char_curMana =3D &quot;status_mana&quot;, char_maxMana =3D &quot;status_maxmana&quot;,
+-								char_curSta =3D &quot;status_stamina&quot;, char_maxSta =3D &quot;status_maxstami=
+na&quot;,
+-								char_luck =3D &quot;status_luck&quot;, char_gold =3D &quot;status_gold&quot;,
+-								char_armorC =3D &quot;status_armor&quot;, char_statcap =3D &quot;status_statcap&quot;,=
+ char_fireresist =3D &quot;status_fireres&quot;,
+-								char_coldresist =3D &quot;status_coldres&quot;, char_poisonresist =3D &quot;statu=
+s_poisres&quot;,
+-								char_energyresist =3D &quot;status_energres&quot; }
+-					=
+
+-					-- set all textfields (single)
+-					for k,v in pairs(l) do
+-						if s[k] then dialog.controls[v].gfx:SetText(s[k])
+-						else dialog.controls[v].gfx:SetText(&quot;?&quot;) end =
+
+-					end
+-
+-					local r,g,b =3D GetNotorietyColor(m.notoriety)
+-			=
+
+-					-- set name
+-					if m.name then dialog.controls[&quot;status_name&quot;].gfx:SetCharHeight(16) d=
+ialog.controls[&quot;status_name&quot;].gfx:SetColour({r,g,b,1.0}) dialog.controls[&quot;s=
+tatus_name&quot;].gfx:SetText(m.name)
+-					else dialog.controls[&quot;status_name&quot;].gfx:SetText(&quot;?&quot;) end
+-
+-					-- multi part textfields, like &quot;10 / 20&quot;
+-					-- pets
+-					if s[&quot;char_curPet&quot;] and s[&quot;char_maxPet&quot;] then =
+
+-						dialog.controls[&quot;status_pets&quot;].gfx:SetText(s[&quot;char_curPet&quot;]..&quot;/&quot;..s[=
+&quot;char_maxPet&quot;]) =
+
+-					else dialog.controls[&quot;status_pets&quot;].gfx:SetText(&quot;?&quot;) end =
+
+-					-- damage
+-					if s[&quot;char_minDamage&quot;] and s[&quot;char_maxDamage&quot;] then =
+
+-						dialog.controls[&quot;status_minmaxdamage&quot;].gfx:SetText(s[&quot;char_minDamage=
+&quot;]..&quot;-&quot;..s[&quot;char_maxDamage&quot;]) =
+
+-					else dialog.controls[&quot;status_minmaxdamage&quot;].gfx:SetText(&quot;?&quot;) end =
+
+-					-- weight
+-					if s[&quot;char_curWeight&quot;] then =
+
+-						if s[&quot;char_maxWeight&quot;] then =
+
+-							-- max weight given
+-							dialog.controls[&quot;status_weight&quot;].gfx:SetText(s[&quot;char_curWeight&quot;])
+-							dialog.controls[&quot;status_maxweight&quot;].gfx:SetText(s[&quot;char_maxWeight&quot;])
+-						else =
+
+-							-- no maxweight present
+-							dialog.controls[&quot;status_weight&quot;].gfx:SetText(s[&quot;char_curWeight&quot;]) =
+
+-							-- hardcoded fallback: 40 + floor(str*35/10)
+-							dialog.controls[&quot;status_maxweight&quot;].gfx:SetText(&quot;&quot;..
+-								(40 + math.floor(s[&quot;char_str&quot;]*35/10)))
+-						end
+-					else dialog.controls[&quot;status_weight&quot;].gfx:SetText(&quot;?&quot;) end =
+
+-				end
+-			end
+-		end
+-		=
+
+-		-- handle mouse events
+-		for k,v in pairs(dialog.childs) do v.mbIgnoreMouseOver =3D false end
+-
+--- SiENcE: ??? for what ??? commented out
+---		local curparent =3D dialog.rootwidget
+---		local x,y =3D 40,80
+-		=
+
+-		-- set stats
+-		dialog:UpdateStats()
+-		=
+
+-		dialog.lStatusAos =3D {}
+-	end
+-end
+-
+-
+-
+ glQuickCastDialog =3D {}
+ -- creates a quickcast button at the given position
+ function CreateQuickCastButton (x,y,name,fun)
+
+Modified: branches/knut/data/lua/net/net.mobile.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- branches/knut/data/lua/net/net.mobile.lua (original)
++++ branches/knut/data/lua/net/net.mobile.lua Sun Jun 24 22:26:15 2007
+@@ -166,7 +166,7 @@
+ 		stats.armor			=3D input:PopNetUint16()
+ 		stats.curWeight		=3D input:PopNetUint16()
+ =
+
+-		if (flag =3D=3D 5) then
++		if (stats.flag =3D=3D 5) then
+ 			stats.maxWeight	=3D input:PopNetUint16()
+ 			stats.race		=3D input:PopNetUint8()
+ 		end
+@@ -191,7 +191,7 @@
+ =
+
+ 	local mobile =3D gObjectList[mobileserial] =
+
+ 	if (mobile) then
+-		mobile:updatestats( packet )
++		mobile:updatestats( stats )
+ 	end
+ end
+ =
+
+@@ -245,3 +245,12 @@
+ 	=
+
+ 	gCurrentRenderer:NotifyHPChange( serial, damage, 0 )
+ end
++
++function Send_QueryStatus( mobile )
++	local out =3D GetSendFIFO()
++	out:PushNetUint8( kPacket_Client_Query )
++	out:PushNetUint32( hex2num(&quot;0xedededed&quot;))
++	out:PushNetUint8( hex2num(&quot;0x04&quot;) )
++	out:PushNetUint32( mobile.serial )
++	out:SendPacket()
++end
+
+Modified: branches/knut/data/lua/obj/obj.mobile.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- branches/knut/data/lua/obj/obj.mobile.lua (original)
++++ branches/knut/data/lua/obj/obj.mobile.lua Sun Jun 24 22:26:15 2007
+@@ -73,6 +73,8 @@
+ 	mobile:register()
+ 	gCurrentRenderer:AddMobile( mobile )
+ 	=
+
++	Send_QueryStatus( mobile )
++	=
+
+ 	return mobile
+ end
+ =
+
+@@ -100,8 +102,6 @@
+ 	if (update) then
+ 		gCurrentRenderer:UpdateMobile( mobile )
+ 	end
+-	=
+
+-	-- Send_ClientQuery(gRequest_States,mobile.serial)
+ end
+ =
+
+ function UpdateMobileFlags( mobile )
+@@ -190,31 +190,35 @@
+ end
+ =
+
+ function UpdateStats( mobile, stats )
+-	mobile:updatehits( stats.curHits, stats.maxHits )
+-	mobile:updatestamina( stats.curStamina, stats.maxStamina )
+-	mobile:updatemana( stats.curMana, stats.maxMana )
+-	=
+
+ 	for field, value in pairs( stats ) do
+ 		if (value ~=3D mobile.stats[field]) then
+ 			update =3D true
+ 			mobile.stats[field] =3D value
+ 		end
+ 	end
++	=
+
++	NotifyListener( &quot;MobileStatUpdate&quot;..sprintf(&quot;%d&quot;,mobile.serial) )
+ end
+ =
+
+ function UpdateHits( mobile, curHits, maxHits )
+ 	mobile.stats.curHits =3D curHits
+ 	mobile.stats.maxHits =3D maxHits
++	=
+
++	NotifyListener( &quot;MobileStatUpdate&quot;..sprintf(&quot;%d&quot;,mobile.serial) )
+ end
+ =
+
+ function UpdateMana( mobile, curStamina, maxStamina )
+ 	mobile.stats.curMana =3D curMana
+ 	mobile.stats.maxMana =3D maxMana
++	=
+
++	NotifyListener( &quot;MobileStatUpdate&quot;..sprintf(&quot;%d&quot;,mobile.serial) )
+ end
+ =
+
+ function UpdateStamina( mobile, curMana, maxMana )
+ 	mobile.stats.curStamina =3D curStamina
+ 	mobile.stats.maxStamina =3D maxStamina
++	=
+
++	NotifyListener( &quot;MobileStatUpdate&quot;..sprintf(&quot;%d&quot;,mobile.serial) )
+ end
+ =
+
+ function SetMobilePosition( mobile, x, y, z, dir )
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000052.html">[Iris-commit] [IRIS] r1236 - in /branches/knut/src: data.cpp	scripting.cpp
+</A></li>
+	<LI>Next message: <A HREF="000054.html">[Iris-commit] [IRIS] r1238 -	/branches/knut/data/lua/2d/lib.2d.renderer.luac
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#53">[ date ]</a>
+              <a href="thread.html#53">[ thread ]</a>
+              <a href="subject.html#53">[ subject ]</a>
+              <a href="author.html#53">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,193 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1972 - in /trunk/lua: gui/gui.journal.lua lib.macrolist.lua lib.walking3.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-March/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1972%20-%20in%20/trunk/lua%3A%20gui/gui.journal.lua%0A%20lib.macrolist.lua%20lib.walking3.lua&In-Reply-To=%3C20080319120011.DD98C1524034%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000783.html">
+   <LINK REL="Next"  HREF="000785.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1972 - in /trunk/lua: gui/gui.journal.lua lib.macrolist.lua lib.walking3.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1972%20-%20in%20/trunk/lua%3A%20gui/gui.journal.lua%0A%20lib.macrolist.lua%20lib.walking3.lua&In-Reply-To=%3C20080319120011.DD98C1524034%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1972 - in /trunk/lua: gui/gui.journal.lua lib.macrolist.lua lib.walking3.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Wed Mar 19 12:35:06 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000783.html">[Iris-commit] [IRIS] r1971 - in /trunk: lua/lib.plugin.lua lua/main.lua plugins/ plugins/example.lua
+</A></li>
+        <LI>Next message: <A HREF="000785.html">[Iris-commit] [IRIS] r1973 - /trunk/bin/iris2.exe
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#784">[ date ]</a>
+              <a href="thread.html#784">[ thread ]</a>
+              <a href="subject.html#784">[ subject ]</a>
+              <a href="author.html#784">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: hagish
+Date: Wed Mar 19 12:35:05 2008
+New Revision: 1972
+
+Log:
+extended macro system
+
+Modified:
+    trunk/lua/gui/gui.journal.lua
+    trunk/lua/lib.macrolist.lua
+    trunk/lua/lib.walking3.lua
+
+Modified: trunk/lua/gui/gui.journal.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.journal.lua (original)
++++ trunk/lua/gui/gui.journal.lua Wed Mar 19 12:35:05 2008
+@@ -70,6 +70,7 @@
+ }
+ =
+
+ gJournalEntries =3D {}
++gJournalExtendedEntries =3D {}
+ gJournalDialog =3D nil
+ gJournalDialog_Pref =3D {}
+ gJournalResizeStartX,gJournalResizeStartY =3D nil,nil
+@@ -197,6 +198,15 @@
+ 		mytext =3D name..&quot;&gt; &quot;..mytext
+ 	end   	=
+
+ 	table.insert(gJournalEntries,mytext)
++	=
+
++	-- add extendes journal entry for scripting
++	local entry =3D {}
++	entry.name =3D name
++	entry.message =3D message
++	entry.time =3D Client_GetTicks()
++	entry.line =3D mytext
++	table.insert(gJournalExtendedEntries,entry)
++	=
+
+ 	JournalUpdateText()
+ end
+ =
+
+
+Modified: trunk/lua/lib.macrolist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.macrolist.lua (original)
++++ trunk/lua/lib.macrolist.lua Wed Mar 19 12:35:05 2008
+@@ -166,6 +166,22 @@
+ end
+ =
+
+ =
+
++-- searches the journal for text
++-- if timestamp is not nil, only entries since timestamp are searched
++-- if the text is found it returns the complete line otherwise nil
++function MacroJournal_FindLineContainingSince	(text, timestamp)
++	for k,v in pairs(gJournalExtendedEntries) do
++		if timestamp =3D=3D nil or v.time &gt;=3D timestamp then
++			if string.find(v.line, text) then
++				return v.line
++			end
++		end
++	end
++	=
+
++	return nil
++end
++
++
+ function MacroReadAux_MobileStat			(mobile,statname,errormsg_funname)
+ 	if (not gInGameStarted) then return 0 end
+ 	if (not gMacroReadMobileStats[statname]) then =
+
+@@ -219,6 +235,11 @@
+ RegisterListener(&quot;keydown&quot;,function (keycode,char,bConsumed) =
+
+ 	if (not gActiveEditText) then TriggerMacros(keycode) end
+ end)
++
++
++
++
++
+ =
+
+ =
+
+ --[[
+
+Modified: trunk/lua/lib.walking3.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.walking3.lua (original)
++++ trunk/lua/lib.walking3.lua Wed Mar 19 12:35:05 2008
+@@ -246,8 +246,8 @@
+ 		landBlocks =3D true
+ 	end
+ =
+
+-	local landZ =3D 0, =
+
+-	local landCenter =3D 0, =
+
++	local landZ =3D 0
++	local landCenter =3D 0
+ 	local landTop =3D 0
+ =
+
+ 	local landZ,landCenter,landTop =3D map.GetAverageZ( x, y)
+@@ -483,7 +483,7 @@
+ 	if ( not isSet ) then
+ 		zLow =3D loc.Z
+ 		zTop =3D loc.Z
+-	elseif ( loc.Z &gt; zTop )
++	elseif ( loc.Z &gt; zTop ) then
+ 		zTop =3D loc.Z
+ 	end
+ 	=
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000783.html">[Iris-commit] [IRIS] r1971 - in /trunk: lua/lib.plugin.lua lua/main.lua plugins/ plugins/example.lua
+</A></li>
+	<LI>Next message: <A HREF="000785.html">[Iris-commit] [IRIS] r1973 - /trunk/bin/iris2.exe
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#784">[ date ]</a>
+              <a href="thread.html#784">[ thread ]</a>
+              <a href="subject.html#784">[ subject ]</a>
+              <a href="author.html#784">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

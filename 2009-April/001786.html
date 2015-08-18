@@ -1,0 +1,174 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2987 - in /trunk/lua: gui/gui.gumpparser.lua net/net.generic.lua net/net.text.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2009-April/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2987%20-%20in%20/trunk/lua%3A%20gui/gui.gumpparser.lua%0A%20net/net.generic.lua%20net/net.text.lua&In-Reply-To=%3C20090406214509.8DBAA1C1882F%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001785.html">
+   <LINK REL="Next"  HREF="001787.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2987 - in /trunk/lua: gui/gui.gumpparser.lua net/net.generic.lua net/net.text.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2987%20-%20in%20/trunk/lua%3A%20gui/gui.gumpparser.lua%0A%20net/net.generic.lua%20net/net.text.lua&In-Reply-To=%3C20090406214509.8DBAA1C1882F%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2987 - in /trunk/lua: gui/gui.gumpparser.lua net/net.generic.lua net/net.text.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Mon Apr  6 23:45:09 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001785.html">[Iris-commit] [IRIS] r2986 - in /trunk/lua: lib.protocol.lua	lib.proxy.lua net/net.text.lua
+</A></li>
+        <LI>Next message: <A HREF="001787.html">[Iris-commit] [IRIS] r2988 - in /trunk/lua/net: net.generic.lua	net.text.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1786">[ date ]</a>
+              <a href="thread.html#1786">[ thread ]</a>
+              <a href="subject.html#1786">[ subject ]</a>
+              <a href="author.html#1786">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Mon Apr  6 23:45:08 2009
+New Revision: 2987
+
+Log:
+added SetHelpMessage response packet
+
+Modified:
+    trunk/lua/gui/gui.gumpparser.lua
+    trunk/lua/net/net.generic.lua
+    trunk/lua/net/net.text.lua
+
+Modified: trunk/lua/gui/gui.gumpparser.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.gumpparser.lua (original)
++++ trunk/lua/gui/gui.gumpparser.lua Mon Apr  6 23:45:08 2009
+@@ -150,7 +150,13 @@
+ =
+
+ 	local dialog =3D gServerSideGump[dialogId]
+ 	if (not dialog) then printdebug(&quot;gump&quot;,&quot;CloseServerSideGump : dialog not =
+found=3D&quot;,dialogId) return end
+-	if (bServerSideClose) then return end -- no return message if gump was cl=
+osed by server
++	if (bServerSideClose) then =
+
++		if (gAltenatePostLoginHandling and dialog.Gumpdata.Data =3D=3D &quot;{ noclos=
+e }{ page 0 }&quot; and gReceivedSetHelpMessage) then
++			SendHelpMessageGumpResponse(dialog.Gumpdata.Data)
++			gReceivedSetHelpMessage =3D false
++		end
++		return =
+
++	end -- no return message if gump was closed by server
+ 	if (dialog.SendClose) then dialog:SendClose(buttonId) return end
+ 	=
+
+ 	local params =3D ServerSideGump_GetParams(dialogId)
+
+Modified: trunk/lua/net/net.generic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.generic.lua (original)
++++ trunk/lua/net/net.generic.lua Mon Apr  6 23:45:08 2009
+@@ -442,4 +442,17 @@
+ end
+ =
+
+ =
+
+-
++-- sends special kPacket_Speech to server
++-- hybrid block ? weird response to kPacket_Text SYSTEM.gqSetHelpMessage.s=
+ethel. and kPacket_Compressed_Gump
++-- see also gReceivedSetHelpMessage
++function SendHelpMessageGumpResponse () =
+
++	print(&quot;####!!!!!!!!!SendHelpMessageGumpResponse&quot;)
++	local bytes =3D { 0x03, 0x00, 0x33, 0x20, 0x02, 0xB2, 0x00, 0x03,  0xDB, =
+0x13, 0x14, 0x3F, 0x45, 0x2C, 0x68, 0x38,
++					0x03, 0x4D, 0x39, 0x47, 0x54, 0x9C, 0x7B, 0x08,  0xA8, 0x76, 0x7C, 0x=
+7E, 0x98, 0x21, 0x04, 0xB4,
++					0x20, 0x9E, 0xFD, 0x10, 0x32, 0x29, 0x1A, 0x03,  0x11, 0x26, 0x53, 0x=
+50, 0x20, 0x22, 0x0D, 0x59,
++					0x1C, 0x19, 0x41, }
++	local out =3D GetSendFIFO()
++	for k,v in ipairs(bytes) do out:PushNetUint8(v) end
++	out:SendPacket()
++end
++
+
+Modified: trunk/lua/net/net.text.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.text.lua (original)
++++ trunk/lua/net/net.text.lua Mon Apr  6 23:45:08 2009
+@@ -282,6 +282,23 @@
+ 	data.text		=3D input:PopFilledString(size-44)
+ 	HandleUOText(data)
+ 	NotifyListener(&quot;Hook_Packet_Text&quot;,data.serial,data.text)
++	=
+
++	if (data.serial =3D=3D 0 and
++		data.artid =3D=3D 0 and
++		data.type =3D=3D 0 and
++		data.hue =3D=3D 0xffff and
++		data.font =3D=3D 0xffff and
++		true) then
++		=
+
++		print(&quot;#######!!!!! GOT SETHELPMSG&quot;)
++		print(&quot;name:&quot;,&quot;#&quot;..data.name..&quot;#&quot;)
++		print(&quot;name:&quot;,&quot;#&quot;..data.text..&quot;#&quot;)
++		=
+
++		--~ 1c.00 2d.00 00 00 00.00 00.00.ff ff.ff ff.53 59   |..-...........SY|
++		--~ 53 54 45 4d 00 67 71 53 65 74 48 65 6c 70 4d 65   |STEM.gqSetHelpMe|
++		--~ 73 73 61 67 65 00 73 65 74 68 65 6c 00            |ssage.sethel.|
++		gReceivedSetHelpMessage =3D true
++	end
+ end
+ =
+
+ =
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001785.html">[Iris-commit] [IRIS] r2986 - in /trunk/lua: lib.protocol.lua	lib.proxy.lua net/net.text.lua
+</A></li>
+	<LI>Next message: <A HREF="001787.html">[Iris-commit] [IRIS] r2988 - in /trunk/lua/net: net.generic.lua	net.text.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1786">[ date ]</a>
+              <a href="thread.html#1786">[ thread ]</a>
+              <a href="subject.html#1786">[ subject ]</a>
+              <a href="author.html#1786">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

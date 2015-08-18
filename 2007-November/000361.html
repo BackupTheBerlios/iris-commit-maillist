@@ -1,0 +1,175 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1545 - in /trunk: premake premake.lua	premakelinux.sh
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2007-November/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1545%20-%20in%20/trunk%3A%20premake%20premake.lua%0A%09premakelinux.sh&In-Reply-To=%3C20071126190601.0A38C1C182C4%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000360.html">
+   <LINK REL="Next"  HREF="000362.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1545 - in /trunk: premake premake.lua	premakelinux.sh</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1545%20-%20in%20/trunk%3A%20premake%20premake.lua%0A%09premakelinux.sh&In-Reply-To=%3C20071126190601.0A38C1C182C4%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1545 - in /trunk: premake premake.lua	premakelinux.sh">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Mon Nov 26 20:06:00 CET 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000360.html">[Iris-commit] [IRIS] r1544 - /trunk/bin/plugins_linux.cfg
+</A></li>
+        <LI>Next message: <A HREF="000362.html">[Iris-commit] [IRIS] r1546 - in /trunk/data: compositors/EdgeDetection.compositor compositors/EdgeDetection.material compositors/edgesFP.source compositors/edgesVP.source config.lua.dist lua/lib.keybinds.lua lua/lib.spellbooks.lua lua/obj/obj.container.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#361">[ date ]</a>
+              <a href="thread.html#361">[ thread ]</a>
+              <a href="subject.html#361">[ subject ]</a>
+              <a href="author.html#361">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Mon Nov 26 20:06:00 2007
+New Revision: 1545
+
+Log:
+added premake fixes from sfz
+
+Added:
+    trunk/premake   (with props)
+    trunk/premakelinux.sh   (with props)
+Modified:
+    trunk/premake.lua
+
+Modified: trunk/premake.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/premake.lua (original)
++++ trunk/premake.lua Mon Nov 26 20:06:00 2007
+@@ -1,6 +1,13 @@
+ project.name =3D &quot;Iris2&quot;
+ -- project.path =3D &quot;build&quot;
+ -- project.bindir =3D &quot;.&quot;
++
++gLugreLuaSrcDir =3D &quot;./lugre/lib/lua-5.0.3/&quot;
++
++-- compile lua
++--local makeresult =3D os.execute(&quot;make --directory=3D&quot;..gLugreLuaSrcDir)
++--if (makeresult ~=3D 0) then print(&quot;compiling lua failed with exit code&quot;,=
+makeresult) os.exit(makeresult) end
++--print(&quot;successfully compiled lua&quot;)
+ =
+
+ function addpkgconfiglib (package, libname)
+     if options.target =3D=3D &quot;gnu&quot; and os.execute(&quot;pkg-config --exists &quot;..=
+libname) =3D=3D 0 then
+@@ -29,19 +36,51 @@
+     end
+   end
+ =
+
++-- ---------------------------------------------
++-- ---------------------------------------------
++
++package =3D newpackage()
++package.name =3D &quot;lugrelua&quot;
++package.kind =3D &quot;lib&quot;
++package.language =3D &quot;c++&quot;
++package.buildflags =3D { &quot;extra-warnings&quot;, &quot;optimize&quot; }
++package.buildoptions =3D {}
++package.includepaths =3D { gLugreLuaSrcDir..&quot;/include&quot; }
++package.files =3D {
++  matchfiles(gLugreLuaSrcDir..&quot;/include/*.h&quot;, gLugreLuaSrcDir..&quot;/src/*.c&quot;),
++}
++
++-- ---------------------------------------------
++-- ---------------------------------------------
++
++package =3D newpackage()
++package.name =3D &quot;lugrelualib&quot;
++package.kind =3D &quot;lib&quot;
++package.language =3D &quot;c++&quot;
++package.buildflags =3D { &quot;extra-warnings&quot;, &quot;optimize&quot; }
++package.buildoptions =3D {}
++package.includepaths =3D { gLugreLuaSrcDir..&quot;/include&quot; }
++package.files =3D {
++  matchfiles(gLugreLuaSrcDir..&quot;/include/*.h&quot;, gLugreLuaSrcDir..&quot;/src/lib/*=
+.c&quot;),
++}
++
++-- ---------------------------------------------
++-- ---------------------------------------------
++
+ package =3D newpackage()
+ package.name =3D &quot;iris&quot;
+ package.kind =3D &quot;exe&quot;
+ package.language =3D &quot;c++&quot;
+-
++-- project.bindir =3D &quot;bin&quot;
+ package.buildflags =3D { &quot;extra-warnings&quot;, &quot;optimize&quot; }
+ package.buildoptions =3D {}
+ =
+
+-package.includepaths =3D { &quot;lugre/include&quot;, &quot;include&quot; }
++package.includepaths =3D { &quot;lugre/include&quot;, gLugreLuaSrcDir..&quot;/include/&quot;, =
+&quot;include&quot; }
+ =
+
+-package.libpaths =3D {}
++--package.libpaths =3D { gLugreLuaSrcDir..&quot;/lib/&quot; }
+ package.linkoptions =3D {}
+-package.links =3D {}
++package.links =3D { &quot;lugrelua&quot;,&quot;lugrelualib&quot; }
++--package.links =3D { &quot;lua&quot;,&quot;lualib&quot; }
+ =
+
+ package.defines =3D { =
+
+ 	&quot;USE_OPENAL&quot;,
+@@ -54,8 +93,8 @@
+ =
+
+ addpkgconfiglib(package, &quot;OGRE&quot;)
+ addpkgconfiglib(package, &quot;OIS&quot;)
+-addpkgconfiglib(package, &quot;lua50&quot;)
+-addpkgconfiglib(package, &quot;lualib50&quot;)
++--~ addpkgconfiglib(package, &quot;lua50&quot;)
++--~ addpkgconfiglib(package, &quot;lualib50&quot;)
+ addpkgconfiglib(package, &quot;openal&quot;)
+ addpkgconfiglib(package, &quot;vorbisfile&quot;)
+ =
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000360.html">[Iris-commit] [IRIS] r1544 - /trunk/bin/plugins_linux.cfg
+</A></li>
+	<LI>Next message: <A HREF="000362.html">[Iris-commit] [IRIS] r1546 - in /trunk/data: compositors/EdgeDetection.compositor compositors/EdgeDetection.material compositors/edgesFP.source compositors/edgesVP.source config.lua.dist lua/lib.keybinds.lua lua/lib.spellbooks.lua lua/obj/obj.container.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#361">[ date ]</a>
+              <a href="thread.html#361">[ thread ]</a>
+              <a href="subject.html#361">[ subject ]</a>
+              <a href="author.html#361">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

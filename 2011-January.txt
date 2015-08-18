@@ -1,0 +1,593 @@
+From no-reply at zwischenwelt.org  Fri Jan 21 22:57:19 2011
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Fri, 21 Jan 2011 21:57:19 -0000
+Subject: [Iris-commit] [IRIS] r3362 - /trunk/lua/net/net.buff.lua
+Message-ID: <20110121215719.80D637A98530@simon>
+
+Author: ghoulsblade
+Date: Fri Jan 21 22:57:19 2011
+New Revision: 3362
+
+Log:
+kPacket_BuffDebuff_System underrun guards
+
+Modified:
+    trunk/lua/net/net.buff.lua
+
+Modified: trunk/lua/net/net.buff.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.buff.lua (original)
++++ trunk/lua/net/net.buff.lua Fri Jan 21 22:57:19 2011
+@@ -110,6 +110,7 @@
+ 	local buffinfos =3D {}
+ 	local input =3D GetRecvFIFO()
+ 	local id =3D input:PopNetUint8()
++	local popped_start =3D input:GetTotalPopped()
+ 	local packetsize =3D input:PopNetUint16()
+ =
+
+ 	--print("spell buff packet received !!!!!!!!!!",packetsize)
+@@ -119,7 +120,8 @@
+ 	buffinfos.icon_show1		=3D input:PopNetUint16() -- runuo : 0x1 //Type 0 fo=
+r removal. 1 for add 2 for Data
+ 	buffinfos.temp1			=3D input:PopNetUint32()
+ =
+
+-	if (packetsize > 15) then
++	local rest =3D packetsize - (input:GetTotalPopped() - popped_start)
++	if (packetsize > 15 and rest >=3D 2+2+4+2+2+1+4+4+4+2+2) then
+ 		buffinfos.icon_buffid2		=3D input:PopNetUint16() -- same as above
+ 		buffinfos.icon_show2		=3D input:PopNetUint16() -- runuo : 0x1 //Type 0 f=
+or removal. 1 for add 2 for Data, same as above
+ 		buffinfos.temp2			=3D input:PopNetUint32()
+@@ -144,6 +146,8 @@
+ 			local argument_string =3D ""
+ 			local argument_char
+ 			repeat
++				local rest =3D packetsize - (input:GetTotalPopped() - popped_start)
++				if (rest <=3D 0) then print("WARNING: kPacket_BuffDebuff_System underr=
+un while reading argument_string") break end
+ 				argument_char	=3D input:PopNetUint8()
+ 				argument_string =3D argument_string .. argument_char
+ 				--print(argument_char)
+@@ -152,7 +156,9 @@
+ 			--print(argument_string)
+ 		end
+ 	=
+
+-		buffinfos.argumentsmode_end		=3D input:PopNetUint16()
++		local rest =3D packetsize - (input:GetTotalPopped() - popped_start)
++		if (rest < 2) then print("WARNING: kPacket_BuffDebuff_System underrun wh=
+ile reading argumentsmode_end") end
++		buffinfos.argumentsmode_end		=3D (rest >=3D 2) and (input:PopNetUint16()=
+) or 0
+ 	end
+ 	=
+
+ 	--print(vardump2(buffinfos))
+
+
+
+From no-reply at zwischenwelt.org  Fri Jan 21 23:01:19 2011
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Fri, 21 Jan 2011 22:01:19 -0000
+Subject: [Iris-commit] [IRIS] r3363 - in /trunk: config/shards/pangaea.xml
+ lua/gui/gui.gumpparser.lua lua/gui/gui.helper.lua lua/lib.gump.samples.lua
+ lua/lib.macrolist.lua lua/net/net.other.lua
+ lua/widgets/widget.uoedittext.lua
+Message-ID: <20110121220119.AD67A54D0008@simon>
+
+Author: ghoulsblade
+Date: Fri Jan 21 23:01:19 2011
+New Revision: 3363
+
+Log:
+edittext size fix, some debug output, pang login ip fixed-or-at-least-updat=
+ed
+
+Modified:
+    trunk/config/shards/pangaea.xml
+    trunk/lua/gui/gui.gumpparser.lua
+    trunk/lua/gui/gui.helper.lua
+    trunk/lua/lib.gump.samples.lua
+    trunk/lua/lib.macrolist.lua
+    trunk/lua/net/net.other.lua
+    trunk/lua/widgets/widget.uoedittext.lua
+
+Modified: trunk/config/shards/pangaea.xml
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/config/shards/pangaea.xml (original)
++++ trunk/config/shards/pangaea.xml Fri Jan 21 23:01:19 2011
+@@ -7,7 +7,7 @@
+     <number key=3D"gServerSeed">4294967295</number>
+     <number key=3D"gLoginServerPort">5003</number>
+     <string key=3D"gPassword"></string>
+-    <string key=3D"gLoginServerIP">80.197.136.30</string>
++    <string key=3D"gLoginServerIP">83.95.233.118</string>
+ 	=
+
+     <boolean key=3D"gDisableSendingPartyPos">true</boolean>
+     <number key=3D"gAutoSelectServerIndex">1</number>
+
+Modified: trunk/lua/gui/gui.gumpparser.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.gumpparser.lua (original)
++++ trunk/lua/gui/gui.gumpparser.lua Fri Jan 21 23:01:19 2011
+@@ -47,7 +47,8 @@
+ 	--~ local testgump,x,y,kDebugName =3D kGumpSample_ChangeLog,400,00."kGump=
+Sample_ChangeLog"
+ 	--~ local testgump,x,y,kDebugName =3D kGumpSample_ChangeLog_Text,400,0,"k=
+GumpSample_ChangeLog_Text"
+ 	--~ local testgump,x,y,kDebugName =3D kGumpSample_VM_BodCode,0,240,"kGump=
+Sample_VM_BodCode"
+-	local testgump,x,y,kDebugName =3D kGumpSample_Pang_MacroCheck,0,0,"kGumpS=
+ample_VM_BodCode"
++	--~ local testgump,x,y,kDebugName =3D kGumpSample_Pang_MacroCheck,0,0,"kG=
+umpSample_VM_BodCode"
++	local testgump,x,y,kDebugName =3D kGumpSample_absogeno_afk,0,0,"kGumpSamp=
+le_absogeno_afk"
+ 	--~ local testgump,x,y,kDebugName =3D kGumpSample_RuneBook,0,240,"kGumpSa=
+mple_RuneBook"
+ 	--~ local testgump,x,y,kDebugName =3D kGumpSample_RuneBook3,0,240,"kGumpS=
+ample_RuneBook"
+ 	--~ local testgump,x,y,kDebugName =3D kGumpSample_Reward,0,140,"kGumpSamp=
+le_Reward"
+@@ -107,6 +108,13 @@
+ 	--~ local p =3D dialog:GetPage(0)
+ 	--~ local cl =3D p:ForAllChilds(function (child,k) print("ordered_childli=
+st_page0:",k,child:GetClassName()) end)
+ 	=
+
++	RegisterStepper(function () =
+
++		local function mydbg (w) return tostring(w and w:GetClassName())..","..t=
+ostring(w and w.debuginfo) end
++		local w =3D GetWidgetUnderMouse()
++		local p =3D w and w:GetParent()
++		local p2 =3D p and p:GetParent()
++		print("gumptest!",mydbg(w),mydbg(p),mydbg(p2))
++	end)
+ 	GUITest_MainLoop()
+ 	os.exit(0)
+ end
+
+Modified: trunk/lua/gui/gui.helper.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.helper.lua (original)
++++ trunk/lua/gui/gui.helper.lua Fri Jan 21 23:01:19 2011
+@@ -143,6 +143,7 @@
+ -- function is called by Lugre (lib.chatline.lua) from IrisChatLine_Repeat=
+Last and IrisChatLine_Init
+ function SendChat (text_plain,text_unicode,bIgnoreSpecials,textmode) =
+
+ 	IrisCharLine_SetLast(text_plain)
++	if (MyChatTransform) then text_plain,text_unicode =3D MyChatTransform(tex=
+t_plain,text_unicode) end
+ 	print("SendChat",text_plain)
+ 	local bParseSpecials =3D not bIgnoreSpecials
+ 	if bParseSpecials and string.sub(text_plain, 1, 5) =3D=3D "/mark" then
+
+Modified: trunk/lua/lib.gump.samples.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.gump.samples.lua (original)
++++ trunk/lua/lib.gump.samples.lua Fri Jan 21 23:01:19 2011
+@@ -276,7 +276,17 @@
+     },
+ }
+ =
+
+-
++kGumpSample_absogeno_afk =3D { =
+
++	Data=3D"{ nomove }{ noclose }{ noresize }{ resizepic 0 0 9260 220 57 }{ g=
+umppictiled 17 16 190 25 2624 }{ text 20 18 1150 0 }{ gumppictiled 92 19 60=
+ 19 3004 }{ textentry 92 18 60 19 1150 1057 1 }{ button 157 18 2450 2451 1 =
+0 1057 }",
++	textline=3D{
++	[1]=3D"",
++	[0]=3D"AFK Check:",
++	},
++	textline_unicode=3D{
++	[1]=3D{},
++	[0]=3D{65,70,75,32,67,104,101,99,107,58,},
++	},
++}
+ =
+
+ kGumpSample_VM_BodCode =3D { =
+
+ 	Data=3D"{ page 0 }{ resizepic 25 10 5054 430 392 }{ gumppictiled 33 20 41=
+3 373 2624 }{ checkertrans 33 20 413 373 }{ gumppic 20 5 10460 }{ gumppic 4=
+30 5 10460 }{ gumppic 20 377 10460 }{ gumppic 430 377 10460 }{ xmfhtmlgumpc=
+olor 190 25 120 20 1045133 0 0 32767 }{ xmfhtmlgumpcolor 40 48 350 20 10451=
+35 0 0 32767 }{ xmfhtmlgumpcolor 40 72 210 20 1045138 0 0 32767 }{ text 250=
+ 72 1152 0 }{ xmfhtmlgumpcolor 40 96 120 20 1045136 0 0 32767 }{ tilepic 38=
+5 96 3907 }{ xmfhtmlgumpcolor 40 120 210 20 1023907 0 0 16777215 }{ xmfhtml=
+gumpcolor 40 144 210 20 1045140 0 0 32767 }{ xmfhtmlgumpcolor 40 168 350 20=
+ 1045141 0 0 32767 }{ htmlgump 40 192 350 25 1 0 0 }{ htmlgump 40 216 10 16=
+ 2 0 0 }{ htmlgump 50 216 10 16 3 0 0 }{ htmlgump 60 216 10 16 3 0 0 }{ htm=
+lgump 70 216 10 16 3 0 0 }{ htmlgump 80 216 10 16 3 0 0 }{ htmlgump 90 216 =
+10 16 3 0 0 }{ htmlgump 100 216 10 16 4 0 0 }{ htmlgump 110 216 10 16 5 0 0=
+ }{ htmlgump 120 216 10 16 5 0 0 }{ htmlgump 130 216 10 16 5 0 0 }{ htmlgum=
+p 140 216 10 16 5 0 0 }{ htmlgump 150 216 10 16 2 0 0 }{ htmlgump 160 216 1=
+0 16 6 0 0 }{ htmlgump 170 216 10 16 5 0 0 }{ htmlgump 180 216 10 16 5 0 0 =
+}{ htmlgump 190 216 10 16 5 0 0 }{ htmlgump 200 216 10 16 5 0 0 }{ htmlgump=
+ 210 216 10 16 2 0 0 }{ htmlgump 220 216 10 16 3 0 0 }{ htmlgump 230 216 10=
+ 16 3 0 0 }{ htmlgump 240 216 10 16 3 0 0 }{ htmlgump 250 216 10 16 4 0 0 }=
+{ htmlgump 260 216 10 16 5 0 0 }{ htmlgump 270 216 10 16 5 0 0 }{ htmlgump =
+40 232 10 16 3 0 0 }{ htmlgump 50 232 10 16 3 0 0 }{ htmlgump 60 232 10 16 =
+7 0 0 }{ htmlgump 70 232 10 16 5 0 0 }{ htmlgump 80 232 10 16 5 0 0 }{ html=
+gump 90 232 10 16 5 0 0 }{ htmlgump 100 232 10 16 5 0 0 }{ htmlgump 110 232=
+ 10 16 5 0 0 }{ htmlgump 120 232 10 16 5 0 0 }{ htmlgump 130 232 10 16 5 0 =
+0 }{ htmlgump 140 232 10 16 2 0 0 }{ htmlgump 150 232 10 16 3 0 0 }{ htmlgu=
+mp 160 232 10 16 7 0 0 }{ htmlgump 170 232 10 16 5 0 0 }{ htmlgump 180 232 =
+10 16 5 0 0 }{ htmlgump 190 232 10 16 5 0 0 }{ htmlgump 200 232 10 16 3 0 0=
+ }{ htmlgump 210 232 10 16 3 0 0 }{ htmlgump 220 232 10 16 7 0 0 }{ htmlgum=
+p 230 232 10 16 5 0 0 }{ htmlgump 240 232 10 16 8 0 0 }{ htmlgump 250 232 1=
+0 16 3 0 0 }{ htmlgump 260 232 10 16 4 0 0 }{ htmlgump 270 232 10 16 5 0 0 =
+}{ htmlgump 40 248 10 16 3 0 0 }{ htmlgump 50 248 10 16 3 0 0 }{ htmlgump 6=
+0 248 10 16 9 0 0 }{ htmlgump 70 248 10 16 9 0 0 }{ htmlgump 80 248 10 16 9=
+ 0 0 }{ htmlgump 90 248 10 16 5 0 0 }{ htmlgump 100 248 10 16 5 0 0 }{ html=
+gump 110 248 10 16 5 0 0 }{ htmlgump 120 248 10 16 5 0 0 }{ htmlgump 130 24=
+8 10 16 2 0 0 }{ htmlgump 140 248 10 16 3 0 0 }{ htmlgump 150 248 10 16 7 0=
+ 0 }{ htmlgump 160 248 10 16 5 0 0 }{ htmlgump 170 248 10 16 5 0 0 }{ htmlg=
+ump 180 248 10 16 5 0 0 }{ htmlgump 190 248 10 16 5 0 0 }{ htmlgump 200 248=
+ 10 16 3 0 0 }{ htmlgump 210 248 10 16 3 0 0 }{ htmlgump 220 248 10 16 5 0 =
+0 }{ htmlgump 230 248 10 16 5 0 0 }{ htmlgump 240 248 10 16 5 0 0 }{ htmlgu=
+mp 250 248 10 16 5 0 0 }{ htmlgump 260 248 10 16 5 0 0 }{ htmlgump 270 248 =
+10 16 5 0 0 }{ htmlgump 40 264 10 16 3 0 0 }{ htmlgump 50 264 10 16 3 0 0 }=
+{ htmlgump 60 264 10 16 10 0 0 }{ htmlgump 70 264 10 16 10 0 0 }{ htmlgump =
+80 264 10 16 10 0 0 }{ htmlgump 90 264 10 16 5 0 0 }{ htmlgump 100 264 10 1=
+6 5 0 0 }{ htmlgump 110 264 10 16 5 0 0 }{ htmlgump 120 264 10 16 2 0 0 }{ =
+htmlgump 130 264 10 16 3 0 0 }{ htmlgump 140 264 10 16 3 0 0 }{ htmlgump 15=
+0 264 10 16 3 0 0 }{ htmlgump 160 264 10 16 3 0 0 }{ htmlgump 170 264 10 16=
+ 4 0 0 }{ htmlgump 180 264 10 16 11 0 0 }{ htmlgump 190 264 10 16 5 0 0 }{ =
+htmlgump 200 264 10 16 3 0 0 }{ htmlgump 210 264 10 16 3 0 0 }{ htmlgump 22=
+0 264 10 16 5 0 0 }{ htmlgump 230 264 10 16 5 0 0 }{ htmlgump 240 264 10 16=
+ 9 0 0 }{ htmlgump 250 264 10 16 9 0 0 }{ htmlgump 260 264 10 16 9 0 0 }{ h=
+tmlgump 270 264 10 16 5 0 0 }{ htmlgump 40 280 10 16 3 0 0 }{ htmlgump 50 2=
+80 10 16 3 0 0 }{ htmlgump 60 280 10 16 5 0 0 }{ htmlgump 70 280 10 16 5 0 =
+0 }{ htmlgump 80 280 10 16 5 0 0 }{ htmlgump 90 280 10 16 5 0 0 }{ htmlgump=
+ 100 280 10 16 5 0 0 }{ htmlgump 110 280 10 16 5 0 0 }{ htmlgump 120 280 10=
+ 16 3 0 0 }{ htmlgump 130 280 10 16 3 0 0 }{ htmlgump 140 280 10 16 7 0 0 }=
+{ htmlgump 150 280 10 16 5 0 0 }{ htmlgump 160 280 10 16 12 0 0 }{ htmlgump=
+ 170 280 10 16 3 0 0 }{ htmlgump 180 280 10 16 6 0 0 }{ htmlgump 190 280 10=
+ 16 5 0 0 }{ htmlgump 200 280 10 16 3 0 0 }{ htmlgump 210 280 10 16 3 0 0 }=
+{ htmlgump 220 280 10 16 11 0 0 }{ htmlgump 230 280 10 16 5 0 0 }{ htmlgump=
+ 240 280 10 16 10 0 0 }{ htmlgump 250 280 10 16 3 0 0 }{ htmlgump 260 280 1=
+0 16 10 0 0 }{ htmlgump 270 280 10 16 5 0 0 }{ htmlgump 40 296 10 16 8 0 0 =
+}{ htmlgump 50 296 10 16 13 0 0 }{ htmlgump 60 296 10 16 5 0 0 }{ htmlgump =
+70 296 10 16 5 0 0 }{ htmlgump 80 296 10 16 5 0 0 }{ htmlgump 90 296 10 16 =
+5 0 0 }{ htmlgump 100 296 10 16 5 0 0 }{ htmlgump 110 296 10 16 5 0 0 }{ ht=
+mlgump 120 296 10 16 12 0 0 }{ htmlgump 130 296 10 16 3 0 0 }{ htmlgump 140=
+ 296 10 16 3 0 0 }{ htmlgump 150 296 10 16 3 0 0 }{ htmlgump 160 296 10 16 =
+3 0 0 }{ htmlgump 170 296 10 16 13 0 0 }{ htmlgump 180 296 10 16 5 0 0 }{ h=
+tmlgump 190 296 10 16 5 0 0 }{ htmlgump 200 296 10 16 5 0 0 }{ htmlgump 210=
+ 296 10 16 8 0 0 }{ htmlgump 220 296 10 16 3 0 0 }{ htmlgump 230 296 10 16 =
+3 0 0 }{ htmlgump 240 296 10 16 3 0 0 }{ htmlgump 250 296 10 16 13 0 0 }{ h=
+tmlgump 260 296 10 16 5 0 0 }{ htmlgump 270 296 10 16 5 0 0 }{ htmlgump 40 =
+312 10 16 5 0 0 }{ htmlgump 50 312 10 16 5 0 0 }{ htmlgump 60 312 10 16 5 0=
+ 0 }{ htmlgump 70 312 10 16 5 0 0 }{ htmlgump 80 312 10 16 5 0 0 }{ htmlgum=
+p 90 312 10 16 5 0 0 }{ htmlgump 100 312 10 16 5 0 0 }{ htmlgump 110 312 10=
+ 16 5 0 0 }{ htmlgump 120 312 10 16 5 0 0 }{ htmlgump 130 312 10 16 5 0 0 }=
+{ htmlgump 140 312 10 16 5 0 0 }{ htmlgump 150 312 10 16 5 0 0 }{ htmlgump =
+160 312 10 16 5 0 0 }{ htmlgump 170 312 10 16 5 0 0 }{ htmlgump 180 312 10 =
+16 5 0 0 }{ htmlgump 190 312 10 16 5 0 0 }{ htmlgump 200 312 10 16 5 0 0 }{=
+ htmlgump 210 312 10 16 5 0 0 }{ htmlgump 220 312 10 16 5 0 0 }{ htmlgump 2=
+30 312 10 16 5 0 0 }{ htmlgump 240 312 10 16 5 0 0 }{ htmlgump 250 312 10 1=
+6 5 0 0 }{ htmlgump 260 312 10 16 5 0 0 }{ htmlgump 270 312 10 16 5 0 0 }{ =
+htmlgump 40 328 10 16 5 0 0 }{ htmlgump 50 328 10 16 5 0 0 }{ htmlgump 60 3=
+28 10 16 5 0 0 }{ htmlgump 70 328 10 16 5 0 0 }{ htmlgump 80 328 10 16 5 0 =
+0 }{ htmlgump 90 328 10 16 5 0 0 }{ htmlgump 100 328 10 16 5 0 0 }{ htmlgum=
+p 110 328 10 16 5 0 0 }{ htmlgump 120 328 10 16 5 0 0 }{ htmlgump 130 328 1=
+0 16 5 0 0 }{ htmlgump 140 328 10 16 5 0 0 }{ htmlgump 150 328 10 16 5 0 0 =
+}{ htmlgump 160 328 10 16 5 0 0 }{ htmlgump 170 328 10 16 5 0 0 }{ htmlgump=
+ 180 328 10 16 5 0 0 }{ htmlgump 190 328 10 16 5 0 0 }{ htmlgump 200 328 10=
+ 16 5 0 0 }{ htmlgump 210 328 10 16 5 0 0 }{ htmlgump 220 328 10 16 5 0 0 }=
+{ htmlgump 230 328 10 16 5 0 0 }{ htmlgump 240 328 10 16 5 0 0 }{ htmlgump =
+250 328 10 16 5 0 0 }{ htmlgump 260 328 10 16 5 0 0 }{ htmlgump 270 328 10 =
+16 5 0 0 }{ xmfhtmlgumpcolor 40 344 250 20 1045139 0 0 32767 }{ text 268 34=
+3 137 14 }{ gumppictiled 360 343 40 19 3004 }{ textentry 360 343 40 19 137 =
+600 15 }{ button 70 368 4005 4007 1 0 0 }{ xmfhtmlgumpcolor 105 368 120 20 =
+1011012 0 0 32767 }{ button 200 368 4005 4007 1 0 600 }{ xmfhtmlgumpcolor 2=
+35 368 120 20 1006044 0 0 32767 }",                                        =
+                  =
+
+
+Modified: trunk/lua/lib.macrolist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.macrolist.lua (original)
++++ trunk/lua/lib.macrolist.lua Fri Jan 21 23:01:19 2011
+@@ -253,7 +253,7 @@
+     RegisterListener("Hook_OpenPopupMenu",function (popupmenu)
+         if (popupmenu.serial =3D=3D serial or Client_GetTicks() < timeout_=
+endt) then =
+
+             for k,entry in pairs(popupmenu.entries) do =
+
+-				print("MacroCmd_PopupCommandByName",">"..entry.text.."<")
++				print("MacroCmd_PopupCommandByName",">"..entry.text.."<",entry.tag)
+                 if (StringContains(entry.text,name)) then Send_PopupAnswer=
+(popupmenu.serial,entry.tag) break end
+             end
+             ClosePopUpMenu()
+
+Modified: trunk/lua/net/net.other.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.other.lua (original)
++++ trunk/lua/net/net.other.lua Fri Jan 21 23:01:19 2011
+@@ -132,7 +132,7 @@
+     file:close()
+     io.popen(tostring("tmp.url"))
+ 	]]--
+-	OpenBrowser(url) =
+
++	OpenBrowser(url) -- tipp: linux xdg-open http://www.somesite.com , see lu=
+gre.lua
+ end
+ =
+
+ --[[
+
+Modified: trunk/lua/widgets/widget.uoedittext.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/widgets/widget.uoedittext.lua (original)
++++ trunk/lua/widgets/widget.uoedittext.lua Fri Jan 21 23:01:19 2011
+@@ -31,6 +31,11 @@
+ 		=
+
+ 		local edittext =3D self
+ 		function backpane:on_mouse_left_down () print("mybackpane:on_mouse_left_=
+down") edittext:SetFocus() end
++	else =
+
++		local w,h =3D p.width,p.height
++		self:SetSize(w,h)
++		--~ print("uo et",w,h)
++		--~ os.exit(0)
+ 	end
+ 	=
+
+ 	local textlines =3D p.textlines
+@@ -38,7 +43,9 @@
+ 	self.textwidget =3D self:CreateChild("UOText",{x=3D0,y=3D0,width=3Dp.widt=
+h,height=3Dp.height,text=3Dp.text,textline_id=3Dp.textline_id_default,hue=
+=3Dp.hue},textlines)
+ 	self:SetSize(p.width,p.height)
+ 	if (p.x) then self:SetPos(p.x,p.y) end
+-	self:SetText(self.textwidget:GetUOHtml())
++	local txt =3D self.textwidget:GetUOHtml()
++	--~ if (#txt <=3D 0) then txt =3D "?" end
++	self:SetText(txt)
+ end
+ =
+
+ function gWidgetPrototype.UOEditText:GetReturnVal	() return self.params.re=
+turn_value end
+
+
+
+From no-reply at zwischenwelt.org  Thu Jan 27 10:17:16 2011
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Thu, 27 Jan 2011 09:17:16 -0000
+Subject: [Iris-commit] [IRIS] r3364 - /trunk/lua/net/net.buff.lua
+Message-ID: <20110127091716.C4BAE7A9852D@simon>
+
+Author: ghoulsblade
+Date: Thu Jan 27 10:17:15 2011
+New Revision: 3364
+
+Log:
+kPacket_BuffDebuff_System guard
+
+Modified:
+    trunk/lua/net/net.buff.lua
+
+Modified: trunk/lua/net/net.buff.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.buff.lua (original)
++++ trunk/lua/net/net.buff.lua Thu Jan 27 10:17:15 2011
+@@ -109,8 +109,8 @@
+ function gPacketHandler.kPacket_BuffDebuff_System()
+ 	local buffinfos =3D {}
+ 	local input =3D GetRecvFIFO()
++	local popped_start =3D input:GetTotalPopped()
+ 	local id =3D input:PopNetUint8()
+-	local popped_start =3D input:GetTotalPopped()
+ 	local packetsize =3D input:PopNetUint16()
+ =
+
+ 	--print("spell buff packet received !!!!!!!!!!",packetsize)
+@@ -158,6 +158,7 @@
+ 	=
+
+ 		local rest =3D packetsize - (input:GetTotalPopped() - popped_start)
+ 		if (rest < 2) then print("WARNING: kPacket_BuffDebuff_System underrun wh=
+ile reading argumentsmode_end") end
++		print("DEBUG kPacket_BuffDebuff_System",packetsize,rest,input:GetTotalPo=
+pped(),popped_start)
+ 		buffinfos.argumentsmode_end		=3D (rest >=3D 2) and (input:PopNetUint16()=
+) or 0
+ 	end
+ 	=
+
+
+
+
+From no-reply at zwischenwelt.org  Thu Jan 27 14:52:28 2011
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Thu, 27 Jan 2011 13:52:28 -0000
+Subject: [Iris-commit] [IRIS] r3365 - /trunk/lua/net/net.buff.lua
+Message-ID: <20110127135234.B523F7A9852D@simon>
+
+Author: ghoulsblade
+Date: Thu Jan 27 14:52:21 2011
+New Revision: 3365
+
+Log:
+kPacket_BuffDebuff_System another guard
+
+Modified:
+    trunk/lua/net/net.buff.lua
+
+Modified: trunk/lua/net/net.buff.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.buff.lua (original)
++++ trunk/lua/net/net.buff.lua Thu Jan 27 14:52:21 2011
+@@ -118,6 +118,10 @@
+ =
+
+ 	buffinfos.icon_buffid1		=3D input:PopNetUint16()
+ 	buffinfos.icon_show1		=3D input:PopNetUint16() -- runuo : 0x1 //Type 0 fo=
+r removal. 1 for add 2 for Data
++	=
+
++	local rest =3D packetsize - (input:GetTotalPopped() - popped_start)
++	if (rest < 4) then print("WARNING: kPacket_BuffDebuff_System underrun whi=
+le reading temp1") return end
++		=
+
+ 	buffinfos.temp1			=3D input:PopNetUint32()
+ =
+
+ 	local rest =3D packetsize - (input:GetTotalPopped() - popped_start)
+
+
+
+From no-reply at zwischenwelt.org  Thu Jan 27 14:57:04 2011
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Thu, 27 Jan 2011 13:57:04 -0000
+Subject: [Iris-commit] [IRIS] r3366 - /trunk/lua/net/net.generic.lua
+Message-ID: <20110127135705.0C6387A9852D@simon>
+
+Author: ghoulsblade
+Date: Thu Jan 27 14:57:04 2011
+New Revision: 3366
+
+Log:
+kPacket_Generic_SubCommand_DisplayPopup guard
+
+Modified:
+    trunk/lua/net/net.generic.lua
+
+Modified: trunk/lua/net/net.generic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.generic.lua (original)
++++ trunk/lua/net/net.generic.lua Thu Jan 27 14:57:04 2011
+@@ -184,8 +184,16 @@
+ 			entry.tag		=3D input:PopNetUint16() -- Entry Tag (this will be returned=
+ by the client on selection)
+ 			entry.textid	=3D input:PopNetUint16() -- ID is the file number for intl=
+oc#.language e.g intloc6.enu and the index into that
+ 			entry.text 		=3D GetPopupEntryText(entry.textid) or "unknown"
++			=
+
++			local rest =3D packetsize - (input:GetTotalPopped() - popped_start)
++			if (rest < 2) then print("WARNING: kPacket_Generic_SubCommand_DisplayPo=
+pup underrun2",rest) return end
++			=
+
+ 			entry.flags		=3D input:PopNetUint16() -- 0x01 =3D locked, 0x02 =3D arro=
+w, 0x20 =3D color
+ 			if (TestBit(entry.flags,kPopupEntryFlag_Color)) then
++			=
+
++				local rest =3D packetsize - (input:GetTotalPopped() - popped_start)
++				if (rest < 2) then print("WARNING: kPacket_Generic_SubCommand_DisplayP=
+opup underrun3",rest) return end
++				=
+
+ 				entry.color	=3D input:PopNetUint16() =
+
+ 				-- rgb 1555 color (ex, 0 =3D transparent, 0x8000 =3D solid black, 0x1F=
+ =3D blue, 0x3E0 =3D green, 0x7C00 =3D red)
+ 			else
+
+
+
+From no-reply at zwischenwelt.org  Thu Jan 27 14:58:00 2011
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Thu, 27 Jan 2011 13:58:00 -0000
+Subject: [Iris-commit] [IRIS] r3367 - /trunk/lua/net/net.generic.lua
+Message-ID: <20110127135800.C29AC7A9852D@simon>
+
+Author: ghoulsblade
+Date: Thu Jan 27 14:58:00 2011
+New Revision: 3367
+
+Log:
+kPacket_Generic_SubCommand_DisplayPopup guard
+
+Modified:
+    trunk/lua/net/net.generic.lua
+
+Modified: trunk/lua/net/net.generic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.generic.lua (original)
++++ trunk/lua/net/net.generic.lua Thu Jan 27 14:58:00 2011
+@@ -186,13 +186,13 @@
+ 			entry.text 		=3D GetPopupEntryText(entry.textid) or "unknown"
+ 			=
+
+ 			local rest =3D packetsize - (input:GetTotalPopped() - popped_start)
+-			if (rest < 2) then print("WARNING: kPacket_Generic_SubCommand_DisplayPo=
+pup underrun2",rest) return end
++			if (rest < 2) then print("WARNING: kPacket_Generic_SubCommand_DisplayPo=
+pup underrun2",rest) break end
+ 			=
+
+ 			entry.flags		=3D input:PopNetUint16() -- 0x01 =3D locked, 0x02 =3D arro=
+w, 0x20 =3D color
+ 			if (TestBit(entry.flags,kPopupEntryFlag_Color)) then
+ 			=
+
+ 				local rest =3D packetsize - (input:GetTotalPopped() - popped_start)
+-				if (rest < 2) then print("WARNING: kPacket_Generic_SubCommand_DisplayP=
+opup underrun3",rest) return end
++				if (rest < 2) then print("WARNING: kPacket_Generic_SubCommand_DisplayP=
+opup underrun3",rest) break end
+ 				=
+
+ 				entry.color	=3D input:PopNetUint16() =
+
+ 				-- rgb 1555 color (ex, 0 =3D transparent, 0x8000 =3D solid black, 0x1F=
+ =3D blue, 0x3E0 =3D green, 0x7C00 =3D red)
+
+
+

@@ -1,0 +1,230 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1664 - in /trunk: data/lua/lib.terrain.multitex.lua src/terrain_multitex.cpp
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2007-December/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1664%20-%20in%20/trunk%3A%0A%20data/lua/lib.terrain.multitex.lua%20src/terrain_multitex.cpp&In-Reply-To=%3C20071223154618.1B71C1524004%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000479.html">
+   <LINK REL="Next"  HREF="000481.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1664 - in /trunk: data/lua/lib.terrain.multitex.lua src/terrain_multitex.cpp</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1664%20-%20in%20/trunk%3A%0A%20data/lua/lib.terrain.multitex.lua%20src/terrain_multitex.cpp&In-Reply-To=%3C20071223154618.1B71C1524004%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1664 - in /trunk: data/lua/lib.terrain.multitex.lua src/terrain_multitex.cpp">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sun Dec 23 16:46:18 CET 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000479.html">[Iris-commit] [IRIS] r1663 - in /trunk: mapinfo.php	src/terrain_multitex.cpp
+</A></li>
+        <LI>Next message: <A HREF="000481.html">[Iris-commit] [IRIS] r1665 - in /trunk: data/lua/lib.terrain.multitex.lua data/terrain/materials/terrain.material data/terrain/multitex/terrain_multitex_mask_64_blur_man.png src/terrain_multitex.cpp
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#480">[ date ]</a>
+              <a href="thread.html#480">[ thread ]</a>
+              <a href="subject.html#480">[ subject ]</a>
+              <a href="author.html#480">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sun Dec 23 16:46:17 2007
+New Revision: 1664
+
+Log:
+working on multitex terrain
+
+Modified:
+    trunk/data/lua/lib.terrain.multitex.lua
+    trunk/src/terrain_multitex.cpp
+
+Modified: trunk/data/lua/lib.terrain.multitex.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.terrain.multitex.lua (original)
++++ trunk/data/lua/lib.terrain.multitex.lua Sun Dec 23 16:46:17 2007
+@@ -41,7 +41,7 @@
+ kMultiTexTerrain_StepInterval =3D 200
+ gMultiTexTerrain_BX =3D nil
+ gMultiTexTerrain_BY =3D nil
+-gMultiTexTerrain_Gfx =3D nil
++gMultiTexTerrain_GfxList =3D {}
+ =
+
+ function MultiTexTerrainInit ()
+ 	if (not gEnableMultiTexTerrain) then return end
+@@ -67,6 +67,7 @@
+ function MultiTexTerrainStep ()
+ 	if (not gEnableMultiTexTerrain) then return end
+ 	if (gMultiTexTerrain_NextStep &gt; gMyTicks) then return end
++	if (not gGroundBlockLoader) then return end
+ 	gMultiTexTerrain_NextStep =3D gMyTicks + kMultiTexTerrain_StepInterval
+ 	=
+
+ 	local camx,camy,camz =3D gCurrentRenderer:GetLookAheadCamPos()
+@@ -76,11 +77,26 @@
+ 	gMultiTexTerrain_BX =3D bx
+ 	gMultiTexTerrain_BY =3D by
+ 	print(&quot;MultiTexTerrainStep&quot;,bx,by)
+-	if (gMultiTexTerrain_Gfx) then gMultiTexTerrain_Gfx:Destroy() end
+-	gMultiTexTerrain_Gfx =3D CreateRootGfx3D()
+-	local x,y,z =3D gCurrentRenderer:UOPosToLocal(bx*8,by*8,0)
+-	gMultiTexTerrain_Gfx:SetPosition(x,y,z)
+-	--~ gMultiTexTerrain_Gfx:SetMesh(&quot;axes.mesh&quot;)
+-	if (gGroundBlockLoader) then Gfx3D_SetMultiTexTerrain(gMultiTexTerrain_Gf=
+x,gGroundBlockLoader,bx,by) end
+-	gMultiTexTerrain_Gfx:SetMaterial(kTerrainMultiTexMatName)
++	local r =3D 3
++	for k,gfx in pairs(gMultiTexTerrain_GfxList) do =
+
++		if (math.abs(gfx.bx - bx) &gt; r or math.abs(gfx.by - by) &gt; r) then
++			gfx:Destroy() =
+
++			gMultiTexTerrain_GfxList[k] =3D nil
++		end
++	end
++	for dy =3D -r,r do
++	for dx =3D -r,r do
++		local name =3D (bx+dx)..&quot;_&quot;..(by+dy)
++		if (not gMultiTexTerrain_GfxList[name]) then =
+
++			local gfx =3D CreateRootGfx3D()
++			gfx.bx =3D bx+dx
++			gfx.by =3D by+dy
++			local x,y,z =3D gCurrentRenderer:UOPosToLocal((bx+dx)*8,(by+dy)*8,0)
++			gfx:SetPosition(x,y,z)
++			Gfx3D_SetMultiTexTerrain(gfx,gGroundBlockLoader,bx+dx,by+dy)
++			gfx:SetMaterial(kTerrainMultiTexMatName)
++			gMultiTexTerrain_GfxList[name] =3D gfx
++		end
++	end
++	end
+ end
+
+Modified: trunk/src/terrain_multitex.cpp
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/src/terrain_multitex.cpp (original)
++++ trunk/src/terrain_multitex.cpp Sun Dec 23 16:46:17 2007
+@@ -9,7 +9,13 @@
+ #include &lt;Ogre.h&gt;
+ #include &lt;vector&gt;
+ =
+
+-#define ANTI_XMIRROR
++#define XMIRROR
++
++#ifdef XMIRROR
++#define XMIRROR_ONE_OR_ZERO 1
++#else
++#define XMIRROR_ONE_OR_ZERO 0
++#endif
+ =
+
+ #ifndef PROFILE
+ #define PROFILE
+@@ -28,6 +34,8 @@
+ 	enum { kMaxZDiff =3D 64 }; ///&lt; mNormalLookup
+ 	enum { kGroundMatLookUpSize =3D 0x4000 };
+ 	enum { kShortType_nodraw =3D -1 };
++	=
+
++	static inline float GetBlockZBounds() { return 20.0; } ///&lt; 12.8 =3D 128*=
+0.1 would be enough, but lets give a bit of space, in case of water-z-trans=
+form
+ 	=
+
+ 	std::vector&lt;float&gt; mTexCoords_Ground;
+ 	std::vector&lt;float&gt; mTexCoords_MainMask;
+@@ -95,8 +103,12 @@
+ 		const float dx,const float dy) {
+ 		=
+
+ 		// write position
+-		*++w =3D x + dx;
+-		*++w =3D y + dy;
++		#ifdef XMIRROR
++		*++w =3D -(x + dx);
++		#else
++		*++w =3D  (x + dx);
++		#endif
++		*++w =3D  (y + dy);
+ 		*++w =3D GetZF(x+idx,y+idy);
+ 			=
+
+ 		// write normal
+@@ -140,13 +152,19 @@
+ 		int x,y,i;
+ 		pRobRenderOp.Begin(iVertexCount,iIndexCount,bDynamic,bKeepOldIndices);
+ 		pRobRenderOp.SetVertexFormatFromEnum(cRobRenderOp::kVertexFormat_pnuv,4)=
+; // 4 tex coord sets
+-		Ogre::Real* pWriter =3D pRobRenderOp.StartCustomWriter(Ogre::Vector3(0,0=
+,0),Ogre::Vector3(T,T,256));
++		=
+
++		Ogre::Real* pWriter =3D pRobRenderOp.StartCustomWriter(Ogre::Vector3(XMI=
+RROR_ONE_OR_ZERO?(-T):0,0,-GetBlockZBounds()),Ogre::Vector3(XMIRROR_ONE_OR_=
+ZERO?0:T,T,GetBlockZBounds()));
+ 		WriteToVertexBuffer(pGroundBlockLoader,bx,by,pWriter);
+ 		for (y=3D0;y&lt;T;++y)
+ 		for (x=3D0;x&lt;T;++x) { =
+
+ 			i =3D (y*T+x)*4;
++			#ifdef XMIRROR
++			pRobRenderOp.Index(i + 0,i + 2,i + 1);
++			pRobRenderOp.Index(i + 1,i + 2,i + 3);
++			#else
+ 			pRobRenderOp.Index(i + 0,i + 1,i + 2);
+ 			pRobRenderOp.Index(i + 2,i + 1,i + 3);
++			#endif
+ 		}
+ 		pRobRenderOp.End();
+ 	}
+@@ -180,7 +198,7 @@
+ 			bNormalLookupInit =3D false; // only once
+ 			for (int dz_y=3D-kMaxZDiff;dz_y&lt;=3DkMaxZDiff;++dz_y)
+ 			for (int dz_x=3D-kMaxZDiff;dz_x&lt;=3DkMaxZDiff;++dz_x) {
+-				Ogre::Vector3 n =3D Ogre::Vector3(2,0,dz_x).crossProduct(Ogre::Vector3=
+(0,2,dz_y)).normalisedCopy();
++				Ogre::Vector3 n =3D Ogre::Vector3(2,0,dz_x*0.1).crossProduct(Ogre::Vec=
+tor3(0,2,dz_y*0.1)).normalisedCopy();
+ 				float* p =3D LookUpNormal(dz_x,dz_y);
+ 				p[0] =3D n.x;
+ 				p[1] =3D n.y;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000479.html">[Iris-commit] [IRIS] r1663 - in /trunk: mapinfo.php	src/terrain_multitex.cpp
+</A></li>
+	<LI>Next message: <A HREF="000481.html">[Iris-commit] [IRIS] r1665 - in /trunk: data/lua/lib.terrain.multitex.lua data/terrain/materials/terrain.material data/terrain/multitex/terrain_multitex_mask_64_blur_man.png src/terrain_multitex.cpp
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#480">[ date ]</a>
+              <a href="thread.html#480">[ thread ]</a>
+              <a href="subject.html#480">[ subject ]</a>
+              <a href="author.html#480">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

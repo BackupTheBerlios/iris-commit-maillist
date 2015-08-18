@@ -1,0 +1,195 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2649 - in /trunk: lua/lib.2d.mobile.lua lua/obj/obj.mobile.lua plugins/loot.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-October/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2649%20-%20in%20/trunk%3A%20lua/lib.2d.mobile.lua%0A%20lua/obj/obj.mobile.lua%20plugins/loot.lua&In-Reply-To=%3C20081024202043.1988B1C18631%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001453.html">
+   <LINK REL="Next"  HREF="001455.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2649 - in /trunk: lua/lib.2d.mobile.lua lua/obj/obj.mobile.lua plugins/loot.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2649%20-%20in%20/trunk%3A%20lua/lib.2d.mobile.lua%0A%20lua/obj/obj.mobile.lua%20plugins/loot.lua&In-Reply-To=%3C20081024202043.1988B1C18631%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2649 - in /trunk: lua/lib.2d.mobile.lua lua/obj/obj.mobile.lua plugins/loot.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Fri Oct 24 22:20:42 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001453.html">[Iris-commit] [IRIS] r2648 - in /trunk/lua:	filter/filter.granny.lua lib.3d.dynamic.lua
+</A></li>
+        <LI>Next message: <A HREF="001455.html">[Iris-commit] [IRIS] r2650 - in /trunk/lua: lib.2d.hudfx.lua lib.2d.mobile.lua lib.2d.renderer.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1454">[ date ]</a>
+              <a href="thread.html#1454">[ thread ]</a>
+              <a href="subject.html#1454">[ subject ]</a>
+              <a href="author.html#1454">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Fri Oct 24 22:20:42 2008
+New Revision: 2649
+
+Log:
+mobile equipment change (humans) : tooltips for equipment are automatically=
+ requested if not already available, 2d : mobile anims use direction-run fl=
+ag, lootplugin : added support for gargoyle tools
+
+Modified:
+    trunk/lua/lib.2d.mobile.lua
+    trunk/lua/obj/obj.mobile.lua
+    trunk/plugins/loot.lua
+
+Modified: trunk/lua/lib.2d.mobile.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.mobile.lua (original)
++++ trunk/lua/lib.2d.mobile.lua Fri Oct 24 22:20:42 2008
+@@ -73,7 +73,7 @@
+ 	local mount	=3D mobile:GetEquipmentAtLayer(kLayer_Mount)
+ 	=
+
+ 	local fTimeSinceLastMove =3D gMyTicks - (mobile.r2d_lastmoved or 0)
+-	local bRun =3D true
++	local bRun =3D TestBit(mobile.dir or 0,0x80)
+ 	local iMoveInterval =3D WalkGetIntervalEx(mount,mobile.artid,bRun)
+ 	local bMoving =3D fTimeSinceLastMove &lt;=3D iMoveInterval + 50
+ 	self.gStepMobiles[mobile] =3D bMoving and (gMyTicks + 10) or (gMyTicks + =
+500)
+
+Modified: trunk/lua/obj/obj.mobile.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/obj/obj.mobile.lua (original)
++++ trunk/lua/obj/obj.mobile.lua Fri Oct 24 22:20:42 2008
+@@ -214,7 +214,8 @@
+ 	if (self.bEquipmentChanged) then
+ 		self.bEquipmentChanged =3D false
+ 		NotifyListener(&quot;Hook_MobileEquipmentChanged&quot;,self)
+-		if (bIsPlayer) then PlayerBackpackItemUpdated() self:RequestEquipToolTip=
+s() end
++		if (bIsPlayer) then PlayerBackpackItemUpdated() end
++		self:RequestEquipToolTips()
+ 		local paperdoll =3D gPaperdolls[self.serial]
+ 		if (paperdoll) then RebuildPaperdoll(paperdoll) end
+ 		=
+
+
+Modified: trunk/plugins/loot.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/plugins/loot.lua (original)
++++ trunk/plugins/loot.lua Fri Oct 24 22:20:42 2008
+@@ -8,6 +8,17 @@
+ kLootArtID_Gold =3D 3823
+ kLoot_GoldWeight =3D 20/1000 -- 1000gold =3D 20 stones
+ -- artid=3D3791,3794,...(not corpse-art-id) : bones after animate undead
++
++
++function LootEvaluateItem (item)
++	if (item.artid =3D=3D 5110 and item.hue =3D=3D 2419) then return true end=
+ -- gargy knife
++	if (item.artid =3D=3D 3718 and item.hue =3D=3D 2419) then return true end=
+ -- gargy pickaxe
++	if (item.artid =3D=3D 3909 and item.hue =3D=3D 2419) then return true end=
+ -- gargy axe
++end
++
++
++
++
+ =
+
+ gLootFinishedCorpses =3D {}
+ =
+
+@@ -25,7 +36,6 @@
+ 	gAutoLoot =3D not gAutoLoot
+ 	SpellBarRiseTextOnMob(GetPlayerSerial(),0,1,0,&quot;autoloot:&quot;..(gAutoLoot and=
+ &quot;ON&quot; or &quot;off&quot;))
+ end
+-
+ =
+
+ =
+
+ function FindNearbyCorpse (maxdist)
+@@ -92,8 +102,15 @@
+ 	local container =3D GetContainer(serial)
+ 	if (not container) then return end
+ 	if (container.gumpid ~=3D kCorpseContainerGumpID) then return end
++	local takeitem
+ 	for k,item in pairs(container:GetContent()) do =
+
+-		if (item.artid =3D=3D kLootArtID_Gold) then
++		if (item.artid =3D=3D kLootArtID_Gold and (not gDisableLootGold) and (no=
+t takeitem)) then takeitem =3D item end
++		if (LootEvaluateItem(item)) then takeitem =3D item end
++	end
++	=
+
++	if (takeitem) then
++		local item =3D takeitem
++		if (takeitem =3D=3D kLootArtID_Gold) then
+ 			local curw,maxw =3D GetPlayerWeight()
+ 			local w =3D ceil(item.amount * kLoot_GoldWeight)
+ 			if (curw and maxw and curw + w &gt; maxw) then
+@@ -107,9 +124,12 @@
+ 				Send_Take_Object(item.serial,item.amount)
+ 				Send_Drop_Object_AutoStack(item.serial,GetPlayerBackPackSerial())
+ 			end
+-			break
++		else =
+
++			SpellBarRiseTextOnMob(GetPlayerSerial(),1,0.5,0,GetStaticTileTypeName(i=
+tem.artid) or &quot;???&quot;)
++			Send_Take_Object(item.serial,item.amount)
++			Send_Drop_Object_AutoStack(item.serial,GetPlayerBackPackSerial())
+ 		end
+-	end
++	end =
+
+ 	LootCleanup()
+ end)
+ =
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001453.html">[Iris-commit] [IRIS] r2648 - in /trunk/lua:	filter/filter.granny.lua lib.3d.dynamic.lua
+</A></li>
+	<LI>Next message: <A HREF="001455.html">[Iris-commit] [IRIS] r2650 - in /trunk/lua: lib.2d.hudfx.lua lib.2d.mobile.lua lib.2d.renderer.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1454">[ date ]</a>
+              <a href="thread.html#1454">[ thread ]</a>
+              <a href="subject.html#1454">[ subject ]</a>
+              <a href="author.html#1454">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

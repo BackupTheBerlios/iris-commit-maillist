@@ -1,0 +1,210 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2979 - in /trunk/lua: lib.protocol.lua	net/net.login.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2009-March/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2979%20-%20in%20/trunk/lua%3A%20lib.protocol.lua%0A%09net/net.login.lua&In-Reply-To=%3C20090331210416.D2CFD1C18816%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001777.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2979 - in /trunk/lua: lib.protocol.lua	net/net.login.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2979%20-%20in%20/trunk/lua%3A%20lib.protocol.lua%0A%09net/net.login.lua&In-Reply-To=%3C20090331210416.D2CFD1C18816%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2979 - in /trunk/lua: lib.protocol.lua	net/net.login.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Tue Mar 31 23:04:16 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001777.html">[Iris-commit] [IRIS] r2978 - /trunk/lua/lib.protocol.lua
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1778">[ date ]</a>
+              <a href="thread.html#1778">[ thread ]</a>
+              <a href="subject.html#1778">[ subject ]</a>
+              <a href="author.html#1778">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Tue Mar 31 23:04:16 2009
+New Revision: 2979
+
+Log:
+iris packetlog : added packetnames. updated prelogin unknown data
+
+Modified:
+    trunk/lua/lib.protocol.lua
+    trunk/lua/net/net.login.lua
+
+Modified: trunk/lua/lib.protocol.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.protocol.lua (original)
++++ trunk/lua/lib.protocol.lua Tue Mar 31 23:04:16 2009
+@@ -95,7 +95,8 @@
+ =
+
+ 	local dirother =3D (direction =3D=3D &quot;Client&quot;) and &quot;Server&quot; or &quot;Client&quot;
+ 	local subtime =3D Client_GetTicks()
+-	local info =3D sprintf(&quot;%s.%d: %s -&gt; %s 0x%02X (Length: %d)\n&quot;,os.date(&quot;%=
+H:%M:%S&quot;),subtime,direction,dirother,cmd,len)
++	local name =3D gPacketTypeId2Name[cmd] or &quot;???&quot;
++	local info =3D sprintf(&quot;%s.%d: %s -&gt; %s 0x%02X (Length: %d, name=3D%s)\n&quot;=
+,os.date(&quot;%H:%M:%S&quot;),subtime,direction,dirother,cmd,len,name)
+ 	-- 17:55:14.5486: Client -&gt; Server 0x80 (Length: 62)
+ 	info =3D info..&quot;        0  1  2  3  4  5  6  7   8  9  A  B  C  D  E  F\n&quot;
+ 	info =3D info..&quot;       -- -- -- -- -- -- -- --  -- -- -- -- -- -- -- --\n&quot;
+
+Modified: trunk/lua/net/net.login.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.login.lua (original)
++++ trunk/lua/net/net.login.lua Tue Mar 31 23:04:16 2009
+@@ -351,6 +351,21 @@
+ =
+
+ -- Send Packets -----------------------------------------------------------
+ =
+
++function UOLoginPushFilledStringAddByte (fifo,str,filllen,addbyte)
++	-- original seem to place addbyte=3D0x74 after the first 0 byte in the st=
+ring.. (hybrid check?)
++	local namefifo =3D CreateFIFO()
++	namefifo:PushFilledString(str,filllen)
++	local bWaitForFirstZero =3D true
++	local bNextZeroReplaced =3D false
++	for i =3D 0,namefifo:Size()-1 do =
+
++		local c =3D namefifo:PeekNetUint8(i)
++		if (c =3D=3D 0 and bNextZeroReplaced) then c =3D addbyte bNextZeroReplac=
+ed =3D false end
++		if (c =3D=3D 0 and bWaitForFirstZero) then bWaitForFirstZero =3D false b=
+NextZeroReplaced =3D true end
++		fifo:PushNetUint8(c)
++	end
++	namefifo:Destroy()
++end
++
+ -- send login server request 0x80
+ -- answered by 0xA8 kPacket_Server_List which calls MainMenuShowServerList
+ function Send_Account_Login_Request	(sName,sPassword,iSeed) -- 0x80
+@@ -361,7 +376,9 @@
+ 	printdebug(&quot;login&quot;,sprintf(&quot;NET: Account_Login_Request: Name: %s Password=
+:<i> %s\n&quot;,gPWReplace or sName,gPWReplace or sPassword))
+</I> 	local out =3D GetSendFIFO()
+ 	out:PushNetUint8(kPacket_Account_Login_Request) -- 0x80
+-	out:PushFilledString(sName,30)
++	=
+
++	=
+
++	UOLoginPushFilledStringAddByte(out,sName,30,0x74)
+ 	out:PushFilledString(sPassword,30)
+ 	out:PushNetUint8(iSeed or hex2num(&quot;0x5D&quot;))
+ 	out:SendPacket()
+@@ -389,7 +406,7 @@
+ 	local out =3D GetSendFIFO()
+ 	out:PushNetUint8(kPacket_Post_Login) -- 0x91
+ 	out:PushNetUint32(iAccount)
+-	out:PushFilledString(sName,30)
++	UOLoginPushFilledStringAddByte(out,sName,30,0x74)
+ 	out:PushFilledString(sPassword,30)
+ 	out:SendPacket()
+ end
+@@ -480,10 +497,30 @@
+ 	=
+
+ 			=
+
+ 													--  4 : 41
+-	--~ out:PushNetUint32(hex2num(&quot;0x0000001F&quot;))	-- RunUO uses this unknown f=
+lags (maybe for map 3,4 support) (pre.08.02.2008)
+-	out:PushNetUint32(hex2num(&quot;0x0000003F&quot;))		-- 6.0.9.2 RunUO uses this unkn=
+own flags (maybe for map 3,4 support) (08.02.2008:ghoul:packetlog from razo=
+r login has 0x3f here)
++	--~ out:PushNetUint32(0x0000001F)	-- RunUO uses this unknown flags (maybe=
+ for map 3,4 support) (pre.08.02.2008)
++	out:PushNetUint32(0x0000003F)		-- 6.0.9.2 RunUO uses this unknown flags (=
+maybe for map 3,4 support) (08.02.2008:ghoul:packetlog from razor login has=
+ 0x3f here)
+ 	-- razor : int flags =3D pvSrc.ReadInt32();
+ 	=
+
++	=
+
++	-- new : 31.03.2009
++	out:PushNetUint8(0x00)
++	out:PushNetUint8(0x00)
++	out:PushNetUint8(0x00)
++	out:PushNetUint32(0x01000000)
++	=
+
++	-- addr0x30
++	out:PushNetUint32(0x34000000) -- was 0x30000000  before?
++	out:PushNetUint32(0x00000000)
++	out:PushNetUint32(0x00000000)
++	out:PushNetUint32(0x00000000)
++	=
+
++	-- addr0x40
++	out:PushNetUint32(0x00000000)
++	out:PushNetUint32(0x000A0002)
++	out:PushNetUint8(0x0F)
++	=
+
++	=
+
++	--[[ old :31.03.2009
+ 	out:PushFilledString(&quot;&quot;,6)					--  6 : 47 -- obsolete for RunUO
+ 	--~ out:PushNetUint16(hex2num(&quot;0x004B&quot;))		--  2 : 49 -- obsolete for RunU=
+O - 0x4A (2D_V.5.0.8.2_ML) 0x4B (2D_V.5.0.9.1_ML) (pre.08.02.2008)
+ 	out:PushNetUint16(hex2num(&quot;0x0030&quot;))		--  2 : 49 -- obsolete for RunUO - =
+6.0.9.2 (08.02.2008:ghoul:packetlog from razor login has 0x30 here)
+@@ -493,6 +530,7 @@
+ 	--~ int charSlot =3D pvSrc.ReadInt32();
+ 	=
+
+ 	out:PushNetUint32(hex2num(&quot;0xC0A83016&quot;))	--  4 : 73 --TODO: check: iAccou=
+nt or GameServerIP
++	]]--
+ 	out:SendPacket()
+ end
+ =
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001777.html">[Iris-commit] [IRIS] r2978 - /trunk/lua/lib.protocol.lua
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1778">[ date ]</a>
+              <a href="thread.html#1778">[ thread ]</a>
+              <a href="subject.html#1778">[ subject ]</a>
+              <a href="author.html#1778">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,244 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2011 - in /trunk/lua: lib.macrolist.lua lib.pathfind.lua lib.tilefreewalk.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-March/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2011%20-%20in%20/trunk/lua%3A%20lib.macrolist.lua%0A%20lib.pathfind.lua%20lib.tilefreewalk.lua&In-Reply-To=%3C20080331120003.4157B1C18749%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000821.html">
+   <LINK REL="Next"  HREF="000822.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2011 - in /trunk/lua: lib.macrolist.lua lib.pathfind.lua lib.tilefreewalk.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2011%20-%20in%20/trunk/lua%3A%20lib.macrolist.lua%0A%20lib.pathfind.lua%20lib.tilefreewalk.lua&In-Reply-To=%3C20080331120003.4157B1C18749%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2011 - in /trunk/lua: lib.macrolist.lua lib.pathfind.lua lib.tilefreewalk.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Mon Mar 31 13:05:36 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000821.html">[Iris-commit] [IRIS] r2010 - /branches/stable_release/
+</A></li>
+        <LI>Next message: <A HREF="000822.html">[Iris-commit] [IRIS] r2012 - /trunk/lua/lib.mousepick.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#824">[ date ]</a>
+              <a href="thread.html#824">[ thread ]</a>
+              <a href="subject.html#824">[ subject ]</a>
+              <a href="author.html#824">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: hagish
+Date: Mon Mar 31 13:05:34 2008
+New Revision: 2011
+
+Log:
+space to start fighting
+
+Modified:
+    trunk/lua/lib.macrolist.lua
+    trunk/lua/lib.pathfind.lua
+    trunk/lua/lib.tilefreewalk.lua
+
+Modified: trunk/lua/lib.macrolist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.macrolist.lua (original)
++++ trunk/lua/lib.macrolist.lua Mon Mar 31 13:05:34 2008
+@@ -40,7 +40,7 @@
+ function MacroCmd_RepeatLastDoubleClick	()		if (gInGameStarted) then Repea=
+tLastDoubleClick() end end
+ function MacroCmd_SelectNearestMobile	()		if (gInGameStarted) then SelectN=
+earestMobile() end end
+ function MacroCmd_SelectNextMobile		()		if (gInGameStarted) then SelectNex=
+tMobile() end end
+-function MacroCmd_AttackSelectedMobile	()		if (gInGameStarted) then print(=
+&quot;not implemented yet&quot;) end end
++function MacroCmd_AttackSelectedMobile	()		if (gInGameStarted) then if giS=
+electedMobile then AttackMobile(giSelectedMobile) end end end
+ function MacroCmd_ToggleWarmode			()		if (gInGameStarted) then Send_Combat=
+Mode((gActWarmode=3D=3DgWarmode_Normal) and gWarmode_Combat or gWarmode_Nor=
+mal) end end
+ function MacroCmd_Open					(dialogtype)
+ 	if (not gInGameStarted) then return end
+@@ -329,3 +329,56 @@
+ function CloseMacroListDialog_OLD () =
+
+ 	if (gMacroListDialog) then gMacroListDialog:Destroy() gMacroListDialog =
+=3D nil end
+ end
++
++function MacroCmd_WalkToMouse	()
++	gCurrentRenderer:MousePick()
++	local x,y,z =3D gCurrentRenderer:GetMouseHitTileCoords()
++	SetAutoWalkTo(x,y)
++end
++
++
++gAttackRunning =3D false
++function StopAttack	()
++	gAttackRunning =3D false
++end
++
++gAttackMobile =3D nil
++function AttackMobile	(mobileserial)
++	gAttackMobile =3D mobileserial
++	if gAttackRunning then return end
++	gAttackRunning =3D true
++	=
+
++	job.create(function()
++		print(&quot;START ATTACK&quot;)
++		local reqsend =3D false
++		while gAttackRunning and gAttackMobile do
++			local mobile =3D gMobiles[gAttackMobile]
++			if not mobile then =
+
++				gAttackRunning =3D false
++			else
++				local tx,ty,tz =3D mobile.xloc,mobile.yloc,mobile.zloc
++				local px,py,pz =3D GetPlayerTilePosition()
++				local dx,dy,dz =3D Vector.sub(px,py,pz, tx,ty,tz)
++				dx,dy,dz =3D Vector.normalise_to_len(dx,dy,dz, 1)
++				gTileFreeWalk:SetViewDir(dx,dy)
++				dx,dy,dz =3D Vector.add(tx,ty,tz, dx,dy,dz)
++				dx =3D round(dx)
++				dy =3D round(dy)
++				SetAutoWalkTo(dx,dy)
++				=
+
++				if (gActWarmode =3D=3D gWarmode_Combat) then
++					if not reqsend then
++						print(&quot;REQUEST SEND&quot;)
++						Send_AttackReq(gAttackMobile)
++						reqsend =3D true
++					end
++				else =
+
++					reqsend =3D false
++				end
++				=
+
++				job.wait(500)
++			end
++		end
++		print(&quot;STOP ATTACK&quot;)
++	end)
++end
+
+Modified: trunk/lua/lib.pathfind.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.pathfind.lua (original)
++++ trunk/lua/lib.pathfind.lua Mon Mar 31 13:05:34 2008
+@@ -1,26 +1,30 @@
+ -- a star pathfinding
+ =
+
+ function Pathfinding_TriggeredByMouse	()
+-	if gMousePickFoundHit and gMousePickFoundHit.hittype =3D=3D kMousePickHit=
+Type_Terrain then
+-		local dx,dy,dz =3D gMousePickFoundHit.x, gMousePickFoundHit.y, gMousePic=
+kFoundHit.maxz
+-		Pathfinding_TriggeredByDestination(dx,dy,dz)
+-	end
+-end
+-
+-function Pathfinding_TriggeredByDestination	(dx,dy,dz)
++	gCurrentRenderer:MousePick()
++	local x,y,z =3D gCurrentRenderer:GetMouseHitTileCoords()
++	z =3D math.floor(z * 0.1)
++	Pathfinding_TriggeredByDestination(x,y,z)
++end
++
++function GetPlayerTilePosition	()
++	local mobile =3D GetPlayerMobile()
+ 	local sx,sy,sz
+-	=
+
+-	local mobile =3D GetPlayerMobile()
+ 	if mobile then
+-		sx,sy,sz =3D mobile.xloc,mobile.yloc,mobile.zloc * 0.1
++		sx,sy,sz =3D mobile.xloc,mobile.yloc,mobile.zloc
+ 	else
+ 		sx,sy,sz =3D gTileFreeWalk:GetExactLocalPos()
+ 		sx =3D -sx
++		sz =3D sz * 10
+ 	end
+-	=
+
+-	sx =3D math.floor(sx)
+-	sy =3D math.floor(sy)
+-	sz =3D math.floor(sz)
++	return math.floor(sx),math.floor(sy),math.floor(sz)
++end
++
++function Pathfinding_TriggeredByDestination	(dx,dy,dz)
++	local sx,sy,sz =3D GetPlayerTilePosition()
++	=
+
++	sz =3D math.floor(sz * 0.1)
++	=
+
+ 	dx =3D math.floor(dx)
+ 	dy =3D math.floor(dy)
+ 	dz =3D math.floor(dz)
+
+Modified: trunk/lua/lib.tilefreewalk.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.tilefreewalk.lua (original)
++++ trunk/lua/lib.tilefreewalk.lua Mon Mar 31 13:05:34 2008
+@@ -139,9 +139,10 @@
+ 	local x,y,z =3D self:GetPos_ClientSide()
+ 	local ox,oy =3D x,y
+ 	=
+
+-	-- cancel autowalk if user interacts
++	-- cancel autowalk and attack if user interacts
+ 	if bWalkInMouseDir or bWalkForward or bWalkBackwards or bTurnLeft or bTur=
+nRight then
+ 		gWalkPathToGo =3D nil
++		StopAttack()
+ 	end
+ 	=
+
+ 	-- read input and calculate desired movement
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000821.html">[Iris-commit] [IRIS] r2010 - /branches/stable_release/
+</A></li>
+	<LI>Next message: <A HREF="000822.html">[Iris-commit] [IRIS] r2012 - /trunk/lua/lib.mousepick.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#824">[ date ]</a>
+              <a href="thread.html#824">[ thread ]</a>
+              <a href="subject.html#824">[ subject ]</a>
+              <a href="author.html#824">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

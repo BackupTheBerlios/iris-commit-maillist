@@ -1,0 +1,171 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2635 - /trunk/lua/lib.packetvideo.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-October/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2635%20-%20/trunk/lua/lib.packetvideo.lua&In-Reply-To=%3C20081023132954.D18631C18476%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001439.html">
+   <LINK REL="Next"  HREF="001441.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2635 - /trunk/lua/lib.packetvideo.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2635%20-%20/trunk/lua/lib.packetvideo.lua&In-Reply-To=%3C20081023132954.D18631C18476%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2635 - /trunk/lua/lib.packetvideo.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Thu Oct 23 15:29:54 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001439.html">[Iris-commit] [IRIS] r2634 - /trunk/lua/lib.objectpicker.lua
+</A></li>
+        <LI>Next message: <A HREF="001441.html">[Iris-commit] [IRIS] r2636 - in /trunk/lua: lib.3d.walksmooth.lua lib.packetvideo.lua lib.tilefreewalk.lua main.lua obj/obj.mobile.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1440">[ date ]</a>
+              <a href="thread.html#1440">[ thread ]</a>
+              <a href="subject.html#1440">[ subject ]</a>
+              <a href="author.html#1440">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Thu Oct 23 15:29:54 2008
+New Revision: 2635
+
+Log:
+packetvideo : log map index at start of recording
+
+Modified:
+    trunk/lua/lib.packetvideo.lua
+
+Modified: trunk/lua/lib.packetvideo.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.packetvideo.lua (original)
++++ trunk/lua/lib.packetvideo.lua Thu Oct 23 15:29:54 2008
+@@ -9,6 +9,7 @@
+ kPacketVideoChunkType_Recv	=3D 1
+ kPacketVideoChunkType_Send	=3D 2
+ kPacketVideoChunkType_Pos	=3D 3
++kPacketVideoChunkType_Map	=3D 4
+ =
+
+ gPacketVideoKnownBlockSend =3D {}
+ gPacketVideoKnownBlockSend[kPacket_ExtBundledPacket] =3D true -- request p=
+arty pos
+@@ -22,6 +23,7 @@
+ gPacketVideoNoPlaybackPackets[kPacket_Accept_Movement_Resync_Request] =3D =
+true
+ gPacketVideoNoPlaybackPackets[kPacket_Block_Movement] =3D true
+ gPacketVideoNoPlaybackPackets[kPacket_Target] =3D true
++gPacketVideoNoPlaybackPackets[kPacket_Open_Container] =3D true
+ =
+
+ gPacketVideoFileName =3D &quot;../myvid.ipv&quot;
+ =
+
+@@ -30,6 +32,8 @@
+ 	gPacketVideoFileName =3D &quot;../myvid.&quot;..(os.time() or Client_GetTicks())..&quot;=
+.ipv&quot;
+ 	PacketVideo_ClearData() =
+
+ 	gPacketVideoRecording =3D true =
+
++	PacketVideo_LogMap(MapGetMapIndex())
++	PacketVideo_LogPlayerPos(gPlayerXLoc,gPlayerYLoc,gPlayerZLoc,gPlayerDir)
+ end
+ function PacketVideo_Recording_End() gPacketVideoRecording =3D false end
+ =
+
+@@ -65,6 +69,9 @@
+ 				local xloc,yloc,zloc,fulldir =3D unpack(chunk.data)
+ 				SetPlayerPos(xloc,yloc,zloc,fulldir) =
+
+ 				if (gCurrentRenderer =3D=3D Renderer3D) then gCurrentRenderer:NotifyPl=
+ayerTeleported() end
++			elseif (chunk.chunktype =3D=3D kPacketVideoChunkType_Map) then
++				local mapindex =3D unpack(chunk.data)
++				MapChangeRequest(mapindex)
+ 			end
+ 		end
+ 		gPacketVideoPlaybackRunning =3D false
+@@ -72,6 +79,7 @@
+ 		MapChangeRequest(oldfacet)
+ 		SetPlayerPos(unpack(oldpos)) =
+
+ 		Send_Movement_Resync_Request()
++		Send_ClientQuery(gRequest_States,GetPlayerSerial())
+ 	end)
+ end
+ =
+
+@@ -129,6 +137,10 @@
+ 			local zloc		=3D fifo:PopNetInt16()
+ 			local fulldir	=3D fifo:PopNetUint8()
+ 			table.insert(gPacketVideoData,{chunktype=3Dctype,t=3Dt,data=3D{xloc,ylo=
+c,zloc,fulldir}})
++		elseif (ctype =3D=3D kPacketVideoChunkType_Map) then
++			fifo:PopRaw(1+4)
++			local mapindex	=3D fifo:PopNetUint8()
++			table.insert(gPacketVideoData,{chunktype=3Dctype,t=3Dt,data=3D{mapindex=
+}})
+ 		end      =
+
+ 	end
+ 	fifo:Destroy()
+@@ -176,6 +188,19 @@
+ 	data:Destroy()
+ end
+ =
+
++function PacketVideo_LogMap(mapindex)
++	if (not gPacketVideoRecording) then return end
++	local ctype =3D kPacketVideoChunkType_Map
++	local t =3D Client_GetTicks()
++	local data =3D CreateFIFO()
++	data:PushUint8(ctype)
++	data:PushUint32(t)
++	data:PushNetUint8(mapindex)
++	table.insert(gPacketVideoData,{chunktype=3Dctype,t=3Dt,data=3D{mapindex}})
++	if (gPacketVideoFileName) then data:AppendToFile(gPacketVideoFileName) end
++	data:Destroy()
++end
++
+ function PacketVideo_BlockSend(fifo) =
+
+ 	if (not gPacketVideoPlaybackRunning) then return false end
+ 	local iId =3D fifo:PeekNetUint8(0) or 0
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001439.html">[Iris-commit] [IRIS] r2634 - /trunk/lua/lib.objectpicker.lua
+</A></li>
+	<LI>Next message: <A HREF="001441.html">[Iris-commit] [IRIS] r2636 - in /trunk/lua: lib.3d.walksmooth.lua lib.packetvideo.lua lib.tilefreewalk.lua main.lua obj/obj.mobile.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1440">[ date ]</a>
+              <a href="thread.html#1440">[ thread ]</a>
+              <a href="subject.html#1440">[ subject ]</a>
+              <a href="author.html#1440">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

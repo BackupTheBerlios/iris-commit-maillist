@@ -1,0 +1,129 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1925 - in /trunk: data/config.lua.dist	lua/lib.static.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-February/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1925%20-%20in%20/trunk%3A%20data/config.lua.dist%0A%09lua/lib.static.lua&In-Reply-To=%3C20080218130012.E7FD41524007%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000736.html">
+   <LINK REL="Next"  HREF="000738.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1925 - in /trunk: data/config.lua.dist	lua/lib.static.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1925%20-%20in%20/trunk%3A%20data/config.lua.dist%0A%09lua/lib.static.lua&In-Reply-To=%3C20080218130012.E7FD41524007%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1925 - in /trunk: data/config.lua.dist	lua/lib.static.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Mon Feb 18 13:28:20 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000736.html">[Iris-commit] [IRIS] r1924 - in /rawdata/sd_pd: flowers.blend houseparts.blend tex_flowers.png
+</A></li>
+        <LI>Next message: <A HREF="000738.html">[Iris-commit] [IRIS] r1926 - in /trunk/data/models: materials/ models/to_003000/ models/to_004000/ models/to_010000/ textures/
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#737">[ date ]</a>
+              <a href="thread.html#737">[ thread ]</a>
+              <a href="subject.html#737">[ subject ]</a>
+              <a href="author.html#737">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: hagish
+Date: Mon Feb 18 13:28:19 2008
+New Revision: 1925
+
+Log:
+added mode to dump missing models as art images
+
+Modified:
+    trunk/data/config.lua.dist
+    trunk/lua/lib.static.lua
+
+Modified: trunk/data/config.lua.dist
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/config.lua.dist (original)
++++ trunk/data/config.lua.dist Mon Feb 18 13:28:19 2008
+@@ -311,6 +311,9 @@
+ =
+
+ -- used for client localization
+ gLanguage =3D &quot;ENU&quot;
++
++-- used to dump images of the missing models into a missing folder in the =
+bin directory, you need to create the directory manually
++gDumpMissingModels =3D false
+ =
+
+ ------------------------------ UO Files --------------------------
+ gHuesFile		=3D &quot;hues.mul&quot;
+
+Modified: trunk/lua/lib.static.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.static.lua (original)
++++ trunk/lua/lib.static.lua Mon Feb 18 13:28:19 2008
+@@ -93,6 +93,24 @@
+ 		printdebug(&quot;static&quot;,&quot;mesh already found in cache &quot;,meshname, iHue)
+ 	end
+ 	=
+
++	-- dump missing models as images
++	if gDumpMissingModels then
++		local filename =3D &quot;missing/&quot;..iTileTypeID..&quot;.png&quot;
++		if not meshname and not file_exists(filename) and gArtMapLoader then
++			print(&quot;dump missing art&quot;,iTileTypeID,filename)
++			-- render fallback image
++			local img =3D CreateImage()
++			if gArtMapLoader:ExportToImage(img,iTileTypeID + 16384) then
++				img:SaveAsFile(filename)
++			end
++			img:Destroy()
++		elseif meshname and file_exists(filename) then
++			-- remove existing missing images
++			print(&quot;remove missing art image because there is now a model&quot;,iTileType=
+ID,filename)
++			remove_file(filename)
++		end
++	end
++	=
+
+ 	-- gray box fallback?
+ 	if gUseWhiteBoxAsFallBack and not meshname then
+ 		meshname =3D GetFallBackBoxMesh()
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000736.html">[Iris-commit] [IRIS] r1924 - in /rawdata/sd_pd: flowers.blend houseparts.blend tex_flowers.png
+</A></li>
+	<LI>Next message: <A HREF="000738.html">[Iris-commit] [IRIS] r1926 - in /trunk/data/models: materials/ models/to_003000/ models/to_004000/ models/to_010000/ textures/
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#737">[ date ]</a>
+              <a href="thread.html#737">[ thread ]</a>
+              <a href="subject.html#737">[ subject ]</a>
+              <a href="author.html#737">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,621 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r3321 - in /trunk/lua: lib.net.lua lib.packet.lua lib.protocol.lua lib.proxy.lua lib.razorpacketvideo.lua net/net.login.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2010-April/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3321%20-%20in%20/trunk/lua%3A%20lib.net.lua%0A%20lib.packet.lua%20lib.protocol.lua%20lib.proxy.lua%20lib.razorpacketvideo.lua%0A%20net/net.login.lua&In-Reply-To=%3C20100426204907.791EB54D0007%40simon%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="002080.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r3321 - in /trunk/lua: lib.net.lua lib.packet.lua lib.protocol.lua lib.proxy.lua lib.razorpacketvideo.lua net/net.login.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3321%20-%20in%20/trunk/lua%3A%20lib.net.lua%0A%20lib.packet.lua%20lib.protocol.lua%20lib.proxy.lua%20lib.razorpacketvideo.lua%0A%20net/net.login.lua&In-Reply-To=%3C20100426204907.791EB54D0007%40simon%3E"
+       TITLE="[Iris-commit] [IRIS] r3321 - in /trunk/lua: lib.net.lua lib.packet.lua lib.protocol.lua lib.proxy.lua lib.razorpacketvideo.lua net/net.login.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Mon Apr 26 22:49:07 CEST 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="002080.html">[Iris-commit] [IRIS] r3320 - in /trunk: lua/lib.granny.debug.lua lua/lib.granny.loader.lua lua/lib.granny.types.lua lua/lib.granny.wrap.lua lua/lib.protocol.lua plugins/itemcounter.lua plugins/loot.lua
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2081">[ date ]</a>
+              <a href="thread.html#2081">[ thread ]</a>
+              <a href="subject.html#2081">[ subject ]</a>
+              <a href="author.html#2081">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Mon Apr 26 22:49:06 2010
+New Revision: 3321
+
+Log:
+bugfix for 7.0.2.5 network: demise : disconnect on logon, new protocol head=
+er, 0xB9 featurebits is now 4byte long instead of 2 since 6.0.14.2 accordin=
+g to pol docs
+
+Modified:
+    trunk/lua/lib.net.lua
+    trunk/lua/lib.packet.lua
+    trunk/lua/lib.protocol.lua
+    trunk/lua/lib.proxy.lua
+    trunk/lua/lib.razorpacketvideo.lua
+    trunk/lua/net/net.login.lua
+
+Modified: trunk/lua/lib.net.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.net.lua (original)
++++ trunk/lua/lib.net.lua Mon Apr 26 22:49:06 2010
+@@ -44,18 +44,27 @@
+ 	if (not gMainConnection) then return false end
+ 	NetTrafficStep()
+ 	local out =3D GetSendFIFO()
+-	if (gAlternateProtocolStart) then
++	if (ClientVersionIsPost7000()) then -- TODO : not sure since which versio=
+n exactly
+ 		out:PushNetUint8(0xef)
+ 		out:SendPacket(true)
+-		-- gPacketType.kPacket_Edit =3D { id=3D0x0A, size=3D11 }
+-		for k,v in ipairs({0x7f,0x0c,0x22,0x38,0x00,0x00,0x00,0x06,0x00,0x00,0x0=
+0,0x00,0x00,0x00,0x00,0x09,0x00,0x00,0x00,0x02}) do =
+
+-		--~ for k,v in ipairs({0x0a,0x00,0x02,0x0f,0x00,0x00,0x00,0x06,0x00,0x00=
+,0x00,0x00,0x00,0x00,0x00,0x09,0x00,0x00,0x00,0x02}) do =
+
++		-- demise 25.04.2010 (used:razor+7.0.6.5=3Dcur min:7.0.2.1)
++		for k,v in ipairs({0x0a,0x00,0x02,0x0f,0x00,0x00,0x00,0x07,0x00,0x00,0x0=
+0,0x00,0x00,0x00,0x00,0x06,0x00,0x00,0x00,0x05}) do =
+
+ 			out:PushNetUint8(v)
+ 		end
+ 		out:SendPacket(true)
+ 	else
+-		out:PushNetUint32(key)		--IP from Client/or GameAccount, only required f=
+or osi servers (uncompressed/unencrypted)
+-		out:SendPacket(true)
++		if (gAlternateProtocolStart) then
++			out:PushNetUint8(0xef)
++			out:SendPacket(true)
++			-- gPacketType.kPacket_Edit =3D { id=3D0x0A, size=3D11 }
++			for k,v in ipairs({0x7f,0x0c,0x22,0x38,0x00,0x00,0x00,0x06,0x00,0x00,0x=
+00,0x00,0x00,0x00,0x00,0x09,0x00,0x00,0x00,0x02}) do =
+
++				out:PushNetUint8(v)
++			end
++			out:SendPacket(true)
++		else
++			out:PushNetUint32(key)		--IP from Client/or GameAccount, only required =
+for osi servers (uncompressed/unencrypted)
++			out:SendPacket(true)
++		end
+ 	end
+ 	return true
+ end
+
+Modified: trunk/lua/lib.packet.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.packet.lua (original)
++++ trunk/lua/lib.packet.lua Mon Apr 26 22:49:06 2010
+@@ -243,6 +243,9 @@
+ gPacketType.kPacket_ObjectInfo										=3D { id=3D0xF3, size=3D24 }
+ =
+
+ gPacketSizeOverride6017 =3D {[0x25]=3D21,[0x08]=3D15,} -- 0x3C is changed =
+as well, but was dynamic anyway
++gPacketSizeOverride60142 =3D {[0xB9]=3D5,} -- see <A HREF="http://docs.polserver.co=">http://docs.polserver.co=</A>
+m/packets/index.php?Packet=3D0xB9
++
++
+ =
+
+ gPacketSizeByID =3D {}
+ for k,v in pairs(gPacketType) do gPacketSizeByID[v.id] =3D v.size end
+@@ -257,7 +260,10 @@
+ 	if (ClientVersionIsPost6017()) then =
+
+ 		print(&quot;initializing packets for 6.0.1.7 or later&quot;)
+ 		for id,newsize in pairs(gPacketSizeOverride6017) do gPacketSizeByID[id] =
+=3D newsize end
+-		--~ os.exit(0)
++	end
++	if (ClientVersionIsPost60142()) then =
+
++		print(&quot;initializing packets for 6.0.14.2 or later&quot;)
++		for id,newsize in pairs(gPacketSizeOverride60142) do gPacketSizeByID[id]=
+ =3D newsize end
+ 	end
+ end
+ 	=
+
+
+Modified: trunk/lua/lib.protocol.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.protocol.lua (original)
++++ trunk/lua/lib.protocol.lua Mon Apr 26 22:49:06 2010
+@@ -9,10 +9,24 @@
+ gNoLogPackets =3D { kPacket_Ping } -- can be used to shorten the standard =
+log for every packet
+ =
+
+ =
+
+-function ClientVersionIsPost7000	() return ClientVersionIsPost(7000) end -=
+- see <A HREF="http://iris2.de/index.php/Clientversion_7.0.0.0_and_later">http://iris2.de/index.php/Clientversion_7.0.0.0_and_later</A>
+-function ClientVersionIsPost6017	() return ClientVersionIsPost(6017) end -=
+- see <A HREF="http://iris2.de/index.php/Clientversion_6.0.1.7_and_later">http://iris2.de/index.php/Clientversion_6.0.1.7_and_later</A>
+-function GetClientVersionAsNumber	() return tonumber((string.gsub(gClientV=
+ersion,&quot;%D&quot;,&quot;&quot;))) end -- gClientVersion =3D &quot;6.0.1.6&quot;
++function ClientVersionIsPost7000	() return ClientVersionIsPost(07000000) e=
+nd -- see <A HREF="http://iris2.de/index.php/Clientversion_7.0.0.0_and_later">http://iris2.de/index.php/Clientversion_7.0.0.0_and_later</A>
++function ClientVersionIsPost6017	() return ClientVersionIsPost(06000107) e=
+nd -- see <A HREF="http://iris2.de/index.php/Clientversion_6.0.1.7_and_later">http://iris2.de/index.php/Clientversion_6.0.1.7_and_later</A>
++function ClientVersionIsPost60142	() return ClientVersionIsPost(06001402) =
+end -- see <A HREF="http://docs.polserver.com/packets/index.php?Packet=3D0xB9">http://docs.polserver.com/packets/index.php?Packet=3D0xB9</A>
+ function ClientVersionIsPost		(version) return GetClientVersionAsNumber() =
+&gt;<i>=3D version end
+</I>+function GetClientVersionAsNumber	() =
+
++	local s,e,a,b,c,d =3D string.find(gClientVersion,&quot;(%d+)%.(%d+)%.(%d+)%.(%=
+d+)&quot;)
++	return	100*100*100*(tonumber(a) or 0)+
++			    100*100*(tonumber(b) or 0)+
++			        100*(tonumber(c) or 0)+
++			            (tonumber(d) or 0)
++	end -- gClientVersion =3D &quot;6.0.1.6&quot;
++--~ gClientVersion =3D &quot;6.0.1.6&quot;  print(gClientVersion..&quot;  &quot;,GetClientVers=
+ionAsNumber(),ClientVersionIsPost6017(),ClientVersionIsPost60142(),ClientVe=
+rsionIsPost7000()) -- 6.0.1.6         6000106 false   false   false
++--~ gClientVersion =3D &quot;6.0.1.7&quot;  print(gClientVersion..&quot;  &quot;,GetClientVers=
+ionAsNumber(),ClientVersionIsPost6017(),ClientVersionIsPost60142(),ClientVe=
+rsionIsPost7000()) -- 6.0.1.7         6000107 true    false   false
++--~ gClientVersion =3D &quot;6.0.2.5&quot;  print(gClientVersion..&quot;  &quot;,GetClientVers=
+ionAsNumber(),ClientVersionIsPost6017(),ClientVersionIsPost60142(),ClientVe=
+rsionIsPost7000()) -- 6.0.2.5         6000205 true    false   false
++--~ gClientVersion =3D &quot;6.1.0.0&quot;  print(gClientVersion..&quot;  &quot;,GetClientVers=
+ionAsNumber(),ClientVersionIsPost6017(),ClientVersionIsPost60142(),ClientVe=
+rsionIsPost7000()) -- 6.1.0.0         6010000 true    true    false
++--~ gClientVersion =3D &quot;6.0.14.2&quot; print(gClientVersion..&quot;  &quot;,GetClientVers=
+ionAsNumber(),ClientVersionIsPost6017(),ClientVersionIsPost60142(),ClientVe=
+rsionIsPost7000()) -- 6.0.14.2        6001402 true    true    false
++--~ gClientVersion =3D &quot;7.0.2.5&quot;  print(gClientVersion..&quot;  &quot;,GetClientVers=
+ionAsNumber(),ClientVersionIsPost6017(),ClientVersionIsPost60142(),ClientVe=
+rsionIsPost7000()) -- 7.0.2.5         7000205 true    true    true =
+
++--~ os.exit(0)
+ =
+
+ =
+
+ gProfiler_Packets =3D CreateRoughProfiler(&quot;Packets&quot;)
+
+Modified: trunk/lua/lib.proxy.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.proxy.lua (original)
++++ trunk/lua/lib.proxy.lua Mon Apr 26 22:49:06 2010
+@@ -22,7 +22,7 @@
+ 	gServerListenerTCP =3D UOProxyOpenListener(gProxyPort)
+ 	--~ gServerListenerTCP2 =3D UOProxyOpenListener(gProxyPort2)
+ 	=
+
+-	print(&quot;listen port opened....&quot;)
++	print(&quot;listen port opened....&quot;,gProxyPort)
+ 		=
+
+ 	while true do
+ 		local listener =3D gServerListenerTCP
+@@ -132,7 +132,8 @@
+ 		if (bIsFromClient and (not gProxyFirstPartHeaderStarted)) then
+ 			gProxyFirstPartHeaderStarted =3D true
+ 			local iPacketSize =3D 4
+-			print(&quot;recv:&quot;,fromname,&quot;4byte header before protocol start con1&quot;) =
+
++			iPacketSize =3D 21 -- v7 and later ?
++			print(&quot;recv:&quot;,fromname,iPacketSize..&quot;byte header before protocol start =
+con1&quot;) =
+
+ 			print(FIFOHexDump(fifo_in,0,iPacketSize))
+ 			fifo_out:PushFIFOPartRaw(fifo_in,0,iPacketSize) =
+
+ 			fifo_in:PopRaw(iPacketSize)
+@@ -217,12 +218,13 @@
+ 		return str
+ 	end
+ 	if (bInterpret) then =
+
++		local fromname =3D bIsFromClient and &quot;from_client&quot; or &quot;from_server&quot;
+ 		local iId =3D fifo_in:PeekNetUint8(0)
+ 		local iPacketSize =3D gPacketSizeByID[iId]
+ 		assert(iPacketSize,&quot;unknown iPacketSize for id=3D&quot;..hex(iId))
+-		if (iPacketSize =3D=3D 0 and fifo_in:Size() &lt; 3) then print(&quot;incomplete =
+packet dynsize? &lt;3&quot;,hex(iId)) return end -- packet incomplete
++		if (iPacketSize =3D=3D 0 and fifo_in:Size() &lt; 3) then print(&quot;incomplete =
+packet dynsize? &lt;3&quot;,hex(iId),fromname) return end -- packet incomplete
+ 		if (iPacketSize =3D=3D 0) then iPacketSize =3D fifo_in:PeekNetUint16(1) =
+end
+-		if (fifo_in:Size() &lt; iPacketSize) then print(&quot;incomplete packet &quot;,hex(iI=
+d),fifo_in:Size(),iPacketSize) return end -- packet incomplete
++		if (fifo_in:Size() &lt; iPacketSize) then print(&quot;incomplete packet &quot;,hex(iI=
+d),fifo_in:Size(),iPacketSize,fromname) return end -- packet incomplete
+ 		=
+
+ 		local timediff =3D t_since_start - (gLastPacketTBySender[fromname] or t_=
+since_start)
+ 		gLastPacketTBySender[fromname] =3D t_since_start
+@@ -241,10 +243,10 @@
+ 		print(&quot;UOProxyHandlePacket&quot;,fromname,sprintf(&quot;0x%02x&quot;,iId),Pad(gPacketTy=
+peId2Name[iId],40),Pad(iPacketSize,3),&quot;dt=3D&quot;..Pad(timediff,4),debuginfo)
+ 		=
+
+ 		if (bIsFromServer and iId =3D=3D kPacket_Server_List) then -- 0xA8
+-			fifo_in:PokeNetUint8(16*3-3,127)
+-			fifo_in:PokeNetUint8(16*3-4,0)
+-			fifo_in:PokeNetUint8(16*3-5,0)
+-			fifo_in:PokeNetUint8(16*3-6,1)
++			fifo_in:PokeNetUint8(16*3-3,gProxyIP_Byte1 or 127)
++			fifo_in:PokeNetUint8(16*3-4,gProxyIP_Byte2 or 0)
++			fifo_in:PokeNetUint8(16*3-5,gProxyIP_Byte3 or 0)
++			fifo_in:PokeNetUint8(16*3-6,gProxyIP_Byte4 or 1)
+ 			print(&quot;adjusted kPacket_Server_List&quot;) -- TODO : more than one server ?
+ 			print(&quot;+++++++++++++++++++++++++++++++++++++++++++++++&quot;)
+ 			print(&quot;+++++    adjusted  kPacket_Server_List&quot;)
+@@ -258,10 +260,10 @@
+ =
+
+ 		-- todo : patch kPacket_Server_Redirect   8c d1 ad 8b 6e 0a 21 f9 ff 18 =
+13
+ 		if (bIsFromServer and iId =3D=3D kPacket_Server_Redirect) then -- 0x8C
+-			fifo_in:PokeNetUint8(1,127)
+-			fifo_in:PokeNetUint8(2,0)
+-			fifo_in:PokeNetUint8(3,0)
+-			fifo_in:PokeNetUint8(4,1)
++			fifo_in:PokeNetUint8(1,gProxyIP_Byte1 or 127)
++			fifo_in:PokeNetUint8(2,gProxyIP_Byte2 or 0)
++			fifo_in:PokeNetUint8(3,gProxyIP_Byte3 or 0)
++			fifo_in:PokeNetUint8(4,gProxyIP_Byte4 or 1)
+ 			local iGameServerPort =3D gProxyPort2
+ 			fifo_in:PokeNetUint8(5,floor(iGameServerPort/256)) -- port
+ 			fifo_in:PokeNetUint8(6,math.mod(iGameServerPort,256)) -- port
+@@ -269,7 +271,7 @@
+ 			gProxyServerHuffmanStartedNextRound =3D true  -- only after 4 byte head=
+er?
+ 			gDisableProxyInterpretation =3D true
+ 			print(&quot;+++++++++++++++++++++++++++++++++++++++++++++++&quot;)
+-			print(&quot;+++++    adjusted kPacket_Server_Redirect&quot;)
++			print(&quot;+++++    adjusted kPacket_Server_Redirect&quot;,gProxyPort2)
+ 			print(&quot;+++++++++++++++++++++++++++++++++++++++++++++++&quot;)
+ 		end
+ 		=
+
+@@ -372,8 +374,9 @@
+ 	gProxyConStartTime =3D Client_GetTicks()
+ 	if (gProxyServerHuffmanStarted) then gServerListenerTCP:Destroy() end
+ 	print(&quot;UOProxyOneConnection : start&quot;)
+-	gProxyClientCon =3D newcon
++	gProxyClientCon =3D newcon NetReadAndWrite() -- read initial data from cl=
+ient
+ 	gProxyServerCon =3D NetConnect(gProxyHost,gProxyPort)
++	=
+
+ 	assert(gProxyClientCon)
+ 	assert(gProxyServerCon,&quot;failed to connect to real server&quot;)
+ 	print(&quot;UOProxyOneConnection : servercon established&quot;)
+@@ -393,8 +396,59 @@
+ 	=
+
+ 	gPacketSizeByID[0xEF] =3D 21 -- protocol start... dummy here
+ 	=
+
++	local bProxyDumb =3D gCommandLineSwitches[&quot;-proxy:dumb&quot;] -- cannot modify=
+ server-sent login-redirect to gameserver -&gt; only useful for the first few =
+bytes
++	=
+
+ 	local bAlive =3D true
+ 	while bAlive do
++		-- receive
++		gProxyClientCon:Pop(gProxyClientRecvFifo)
++		=
+
++		--~ if (gProxyServerHuffmanStarted) then =
+
++			--~ gProxyServerCon:Pop(gProxyServerRecvCompFifo)
++			--~ HuffmanDecompress(gProxyServerRecvCompFifo,gProxyServerRecvFifo) --=
+ DOES remove data from gProxyServerRecvCompFifo, might not remove all if da=
+ta for decompression is not yet complete
++		--~ else
++			gProxyServerCon:Pop(gProxyServerRecvFifo)
++		--~ end
++		=
+
++		-- handle packets
++		if (bProxyDumb) then =
+
++			local datasize_from_server =3D gProxyServerRecvFifo:Size()
++			local datasize_from_client =3D gProxyClientRecvFifo:Size()
++			=
+
++			if (datasize_from_server &gt; 0) then print(&quot;datasize_from_server&quot;,datasiz=
+e_from_server) print(FIFOHexDump(gProxyServerRecvFifo)) end
++			if (datasize_from_client &gt; 0) then print(&quot;datasize_from_client&quot;,datasiz=
+e_from_client) print(FIFOHexDump(gProxyClientRecvFifo)) end
++			=
+
++			gProxyClientSendFifo:PushFIFOPartRaw(gProxyServerRecvFifo) =
+
++			gProxyServerRecvFifo:Clear()
++			=
+
++			gProxyServerSendFifo:PushFIFOPartRaw(gProxyClientRecvFifo) =
+
++			gProxyClientRecvFifo:Clear()
++		else
++			if (gProxyServerHuffmanStarted) then =
+
++				fHuffmanDummy_RawIn:PushFIFOPartRaw(gProxyServerRecvFifo)  -- copy fro=
+m ServerRecv into huffRawIn
++				HuffmanDecompress(fHuffmanDummy_RawIn,fHuffmanDummy_DecompIn)  -- deco=
+mpress from huffRawIn to huffDecompIn
++				=
+
++				while UOProxyHandlePacket(fHuffmanDummy_DecompIn,fHuffmanDummy_DecompO=
+ut,false) do end  -- pipe packets from huffDecompIn to huffDecompOut
++				HuffmanCompress(fHuffmanDummy_DecompOut,fHuffmanDummy_RawOut) -- compr=
+ess from huffDecompOut to huffRawOut ... does NOT remove data from in-fifo.=
+ compression can always be completed
++				fHuffmanDummy_DecompOut:Clear() -- clear huffDecompOut, as it has been=
+ completely compressed
++				=
+
++				local bHuffmanCompBugged =3D true
++				if (bHuffmanCompBugged) then
++					-- throw away modified/filtered output
++					-- todo : show diff fHuffmanDummy_RawOut,gProxyServerRecvFifo ?   =
+
++					-- ServerRecv is what we originally got from the server, as long as n=
+othing was modified in handle, it should be the same.   maybe incomplete pa=
+ckets,sizediff etc..
++					fHuffmanDummy_RawOut:Clear()
++					=
+
++					-- override
++					gProxyClientSendFifo:PushFIFOPartRaw(gProxyServerRecvFifo) =
+
++					gProxyServerRecvFifo:Clear()
++				end
++			else
++				while UOProxyHandlePacket(gProxyServerRecvFifo,gProxyClientSendFifo,fa=
+lse) do end
++			end
++			while UOProxyHandlePacket(gProxyClientRecvFifo,gProxyServerSendFifo,tru=
+e) do end
++		end
++		=
+
+ 		-- send =
+
+ 		--~ if (gProxyServerHuffmanStarted) then
+ 			--~ HuffmanCompress(gProxyClientSendFifo,gProxyClientSendCompFifo) -- d=
+oes NOT remove data from in-fifo. compression can always be completed.
+@@ -409,48 +463,16 @@
+ 		gProxyServerCon:Push(gProxyServerSendFifo)
+ 		gProxyServerSendFifo:Clear()
+ 		=
+
++		if (not gProxyClientCon:IsConnected()) then print(&quot;disconnected:client&quot;)=
+ bAlive =3D false end
++		if (not gProxyServerCon:IsConnected()) then print(&quot;disconnected:server&quot;)=
+ bAlive =3D false end
++		=
+
+ 		-- hardware-step
+ 		Client_USleep(10)
+ 		NetReadAndWrite()
+-		=
+
+-		-- receive
+-		gProxyClientCon:Pop(gProxyClientRecvFifo)
+-		=
+
+-		--~ if (gProxyServerHuffmanStarted) then =
+
+-			--~ gProxyServerCon:Pop(gProxyServerRecvCompFifo)
+-			--~ HuffmanDecompress(gProxyServerRecvCompFifo,gProxyServerRecvFifo) --=
+ DOES remove data from gProxyServerRecvCompFifo, might not remove all if da=
+ta for decompression is not yet complete
+-		--~ else
+-			gProxyServerCon:Pop(gProxyServerRecvFifo)
+-		--~ end
+-		=
+
+-		-- handle packets
+-		if (gProxyServerHuffmanStarted) then =
+
+-			fHuffmanDummy_RawIn:PushFIFOPartRaw(gProxyServerRecvFifo)  -- copy from=
+ ServerRecv into huffRawIn
+-			HuffmanDecompress(fHuffmanDummy_RawIn,fHuffmanDummy_DecompIn)  -- decom=
+press from huffRawIn to huffDecompIn
+-			=
+
+-			while UOProxyHandlePacket(fHuffmanDummy_DecompIn,fHuffmanDummy_DecompOu=
+t,false) do end  -- pipe packets from huffDecompIn to huffDecompOut
+-			HuffmanCompress(fHuffmanDummy_DecompOut,fHuffmanDummy_RawOut) -- compre=
+ss from huffDecompOut to huffRawOut ... does NOT remove data from in-fifo. =
+compression can always be completed
+-			fHuffmanDummy_DecompOut:Clear() -- clear huffDecompOut, as it has been =
+completely compressed
+-			=
+
+-			local bHuffmanCompBugged =3D true
+-			if (bHuffmanCompBugged) then
+-				-- throw away modified/filtered output
+-				-- todo : show diff fHuffmanDummy_RawOut,gProxyServerRecvFifo ?   =
+
+-				-- ServerRecv is what we originally got from the server, as long as no=
+thing was modified in handle, it should be the same.   maybe incomplete pac=
+kets,sizediff etc..
+-				fHuffmanDummy_RawOut:Clear()
+-				=
+
+-				-- override
+-				gProxyClientSendFifo:PushFIFOPartRaw(gProxyServerRecvFifo) =
+
+-				gProxyServerRecvFifo:Clear()
+-			end
+-		else
+-			while UOProxyHandlePacket(gProxyServerRecvFifo,gProxyClientSendFifo,fal=
+se) do end
+-		end
+-		while UOProxyHandlePacket(gProxyClientRecvFifo,gProxyServerSendFifo,true=
+) do end
+-		=
+
+-		if (not gProxyClientCon:IsConnected()) then print(&quot;disconnected:client&quot;)=
+ bAlive =3D false end
+-		if (not gProxyServerCon:IsConnected()) then print(&quot;disconnected:server&quot;)=
+ bAlive =3D false end
+-	end
++	end
++	=
+
++	=
+
++	NetReadAndWrite() -- one final netstep to make sure that the last data be=
+fore conloss is still delivered
+ 	print(&quot;UOProxyOneConnection ended.&quot;)
+ 	gProxyClientCon:Destroy()
+ 	gProxyServerCon:Destroy()
+
+Modified: trunk/lua/lib.razorpacketvideo.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.razorpacketvideo.lua (original)
++++ trunk/lua/lib.razorpacketvideo.lua Mon Apr 26 22:49:06 2010
+@@ -3,6 +3,7 @@
+ =
+
+ --~ gRazorPacketSizeOverride6017 =3D {[0x25]=3D21} -- kPacket_Object_to_Ob=
+ject packetsize changed for 6.0.1.7 and later =
+
+ gRazorPacketSizeOverride6017 =3D gPacketSizeOverride6017  -- 0x25 and 0x08
++gRazorPacketSizeOverride60142 =3D gPacketSizeOverride60142  -- see <A HREF="http://=">http://=</A>
+docs.polserver.com/packets/index.php?Packet=3D0xB9
+ gRazorPacketSizeOverride6017Active =3D true
+ =
+
+ =
+
+
+Modified: trunk/lua/net/net.login.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.login.lua (original)
++++ trunk/lua/net/net.login.lua Mon Apr 26 22:49:06 2010
+@@ -114,7 +114,7 @@
+ 			id,gameserverip,gameserverport,gameserveraccount))
+ 	printdebug(&quot;login&quot;,sprintf(&quot;DEBUG IP STRINGS %s &lt;&gt; %s\n&quot;,gameserverip,Get=
+HostByName(gLoginServerIP)))
+ =
+
+-	if (gAltenatePostLoginHandling) then
++	if (gAltenatePostLoginHandling or ClientVersionIsPost7000()) then
+ 		print(&quot;#######!!!!!!!!! REDIRECT : reconnect with NetConnectWithKey2&quot;)
+ 		local res =3D NetConnectWithKey2(gameserverip,gameserverport,gameservera=
+ccount)
+ 		if (not res) then
+@@ -158,8 +158,12 @@
+ 	LoginDebug2(&quot;r:0xB9 kPacket_Features&quot;)
+ 	local input =3D GetRecvFIFO()
+ 	local id =3D input:PopNetUint8()
+-	local clientfeatures =3D input:PopNetUint16()
+-	printdebug(&quot;login&quot;,sprintf(&quot;NET: Client features received: 0x%04x\n&quot;,clie=
+ntfeatures))
++	if (ClientVersionIsPost60142()) then =
+
++		gClientFeatures =3D input:PopNetUint32()
++	else
++		gClientFeatures =3D input:PopNetUint16()
++	end
++	printdebug(&quot;login&quot;,sprintf(&quot;NET: Client features received: 0x%04x\n&quot;,gCli=
+entFeatures))
+ end
+ =
+
+ -- Receive Character List from GameServer
+@@ -364,6 +368,7 @@
+ kAccountLoginRejectReason.InUse			=3D {code=3D0x01,text=3D&quot;account is alre=
+ady in use&quot;}
+ kAccountLoginRejectReason.Blocked		=3D {code=3D0x02,text=3D&quot;Banned account=
+&quot;}
+ kAccountLoginRejectReason.BadPass		=3D {code=3D0x03,text=3D&quot;wrong password=
+&quot;}
++kAccountLoginRejectReason.v7ok			=3D {code=3D0xFB,text=3D&quot;uo_protocol_v7_l=
+ogin_ok_bug&quot;}
+ kAccountLoginRejectReason.Idle			=3D {code=3D0xFE,text=3D&quot;idle&quot;}
+ kAccountLoginRejectReason.BadComm		=3D {code=3D0xFF,text=3D&quot;badcom or ille=
+gal username/pw&quot;}
+ 		=
+
+@@ -373,6 +378,10 @@
+ 	local input =3D GetRecvFIFO()
+ 	local id =3D input:PopNetUint8()
+ 	local value =3D input:PopNetUint8()
++	if (value =3D=3D kAccountLoginRejectReason.v7ok) then =
+
++		print(&quot;kAccountLoginRejectReason.v7ok,see 0xb9 sent right before&quot;) -- ht=
+<A HREF="tp://docs.polserver.com/packets/index.php?Packet=3D0xB9">tp://docs.polserver.com/packets/index.php?Packet=3D0xB9</A>
++		return
++	end
+ 	=
+
+ 	local txt =3D &quot;communications failed&quot;
+ 	for k,v in pairs(kAccountLoginRejectReason) do if (value =3D=3D v.code) t=
+hen txt =3D k..&quot; &quot;..v.text end end
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="002080.html">[Iris-commit] [IRIS] r3320 - in /trunk: lua/lib.granny.debug.lua lua/lib.granny.loader.lua lua/lib.granny.types.lua lua/lib.granny.wrap.lua lua/lib.protocol.lua plugins/itemcounter.lua plugins/loot.lua
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2081">[ date ]</a>
+              <a href="thread.html#2081">[ thread ]</a>
+              <a href="subject.html#2081">[ subject ]</a>
+              <a href="author.html#2081">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

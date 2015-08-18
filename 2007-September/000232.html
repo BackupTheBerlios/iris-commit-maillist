@@ -1,0 +1,236 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1417 - in /trunk/data/lua: lib.protocol.lua	lib.tilefreewalk.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2007-September/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1417%20-%20in%20/trunk/data/lua%3A%20lib.protocol.lua%0A%09lib.tilefreewalk.lua&In-Reply-To=%3C20070928211052.39C001C18167%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000231.html">
+   <LINK REL="Next"  HREF="000233.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1417 - in /trunk/data/lua: lib.protocol.lua	lib.tilefreewalk.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1417%20-%20in%20/trunk/data/lua%3A%20lib.protocol.lua%0A%09lib.tilefreewalk.lua&In-Reply-To=%3C20070928211052.39C001C18167%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1417 - in /trunk/data/lua: lib.protocol.lua	lib.tilefreewalk.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Fri Sep 28 23:10:52 CEST 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000231.html">[Iris-commit] [IRIS] r1416 - /trunk/data/lua/lib.tilefreewalk.lua
+</A></li>
+        <LI>Next message: <A HREF="000233.html">[Iris-commit] [IRIS] r1418 - in /trunk/data/lua: lib.bugreport.lua lib.protocol.lua lib.tilefreewalk.lua main.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#232">[ date ]</a>
+              <a href="thread.html#232">[ thread ]</a>
+              <a href="subject.html#232">[ subject ]</a>
+              <a href="author.html#232">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Fri Sep 28 23:10:51 2007
+New Revision: 1417
+
+Log:
+working on tilefree movement code ...
+
+Modified:
+    trunk/data/lua/lib.protocol.lua
+    trunk/data/lua/lib.tilefreewalk.lua
+
+Modified: trunk/data/lua/lib.protocol.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.protocol.lua (original)
++++ trunk/data/lua/lib.protocol.lua Fri Sep 28 23:10:51 2007
+@@ -49,6 +49,11 @@
+ 	=
+
+ 	--OldIrisPacketLenTest()
+ 	=
+
++-- interpret dircode in ogre coordinate system
++function GetDirXLocal (dir) return -GetDirX(dir) end
++function GetDirYLocal (dir) return  GetDirY(dir) end
++
++-- interpret dircode in uo coordinate system
+ function GetDirX (dir) =
+
+ 	if (dir =3D=3D 1 or dir =3D=3D 2 or dir =3D=3D 3) then return 1 -- east
+ 	elseif (dir =3D=3D 5 or dir =3D=3D 6 or dir =3D=3D 7) then return -1 -- w=
+est
+
+Modified: trunk/data/lua/lib.tilefreewalk.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.tilefreewalk.lua (original)
++++ trunk/data/lua/lib.tilefreewalk.lua Fri Sep 28 23:10:51 2007
+@@ -36,7 +36,7 @@
+ 	self.debugmarkers =3D {}
+ 	=
+
+ 	if (true) then
+-		self.sDebugMarkerMeshName_Big	=3D MakeSphereMesh(11,11,0.3,0.3,0.1)
++		self.sDebugMarkerMeshName_Big	=3D MakeSphereMesh(11,11,0.2,0.2,0.2)
+ 		self.sDebugMarkerMeshName_Dir	=3D MakeSphereMesh(11,11,0.1,0.1,0.1)
+ 	end
+ 	=
+
+@@ -77,11 +77,16 @@
+ 		local lx,ly,lz =3D self:PathPoint_GetLast()
+ 		if (lx ~=3D rx or ly ~=3D ry) then =
+
+ 			self:PathPoint_Push(rx,ry,rz)
+-			-- TODO : read new surrounding height info here
++			-- read new surrounding height info here
++			self.groundcache =3D self:Impl_ScanGround(rx,ry,rz)
+ 		end
+ 		=
+
+ 		-- todo : calc correct z here
+-		z =3D z
++		if (self.groundcache) then
++			local ex,ey =3D x - rx,y - ry
++			print(&quot;zcorr&quot;,sprintf(&quot;%+0.1f,%+0.1f&quot;,ex,ey))
++			z =3D z
++		end
+ 		=
+
+ 		self:SetPos_ClientSide(x,y,z)
+ 		self:SetDebugMarker(&quot;GetPos_ClientSide&quot;, x,y,z, dx,dy,0, 1,1,0)
+@@ -170,6 +175,64 @@
+ =
+
+ -- ##### ##### ##### ##### ##### implementation (currently uo specific, wi=
+ll later be inserted from extern)
+ =
+
++--[[
++	z					=3D GetAbsTile(bx*8+tx,by*8+ty) -- access gGroundBlockLoader
++	z 					=3D AverageGroundHeight(bx,by,tx,ty) -- average edges
++	bIsWalkable,iNewZ	=3D GetNearestGroundLevel(bx,by,tx,ty,iStartZ,iDir) =
+
++		-- iDir is only used for diagonal here, but the passed in position is th=
+e TARGET position that is to be checked
++		-- iStartZ must be rounded
++	=
+
++
++	request.onSuccess_XLoc =3D tx + GetDirX(gPlayerDir)
++	request.onSuccess_YLoc =3D ty + GetDirY(gPlayerDir)
++	request.onSuccess_ZLoc =3D tz
++
++	request.bClientSidePassable, request.onSuccess_ZLoc =3D GetNearestGroundL=
+evel(
++								math.floor(request.onSuccess_XLoc/8), =
+
++								math.floor(request.onSuccess_YLoc/8), =
+
++								math.mod(request.onSuccess_XLoc,8), =
+
++								math.mod(request.onSuccess_YLoc,8),
++								request.onSuccess_ZLoc, iDir)
++								=
+
++
++	local x,y,z =3D Renderer3D:UOPosToLocal(xloc,yloc,zloc * 0.1)
++]]--
++
++
++-- returns bx,by,tx,ty
++function gTileFreeWalk:Impl_UOPos2BT (xloc,yloc) return math.floor(xloc/8)=
+,math.floor(yloc/8),math.mod(xloc,8),math.mod(yloc,8) end =
+
++
++-- input : rounded
++-- read new surrounding height info
++function gTileFreeWalk:Impl_ScanGround (rx,ry,rz)
++	local xloc,yloc,zloc =3D Renderer3D:LocalToUOPos(rx,ry,rz*10)
++	xloc =3D math.floor(xloc)
++	yloc =3D math.floor(yloc)
++	zloc =3D math.floor(zloc)
++	--print(arrdump({&quot;Impl_ScanGround&quot;,rx,ry,rz,&quot; &quot;,xloc,yloc,zloc}))
++	=
+
++	local iSelfZ =3D zloc
++	local groundcache =3D {}
++	for iDir=3D0,7 do =
+
++		local ldx,ldy =3D GetDirXLocal(iDir),GetDirYLocal(iDir)
++		local iNewZ =3D self:Impl_CalcWalkStep(xloc+GetDirX(iDir),yloc+GetDirY(i=
+Dir),zloc,iDir)
++		=
+
++		-- one walkable dir : calc own z by &quot;walking back&quot;
++		if (iNewZ) then iSelfZ =3D self:Impl_CalcWalkStep(xloc,yloc,zloc,math.mo=
+d(iDir+4,8)) or iSelfZ end
++		groundcache[ldx..&quot;,&quot;..ldy] =3D iNewZ
++		--print(ldx..&quot;,&quot;..ldy,iNewZ)
++	end
++	groundcache[&quot;0,0&quot;] =3D iSelfZ
++	--print(&quot;0,0&quot;,iSelfZ)
++	return groundcache
++end
++
++function gTileFreeWalk:Impl_CalcWalkStep (xloc,yloc,zloc,iDir)
++	local bx,by,tx,ty =3D self:Impl_UOPos2BT(xloc,yloc)
++	local bIsWalkable,iNewZ	=3D GetNearestGroundLevel(bx,by,tx,ty,zloc,iDir)
++	return bIsWalkable and iNewZ
++end
++
+ =
+
+ -- returns x,y,z
+ function gTileFreeWalk:Impl_MousePickPos ()
+@@ -241,8 +304,8 @@
+ =
+
+ =
+
+ function gTileFreeWalk:RoundPos	(x,y,z)
+-	local e,f =3D 0,0.5
+-	return math.floor(x+e)+f,math.floor(y+e)+f,math.floor(z+e)+f
++	local e,f,zscale =3D 0,0.5,10
++	return math.floor(x+e)+f,math.floor(y+e)+f,math.floor(z*zscale)/zscale
+ end
+ function gTileFreeWalk:GetPos_ClientSide	()			return unpack(self.pos_clien=
+tside) end
+ function gTileFreeWalk:SetPos_ClientSide	(x,y,z)		self.pos_clientside =3D =
+{x,y,z} end
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000231.html">[Iris-commit] [IRIS] r1416 - /trunk/data/lua/lib.tilefreewalk.lua
+</A></li>
+	<LI>Next message: <A HREF="000233.html">[Iris-commit] [IRIS] r1418 - in /trunk/data/lua: lib.bugreport.lua lib.protocol.lua lib.tilefreewalk.lua main.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#232">[ date ]</a>
+              <a href="thread.html#232">[ thread ]</a>
+              <a href="subject.html#232">[ subject ]</a>
+              <a href="author.html#232">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

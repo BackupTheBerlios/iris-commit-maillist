@@ -1,0 +1,147 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1430 - /trunk/data/lua/lib.tilefreewalk.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2007-October/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1430%20-%20/trunk/data/lua/lib.tilefreewalk.lua&In-Reply-To=%3C20070930224735.3FDAF1C181BA%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000244.html">
+   <LINK REL="Next"  HREF="000246.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1430 - /trunk/data/lua/lib.tilefreewalk.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1430%20-%20/trunk/data/lua/lib.tilefreewalk.lua&In-Reply-To=%3C20070930224735.3FDAF1C181BA%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1430 - /trunk/data/lua/lib.tilefreewalk.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Mon Oct  1 00:47:35 CEST 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000244.html">[Iris-commit] [IRIS] r1429 - in /trunk/data/lua: lib.protocol.lua	lib.tilefreewalk.lua
+</A></li>
+        <LI>Next message: <A HREF="000246.html">[Iris-commit] [IRIS] r1431 - /trunk/data/lua/lib.tilefreewalk.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#245">[ date ]</a>
+              <a href="thread.html#245">[ thread ]</a>
+              <a href="subject.html#245">[ subject ]</a>
+              <a href="author.html#245">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Mon Oct  1 00:47:34 2007
+New Revision: 1430
+
+Log:
+tilefree : collision improved
+
+Modified:
+    trunk/data/lua/lib.tilefreewalk.lua
+
+Modified: trunk/data/lua/lib.tilefreewalk.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.tilefreewalk.lua (original)
++++ trunk/data/lua/lib.tilefreewalk.lua Mon Oct  1 00:47:34 2007
+@@ -127,7 +127,20 @@
+ 		local r =3D 0.2 -- radius of player/human
+ 		local h =3D 0.7
+ 		self:DebugMarkerGroup_Clear(&quot;touchwalls&quot;)
+-		for k,wallarr in pairs(self.walls or {}) do
++		for k,wallarr in pairs(self.walls or {}) do -- block straight
++			local x1,y1,x2,y2,dx,dy,nx,ny,invsqlen =3D unpack(wallarr)
++			local vx,vy =3D sub2(x,y,x1,y1)
++			local pos =3D dot2(vx,vy,dx,dy) * invsqlen
++			if (pos &gt;=3D 0 and pos &lt;=3D 1) then -- collide with wall itself
++				local dist =3D dot2(vx,vy,nx,ny)
++				local pushoutdist =3D r - dist
++				if (dist &gt; -r and pushoutdist &gt; 0) then
++					--self:DebugMarkerGroup_AddWall(&quot;touchwalls&quot;, 	x1,y1,z,   x2,y2,z, h,=
+	1,1,0)
++					x,y =3D add2(x,y,nx*pushoutdist,ny*pushoutdist)
++				end
++			end
++		end
++		for k,wallarr in pairs(self.walls or {}) do -- block edge
+ 			local x1,y1,x2,y2,dx,dy,nx,ny,invsqlen =3D unpack(wallarr)
+ 			local vx,vy =3D sub2(x,y,x1,y1)
+ 			local pos =3D dot2(vx,vy,dx,dy) * invsqlen
+@@ -140,7 +153,7 @@
+ 				if (pushoutdist &gt; 0) then x,y =3D add2(x,y,tolen2(vx,vy,pushoutdist)) =
+end
+ 			end
+ 		end
+-		for k,wallarr in pairs(self.walls or {}) do
++		for k,wallarr in pairs(self.walls or {}) do -- block straight
+ 			local x1,y1,x2,y2,dx,dy,nx,ny,invsqlen =3D unpack(wallarr)
+ 			local vx,vy =3D sub2(x,y,x1,y1)
+ 			local pos =3D dot2(vx,vy,dx,dy) * invsqlen
+@@ -148,7 +161,7 @@
+ 				local dist =3D dot2(vx,vy,nx,ny)
+ 				local pushoutdist =3D r - dist
+ 				if (dist &gt; -r and pushoutdist &gt; 0) then
+-					self:DebugMarkerGroup_AddWall(&quot;touchwalls&quot;, 	x1,y1,z,   x2,y2,z, h,	1=
+,1,0)
++					--self:DebugMarkerGroup_AddWall(&quot;touchwalls&quot;, 	x1,y1,z,   x2,y2,z, h,=
+	1,1,0)
+ 					x,y =3D add2(x,y,nx*pushoutdist,ny*pushoutdist)
+ 				end
+ 			end
+@@ -172,7 +185,7 @@
+ 				local x,y,z =3D rx+dx,ry+dy,GetGround(dx,dy)
+ 				if (z) then =
+
+ 					local h =3D 0.5
+-					self:DebugMarkerGroup_AddCylinder(&quot;nearground&quot;,	x,y,z, 0.01,h,	0,1,0)
++					--self:DebugMarkerGroup_AddCylinder(&quot;nearground&quot;,	x,y,z, 0.01,h,	0,1,=
+0)
+ 					--self:DebugMarkerGroup_AddSphere(&quot;nearground&quot;, x,y,z, 0.1,		0,1,0)
+ 				else	=
+
+ 					z =3D rz
+@@ -224,7 +237,7 @@
+ 				local nx,ny =3D norm2(-dy,dx)
+ 				local invsqlen =3D 1.0/sqlen2(dx,dy)
+ 				self.walls[k] =3D {x1,y1,x2,y2,dx,dy,nx,ny,invsqlen}
+-				self:DebugMarkerGroup_AddWall(&quot;nearground&quot;, 	x1,y1,rz,   x2,y2,rz, h,	=
+1,0,0)
++				--self:DebugMarkerGroup_AddWall(&quot;nearground&quot;, 	x1,y1,rz,   x2,y2,rz, h=
+,	1,0,0)
+ 			end
+ 		end -- endif entered a new tile
+ 		=
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000244.html">[Iris-commit] [IRIS] r1429 - in /trunk/data/lua: lib.protocol.lua	lib.tilefreewalk.lua
+</A></li>
+	<LI>Next message: <A HREF="000246.html">[Iris-commit] [IRIS] r1431 - /trunk/data/lua/lib.tilefreewalk.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#245">[ date ]</a>
+              <a href="thread.html#245">[ thread ]</a>
+              <a href="subject.html#245">[ subject ]</a>
+              <a href="author.html#245">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

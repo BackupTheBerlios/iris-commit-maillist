@@ -1,0 +1,499 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2460 - in /trunk/lua: lib.2d.spriteblock.lua	lib.artatlas.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-September/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2460%20-%20in%20/trunk/lua%3A%20lib.2d.spriteblock.lua%0A%09lib.artatlas.lua&In-Reply-To=%3C20080919211417.135771524030%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001264.html">
+   <LINK REL="Next"  HREF="001266.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2460 - in /trunk/lua: lib.2d.spriteblock.lua	lib.artatlas.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2460%20-%20in%20/trunk/lua%3A%20lib.2d.spriteblock.lua%0A%09lib.artatlas.lua&In-Reply-To=%3C20080919211417.135771524030%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2460 - in /trunk/lua: lib.2d.spriteblock.lua	lib.artatlas.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Fri Sep 19 23:14:16 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001264.html">[Iris-commit] [IRIS] r2459 - /trunk/bin/iris2.exe
+</A></li>
+        <LI>Next message: <A HREF="001266.html">[Iris-commit] [IRIS] r2461 - in /trunk/lua: lib.2d.map.lua lib.2d.spriteblock.lua lib.mapblock.2d.statics.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1265">[ date ]</a>
+              <a href="thread.html#1265">[ thread ]</a>
+              <a href="subject.html#1265">[ subject ]</a>
+              <a href="author.html#1265">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Fri Sep 19 23:14:16 2008
+New Revision: 2460
+
+Log:
+artatlas : fixed bug with dirty flag, 2d-renderer : improved spriteblock
+
+Modified:
+    trunk/lua/lib.2d.spriteblock.lua
+    trunk/lua/lib.artatlas.lua
+
+Modified: trunk/lua/lib.2d.spriteblock.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.spriteblock.lua (original)
++++ trunk/lua/lib.2d.spriteblock.lua Fri Sep 19 23:14:16 2008
+@@ -11,19 +11,9 @@
+ 	self.pStaticAtlasMats =3D {} -- self.pStaticAtlasMats[iTileTypeID][iHue] =
+=3D pAtlasPiece (see ArtAtlasLoadAndLock)
+ 	self.pGroupGfx =3D {}
+ 	self.pSpritesByAtlas =3D {}
+-	self.rendergroup2d =3D CreateRenderGroup2D(GetGUILayer_Dialogs():CastToRe=
+nderGroup2D()) -- TODO : needs extra layer
+ end
+ =
+
+-function cUOSpriteBlock:CamStep(t,xloc,yloc,zloc)
+-	if (not self.bx) then return end
+-	local vw,vh =3D GetViewportSize()
+-	local dx =3D self.bx * 8 - xloc
+-	local dy =3D self.by * 8 - yloc
+-	local px,py =3D TileOffsetToPixelOffset(dx,dy)
+-	--~ print(&quot;cUOSpriteBlock:CamStep&quot;,t,x,y,z)
+-	local gx,gy,gz =3D floor(px),floor(py),0
+-	self.rendergroup2d:SetPos(gx+vw*0.5,gy+vh*0.5+66,gz)
+-end
++function cUOSpriteBlock:CamStep(t,xloc,yloc,zloc) end
+ =
+
+ function cUOSpriteBlock:Destroy ()
+ 	if (self.pGroupGfx) then for k,v in pairs(self.pGroupGfx) do v:Destroy() =
+end self.pGroupGfx =3D nil end
+@@ -42,6 +32,8 @@
+ 	local iTileTypeID	=3D static.artid
+ 	local iHue			=3D static.hue
+ 	=
+
++	iHue =3D 0
++	=
+
+ 	local arr =3D self.pStaticAtlasMats[iTileTypeID]
+ 	if (not arr) then arr =3D {} self.pStaticAtlasMats[iTileTypeID] =3D arr e=
+nd
+ 	=
+
+@@ -57,30 +49,64 @@
+ 		local atlas =3D pAtlasPiece.atlas
+ 		local group =3D self.pSpritesByAtlas[atlas]
+ 		if (not group) then group =3D {} self.pSpritesByAtlas[atlas] =3D group e=
+nd
+-		local w =3D pAtlasPiece.w
+-		local h =3D pAtlasPiece.h
++		local pw =3D pAtlasPiece.w
++		local ph =3D pAtlasPiece.h
+ 		local tx =3D static.tx
+ 		local ty =3D static.ty
++		local zloc =3D static.zloc
+ 		local pTileType =3D GetStaticTileType(static.artid)
+-		local fOrderCorrection =3D (0.05*pTileType.iSortBonus2D + 0.005*pTileTyp=
+e.miHeight + 0.001*static.iBlockIndex) =
+
+-		-- + =3D nearer to cam      -- guess this works ok for now, but far from=
+ ideal
+-		--~ print(static.zloc)
+-		local z =3D 0.1 - static.zloc*0.01 --  + fOrderCorrection
++		=
+
++		--~ prio1 =3D zloc + iSortBonus2D				iSortBonus2D in {2,3,4,6} (+1 for d=
+ynamic)
++		--~ prio2 =3D miHeight						in [0,100]
++		--~ prio3 =3D (static.hue&gt;0) and 1007 or 7
++		--~ prio4 =3D static.fBlockIndexRel			in [0,1]
++		--~ prio5 =3D static.tx						in [0,7]
++		=
+
++		-- z : in [-1;1] visible
++		local sortbonus =3D	0.01000 * (zloc + pTileType.iSortBonus2D) +	=
+
++							0.01000 * (pTileType.miHeight/100) +
++							0.00000 * (static.fBlockIndexRel) +
++							0.00005 * (static.tx / 8)
++		=
+
++		local x,y,z =3D -tx,ty,zloc*0.1
++		local sortadd =3D sortbonus
++		local movedown =3D 1 -- ox-1,oy+1 : sprites are too high normally, this =
+moves them down =
+
++		x =3D x +   -1 * sortadd - movedown  =
+
++		y =3D y +    1 * sortadd + movedown
++		z =3D z + kSq2 * sortadd
++		local inv44 =3D 1/44
++		local xa =3D inv44 * pw * 0.5
++		local za =3D inv44 * ph * 2.0 / kSq2						=
+
++		=
+
++		--~ local xa =3D k2D_ScaleW05 * pw * 2
++		--~ local za =3D k2D_ScaleH   * ph * 2 / kSq2
++		--~ k2D_ScaleH		=3D kSq2 / 44
++		--~ k2D_ScaleW05	=3D 0.5 / 44 -- 0.5 : applied left and right
++		--~ local sin45 =3D 0.5*kSq2
++		=
+
++			=
+
++			=
+
+ 		local px,py =3D TileOffsetToPixelOffset(tx,ty)
+ 		local sprite =3D {
++			x =3D x,
++			y =3D y,
++			z =3D z,
++			xa =3D xa,
++			za =3D za,
+ 			u0 =3D pAtlasPiece.u0,
+ 			v0 =3D pAtlasPiece.v0,
+ 			u1 =3D pAtlasPiece.u1,
+ 			v1 =3D pAtlasPiece.v1,
+-			z_top    =3D z,
+-			z_bottom =3D z,
+-			w =3D w,
+-			h =3D h,
+-			x =3D floor(px - w*0.5 ),
+-			y =3D floor(py - h		- 4*static.zloc), -- 1 z-unit =3D 4 pixels upwards =
+in the original client
++			pw =3D pw, -- in pixels
++			ph =3D ph, -- in pixels
++			--~ px =3D floor(px - pw*0.5 				 ),
++			--~ py =3D floor(py - ph	 - 4*static.zloc ), -- 1 z-unit =3D 4 pixels u=
+pwards in the original client
++			hue =3D static.hue,
+ 			artid =3D static.artid, -- for mousepicking
+ 		}
+ 		table.insert(group,sprite)
++	else
++		print(&quot;warning, cUOSpriteBlock:AddStatic failed&quot;,iTileTypeID,iHue)
+ 	end
+ end
+ =
+
+@@ -88,101 +114,47 @@
+ function cUOSpriteBlock:Build 	(bx,by,basemat)
+ 	self.bx =3D bx
+ 	self.by =3D by
+-	--[[
+-	local bVertexBufferDynamic	=3Dfalse
+-	local bVertexCol			=3Dfalse
+-	local spritelist =3D CreateSpriteList(rendergroup2d,bVertexBufferDynamic,=
+bVertexCol)
+-	table.insert(self.spritelists,spritelist)
+-	spritelist:SetMaterial(matname)
+-	spritelist:ResizeList(len)
+-	SpriteList_Open(spritelist)
+-	SpriteList_SetSprite(iSpriteIndex, l,t,w,h, u0,v0, uvw, uvh, z)
+-	SpriteList_Close()
+-	]]--
+ 	=
+
+-	if (true) then =
+
+-		for atlas,group in pairs(self.pSpritesByAtlas) do
+-			if (#group &gt; 0) then =
+
+-				local matname =3D ArtAtlasLoadMaterial(atlas,basemat)
+-				-- TODO : sort by z for blendout upper floors ?
+-				local spritecount =3D #group
+-				local gfx =3D CreateRobRenderable2D(self.rendergroup2d)
+-				table.insert(self.pGroupGfx,gfx)
+-				gfx:SetMaterial(matname)
+-				=
+
+-				-- generate geometry
+-				local vc =3D 4*spritecount
+-				local ic =3D 6*spritecount
+-				local bDynamic,bKeepOldIndices =3D false,false
+-				RobRenderable2D_Open(gfx,vc,ic,bDynamic,bKeepOldIndices,OT_TRIANGLE_LI=
+ST)
+-				vc =3D 0
+-				for k,sprite in pairs(group) do
+-					local x =3D sprite.x
+-					local y =3D sprite.y
+-					local w =3D sprite.w
+-					local h =3D sprite.h
+-					local z_bottom	=3D sprite.z_bottom
+-					local z_top		=3D sprite.z_top
+-					local u0 		=3D sprite.u0
+-					local v0 		=3D sprite.v0
+-					local u1 		=3D sprite.u1
+-					local v1 		=3D sprite.v1
+-					RobRenderable2D_Vertex(x  ,y  ,z_top, 	u0,v0)
+-					RobRenderable2D_Vertex(x+w,y  ,z_top, 	u1,v0)
+-					RobRenderable2D_Vertex(x  ,y+h,z_bottom,u0,v1)
+-					RobRenderable2D_Vertex(x+w,y+h,z_bottom,u1,v1)
+-					RobRenderable2D_Index3(vc+0,vc+2,vc+1)
+-					RobRenderable2D_Index3(vc+1,vc+2,vc+3)
+-					vc =3D vc + 4
+-				end
+-				RobRenderable2D_Close()
+-			end
++	-- for 3d statics
++	-- statics : create gfx
++	-- -so 1420,1550
++	-- -so 552,2088
++	-- -so 632,1488
++	for atlas,group in pairs(self.pSpritesByAtlas) do
++		local matname =3D ArtAtlasLoadMaterial(atlas,basemat)
++		--~ matname =3D &quot;BaseWhiteNoLighting&quot;
++		-- TODO : sort by z for blendout upper floors
++		local spritecount =3D #group
++		local x,y,z =3D gCurrentRenderer:UOPosToLocal(bx*8,by*8,0)
++		local gfx =3D CreateRootGfx3D()
++		table.insert(self.pGroupGfx,gfx)
++		gfx:SetPosition(x,y,z)
++		gfx:SetSimpleRenderable()
++		gfx:SetMaterial(matname)
++		=
+
++		-- generate geometry
++		local vc =3D 4*spritecount
++		local ic =3D 6*spritecount
++		gfx:RenderableBegin(vc,ic,false,false,OT_TRIANGLE_LIST)
++		vc =3D 0
++		for k,sprite in pairs(group) do
++			local x 		=3D sprite.x
++			local y 		=3D sprite.y
++			local z 		=3D sprite.z
++			local xa 		=3D sprite.xa
++			local za 		=3D sprite.za
++			local u0 		=3D sprite.u0
++			local v0 		=3D sprite.v0
++			local u1 		=3D sprite.u1
++			local v1 		=3D sprite.v1
++			gfx:RenderableVertex(x-xa,y-xa,z  		, u1,v1)
++			gfx:RenderableVertex(x+xa,y+xa,z  		, u0,v1)
++			gfx:RenderableVertex(x-xa,y-xa,z+za	, u1,v0)
++			gfx:RenderableVertex(x+xa,y+xa,z+za	, u0,v0)
++			gfx:RenderableIndex3(vc+0,vc+2,vc+1)
++			gfx:RenderableIndex3(vc+1,vc+2,vc+3)
++			vc =3D vc + 4
+ 		end
++		gfx:RenderableEnd()
+ 	end
+-
+-	--[[
+-	old, for 3d statics
+-	if (true) then =
+
+-		-- statics : create gfx
+-		-- -so 1420,1550
+-		-- -so 552,2088
+-		-- -so 632,1488
+-		for atlas,group in pairs(self.pSpritesByAtlas) do
+-			local matname =3D ArtAtlasLoadMaterial(atlas,basemat)
+-			-- TODO : sort by z for blendout upper floors
+-			local spritecount =3D table.getn(group)
+-			local x,y,z =3D gCurrentRenderer:UOPosToLocal(bx*8,by*8,0)
+-			local gfx =3D CreateRootGfx3D()
+-			table.insert(self.pGroupGfx,gfx)
+-			gfx:SetPosition(x,y,z)
+-			gfx:SetSimpleRenderable()
+-			gfx:SetMaterial(matname)
+-			=
+
+-			-- generate geometry
+-			local vc =3D 4*spritecount
+-			local ic =3D 6*spritecount
+-			gfx:RenderableBegin(vc,ic,false,false,OT_TRIANGLE_LIST)
+-			vc =3D 0
+-			for k,static in pairs(group) do
+-				local pAtlasPiece =3D self.pStaticAtlasMats[static.artid][static.hue] =
+-- u0 v0 u1 v1 w h
+-				local pTileType =3D GetStaticTileType(static.artid)
+-				local x,y,z =3D -static.tx,static.ty,static.zloc*0.1 -- static : {zloc=
+=3D?,artid=3D?,hue=3D?,xloc=3D?,yloc=3D?,tx=3D?,ty=3D?,bIsStatic=3Dtrue}
+-				local fOrderCorrection =3D (0.05*pTileType.iSortBonus2D + 0.005*pTileT=
+ype.miHeight + 0.001*static.iBlockIndex)  -- + =3D nearer to cam      -- gu=
+ess this works ok for now, but far from ideal
+-				x =3D x +  -1 * fOrderCorrection - 1  -- ox-1,oy+1 : sprites are too h=
+igh normally, this moves them down =
+
+-				y =3D y +   1 * fOrderCorrection + 1
+-				z =3D z + kSq2 * fOrderCorrection
+-				local w =3D k2D_ScaleW05 * pAtlasPiece.w
+-				local h =3D k2D_ScaleH   * pAtlasPiece.h
+-				gfx:RenderableVertex(x-w,y-w,z  , pAtlasPiece.u1,pAtlasPiece.v1)
+-				gfx:RenderableVertex(x+w,y+w,z  , pAtlasPiece.u0,pAtlasPiece.v1)
+-				gfx:RenderableVertex(x-w,y-w,z+h, pAtlasPiece.u1,pAtlasPiece.v0)
+-				gfx:RenderableVertex(x+w,y+w,z+h, pAtlasPiece.u0,pAtlasPiece.v0)
+-				gfx:RenderableIndex3(vc+0,vc+2,vc+1)
+-				gfx:RenderableIndex3(vc+1,vc+2,vc+3)
+-				vc =3D vc + 4
+-			end
+-			gfx:RenderableEnd()
+-		end
+-	end
+-	]]--
+ end
+
+Modified: trunk/lua/lib.artatlas.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.artatlas.lua (original)
++++ trunk/lua/lib.artatlas.lua Fri Sep 19 23:14:16 2008
+@@ -28,8 +28,8 @@
+ 	=
+
+ 	-- load image
+ 	local pImage =3D CreateImage()
+-	if (not gArtMapLoader:ExportToImage(pImage,iTileTypeID,gHueLoader,iHue)) =
+then pImage:Destroy() return end
+-	if (not gArtMapLoader:GetSize(pImage,iTileTypeID,gHueLoader,iHue)) then p=
+Image:Destroy() return end
++	if (not gArtMapLoader:ExportToImage(pImage,iTileTypeID,gHueLoader,iHue)) =
+then print(&quot;ArtAtlasLoadAndLock:ExportToImage fail&quot;,iTileTypeID,iHue) pImag=
+e:Destroy() return end
++	if (not gArtMapLoader:GetSize(pImage,iTileTypeID,gHueLoader,iHue)) then p=
+rint(&quot;ArtAtlasLoadAndLock:GetSize fail&quot;,iTileTypeID,iHue) pImage:Destroy() =
+return end
+ 	=
+
+ 	-- load/create atlas
+ 	local w =3D gArtAtlasSize
+@@ -51,16 +51,7 @@
+ 	for k,v in pairs(gArtAtlasList) do
+ 		bSuccess,l,r,t,b =3D v:AddImage(pImage,iBorderPixels,bWrap)
+ 		if bSuccess then =
+
+-			-- dump atlas image
+-			if (kArtAtlasDebugDumpAtlas) then
+-				local img2 =3D CreateImage()
+-				v:MakeImage(img2)
+-				img2:SaveAsFile(&quot;artatlas_&quot;..k..&quot;.png&quot;)
+-				img2:Destroy()
+-			end
+-			=
+
+ 			usedAtlas =3D v
+-			=
+
+ 			-- stop searching
+ 			break
+ 		end
+@@ -73,14 +64,6 @@
+ 		table.insert(gArtAtlasList, gLastArtAtlas)
+ 		bSuccess,l,r,t,b =3D gLastArtAtlas:AddImage(pImage,iBorderPixels,bWrap)
+ 		usedAtlas =3D gLastArtAtlas
+-		=
+
+-		if (kArtAtlasDebugDumpAtlas) then
+-			local img2 =3D CreateImage()
+-			gLastArtAtlas:MakeImage(img2)
+-			img2:SaveAsFile(&quot;artatlas_&quot;..k..&quot;.png&quot;)
+-			img2:Destroy()
+-		end
+-
+ 		if (not bSuccess) then print(&quot;warning : ArtAtlasLoadAndLock: art too big=
+ for texatlas&quot;) pImage:Destroy() return end
+ 	end
+ 	=
+
+@@ -89,7 +72,7 @@
+ 	pImage:Destroy()
+ 	=
+
+ 	-- create or update texatlas
+-	gLastArtAtlas.bIsDirty =3D true -- only rebuild on demand, not for every =
+add
++	usedAtlas.bIsDirty =3D true -- only rebuild on demand, not for every add
+ 	=
+
+ 	-- return info about the allocated area for this glyph
+ 	o =3D {}
+@@ -105,6 +88,10 @@
+ 	return o
+ end
+ =
+
++function ArtAtlasReloadAll ()
++	for k,atlas in pairs(gArtAtlasList) do atlas.bIsDirty =3D true ArtAtlasLo=
+adMaterial(atlas) end
++end
++
+ -- param : ArtAtlasLoadAndLock(...).atlas
+ -- creates/updates texture/material as needed
+ -- returns matname
+@@ -117,17 +104,28 @@
+ 		else
+ 			atlas.texname =3D atlas:MakeTexture() -- generate new texture
+ 		end
++		-- dump atlas image
++		if (kArtAtlasDebugDumpAtlas) then
++			local img2 =3D CreateImage()
++			gLastArtAtlas:MakeImage(img2)
++			gArtAtlasDebugDumpAtlasCount =3D (gArtAtlasDebugDumpAtlasCount or 0) + 1
++			img2:SaveAsFile(&quot;artatlas_&quot;..gArtAtlasDebugDumpAtlasCount..&quot;.png&quot;)
++			img2:Destroy()
++		end
+ 		--~ local startt2 =3D Client_GetTicks()
+ 		--~ print(&quot;ArtAtlasLoadMaterial t:&quot;,startt2-startt)
+ 	end
+-	if (not atlas.matname) then =
+
+-		local matname =3D CloneMaterial(basematerial)
++	if (not basematerial) then return end
++	atlas.mats =3D atlas.mats or {}
++	local matname =3D atlas.mats[basematerial]
++	if (not matname) then =
+
++		matname =3D CloneMaterial(basematerial)
+ 		SetTexture(matname,atlas.texname)
+ 		--~ SetSceneBlend(matname,0,0,0)
+ 		--~ SetDepthWriteEnabled(matname,0,0,1)
+-		atlas.matname =3D matname
++		atlas.mats[basematerial] =3D matname
+ 	end
+-	return atlas.matname
++	return matname
+ end
+ =
+
+ function ArtAtlasUnLock (pLockKeeper) end
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001264.html">[Iris-commit] [IRIS] r2459 - /trunk/bin/iris2.exe
+</A></li>
+	<LI>Next message: <A HREF="001266.html">[Iris-commit] [IRIS] r2461 - in /trunk/lua: lib.2d.map.lua lib.2d.spriteblock.lua lib.mapblock.2d.statics.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1265">[ date ]</a>
+              <a href="thread.html#1265">[ thread ]</a>
+              <a href="subject.html#1265">[ subject ]</a>
+              <a href="author.html#1265">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

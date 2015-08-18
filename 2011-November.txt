@@ -1,0 +1,5278 @@
+From no-reply at zwischenwelt.org  Thu Nov  3 22:53:30 2011
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Thu, 03 Nov 2011 21:53:30 -0000
+Subject: [Iris-commit] [IRIS] r3400 - /trunk/config/shards/zwischenwelt.xml
+Message-ID: <20111103215334.A9F0954D0007@simon>
+
+Author: sience
+Date: Thu Nov  3 22:53:22 2011
+New Revision: 3400
+
+Log:
+fix for testshard config
+
+Modified:
+    trunk/config/shards/zwischenwelt.xml
+
+Modified: trunk/config/shards/zwischenwelt.xml
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/config/shards/zwischenwelt.xml (original)
++++ trunk/config/shards/zwischenwelt.xml Thu Nov  3 22:53:22 2011
+@@ -3,6 +3,7 @@
+     <boolean key=3D"gPolServer">false</boolean>
+     <number key=3D"gServerSeed">4294967295</number>
+     <number key=3D"gLoginServerPort">2593</number>
++    <number key=3D"gLoginRequestTerminator">255</number>
+     <string key=3D"gPassword"></string>
+     <string key=3D"gLoginServerIP">zwischenwelt.org</string>
+     <string key=3D"gCustomArtFilterFile">iris.filter.lua</string>
+
+
+
+From no-reply at zwischenwelt.org  Wed Nov  9 22:21:43 2011
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Wed, 09 Nov 2011 21:21:43 -0000
+Subject: [Iris-commit] [IRIS] r3401 - in /trunk/lua: filter/filter.art.lua
+ lib.static.lua net/net.login.lua
+Message-ID: <20111109212143.98CF254D0007@simon>
+
+Author: ghoulsblade
+Date: Wed Nov  9 22:21:42 2011
+New Revision: 3401
+
+Log:
+added gArtFilter override_tex_0 etc
+
+Modified:
+    trunk/lua/filter/filter.art.lua
+    trunk/lua/lib.static.lua
+    trunk/lua/net/net.login.lua
+
+Modified: trunk/lua/filter/filter.art.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/filter/filter.art.lua (original)
++++ trunk/lua/filter/filter.art.lua Wed Nov  9 22:21:42 2011
+@@ -1,6 +1,9 @@
+ --This Array holds a list with modifications: map ArtIDs to another ArtID,=
+ Ogre-Mesh, Orientation, Position
+ --later we can change Scaling, tiledata entry, add particles or skeletons =
+too
++-- see also iris/config/iris.filter.lua
+ gArtFilter =3D {}
++
++if (not ParseHex2HexArray) then ParseHex2HexArray =3D function (a) return =
+a end end
+ =
+
+ -- adds all the skipped meshes to the skip art fallback file
+ function InitArtFilter	()
+@@ -10,6 +13,83 @@
+ 		end
+ 	end
+ end
++
++function GetFilterData(iTranslatedTileTypeID) return gArtFilter[iTranslate=
+dTileTypeID] end
++
++-- apply overrides, like cloning the mesh to change material (2011-11 floo=
+rtiles+walls)
++-- returns meshname
++--[[
++easy syntax:		gArtFilter[0x04ac]=3D{clone_meshname=3D"mdl_001194.mesh",ove=
+rride_tex_0=3D"art_fallback.png",override_tex_1=3D"mybumbmap.png"}
++
++complex syntax:		gArtFilter[0x04ac]=3D{clone_meshname=3D"mdl_001194.mesh",=
+override_material=3D{...see below...}}
++	override_material=3D{[submeshid]=3Dsubdata,...}   replaces the material o=
+f submesh
++	subdata =3D {
++		-- material is always cloned to keep further changes local
++		newmatname=3D"matname",  -- optional
++		texture_overrides=3D{texover,...}
++	}
++	texover =3D {
++		sTextureName=3D"sometexture.png",
++		iTech=3D0, 		-- optional, default to 0
++		iPass=3D0, 		-- optional, default to 0
++		iTextureUnit=3D0, -- optional, default to 0
++	}
++]]--
++function FilterApplyMeshOverrides(meshname,iSeasonedButNotRemappedTileType=
+ID)
++	local filter =3D gArtFilter[iSeasonedButNotRemappedTileTypeID]
++	if (meshname and filter) then
++	=
+
++		-- easy syntax
++		if (filter.override_tex_0 or filter.newmatname) then
++			filter.override_material						=3D filter.override_material or {}
++			filter.override_material[0]						=3D filter.override_material[0] or {}
++			filter.override_material[0].texture_overrides	=3D filter.override_mater=
+ial[0].texture_overrides or {}
++			for i=3D0,10 do
++				local tex =3D filter["override_tex_"..i]
++				if (tex) then table.insert(filter.override_material[0].texture_overrid=
+es,{sTextureName=3Dtex,iTech=3D0,iPass=3D0,iTextureUnit=3Di}) end
++			end
++			if (filter.newmatname) then filter.override_material[0].newmatname =3D =
+filter.newmatname end
++			=
+
++			-- gArtFilter[0x04ac]=3D{clone_meshname=3D"mdl_001194.mesh",override_te=
+x_0=3D"art_fallback.png",override_tex_1=3D"mybumbmap.png"}
++			--~ gArtFilter[0x04ac]=3D{clone_meshname=3D"mdl_001194.mesh",override_m=
+aterial=3D{[0]=3D{newmatname=3D"BaseWhiteNoLighting",texture_overrides=3D{{=
+sTextureName=3D"art_fallback.png",iTech=3D0,iPass=3D0,iTextureUnit=3D0,}}}}}
++			--~ gArtFilter[0x04aa]=3D{clone_meshname=3D"mdl_001194.mesh",override_m=
+aterial=3D{[0]=3D{newmatname=3D"BaseWhiteNoLighting",texture_overrides=3D{{=
+sTextureName=3D"guibordertest.png",iTech=3D0,iPass=3D0,iTextureUnit=3D0,}}}=
+}}
++		end
++		=
+
++		-- apply override
++		if (filter.override_material) then
++			assert(not filter.maptoid,"filter.maptoid and filter.override_material =
+not allowed together, would interfer with cloning due to cache, use filter.=
+clone_meshname=3D\"mdl_001194.mesh\" instead")
++			print("## FilterApplyMeshOverrides meshname,iSeasonedButNotRemappedTile=
+TypeID",meshname,iSeasonedButNotRemappedTileTypeID)
++			=
+
++			-- load mesh
++			local load_meshname =3D filter.clone_meshname and tostring(filter.clone=
+_meshname) or meshname
++			local pMeshOrig =3D MeshManager_load(load_meshname)
++			assert(pMeshOrig,"FilterApplyMeshOverrides failed to load "..load_meshn=
+ame)
++			local clone_name =3D "FilterApplyMeshOverrides_"..tostring(iSeasonedBut=
+NotRemappedTileTypeID).."_"..load_meshname
++			=
+
++			-- clone
++			local pMesh =3D pMeshOrig:clone(clone_name,"")
++			assert(pMesh,"mesh clone failed")
++			meshname =3D clone_name
++			=
+
++			-- apply material override
++			if (filter.override_material) then
++				for subid,subdata in pairs(filter.override_material) do =
+
++					local pSubMesh =3D pMesh:getSubMesh(subid)
++					assert(pSubMesh,"failed to get submesh id=3D"..tostring(subid))
++					local matname =3D subdata.newmatname or pSubMesh:getMaterialName()
++					local matname =3D CloneMaterial(matname)
++					print("## FilterApplyMeshOverrides subid,matname",subid,matname)
++					for k,texover in pairs(subdata.texture_overrides or {}) do =
+
++						SetTexture(matname,texover.sTextureName,texover.iTech or 0,texover.i=
+Pass or 0,texover.iTextureUnit or 0)
++					end
++					pSubMesh:setMaterialName(matname)
++				end
++			end
++		end
++	end
++	return meshname
++end
++
+ =
+
+ --FILTER: map Mesh to other Mesh
+ function FilterMesh(iTranslatedTileTypeID)
+@@ -58,6 +138,15 @@
+ end
+ =
+
+ ----------------------------------------------------------------------
++
++-- old, not allowed : maptoid=3D0x0ada
++-- 0x04aa =3D 001194 =3D "mdl_001194.mesh"
++--~ gArtFilter[0x04ac]=3D{clone_meshname=3D"mdl_001194.mesh",override_tex_=
+0=3D"art_fallback.png"}
++--~ gArtFilter[0x04aa]=3D{clone_meshname=3D"mdl_001194.mesh",override_tex_=
+0=3D"guibordertest.png"}
++-- TEST for  tex_colmap / tex_bumpmap , test-textures : art_fallback.png,g=
+uibordertest.png
++-- 0x0ada =3D yellow/brown carped
++-- 0x04ac =3D wooden boards
++
+ =
+
+ --armoire - left
+ --opened
+@@ -1585,3 +1674,9 @@
+ 	=
+
+ 	return false
+ end
++
++--~ local c =3D 0
++--~ for i=3D0x0000,0x4000 do if (IsGroundPlate(i)) then c =3D c + 1 =
+
++	--~ print("gArtFilter["..i.."]=3D{maptoid=3D1146}")
++--~ end end =
+
++--~ print("-- IsGroundPlate #true=3D",c)
+
+Modified: trunk/lua/lib.static.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.static.lua (original)
++++ trunk/lua/lib.static.lua Wed Nov  9 22:21:42 2011
+@@ -16,7 +16,7 @@
+ gCustomModelCache =3D {}
+ function GetModelPath(id) =
+
+ 	local cached =3D gCustomModelCache[id]
+-	if (cached ~=3D nil) then print("Model schonmal im gCustomModelCache") re=
+turn cached end
++	if (cached ~=3D nil) then print("Model already in gCustomModelCache") ret=
+urn cached end
+ =
+
+ 	local custompath =3D datapath.."custom/models/"..GetModelName(id)
+ 	if file_exists(custompath) then
+@@ -47,19 +47,23 @@
+ 	--1st: Seasonal Translation
+ 	local iTranslatedTileTypeID =3D SeasonalStaticTranslation(iTileTypeID, gS=
+easonSetting)
+ 	-- FILTER: map Mesh to other Mesh
++	local iSeasonedButNotRemappedTileTypeID =3D iTranslatedTileTypeID -- to g=
+et params BEFORE filter.maptoid, so override is possible
+ 	iTranslatedTileTypeID =3D FilterMesh(iTranslatedTileTypeID)
+ =
+
+ 	local meshname =3D nil
+ 	meshname =3D gLegacyModelCache[iTranslatedTileTypeID]
+ 	if (meshname =3D=3D nil) then
+-		local modellocation =3D GetModelPath(iTranslatedTileTypeID)
++		local modellocation =3D GetModelPath(iTranslatedTileTypeID) -- returns p=
+ath including subfolders, also checks if custom model is available
+ =
+
+ 		if ( modellocation ~=3D nil ) then
+ =
+
+-			meshname =3D GetModelName(iTranslatedTileTypeID)
++			meshname =3D GetModelName(iTranslatedTileTypeID) -- "mdl_%06d.mesh", ju=
+st number-to-string, no translation : =
+
+ 			-- load Mesh here
+ 			if ( OgreMeshAvailable(meshname) ) then
+ 				printdebug("static","Meshloader:",iTranslatedTileTypeID,meshname)
++				=
+
++				-- apply overrides, like cloning the mesh to change material (2011-11 =
+floortiles+walls)
++				meshname =3D FilterApplyMeshOverrides(meshname,iSeasonedButNotRemapped=
+TileTypeID)
+ 			else
+ 				meshname =3D false
+ 				printdebug("static","mesh cannot be loaded -> temp. disabled (false) "=
+,meshname, iTranslatedTileTypeID)
+
+Modified: trunk/lua/net/net.login.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.login.lua (original)
++++ trunk/lua/net/net.login.lua Wed Nov  9 22:21:42 2011
+@@ -438,7 +438,7 @@
+ 	=
+
+ 	UOLoginPushFilledStringAddByte(out,sName,30,0x74)
+ 	out:PushFilledString(sPassword,30)
+-	out:PushNetUint8(iSeed or hex2num("0x5D"))
++	out:PushNetUint8(iSeed or hex2num("0x5D")) -- http://docs.polserver.com/p=
+ackets/index.php?Packet=3D0x80  says : sagt  BYTE[1] NextLoginKey value fro=
+m uo.cfg on client machine.
+ 	out:SendPacket()
+ 	gNextPingTime =3D gMyTicks + gPingInterval
+ end
+
+
+
+From no-reply at zwischenwelt.org  Wed Nov  9 23:07:02 2011
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Wed, 09 Nov 2011 22:07:02 -0000
+Subject: [Iris-commit] [IRIS] r3402 - in /trunk/lua: lib.2d.renderer.lua
+ lib.3d.cam.lua lib.devtool.lua lib.macrolist.lua
+Message-ID: <20111109220702.998ED54D0007@simon>
+
+Author: ghoulsblade
+Date: Wed Nov  9 23:07:02 2011
+New Revision: 3402
+
+Log:
+devtool : search static : automatically subtract 0x4000 if above, can't be =
+static due to multi-id. also automatically set free cam mode  to avoid inst=
+ant jumpback in 3rd person cam
+
+Modified:
+    trunk/lua/lib.2d.renderer.lua
+    trunk/lua/lib.3d.cam.lua
+    trunk/lua/lib.devtool.lua
+    trunk/lua/lib.macrolist.lua
+
+Modified: trunk/lua/lib.2d.renderer.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.renderer.lua (original)
++++ trunk/lua/lib.2d.renderer.lua Wed Nov  9 23:07:02 2011
+@@ -218,6 +218,7 @@
+ =
+
+ function Renderer2D:InitLocalCam				(x,y,z) end -- ??? offline mode ?
+ function Renderer2D:ChangeCamMode				() end
++function Renderer2D:FreeCamMode					() end
+ function Renderer2D:SelectMobile				() end
+ function Renderer2D:DeselectMobile				() end
+ function Renderer2D:UpdateTrackingArrow			(...) end -- tracking skill, not=
+ yet implemented
+
+Modified: trunk/lua/lib.3d.cam.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.cam.lua (original)
++++ trunk/lua/lib.3d.cam.lua Wed Nov  9 23:07:02 2011
+@@ -158,6 +158,7 @@
+ end
+ =
+
+ -- targetmode can be nil, then the current mode is simply increased
++function Renderer3D:FreeCamMode	  () self:ChangeCamMode(Renderer3D.kCamMod=
+e_FreeMove) end
+ function Renderer3D:ChangeCamMode (targetmode) =
+
+     targetmode =3D targetmode or self.gCamMode + 1
+     self.gCamMode =3D targetmode
+
+Modified: trunk/lua/lib.devtool.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.devtool.lua (original)
++++ trunk/lua/lib.devtool.lua Wed Nov  9 23:07:02 2011
+@@ -119,6 +119,7 @@
+ =
+
+ -- searches for a static tiletype and teleports the cam there
+ function DevToolSearchStatic (iSearchTileTypeID)
++	if (iSearchTileTypeID > 0x4000) then iSearchTileTypeID =3D iSearchTileTyp=
+eID - 0x4000 end -- multi-range, floor tiles etc ? =
+
+     local xloc,yloc,zloc =3D SearchStaticType(iSearchTileTypeID) =
+
+     print("DevToolSearchStatic",iSearchTileTypeID,"(",xloc,yloc,zloc,")")
+     if (xloc) then DevToolTeleportCam(xloc,yloc,zloc) return true end
+@@ -126,6 +127,7 @@
+ =
+
+ function DevToolTeleportCam (xloc,yloc,zloc)
+     print("DevToolTeleportCam",xloc,yloc,zloc)
++	MacroCmd_FreeCamMode()
+     local x,y,z =3D Renderer3D:UOPosToLocal(xloc,yloc,zloc*0.1) =
+
+     GetMainCam():SetPos(x,y,z+1)
+ end
+
+Modified: trunk/lua/lib.macrolist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.macrolist.lua (original)
++++ trunk/lua/lib.macrolist.lua Wed Nov  9 23:07:02 2011
+@@ -173,6 +173,7 @@
+ =
+
+ function MacroCmd_Say                   (text,textmode)  if (gInGameStarte=
+d) then SendChat(text,nil,nil,textmode) end end
+ function MacroCmd_NextCamMode           ()      gCurrentRenderer:ChangeCam=
+Mode() end
++function MacroCmd_FreeCamMode           ()      gCurrentRenderer:FreeCamMo=
+de() end
+ function MacroCmd_BandageSelf           ()      SendBandageSelf() end
+ function MacroCmd_Quit                  ()      Terminate() end
+ function MacroCmd_RepeatLastChat        ()      if (gInGameStarted) then I=
+risChatLine_RepeatLast() end end
+
+
+
+From no-reply at zwischenwelt.org  Fri Nov 11 21:26:08 2011
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Fri, 11 Nov 2011 20:26:08 -0000
+Subject: [Iris-commit] [IRIS] r3404 - in /trunk: data/base/
+ data/models/textures/ data/terrain/multitex/parts/ lua/filter/
+Message-ID: <20111111202608.942687A9852D@simon>
+
+Author: ghoulsblade
+Date: Fri Nov 11 21:26:08 2011
+New Revision: 3404
+
+Log:
+new floortile textures by Corastin : several stone-tile floors and grave/ea=
+rth
+
+Added:
+    trunk/data/base/basefloortile.material
+    trunk/data/base/basefloortile.mesh   (with props)
+    trunk/data/models/textures/COPYING
+    trunk/data/models/textures/tex_0x4515.png   (with props)
+    trunk/data/models/textures/tex_0x4516.png   (with props)
+    trunk/data/models/textures/tex_0x4517.png   (with props)
+    trunk/data/models/textures/tex_0x4518.png   (with props)
+    trunk/data/models/textures/tex_0x451d.png   (with props)
+    trunk/data/models/textures/tex_0x71f4.png   (with props)
+    trunk/data/models/textures/tex_basefloortile.png   (with props)
+Modified:
+    trunk/data/terrain/multitex/parts/COPYING
+    trunk/lua/filter/filter.art.lua
+
+Modified: trunk/data/terrain/multitex/parts/COPYING
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/terrain/multitex/parts/COPYING (original)
++++ trunk/data/terrain/multitex/parts/COPYING Fri Nov 11 21:26:08 2011
+@@ -20,7 +20,7 @@
+ 	terrain1_slatetile3.png
+ 	terrain1_slatetile4.png
+ =
+
+-2011-11-11 big thanks to Corastin ! cc_by_sa-Corastin-corastin at gmx.de-bera=
+rbeitetemultitexterrain.rar.tmp
++2011-11-11 big thanks to Corastin ! cc_by_sa-Corastin-corastin AT gmx.de-b=
+erarbeitetemultitexterrain.rar.tmp
+ 	terrain_obsidian.png
+ 	terrain1_darksstile2.png
+ 	terrain1_slategreentile1.png
+
+Modified: trunk/lua/filter/filter.art.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/filter/filter.art.lua (original)
++++ trunk/lua/filter/filter.art.lua Fri Nov 11 21:26:08 2011
+@@ -1680,3 +1680,12 @@
+ 	--~ print("gArtFilter["..i.."]=3D{maptoid=3D1146}")
+ --~ end end =
+
+ --~ print("-- IsGroundPlate #true=3D",c)
++
++-- 2011-11 Corastin floortiles
++gArtFilter[0x51D]=3D{clone_meshname=3D"basefloortile.mesh",override_tex_0=
+=3D"tex_0x451d.png"}
++gArtFilter[0x515]=3D{clone_meshname=3D"basefloortile.mesh",override_tex_0=
+=3D"tex_0x4515.png"}
++gArtFilter[0x516]=3D{clone_meshname=3D"basefloortile.mesh",override_tex_0=
+=3D"tex_0x4516.png"}
++gArtFilter[0x517]=3D{clone_meshname=3D"basefloortile.mesh",override_tex_0=
+=3D"tex_0x4517.png"}
++gArtFilter[0x518]=3D{clone_meshname=3D"basefloortile.mesh",override_tex_0=
+=3D"tex_0x4518.png"}
++gArtFilter[0x31F4]=3D{clone_meshname=3D"basefloortile.mesh",override_tex_0=
+=3D"tex_0x71f4.png"}
++
+
+
+
+From no-reply at zwischenwelt.org  Thu Nov 17 21:38:53 2011
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Thu, 17 Nov 2011 20:38:53 -0000
+Subject: [Iris-commit] [IRIS] r3405 - in /trunk: data/models/materials/
+ data/models/models/to_004000/ data/models/textures/ lua/filter/
+Message-ID: <20111117203853.7CA6B54D0007@simon>
+
+Author: ghoulsblade
+Date: Thu Nov 17 21:38:52 2011
+New Revision: 3405
+
+Log:
+big thanks to corastin, new tree models + a bunch of floor tiles
+
+Added:
+    trunk/data/models/models/to_004000/mdl_003286.mesh   (with props)
+    trunk/data/models/models/to_004000/mdl_003287.mesh   (with props)
+    trunk/data/models/models/to_004000/mdl_003288.mesh   (with props)
+    trunk/data/models/models/to_004000/mdl_003289.mesh   (with props)
+    trunk/data/models/models/to_004000/mdl_003293.mesh   (with props)
+    trunk/data/models/models/to_004000/mdl_003294.mesh   (with props)
+    trunk/data/models/textures/tex_0x4495.png   (with props)
+    trunk/data/models/textures/tex_0x4496.png   (with props)
+    trunk/data/models/textures/tex_0x4497.png   (with props)
+    trunk/data/models/textures/tex_0x4498.png   (with props)
+    trunk/data/models/textures/tex_0x450d.png   (with props)
+    trunk/data/models/textures/tex_0x450f.png   (with props)
+    trunk/data/models/textures/tex_0x4510.png   (with props)
+    trunk/data/models/textures/tex_0x4511.png   (with props)
+    trunk/data/models/textures/tex_0x4512.png   (with props)
+    trunk/data/models/textures/tex_0x4513.png   (with props)
+    trunk/data/models/textures/tex_0x4514.png   (with props)
+    trunk/data/models/textures/tex_0x463b.png   (with props)
+    trunk/data/models/textures/tex_0x463c.png   (with props)
+    trunk/data/models/textures/tex_0x463d.png   (with props)
+    trunk/data/models/textures/tex_0x463e.png   (with props)
+    trunk/data/models/textures/tex_0x4cd6.tga   (with props)
+    trunk/data/models/textures/tex_0x4cd7.tga   (with props)
+    trunk/data/models/textures/tex_0x4cdd.png   (with props)
+    trunk/data/models/textures/tex_0x4cdd.tga   (with props)
+    trunk/data/models/textures/tex_0x4cde.tga   (with props)
+Modified:
+    trunk/data/models/materials/textures.material
+    trunk/data/models/textures/COPYING
+    trunk/lua/filter/filter.art.lua
+
+Modified: trunk/data/models/materials/textures.material
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/models/materials/textures.material (original)
++++ trunk/data/models/materials/textures.material Thu Nov 17 21:38:52 2011
+@@ -4003,3 +4003,32 @@
+ 	set_texture_alias ambient_tex tex_009002.png
+ 	set_texture_alias diffuse_tex tex_009002.png =
+
+ }
++
++//-- cedartrees and oaktree
++
++
++material mdl_003293 : diffuse_template_alpha
++{ =
+
++	set_texture_alias ambient_tex tex_0x4cdd.tga
++	set_texture_alias diffuse_tex tex_0x4cdd.tga
++}	=
+
++
++
++material mdl_003294 : diffuse_template_alpha
++{ =
+
++	set_texture_alias ambient_tex tex_0x4cde.tga
++	set_texture_alias diffuse_tex tex_0x4cde.tga
++}
++
++material mdl_003286: diffuse_template_alpha
++{ =
+
++	set_texture_alias ambient_tex tex_0x4cd6.tga
++	set_texture_alias diffuse_tex tex_0x4cd6.tga
++}	=
+
++
++material mdl_003287 : diffuse_template_alpha
++{ =
+
++	set_texture_alias ambient_tex tex_0x4cd7.tga
++	set_texture_alias diffuse_tex tex_0x4cd7.tga
++}	=
+
++
+
+Modified: trunk/data/models/textures/COPYING
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/models/textures/COPYING (original)
++++ trunk/data/models/textures/COPYING Thu Nov 17 21:38:52 2011
+@@ -15,3 +15,24 @@
+ 	gArtFilter[0x518]=3D{clone_meshname=3D"basefloortile.mesh",override_tex_0=
+=3D"tex_0x4518.png"}
+ 	gArtFilter[0x31F4]=3D{clone_meshname=3D"basefloortile.mesh",override_tex_=
+0=3D"tex_0x71f4.png"}
+ =
+
++2011-11-17 big thanks to Corastin ! cc_by_sa-Corastin-corastin AT gmx.de-c=
+ustom.rar.tmp
++	data/models/textures/tex_0x4495.png
++	data/models/textures/tex_0x463b.png
++	data/models/textures/tex_0x4496.png
++	data/models/textures/tex_0x463c.png
++	data/models/textures/tex_0x4497.png
++	data/models/textures/tex_0x4510.png
++	data/models/textures/tex_0x463d.png
++	data/models/textures/tex_0x4498.png
++	data/models/textures/tex_0x4511.png
++	data/models/textures/tex_0x463e.png
++	data/models/textures/tex_0x4cdd.png
++	data/models/textures/tex_0x4512.png
++	data/models/textures/tex_0x4cdd.tga
++	data/models/textures/tex_0x4513.png
++	data/models/textures/tex_0x4cde.tga
++	data/models/textures/tex_0x450d.png
++	data/models/textures/tex_0x4cd6.tga
++	data/models/textures/tex_0x4514.png
++	data/models/textures/tex_0x4cd7.tga
++	data/models/textures/tex_0x450f.png
+
+Modified: trunk/lua/filter/filter.art.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/filter/filter.art.lua (original)
++++ trunk/lua/filter/filter.art.lua Thu Nov 17 21:38:52 2011
+@@ -378,9 +378,9 @@
+ gArtFilter[3323]=3D{maptoid=3D3274}
+ gArtFilter[3320]=3D{maptoid=3D3274}
+ =
+
+--- cedar tree
+-gArtFilter[3288]=3D{maptoid=3D3286,xadd=3D0.8,yadd=3D-0.7,zadd=3D0}	-- ced=
+arbark
+-gArtFilter[3289]=3D{maptoid=3D3287,xadd=3D0.8,yadd=3D-0.7,zadd=3D0}	-- ced=
+ars
++-- cedar tree old
++-- gArtFilter[3288]=3D{maptoid=3D3286,xadd=3D0.8,yadd=3D-0.7,zadd=3D0}	-- =
+cedarbark
++-- gArtFilter[3289]=3D{maptoid=3D3287,xadd=3D0.8,yadd=3D-0.7,zadd=3D0}	-- =
+cedars
+ =
+
+ -- mushrooms
+ gArtFilter[3352]=3D{maptoid=3D3351}
+@@ -1689,3 +1689,25 @@
+ gArtFilter[0x518]=3D{clone_meshname=3D"basefloortile.mesh",override_tex_0=
+=3D"tex_0x4518.png"}
+ gArtFilter[0x31F4]=3D{clone_meshname=3D"basefloortile.mesh",override_tex_0=
+=3D"tex_0x71f4.png"}
+ =
+
++-- cedar tree now obsolet
++-- gArtFilter[3288]=3D{maptoid=3D3286,xadd=3D0.8,yadd=3D-0.7,zadd=3D0}	-- =
+cedarbark
++-- gArtFilter[3289]=3D{maptoid=3D3287,xadd=3D0.8,yadd=3D-0.7,zadd=3D0}	-- =
+cedars
++
++-- new marble floor
++gArtFilter[0x50D]=3D{clone_meshname=3D"basefloortile.mesh",override_tex_0=
+=3D"tex_0x450d.png"}
++gArtFilter[0x50f]=3D{clone_meshname=3D"basefloortile.mesh",override_tex_0=
+=3D"tex_0x450f.png"}
++gArtFilter[0x495]=3D{clone_meshname=3D"basefloortile.mesh",override_tex_0=
+=3D"tex_0x4495.png"}
++gArtFilter[0x496]=3D{clone_meshname=3D"basefloortile.mesh",override_tex_0=
+=3D"tex_0x4496.png"}
++gArtFilter[0x497]=3D{clone_meshname=3D"basefloortile.mesh",override_tex_0=
+=3D"tex_0x4497.png"}
++gArtFilter[0x498]=3D{clone_meshname=3D"basefloortile.mesh",override_tex_0=
+=3D"tex_0x4498.png"}
++gArtFilter[0x510]=3D{clone_meshname=3D"basefloortile.mesh",override_tex_0=
+=3D"tex_0x4510.png"}
++gArtFilter[0x511]=3D{clone_meshname=3D"basefloortile.mesh",override_tex_0=
+=3D"tex_0x4511.png"}
++gArtFilter[0x512]=3D{clone_meshname=3D"basefloortile.mesh",override_tex_0=
+=3D"tex_0x4512.png"}
++gArtFilter[0x513]=3D{clone_meshname=3D"basefloortile.mesh",override_tex_0=
+=3D"tex_0x4513.png"}
++gArtFilter[0x514]=3D{clone_meshname=3D"basefloortile.mesh",override_tex_0=
+=3D"tex_0x4514.png"}
++
++--new marble roof
++gArtFilter[0x63b]=3D{clone_meshname=3D"basefloortile.mesh",override_tex_0=
+=3D"tex_0x463b.png"}
++gArtFilter[0x63c]=3D{clone_meshname=3D"basefloortile.mesh",override_tex_0=
+=3D"tex_0x463c.png"}
++gArtFilter[0x63d]=3D{clone_meshname=3D"basefloortile.mesh",override_tex_0=
+=3D"tex_0x463d.png"}
++gArtFilter[0x63e]=3D{clone_meshname=3D"basefloortile.mesh",override_tex_0=
+=3D"tex_0x463e.png"}
+
+
+
+From no-reply at zwischenwelt.org  Fri Nov 18 01:15:06 2011
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Fri, 18 Nov 2011 00:15:06 -0000
+Subject: [Iris-commit] [IRIS] r3406 - /trunk/CREDITS
+Message-ID: <20111118001507.454F354D0007@simon>
+
+Author: ghoulsblade
+Date: Fri Nov 18 01:15:04 2011
+New Revision: 3406
+
+Log:
+credits
+
+Added:
+    trunk/CREDITS
+
+
+
+From no-reply at zwischenwelt.org  Fri Nov 18 01:15:34 2011
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Fri, 18 Nov 2011 00:15:34 -0000
+Subject: [Iris-commit] [IRIS] r3407 - /trunk/CREDITS
+Message-ID: <20111118001534.4D08654D0007@simon>
+
+Author: ghoulsblade
+Date: Fri Nov 18 01:15:34 2011
+New Revision: 3407
+
+Log:
+credits
+
+Modified:
+    trunk/CREDITS
+
+Modified: trunk/CREDITS
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/CREDITS (original)
++++ trunk/CREDITS Fri Nov 18 01:15:34 2011
+@@ -1,3 +1,5 @@
++see also COPYING files in several sub folders
++
+ 2011-11-17 big thanks to Corastin ! cc_by_sa-Corastin-corastin AT gmx.de-c=
+ustom.rar.tmp
+ 	data/models/models/to_004000/mdl_003294.mesh
+ 	data/models/models/to_004000/mdl_003289.mesh
+
+
+
+From no-reply at zwischenwelt.org  Sat Nov 26 19:10:06 2011
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Sat, 26 Nov 2011 18:10:06 -0000
+Subject: [Iris-commit] [IRIS] r3408 - /trunk/lua/main.lua
+Message-ID: <20111126181006.DCA047A9857E@simon>
+
+Author: ghoulsblade
+Date: Sat Nov 26 19:10:05 2011
+New Revision: 3408
+
+Log:
+load material templates before custom materials
+
+Modified:
+    trunk/lua/main.lua
+
+Modified: trunk/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/main.lua (original)
++++ trunk/lua/main.lua Sat Nov 26 19:10:05 2011
+@@ -354,11 +354,13 @@
+     OgreAddResLoc(mydatapath.."particles/textures"          ,"FileSystem",=
+"General")
+     OgreAddResLoc(mydatapath.."compositors"                 ,"FileSystem",=
+"General")
+ =
+
++    --~ # distributet material first : templates
++    OgreAddResLoc(mydatapath.."models/materials"            ,"FileSystem",=
+"General")
++	=
+
+     --~ # custom materials
+     OgreAddResLoc(mydatapath.."custom/materials"            ,"FileSystem",=
+"General")
+-
++	=
+
+     --~ # distributet models
+-    OgreAddResLoc(mydatapath.."models/materials"            ,"FileSystem",=
+"General")
+     OgreAddResLoc(mydatapath.."models/meta"                 ,"FileSystem",=
+"General")
+     for i=3D1,20 do OgreAddResLoc(mydatapath.."models/models/"..sprintf("t=
+o_%03d000",i)   ,"FileSystem","General") end
+     OgreAddResLoc(mydatapath.."models/textures/"            ,"FileSystem",=
+"General")
+
+
+
+From no-reply at zwischenwelt.org  Sat Nov 26 20:04:06 2011
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Sat, 26 Nov 2011 19:04:06 -0000
+Subject: [Iris-commit] [IRIS] r3409 - /trunk/lua/main.lua
+Message-ID: <20111126190406.B52077A9857E@simon>
+
+Author: ghoulsblade
+Date: Sat Nov 26 20:04:06 2011
+New Revision: 3409
+
+Log:
+revert material addresloc order switch  models/custom
+
+Modified:
+    trunk/lua/main.lua
+
+Modified: trunk/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/main.lua (original)
++++ trunk/lua/main.lua Sat Nov 26 20:04:06 2011
+@@ -353,14 +353,12 @@
+     OgreAddResLoc(mydatapath.."particles/particles"         ,"FileSystem",=
+"General")
+     OgreAddResLoc(mydatapath.."particles/textures"          ,"FileSystem",=
+"General")
+     OgreAddResLoc(mydatapath.."compositors"                 ,"FileSystem",=
+"General")
+-
+-    --~ # distributet material first : templates
+-    OgreAddResLoc(mydatapath.."models/materials"            ,"FileSystem",=
+"General")
+ 	=
+
+     --~ # custom materials
+     OgreAddResLoc(mydatapath.."custom/materials"            ,"FileSystem",=
+"General")
+ 	=
+
+     --~ # distributet models
++    OgreAddResLoc(mydatapath.."models/materials"            ,"FileSystem",=
+"General")
+     OgreAddResLoc(mydatapath.."models/meta"                 ,"FileSystem",=
+"General")
+     for i=3D1,20 do OgreAddResLoc(mydatapath.."models/models/"..sprintf("t=
+o_%03d000",i)   ,"FileSystem","General") end
+     OgreAddResLoc(mydatapath.."models/textures/"            ,"FileSystem",=
+"General")
+
+
+
+From no-reply at zwischenwelt.org  Sun Nov 27 21:48:47 2011
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Sun, 27 Nov 2011 20:48:47 -0000
+Subject: [Iris-commit] [IRIS] r3410 - in /trunk/data: custom/ customchars/
+ grannys/ mobiles/ mobiles_custom/ mobiles_custom/meshes/
+ mobiles_custom/models/ models/ tiles/ tiles/meshes/ tiles/models/
+ tiles_custom/ tiles_custom/meshes/ tiles_custom/models/
+Message-ID: <20111127204847.A47287A98531@simon>
+
+Author: sience
+Date: Sun Nov 27 21:48:41 2011
+New Revision: 3410
+
+Log:
+-several folder renamed
+custom > tiles_custom
+models > tiles
+customchars > mobiles_custom
+grannys > mobiles
+
+Added:
+    trunk/data/mobiles/
+      - copied from r3409, trunk/data/grannys/
+    trunk/data/mobiles_custom/
+      - copied from r3409, trunk/data/customchars/
+    trunk/data/mobiles_custom/meshes/
+      - copied from r3409, trunk/data/customchars/models/
+    trunk/data/tiles/
+      - copied from r3409, trunk/data/models/
+    trunk/data/tiles/meshes/
+      - copied from r3409, trunk/data/models/models/
+    trunk/data/tiles_custom/
+      - copied from r3409, trunk/data/custom/
+    trunk/data/tiles_custom/meshes/
+      - copied from r3409, trunk/data/custom/models/
+Removed:
+    trunk/data/custom/
+    trunk/data/customchars/
+    trunk/data/grannys/
+    trunk/data/mobiles_custom/models/
+    trunk/data/models/
+    trunk/data/tiles/models/
+    trunk/data/tiles_custom/models/
+
+
+
+From no-reply at zwischenwelt.org  Sun Nov 27 22:08:32 2011
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Sun, 27 Nov 2011 21:08:32 -0000
+Subject: [Iris-commit] [IRIS] r3411 - in /trunk/lua: lib.compass.lua
+ lib.configdialog.lua lib.debugmenu.lua lib.desktop.lua lib.devtool.lua
+ lib.fallback.lua lib.loading.lua lib.macrolist.lua lib.packetvideo.lua
+ lib.static.lua main.lua profiles/gfx_ultrahigh.lua
+Message-ID: <20111127210832.AC7657A98531@simon>
+
+Author: sience
+Date: Sun Nov 27 22:08:32 2011
+New Revision: 3411
+
+Log:
+-all folder names consolidated in main.lua
+-ultrahigh shadow setting fix
+
+Modified:
+    trunk/lua/lib.compass.lua
+    trunk/lua/lib.configdialog.lua
+    trunk/lua/lib.debugmenu.lua
+    trunk/lua/lib.desktop.lua
+    trunk/lua/lib.devtool.lua
+    trunk/lua/lib.fallback.lua
+    trunk/lua/lib.loading.lua
+    trunk/lua/lib.macrolist.lua
+    trunk/lua/lib.packetvideo.lua
+    trunk/lua/lib.static.lua
+    trunk/lua/main.lua
+    trunk/lua/profiles/gfx_ultrahigh.lua
+
+Modified: trunk/lua/lib.compass.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.compass.lua (original)
++++ trunk/lua/lib.compass.lua Sun Nov 27 22:08:32 2011
+@@ -73,10 +73,10 @@
+         end
+     end
+     gPositionMarkers =3D {}
+-    LoadUOAutomapFiles(gUOAMDir, gPositionMarkers)
+-end
+-
+-LoadUOAutomapFiles(gUOAMDir, gPositionMarkers)
++    LoadUOAutomapFiles(gUoamPath, gPositionMarkers)
++end
++
++LoadUOAutomapFiles(gUoamPath, gPositionMarkers)
+ =
+
+ function SetPositionMarker(mapindex,name,xloc,yloc,r,g,b,a)
+     if not mapindex or not name or not xloc or not yloc then return end
+
+Modified: trunk/lua/lib.configdialog.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.configdialog.lua (original)
++++ trunk/lua/lib.configdialog.lua Sun Nov 27 22:08:32 2011
+@@ -214,7 +214,7 @@
+ =
+
+ function ConfigDialogPage_PacketVideo(page)
+     page:AddChild("Button",{label=3D"Play Iris PacketVideo (*.ipv)",on_but=
+ton_click=3Dfunction ()  =
+
+-            if (PacketVideo_Load(FileOpenDialog(gPacketVideoFileName_folde=
+rpath,"*.ipv","select iris packetvideo"))) then PacketVideo_Playback() end
++            if (PacketVideo_Load(FileOpenDialog(gPacketVideoPath,"*.ipv","=
+select iris packetvideo"))) then PacketVideo_Playback() end
+         end})
+     page:AddChild("Button",{label=3D"Play Razor PacketVideo (*.rpv)",on_bu=
+tton_click=3Dfunction ()  =
+
+             if (PacketVideo_LoadRarzorPV(FileOpenDialog(".","*.rpv","selec=
+t razor packetvideo"))) then PacketVideo_Playback() end
+
+Modified: trunk/lua/lib.debugmenu.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.debugmenu.lua (original)
++++ trunk/lua/lib.debugmenu.lua Sun Nov 27 22:08:32 2011
+@@ -967,9 +967,9 @@
+ =
+
+ function DebugDeleteModel   (id)
+     local base =3D id - math.mod(id,1000) + 1000
+-    local relpath  =3D sprintf("models/to_%06d/",base)
++    local relpath  =3D sprintf("to_%06d/",base)
+     local mdlname =3D GetModelName(id)
+-    local mdl =3D datapath.."models/"..relpath..mdlname
++    local mdl =3D gDataTilesMeshesPath..relpath..mdlname
+     =
+
+     print("removing model: "..mdl)
+     =
+
+@@ -985,9 +985,9 @@
+     end
+     =
+
+     local base =3D id - math.mod(id,1000) + 1000
+-    local relpath  =3D sprintf("models/to_%06d/",base)
++    local relpath  =3D sprintf("to_%06d/",base)
+     local mdlname =3D GetModelName(id)
+-    local mdl =3D datapath.."models/"..relpath..mdlname
++    local mdl =3D gDataTilesMeshesPath..relpath..mdlname
+     =
+
+     if not file_exists(mdl) then
+         print("model file not found")
+@@ -1003,19 +1003,18 @@
+     print("export model and textures",artid,"to data/export")
+ =
+
+     local base =3D id - math.mod(id,1000) + 1000
+-    local relpath  =3D sprintf("models/to_%06d/",base)
++    local relpath  =3D sprintf("to_%06d/",base)
+     local mdlname =3D GetModelName(id)
+-    local mdl =3D datapath.."models/"..relpath..mdlname
+-    local export =3D datapath.."export/"
+-    =
+
+-    local xmlfile =3D export..mdlname..".xml"
++    local mdl =3D gDataTilesMeshesPath..relpath..mdlname
++    =
+
++    local xmlfile =3D gDataExportPath..mdlname..".xml"
+ =
+
+     if not file_exists(mdl) then
+         print("model file not found")
+         return
+     end
+     =
+
+-    local expmdl =3D export..mdlname
++    local expmdl =3D gDataExportPath..mdlname
+ =
+
+     -- try to rotate and adjust blender like, only possible if meshmagick =
+is installed (unix)
+     os.execute("cp '"..mdl.."' '"..expmdl.."'")
+@@ -1033,16 +1032,16 @@
+     end
+ =
+
+     -- copy material file
+-    os.execute("cp '"..datapath.."models/materials/textures.material' '"..=
+datapath.."export'")
++    os.execute("cp '"..gDataTilesMaterialsPath.."textures.material' '"..gD=
+ataPath.."export'")
+ =
+
+     -- try to find used textures
+     if file_exists(xmlfile) then
+         for line in io.lines(xmlfile) do
+             for name in string.gmatch(line, 'material=3D"([^"]+)"') do
+-                local texfile =3D datapath.."models/textures/"..name..".pn=
+g"
++                local texfile =3D gDataTilesTexturesPath .. name .. ".png"
+                 if file_exists(texfile) then
+-                    print("cp '"..texfile.."' '"..export.."'")
+-                    os.execute("cp '"..texfile.."' '"..export.."'")
++                    print("cp '"..texfile.."' '"..gDataExportPath.."'")
++                    os.execute("cp '"..texfile.."' '"..gDataExportPath.."'=
+")
+                 end
+             end
+         end
+
+Modified: trunk/lua/lib.desktop.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.desktop.lua (original)
++++ trunk/lua/lib.desktop.lua Sun Nov 27 22:08:32 2011
+@@ -215,7 +215,7 @@
+     gDesktop =3D {}
+     gDesktopPositions =3D {}
+     if file then
+-        local path =3D gDesktopDir..file
++        local path =3D gDesktopPath..file
+         if file_exists(path) then
+             dofile(path)
+             ReopenDesktop()
+@@ -228,7 +228,7 @@
+ 	--~ print("#####SaveDesktop",debug.traceback())
+     file =3D file or gDesktopFile
+     if file then
+-        local path =3D gDesktopDir..file
++        local path =3D gDesktopPath..file
+         -- write to file
+         local fp =3D io.open(path,"w")
+         if (fp) then
+
+Modified: trunk/lua/lib.devtool.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.devtool.lua (original)
++++ trunk/lua/lib.devtool.lua Sun Nov 27 22:08:32 2011
+@@ -2,8 +2,6 @@
+ --[[ \brief
+         contains some tools useful for development and debug
+ ]]--
+-
+-gMeshTextureUsageFilePath =3D datapath.."meshtextureusage.lua"
+ =
+
+ function ShowDevTool ()
+     MainMousePick()
+
+Modified: trunk/lua/lib.fallback.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.fallback.lua (original)
++++ trunk/lua/lib.fallback.lua Sun Nov 27 22:08:32 2011
+@@ -1,6 +1,5 @@
+ -- manages skiplists for fallbacks and the fallback tool
+ =
+
+-gSkippedFallBackFilePath =3D datapath.."skippedfallbacks.lua"
+ gSkippedArtBillboardFallBacks =3D {}
+ =
+
+ function InitFallBacks  ()
+
+Modified: trunk/lua/lib.loading.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.loading.lua (original)
++++ trunk/lua/lib.loading.lua Sun Nov 27 22:08:32 2011
+@@ -59,18 +59,18 @@
+     -- TODO move to config or automatic best choosing
+     if gAtlasRes =3D=3D "med" then
+         ---- med res
+-        dofile(datapath .. "models/atlas/tex_atlas_alpha_med.lua")
+-        dofile(datapath .. "models/atlas/tex_atlas_med.lua")
++        dofile(gDataTilesAtlasPath .. "tex_atlas_alpha_med.lua")
++        dofile(gDataTilesAtlasPath .. "tex_atlas_med.lua")
+         gUseTexAtlas =3D true     -- Lugre setting, only used if fastbatch=
+ is active
+     elseif gAtlasRes =3D=3D "low" then
+         ---- low res
+-        dofile(datapath .. "models/atlas/tex_atlas_alpha_low.lua")
+-        dofile(datapath .. "models/atlas/tex_atlas_low.lua")
++        dofile(gDataTilesAtlasPath .. "tex_atlas_alpha_low.lua")
++        dofile(gDataTilesAtlasPath .. "tex_atlas_low.lua")
+         gUseTexAtlas =3D true     -- Lugre setting, only used if fastbatch=
+ is active
+     elseif gAtlasRes =3D=3D "ultralow" then
+         ---- ultralow res
+-        dofile(datapath .. "models/atlas/tex_atlas_alpha_ultralow.lua")
+-        dofile(datapath .. "models/atlas/tex_atlas_ultralow.lua")
++        dofile(gDataTilesAtlasPath .. "tex_atlas_alpha_ultralow.lua")
++        dofile(gDataTilesAtlasPath .. "tex_atlas_ultralow.lua")
+         gUseTexAtlas =3D true     -- Lugre setting, only used if fastbatch=
+ is active
+     end
+ end
+
+Modified: trunk/lua/lib.macrolist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.macrolist.lua (original)
++++ trunk/lua/lib.macrolist.lua Sun Nov 27 22:08:32 2011
+@@ -521,11 +521,11 @@
+ function MacroCmd_ZoomCompass           (zoomfactor)    if (gInGameStarted=
+) then ZoomCompass(zoomfactor) end end
+ function MacroCmd_ActivateNextRenderer  ()              if (gInGameStarted=
+) then ActivateNextRenderer() end end
+ function MacroCmd_CamChangeZoom         (zoomadd)       if (gInGameStarted=
+) then gCurrentRenderer:CamChangeZoom(zoomadd) end end
+-function MacroCmd_Screenshot            ()              Client_TakeScreens=
+hot(gScreenshotDir) end
++function MacroCmd_Screenshot            ()              Client_TakeScreens=
+hot(gScreenshotPath) end
+ function MacroCmd_GridScreenshot        ()          =
+
+     if (not gInGameStarted) then return end
+     ToggleCompass()
+-    Client_TakeGridScreenshot(gScreenshotDir)
++    Client_TakeGridScreenshot(gScreenshotPath)
+     ToggleCompass()
+ end
+ =
+
+
+Modified: trunk/lua/lib.packetvideo.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.packetvideo.lua (original)
++++ trunk/lua/lib.packetvideo.lua Sun Nov 27 22:08:32 2011
+@@ -29,7 +29,7 @@
+ gPacketVideoNoPlaybackPackets[kPacket_Logout] =3D true -- logout
+ --~ gPacketVideoNoPlaybackPackets[kPacket_Open_Container] =3D true  (if sk=
+ipped, no containers won't be seen)
+ =
+
+-gPacketVideoFileName_prefix		=3D gPacketVideoFileName_folderpath.."myvid."
++gPacketVideoFileName_prefix		=3D gPacketVideoPath.."myvid."
+ gPacketVideoFileName_postfix	=3D ".ipv"
+ =
+
+ =
+
+@@ -230,7 +230,7 @@
+ =
+
+ function PacketVideo_Load	(filename)
+ 	if (not filename) then return false end
+-	local filename2 =3D gPacketVideoFileName_folderpath .. filename
++	local filename2 =3D gPacketVideoPath .. filename
+ 	local filename3 =3D "../" .. filename
+ 	if (file_exists(filename2)) then filename =3D filename2 end
+ 	if (file_exists(filename3)) then filename =3D filename3 end
+
+Modified: trunk/lua/lib.static.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.static.lua (original)
++++ trunk/lua/lib.static.lua Sun Nov 27 22:08:32 2011
+@@ -18,16 +18,16 @@
+ 	local cached =3D gCustomModelCache[id]
+ 	if (cached ~=3D nil) then print("Model already in gCustomModelCache") ret=
+urn cached end
+ =
+
+-	local custompath =3D datapath.."custom/models/"..GetModelName(id)
++	local custompath =3D gDataCustomTilesPath..GetModelName(id)
+ 	if file_exists(custompath) then
+ 		gCustomModelCache[id] =3D custompath
+ 		return custompath
+ 	end
+ =
+
+ 	local base =3D id - math.mod(id,1000) + 1000
+-	local relpath  =3D sprintf("models/to_%06d/",base)
+-
+-	local meshpath =3D datapath.."models/"..relpath..GetModelName(id)
++	local relpath  =3D sprintf("to_%06d/",base)
++
++	local meshpath =3D gDataTilesMeshesPath..relpath..GetModelName(id)
+ 	if file_exists(meshpath) then
+ 		gCustomModelCache[id] =3D meshpath
+ 	else
+
+Modified: trunk/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/main.lua (original)
++++ trunk/lua/main.lua Sun Nov 27 22:08:32 2011
+@@ -2,37 +2,84 @@
+ --###        CONSTANTS        ###
+ --###############################
+ =
+
++-- -----------------------------------------------------------------------=
+-----
+ -- Iris2 Directories/Files
++-- -----------------------------------------------------------------------=
+-----
+ gMainWorkingDir     =3D GetMainWorkingDir and GetMainWorkingDir() or ""
+ gBinPath			=3D gMainWorkingDir.."bin/"  -- bin folder with config etc
+-datapath            =3D gMainWorkingDir.."data/"
+-libpath             =3D gMainWorkingDir.."lua/"
+-gMacroPathFallback  =3D gMainWorkingDir.."lua/config_macros_declarations.l=
+ua"
+-gMainPluginDir      =3D gMainWorkingDir.."plugins/"
++
++gDataPath           	=3D gMainWorkingDir.."data/"	-- former datapath
++gMainPluginDir      	=3D gMainWorkingDir.."plugins/"
++gDataTilesPath      	=3D gDataPath.."tiles/"
++gDataTilesAtlasPath		=3D gDataPath.."tiles/atlas/"
++gDataTilesMaterialsPath	=3D gDataPath.."tiles/materials/"
++gDataTilesMeshesPath	=3D gDataPath.."tiles/meshes/"
++gDataTilesTexturesPath	=3D gDataPath.."tiles/textures/"
++gDataExportPath     	=3D gDataPath.."export/"
++gDataCustomTilesPath    =3D gDataPath.."tiles_custom/meshes/"
++
++gMeshTextureUsageFilePath=3D gDataPath.."meshtextureusage.lua"
++gSkippedFallBackFilePath =3D gDataPath.."skippedfallbacks.lua"
++
++-- Lua Subdir
++libpath				=3D gMainWorkingDir.."lua/"	-- TODO: change to "gScriptPath"
++gMacroPathFallback  =3D libpath.."config_macros_declarations.lua"
+ gIrisWidgetDir      =3D libpath.."widgets/"
+ =
+
++-- Lugre Subdir
+ lugreluapath        =3D (file_exists(gMainWorkingDir.."mylugre") and gMain=
+WorkingDir.."mylugre/lua/" or GetLugreLuaPath()) -- this is should also in =
+USERHOME dir
+ =
+
+--- User Directories/Files
+-gTempPath           =3D gMainWorkingDir.."tmp/"
+-gScreenshotDir		=3D gMainWorkingDir.."screenshots/"
+-gConfigPath         =3D gMainWorkingDir.."config/"
+-gConfigFile         =3D "config.lua"
+-gConfigPathFile     =3D gConfigPath..gConfigFile
+-gConfigPathFile_old =3D datapath..gConfigFile         -- only as Fallback =
+for old users
+-gMacroFile          =3D "mymacros.lua"
+-gMacroPathFile      =3D gConfigPath..gMacroFile
+-gMacroPathFile_old  =3D datapath..gMacroFile          -- only as Fallback =
+for old users
+-gDesktopDir			=3D gConfigPath.."desktop/" -- old was data/desktop/
+-gPacketVideoFileName_folderpath	=3D gMainWorkingDir.."videos/"
+-gUOAMDir			=3D gConfigPath.."uoam/"
+-gUoamMarkFile		=3D "mark.uoam"
+-gUoamMarkPathFile	=3D gUOAMDir..gUoamMarkFile
+-
++-- Config filename defines
++local configFile		=3D "config.lua"
++local macroFile			=3D "mymacros.lua"
++local filterFile		=3D "iris.filter.lua"
++local uoamMarkFile		=3D "mark.uoam"
++
++-- User specific directories
++local configConfigName	=3D "config/"
++local configScreenName	=3D "screenshots/"
++local configTempName	=3D "tmp/"
++local configVideoName	=3D "video/"
++
++-- Config sub-directories
++local configFolderName	=3D "/.iris/"
++local configDesktopName	=3D "desktop/"
++local configUoamName	=3D "uoam/"
++
++-- Config-Path
++gConfigPath         =3D gMainWorkingDir..configConfigName
++gConfigPathOrig     =3D gConfigPath		-- Path to original config template
++-- Screenshot-Path
++gScreenshotPath 	=3D gMainWorkingDir..configScreenName
++-- Temporary-Path
++gTempPath           =3D gMainWorkingDir..configTempName
++-- VideoRecording-Path
++gPacketVideoPath	=3D gMainWorkingDir..configVideoName
++
++-- Config-Path Files
++gConfigPathFile     =3D gConfigPath..configFile
++gConfigPathFile_old =3D gDataPath..configFile         -- only as Fallback =
+for old users
++gMacroPathFile      =3D gConfigPath..macroFile
++gMacroPathFile_old  =3D gDataPath..macroFile          -- only as Fallback =
+for old users
++gFilterFile			=3D gConfigPath..filterFile
++
++-- Config-Path SubDirs
++-- Config-Path Chars Subdir
++-- Config-Path Desktop Subdir
++gDesktopPath		=3D gConfigPath..configDesktopName	-- old was data/desktop/
++-- Config-Path Shards Subdir
++-- Config-Path UOAM Subdir
++gUoamPath			=3D gConfigPath..configUoamName
++-- Config-Path UOAM Subdir File
++gUoamMarkPathFile	=3D gUoamPath..uoamMarkFile
++
++
++-- -----------------------------------------------------------------------=
+-----
++-- Global Variables
++-- -----------------------------------------------------------------------=
+-----
+ gSecondsSinceLastFrame =3D 0
+ gInGameStarted =3D false
+ gNet_State =3D false
+-
+ gFrameCounter =3D 0
+ =
+
+ function GetStackTrace () return _TRACEBACK() end
+@@ -49,35 +96,36 @@
+ 		=
+
+ 		local function MyInitCheckHomeDir (home)
+ 			print("trying to init from home path:",home)
+-			gHomeIrisPath 		=3D home.."/.iris/"
+-			gTempPath 			=3D gHomeIrisPath.."tmp/"
+-			gScreenshotDir		=3D gHomeIrisPath.."screenshots/"
+-			gConfigPath 		=3D gHomeIrisPath.."config/"
+-			gConfigPathFile     =3D gConfigPath..gConfigFile
+-			gMacroPathFile      =3D gConfigPath..gMacroFile
+-			gDesktopDir			=3D gConfigPath.."desktop/"
+-			gPacketVideoFileName_folderpath	=3D gHomeIrisPath.."videos/" -- todo : =
+text=3D'will be saved as .ipv files in iris/videos/'
+-			gUOAMDir			=3D gConfigPath.."uoam/"
+-			gUoamMarkPathFile	=3D gUOAMDir..gUoamMarkFile
++			local irisHomePath 		=3D home..configFolderName
++			gConfigPath 		=3D irisHomePath..configConfigName
++			gScreenshotPath		=3D irisHomePath..configScreenName
++			gTempPath 			=3D irisHomePath..configTempName
++			gPacketVideoPath	=3D irisHomePath..configVideoName -- todo : text=3D'wi=
+ll be saved as .ipv files in ~/.iris/videos/'
++
++			gConfigPathFile     =3D gConfigPath..configFile
++			gMacroPathFile      =3D gConfigPath..macroFile
++			gDesktopPath		=3D gConfigPath..configDesktopName
++			gUoamPath			=3D gConfigPath..configUoamName
++			gUoamMarkPathFile	=3D gUoamPath..uoamMarkFile
+ 			=
+
+ 			-- check if config.lua is already copied
+ 			if (not file_exists(gConfigPathFile)) then
+-				print("initializing "..gHomeIrisPath)
+-				mkdir(gHomeIrisPath)
++				print("initializing "..irisHomePath)
++				mkdir(irisHomePath)
+ 				mkdir(gTempPath)
+-				mkdir(gScreenshotDir)
++				mkdir(gScreenshotPath)
+ 				mkdir(gConfigPath)
+-				mkdir(gDesktopDir)
+-				mkdir(gPacketVideoFileName_folderpath)
+-				mkdir(gUOAMDir)
+-
+-				print("Copy config from: " .. gMainWorkingDir.."config/" .. " to: " ..=
+ gConfigPath)
++				mkdir(gDesktopPath)
++				mkdir(gPacketVideoPath)
++				mkdir(gUoamPath)
++
++				print("Copy config from: " .. gConfigPathOrig .. " to: " .. gConfigPat=
+h)
+ 				-- test if config dir is writable, probably unicode filepath problem i=
+f not (e.g /Data aplikaci/ with accent on i or unicode username or somethin=
+g)
+ 				local config_write_test_path =3D gConfigPath.."config-write-test.txt"
+ 				local fp =3D io.open(config_write_test_path,"wb")
+ 				if (fp) then =
+
+ 					fp:close()
+-					CopyDir(gMainWorkingDir.."config/",gConfigPath)
++					CopyDir(gConfigPathOrig,gConfigPath)
+ 					return true
+ 				else
+ 					print("path not writable:",config_write_test_path)
+@@ -134,6 +182,7 @@
+ -- utils first
+ print("MainWorkingDir",gMainWorkingDir)
+ print("lugreluapath",lugreluapath)
++
+ dofile(lugreluapath .. "lugre.lua")
+ lugre_include_libs(lugreluapath)
+ dofile(libpath .. "lib.sound.iris.lua")
+@@ -353,40 +402,38 @@
+     OgreAddResLoc(mydatapath.."particles/particles"         ,"FileSystem",=
+"General")
+     OgreAddResLoc(mydatapath.."particles/textures"          ,"FileSystem",=
+"General")
+     OgreAddResLoc(mydatapath.."compositors"                 ,"FileSystem",=
+"General")
+-	=
+
+-    --~ # custom materials
+-    OgreAddResLoc(mydatapath.."custom/materials"            ,"FileSystem",=
+"General")
+-	=
+
+-    --~ # distributet models
+-    OgreAddResLoc(mydatapath.."models/materials"            ,"FileSystem",=
+"General")
+-    OgreAddResLoc(mydatapath.."models/meta"                 ,"FileSystem",=
+"General")
+-    for i=3D1,20 do OgreAddResLoc(mydatapath.."models/models/"..sprintf("t=
+o_%03d000",i)   ,"FileSystem","General") end
+-    OgreAddResLoc(mydatapath.."models/textures/"            ,"FileSystem",=
+"General")
+-    OgreAddResLoc(mydatapath.."models/atlas"                ,"FileSystem",=
+"General")
+-    OgreAddResLoc(mydatapath.."models/programs"             ,"FileSystem",=
+"General")
+-
+-    --~ # custom models
+-    OgreAddResLoc(mydatapath.."custom/models"               ,"FileSystem",=
+"General")
+-    OgreAddResLoc(mydatapath.."custom/textures"             ,"FileSystem",=
+"General")
+-
+-    --~ # new Terrain Shaderengine
++
++    --~ # distributet tiles
++    OgreAddResLoc(mydatapath.."tiles/materials"             ,"FileSystem",=
+"General")
++    OgreAddResLoc(mydatapath.."tiles/meta"                  ,"FileSystem",=
+"General")
++    for i=3D1,20 do OgreAddResLoc(mydatapath.."tiles/meshes/"..sprintf("to=
+_%03d000",i)   ,"FileSystem","General") end
++    OgreAddResLoc(mydatapath.."tiles/textures/"             ,"FileSystem",=
+"General")
++    OgreAddResLoc(mydatapath.."tiles/atlas"                 ,"FileSystem",=
+"General")
++    OgreAddResLoc(mydatapath.."tiles/programs"              ,"FileSystem",=
+"General")
++
++    --~ # custom tiles (Folder for Mods)
++    OgreAddResLoc(mydatapath.."tiles_custom/materials"      ,"FileSystem",=
+"General")
++    OgreAddResLoc(mydatapath.."tiles_custom/meshes"         ,"FileSystem",=
+"General")
++    OgreAddResLoc(mydatapath.."tiles_custom/textures"       ,"FileSystem",=
+"General")
++
++    --~ # distributet Terrain Shaderengine
+     OgreAddResLoc(mydatapath.."terrain/materials"           ,"FileSystem",=
+"General")
+     OgreAddResLoc(mydatapath.."terrain/programs"            ,"FileSystem",=
+"General")
+     OgreAddResLoc(mydatapath.."terrain/textures"            ,"FileSystem",=
+"General")
+     OgreAddResLoc(mydatapath.."terrain/multitex"            ,"FileSystem",=
+"General")
+     OgreAddResLoc(mydatapath.."terrain/multitex/parts"      ,"FileSystem",=
+"General")
+ =
+
+-    --~ # new Grannys
+-    OgreAddResLoc(mydatapath.."grannys/materials"           ,"FileSystem",=
+"General")
+-    OgreAddResLoc(mydatapath.."grannys/programs"            ,"FileSystem",=
+"General")
+-
+-    --~ # custom Grannys (Ogre.mesh + Ogre.skeleton)
+-    OgreAddResLoc(mydatapath.."customchars/materials"       ,"FileSystem",=
+"General")
+-    OgreAddResLoc(mydatapath.."customchars/models"          ,"FileSystem",=
+"General")
+-    OgreAddResLoc(mydatapath.."customchars/textures"        ,"FileSystem",=
+"General")
++    --~ # new Mobiles (Chars./Monster/Animals) - also called Grannys
++    OgreAddResLoc(mydatapath.."mobiles/materials"        ,"FileSystem","Ge=
+neral")
++    OgreAddResLoc(mydatapath.."mobiles/programs"         ,"FileSystem","Ge=
+neral")
++
++    --~ # custom Chars/Monster/Animals (Grannys) (Ogre.mesh + Ogre.skeleto=
+n)
++    OgreAddResLoc(mydatapath.."mobiles_custom/materials" ,"FileSystem","Ge=
+neral")
++    OgreAddResLoc(mydatapath.."mobiles_custom/meshes"    ,"FileSystem","Ge=
+neral")
++    OgreAddResLoc(mydatapath.."mobiles_custom/textures"  ,"FileSystem","Ge=
+neral")
+     =
+
+ 	if (gUOPath) then =
+
+-		OgreAddResLoc(gUOPath..CorrectPath("Models/Maps")               ,"FileSy=
+stem","General")
++		OgreAddResLoc(gUOPath..CorrectPath("Models/Maps")   ,"FileSystem","Gener=
+al")
+ 	end
+ =
+
+     OgreAddResLoc(gMainWorkingDir..CorrectPath("lugre/lib/caelum/resources=
+"),"FileSystem","Caelum")
+@@ -394,12 +441,12 @@
+ 	if (gDebugModeTestSkeletalAnimShader or gEnableBloomShader) then =
+
+ 		local myOgreSampleMedia =3D mydatapath.."ogreSampleMedia/"
+ 		=
+
+-		OgreAddResLoc(myOgreSampleMedia.."/packs/OgreCore.zip"			,"Zip","Bootstr=
+ap")
++		OgreAddResLoc(myOgreSampleMedia.."/packs/OgreCore.zip" ,"Zip","Bootstrap=
+")
+ 		=
+
+-		OgreAddResLoc(myOgreSampleMedia.."/materials/programs"          ,"FileSy=
+stem","General")
+-		OgreAddResLoc(myOgreSampleMedia.."/materials/scripts"           ,"FileSy=
+stem","General")
+-		OgreAddResLoc(myOgreSampleMedia.."/materials/textures"          ,"FileSy=
+stem","General")
+-		OgreAddResLoc(myOgreSampleMedia.."/models"                      ,"FileSy=
+stem","General")
++		OgreAddResLoc(myOgreSampleMedia.."/materials/programs" ,"FileSystem","Ge=
+neral")
++		OgreAddResLoc(myOgreSampleMedia.."/materials/scripts"  ,"FileSystem","Ge=
+neral")
++		OgreAddResLoc(myOgreSampleMedia.."/materials/textures" ,"FileSystem","Ge=
+neral")
++		OgreAddResLoc(myOgreSampleMedia.."/models"             ,"FileSystem","Ge=
+neral")
+ 	end
+ =
+
+     if gUseCaduneTree then =
+
+
+Modified: trunk/lua/profiles/gfx_ultrahigh.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/profiles/gfx_ultrahigh.lua (original)
++++ trunk/lua/profiles/gfx_ultrahigh.lua Sun Nov 27 22:08:32 2011
+@@ -3,7 +3,7 @@
+ =
+
+ gConfig:Set("gAtlasRes","none")
+ =
+
+-gConfig:Set("gShadowTechnique","texture_additive_integrated")
++gConfig:Set("gShadowTechnique","texture_additive")
+ gConfig:Set("gStaticsCastShadows",true)
+ gConfig:Set("gDynamicsCastShadows",true)
+ gConfig:Set("gMobileCastShadows",true)
+
+
+
+From no-reply at zwischenwelt.org  Sun Nov 27 23:09:16 2011
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Sun, 27 Nov 2011 22:09:16 -0000
+Subject: [Iris-commit] [IRIS] r3412 - /trunk/lua/lib.static.lua
+Message-ID: <20111127220916.A78AE7A98531@simon>
+
+Author: sience
+Date: Sun Nov 27 23:09:15 2011
+New Revision: 3412
+
+Log:
+debug infos enhanced
+
+Modified:
+    trunk/lua/lib.static.lua
+
+Modified: trunk/lua/lib.static.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.static.lua (original)
++++ trunk/lua/lib.static.lua Sun Nov 27 23:09:15 2011
+@@ -60,18 +60,18 @@
+ 			meshname =3D GetModelName(iTranslatedTileTypeID) -- "mdl_%06d.mesh", ju=
+st number-to-string, no translation : =
+
+ 			-- load Mesh here
+ 			if ( OgreMeshAvailable(meshname) ) then
+-				printdebug("static","Meshloader:",iTranslatedTileTypeID,meshname)
++				printdebug("static","Meshloader:", iTranslatedTileTypeID, modellocatio=
+n)
+ 				=
+
+ 				-- apply overrides, like cloning the mesh to change material (2011-11 =
+floortiles+walls)
+ 				meshname =3D FilterApplyMeshOverrides(meshname,iSeasonedButNotRemapped=
+TileTypeID)
+ 			else
+ 				meshname =3D false
+-				printdebug("static","mesh cannot be loaded -> temp. disabled (false) "=
+,meshname, iTranslatedTileTypeID)
++				printdebug("static","mesh cannot be loaded -> temp. disabled (false) "=
+, iTranslatedTileTypeID, modellocation)
+ 			end
+ =
+
+ 		else
+ 			meshname =3D false
+-			printdebug("static","mesh not available -> temp. disabled (false) ",mes=
+hname, iTranslatedTileTypeID)
++			printdebug("static","mesh not available -> temp. disabled (false) ", iT=
+ranslatedTileTypeID, modellocation)
+ 		end
+ 		gLegacyModelCache[iTranslatedTileTypeID] =3D meshname
+ 	end
+
+
+
+From no-reply at zwischenwelt.org  Mon Nov 28 10:34:37 2011
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Mon, 28 Nov 2011 09:34:37 -0000
+Subject: [Iris-commit] [IRIS] r3413 - in /trunk: data/custom/
+ data/customchars/ data/grannys/ data/mobiles/ data/mobiles_custom/
+ data/models/ data/tiles/ data/tiles_custom/ lua/ lua/profiles/
+Message-ID: <20111128093437.83E8A7A9855F@simon>
+
+Author: ghoulsblade
+Date: Mon Nov 28 10:34:31 2011
+New Revision: 3413
+
+Log:
+reverting to last working state so corastin can continue, used merge -r r34=
+12:r3409 to revert, breakage of custom mechanism due to pathing rename.  le=
+ave the path naming as it is, or make a branch if you must
+
+Added:
+    trunk/data/custom/
+      - copied from r3409, trunk/data/custom/
+    trunk/data/customchars/
+      - copied from r3409, trunk/data/customchars/
+    trunk/data/grannys/
+      - copied from r3409, trunk/data/grannys/
+    trunk/data/models/
+      - copied from r3409, trunk/data/models/
+Removed:
+    trunk/data/mobiles/
+    trunk/data/mobiles_custom/
+    trunk/data/tiles/
+    trunk/data/tiles_custom/
+Modified:
+    trunk/lua/lib.compass.lua
+    trunk/lua/lib.configdialog.lua
+    trunk/lua/lib.debugmenu.lua
+    trunk/lua/lib.desktop.lua
+    trunk/lua/lib.devtool.lua
+    trunk/lua/lib.fallback.lua
+    trunk/lua/lib.loading.lua
+    trunk/lua/lib.macrolist.lua
+    trunk/lua/lib.packetvideo.lua
+    trunk/lua/lib.static.lua
+    trunk/lua/main.lua
+    trunk/lua/profiles/gfx_ultrahigh.lua
+
+Modified: trunk/lua/lib.compass.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.compass.lua (original)
++++ trunk/lua/lib.compass.lua Mon Nov 28 10:34:31 2011
+@@ -73,10 +73,10 @@
+         end
+     end
+     gPositionMarkers =3D {}
+-    LoadUOAutomapFiles(gUoamPath, gPositionMarkers)
+-end
+-
+-LoadUOAutomapFiles(gUoamPath, gPositionMarkers)
++    LoadUOAutomapFiles(gUOAMDir, gPositionMarkers)
++end
++
++LoadUOAutomapFiles(gUOAMDir, gPositionMarkers)
+ =
+
+ function SetPositionMarker(mapindex,name,xloc,yloc,r,g,b,a)
+     if not mapindex or not name or not xloc or not yloc then return end
+
+Modified: trunk/lua/lib.configdialog.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.configdialog.lua (original)
++++ trunk/lua/lib.configdialog.lua Mon Nov 28 10:34:31 2011
+@@ -214,7 +214,7 @@
+ =
+
+ function ConfigDialogPage_PacketVideo(page)
+     page:AddChild("Button",{label=3D"Play Iris PacketVideo (*.ipv)",on_but=
+ton_click=3Dfunction ()  =
+
+-            if (PacketVideo_Load(FileOpenDialog(gPacketVideoPath,"*.ipv","=
+select iris packetvideo"))) then PacketVideo_Playback() end
++            if (PacketVideo_Load(FileOpenDialog(gPacketVideoFileName_folde=
+rpath,"*.ipv","select iris packetvideo"))) then PacketVideo_Playback() end
+         end})
+     page:AddChild("Button",{label=3D"Play Razor PacketVideo (*.rpv)",on_bu=
+tton_click=3Dfunction ()  =
+
+             if (PacketVideo_LoadRarzorPV(FileOpenDialog(".","*.rpv","selec=
+t razor packetvideo"))) then PacketVideo_Playback() end
+
+Modified: trunk/lua/lib.debugmenu.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.debugmenu.lua (original)
++++ trunk/lua/lib.debugmenu.lua Mon Nov 28 10:34:31 2011
+@@ -967,9 +967,9 @@
+ =
+
+ function DebugDeleteModel   (id)
+     local base =3D id - math.mod(id,1000) + 1000
+-    local relpath  =3D sprintf("to_%06d/",base)
++    local relpath  =3D sprintf("models/to_%06d/",base)
+     local mdlname =3D GetModelName(id)
+-    local mdl =3D gDataTilesMeshesPath..relpath..mdlname
++    local mdl =3D datapath.."models/"..relpath..mdlname
+     =
+
+     print("removing model: "..mdl)
+     =
+
+@@ -985,9 +985,9 @@
+     end
+     =
+
+     local base =3D id - math.mod(id,1000) + 1000
+-    local relpath  =3D sprintf("to_%06d/",base)
++    local relpath  =3D sprintf("models/to_%06d/",base)
+     local mdlname =3D GetModelName(id)
+-    local mdl =3D gDataTilesMeshesPath..relpath..mdlname
++    local mdl =3D datapath.."models/"..relpath..mdlname
+     =
+
+     if not file_exists(mdl) then
+         print("model file not found")
+@@ -1003,18 +1003,19 @@
+     print("export model and textures",artid,"to data/export")
+ =
+
+     local base =3D id - math.mod(id,1000) + 1000
+-    local relpath  =3D sprintf("to_%06d/",base)
++    local relpath  =3D sprintf("models/to_%06d/",base)
+     local mdlname =3D GetModelName(id)
+-    local mdl =3D gDataTilesMeshesPath..relpath..mdlname
+-    =
+
+-    local xmlfile =3D gDataExportPath..mdlname..".xml"
++    local mdl =3D datapath.."models/"..relpath..mdlname
++    local export =3D datapath.."export/"
++    =
+
++    local xmlfile =3D export..mdlname..".xml"
+ =
+
+     if not file_exists(mdl) then
+         print("model file not found")
+         return
+     end
+     =
+
+-    local expmdl =3D gDataExportPath..mdlname
++    local expmdl =3D export..mdlname
+ =
+
+     -- try to rotate and adjust blender like, only possible if meshmagick =
+is installed (unix)
+     os.execute("cp '"..mdl.."' '"..expmdl.."'")
+@@ -1032,16 +1033,16 @@
+     end
+ =
+
+     -- copy material file
+-    os.execute("cp '"..gDataTilesMaterialsPath.."textures.material' '"..gD=
+ataPath.."export'")
++    os.execute("cp '"..datapath.."models/materials/textures.material' '"..=
+datapath.."export'")
+ =
+
+     -- try to find used textures
+     if file_exists(xmlfile) then
+         for line in io.lines(xmlfile) do
+             for name in string.gmatch(line, 'material=3D"([^"]+)"') do
+-                local texfile =3D gDataTilesTexturesPath .. name .. ".png"
++                local texfile =3D datapath.."models/textures/"..name..".pn=
+g"
+                 if file_exists(texfile) then
+-                    print("cp '"..texfile.."' '"..gDataExportPath.."'")
+-                    os.execute("cp '"..texfile.."' '"..gDataExportPath.."'=
+")
++                    print("cp '"..texfile.."' '"..export.."'")
++                    os.execute("cp '"..texfile.."' '"..export.."'")
+                 end
+             end
+         end
+
+Modified: trunk/lua/lib.desktop.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.desktop.lua (original)
++++ trunk/lua/lib.desktop.lua Mon Nov 28 10:34:31 2011
+@@ -215,7 +215,7 @@
+     gDesktop =3D {}
+     gDesktopPositions =3D {}
+     if file then
+-        local path =3D gDesktopPath..file
++        local path =3D gDesktopDir..file
+         if file_exists(path) then
+             dofile(path)
+             ReopenDesktop()
+@@ -228,7 +228,7 @@
+ 	--~ print("#####SaveDesktop",debug.traceback())
+     file =3D file or gDesktopFile
+     if file then
+-        local path =3D gDesktopPath..file
++        local path =3D gDesktopDir..file
+         -- write to file
+         local fp =3D io.open(path,"w")
+         if (fp) then
+
+Modified: trunk/lua/lib.devtool.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.devtool.lua (original)
++++ trunk/lua/lib.devtool.lua Mon Nov 28 10:34:31 2011
+@@ -2,6 +2,8 @@
+ --[[ \brief
+         contains some tools useful for development and debug
+ ]]--
++
++gMeshTextureUsageFilePath =3D datapath.."meshtextureusage.lua"
+ =
+
+ function ShowDevTool ()
+     MainMousePick()
+
+Modified: trunk/lua/lib.fallback.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.fallback.lua (original)
++++ trunk/lua/lib.fallback.lua Mon Nov 28 10:34:31 2011
+@@ -1,5 +1,6 @@
+ -- manages skiplists for fallbacks and the fallback tool
+ =
+
++gSkippedFallBackFilePath =3D datapath.."skippedfallbacks.lua"
+ gSkippedArtBillboardFallBacks =3D {}
+ =
+
+ function InitFallBacks  ()
+
+Modified: trunk/lua/lib.loading.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.loading.lua (original)
++++ trunk/lua/lib.loading.lua Mon Nov 28 10:34:31 2011
+@@ -59,18 +59,18 @@
+     -- TODO move to config or automatic best choosing
+     if gAtlasRes =3D=3D "med" then
+         ---- med res
+-        dofile(gDataTilesAtlasPath .. "tex_atlas_alpha_med.lua")
+-        dofile(gDataTilesAtlasPath .. "tex_atlas_med.lua")
++        dofile(datapath .. "models/atlas/tex_atlas_alpha_med.lua")
++        dofile(datapath .. "models/atlas/tex_atlas_med.lua")
+         gUseTexAtlas =3D true     -- Lugre setting, only used if fastbatch=
+ is active
+     elseif gAtlasRes =3D=3D "low" then
+         ---- low res
+-        dofile(gDataTilesAtlasPath .. "tex_atlas_alpha_low.lua")
+-        dofile(gDataTilesAtlasPath .. "tex_atlas_low.lua")
++        dofile(datapath .. "models/atlas/tex_atlas_alpha_low.lua")
++        dofile(datapath .. "models/atlas/tex_atlas_low.lua")
+         gUseTexAtlas =3D true     -- Lugre setting, only used if fastbatch=
+ is active
+     elseif gAtlasRes =3D=3D "ultralow" then
+         ---- ultralow res
+-        dofile(gDataTilesAtlasPath .. "tex_atlas_alpha_ultralow.lua")
+-        dofile(gDataTilesAtlasPath .. "tex_atlas_ultralow.lua")
++        dofile(datapath .. "models/atlas/tex_atlas_alpha_ultralow.lua")
++        dofile(datapath .. "models/atlas/tex_atlas_ultralow.lua")
+         gUseTexAtlas =3D true     -- Lugre setting, only used if fastbatch=
+ is active
+     end
+ end
+
+Modified: trunk/lua/lib.macrolist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.macrolist.lua (original)
++++ trunk/lua/lib.macrolist.lua Mon Nov 28 10:34:31 2011
+@@ -521,11 +521,11 @@
+ function MacroCmd_ZoomCompass           (zoomfactor)    if (gInGameStarted=
+) then ZoomCompass(zoomfactor) end end
+ function MacroCmd_ActivateNextRenderer  ()              if (gInGameStarted=
+) then ActivateNextRenderer() end end
+ function MacroCmd_CamChangeZoom         (zoomadd)       if (gInGameStarted=
+) then gCurrentRenderer:CamChangeZoom(zoomadd) end end
+-function MacroCmd_Screenshot            ()              Client_TakeScreens=
+hot(gScreenshotPath) end
++function MacroCmd_Screenshot            ()              Client_TakeScreens=
+hot(gScreenshotDir) end
+ function MacroCmd_GridScreenshot        ()          =
+
+     if (not gInGameStarted) then return end
+     ToggleCompass()
+-    Client_TakeGridScreenshot(gScreenshotPath)
++    Client_TakeGridScreenshot(gScreenshotDir)
+     ToggleCompass()
+ end
+ =
+
+
+Modified: trunk/lua/lib.packetvideo.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.packetvideo.lua (original)
++++ trunk/lua/lib.packetvideo.lua Mon Nov 28 10:34:31 2011
+@@ -29,7 +29,7 @@
+ gPacketVideoNoPlaybackPackets[kPacket_Logout] =3D true -- logout
+ --~ gPacketVideoNoPlaybackPackets[kPacket_Open_Container] =3D true  (if sk=
+ipped, no containers won't be seen)
+ =
+
+-gPacketVideoFileName_prefix		=3D gPacketVideoPath.."myvid."
++gPacketVideoFileName_prefix		=3D gPacketVideoFileName_folderpath.."myvid."
+ gPacketVideoFileName_postfix	=3D ".ipv"
+ =
+
+ =
+
+@@ -230,7 +230,7 @@
+ =
+
+ function PacketVideo_Load	(filename)
+ 	if (not filename) then return false end
+-	local filename2 =3D gPacketVideoPath .. filename
++	local filename2 =3D gPacketVideoFileName_folderpath .. filename
+ 	local filename3 =3D "../" .. filename
+ 	if (file_exists(filename2)) then filename =3D filename2 end
+ 	if (file_exists(filename3)) then filename =3D filename3 end
+
+Modified: trunk/lua/lib.static.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.static.lua (original)
++++ trunk/lua/lib.static.lua Mon Nov 28 10:34:31 2011
+@@ -18,16 +18,16 @@
+ 	local cached =3D gCustomModelCache[id]
+ 	if (cached ~=3D nil) then print("Model already in gCustomModelCache") ret=
+urn cached end
+ =
+
+-	local custompath =3D gDataCustomTilesPath..GetModelName(id)
++	local custompath =3D datapath.."custom/models/"..GetModelName(id)
+ 	if file_exists(custompath) then
+ 		gCustomModelCache[id] =3D custompath
+ 		return custompath
+ 	end
+ =
+
+ 	local base =3D id - math.mod(id,1000) + 1000
+-	local relpath  =3D sprintf("to_%06d/",base)
+-
+-	local meshpath =3D gDataTilesMeshesPath..relpath..GetModelName(id)
++	local relpath  =3D sprintf("models/to_%06d/",base)
++
++	local meshpath =3D datapath.."models/"..relpath..GetModelName(id)
+ 	if file_exists(meshpath) then
+ 		gCustomModelCache[id] =3D meshpath
+ 	else
+@@ -60,18 +60,18 @@
+ 			meshname =3D GetModelName(iTranslatedTileTypeID) -- "mdl_%06d.mesh", ju=
+st number-to-string, no translation : =
+
+ 			-- load Mesh here
+ 			if ( OgreMeshAvailable(meshname) ) then
+-				printdebug("static","Meshloader:", iTranslatedTileTypeID, modellocatio=
+n)
++				printdebug("static","Meshloader:",iTranslatedTileTypeID,meshname)
+ 				=
+
+ 				-- apply overrides, like cloning the mesh to change material (2011-11 =
+floortiles+walls)
+ 				meshname =3D FilterApplyMeshOverrides(meshname,iSeasonedButNotRemapped=
+TileTypeID)
+ 			else
+ 				meshname =3D false
+-				printdebug("static","mesh cannot be loaded -> temp. disabled (false) "=
+, iTranslatedTileTypeID, modellocation)
++				printdebug("static","mesh cannot be loaded -> temp. disabled (false) "=
+,meshname, iTranslatedTileTypeID)
+ 			end
+ =
+
+ 		else
+ 			meshname =3D false
+-			printdebug("static","mesh not available -> temp. disabled (false) ", iT=
+ranslatedTileTypeID, modellocation)
++			printdebug("static","mesh not available -> temp. disabled (false) ",mes=
+hname, iTranslatedTileTypeID)
+ 		end
+ 		gLegacyModelCache[iTranslatedTileTypeID] =3D meshname
+ 	end
+
+Modified: trunk/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/main.lua (original)
++++ trunk/lua/main.lua Mon Nov 28 10:34:31 2011
+@@ -2,84 +2,37 @@
+ --###        CONSTANTS        ###
+ --###############################
+ =
+
+--- -----------------------------------------------------------------------=
+-----
+ -- Iris2 Directories/Files
+--- -----------------------------------------------------------------------=
+-----
+ gMainWorkingDir     =3D GetMainWorkingDir and GetMainWorkingDir() or ""
+ gBinPath			=3D gMainWorkingDir.."bin/"  -- bin folder with config etc
+-
+-gDataPath           	=3D gMainWorkingDir.."data/"	-- former datapath
+-gMainPluginDir      	=3D gMainWorkingDir.."plugins/"
+-gDataTilesPath      	=3D gDataPath.."tiles/"
+-gDataTilesAtlasPath		=3D gDataPath.."tiles/atlas/"
+-gDataTilesMaterialsPath	=3D gDataPath.."tiles/materials/"
+-gDataTilesMeshesPath	=3D gDataPath.."tiles/meshes/"
+-gDataTilesTexturesPath	=3D gDataPath.."tiles/textures/"
+-gDataExportPath     	=3D gDataPath.."export/"
+-gDataCustomTilesPath    =3D gDataPath.."tiles_custom/meshes/"
+-
+-gMeshTextureUsageFilePath=3D gDataPath.."meshtextureusage.lua"
+-gSkippedFallBackFilePath =3D gDataPath.."skippedfallbacks.lua"
+-
+--- Lua Subdir
+-libpath				=3D gMainWorkingDir.."lua/"	-- TODO: change to "gScriptPath"
+-gMacroPathFallback  =3D libpath.."config_macros_declarations.lua"
++datapath            =3D gMainWorkingDir.."data/"
++libpath             =3D gMainWorkingDir.."lua/"
++gMacroPathFallback  =3D gMainWorkingDir.."lua/config_macros_declarations.l=
+ua"
++gMainPluginDir      =3D gMainWorkingDir.."plugins/"
+ gIrisWidgetDir      =3D libpath.."widgets/"
+ =
+
+--- Lugre Subdir
+ lugreluapath        =3D (file_exists(gMainWorkingDir.."mylugre") and gMain=
+WorkingDir.."mylugre/lua/" or GetLugreLuaPath()) -- this is should also in =
+USERHOME dir
+ =
+
+--- Config filename defines
+-local configFile		=3D "config.lua"
+-local macroFile			=3D "mymacros.lua"
+-local filterFile		=3D "iris.filter.lua"
+-local uoamMarkFile		=3D "mark.uoam"
+-
+--- User specific directories
+-local configConfigName	=3D "config/"
+-local configScreenName	=3D "screenshots/"
+-local configTempName	=3D "tmp/"
+-local configVideoName	=3D "video/"
+-
+--- Config sub-directories
+-local configFolderName	=3D "/.iris/"
+-local configDesktopName	=3D "desktop/"
+-local configUoamName	=3D "uoam/"
+-
+--- Config-Path
+-gConfigPath         =3D gMainWorkingDir..configConfigName
+-gConfigPathOrig     =3D gConfigPath		-- Path to original config template
+--- Screenshot-Path
+-gScreenshotPath 	=3D gMainWorkingDir..configScreenName
+--- Temporary-Path
+-gTempPath           =3D gMainWorkingDir..configTempName
+--- VideoRecording-Path
+-gPacketVideoPath	=3D gMainWorkingDir..configVideoName
+-
+--- Config-Path Files
+-gConfigPathFile     =3D gConfigPath..configFile
+-gConfigPathFile_old =3D gDataPath..configFile         -- only as Fallback =
+for old users
+-gMacroPathFile      =3D gConfigPath..macroFile
+-gMacroPathFile_old  =3D gDataPath..macroFile          -- only as Fallback =
+for old users
+-gFilterFile			=3D gConfigPath..filterFile
+-
+--- Config-Path SubDirs
+--- Config-Path Chars Subdir
+--- Config-Path Desktop Subdir
+-gDesktopPath		=3D gConfigPath..configDesktopName	-- old was data/desktop/
+--- Config-Path Shards Subdir
+--- Config-Path UOAM Subdir
+-gUoamPath			=3D gConfigPath..configUoamName
+--- Config-Path UOAM Subdir File
+-gUoamMarkPathFile	=3D gUoamPath..uoamMarkFile
+-
+-
+--- -----------------------------------------------------------------------=
+-----
+--- Global Variables
+--- -----------------------------------------------------------------------=
+-----
++-- User Directories/Files
++gTempPath           =3D gMainWorkingDir.."tmp/"
++gScreenshotDir		=3D gMainWorkingDir.."screenshots/"
++gConfigPath         =3D gMainWorkingDir.."config/"
++gConfigFile         =3D "config.lua"
++gConfigPathFile     =3D gConfigPath..gConfigFile
++gConfigPathFile_old =3D datapath..gConfigFile         -- only as Fallback =
+for old users
++gMacroFile          =3D "mymacros.lua"
++gMacroPathFile      =3D gConfigPath..gMacroFile
++gMacroPathFile_old  =3D datapath..gMacroFile          -- only as Fallback =
+for old users
++gDesktopDir			=3D gConfigPath.."desktop/" -- old was data/desktop/
++gPacketVideoFileName_folderpath	=3D gMainWorkingDir.."videos/"
++gUOAMDir			=3D gConfigPath.."uoam/"
++gUoamMarkFile		=3D "mark.uoam"
++gUoamMarkPathFile	=3D gUOAMDir..gUoamMarkFile
++
+ gSecondsSinceLastFrame =3D 0
+ gInGameStarted =3D false
+ gNet_State =3D false
++
+ gFrameCounter =3D 0
+ =
+
+ function GetStackTrace () return _TRACEBACK() end
+@@ -96,36 +49,35 @@
+ 		=
+
+ 		local function MyInitCheckHomeDir (home)
+ 			print("trying to init from home path:",home)
+-			local irisHomePath 		=3D home..configFolderName
+-			gConfigPath 		=3D irisHomePath..configConfigName
+-			gScreenshotPath		=3D irisHomePath..configScreenName
+-			gTempPath 			=3D irisHomePath..configTempName
+-			gPacketVideoPath	=3D irisHomePath..configVideoName -- todo : text=3D'wi=
+ll be saved as .ipv files in ~/.iris/videos/'
+-
+-			gConfigPathFile     =3D gConfigPath..configFile
+-			gMacroPathFile      =3D gConfigPath..macroFile
+-			gDesktopPath		=3D gConfigPath..configDesktopName
+-			gUoamPath			=3D gConfigPath..configUoamName
+-			gUoamMarkPathFile	=3D gUoamPath..uoamMarkFile
++			gHomeIrisPath 		=3D home.."/.iris/"
++			gTempPath 			=3D gHomeIrisPath.."tmp/"
++			gScreenshotDir		=3D gHomeIrisPath.."screenshots/"
++			gConfigPath 		=3D gHomeIrisPath.."config/"
++			gConfigPathFile     =3D gConfigPath..gConfigFile
++			gMacroPathFile      =3D gConfigPath..gMacroFile
++			gDesktopDir			=3D gConfigPath.."desktop/"
++			gPacketVideoFileName_folderpath	=3D gHomeIrisPath.."videos/" -- todo : =
+text=3D'will be saved as .ipv files in iris/videos/'
++			gUOAMDir			=3D gConfigPath.."uoam/"
++			gUoamMarkPathFile	=3D gUOAMDir..gUoamMarkFile
+ 			=
+
+ 			-- check if config.lua is already copied
+ 			if (not file_exists(gConfigPathFile)) then
+-				print("initializing "..irisHomePath)
+-				mkdir(irisHomePath)
++				print("initializing "..gHomeIrisPath)
++				mkdir(gHomeIrisPath)
+ 				mkdir(gTempPath)
+-				mkdir(gScreenshotPath)
++				mkdir(gScreenshotDir)
+ 				mkdir(gConfigPath)
+-				mkdir(gDesktopPath)
+-				mkdir(gPacketVideoPath)
+-				mkdir(gUoamPath)
+-
+-				print("Copy config from: " .. gConfigPathOrig .. " to: " .. gConfigPat=
+h)
++				mkdir(gDesktopDir)
++				mkdir(gPacketVideoFileName_folderpath)
++				mkdir(gUOAMDir)
++
++				print("Copy config from: " .. gMainWorkingDir.."config/" .. " to: " ..=
+ gConfigPath)
+ 				-- test if config dir is writable, probably unicode filepath problem i=
+f not (e.g /Data aplikaci/ with accent on i or unicode username or somethin=
+g)
+ 				local config_write_test_path =3D gConfigPath.."config-write-test.txt"
+ 				local fp =3D io.open(config_write_test_path,"wb")
+ 				if (fp) then =
+
+ 					fp:close()
+-					CopyDir(gConfigPathOrig,gConfigPath)
++					CopyDir(gMainWorkingDir.."config/",gConfigPath)
+ 					return true
+ 				else
+ 					print("path not writable:",config_write_test_path)
+@@ -182,7 +134,6 @@
+ -- utils first
+ print("MainWorkingDir",gMainWorkingDir)
+ print("lugreluapath",lugreluapath)
+-
+ dofile(lugreluapath .. "lugre.lua")
+ lugre_include_libs(lugreluapath)
+ dofile(libpath .. "lib.sound.iris.lua")
+@@ -402,38 +353,40 @@
+     OgreAddResLoc(mydatapath.."particles/particles"         ,"FileSystem",=
+"General")
+     OgreAddResLoc(mydatapath.."particles/textures"          ,"FileSystem",=
+"General")
+     OgreAddResLoc(mydatapath.."compositors"                 ,"FileSystem",=
+"General")
+-
+-    --~ # distributet tiles
+-    OgreAddResLoc(mydatapath.."tiles/materials"             ,"FileSystem",=
+"General")
+-    OgreAddResLoc(mydatapath.."tiles/meta"                  ,"FileSystem",=
+"General")
+-    for i=3D1,20 do OgreAddResLoc(mydatapath.."tiles/meshes/"..sprintf("to=
+_%03d000",i)   ,"FileSystem","General") end
+-    OgreAddResLoc(mydatapath.."tiles/textures/"             ,"FileSystem",=
+"General")
+-    OgreAddResLoc(mydatapath.."tiles/atlas"                 ,"FileSystem",=
+"General")
+-    OgreAddResLoc(mydatapath.."tiles/programs"              ,"FileSystem",=
+"General")
+-
+-    --~ # custom tiles (Folder for Mods)
+-    OgreAddResLoc(mydatapath.."tiles_custom/materials"      ,"FileSystem",=
+"General")
+-    OgreAddResLoc(mydatapath.."tiles_custom/meshes"         ,"FileSystem",=
+"General")
+-    OgreAddResLoc(mydatapath.."tiles_custom/textures"       ,"FileSystem",=
+"General")
+-
+-    --~ # distributet Terrain Shaderengine
++	=
+
++    --~ # custom materials
++    OgreAddResLoc(mydatapath.."custom/materials"            ,"FileSystem",=
+"General")
++	=
+
++    --~ # distributet models
++    OgreAddResLoc(mydatapath.."models/materials"            ,"FileSystem",=
+"General")
++    OgreAddResLoc(mydatapath.."models/meta"                 ,"FileSystem",=
+"General")
++    for i=3D1,20 do OgreAddResLoc(mydatapath.."models/models/"..sprintf("t=
+o_%03d000",i)   ,"FileSystem","General") end
++    OgreAddResLoc(mydatapath.."models/textures/"            ,"FileSystem",=
+"General")
++    OgreAddResLoc(mydatapath.."models/atlas"                ,"FileSystem",=
+"General")
++    OgreAddResLoc(mydatapath.."models/programs"             ,"FileSystem",=
+"General")
++
++    --~ # custom models
++    OgreAddResLoc(mydatapath.."custom/models"               ,"FileSystem",=
+"General")
++    OgreAddResLoc(mydatapath.."custom/textures"             ,"FileSystem",=
+"General")
++
++    --~ # new Terrain Shaderengine
+     OgreAddResLoc(mydatapath.."terrain/materials"           ,"FileSystem",=
+"General")
+     OgreAddResLoc(mydatapath.."terrain/programs"            ,"FileSystem",=
+"General")
+     OgreAddResLoc(mydatapath.."terrain/textures"            ,"FileSystem",=
+"General")
+     OgreAddResLoc(mydatapath.."terrain/multitex"            ,"FileSystem",=
+"General")
+     OgreAddResLoc(mydatapath.."terrain/multitex/parts"      ,"FileSystem",=
+"General")
+ =
+
+-    --~ # new Mobiles (Chars./Monster/Animals) - also called Grannys
+-    OgreAddResLoc(mydatapath.."mobiles/materials"        ,"FileSystem","Ge=
+neral")
+-    OgreAddResLoc(mydatapath.."mobiles/programs"         ,"FileSystem","Ge=
+neral")
+-
+-    --~ # custom Chars/Monster/Animals (Grannys) (Ogre.mesh + Ogre.skeleto=
+n)
+-    OgreAddResLoc(mydatapath.."mobiles_custom/materials" ,"FileSystem","Ge=
+neral")
+-    OgreAddResLoc(mydatapath.."mobiles_custom/meshes"    ,"FileSystem","Ge=
+neral")
+-    OgreAddResLoc(mydatapath.."mobiles_custom/textures"  ,"FileSystem","Ge=
+neral")
++    --~ # new Grannys
++    OgreAddResLoc(mydatapath.."grannys/materials"           ,"FileSystem",=
+"General")
++    OgreAddResLoc(mydatapath.."grannys/programs"            ,"FileSystem",=
+"General")
++
++    --~ # custom Grannys (Ogre.mesh + Ogre.skeleton)
++    OgreAddResLoc(mydatapath.."customchars/materials"       ,"FileSystem",=
+"General")
++    OgreAddResLoc(mydatapath.."customchars/models"          ,"FileSystem",=
+"General")
++    OgreAddResLoc(mydatapath.."customchars/textures"        ,"FileSystem",=
+"General")
+     =
+
+ 	if (gUOPath) then =
+
+-		OgreAddResLoc(gUOPath..CorrectPath("Models/Maps")   ,"FileSystem","Gener=
+al")
++		OgreAddResLoc(gUOPath..CorrectPath("Models/Maps")               ,"FileSy=
+stem","General")
+ 	end
+ =
+
+     OgreAddResLoc(gMainWorkingDir..CorrectPath("lugre/lib/caelum/resources=
+"),"FileSystem","Caelum")
+@@ -441,12 +394,12 @@
+ 	if (gDebugModeTestSkeletalAnimShader or gEnableBloomShader) then =
+
+ 		local myOgreSampleMedia =3D mydatapath.."ogreSampleMedia/"
+ 		=
+
+-		OgreAddResLoc(myOgreSampleMedia.."/packs/OgreCore.zip" ,"Zip","Bootstrap=
+")
++		OgreAddResLoc(myOgreSampleMedia.."/packs/OgreCore.zip"			,"Zip","Bootstr=
+ap")
+ 		=
+
+-		OgreAddResLoc(myOgreSampleMedia.."/materials/programs" ,"FileSystem","Ge=
+neral")
+-		OgreAddResLoc(myOgreSampleMedia.."/materials/scripts"  ,"FileSystem","Ge=
+neral")
+-		OgreAddResLoc(myOgreSampleMedia.."/materials/textures" ,"FileSystem","Ge=
+neral")
+-		OgreAddResLoc(myOgreSampleMedia.."/models"             ,"FileSystem","Ge=
+neral")
++		OgreAddResLoc(myOgreSampleMedia.."/materials/programs"          ,"FileSy=
+stem","General")
++		OgreAddResLoc(myOgreSampleMedia.."/materials/scripts"           ,"FileSy=
+stem","General")
++		OgreAddResLoc(myOgreSampleMedia.."/materials/textures"          ,"FileSy=
+stem","General")
++		OgreAddResLoc(myOgreSampleMedia.."/models"                      ,"FileSy=
+stem","General")
+ 	end
+ =
+
+     if gUseCaduneTree then =
+
+
+Modified: trunk/lua/profiles/gfx_ultrahigh.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/profiles/gfx_ultrahigh.lua (original)
++++ trunk/lua/profiles/gfx_ultrahigh.lua Mon Nov 28 10:34:31 2011
+@@ -3,7 +3,7 @@
+ =
+
+ gConfig:Set("gAtlasRes","none")
+ =
+
+-gConfig:Set("gShadowTechnique","texture_additive")
++gConfig:Set("gShadowTechnique","texture_additive_integrated")
+ gConfig:Set("gStaticsCastShadows",true)
+ gConfig:Set("gDynamicsCastShadows",true)
+ gConfig:Set("gMobileCastShadows",true)
+
+
+
+From no-reply at zwischenwelt.org  Mon Nov 28 14:19:30 2011
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Mon, 28 Nov 2011 13:19:30 -0000
+Subject: [Iris-commit] [IRIS] r3414 - in /trunk/lua: ./ profiles/
+Message-ID: <20111128131932.9E1227A9855F@simon>
+
+Author: sience
+Date: Mon Nov 28 14:19:27 2011
+New Revision: 3414
+
+Log:
+-all Folders consolidated in main.lua
+-from now on please use this gobal variables and if you add an new folder, =
+please add it in main.lua
+-gfx ultra setting, shadows fixed
+
+Modified:
+    trunk/lua/config_declarations.lua
+    trunk/lua/lib.compass.lua
+    trunk/lua/lib.configdialog.lua
+    trunk/lua/lib.debugmenu.lua
+    trunk/lua/lib.desktop.lua
+    trunk/lua/lib.devtool.lua
+    trunk/lua/lib.fallback.lua
+    trunk/lua/lib.loading.lua
+    trunk/lua/lib.macrolist.lua
+    trunk/lua/lib.packetvideo.lua
+    trunk/lua/lib.static.lua
+    trunk/lua/main.lua
+    trunk/lua/profiles/gfx_ultrahigh.lua
+
+Modified: trunk/lua/config_declarations.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/config_declarations.lua (original)
++++ trunk/lua/config_declarations.lua Mon Nov 28 14:19:27 2011
+@@ -250,7 +250,7 @@
+ =
+
+ gConfig:DeclareString("gLanguage", "client", "language", 'used for client =
+localization', "ENU")
+ =
+
+-gConfig:DeclareBoolean("gDumpMissingModels", "debug", "dump missing models=
+", 'used to dump images of the missing models into a missing folder in the =
+bin directory, you need to create the directory manually', false)
++gConfig:DeclareBoolean("gDumpMissingModels", "debug", "dump missing models=
+", 'used to dump images of the missing meshes/models into a missing folder =
+in the bin directory, you need to create the directory manually', false)
+ =
+
+ ------------------------------ UO Files --------------------------
+ gHuesFile		=3D "hues.mul"
+
+Modified: trunk/lua/lib.compass.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.compass.lua (original)
++++ trunk/lua/lib.compass.lua Mon Nov 28 14:19:27 2011
+@@ -73,10 +73,10 @@
+         end
+     end
+     gPositionMarkers =3D {}
+-    LoadUOAutomapFiles(gUOAMDir, gPositionMarkers)
+-end
+-
+-LoadUOAutomapFiles(gUOAMDir, gPositionMarkers)
++    LoadUOAutomapFiles(gUoamPath, gPositionMarkers)
++end
++
++LoadUOAutomapFiles(gUoamPath, gPositionMarkers)
+ =
+
+ function SetPositionMarker(mapindex,name,xloc,yloc,r,g,b,a)
+     if not mapindex or not name or not xloc or not yloc then return end
+
+Modified: trunk/lua/lib.configdialog.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.configdialog.lua (original)
++++ trunk/lua/lib.configdialog.lua Mon Nov 28 14:19:27 2011
+@@ -214,7 +214,7 @@
+ =
+
+ function ConfigDialogPage_PacketVideo(page)
+     page:AddChild("Button",{label=3D"Play Iris PacketVideo (*.ipv)",on_but=
+ton_click=3Dfunction ()  =
+
+-            if (PacketVideo_Load(FileOpenDialog(gPacketVideoFileName_folde=
+rpath,"*.ipv","select iris packetvideo"))) then PacketVideo_Playback() end
++            if (PacketVideo_Load(FileOpenDialog(gPacketVideoPath,"*.ipv","=
+select iris packetvideo"))) then PacketVideo_Playback() end
+         end})
+     page:AddChild("Button",{label=3D"Play Razor PacketVideo (*.rpv)",on_bu=
+tton_click=3Dfunction ()  =
+
+             if (PacketVideo_LoadRarzorPV(FileOpenDialog(".","*.rpv","selec=
+t razor packetvideo"))) then PacketVideo_Playback() end
+
+Modified: trunk/lua/lib.debugmenu.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.debugmenu.lua (original)
++++ trunk/lua/lib.debugmenu.lua Mon Nov 28 14:19:27 2011
+@@ -927,8 +927,8 @@
+         if (gCurDebugMode =3D=3D kDebugMode_Static) then
+             if (gEnableSVNRemoveInStaticDebug) then -- BE CAREFUL WITH THA=
+T !!!!  gEnableSVNRemoveInStaticDebug
+                 local i =3D gDebugMenuModelIndex
+-                os.execute("svn rm " .. GetModelPath(i))
+-                GuiAddChatLine(sprintf("SVN REMOVE 0x%04x(=3D%d) %s",i,i,G=
+etModelPath(i)))
++                os.execute("svn rm " .. GetMeshPath(i))
++                GuiAddChatLine(sprintf("SVN REMOVE 0x%04x(=3D%d) %s",i,i,G=
+etMeshPath(i)))
+             end =
+
+         end =
+
+         end end end)
+@@ -947,7 +947,7 @@
+         if (gCurDebugMode =3D=3D kDebugMode_Static) then
+             local i =3D gDebugMenuModelIndex
+             local notepath =3D "debugstatic.txt"
+-            local text =3D sprintf("DebugStaticNOTE 0x%04x(=3D%d) %s %s",i=
+,i,GetModelPath(i),GetStaticTileTypeName(i) or "")
++            local text =3D sprintf("DebugStaticNOTE 0x%04x(=3D%d) %s %s",i=
+,i,GetMeshPath(i),GetStaticTileTypeName(i) or "")
+             GuiAddChatLine(notepath..":"..text)
+             local f =3D io.open(notepath,"a")
+             f:write(text.."\n")
+@@ -967,9 +967,9 @@
+ =
+
+ function DebugDeleteModel   (id)
+     local base =3D id - math.mod(id,1000) + 1000
+-    local relpath  =3D sprintf("models/to_%06d/",base)
+-    local mdlname =3D GetModelName(id)
+-    local mdl =3D datapath.."models/"..relpath..mdlname
++    local relpath  =3D sprintf("to_%06d/",base)
++    local mdlname =3D GetMeshFileName(id)
++    local mdl =3D gDataTilesMeshesPath..relpath..mdlname
+     =
+
+     print("removing model: "..mdl)
+     =
+
+@@ -985,9 +985,9 @@
+     end
+     =
+
+     local base =3D id - math.mod(id,1000) + 1000
+-    local relpath  =3D sprintf("models/to_%06d/",base)
+-    local mdlname =3D GetModelName(id)
+-    local mdl =3D datapath.."models/"..relpath..mdlname
++    local relpath  =3D sprintf("to_%06d/",base)
++    local mdlname =3D GetMeshFileName(id)
++    local mdl =3D gDataTilesMeshesPath..relpath..mdlname
+     =
+
+     if not file_exists(mdl) then
+         print("model file not found")
+@@ -1003,19 +1003,18 @@
+     print("export model and textures",artid,"to data/export")
+ =
+
+     local base =3D id - math.mod(id,1000) + 1000
+-    local relpath  =3D sprintf("models/to_%06d/",base)
+-    local mdlname =3D GetModelName(id)
+-    local mdl =3D datapath.."models/"..relpath..mdlname
+-    local export =3D datapath.."export/"
+-    =
+
+-    local xmlfile =3D export..mdlname..".xml"
++    local relpath  =3D sprintf("to_%06d/",base)
++    local mdlname =3D GetMeshFileName(id)
++    local mdl =3D gDataTilesMeshesPath..relpath..mdlname
++    =
+
++    local xmlfile =3D gDataExportPath..mdlname..".xml"
+ =
+
+     if not file_exists(mdl) then
+         print("model file not found")
+         return
+     end
+     =
+
+-    local expmdl =3D export..mdlname
++    local expmdl =3D gDataExportPath..mdlname
+ =
+
+     -- try to rotate and adjust blender like, only possible if meshmagick =
+is installed (unix)
+     os.execute("cp '"..mdl.."' '"..expmdl.."'")
+@@ -1033,16 +1032,16 @@
+     end
+ =
+
+     -- copy material file
+-    os.execute("cp '"..datapath.."models/materials/textures.material' '"..=
+datapath.."export'")
++    os.execute("cp '"..gDataTilesMaterialsPath.."textures.material' '"..gD=
+ataPath.."export'")
+ =
+
+     -- try to find used textures
+     if file_exists(xmlfile) then
+         for line in io.lines(xmlfile) do
+             for name in string.gmatch(line, 'material=3D"([^"]+)"') do
+-                local texfile =3D datapath.."models/textures/"..name..".pn=
+g"
++                local texfile =3D gDataTilesTexturesPath .. name .. ".png"
+                 if file_exists(texfile) then
+-                    print("cp '"..texfile.."' '"..export.."'")
+-                    os.execute("cp '"..texfile.."' '"..export.."'")
++                    print("cp '"..texfile.."' '"..gDataExportPath.."'")
++                    os.execute("cp '"..texfile.."' '"..gDataExportPath.."'=
+")
+                 end
+             end
+         end
+
+Modified: trunk/lua/lib.desktop.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.desktop.lua (original)
++++ trunk/lua/lib.desktop.lua Mon Nov 28 14:19:27 2011
+@@ -215,7 +215,7 @@
+     gDesktop =3D {}
+     gDesktopPositions =3D {}
+     if file then
+-        local path =3D gDesktopDir..file
++        local path =3D gDesktopPath..file
+         if file_exists(path) then
+             dofile(path)
+             ReopenDesktop()
+@@ -228,7 +228,7 @@
+ 	--~ print("#####SaveDesktop",debug.traceback())
+     file =3D file or gDesktopFile
+     if file then
+-        local path =3D gDesktopDir..file
++        local path =3D gDesktopPath..file
+         -- write to file
+         local fp =3D io.open(path,"w")
+         if (fp) then
+
+Modified: trunk/lua/lib.devtool.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.devtool.lua (original)
++++ trunk/lua/lib.devtool.lua Mon Nov 28 14:19:27 2011
+@@ -2,8 +2,6 @@
+ --[[ \brief
+         contains some tools useful for development and debug
+ ]]--
+-
+-gMeshTextureUsageFilePath =3D datapath.."meshtextureusage.lua"
+ =
+
+ function ShowDevTool ()
+     MainMousePick()
+@@ -71,7 +69,7 @@
+             local gTileTypeEndID =3D gTileTypeLoader:GetEndID()
+             print("gTileTypeEndID",gTileTypeEndID)
+             for i =3D 0,gTileTypeEndID-1 do
+-                local meshpath =3D GetModelPath(i)
++                local meshpath =3D GetMeshPath(i)
+                 local texlist =3D meshpath and file_exists(meshpath) and O=
+greMeshTextures(meshpath)
+                 if (texlist) then for k,v in pairs(texlist) do
+                     if (not gDevToolTexCache[v]) then gDevToolTexCache[v] =
+=3D {} end
+@@ -272,7 +270,7 @@
+     local statics =3D ListStaticsNearPos(x,y,z,1)
+     for k,entity in pairs(statics) do =
+
+         local i =3D entity.iTileTypeID
+-        local meshpath =3D GetModelPath(i)
++        local meshpath =3D GetMeshPath(i)
+         local name =3D GetStaticTileTypeName(i) or "unknown"
+         table.insert(rows,{ =
+
+             {type=3D"Button",text=3D"#"..i..": "..name,onMouseDown=3Dfunct=
+ion(widget) widget.dialog:Destroy() AdjustArtPositionControlDialog(i) end},
+@@ -286,7 +284,7 @@
+     for k,item in pairs(dynamics) do =
+
+         print("DEBUG",k,item)
+         local i =3D item.artid
+-        local meshpath =3D GetModelPath(i)
++        local meshpath =3D GetMeshPath(i)
+         local name =3D GetStaticTileTypeName(i) or "unknown"
+         table.insert(rows,{ =
+
+             {type=3D"Button",text=3D"#"..i..": "..name,onMouseDown=3Dfunct=
+ion(widget) widget.dialog:Destroy() AdjustArtPositionControlDialog(i) end},
+@@ -325,7 +323,7 @@
+     local statics =3D ListStaticsNearPos(x,y,z,radius)
+     for k,entity in pairs(statics) do =
+
+         local i =3D entity.iTileTypeID
+-        local meshpath =3D GetModelPath(i)
++        local meshpath =3D GetMeshPath(i)
+         local texlist =3D meshpath and OgreMeshTextures(meshpath)
+         local texlist =3D texlist and strjoin("\n",texlist) or ""
+         table.insert(rows[2]    ,MakeUOArtImageForDialog(i,0,48,48))
+@@ -336,7 +334,7 @@
+     local dynamics =3D ListDynamicsNearPos(x,y,z,radius)
+     for k,item in pairs(dynamics) do =
+
+         local i =3D item.artid
+-        local meshpath =3D GetModelPath(i)
++        local meshpath =3D GetMeshPath(i)
+         local texlist =3D meshpath and OgreMeshTextures(meshpath)
+         local texlist =3D texlist and strjoin("\n",texlist) or ""
+         table.insert(rows[4]    ,MakeUOArtImageForDialog(i,0,48,48))
+@@ -386,7 +384,7 @@
+ end
+ =
+
+ function GetStaticMeshTextureListString (iTileTypeID) =
+
+-    local path =3D GetModelPath(iTileTypeID)
++    local path =3D GetMeshPath(iTileTypeID)
+     local t =3D path and OgreMeshTextures(path) -- datapath.."models/model=
+s/mesh/"..meshname)
+     return t and strjoin(",",t) or ""
+ end
+
+Modified: trunk/lua/lib.fallback.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.fallback.lua (original)
++++ trunk/lua/lib.fallback.lua Mon Nov 28 14:19:27 2011
+@@ -1,6 +1,5 @@
+ -- manages skiplists for fallbacks and the fallback tool
+ =
+
+-gSkippedFallBackFilePath =3D datapath.."skippedfallbacks.lua"
+ gSkippedArtBillboardFallBacks =3D {}
+ =
+
+ function InitFallBacks  ()
+
+Modified: trunk/lua/lib.loading.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.loading.lua (original)
++++ trunk/lua/lib.loading.lua Mon Nov 28 14:19:27 2011
+@@ -59,18 +59,18 @@
+     -- TODO move to config or automatic best choosing
+     if gAtlasRes =3D=3D "med" then
+         ---- med res
+-        dofile(datapath .. "models/atlas/tex_atlas_alpha_med.lua")
+-        dofile(datapath .. "models/atlas/tex_atlas_med.lua")
++        dofile(gDataTilesAtlasPath .. "tex_atlas_alpha_med.lua")
++        dofile(gDataTilesAtlasPath .. "tex_atlas_med.lua")
+         gUseTexAtlas =3D true     -- Lugre setting, only used if fastbatch=
+ is active
+     elseif gAtlasRes =3D=3D "low" then
+         ---- low res
+-        dofile(datapath .. "models/atlas/tex_atlas_alpha_low.lua")
+-        dofile(datapath .. "models/atlas/tex_atlas_low.lua")
++        dofile(gDataTilesAtlasPath .. "tex_atlas_alpha_low.lua")
++        dofile(gDataTilesAtlasPath .. "tex_atlas_low.lua")
+         gUseTexAtlas =3D true     -- Lugre setting, only used if fastbatch=
+ is active
+     elseif gAtlasRes =3D=3D "ultralow" then
+         ---- ultralow res
+-        dofile(datapath .. "models/atlas/tex_atlas_alpha_ultralow.lua")
+-        dofile(datapath .. "models/atlas/tex_atlas_ultralow.lua")
++        dofile(gDataTilesAtlasPath .. "tex_atlas_alpha_ultralow.lua")
++        dofile(gDataTilesAtlasPath .. "tex_atlas_ultralow.lua")
+         gUseTexAtlas =3D true     -- Lugre setting, only used if fastbatch=
+ is active
+     end
+ end
+
+Modified: trunk/lua/lib.macrolist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.macrolist.lua (original)
++++ trunk/lua/lib.macrolist.lua Mon Nov 28 14:19:27 2011
+@@ -521,11 +521,11 @@
+ function MacroCmd_ZoomCompass           (zoomfactor)    if (gInGameStarted=
+) then ZoomCompass(zoomfactor) end end
+ function MacroCmd_ActivateNextRenderer  ()              if (gInGameStarted=
+) then ActivateNextRenderer() end end
+ function MacroCmd_CamChangeZoom         (zoomadd)       if (gInGameStarted=
+) then gCurrentRenderer:CamChangeZoom(zoomadd) end end
+-function MacroCmd_Screenshot            ()              Client_TakeScreens=
+hot(gScreenshotDir) end
++function MacroCmd_Screenshot            ()              Client_TakeScreens=
+hot(gScreenshotPath) end
+ function MacroCmd_GridScreenshot        ()          =
+
+     if (not gInGameStarted) then return end
+     ToggleCompass()
+-    Client_TakeGridScreenshot(gScreenshotDir)
++    Client_TakeGridScreenshot(gScreenshotPath)
+     ToggleCompass()
+ end
+ =
+
+
+Modified: trunk/lua/lib.packetvideo.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.packetvideo.lua (original)
++++ trunk/lua/lib.packetvideo.lua Mon Nov 28 14:19:27 2011
+@@ -29,7 +29,7 @@
+ gPacketVideoNoPlaybackPackets[kPacket_Logout] =3D true -- logout
+ --~ gPacketVideoNoPlaybackPackets[kPacket_Open_Container] =3D true  (if sk=
+ipped, no containers won't be seen)
+ =
+
+-gPacketVideoFileName_prefix		=3D gPacketVideoFileName_folderpath.."myvid."
++gPacketVideoFileName_prefix		=3D gPacketVideoPath.."myvid."
+ gPacketVideoFileName_postfix	=3D ".ipv"
+ =
+
+ =
+
+@@ -230,7 +230,7 @@
+ =
+
+ function PacketVideo_Load	(filename)
+ 	if (not filename) then return false end
+-	local filename2 =3D gPacketVideoFileName_folderpath .. filename
++	local filename2 =3D gPacketVideoPath .. filename
+ 	local filename3 =3D "../" .. filename
+ 	if (file_exists(filename2)) then filename =3D filename2 end
+ 	if (file_exists(filename3)) then filename =3D filename3 end
+
+Modified: trunk/lua/lib.static.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.static.lua (original)
++++ trunk/lua/lib.static.lua Mon Nov 28 14:19:27 2011
+@@ -1,48 +1,48 @@
+--- used by lib.map.lua
+--- handles static models (walls, trees...)
+-
+-
+-gStaticFallbackAtlasBaseMaterial =3D "staticfallbackatlas"
+-
+-
+-
+--- returns the model name with the given id
++--[[ ***** see Iris2 COPYING for license info ***** ]]--
++--[[ \brief
++		handles static meshes (walls, trees...)
++		used by lib.map.lua
++]]--
++
++local staticFallbackAtlasBaseMaterial =3D "staticfallbackatlas"
++
++-- returns the mesh-filename with the given id
+ -- TODO handle custom stuff?
+-function GetModelName(id)
++local function GetMeshFileName(id)
+ 	return sprintf("mdl_%06d.mesh",id)
+ end
+ =
+
+--- returns path to the model file, for importing
+-gCustomModelCache =3D {}
+-function GetModelPath(id) =
+
+-	local cached =3D gCustomModelCache[id]
+-	if (cached ~=3D nil) then print("Model already in gCustomModelCache") ret=
+urn cached end
+-
+-	local custompath =3D datapath.."custom/models/"..GetModelName(id)
++-- returns path to the mesh-filename, for importing
++gCustomMeshCache =3D {}
++function GetMeshPath(id) =
+
++	local cached =3D gCustomMeshCache[id]
++	if (cached ~=3D nil) then print("Mesh already in gCustomMeshCache") retur=
+n cached end
++
++	local custompath =3D gDataCustomTilesMeshesPath..GetMeshFileName(id)
+ 	if file_exists(custompath) then
+-		gCustomModelCache[id] =3D custompath
++		gCustomMeshCache[id] =3D custompath
+ 		return custompath
+ 	end
+ =
+
+ 	local base =3D id - math.mod(id,1000) + 1000
+-	local relpath  =3D sprintf("models/to_%06d/",base)
+-
+-	local meshpath =3D datapath.."models/"..relpath..GetModelName(id)
++	local relpath  =3D sprintf("to_%06d/",base)
++
++	local meshpath =3D gDataTilesMeshesPath..relpath..GetMeshFileName(id)
+ 	if file_exists(meshpath) then
+-		gCustomModelCache[id] =3D meshpath
++		gCustomMeshCache[id] =3D meshpath
+ 	else
+-		gCustomModelCache[id] =3D false
++		gCustomMeshCache[id] =3D false
+ 		meshpath =3D nil
+ 	end
+ 	return meshpath
+ end
+ =
+
+--- generates or retrieves meshname for static model
+--- TODO : not flexible enough, what if model should be skipped, or multipl=
+e models set ? or model depending on surrounding ?
++-- generates or retrieves meshname for a static
++-- TODO : not flexible enough, what if mesh should be skipped, or multiple=
+ meshes set ? or mesh depending on surrounding ?
+ -- TODO: remove hueing from her, not needed for fastbatch here
+--- bDontGenerateFallback is used during preload to not generate uo art fal=
+lback models
+-gLegacyModelCache =3D {}
+-gbModelIsFallback =3D {}
++-- bDontGenerateFallback is used during preload to not generate uo-art fal=
+lback meshes
++gLegacyMeshCache =3D {}
++gbMeshIsFallback =3D {}
+ function GetMeshName (iTileTypeID, iHue, bDontGenerateFallback)
+ 	--1st: Seasonal Translation
+ 	local iTranslatedTileTypeID =3D SeasonalStaticTranslation(iTileTypeID, gS=
+easonSetting)
+@@ -51,32 +51,32 @@
+ 	iTranslatedTileTypeID =3D FilterMesh(iTranslatedTileTypeID)
+ =
+
+ 	local meshname =3D nil
+-	meshname =3D gLegacyModelCache[iTranslatedTileTypeID]
++	meshname =3D gLegacyMeshCache[iTranslatedTileTypeID]
+ 	if (meshname =3D=3D nil) then
+-		local modellocation =3D GetModelPath(iTranslatedTileTypeID) -- returns p=
+ath including subfolders, also checks if custom model is available
+-
+-		if ( modellocation ~=3D nil ) then
+-
+-			meshname =3D GetModelName(iTranslatedTileTypeID) -- "mdl_%06d.mesh", ju=
+st number-to-string, no translation : =
+
++		local meshlocation =3D GetMeshPath(iTranslatedTileTypeID) -- returns pat=
+h including subfolders, also checks if custom mesh is available
++
++		if ( meshlocation ~=3D nil ) then
++
++			meshname =3D GetMeshFileName(iTranslatedTileTypeID) -- "mdl_%06d.mesh",=
+ just number-to-string, no translation : =
+
+ 			-- load Mesh here
+ 			if ( OgreMeshAvailable(meshname) ) then
+-				printdebug("static","Meshloader:",iTranslatedTileTypeID,meshname)
++				printdebug("static","Meshloader:", iTranslatedTileTypeID, meshlocation)
+ 				=
+
+ 				-- apply overrides, like cloning the mesh to change material (2011-11 =
+floortiles+walls)
+ 				meshname =3D FilterApplyMeshOverrides(meshname,iSeasonedButNotRemapped=
+TileTypeID)
+ 			else
+ 				meshname =3D false
+-				printdebug("static","mesh cannot be loaded -> temp. disabled (false) "=
+,meshname, iTranslatedTileTypeID)
++				printdebug("static","mesh cannot be loaded -> temp. disabled (false) "=
+, iTranslatedTileTypeID, meshlocation)
+ 			end
+ =
+
+ 		else
+ 			meshname =3D false
+-			printdebug("static","mesh not available -> temp. disabled (false) ",mes=
+hname, iTranslatedTileTypeID)
++			printdebug("static","mesh not available -> temp. disabled (false) ", iT=
+ranslatedTileTypeID, meshlocation)
+ 		end
+-		gLegacyModelCache[iTranslatedTileTypeID] =3D meshname
+-	end
+-	=
+
+-	-- dump missing models as images
++		gLegacyMeshCache[iTranslatedTileTypeID] =3D meshname
++	end
++	=
+
++	-- dump missing meshes as images
+ 	if gDumpMissingModels and not bDontGenerateFallback then
+ 		local skip =3D gSkippedArtBillboardFallBacks[iTranslatedTileTypeID] or I=
+sGroundPlate(iTranslatedTileTypeID)
+ 		local filename =3D "missing/"..iTranslatedTileTypeID..".png"
+@@ -96,15 +96,15 @@
+ 				end
+ 			end
+ 			img:Destroy()
+-		elseif (meshname or skip) and not gbModelIsFallback[iTranslatedTileTypeI=
+D] then
++		elseif (meshname or skip) and not gbMeshIsFallback[iTranslatedTileTypeID=
+] then
+ 			if file_exists(filename) then
+ 				-- remove existing missing images
+-				print("remove missing art image because there is now a model",iTransla=
+tedTileTypeID,filename)
++				print("remove missing art image because there is now a mesh",iTranslat=
+edTileTypeID,filename)
+ 				remove_file(filename)
+ 			end
+ 			if file_exists(filename_unmapped) then
+ 				-- remove existing missing images
+-				print("remove missing art image because there is now a model",iTileTyp=
+eID,filename_unmapped)
++				print("remove missing art image because there is now a mesh",iTileType=
+ID,filename_unmapped)
+ 				remove_file(filename_unmapped)
+ 			end
+ 		end
+@@ -119,8 +119,8 @@
+ 	if not meshname and gUseStaticFallbacks and not bDontGenerateFallback then
+ 		meshname =3D GetFallbackMeshName(iTranslatedTileTypeID)
+ 		if meshname then
+-			gLegacyModelCache[iTranslatedTileTypeID] =3D meshname
+-			gbModelIsFallback[iTranslatedTileTypeID] =3D true
++			gLegacyMeshCache[iTranslatedTileTypeID] =3D meshname
++			gbMeshIsFallback[iTranslatedTileTypeID] =3D true
+ 			--~ giStaticFallbackCount =3D (giStaticFallbackCount or 0) + 1
+ 			--~ print("giStaticFallbackCount",giStaticFallbackCount)
+ 		end
+@@ -129,29 +129,24 @@
+ 	return meshname
+ end
+ =
+
+-
+---~ gFallbackModelCache =3D {}
+ -- returns the name of a static generated mesh that can be used instead of=
+ classic billboards
+ function GetFallbackMeshName	(iTileTypeID)
+-	--~ local name =3D gFallbackModelCache[iTileTypeID]
+-	--~ if name then return name end
+-	=
+
+ 	if IsArtBillboardFallBackSkipped(iTileTypeID) then return nil end
+ 	=
+
+-	-- generate the model
+-	if not gFallbackModelCacheGfx then =
+
+-		gFallbackModelCacheGfx =3D CreateRootGfx3D()
+-		gFallbackModelCacheGfx:SetVisible(false)
++	-- generate the fallback mesh
++	if not gFallbackMeshCacheGfx then =
+
++		gFallbackMeshCacheGfx =3D CreateRootGfx3D()
++		gFallbackMeshCacheGfx:SetVisible(false)
+ 	end
+ 	=
+
+ 	-- TODO currently just ignores the art atlas lockkeeper
+-	local sMatName,iWidth,iHeight,iCenterX,iCenterY,u0,v0,u1,v1 =3D ArtAtlasL=
+oadAndLockDirect(iTileTypeID+0x4000,0,nil,gStaticFallbackAtlasBaseMaterial)
++	local sMatName,iWidth,iHeight,iCenterX,iCenterY,u0,v0,u1,v1 =3D ArtAtlasL=
+oadAndLockDirect(iTileTypeID+0x4000,0,nil,staticFallbackAtlasBaseMaterial)
+ 	--~ print("###", iTileTypeID, sMatName,iWidth,iHeight,iCenterX,iCenterY,u=
+0,v0,u1,v1)
+ 	=
+
+ 	if not sMatName then return nil end
+ 	=
+
+-	gFallbackModelCacheGfx:SetSimpleRenderable()
+-	gFallbackModelCacheGfx:SetMaterial(sMatName)
++	gFallbackMeshCacheGfx:SetSimpleRenderable()
++	gFallbackMeshCacheGfx:SetMaterial(sMatName)
+ 	=
+
+ 	local t =3D GetStaticTileType(iTileTypeID)
+ 	=
+
+@@ -172,43 +167,43 @@
+ 		local ny =3D 0
+ 		local nz =3D 1
+ 		=
+
+-		gFallbackModelCacheGfx:RenderableBegin(4,6,false,false,OT_TRIANGLE_LIST)
+-		=
+
+-		gFallbackModelCacheGfx:RenderableVertex( -0+dx,0+dy,dz, nx,ny,nz, tw,v0)
+-		gFallbackModelCacheGfx:RenderableVertex( -0+dx,1+dy,dz, nx,ny,nz, u0,th)
+-		gFallbackModelCacheGfx:RenderableVertex( -1+dx,0+dy,dz, nx,ny,nz, u1,th)
+-		gFallbackModelCacheGfx:RenderableVertex( -1+dx,1+dy,dz, nx,ny,nz, tw,v1)
+-		gFallbackModelCacheGfx:RenderableIndex3(0,1,2)
+-		gFallbackModelCacheGfx:RenderableIndex3(1,3,2)
+-		=
+
+-		gFallbackModelCacheGfx:RenderableEnd()
++		gFallbackMeshCacheGfx:RenderableBegin(4,6,false,false,OT_TRIANGLE_LIST)
++		=
+
++		gFallbackMeshCacheGfx:RenderableVertex( -0+dx,0+dy,dz, nx,ny,nz, tw,v0)
++		gFallbackMeshCacheGfx:RenderableVertex( -0+dx,1+dy,dz, nx,ny,nz, u0,th)
++		gFallbackMeshCacheGfx:RenderableVertex( -1+dx,0+dy,dz, nx,ny,nz, u1,th)
++		gFallbackMeshCacheGfx:RenderableVertex( -1+dx,1+dy,dz, nx,ny,nz, tw,v1)
++		gFallbackMeshCacheGfx:RenderableIndex3(0,1,2)
++		gFallbackMeshCacheGfx:RenderableIndex3(1,3,2)
++		=
+
++		gFallbackMeshCacheGfx:RenderableEnd()
+ 	else
+ 		-- crossed
+ 		local dz =3D 0
+ 		local dx =3D 0
+ 		local dy =3D 0
+ 		=
+
+-		gFallbackModelCacheGfx:RenderableBegin(4*2,6*2,false,false,OT_TRIANGLE_L=
+IST)
++		gFallbackMeshCacheGfx:RenderableBegin(4*2,6*2,false,false,OT_TRIANGLE_LI=
+ST)
+ 		=
+
+ 		local nx,ny,nz =3D calculate_triangle_normal(-0+dx,0.5+dy,0+dz, 1+dx,0.5=
++dy,0+dz, 1+dx,0.5+dy,h+dz)
+ 		=
+
+-		gFallbackModelCacheGfx:RenderableVertex( -0+dx,0.5+dy,0+dz, nx,ny,nz, u1=
+,v1)
+-		gFallbackModelCacheGfx:RenderableVertex( -1+dx,0.5+dy,0+dz, nx,ny,nz, u0=
+,v1)
+-		gFallbackModelCacheGfx:RenderableVertex( -1+dx,0.5+dy,h+dz, nx,ny,nz, u0=
+,v0)
+-		gFallbackModelCacheGfx:RenderableVertex( -0+dx,0.5+dy,h+dz, nx,ny,nz, u1=
+,v0)
+-		gFallbackModelCacheGfx:RenderableIndex3(2,1,0)
+-		gFallbackModelCacheGfx:RenderableIndex3(0,3,2)
++		gFallbackMeshCacheGfx:RenderableVertex( -0+dx,0.5+dy,0+dz, nx,ny,nz, u1,=
+v1)
++		gFallbackMeshCacheGfx:RenderableVertex( -1+dx,0.5+dy,0+dz, nx,ny,nz, u0,=
+v1)
++		gFallbackMeshCacheGfx:RenderableVertex( -1+dx,0.5+dy,h+dz, nx,ny,nz, u0,=
+v0)
++		gFallbackMeshCacheGfx:RenderableVertex( -0+dx,0.5+dy,h+dz, nx,ny,nz, u1,=
+v0)
++		gFallbackMeshCacheGfx:RenderableIndex3(2,1,0)
++		gFallbackMeshCacheGfx:RenderableIndex3(0,3,2)
+ =
+
+ 		local nx,ny,nz =3D calculate_triangle_normal(-0.5+dx,0+dy,0+dz, 0.5+dx,1=
++dy,0+dz, 0.5+dx,1+dy,h+dz)
+ 		=
+
+-		gFallbackModelCacheGfx:RenderableVertex( -0.5+dx,0+dy,0+dz, nx,ny,nz, u1=
+,v1)
+-		gFallbackModelCacheGfx:RenderableVertex( -0.5+dx,1+dy,0+dz, nx,ny,nz, u0=
+,v1)
+-		gFallbackModelCacheGfx:RenderableVertex( -0.5+dx,1+dy,h+dz, nx,ny,nz, u0=
+,v0)
+-		gFallbackModelCacheGfx:RenderableVertex( -0.5+dx,0+dy,h+dz, nx,ny,nz, u1=
+,v0)
+-		gFallbackModelCacheGfx:RenderableIndex3(4+2,4+1,4+0)
+-		gFallbackModelCacheGfx:RenderableIndex3(4+0,4+3,4+2)
+-
+-		gFallbackModelCacheGfx:RenderableEnd()
++		gFallbackMeshCacheGfx:RenderableVertex( -0.5+dx,0+dy,0+dz, nx,ny,nz, u1,=
+v1)
++		gFallbackMeshCacheGfx:RenderableVertex( -0.5+dx,1+dy,0+dz, nx,ny,nz, u0,=
+v1)
++		gFallbackMeshCacheGfx:RenderableVertex( -0.5+dx,1+dy,h+dz, nx,ny,nz, u0,=
+v0)
++		gFallbackMeshCacheGfx:RenderableVertex( -0.5+dx,0+dy,h+dz, nx,ny,nz, u1,=
+v0)
++		gFallbackMeshCacheGfx:RenderableIndex3(4+2,4+1,4+0)
++		gFallbackMeshCacheGfx:RenderableIndex3(4+0,4+3,4+2)
++
++		gFallbackMeshCacheGfx:RenderableEnd()
+ 	--[[
+ 	else
+ 		-- flat
+@@ -216,24 +211,22 @@
+ 		local dx =3D 0
+ 		local dy =3D 0
+ =
+
+-		gFallbackModelCacheGfx:RenderableBegin(4,6,false,false,OT_TRIANGLE_LIST)
+-		=
+
+-		gFallbackModelCacheGfx:RenderableVertex( 0+dx,0+dy,dz, u0,v0)
+-		gFallbackModelCacheGfx:RenderableVertex( 1+dx,0+dy,dz, u1,v0)
+-		gFallbackModelCacheGfx:RenderableVertex( 1+dx,1+dy,dz, u1,v1)
+-		gFallbackModelCacheGfx:RenderableVertex( 0+dx,1+dy,dz, u0,v1)
+-		gFallbackModelCacheGfx:RenderableIndex3(2,1,0)
+-		gFallbackModelCacheGfx:RenderableIndex3(0,3,2)
+-
+-		gFallbackModelCacheGfx:RenderableEnd()
++		gFallbackMeshCacheGfx:RenderableBegin(4,6,false,false,OT_TRIANGLE_LIST)
++		=
+
++		gFallbackMeshCacheGfx:RenderableVertex( 0+dx,0+dy,dz, u0,v0)
++		gFallbackMeshCacheGfx:RenderableVertex( 1+dx,0+dy,dz, u1,v0)
++		gFallbackMeshCacheGfx:RenderableVertex( 1+dx,1+dy,dz, u1,v1)
++		gFallbackMeshCacheGfx:RenderableVertex( 0+dx,1+dy,dz, u0,v1)
++		gFallbackMeshCacheGfx:RenderableIndex3(2,1,0)
++		gFallbackMeshCacheGfx:RenderableIndex3(0,3,2)
++
++		gFallbackMeshCacheGfx:RenderableEnd()
+ 	]]--
+ 	end
+ 	=
+
+-	local name =3D gFallbackModelCacheGfx:RenderableConvertToMesh()
++	local name =3D gFallbackMeshCacheGfx:RenderableConvertToMesh()
+ 	=
+
+ 	-- name =3D "mdl_000405.mesh"
+-	=
+
+-	--~ gFallbackModelCache[iTileTypeID] =3D name
+ 	=
+
+ 	return name
+ end
+
+Modified: trunk/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/main.lua (original)
++++ trunk/lua/main.lua Mon Nov 28 14:19:27 2011
+@@ -1,38 +1,97 @@
++--[[ ***** see Iris2 COPYING for license info ***** ]]--
++--[[ \brief
++		main.lua
++]]--
++
+ --###############################
+ --###        CONSTANTS        ###
+ --###############################
+ =
+
++-- -----------------------------------------------------------------------=
+-----
+ -- Iris2 Directories/Files
++-- -----------------------------------------------------------------------=
+-----
+ gMainWorkingDir     =3D GetMainWorkingDir and GetMainWorkingDir() or ""
++-- Data-Path
+ gBinPath			=3D gMainWorkingDir.."bin/"  -- bin folder with config etc
+-datapath            =3D gMainWorkingDir.."data/"
+-libpath             =3D gMainWorkingDir.."lua/"
+-gMacroPathFallback  =3D gMainWorkingDir.."lua/config_macros_declarations.l=
+ua"
++-- Data-Path
++gDataPath           =3D gMainWorkingDir.."data/"	-- former datapath
++-- Plugin-Path
+ gMainPluginDir      =3D gMainWorkingDir.."plugins/"
++-- Screenshot-Path
++local configScreenName	=3D "screenshots/"
++gScreenshotPath 	=3D gMainWorkingDir..configScreenName
++-- Temporary-Path
++local configTempName	=3D "tmp/"
++gTempPath           =3D gMainWorkingDir..configTempName
++-- VideoRecording-Path
++local configVideoName	=3D "video/"
++gPacketVideoPath	=3D gMainWorkingDir..configVideoName
++
++-- Tiles Folders
++gDataTilesPath      	=3D gDataPath.."models/"
++gDataTilesAtlasPath		=3D gDataPath.."models/atlas/"
++gDataTilesMaterialsPath	=3D gDataPath.."models/materials/"
++gDataTilesMeshesPath	=3D gDataPath.."models/models/"
++gDataTilesTexturesPath	=3D gDataPath.."models/textures/"
++gDataCustomTilesMeshesPath=3DgDataPath.."custom/models/"
++
++-- Tile export Folder (Debugmenu)
++gDataExportPath     	=3D gDataPath.."export/"
++
++-- Tiles support files
++gMeshTextureUsageFilePath=3D gDataPath.."meshtextureusage.lua"
++gSkippedFallBackFilePath =3D gDataPath.."skippedfallbacks.lua"
++
++-- Scripts Subdir
++libpath				=3D gMainWorkingDir.."lua/"	-- TODO: change to "gScriptPath"
++gMacroPathFallback  =3D libpath.."config_macros_declarations.lua"
+ gIrisWidgetDir      =3D libpath.."widgets/"
+ =
+
++-- Scripts-Lugre Subdir
+ lugreluapath        =3D (file_exists(gMainWorkingDir.."mylugre") and gMain=
+WorkingDir.."mylugre/lua/" or GetLugreLuaPath()) -- this is should also in =
+USERHOME dir
+ =
+
+--- User Directories/Files
+-gTempPath           =3D gMainWorkingDir.."tmp/"
+-gScreenshotDir		=3D gMainWorkingDir.."screenshots/"
+-gConfigPath         =3D gMainWorkingDir.."config/"
+-gConfigFile         =3D "config.lua"
+-gConfigPathFile     =3D gConfigPath..gConfigFile
+-gConfigPathFile_old =3D datapath..gConfigFile         -- only as Fallback =
+for old users
+-gMacroFile          =3D "mymacros.lua"
+-gMacroPathFile      =3D gConfigPath..gMacroFile
+-gMacroPathFile_old  =3D datapath..gMacroFile          -- only as Fallback =
+for old users
+-gDesktopDir			=3D gConfigPath.."desktop/" -- old was data/desktop/
+-gPacketVideoFileName_folderpath	=3D gMainWorkingDir.."videos/"
+-gUOAMDir			=3D gConfigPath.."uoam/"
+-gUoamMarkFile		=3D "mark.uoam"
+-gUoamMarkPathFile	=3D gUOAMDir..gUoamMarkFile
+-
++-- -----------------------------------------------------------------------=
+-----
++-- Iris2 Config Dir/Files
++-- -----------------------------------------------------------------------=
+-----
++
++-- Config filename defines
++local configFile		=3D "config.lua"
++local macroFile			=3D "mymacros.lua"
++local filterFile		=3D "iris.filter.lua"
++local uoamMarkFile		=3D "mark.uoam"
++
++-- Config sub-directories
++local configFolderName	=3D "/.iris/"
++local configDesktopName	=3D "desktop/"
++local configUoamName	=3D "uoam/"
++
++-- Config-Path
++local configConfigName	=3D "config/"
++gConfigPath         =3D gMainWorkingDir..configConfigName
++gConfigPathOrig     =3D gConfigPath					-- Path to original config template
++
++-- Config-Path Files
++gConfigPathFile     =3D gConfigPath..configFile
++gConfigPathFile_old =3D gDataPath..configFile         -- only as Fallback =
+for old users
++gMacroPathFile      =3D gConfigPath..macroFile
++gMacroPathFile_old  =3D gDataPath..macroFile          -- only as Fallback =
+for old users
++gFilterFile			=3D gConfigPath..filterFile
++
++-- Config-Path SubDirs
++-- Config-Path Desktop Subdir
++gDesktopPath		=3D gConfigPath..configDesktopName	-- old was data/desktop/
++-- Config-Path UOAM Subdir
++gUoamPath			=3D gConfigPath..configUoamName
++-- Config-Path UOAM Subdir File
++gUoamMarkPathFile	=3D gUoamPath..uoamMarkFile
++
++
++-- -----------------------------------------------------------------------=
+-----
++-- Global Variables
++-- -----------------------------------------------------------------------=
+-----
+ gSecondsSinceLastFrame =3D 0
+ gInGameStarted =3D false
+ gNet_State =3D false
+-
+ gFrameCounter =3D 0
+ =
+
+ function GetStackTrace () return _TRACEBACK() end
+@@ -49,35 +108,36 @@
+ 		=
+
+ 		local function MyInitCheckHomeDir (home)
+ 			print("trying to init from home path:",home)
+-			gHomeIrisPath 		=3D home.."/.iris/"
+-			gTempPath 			=3D gHomeIrisPath.."tmp/"
+-			gScreenshotDir		=3D gHomeIrisPath.."screenshots/"
+-			gConfigPath 		=3D gHomeIrisPath.."config/"
+-			gConfigPathFile     =3D gConfigPath..gConfigFile
+-			gMacroPathFile      =3D gConfigPath..gMacroFile
+-			gDesktopDir			=3D gConfigPath.."desktop/"
+-			gPacketVideoFileName_folderpath	=3D gHomeIrisPath.."videos/" -- todo : =
+text=3D'will be saved as .ipv files in iris/videos/'
+-			gUOAMDir			=3D gConfigPath.."uoam/"
+-			gUoamMarkPathFile	=3D gUOAMDir..gUoamMarkFile
++			local irisHomePath 		=3D home..configFolderName
++			gConfigPath 		=3D irisHomePath..configConfigName
++			gScreenshotPath		=3D irisHomePath..configScreenName
++			gTempPath 			=3D irisHomePath..configTempName
++			gPacketVideoPath	=3D irisHomePath..configVideoName -- todo : text=3D'wi=
+ll be saved as .ipv files in ~/.iris/videos/'
++
++			gConfigPathFile     =3D gConfigPath..configFile
++			gMacroPathFile      =3D gConfigPath..macroFile
++			gDesktopPath		=3D gConfigPath..configDesktopName
++			gUoamPath			=3D gConfigPath..configUoamName
++			gUoamMarkPathFile	=3D gUoamPath..uoamMarkFile
+ 			=
+
+ 			-- check if config.lua is already copied
+ 			if (not file_exists(gConfigPathFile)) then
+-				print("initializing "..gHomeIrisPath)
+-				mkdir(gHomeIrisPath)
++				print("initializing "..irisHomePath)
++				mkdir(irisHomePath)
+ 				mkdir(gTempPath)
+-				mkdir(gScreenshotDir)
++				mkdir(gScreenshotPath)
+ 				mkdir(gConfigPath)
+-				mkdir(gDesktopDir)
+-				mkdir(gPacketVideoFileName_folderpath)
+-				mkdir(gUOAMDir)
+-
+-				print("Copy config from: " .. gMainWorkingDir.."config/" .. " to: " ..=
+ gConfigPath)
++				mkdir(gDesktopPath)
++				mkdir(gPacketVideoPath)
++				mkdir(gUoamPath)
++
++				print("Copy config from: " .. gConfigPathOrig .. " to: " .. gConfigPat=
+h)
+ 				-- test if config dir is writable, probably unicode filepath problem i=
+f not (e.g /Data aplikaci/ with accent on i or unicode username or somethin=
+g)
+ 				local config_write_test_path =3D gConfigPath.."config-write-test.txt"
+ 				local fp =3D io.open(config_write_test_path,"wb")
+ 				if (fp) then =
+
+ 					fp:close()
+-					CopyDir(gMainWorkingDir.."config/",gConfigPath)
++					CopyDir(gConfigPathOrig,gConfigPath)
+ 					return true
+ 				else
+ 					print("path not writable:",config_write_test_path)
+@@ -134,6 +194,7 @@
+ -- utils first
+ print("MainWorkingDir",gMainWorkingDir)
+ print("lugreluapath",lugreluapath)
++
+ dofile(lugreluapath .. "lugre.lua")
+ lugre_include_libs(lugreluapath)
+ dofile(libpath .. "lib.sound.iris.lua")
+@@ -353,40 +414,38 @@
+     OgreAddResLoc(mydatapath.."particles/particles"         ,"FileSystem",=
+"General")
+     OgreAddResLoc(mydatapath.."particles/textures"          ,"FileSystem",=
+"General")
+     OgreAddResLoc(mydatapath.."compositors"                 ,"FileSystem",=
+"General")
+-	=
+
+-    --~ # custom materials
+-    OgreAddResLoc(mydatapath.."custom/materials"            ,"FileSystem",=
+"General")
+-	=
+
+-    --~ # distributet models
+-    OgreAddResLoc(mydatapath.."models/materials"            ,"FileSystem",=
+"General")
+-    OgreAddResLoc(mydatapath.."models/meta"                 ,"FileSystem",=
+"General")
++
++    --~ # distributet Tiles
++    OgreAddResLoc(mydatapath.."models/materials"             ,"FileSystem"=
+,"General")
++    OgreAddResLoc(mydatapath.."models/meta"                  ,"FileSystem"=
+,"General")
+     for i=3D1,20 do OgreAddResLoc(mydatapath.."models/models/"..sprintf("t=
+o_%03d000",i)   ,"FileSystem","General") end
+-    OgreAddResLoc(mydatapath.."models/textures/"            ,"FileSystem",=
+"General")
+-    OgreAddResLoc(mydatapath.."models/atlas"                ,"FileSystem",=
+"General")
+-    OgreAddResLoc(mydatapath.."models/programs"             ,"FileSystem",=
+"General")
+-
+-    --~ # custom models
+-    OgreAddResLoc(mydatapath.."custom/models"               ,"FileSystem",=
+"General")
+-    OgreAddResLoc(mydatapath.."custom/textures"             ,"FileSystem",=
+"General")
+-
+-    --~ # new Terrain Shaderengine
++    OgreAddResLoc(mydatapath.."models/textures/"             ,"FileSystem"=
+,"General")
++    OgreAddResLoc(mydatapath.."models/atlas"                 ,"FileSystem"=
+,"General")
++    OgreAddResLoc(mydatapath.."models/programs"              ,"FileSystem"=
+,"General")
++
++    --~ # custom usercreated Tiles (Folder for Mods)
++    OgreAddResLoc(mydatapath.."custom/materials"      ,"FileSystem","Gener=
+al")
++    OgreAddResLoc(mydatapath.."custom/models"         ,"FileSystem","Gener=
+al")
++    OgreAddResLoc(mydatapath.."custom/textures"       ,"FileSystem","Gener=
+al")
++
++    --~ # distributet Terrain Shaderengine
+     OgreAddResLoc(mydatapath.."terrain/materials"           ,"FileSystem",=
+"General")
+     OgreAddResLoc(mydatapath.."terrain/programs"            ,"FileSystem",=
+"General")
+     OgreAddResLoc(mydatapath.."terrain/textures"            ,"FileSystem",=
+"General")
+     OgreAddResLoc(mydatapath.."terrain/multitex"            ,"FileSystem",=
+"General")
+     OgreAddResLoc(mydatapath.."terrain/multitex/parts"      ,"FileSystem",=
+"General")
+ =
+
+-    --~ # new Grannys
+-    OgreAddResLoc(mydatapath.."grannys/materials"           ,"FileSystem",=
+"General")
+-    OgreAddResLoc(mydatapath.."grannys/programs"            ,"FileSystem",=
+"General")
+-
+-    --~ # custom Grannys (Ogre.mesh + Ogre.skeleton)
+-    OgreAddResLoc(mydatapath.."customchars/materials"       ,"FileSystem",=
+"General")
+-    OgreAddResLoc(mydatapath.."customchars/models"          ,"FileSystem",=
+"General")
+-    OgreAddResLoc(mydatapath.."customchars/textures"        ,"FileSystem",=
+"General")
++    --~ # Ultima Online-Mobiles (Chars./Monster/Animals) - also called Gra=
+nnys
++    OgreAddResLoc(mydatapath.."grannys/materials"        ,"FileSystem","Ge=
+neral")
++    OgreAddResLoc(mydatapath.."grannys/programs"         ,"FileSystem","Ge=
+neral")
++
++    --~ # custom usercreated Chars/Monster/Animals (Grannys) (Ogre.mesh + =
+Ogre.skeleton)
++    OgreAddResLoc(mydatapath.."customchars/materials" ,"FileSystem","Gener=
+al")
++    OgreAddResLoc(mydatapath.."customchars/models"    ,"FileSystem","Gener=
+al")
++    OgreAddResLoc(mydatapath.."customchars/textures"  ,"FileSystem","Gener=
+al")
+     =
+
+ 	if (gUOPath) then =
+
+-		OgreAddResLoc(gUOPath..CorrectPath("Models/Maps")               ,"FileSy=
+stem","General")
++		OgreAddResLoc(gUOPath..CorrectPath("Models/Maps")   ,"FileSystem","Gener=
+al")
+ 	end
+ =
+
+     OgreAddResLoc(gMainWorkingDir..CorrectPath("lugre/lib/caelum/resources=
+"),"FileSystem","Caelum")
+@@ -394,12 +453,12 @@
+ 	if (gDebugModeTestSkeletalAnimShader or gEnableBloomShader) then =
+
+ 		local myOgreSampleMedia =3D mydatapath.."ogreSampleMedia/"
+ 		=
+
+-		OgreAddResLoc(myOgreSampleMedia.."/packs/OgreCore.zip"			,"Zip","Bootstr=
+ap")
++		OgreAddResLoc(myOgreSampleMedia.."/packs/OgreCore.zip" ,"Zip","Bootstrap=
+")
+ 		=
+
+-		OgreAddResLoc(myOgreSampleMedia.."/materials/programs"          ,"FileSy=
+stem","General")
+-		OgreAddResLoc(myOgreSampleMedia.."/materials/scripts"           ,"FileSy=
+stem","General")
+-		OgreAddResLoc(myOgreSampleMedia.."/materials/textures"          ,"FileSy=
+stem","General")
+-		OgreAddResLoc(myOgreSampleMedia.."/models"                      ,"FileSy=
+stem","General")
++		OgreAddResLoc(myOgreSampleMedia.."/materials/programs" ,"FileSystem","Ge=
+neral")
++		OgreAddResLoc(myOgreSampleMedia.."/materials/scripts"  ,"FileSystem","Ge=
+neral")
++		OgreAddResLoc(myOgreSampleMedia.."/materials/textures" ,"FileSystem","Ge=
+neral")
++		OgreAddResLoc(myOgreSampleMedia.."/models"             ,"FileSystem","Ge=
+neral")
+ 	end
+ =
+
+     if gUseCaduneTree then =
+
+
+Modified: trunk/lua/profiles/gfx_ultrahigh.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/profiles/gfx_ultrahigh.lua (original)
++++ trunk/lua/profiles/gfx_ultrahigh.lua Mon Nov 28 14:19:27 2011
+@@ -3,7 +3,7 @@
+ =
+
+ gConfig:Set("gAtlasRes","none")
+ =
+
+-gConfig:Set("gShadowTechnique","texture_additive_integrated")
++gConfig:Set("gShadowTechnique","texture_additive")
+ gConfig:Set("gStaticsCastShadows",true)
+ gConfig:Set("gDynamicsCastShadows",true)
+ gConfig:Set("gMobileCastShadows",true)
+
+
+
+From no-reply at zwischenwelt.org  Mon Nov 28 17:35:07 2011
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Mon, 28 Nov 2011 16:35:07 -0000
+Subject: [Iris-commit] [IRIS] r3415 - in /trunk/lua: lib.debugmenu.lua
+	lib.mainmenu.charcreate.lua
+Message-ID: <20111128163507.BF66354D0007@simon>
+
+Author: sience
+Date: Mon Nov 28 17:35:07 2011
+New Revision: 3415
+
+Log:
+-debugmenu switch Mode Bug fixed
+-debugmenu save Index for Model/Grannys added (menu still does not update, =
+only after using +/-)
+-elseif fix
+
+Modified:
+    trunk/lua/lib.debugmenu.lua
+    trunk/lua/lib.mainmenu.charcreate.lua
+
+Modified: trunk/lua/lib.debugmenu.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.debugmenu.lua (original)
++++ trunk/lua/lib.debugmenu.lua Mon Nov 28 17:35:07 2011
+@@ -16,10 +16,13 @@
+ gDebugMenuRunning =3D false
+ --gDebugMenuEnableAnim =3D false
+ --gDebugMenuEnableAnim =3D true
+-gDebugMenuAnimIndex =3D -1 -- (-1) shows rest pos
++gDebugMenuAnimIndex =3D -1 		-- (-1) shows rest pos
+ gDebugMenuAnimIndex =3D 0
+-gDebugMenuModelIndex =3D 1    -- start with first model in gDebugMenuModel=
+Table
++gDebugMenuIndex =3D 1    			-- starts in Granny-Mode with first Mobile in =
+gDebugMenuModelTable
+ gDebugMenuModelName =3D ""
++-- save Index for Tiles (Models)/Mobiles (Grannys)
++gDebugMenuModelIndexSave =3D 1	-- Tiles (Models)
++gDebugMenuGrannyIndexSave =3D 1	-- Mobiles (Grannys)
+ =
+
+ gDebugMenuMainGfxPos =3D {-0.5,0.5,-0.15}
+ =
+
+@@ -585,7 +588,8 @@
+ function AnimInvertMode () return 1,0 end
+ =
+
+ function DebugMenuShowModel ()
+-    local index =3D gDebugMenuModelIndex
++    local index =3D gDebugMenuIndex
++    local xadd,yadd,zadd =3D 0,0,0
+ =
+
+     if (gDebugRootGfx) then gDebugRootGfx:Destroy() gDebugRootGfx =3D nil =
+end
+     if (gDebugRootGfx2) then gDebugRootGfx2:Destroy() gDebugRootGfx2 =3D n=
+il end
+@@ -594,7 +598,7 @@
+     gDebugRootGfx2 =3D CreateRootGfx3D()
+     gDebugRootGfx3 =3D CreateRootGfx3D()
+     =
+
+-    -- granny =
+
++    -- Mobile (Grannys) or Tile (Meshes) Debugmode
+     if (gCurDebugMode =3D=3D kDebugMode_Granny) then
+         local mobile =3D gDebugMenuModelTable[index]
+         if (not mobile) then return end
+@@ -613,11 +617,8 @@
+         gDebugBodyGfx:SetState(bMoving,bTurning,bWarMode,bRunFlag)
+         =
+
+         if (gDebugMenuAnimIndex >=3D 0) then gDebugBodyGfx:StartAnimLoop(g=
+DebugMenuAnimIndex) end
+-    end
+-    =
+
+-    local xadd,yadd,zadd =3D 0,0,0
+-    -- static =
+
+-    if (gCurDebugMode =3D=3D kDebugMode_Static) then
++
++    elseif (gCurDebugMode =3D=3D kDebugMode_Static) then
+         Client_SetAmbientLight(0,0,0,0)
+         Client_ClearLights()
+         --~ Client_AddPointLight(2.1836402416229      ,  -0.50490587949753=
+    ,   1.208433508873)
+@@ -629,64 +630,67 @@
+         --~ Client_AddPointLight(-10,-10,0)
+         gTileFreeWalk:SetPos_ClientSide(-1,1,0)
+         =
+
+-        local iTileType =3D tonumber(gDebugMenuModelIndex)
++        local iTileType =3D tonumber(gDebugMenuIndex)
+         local iHue =3D gDebugMenuAnimIndex
+         local info =3D GetStaticTileType(iTileType)
+         local meshname =3D GetMeshName(iTileType,iHue)
+-		if (gDebugModeTestSkeletalAnimShader) then meshname =3D "jaiqua.mesh" end
+-        --~ if (iTileType =3D=3D 578) then meshname =3D "knot.mesh" end
+-        local submeshcount =3D GetMeshSubMeshCount(meshname)
+-        print("mesh for tiletype=3D",iTileType,sprintf("0x%04x",iTileType)=
+," submeshcount=3D",submeshcount)
+-        for i =3D 0,submeshcount-1 do =
+
+-            print("submesh mat",i,GetMeshSubMaterial(meshname,i),iTileType)
+-            if (iTileType =3D=3D 578) then SetMeshSubMaterial(meshname,i,"=
+Examples/OffsetMapping/Specular") end
+-            --~ if (iTileType =3D=3D 578) then SetMeshSubMaterial(meshname=
+,i,"Examples/OffsetMapping/IntegratedShadows") end
+-        end
+-        MeshBuildTangentVectors(meshname)
+-        =
+
+-        if gDebugLastMeshName then ReloadMesh(gDebugLastMeshName) end
+-        gDebugLastMeshName =3D meshname
+-        local tricount =3D meshname and CountMeshTriangles(meshname) or 0
+-        GuiAddChatLine(sprintf("static %04x(=3D%d) hue=3D%d tricount=3D%d =
+%s",iTileType,iTileType,iHue,tricount,GetStaticTileTypeName(iTileType) or "=
+"))
+-        if (meshname and meshname ~=3D false) then
+-            gDebugRootGfx:SetMesh(meshname)
++
++		if ((meshname ~=3D nil) and (meshname ~=3D false)) then
++			if (gDebugModeTestSkeletalAnimShader) then meshname =3D "jaiqua.mesh" e=
+nd
++			--~ if (iTileType =3D=3D 578) then meshname =3D "knot.mesh" end
++			local submeshcount =3D GetMeshSubMeshCount(meshname)
++			print("mesh for tiletype=3D",iTileType,sprintf("0x%04x",iTileType)," su=
+bmeshcount=3D",submeshcount)
++			for i =3D 0,submeshcount-1 do =
+
++				print("submesh mat",i,GetMeshSubMaterial(meshname,i),iTileType)
++				if (iTileType =3D=3D 578) then SetMeshSubMaterial(meshname,i,"Examples=
+/OffsetMapping/Specular") end
++				--~ if (iTileType =3D=3D 578) then SetMeshSubMaterial(meshname,i,"Exam=
+ples/OffsetMapping/IntegratedShadows") end
++			end
++			MeshBuildTangentVectors(meshname)
+ 			=
+
+-			if (gDebugModeTestSkeletalAnimShader) then =
+
+-				local f =3D 1/34
+-				gDebugRootGfx:SetScale(f,f,f)
+-				gDebugRootGfx:SetAnim("Sneak",true)
+-				gDebugRootGfx.animtime =3D 0
+-				if (not  gDebugRootGfx.animfun_set) then
+-					 gDebugRootGfx.animfun_set =3D true =
+
+-					 RegisterStepper(function () =
+
+-						gDebugRootGfx:SetAnimTimePos(gDebugRootGfx.animtime)
+-						gDebugRootGfx.animtime =3D gDebugRootGfx.animtime + 1/30
+-						if (gDebugRootGfx.animtime > 3) then gDebugRootGfx.animtime =3D 0 end
+-					 end)
++			if gDebugLastMeshName then ReloadMesh(gDebugLastMeshName) end
++			gDebugLastMeshName =3D meshname
++			local tricount =3D meshname and CountMeshTriangles(meshname) or 0
++			GuiAddChatLine(sprintf("static %04x(=3D%d) hue=3D%d tricount=3D%d %s",i=
+TileType,iTileType,iHue,tricount,GetStaticTileTypeName(iTileType) or ""))
++			if (meshname and meshname ~=3D false) then
++				gDebugRootGfx:SetMesh(meshname)
++				=
+
++				if (gDebugModeTestSkeletalAnimShader) then =
+
++					local f =3D 1/34
++					gDebugRootGfx:SetScale(f,f,f)
++					gDebugRootGfx:SetAnim("Sneak",true)
++					gDebugRootGfx.animtime =3D 0
++					if (not  gDebugRootGfx.animfun_set) then
++						 gDebugRootGfx.animfun_set =3D true =
+
++						 RegisterStepper(function () =
+
++							gDebugRootGfx:SetAnimTimePos(gDebugRootGfx.animtime)
++							gDebugRootGfx.animtime =3D gDebugRootGfx.animtime + 1/30
++							if (gDebugRootGfx.animtime > 3) then gDebugRootGfx.animtime =3D 0 e=
+nd
++						 end)
++					end
++					=
+
++						=
+
++					local x1,y1,z1, x2,y2,z2 =3D gDebugRootGfx:GetEntityBounds()
++					print("##########################################")
++					print("#######  mesh bounds :",x1,y1,z1, x2,y2,z2)
++					print("##########################################")
++					--~ #######  mesh bounds :  -24.264656066895        -1.6195520162582 =
+       -61.062599182129        14.574376106262 17.728036880493 34.605701446=
+533
++					--~ #######  mesh bounds :  -1.0015000104904        -0.00449999980628=
+49     -0.012000000104308      -0.84850001335144       0.454499989748  1.21=
+20000123978
+ 				end
+ 				=
+
+-					=
+
+-				local x1,y1,z1, x2,y2,z2 =3D gDebugRootGfx:GetEntityBounds()
+-				print("##########################################")
+-				print("#######  mesh bounds :",x1,y1,z1, x2,y2,z2)
+-				print("##########################################")
+-				--~ #######  mesh bounds :  -24.264656066895        -1.6195520162582  =
+      -61.062599182129        14.574376106262 17.728036880493 34.6057014465=
+33
+-				--~ #######  mesh bounds :  -1.0015000104904        -0.004499999806284=
+9     -0.012000000104308      -0.84850001335144       0.454499989748  1.212=
+0000123978
++				=
+
++				--~ gDebugRootGfx:SetOrientation(GetStaticMeshOrientation(iTileType))
++				--~ mirroring now baked into meshes for shader compatibility -- gDebug=
+RootGfx:SetScale(-1,1,1)          -- (-1) thats because xmirror bug and wro=
+ng mirrored meshes
++				--~ gDebugRootGfx:SetNormaliseNormals(true)
++				--~ gDebugRootGfx:SetCastShadows(gDynamicsCastShadows)
++				-- primary color hueing
++				if gHueLoader and iHue > 0 then
++					local r,g,b =3D gHueLoader:GetColor(iHue - 1,31) -- get first color
++					--~ HueMeshEntity(gDebugRootGfx,r,g,b,r,g,b)
++				end
++				-- position adjustment for statics and dynamics
++				xadd,yadd,zadd =3D FilterPositionXYZ(iTileType)
+ 			end
+-			=
+
+-			=
+
+-            --~ gDebugRootGfx:SetOrientation(GetStaticMeshOrientation(iTil=
+eType))
+-            --~ mirroring now baked into meshes for shader compatibility -=
+- gDebugRootGfx:SetScale(-1,1,1)          -- (-1) thats because xmirror bug=
+ and wrong mirrored meshes
+-            --~ gDebugRootGfx:SetNormaliseNormals(true)
+-            --~ gDebugRootGfx:SetCastShadows(gDynamicsCastShadows)
+-            -- primary color hueing
+-            if gHueLoader and iHue > 0 then
+-                local r,g,b =3D gHueLoader:GetColor(iHue - 1,31) -- get fi=
+rst color
+-                --~ HueMeshEntity(gDebugRootGfx,r,g,b,r,g,b)
+-            end
+-            -- position adjustment for statics and dynamics
+-            xadd,yadd,zadd =3D FilterPositionXYZ(iTileType)
+-        end
++		end
+         Renderer3D:CreateArtBillBoard(gDebugRootGfx2,iTileType+0x4000,iHue)
+         =
+
+         Renderer3D:CreateArtBillBoard(gDebugRootGfx3,0,0,true)--0,0,true)
+@@ -703,12 +707,12 @@
+ end
+ =
+
+ function DebugMenuSetParam1 (value) =
+
+-    gDebugMenuModelIndex =3D value
++    gDebugMenuIndex =3D value
+     DebugMenuShowModel()
+ end
+ =
+
+ function DebugMenuChangeParam1  (delta) =
+
+-    local newval =3D gDebugMenuModelIndex
++    local newval =3D gDebugMenuIndex
+     if ((gKeyPressed[key_lshift]) and gCurDebugMode =3D=3D kDebugMode_Stat=
+ic) then
+         for i=3D1,math.abs(delta) do
+             local tries =3D 400
+@@ -756,15 +760,15 @@
+         gCurDebugMode =3D kDebugMode_Static
+         if string.find(id,"x") then
+             -- hex value given
+-            gDebugMenuModelIndex =3D hex2num(id)
++            gDebugMenuIndex =3D hex2num(id)
+         else
+             -- decimal value given
+-            gDebugMenuModelIndex =3D id
++            gDebugMenuIndex =3D id
+         end
+         =
+
+         if gCommandLineSwitches["-export"] then
+             -- just export the current model and close the client
+-            DebugExportModel(gDebugMenuModelIndex)
++            DebugExportModel(gDebugMenuIndex)
+             Terminate()
+         end
+     end
+@@ -868,11 +872,11 @@
+     Bind("wheeldown",   function (state) if (not gActiveEditText) then if =
+(state > 0) then gCurrentRenderer:CamChangeZoom( 0.3) end end end)
+     Bind("wheelup",     function (state) if (not gActiveEditText) then if =
+(state > 0) then gCurrentRenderer:CamChangeZoom(-0.3) end end end)
+     Bind("f10",     function (state) if (not gActiveEditText) then if (sta=
+te > 0 and gCurDebugMode =3D=3D kDebugMode_Static) then =
+
+-        AdjustArtPositionControlDialog(gDebugMenuModelIndex) end end end)
++        AdjustArtPositionControlDialog(gDebugMenuIndex) end end end)
+     Bind("c",       function (state) if (not gActiveEditText) then if (sta=
+te > 0) then gCurrentRenderer:ChangeCamMode() end end end)
+ =
+
+     Bind("a", function (state) if (not gActiveEditText) then if (state > 0=
+) then =
+
+-        gDebugMenuAnimIndex =3D 0 gDebugMenuModelIndex =3D 1 DebugMenuShow=
+Model()
++        gDebugMenuAnimIndex =3D 0 gDebugMenuIndex =3D 1 DebugMenuShowModel=
+()
+         end end end)
+ =
+
+     Bind("f", function (state) if (not gActiveEditText) then if (state > 0=
+) then =
+
+@@ -892,9 +896,17 @@
+         =
+
+     Bind("f1", function (state) if (not gActiveEditText) then if (state > =
+0) then
+         --TODO: close ShowDebugMenuArtList(0,kDebugMode_Static)
+-        gCurDebugMode =3D gCurDebugMode + 1
+-        if (gCurDebugMode > kDebugMode_Static) then gCurDebugMode =3D kDeb=
+ugMode_Granny end
+-        gDebugMenuAnimIndex =3D 0 gDebugMenuModelIndex =3D 1
++		if (gCurDebugMode =3D=3D kDebugMode_Granny) then
++			gDebugMenuGrannyIndexSave =3D gDebugMenuIndex
++			gCurDebugMode =3D kDebugMode_Static
++			gDebugMenuAnimIndex =3D 0
++			gDebugMenuIndex =3D gDebugMenuModelIndexSave
++		else
++			gDebugMenuModelIndexSave =3D gDebugMenuIndex
++			gCurDebugMode =3D kDebugMode_Granny
++			gDebugMenuAnimIndex =3D 0
++			gDebugMenuIndex =3D gDebugMenuGrannyIndexSave
++		end
+         DebugMenuShowModel()
+         end end end)
+         =
+
+@@ -926,7 +938,7 @@
+     Bind("t", function (state) if (not gActiveEditText) then if (state > 0=
+) then =
+
+         if (gCurDebugMode =3D=3D kDebugMode_Static) then
+             if (gEnableSVNRemoveInStaticDebug) then -- BE CAREFUL WITH THA=
+T !!!!  gEnableSVNRemoveInStaticDebug
+-                local i =3D gDebugMenuModelIndex
++                local i =3D gDebugMenuIndex
+                 os.execute("svn rm " .. GetMeshPath(i))
+                 GuiAddChatLine(sprintf("SVN REMOVE 0x%04x(=3D%d) %s",i,i,G=
+etMeshPath(i)))
+             end =
+
+@@ -945,7 +957,7 @@
+ =
+
+     Bind("b", function (state) if (not gActiveEditText) then if (state > 0=
+) then =
+
+         if (gCurDebugMode =3D=3D kDebugMode_Static) then
+-            local i =3D gDebugMenuModelIndex
++            local i =3D gDebugMenuIndex
+             local notepath =3D "debugstatic.txt"
+             local text =3D sprintf("DebugStaticNOTE 0x%04x(=3D%d) %s %s",i=
+,i,GetMeshPath(i),GetStaticTileTypeName(i) or "")
+             GuiAddChatLine(notepath..":"..text)
+@@ -1076,13 +1088,13 @@
+ =
+
+ --TODO: add check for statics
+ function checkGlobals(debugmenumodelindex)
+-    if (debugmenumodelindex <=3D 1) then return 1 end
++	if (debugmenumodelindex <=3D 1) then return 1 end
+ =
+
+     -- if in grannymode, check if index is out of array
+     if (gCurDebugMode =3D=3D kDebugMode_Granny) then
+         local maxmodelindex =3D table.getn(gDebugMenuModelTable)
+-        if (gDebugMenuModelIndex >=3D maxmodelindex) then return maxmodeli=
+ndex end
+-    end
++        if (gDebugMenuIndex >=3D maxmodelindex) then return maxmodelindex =
+end
++	end
+ =
+
+     return debugmenumodelindex
+ end
+@@ -1154,16 +1166,16 @@
+             local debugmodelartid =3D 1
+             local debugmodelname =3D ""
+             if (gCurDebugMode =3D=3D kDebugMode_Granny) then
+-                debugmodelartid =3D gDebugMenuModelTable[gDebugMenuModelIn=
+dex].artid
++                debugmodelartid =3D gDebugMenuModelTable[gDebugMenuIndex].=
+artid
+                 local modelinfo =3D GetGrannyModelInfo(debugmodelartid)
+                 debugmodelname =3D modelinfo.modelname
+             else
+-                debugmodelname =3D GetStaticTileTypeName(gDebugMenuModelIn=
+dex) or "unknown"
+-                debugmodelartid =3D gDebugMenuModelIndex
++                debugmodelname =3D GetStaticTileTypeName(gDebugMenuIndex) =
+or "unknown"
++                debugmodelartid =3D gDebugMenuIndex
+             end
+             local tmp =3D {
+                 cModelArtID =3D debugmodelartid,
+-                cModelIdx   =3D gDebugMenuModelIndex,
++                cModelIdx   =3D gDebugMenuIndex,
+                 cModelName  =3D debugmodelname
+             }
+             return tmp
+@@ -1190,7 +1202,8 @@
+             {type=3D"Label",  text=3D"Table Index"},
+             {type=3D"Button",text=3D"-",onMouseDown=3Dfunction (widget)
+                     --get the edit text field
+-                    gDebugMenuModelIndex=3DcheckGlobals( tonumber(widget.d=
+ialog.controls["cModelIdx"].plaintext) - 1 )
++					gDebugMenuIndex =3D checkGlobals(gDebugMenuIndex-1)
++					widget.dialog.controls["cModelIdx"].plaintext =3D gDebugMenuIndex
+ =
+
+                     --update edit field(s)
+                     UpdateEditText(widget, textControls())
+@@ -1201,7 +1214,8 @@
+             {type=3D"EditText",   w=3D40,h=3D16,text=3D"",controlname=3D"c=
+ModelIdx"},
+             {type=3D"Button",text=3D"+",onMouseDown=3Dfunction (widget)
+                     --get the edit text field
+-                    gDebugMenuModelIndex=3DcheckGlobals( tonumber(widget.d=
+ialog.controls["cModelIdx"].plaintext) + 1 )
++					gDebugMenuIndex =3D checkGlobals(gDebugMenuIndex+1)
++					widget.dialog.controls["cModelIdx"].plaintext =3D gDebugMenuIndex
+ =
+
+                     --update edit field(s)
+                     UpdateEditText(widget, textControls())
+@@ -1211,7 +1225,7 @@
+             }, =
+
+             {type=3D"Button",text=3D"Get",onMouseDown=3Dfunction (widget)
+                     --get the edit text field
+-                    gDebugMenuModelIndex=3DcheckGlobals( tonumber(widget.d=
+ialog.controls["cModelIdx"].plaintext) )
++                    gDebugMenuIndex=3DcheckGlobals( tonumber(widget.dialog=
+.controls["cModelIdx"].plaintext) )
+ =
+
+                     --update edit field(s)
+                     UpdateEditText(widget, textControls())
+@@ -1234,19 +1248,19 @@
+         },
+         {
+             {type=3D"Button",text=3D"Delete",onMouseDown=3Dfunction (widge=
+t)
+-                    DebugDeleteModel(gDebugMenuModelIndex)
++                    DebugDeleteModel(gDebugMenuIndex)
+                 end
+             }, =
+
+         },
+         {
+             {type=3D"Button",text=3D"Export",onMouseDown=3Dfunction (widge=
+t)
+-                    DebugExportModel(gDebugMenuModelIndex)
++                    DebugExportModel(gDebugMenuIndex)
+                 end
+             }, =
+
+         },
+         {
+             {type=3D"Button",text=3D"Flip",onMouseDown=3Dfunction (widget)
+-                    DebugFlipModel(gDebugMenuModelIndex)
++                    DebugFlipModel(gDebugMenuIndex)
+                     DebugMenuShowModel()
+                 end
+             }, =
+
+
+Modified: trunk/lua/lib.mainmenu.charcreate.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mainmenu.charcreate.lua (original)
++++ trunk/lua/lib.mainmenu.charcreate.lua Mon Nov 28 17:35:07 2011
+@@ -121,7 +121,7 @@
+             =
+
+             public static int ClipDyedHue( int hue ) {
+                 if ( hue < 2 ) return 2;
+-                else if ( hue > 1001 ) return 1001;
++                elseif ( hue > 1001 ) return 1001;
+                 else return hue;
+             }
+             =
+
+@@ -154,7 +154,7 @@
+         public override int human:ClipHairHue( int hue )
+         {
+             if( hue < 1102 ) return 1102;
+-            else if( hue > 1149 ) return 1149;
++            elseif( hue > 1149 ) return 1149;
+             else return hue;
+         }
+         public override int elf:ClipHairHue( int hue )
+
+
+
+From no-reply at zwischenwelt.org  Mon Nov 28 17:55:39 2011
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Mon, 28 Nov 2011 16:55:39 -0000
+Subject: [Iris-commit] [IRIS] r3416 - in /trunk/lua: lib.debugmenu.lua
+	lib.static.lua
+Message-ID: <20111128165539.507227A9855F@simon>
+
+Author: sience
+Date: Mon Nov 28 17:55:32 2011
+New Revision: 3416
+
+Log:
+-bugfix for mesh exporter in debugmenu
+
+Modified:
+    trunk/lua/lib.debugmenu.lua
+    trunk/lua/lib.static.lua
+
+Modified: trunk/lua/lib.debugmenu.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.debugmenu.lua (original)
++++ trunk/lua/lib.debugmenu.lua Mon Nov 28 17:55:32 2011
+@@ -1012,7 +1012,7 @@
+ =
+
+ function DebugExportModel   (id)
+     print("###############################")
+-    print("export model and textures",artid,"to data/export")
++    print("export model and textures of","artid: "..id,"to data/export")
+ =
+
+     local base =3D id - math.mod(id,1000) + 1000
+     local relpath  =3D sprintf("to_%06d/",base)
+@@ -1061,9 +1061,9 @@
+     print("###############################")
+ end
+ =
+
+-function DebugMenuJumpToArtID (iArtID) =
+
++function DebugMenuJumpToArtID (id) =
+
+     gCurDebugMode =3D kDebugMode_Static
+-    DebugMenuSetParam1(iArtID)
++    DebugMenuSetParam1(id)
+ end
+ =
+
+ -- iMaxW,iMaxH : can be nil for unlimited size
+
+Modified: trunk/lua/lib.static.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.static.lua (original)
++++ trunk/lua/lib.static.lua Mon Nov 28 17:55:32 2011
+@@ -8,7 +8,7 @@
+ =
+
+ -- returns the mesh-filename with the given id
+ -- TODO handle custom stuff?
+-local function GetMeshFileName(id)
++function GetMeshFileName(id)
+ 	return sprintf("mdl_%06d.mesh",id)
+ end
+ =
+
+
+
+
+From no-reply at zwischenwelt.org  Mon Nov 28 22:44:09 2011
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Mon, 28 Nov 2011 21:44:09 -0000
+Subject: [Iris-commit] [IRIS] r3417 - in /trunk/lua: filter/filter.art.lua
+	lib.static.lua
+Message-ID: <20111128214409.9DADF54D0007@simon>
+
+Author: ghoulsblade
+Date: Mon Nov 28 22:44:09 2011
+New Revision: 3417
+
+Log:
+override for non existing mesh file fix
+
+Modified:
+    trunk/lua/filter/filter.art.lua
+    trunk/lua/lib.static.lua
+
+Modified: trunk/lua/filter/filter.art.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/filter/filter.art.lua (original)
++++ trunk/lua/filter/filter.art.lua Mon Nov 28 22:44:09 2011
+@@ -15,6 +15,25 @@
+ end
+ =
+
+ function GetFilterData(iTranslatedTileTypeID) return gArtFilter[iTranslate=
+dTileTypeID] end
++
++
++function ExpandFilterShortCuts (filter)
++	-- easy syntax
++	if (filter.override_tex_0 or filter.newmatname) then
++		filter.override_material						=3D filter.override_material or {}
++		filter.override_material[0]						=3D filter.override_material[0] or {}
++		filter.override_material[0].texture_overrides	=3D filter.override_materi=
+al[0].texture_overrides or {}
++		for i=3D0,10 do
++			local tex =3D filter["override_tex_"..i]
++			if (tex) then table.insert(filter.override_material[0].texture_override=
+s,{sTextureName=3Dtex,iTech=3D0,iPass=3D0,iTextureUnit=3Di}) end
++		end
++		if (filter.newmatname) then filter.override_material[0].newmatname =3D f=
+ilter.newmatname end
++		=
+
++		-- gArtFilter[0x04ac]=3D{clone_meshname=3D"mdl_001194.mesh",override_tex=
+_0=3D"art_fallback.png",override_tex_1=3D"mybumbmap.png"}
++		--~ gArtFilter[0x04ac]=3D{clone_meshname=3D"mdl_001194.mesh",override_ma=
+terial=3D{[0]=3D{newmatname=3D"BaseWhiteNoLighting",texture_overrides=3D{{s=
+TextureName=3D"art_fallback.png",iTech=3D0,iPass=3D0,iTextureUnit=3D0,}}}}}
++		--~ gArtFilter[0x04aa]=3D{clone_meshname=3D"mdl_001194.mesh",override_ma=
+terial=3D{[0]=3D{newmatname=3D"BaseWhiteNoLighting",texture_overrides=3D{{s=
+TextureName=3D"guibordertest.png",iTech=3D0,iPass=3D0,iTextureUnit=3D0,}}}}}
++	end
++end
+ =
+
+ -- apply overrides, like cloning the mesh to change material (2011-11 floo=
+rtiles+walls)
+ -- returns meshname
+@@ -35,25 +54,20 @@
+ 		iTextureUnit=3D0, -- optional, default to 0
+ 	}
+ ]]--
++
++-- return true means that the mesh required for the tiletype id is availab=
+le and doesn't need to be checked by path/fileexists in GetMeshName()
++function Filter_CheckMeshAvailable_Override(iSeasonedButNotRemappedTileTyp=
+eID)
++	local filter =3D gArtFilter[iSeasonedButNotRemappedTileTypeID]
++	if (not filter) then return end
++	if (filter.clone_meshname) then =
+
++		if ( OgreMeshAvailable(tostring(filter.clone_meshname)) ) then return tr=
+ue end
++	end
++end
++
+ function FilterApplyMeshOverrides(meshname,iSeasonedButNotRemappedTileType=
+ID)
+ 	local filter =3D gArtFilter[iSeasonedButNotRemappedTileTypeID]
+ 	if (meshname and filter) then
+-	=
+
+-		-- easy syntax
+-		if (filter.override_tex_0 or filter.newmatname) then
+-			filter.override_material						=3D filter.override_material or {}
+-			filter.override_material[0]						=3D filter.override_material[0] or {}
+-			filter.override_material[0].texture_overrides	=3D filter.override_mater=
+ial[0].texture_overrides or {}
+-			for i=3D0,10 do
+-				local tex =3D filter["override_tex_"..i]
+-				if (tex) then table.insert(filter.override_material[0].texture_overrid=
+es,{sTextureName=3Dtex,iTech=3D0,iPass=3D0,iTextureUnit=3Di}) end
+-			end
+-			if (filter.newmatname) then filter.override_material[0].newmatname =3D =
+filter.newmatname end
+-			=
+
+-			-- gArtFilter[0x04ac]=3D{clone_meshname=3D"mdl_001194.mesh",override_te=
+x_0=3D"art_fallback.png",override_tex_1=3D"mybumbmap.png"}
+-			--~ gArtFilter[0x04ac]=3D{clone_meshname=3D"mdl_001194.mesh",override_m=
+aterial=3D{[0]=3D{newmatname=3D"BaseWhiteNoLighting",texture_overrides=3D{{=
+sTextureName=3D"art_fallback.png",iTech=3D0,iPass=3D0,iTextureUnit=3D0,}}}}}
+-			--~ gArtFilter[0x04aa]=3D{clone_meshname=3D"mdl_001194.mesh",override_m=
+aterial=3D{[0]=3D{newmatname=3D"BaseWhiteNoLighting",texture_overrides=3D{{=
+sTextureName=3D"guibordertest.png",iTech=3D0,iPass=3D0,iTextureUnit=3D0,}}}=
+}}
+-		end
++		ExpandFilterShortCuts(filter)
+ 		=
+
+ 		-- apply override
+ 		if (filter.override_material) then
+@@ -62,6 +76,8 @@
+ 			=
+
+ 			-- load mesh
+ 			local load_meshname =3D filter.clone_meshname and tostring(filter.clone=
+_meshname) or meshname
++			=
+
++			if ( not OgreMeshAvailable(load_meshname) ) then print("FilterApplyMesh=
+Overrides: mesh failed to load:",load_meshname) return meshname end
+ 			local pMeshOrig =3D MeshManager_load(load_meshname)
+ 			assert(pMeshOrig,"FilterApplyMeshOverrides failed to load "..load_meshn=
+ame)
+ 			local clone_name =3D "FilterApplyMeshOverrides_"..tostring(iSeasonedBut=
+NotRemappedTileTypeID).."_"..load_meshname
+
+Modified: trunk/lua/lib.static.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.static.lua (original)
++++ trunk/lua/lib.static.lua Mon Nov 28 22:44:09 2011
+@@ -53,13 +53,16 @@
+ 	local meshname =3D nil
+ 	meshname =3D gLegacyMeshCache[iTranslatedTileTypeID]
+ 	if (meshname =3D=3D nil) then
++		-- note: new lugre MeshManager_resourceExists(name) might be helpful her=
+e, but untested and not yet used since it needs new compile
++		=
+
+ 		local meshlocation =3D GetMeshPath(iTranslatedTileTypeID) -- returns pat=
+h including subfolders, also checks if custom mesh is available
+-
+-		if ( meshlocation ~=3D nil ) then
++		local bCheckMeshAvailable_Override =3D Filter_CheckMeshAvailable_Overrid=
+e(iSeasonedButNotRemappedTileTypeID)
++
++		if ( bCheckMeshAvailable_Override or meshlocation ~=3D nil ) then
+ =
+
+ 			meshname =3D GetMeshFileName(iTranslatedTileTypeID) -- "mdl_%06d.mesh",=
+ just number-to-string, no translation : =
+
+ 			-- load Mesh here
+-			if ( OgreMeshAvailable(meshname) ) then
++			if ( bCheckMeshAvailable_Override or OgreMeshAvailable(meshname) ) then
+ 				printdebug("static","Meshloader:", iTranslatedTileTypeID, meshlocation)
+ 				=
+
+ 				-- apply overrides, like cloning the mesh to change material (2011-11 =
+floortiles+walls)
+
+
+
+From no-reply at zwischenwelt.org  Mon Nov 28 22:44:58 2011
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Mon, 28 Nov 2011 21:44:58 -0000
+Subject: [Iris-commit] [IRIS] r3418 - /trunk/lua/filter/filter.art.lua
+Message-ID: <20111128214458.9B36F7A9855F@simon>
+
+Author: ghoulsblade
+Date: Mon Nov 28 22:44:58 2011
+New Revision: 3418
+
+Log:
+forgot shortcut expansion
+
+Modified:
+    trunk/lua/filter/filter.art.lua
+
+Modified: trunk/lua/filter/filter.art.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/filter/filter.art.lua (original)
++++ trunk/lua/filter/filter.art.lua Mon Nov 28 22:44:58 2011
+@@ -59,6 +59,7 @@
+ function Filter_CheckMeshAvailable_Override(iSeasonedButNotRemappedTileTyp=
+eID)
+ 	local filter =3D gArtFilter[iSeasonedButNotRemappedTileTypeID]
+ 	if (not filter) then return end
++	ExpandFilterShortCuts(filter)
+ 	if (filter.clone_meshname) then =
+
+ 		if ( OgreMeshAvailable(tostring(filter.clone_meshname)) ) then return tr=
+ue end
+ 	end
+
+
+
+From no-reply at zwischenwelt.org  Mon Nov 28 23:12:54 2011
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Mon, 28 Nov 2011 22:12:54 -0000
+Subject: [Iris-commit] [IRIS] r3419 - in /trunk/lua: filter/filter.art.lua
+	lib.static.lua
+Message-ID: <20111128221254.E760E7A9855F@simon>
+
+Author: ghoulsblade
+Date: Mon Nov 28 23:12:54 2011
+New Revision: 3419
+
+Log:
+deactivated fix until error can be debugged
+
+Modified:
+    trunk/lua/filter/filter.art.lua
+    trunk/lua/lib.static.lua
+
+Modified: trunk/lua/filter/filter.art.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/filter/filter.art.lua (original)
++++ trunk/lua/filter/filter.art.lua Mon Nov 28 23:12:54 2011
+@@ -78,7 +78,7 @@
+ 			-- load mesh
+ 			local load_meshname =3D filter.clone_meshname and tostring(filter.clone=
+_meshname) or meshname
+ 			=
+
+-			if ( not OgreMeshAvailable(load_meshname) ) then print("FilterApplyMesh=
+Overrides: mesh failed to load:",load_meshname) return meshname end
++			--~ TODO:disabled until error can be debugged: if ( not OgreMeshAvailab=
+le(load_meshname) ) then print("FilterApplyMeshOverrides: mesh failed to lo=
+ad:",load_meshname) return meshname end
+ 			local pMeshOrig =3D MeshManager_load(load_meshname)
+ 			assert(pMeshOrig,"FilterApplyMeshOverrides failed to load "..load_meshn=
+ame)
+ 			local clone_name =3D "FilterApplyMeshOverrides_"..tostring(iSeasonedBut=
+NotRemappedTileTypeID).."_"..load_meshname
+
+Modified: trunk/lua/lib.static.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.static.lua (original)
++++ trunk/lua/lib.static.lua Mon Nov 28 23:12:54 2011
+@@ -56,7 +56,8 @@
+ 		-- note: new lugre MeshManager_resourceExists(name) might be helpful her=
+e, but untested and not yet used since it needs new compile
+ 		=
+
+ 		local meshlocation =3D GetMeshPath(iTranslatedTileTypeID) -- returns pat=
+h including subfolders, also checks if custom mesh is available
+-		local bCheckMeshAvailable_Override =3D Filter_CheckMeshAvailable_Overrid=
+e(iSeasonedButNotRemappedTileTypeID)
++		--~ local bCheckMeshAvailable_Override =3D Filter_CheckMeshAvailable_Ove=
+rride(iSeasonedButNotRemappedTileTypeID)
++		local bCheckMeshAvailable_Override =3D false
+ =
+
+ 		if ( bCheckMeshAvailable_Override or meshlocation ~=3D nil ) then
+ =
+
+
+
+
+From no-reply at zwischenwelt.org  Mon Nov 28 23:48:41 2011
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Mon, 28 Nov 2011 22:48:41 -0000
+Subject: [Iris-commit] [IRIS] r3420 - in /trunk/lua: filter/filter.art.lua
+	lib.static.lua
+Message-ID: <20111128224841.E478A7A9855F@simon>
+
+Author: ghoulsblade
+Date: Mon Nov 28 23:48:41 2011
+New Revision: 3420
+
+Log:
+reactivated non-existing model fix, the problem was in the .material file
+
+Modified:
+    trunk/lua/filter/filter.art.lua
+    trunk/lua/lib.static.lua
+
+Modified: trunk/lua/filter/filter.art.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/filter/filter.art.lua (original)
++++ trunk/lua/filter/filter.art.lua Mon Nov 28 23:48:41 2011
+@@ -1727,4 +1727,10 @@
+ gArtFilter[0x63b]=3D{clone_meshname=3D"basefloortile.mesh",override_tex_0=
+=3D"tex_0x463b.png"}
+ gArtFilter[0x63c]=3D{clone_meshname=3D"basefloortile.mesh",override_tex_0=
+=3D"tex_0x463c.png"}
+ gArtFilter[0x63d]=3D{clone_meshname=3D"basefloortile.mesh",override_tex_0=
+=3D"tex_0x463d.png"}
+-gArtFilter[0x63e]=3D{clone_meshname=3D"basefloortile.mesh",override_tex_0=
+=3D"tex_0x463e.png"}
++gArtFilter[0x63e]=3D{clone_meshname=3D"basefloortile.mesh",override_tex_0=
+=3D"tex_0x463e.png"}
++
++-- grass stuff
++--~ gArtFilter[0xcb5]=3D{clone_meshname=3D"basegrass.mesh",override_tex_0=
+=3D"tex_basegrass.png"}
++--~ gArtFilter[0xcac]=3D{clone_meshname=3D"basegrass.mesh",override_tex_0=
+=3D"tex_basegrass1.png"}
++
++
+
+Modified: trunk/lua/lib.static.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.static.lua (original)
++++ trunk/lua/lib.static.lua Mon Nov 28 23:48:41 2011
+@@ -56,8 +56,7 @@
+ 		-- note: new lugre MeshManager_resourceExists(name) might be helpful her=
+e, but untested and not yet used since it needs new compile
+ 		=
+
+ 		local meshlocation =3D GetMeshPath(iTranslatedTileTypeID) -- returns pat=
+h including subfolders, also checks if custom mesh is available
+-		--~ local bCheckMeshAvailable_Override =3D Filter_CheckMeshAvailable_Ove=
+rride(iSeasonedButNotRemappedTileTypeID)
+-		local bCheckMeshAvailable_Override =3D false
++		local bCheckMeshAvailable_Override =3D Filter_CheckMeshAvailable_Overrid=
+e(iSeasonedButNotRemappedTileTypeID)
+ =
+
+ 		if ( bCheckMeshAvailable_Override or meshlocation ~=3D nil ) then
+ =
+
+
+
+
+From no-reply at zwischenwelt.org  Tue Nov 29 00:03:10 2011
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Mon, 28 Nov 2011 23:03:10 -0000
+Subject: [Iris-commit] [IRIS] r3421 - in /trunk/data:
+ base/material-templates.material models/materials/textures.material
+Message-ID: <20111128230315.797167A9855F@simon>
+
+Author: ghoulsblade
+Date: Tue Nov 29 00:03:06 2011
+New Revision: 3421
+
+Log:
+material templates moved to data/base/material-templates.material , can be =
+used by ogre import directive
+
+Added:
+    trunk/data/base/material-templates.material
+Modified:
+    trunk/data/models/materials/textures.material
+
+Modified: trunk/data/models/materials/textures.material
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/models/materials/textures.material (original)
++++ trunk/data/models/materials/textures.material Tue Nov 29 00:03:06 2011
+@@ -1,6 +1,7 @@
+ //###########################################
+ // TEMPLATES
+ //###########################################
++
+ =
+
+ //import * from "diffuse.material"
+ =
+
+@@ -51,98 +52,8 @@
+ =
+
+ // --------------- THESE ARE THE STANDARD NON-ATLAS MATERIALS ------------=
+----------
+ =
+
+-material diffuse_template
+-{
+-	receive_shadows off
+-
+-	technique default
+-	{
+-		pass Decal
+-		{
+-			lighting on
+-
+-			ambient vertexcolour
+-			diffuse vertexcolour
+-			=
+
+-			texture_unit
+-			{
+-				filtering anisotropic
+-				max_anisotropy 8
+-				texture checker.png
+-				texture_alias diffuse_tex
+-				tex_address_mode clamp
+-			}
+-		}
+-	}
+-}
+-
+-// MESH BASE ALPHA MATERIAL TEMPLATE
+-material diffuse_template_alpha : diffuse_template
+-{
+-	technique default
+-	{
+-		pass Decal
+-		{
+-			lighting on
+-
+-			ambient vertexcolour
+-			diffuse vertexcolour
+-
+-			alpha_rejection greater_equal 128
+-			alpha_to_coverage on
+-		}
+-	}
+-}
+-
+-material diffuse_template_foliage : diffuse_template
+-{
+-	technique default
+-	{
+-		pass Decal
+-		{
+-			lighting on
+-
+-			ambient vertexcolour
+-			diffuse vertexcolour
+-
+-			cull_hardware none
+-			cull_software none
+-			=
+
+-			alpha_rejection greater_equal 128
+-			alpha_to_coverage on
+-
+-			texture_unit
+-			{
+-				filtering anisotropic
+-				max_anisotropy 8
+-				texture checker.png
+-				texture_alias diffuse_tex
+-				tex_address_mode wrap
+-			}
+-		}
+-	}
+-}
+-
+-material diffuse_template_sceneblend : diffuse_template
+-{
+-	technique default
+-	{
+-		pass Decal
+-		{
+-			lighting on
+-
+-			ambient vertexcolour
+-			diffuse vertexcolour
+-
+-			cull_hardware none
+-			cull_software none
+-
+-			scene_blend alpha_blend
+-			depth_write off
+-			depth_check on
+-		}
+-	}
+-}
++import * from "material-templates.material"
++
+ // --------------- THIS IS THE END OF BASE MATERIALS ----------------------
+ =
+
+ material tex_0 : diffuse_template
+
+
+
+From no-reply at zwischenwelt.org  Tue Nov 29 11:25:21 2011
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Tue, 29 Nov 2011 10:25:21 -0000
+Subject: [Iris-commit] [IRIS] r3422 - /trunk/lua/profiles/gfx_ultrahigh.lua
+Message-ID: <20111129102521.696E27A9856F@simon>
+
+Author: sience
+Date: Tue Nov 29 11:25:20 2011
+New Revision: 3422
+
+Log:
+-comment added
+
+Modified:
+    trunk/lua/profiles/gfx_ultrahigh.lua
+
+Modified: trunk/lua/profiles/gfx_ultrahigh.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/profiles/gfx_ultrahigh.lua (original)
++++ trunk/lua/profiles/gfx_ultrahigh.lua Tue Nov 29 11:25:20 2011
+@@ -3,7 +3,7 @@
+ =
+
+ gConfig:Set("gAtlasRes","none")
+ =
+
+-gConfig:Set("gShadowTechnique","texture_additive")
++gConfig:Set("gShadowTechnique","texture_additive")	-- "texture_additive_in=
+tegrated or "texture_modulative_integrated"
+ gConfig:Set("gStaticsCastShadows",true)
+ gConfig:Set("gDynamicsCastShadows",true)
+ gConfig:Set("gMobileCastShadows",true)
+
+
+
+From no-reply at zwischenwelt.org  Tue Nov 29 11:42:43 2011
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Tue, 29 Nov 2011 10:42:43 -0000
+Subject: [Iris-commit] [IRIS] r3423 - in /trunk/data: base/ models/atlas/
+ models/materials/ models/models/
+Message-ID: <20111129104243.3BA4854D0007@simon>
+
+Author: sience
+Date: Tue Nov 29 11:42:43 2011
+New Revision: 3423
+
+Log:
+moved Atlas templates also in material-templates.material
+updated generate_tex_atlas.php for new Atlas template location
+
+Modified:
+    trunk/data/base/material-templates.material
+    trunk/data/models/atlas/tex_atlas_alpha_low.material
+    trunk/data/models/atlas/tex_atlas_alpha_med.material
+    trunk/data/models/atlas/tex_atlas_alpha_ultralow.material
+    trunk/data/models/atlas/tex_atlas_low.material
+    trunk/data/models/atlas/tex_atlas_med.material
+    trunk/data/models/atlas/tex_atlas_ultralow.material
+    trunk/data/models/materials/textures.material
+    trunk/data/models/models/generate_tex_atlas.php
+
+Modified: trunk/data/base/material-templates.material
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/base/material-templates.material (original)
++++ trunk/data/base/material-templates.material Tue Nov 29 11:42:43 2011
+@@ -2,6 +2,52 @@
+ // can be used by
+ // import * from "material-templates.material"
+ =
+
++// --------------- THESE ARE THE ATLAS STANDARD MATERIALS ----------------=
+------
++// MESH BASE MATERIAL TEMPLATE
++material atlas_base
++{
++	receive_shadows off
++
++	technique default
++	{
++		pass
++		{
++			lighting on
++
++			ambient vertexcolour
++			diffuse vertexcolour
++			=
+
++			texture_unit MainTexture
++			{
++				filtering anisotropic
++				max_anisotropy 8
++				texture checker.png
++				texture_alias MainTexture
++				tex_address_mode clamp
++			}
++		}
++	}
++}
++
++// MESH BASE ALPHA MATERIAL TEMPLATE
++material atlas_base_alpha : atlas_base
++{
++	technique default
++	{
++		pass Decal
++		{
++			lighting on
++
++			ambient vertexcolour
++			diffuse vertexcolour
++
++			alpha_rejection greater_equal 128
++			alpha_to_coverage on
++		}
++	}
++}
++
++// --------------- THESE ARE THE STANDARD NON-ATLAS MATERIALS ------------=
+----------
+ material diffuse_template
+ {
+ 	receive_shadows off
+
+Modified: trunk/data/models/atlas/tex_atlas_alpha_low.material
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/models/atlas/tex_atlas_alpha_low.material (original)
++++ trunk/data/models/atlas/tex_atlas_alpha_low.material Tue Nov 29 11:42:4=
+3 2011
+@@ -1,4 +1,4 @@
+-import atlas_base_alpha from textures.material
++import atlas_base_alpha from "material-templates.material"
+ =
+
+ material tex_atlas_alpha_low0 : atlas_base_alpha =
+
+ { =
+
+
+Modified: trunk/data/models/atlas/tex_atlas_alpha_med.material
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/models/atlas/tex_atlas_alpha_med.material (original)
++++ trunk/data/models/atlas/tex_atlas_alpha_med.material Tue Nov 29 11:42:4=
+3 2011
+@@ -1,4 +1,4 @@
+-import atlas_base_alpha from textures.material
++import atlas_base_alpha from "material-templates.material"
+ =
+
+ material tex_atlas_alpha_med0 : atlas_base_alpha =
+
+ { =
+
+
+Modified: trunk/data/models/atlas/tex_atlas_alpha_ultralow.material
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/models/atlas/tex_atlas_alpha_ultralow.material (original)
++++ trunk/data/models/atlas/tex_atlas_alpha_ultralow.material Tue Nov 29 11=
+:42:43 2011
+@@ -1,4 +1,4 @@
+-import atlas_base_alpha from textures.material
++import atlas_base_alpha from "material-templates.material"
+ =
+
+ material tex_atlas_alpha_ultralow0 : atlas_base_alpha =
+
+ { =
+
+
+Modified: trunk/data/models/atlas/tex_atlas_low.material
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/models/atlas/tex_atlas_low.material (original)
++++ trunk/data/models/atlas/tex_atlas_low.material Tue Nov 29 11:42:43 2011
+@@ -1,4 +1,4 @@
+-import atlas_base from textures.material
++import atlas_base from "material-templates.material"
+ =
+
+ material tex_atlas_low0 : atlas_base =
+
+ { =
+
+
+Modified: trunk/data/models/atlas/tex_atlas_med.material
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/models/atlas/tex_atlas_med.material (original)
++++ trunk/data/models/atlas/tex_atlas_med.material Tue Nov 29 11:42:43 2011
+@@ -1,4 +1,4 @@
+-import atlas_base from textures.material
++import atlas_base from "material-templates.material"
+ =
+
+ material tex_atlas_med0 : atlas_base =
+
+ { =
+
+
+Modified: trunk/data/models/atlas/tex_atlas_ultralow.material
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/models/atlas/tex_atlas_ultralow.material (original)
++++ trunk/data/models/atlas/tex_atlas_ultralow.material Tue Nov 29 11:42:43=
+ 2011
+@@ -1,4 +1,4 @@
+-import atlas_base from textures.material
++import atlas_base from "material-templates.material"
+ =
+
+ material tex_atlas_ultralow0 : atlas_base =
+
+ { =
+
+
+Modified: trunk/data/models/materials/textures.material
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/models/materials/textures.material (original)
++++ trunk/data/models/materials/textures.material Tue Nov 29 11:42:43 2011
+@@ -1,54 +1,6 @@
+ //###########################################
+ // TEMPLATES
+ //###########################################
+-
+-
+-//import * from "diffuse.material"
+-
+-// --------------- THESE ARE THE ATLAS STANDARD MATERIALS ----------------=
+------
+-// MESH BASE MATERIAL TEMPLATE
+-material atlas_base
+-{
+-	receive_shadows off
+-
+-	technique default
+-	{
+-		pass
+-		{
+-			lighting on
+-
+-			ambient vertexcolour
+-			diffuse vertexcolour
+-			=
+
+-			texture_unit MainTexture
+-			{
+-				filtering anisotropic
+-				max_anisotropy 8
+-				texture checker.png
+-				texture_alias MainTexture
+-				tex_address_mode clamp
+-			}
+-		}
+-	}
+-}
+-
+-// MESH BASE ALPHA MATERIAL TEMPLATE
+-material atlas_base_alpha : atlas_base
+-{
+-	technique default
+-	{
+-		pass Decal
+-		{
+-			lighting on
+-
+-			ambient vertexcolour
+-			diffuse vertexcolour
+-
+-			alpha_rejection greater_equal 128
+-			alpha_to_coverage on
+-		}
+-	}
+-}
+ =
+
+ // --------------- THESE ARE THE STANDARD NON-ATLAS MATERIALS ------------=
+----------
+ =
+
+
+Modified: trunk/data/models/models/generate_tex_atlas.php
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/models/models/generate_tex_atlas.php (original)
++++ trunk/data/models/models/generate_tex_atlas.php Tue Nov 29 11:42:43 2011
+@@ -404,7 +404,7 @@
+ =
+
+ // generate material script
+ $f =3D fopen("$atlasbasename.material","w");
+-fwrite($f,"import atlas_base from textures.material\nimport atlas_base_alp=
+ha from textures.material\n\n");
++fwrite($f,"import atlas_base from material-templates.material\nimport atla=
+s_base_alpha from material-templates.material\n\n");
+ for($i=3D0;$i<=3D$number;++$i){
+ 	$name =3D $atlasbasename.$i;
+ 	$base =3D $atlasbasematerial;
+
+
+
+From no-reply at zwischenwelt.org  Tue Nov 29 12:28:30 2011
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Tue, 29 Nov 2011 11:28:30 -0000
+Subject: [Iris-commit] [IRIS] r3424 - in /trunk:
+ data/models/programs/readme.txt lua/lib.3d.renderer.lua
+ lua/lib.keybinds.lua lua/profiles/gfx_ultrahigh.lua
+Message-ID: <20111129112830.C02EF7A9856F@simon>
+
+Author: sience
+Date: Tue Nov 29 12:28:30 2011
+New Revision: 3424
+
+Log:
+-ssao readme.txt added
+-unnessesary keybind to test ssao removed
+-comments added
+
+Added:
+    trunk/data/models/programs/readme.txt
+Modified:
+    trunk/lua/lib.3d.renderer.lua
+    trunk/lua/lib.keybinds.lua
+    trunk/lua/profiles/gfx_ultrahigh.lua
+
+Modified: trunk/lua/lib.3d.renderer.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.renderer.lua (original)
++++ trunk/lua/lib.3d.renderer.lua Tue Nov 29 12:28:30 2011
+@@ -343,6 +343,7 @@
+         OgreSetShadowCasterRenderBackFaces(false)
+         OgreSetShadowTextureSelfShadow(false)       -- doesn't work when u=
+sing the fixed function pipeline
+         OgreShadowTechnique(strShadowTechnique)     -- last, the technique
++	-- only for SSAO test please read data\models\programs\readme.txt !!
+     elseif ((strShadowTechnique =3D=3D "texture_additive_integrated") or (=
+strShadowTechnique =3D=3D "texture_modulative_integrated")) then
+         OgreSetShadowTextureSelfShadow(true)
+ 		OgreSetShadowTextureCasterMaterial("shadow_caster")
+
+Modified: trunk/lua/lib.keybinds.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.keybinds.lua (original)
++++ trunk/lua/lib.keybinds.lua Tue Nov 29 12:28:30 2011
+@@ -87,68 +87,4 @@
+     -- additional movement key handling in lib.tilefreewalk (for pressed k=
+eys)
+     Bind("down",    function (state) if (IsChatLineActive()) then IrisChat=
+Line_HistoryUpDown(-1) end end) =
+
+     Bind("up",      function (state) if (IsChatLineActive()) then IrisChat=
+Line_HistoryUpDown( 1) end end)
+-    =
+
+-    ----------------------------------------------------------------------=
+-------------
+-
+-    if (false) then
+-        Bind("f7",      function (state) if (not gActiveEditText) then if =
+(state > 0) then
+-            if (gAmbientLight.r < 1.0) then
+-                gAmbientLight.r=3DgAmbientLight.r+0.1
+-                gAmbientLight.g=3DgAmbientLight.g+0.1
+-                gAmbientLight.b=3DgAmbientLight.b+0.1
+-            else
+-                gAmbientLight.r=3D1.0
+-                gAmbientLight.g=3D1.0
+-                gAmbientLight.b=3D1.0
+-            end
+-            Client_SetAmbientLight(gAmbientLight.r, gAmbientLight.g, gAmbi=
+entLight.b, 1)
+-        end end end)
+-
+-        Bind("f8",  function (state) if (not gActiveEditText) then if (sta=
+te > 0) then
+-            if (gAmbientLight.r > 0.1) then
+-                gAmbientLight.r=3DgAmbientLight.r-0.1
+-                gAmbientLight.g=3DgAmbientLight.g-0.1
+-                gAmbientLight.b=3DgAmbientLight.b-0.1
+-            else
+-                gAmbientLight.r=3D0.0
+-                gAmbientLight.g=3D0.0
+-                gAmbientLight.b=3D0.0
+-            end
+-            Client_SetAmbientLight(gAmbientLight.r, gAmbientLight.g, gAmbi=
+entLight.b, 1)
+-        end end end)
+-
+-        Bind("f9",      function (state) if (not gActiveEditText) then if =
+(state > 0) then
+-            if (gCompositor) then
+-                print("remove compositor")
+-                OgreRemoveCompositor(GetMainViewport(), "ssao")
+-                gCompositor =3D false
+-            else
+-                print("add compositor")
+-                OgreAddCompositor(GetMainViewport(), "ssao")
+-                gCompositor =3D true
+-                --mgr.ssao->addListener(&ssaoParamUpdater);
+-            end
+-         end end end)
+-
+-        Bind("f2",      function (state) if (not gActiveEditText) then if =
+(state > 0) then
+-            local x,y,z =3D MacroRead_GetPlayerPosition()
+-            local effect =3D {}
+-            effect.current_locx =3D x
+-            effect.current_locy =3D y
+-            effect.current_locz =3D z
+-    =
+
+-            effect.target_locx =3D x + 10
+-            effect.target_locy =3D y + 1
+-            effect.target_locz =3D z + 2
+-                =
+
+-            effect.speed =3D 5
+-            effect.duration =3D 5
+-            =
+
+-            effect.effect_type =3D kEffectType_FromSourceToDest
+-                =
+
+-            effect.itemid =3D MagicArrow
+-
+-            gCurrentRenderer:AddEffect(effect)
+-        end end end)
+-    end
+ end
+
+Modified: trunk/lua/profiles/gfx_ultrahigh.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/profiles/gfx_ultrahigh.lua (original)
++++ trunk/lua/profiles/gfx_ultrahigh.lua Tue Nov 29 12:28:30 2011
+@@ -1,9 +1,8 @@
+ -- ultrahigh gfx-profile uses no textureatlas
+--- SSAO + Depthshadowmapping needs to be actived, otherwise you will see n=
+o shadows !!!
+ =
+
+ gConfig:Set("gAtlasRes","none")
+ =
+
+-gConfig:Set("gShadowTechnique","texture_additive")	-- "texture_additive_in=
+tegrated or "texture_modulative_integrated"
++gConfig:Set("gShadowTechnique","texture_additive")
+ gConfig:Set("gStaticsCastShadows",true)
+ gConfig:Set("gDynamicsCastShadows",true)
+ gConfig:Set("gMobileCastShadows",true)
+
+
+

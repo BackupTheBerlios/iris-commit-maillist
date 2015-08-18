@@ -1,0 +1,209 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2289 - /trunk/widgets/widget.uotext.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-July/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2289%20-%20/trunk/widgets/widget.uotext.lua&In-Reply-To=%3C20080703180005.ACF4F1C1800D%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001096.html">
+   <LINK REL="Next"  HREF="001098.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2289 - /trunk/widgets/widget.uotext.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2289%20-%20/trunk/widgets/widget.uotext.lua&In-Reply-To=%3C20080703180005.ACF4F1C1800D%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2289 - /trunk/widgets/widget.uotext.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Thu Jul  3 19:45:40 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001096.html">[Iris-commit] [IRIS] r2288 - /trunk/bin/iris2.exe
+</A></li>
+        <LI>Next message: <A HREF="001098.html">[Iris-commit] [IRIS] r2290 - in /trunk: lua/gui/gui.gumpparser.lua lua/gui/gui.healthbar.lua lua/net/net.other.lua lua/obj/obj.container.lua widgets/widget.uotext.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1097">[ date ]</a>
+              <a href="thread.html#1097">[ thread ]</a>
+              <a href="subject.html#1097">[ subject ]</a>
+              <a href="author.html#1097">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Thu Jul  3 19:45:40 2008
+New Revision: 2289
+
+Log:
+uotext : unicode and uohtml work together now
+
+Modified:
+    trunk/widgets/widget.uotext.lua
+
+Modified: trunk/widgets/widget.uotext.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/widgets/widget.uotext.lua (original)
++++ trunk/widgets/widget.uotext.lua Thu Jul  3 19:45:40 2008
+@@ -59,59 +59,49 @@
+ 	=
+
+ 	glyphlist:Clear()
+ 	=
+
+-	if (type(uohtml) =3D=3D &quot;table&quot;) then
+-		local plaintext =3D &quot;&quot;
+-		for k,unicode_charcode in ipairs(uohtml) do =
+
+-			plaintext =3D plaintext .. string.format(&quot;%c&quot;,unicode_charcode) -- non-=
+asci specifics are lost
+-		end
+-		if (string.find(plaintext,&quot;&lt;&quot;,1,true)) then
+-			uohtml =3D plaintext -- TODO : dirty hack, disable unicode when at leas=
+t a tag is present.. unicode and html-parsing don't work together currently
+-		end
+-	end
++	local bIsUniCode =3D type(uohtml) =3D=3D &quot;table&quot;
++	local plaintext =3D bIsUniCode and UnicodeToPlainText_KeepLength(uohtml) =
+or uohtml
++	local readerpos =3D 1
+ 	=
+
+-	--~ print(&quot;uohtml start&quot;,self.params.scrollbar)
+-	if (type(uohtml) =3D=3D &quot;table&quot;) then
+-		-- unicode glyphs, but no html
++	-- non-unicode
++	for textchunk,tag in string.gfind(plaintext, &quot;([^&lt;]*)(&lt;?[^&gt;]*&gt;?)&quot;) do =
+
+ 		local fontid,bold,col =3D unpack(statestack[#statestack])
+ 		local font =3D GetUOFont(gUniFontLoaderList[fontid],bold)
+ 		local fontsize =3D fontsize or font:GetDefaultFontSize()
+-		for k,unicode_charcode in pairs(uohtml) do =
+
+-			--~ print(&quot;uohtml:unicode&quot;,unicode_charcode)
+-			glyphlist:AddFontGlyph(font,fontsize,unicode_charcode,col)
++		if (textchunk ~=3D &quot;&quot;) then =
+
++			-- text-chunk without tags
++			if (bIsUniCode) then =
+
++				local len =3D #textchunk
++				local readerend =3D readerpos + len - 1
++				for i =3D readerpos,readerend do
++					glyphlist:AddFontGlyph(font,fontsize,uohtml[i],col)
++				end
++				readerpos =3D readerpos + len
++			else
++				glyphlist:AddText(font,fontsize,textchunk,col)
++			end
+ 		end
+-	else
+-		-- non-unicode
+-		for plaintext,tag in string.gfind(uohtml, &quot;([^&lt;]*)(&lt;?[^&gt;]*&gt;?)&quot;) do =
+
+-			local fontid,bold,col =3D unpack(statestack[#statestack])
+-			local font =3D GetUOFont(gUniFontLoaderList[fontid],bold)
+-			if (plaintext ~=3D &quot;&quot;) then =
+
+-				-- plain text
+-				--~ print(&quot;uohtml plain&quot;,plaintext)
+-				glyphlist:AddText(font,fontsize,plaintext,col)
++		if (tag ~=3D &quot;&quot;) then
++			readerpos =3D readerpos + #tag
++			-- html-tag
++			if (string.find(tag,&quot;&lt;/BASEFONT&quot;)) then table.remove(statestack) end
++			if (string.find(tag,&quot;&lt;BASEFONT&quot;)) then
++				local a,b,colhex =3D string.find(tag,&quot;&lt;BASEFONT.*COLOR=3D#([0-9a-fA-F]=
++)&quot;)
++				if (colhex) then local r,g,b =3D ColFromHex(colhex) col =3D {r=3Dr,g=
+=3Dg,b=3Db} end
++				table.insert(statestack,{fontid,bold,col})
+ 			end
+-			if (tag ~=3D &quot;&quot;) then
+-				-- html-tag
+-				if (string.find(tag,&quot;&lt;/BASEFONT&quot;)) then table.remove(statestack) end
+-				if (string.find(tag,&quot;&lt;BASEFONT&quot;)) then
+-					local a,b,colhex =3D string.find(tag,&quot;&lt;BASEFONT.*COLOR=3D#([0-9a-fA-F=
+]+)&quot;)
+-					if (colhex) then local r,g,b =3D ColFromHex(colhex) col =3D {r=3Dr,g=
+=3Dg,b=3Db} end
+-					table.insert(statestack,{fontid,bold,col})
+-				end
+-				if (tag =3D=3D &quot;&lt;CENTER&gt;&quot;) then glyphlist:AddNewLine() end -- todo =
+
+-				if (tag =3D=3D &quot;&lt;CENTER&gt;&quot;) then glyphlist:AddNewLine() end -- todo =
+
+-				if (tag =3D=3D &quot;&lt;/CENTER&gt;&quot;) then glyphlist:AddNewLine() end -- todo =
+
+-				-- TODO : html-center : glyphlist : glyphs to change h-alignment durin=
+g parsing ? needs line width.. and full text width (unless wrap specified !)
+-	=
+
+-				if (tag =3D=3D &quot;&lt;BIG&gt;&quot;) then table.insert(statestack,{0,bold,col}) end=
+ -- fontchange
+-				if (tag =3D=3D &quot;&lt;/BIG&gt;&quot;) then table.remove(statestack) end
+-				if (tag =3D=3D &quot;&lt;BR&gt;&quot;) then glyphlist:AddNewLine(font,fontsize) end
+-				=
+
+-				--~ part =3D string.sub(part,2,-2) -- cut away one char from each side
+-				--~ for token in string.gfind(textstring, &quot;%w+&quot;) do table.insert(bToke=
+n,token) end
+-				--~ local iStart,iEnd,a,b,c =3D string.match(part,&quot;&quot;)
+-				=
+
+-				--~ print(&quot;uohtml tag&quot;,tag)
+-			end
++			if (tag =3D=3D &quot;&lt;CENTER&gt;&quot;) then glyphlist:AddNewLine() end -- todo =
+
++			if (tag =3D=3D &quot;&lt;CENTER&gt;&quot;) then glyphlist:AddNewLine() end -- todo =
+
++			if (tag =3D=3D &quot;&lt;/CENTER&gt;&quot;) then glyphlist:AddNewLine() end -- todo =
+
++			-- TODO : html-center : glyphlist : glyphs to change h-alignment during=
+ parsing ? needs line width.. and full text width (unless wrap specified !)
++
++			if (tag =3D=3D &quot;&lt;BIG&gt;&quot;) then table.insert(statestack,{0,bold,col}) end =
+-- fontchange
++			if (tag =3D=3D &quot;&lt;/BIG&gt;&quot;) then table.remove(statestack) end
++			if (tag =3D=3D &quot;&lt;BR&gt;&quot;) then glyphlist:AddNewLine(font,fontsize) end
++			=
+
++			--~ part =3D string.sub(part,2,-2) -- cut away one char from each side
++			--~ for token in string.gfind(textstring, &quot;%w+&quot;) do table.insert(bToken=
+,token) end
++			--~ local iStart,iEnd,a,b,c =3D string.match(part,&quot;&quot;)
+ 		end
+ 	end
+ 	self:UpdateGeometry()
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001096.html">[Iris-commit] [IRIS] r2288 - /trunk/bin/iris2.exe
+</A></li>
+	<LI>Next message: <A HREF="001098.html">[Iris-commit] [IRIS] r2290 - in /trunk: lua/gui/gui.gumpparser.lua lua/gui/gui.healthbar.lua lua/net/net.other.lua lua/obj/obj.container.lua widgets/widget.uotext.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1097">[ date ]</a>
+              <a href="thread.html#1097">[ thread ]</a>
+              <a href="subject.html#1097">[ subject ]</a>
+              <a href="author.html#1097">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,131 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2329 - /trunk/lua/lib.3d.cam.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-July/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2329%20-%20/trunk/lua/lib.3d.cam.lua&In-Reply-To=%3C20080730112154.324501C1857B%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001136.html">
+   <LINK REL="Next"  HREF="001138.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2329 - /trunk/lua/lib.3d.cam.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2329%20-%20/trunk/lua/lib.3d.cam.lua&In-Reply-To=%3C20080730112154.324501C1857B%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2329 - /trunk/lua/lib.3d.cam.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Wed Jul 30 13:21:54 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001136.html">[Iris-commit] [IRIS] r2328 - in /trunk/data: config.lua.dist profiles/gfx_high.lua profiles/gfx_med.lua profiles/gfx_ultrahigh.lua
+</A></li>
+        <LI>Next message: <A HREF="001138.html">[Iris-commit] [IRIS] r2330 - in /trunk: data/config.lua.dist lua/lib.3d.dynamic.lua lua/net/net.corpse.lua lua/net/net.mobile.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1137">[ date ]</a>
+              <a href="thread.html#1137">[ thread ]</a>
+              <a href="subject.html#1137">[ subject ]</a>
+              <a href="author.html#1137">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: hagish
+Date: Wed Jul 30 13:21:53 2008
+New Revision: 2329
+
+Log:
+45 degree cam movement (3d, 3rd person cam) with numpad, 5 to reset 3rd per=
+son cam
+
+Modified:
+    trunk/lua/lib.3d.cam.lua
+
+Modified: trunk/lua/lib.3d.cam.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.cam.lua (original)
++++ trunk/lua/lib.3d.cam.lua Wed Jul 30 13:21:53 2008
+@@ -15,6 +15,13 @@
+ Renderer3D.gCamKeyCode.Down	=3D GetNamedKey(&quot;f&quot;)
+ Renderer3D.gCamKeyCode.Slow	=3D GetNamedKey(&quot;lshift&quot;)
+ Renderer3D.gCamKeyCode.Fast	=3D GetNamedKey(&quot;lalt&quot;)
++
++Renderer3D.gCamKeyCode.CamCenter		=3D GetNamedKey(&quot;np5&quot;)
++Renderer3D.gCamKeyCode.CamRotateLeft	=3D GetNamedKey(&quot;np4&quot;)
++Renderer3D.gCamKeyCode.CamRotateRight	=3D GetNamedKey(&quot;np6&quot;)
++Renderer3D.gCamKeyCode.CamRotateUp		=3D GetNamedKey(&quot;np8&quot;)
++Renderer3D.gCamKeyCode.CamRotateDown	=3D GetNamedKey(&quot;np2&quot;)
++
+ Renderer3D.gCamKeyName =3D {}
+ for k,v in pairs(Renderer3D.gCamKeyCode) do Renderer3D.gCamKeyName[v] =3D =
+k end
+ Renderer3D.gCamKeyDown =3D {}
+@@ -53,6 +60,32 @@
+ 		if (camkeyname) then self.gCamKeyDown[camkeyname] =3D true end
+ 		--printf(&quot;CamKeyDown(%s)\n&quot;,GetKeyName(key))
+ 		-- key_mouse1
++	end
++	=
+
++	=
+
++	local lrd =3D 0.25*kPi
++	local udd =3D 0.25*kPi/2
++	-- 45 degree cam rotations
++	if key =3D=3D self.gCamKeyCode.CamCenter then
++		self.gfCamAngH =3D -3*0.25*kPi  -- default to original iso angle
++		self.gfCamAngV =3D -0.25*kPi
++		self:CamApplyAngHV()
++	end
++	if key =3D=3D self.gCamKeyCode.CamRotateLeft then
++		self.gfCamAngH =3D self.gfCamAngH - lrd
++		self:CamApplyAngHV()
++	end
++	if key =3D=3D self.gCamKeyCode.CamRotateRight then
++		self.gfCamAngH =3D self.gfCamAngH + lrd
++		self:CamApplyAngHV()
++	end
++	if key =3D=3D self.gCamKeyCode.CamRotateUp then
++		self.gfCamAngV =3D self.gfCamAngV - udd
++		self:CamApplyAngHV()
++	end
++	if key =3D=3D self.gCamKeyCode.CamRotateDown then
++		self.gfCamAngV =3D self.gfCamAngV + udd
++		self:CamApplyAngHV()
+ 	end
+ end
+ =
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001136.html">[Iris-commit] [IRIS] r2328 - in /trunk/data: config.lua.dist profiles/gfx_high.lua profiles/gfx_med.lua profiles/gfx_ultrahigh.lua
+</A></li>
+	<LI>Next message: <A HREF="001138.html">[Iris-commit] [IRIS] r2330 - in /trunk: data/config.lua.dist lua/lib.3d.dynamic.lua lua/net/net.corpse.lua lua/net/net.mobile.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1137">[ date ]</a>
+              <a href="thread.html#1137">[ thread ]</a>
+              <a href="subject.html#1137">[ subject ]</a>
+              <a href="author.html#1137">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

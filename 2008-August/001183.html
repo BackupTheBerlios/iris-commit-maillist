@@ -1,0 +1,232 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2381 - in /trunk/lua: lib.3d.map.lua lib.3d.renderer.lua lib.mapblock.3d.dynamics.lua lib.mapblock.3d.multis.lua lib.mapblock.3d.statics.lua lib.mapblock.3d.terrain.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-August/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2381%20-%20in%20/trunk/lua%3A%20lib.3d.map.lua%0A%20lib.3d.renderer.lua%20lib.mapblock.3d.dynamics.lua%20lib.mapblock.3d.multis.lua%0A%20lib.mapblock.3d.statics.lua%20lib.mapblock.3d.terrain.lua&In-Reply-To=%3C20080815131050.6EB221C18044%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001186.html">
+   <LINK REL="Next"  HREF="001190.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2381 - in /trunk/lua: lib.3d.map.lua lib.3d.renderer.lua lib.mapblock.3d.dynamics.lua lib.mapblock.3d.multis.lua lib.mapblock.3d.statics.lua lib.mapblock.3d.terrain.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2381%20-%20in%20/trunk/lua%3A%20lib.3d.map.lua%0A%20lib.3d.renderer.lua%20lib.mapblock.3d.dynamics.lua%20lib.mapblock.3d.multis.lua%0A%20lib.mapblock.3d.statics.lua%20lib.mapblock.3d.terrain.lua&In-Reply-To=%3C20080815131050.6EB221C18044%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2381 - in /trunk/lua: lib.3d.map.lua lib.3d.renderer.lua lib.mapblock.3d.dynamics.lua lib.mapblock.3d.multis.lua lib.mapblock.3d.statics.lua lib.mapblock.3d.terrain.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Fri Aug 15 15:10:50 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001186.html">[Iris-commit] [IRIS] r2380 - /trunk/data/config.lua.dist
+</A></li>
+        <LI>Next message: <A HREF="001190.html">[Iris-commit] [IRIS] r2382 - in /trunk/lua: lib.3d.map.lua lib.walking2.lua obj/obj.dynamic.lua obj/obj.main.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1183">[ date ]</a>
+              <a href="thread.html#1183">[ thread ]</a>
+              <a href="subject.html#1183">[ subject ]</a>
+              <a href="author.html#1183">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: hagish
+Date: Fri Aug 15 15:10:49 2008
+New Revision: 2381
+
+Log:
+bugfix: sometimes blendout does not work
+
+Modified:
+    trunk/lua/lib.3d.map.lua
+    trunk/lua/lib.3d.renderer.lua
+    trunk/lua/lib.mapblock.3d.dynamics.lua
+    trunk/lua/lib.mapblock.3d.multis.lua
+    trunk/lua/lib.mapblock.3d.statics.lua
+    trunk/lua/lib.mapblock.3d.terrain.lua
+
+Modified: trunk/lua/lib.3d.map.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.map.lua (original)
++++ trunk/lua/lib.3d.map.lua Fri Aug 15 15:10:49 2008
+@@ -60,11 +60,21 @@
+ 	end
+ end
+ =
+
++function Renderer3D:BlendOutCheckNeeded		()
++	self.mbUpdateBlendOut =3D true
++end
++
+ function Renderer3D:MapStep		()
+ 	local t =3D Client_GetTicks()
+ 	local xloc,yloc,zloc =3D self:GetCamPos()
+ 	for k,spawner in pairs(self.map3d_spawners) do spawner:Step(t,xloc,yloc,z=
+loc) end
+ 	self.map3d_scheduler:Step(xloc,yloc,zloc)
++	=
+
++	-- redo blend out check?
++	if self.mbUpdateBlendOut then
++		self:BlendOutLayersAbovePlayer()
++		self.mbUpdateBlendOut =3D false
++	end
+ end
+ =
+
+ function Renderer3D:MapClear	()
+@@ -112,17 +122,12 @@
+ 		=
+
+ 		-- check statics
+ 		if (not playerIsInside) then
+-			gStaticBlockLoader:Load(math.floor(x/8),math.floor(y/8)) -- params =3D =
+mapblock-pos
+-			local iStaticCount =3D gStaticBlockLoader:Count() -- operates on the bl=
+ock that was last loaded using :Load()
+-			local iPX =3D x - 8 * math.floor(x/8)
+-			local iPY =3D y - 8 * math.floor(y/8)
+-
+-			local iTileTypeID,iX,iY,iZ,iHue
+-			for i =3D 0,iStaticCount-1 do
+-				iTileTypeID,iX,iY,iZ,iHue =3D gStaticBlockLoader:GetStatic(i) -- opera=
+tes on the block that was last loaded using :Load()
+-				if (iX =3D=3D iPX and iY =3D=3D iPY and iZ &gt;=3D playerheadpos) then =
+
++			local l =3D MapGetStatics(x,y)
++			=
+
++			for k,v in pairs(l) do
++				if v.zloc &gt;=3D playerheadpos then
+ 					playerIsInside =3D true =
+
+-					if ((not zloc_roof) or (zloc_roof &gt; iZ)) then zloc_roof =3D iZ end
++					if ((not zloc_roof) or (zloc_roof &gt; v.zloc)) then zloc_roof =3D v.zlo=
+c end
+ 				end
+ 			end
+ 		end
+
+Modified: trunk/lua/lib.3d.renderer.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.renderer.lua (original)
++++ trunk/lua/lib.3d.renderer.lua Fri Aug 15 15:10:49 2008
+@@ -733,5 +733,6 @@
+ =
+
+ function Renderer3D:UpdateLight	()
+ 	local f =3D math.max(self.mfSunLight or 0, self.mfPersonalLight or 0)
++	f =3D f / 1.2
+ 	Client_SetAmbientLight(f, f, f, 1)
+ end
+
+Modified: trunk/lua/lib.mapblock.3d.dynamics.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mapblock.3d.dynamics.lua (original)
++++ trunk/lua/lib.mapblock.3d.dynamics.lua Fri Aug 15 15:10:49 2008
+@@ -120,5 +120,7 @@
+ 		self.mTileBatch:Build()
+ 		=
+
+ 		--~ print(&quot;count&quot;,self,countarr(self.lDynamics))
++
++		gCurrentRenderer:BlendOutCheckNeeded()
+ 	end
+ end
+
+Modified: trunk/lua/lib.mapblock.3d.multis.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mapblock.3d.multis.lua (original)
++++ trunk/lua/lib.mapblock.3d.multis.lua Fri Aug 15 15:10:49 2008
+@@ -82,4 +82,6 @@
+ 	end
+ =
+
+ 	self.mTileBatch:Build()
++
++	gCurrentRenderer:BlendOutCheckNeeded()
+ end
+
+Modified: trunk/lua/lib.mapblock.3d.statics.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mapblock.3d.statics.lua (original)
++++ trunk/lua/lib.mapblock.3d.statics.lua Fri Aug 15 15:10:49 2008
+@@ -95,4 +95,6 @@
+ 	self:Yield()
+ =
+
+ 	self.mTileBatch:Build()
++	=
+
++	gCurrentRenderer:BlendOutCheckNeeded()
+ end
+
+Modified: trunk/lua/lib.mapblock.3d.terrain.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mapblock.3d.terrain.lua (original)
++++ trunk/lua/lib.mapblock.3d.terrain.lua Fri Aug 15 15:10:49 2008
+@@ -1,8 +1,8 @@
+ cMapBlock_3D_Terrain	=3D CreateClass(cMapBlockGrid)
+ cMapBlock_3D_Terrain.iBlockSize		=3D 8*2 -- in tiles
+-cMapBlock_3D_Terrain.iLoadRadius	=3D 2*8 -- in iBlockSize-blocks
+-cMapBlock_3D_Terrain.kMaxDist_Visible		=3D 2*cMapBlock_3D_Terrain.iBlockSi=
+ze*4 -- camdist in tiles  see mapblock.base for default
+-cMapBlock_3D_Terrain.kMaxDist_Detail		=3D 2*cMapBlock_3D_Terrain.iBlockSiz=
+e*2 -- camdist in tiles
++cMapBlock_3D_Terrain.iLoadRadius	=3D 8 -- in iBlockSize-blocks
++cMapBlock_3D_Terrain.kMaxDist_Visible		=3D cMapBlock_3D_Terrain.iBlockSize=
+*4 -- camdist in tiles  see mapblock.base for default
++cMapBlock_3D_Terrain.kMaxDist_Detail		=3D cMapBlock_3D_Terrain.iBlockSize*=
+2 -- camdist in tiles
+ =
+
+ function cMapBlock_3D_Terrain:ClearDetail ()
+ 	--~ print(&quot;cMapBlock_3D_Terrain:ClearDetail&quot;)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001186.html">[Iris-commit] [IRIS] r2380 - /trunk/data/config.lua.dist
+</A></li>
+	<LI>Next message: <A HREF="001190.html">[Iris-commit] [IRIS] r2382 - in /trunk/lua: lib.3d.map.lua lib.walking2.lua obj/obj.dynamic.lua obj/obj.main.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1183">[ date ]</a>
+              <a href="thread.html#1183">[ thread ]</a>
+              <a href="subject.html#1183">[ subject ]</a>
+              <a href="author.html#1183">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

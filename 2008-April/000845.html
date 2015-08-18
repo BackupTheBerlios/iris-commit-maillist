@@ -1,0 +1,1117 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2034 - in /trunk: lua/lib.3d.dynamic.lua lua/lib.data.lua lua/lib.loading.lua lua/lib.protocol.lua lua/lib.uoutils.lua lua/lib.walking2.lua lua/lib.walking3.lua lua/main.lua src/data_L.cpp
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-April/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2034%20-%20in%20/trunk%3A%20lua/lib.3d.dynamic.lua%0A%20lua/lib.data.lua%20lua/lib.loading.lua%20lua/lib.protocol.lua%0A%20lua/lib.uoutils.lua%20lua/lib.walking2.lua%20lua/lib.walking3.lua%20lua/main.lua%0A%20src/data_L.cpp&In-Reply-To=%3C20080407001242.92FE4153C00B%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000844.html">
+   <LINK REL="Next"  HREF="000846.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2034 - in /trunk: lua/lib.3d.dynamic.lua lua/lib.data.lua lua/lib.loading.lua lua/lib.protocol.lua lua/lib.uoutils.lua lua/lib.walking2.lua lua/lib.walking3.lua lua/main.lua src/data_L.cpp</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2034%20-%20in%20/trunk%3A%20lua/lib.3d.dynamic.lua%0A%20lua/lib.data.lua%20lua/lib.loading.lua%20lua/lib.protocol.lua%0A%20lua/lib.uoutils.lua%20lua/lib.walking2.lua%20lua/lib.walking3.lua%20lua/main.lua%0A%20src/data_L.cpp&In-Reply-To=%3C20080407001242.92FE4153C00B%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2034 - in /trunk: lua/lib.3d.dynamic.lua lua/lib.data.lua lua/lib.loading.lua lua/lib.protocol.lua lua/lib.uoutils.lua lua/lib.walking2.lua lua/lib.walking3.lua lua/main.lua src/data_L.cpp">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Mon Apr  7 02:12:42 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000844.html">[Iris-commit] [IRIS] r2033 - in /trunk: data/base/ui/sd_pd_enemy.png data/base/ui/sd_pd_good.png data/base/ui/sd_pd_murderer.png data/base/ui/sd_pd_neutral.png data/base/ui/sd_pd_unknown.png plugins/hudenemylist.lua
+</A></li>
+        <LI>Next message: <A HREF="000846.html">[Iris-commit] [IRIS] r2035 - in /trunk: data/config.lua.dist lua/lib.walking2.lua lua/lib.walking3.lua lua/main.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#845">[ date ]</a>
+              <a href="thread.html#845">[ thread ]</a>
+              <a href="subject.html#845">[ subject ]</a>
+              <a href="author.html#845">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Mon Apr  7 02:12:41 2008
+New Revision: 2034
+
+Log:
+slightly faster access to ground tiles (c++), caching for GetStaticTileType=
+, GetGroundTileType, moved a few previously misplaced util functions to lua=
+/lib.uoutils.lua, removed debug code from GetStaticTileType that caused slo=
+wdown, still available via config : gDebugTileTypeLoaderGetStaticTileType=
+=3Dtrue , worked on walking3
+
+Added:
+    trunk/lua/lib.uoutils.lua
+Modified:
+    trunk/lua/lib.3d.dynamic.lua
+    trunk/lua/lib.data.lua
+    trunk/lua/lib.loading.lua
+    trunk/lua/lib.protocol.lua
+    trunk/lua/lib.walking2.lua
+    trunk/lua/lib.walking3.lua
+    trunk/lua/main.lua
+    trunk/src/data_L.cpp
+
+Modified: trunk/lua/lib.3d.dynamic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.dynamic.lua (original)
++++ trunk/lua/lib.3d.dynamic.lua Mon Apr  7 02:12:41 2008
+@@ -127,7 +127,7 @@
+ 			for k,v in pairs(item.lTile) do
+ 				-- create part
+ 				iTileTypeID =3D v.artid
+-				iHue =3D 0				--&lt;- TODO: hueing is WORNG !! Every part of an multi can=
+ have its own hue!
++				iHue =3D 0				--&lt;- TODO: hueing is WRONG !! Every part of an multi can=
+ have its own hue!
+ =
+
+ 				-- generate absolute coords
+ 				iX =3D item.xloc + v.x + item.xadd
+
+Modified: trunk/lua/lib.data.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.data.lua (original)
++++ trunk/lua/lib.data.lua Mon Apr  7 02:12:41 2008
+@@ -19,17 +19,50 @@
+ end
+ =
+
+ -- info on statics, dynamics, items in containers, wearables etc  (everyth=
+ing except terrain)
++gStaticTileTypeCache =3D {}
+ function GetStaticTileType (iTileTypeID)
+ 	if (not gTileTypeLoader) then return end
+-	local arr =3D {}
+-	arr.miFlags,arr.miWeight,arr.miQuality,arr.miUnknown,
+-	arr.miUnknown1,arr.miQuantity,arr.miAnimID,arr.miUnknown2,
+-	arr.miHue,arr.miUnknown3,arr.miHeight,arr.msName =3D =
+
++	local t =3D gStaticTileTypeCache[iTileTypeID] =
+
++	if (t ~=3D nil) then return t end -- already in cache
++	=
+
++	-- not yet in cache, readout
++	t =3D {}
++	t.miFlags,t.miWeight,t.miQuality,t.miUnknown,
++	t.miUnknown1,t.miQuantity,t.miAnimID,t.miUnknown2,
++	t.miHue,t.miUnknown3,t.miHeight,t.msName =3D =
+
+ 		gTileTypeLoader:GetStaticTileType(iTileTypeID+32*512) -- add 0x00004000,=
+ below are groundtypes
+-	if arr.miFlags =3D=3D nil then arr=3Dnil end
+-	return arr
+-end
+-
++	if (t.miFlags =3D=3D nil) then =
+
++		t =3D false =
+
++	else
++		-- precalc a bit for faster access (mainly for walk code performance)
++		 =
+
++		t.bBridge =3D TestMask(t.miFlags,kTileDataFlag_Bridge)
++		=
+
++		--~ RunUO1/src/TileData.cs:153: public int CalcHeight : =
+
++		t.iCalcHeight =3D t.bBridge and math.floor(t.miHeight / 2) or t.miHeight
++	end
++	gStaticTileTypeCache[iTileTypeID] =3D t
++	return t
++end
++
++gGroundTileTypeCache =3D {}
++function GetGroundTileType (iTileTypeID)
++	if (not gTileTypeLoader) then return end
++	local t =3D gGroundTileTypeCache[iTileTypeID] =
+
++	if (t ~=3D nil) then return t end -- already in cache
++	=
+
++	-- not yet in cache, readout
++	t =3D {}
++	t.miFlags,t.miTexID,t.msName =3D gTileTypeLoader:GetGroundTileType(iTileT=
+ypeID) -- below 0x00004000
++	if (t.miFlags =3D=3D nil) then =
+
++		t =3D false =
+
++	else
++		-- precalc a bit for faster access (mainly for walk code performance)
++		=
+
++	end
++	gGroundTileTypeCache[iTileTypeID] =3D t
++	return t
++end
+ =
+
+ -- art bitmask loader with caching
+ gArtBitMaskCache =3D {}
+
+Modified: trunk/lua/lib.loading.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.loading.lua (original)
++++ trunk/lua/lib.loading.lua Mon Apr  7 02:12:41 2008
+@@ -147,13 +147,15 @@
+ 	if (gTileTypeLoaderType) then
+ 		LoadingProfile(&quot;init TileTypeLoader&quot;)
+ 		gTileTypeLoader =3D CreateTileTypeLoader(gTileTypeLoaderType,CorrectPath=
+( Addfilepath(gTiledataFile) ))
+-		gTileTypeLoader._GetStaticTileType =3D gTileTypeLoader.GetStaticTileType
+-		gTileTypeLoader.GetStaticTileType =3D function (...)
+-			local arr =3D { gTileTypeLoader._GetStaticTileType(unpack(arg)) }
+-			if (not arr[1]) then =
+
+-				print(&quot;GetStaticTileType failed&quot;, arg[2],_TRACEBACK())
++		if (gDebugTileTypeLoaderGetStaticTileType) then -- slowdown : only done =
+when activated explicitly via config
++			gTileTypeLoader._GetStaticTileType =3D gTileTypeLoader.GetStaticTileType
++			gTileTypeLoader.GetStaticTileType =3D function (...)
++				local arr =3D { gTileTypeLoader._GetStaticTileType(unpack(arg)) }
++				if (not arr[1]) then =
+
++					print(&quot;GetStaticTileType failed&quot;, arg[2],_TRACEBACK())
++				end
++				return unpack(arr)
+ 			end
+-			return unpack(arr)
+ 		end
+ 	end
+ 	=
+
+
+Modified: trunk/lua/lib.protocol.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.protocol.lua (original)
++++ trunk/lua/lib.protocol.lua Mon Apr  7 02:12:41 2008
+@@ -35,36 +35,6 @@
+ 	for k,v in pairs(gPacketType) do gPacketTypeId2Name[v.id] =3D k end
+ 	for k,v in pairs(gPacketType) do _G[k] =3D v.id end -- make names availab=
+le as global constants, like kPacket_Account_Login_Request, needed for send=
+ing
+ 	=
+
+-function DirWrap (iDir) -- wraps into [0,7], also removes runflag automati=
+cally, but a bit expensive for that
+-	while (iDir &lt; 0) do iDir =3D iDir + 8 end
+-	while (iDir &gt; 7) do iDir =3D iDir - 8 end
+-	return iDir
+-end
+-
+-function DirFromLocalDxDy (dx,dy) =
+
+-	for dir=3D0,7 do if (sign(dx) =3D=3D GetDirXLocal(dir) and sign(dy) =3D=
+=3D GetDirYLocal(dir)) then return dir end end
+-end
+-function DirFromUODxDy (dx,dy) =
+
+-	for dir=3D0,7 do if (sign(dx) =3D=3D GetDirX(dir) and sign(dy) =3D=3D Get=
+DirY(dir)) then return dir end end
+-end
+-
+--- interpret dircode in ogre coordinate system
+-function GetDirXLocal (dir) local a =3D GetDirX(dir) return (a=3D=3D0) and=
+ 0 or (-a) end -- prevent &quot;-0&quot;, float supports signed zero
+-function GetDirYLocal (dir) return GetDirY(dir) end
+-
+--- interpret dircode in uo coordinate system  uneven numbers (1,3,5,7) are=
+ diagonal
+-function DirIsDiagonal (dir) return dir =3D=3D 1 or dir =3D=3D 3 or dir =
+=3D=3D 5 or dir =3D=3D 7 end
+-function GetDirX (dir) =
+
+-	if (dir =3D=3D 1 or dir =3D=3D 2 or dir =3D=3D 3) then return 1 -- east
+-	elseif (dir =3D=3D 5 or dir =3D=3D 6 or dir =3D=3D 7) then return -1 -- w=
+est
+-	else return 0 end
+-end
+-function GetDirY (dir) =
+
+-	if (dir =3D=3D 0 or dir =3D=3D 1 or dir =3D=3D 7) then return -1 -- north
+-	elseif (dir =3D=3D 3 or dir =3D=3D 4 or dir =3D=3D 5) then return 1 -- so=
+uth
+-	else return 0 end
+-end
+-
+ -- check if packets are complete and handle them
+ function HandlePackets ()
+ 	local input =3D GetRecvFIFO()
+
+Modified: trunk/lua/lib.walking2.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.walking2.lua (original)
++++ trunk/lua/lib.walking2.lua Mon Apr  7 02:12:41 2008
+@@ -23,14 +23,6 @@
+ 		=
+
+ 		=
+
+ kHex02 =3D hex2num(&quot;0x02&quot;)
+-
+--- returns tiletype,zloc
+-function GetAbsTile (xloc,yloc) =
+
+-	return gGroundBlockLoader:GetTile(	math.floor(xloc/8), =
+
+-										math.floor(yloc/8), =
+
+-										math.mod(xloc,8), =
+
+-										math.mod(yloc,8))
+-end
+ =
+
+ --Calc the average Z Value for the new Player pos (don't use this for calc=
+ulations)
+ function AverageGroundHeight(bx,by,tx,ty)
+
+Modified: trunk/lua/lib.walking3.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.walking3.lua (original)
++++ trunk/lua/lib.walking3.lua Mon Apr  7 02:12:41 2008
+@@ -1,4 +1,6 @@
+ -- started but not yet finished walk-code : client-side collision, based o=
+n RunUO1 code (used by vetus-mundus for example)
++-- TODO : walk2 : bridge =3D kTileDataFlag_StairBack or kTileDataFlag_Stai=
+rRight or bridge ???
++
+ =
+
+ --[[
+ replaces the old GetNearestGroundLevel, was used like
+@@ -26,41 +28,159 @@
+ kAlwaysIgnoreDoors			=3D false
+ kIgnoreMovableImpassables	=3D false
+ =
+
+-
+-function ApplyDir (dir,posx,posy) =
+
+-	dir =3D DirWrap(dir) -- warp and remove run bit
+-	return posx+GetDirX(dir),posy+GetDirY(dir)
+-end =
+
+-
+-function W3_GetItemsAtPos (xloc,yloc) =
+
+-	local res =3D {}
+-	-- TODO : consider multis as well ! (serverside &amp; clientside)
+-	-- TODO : local item=3D{ItemID=3D123,Z=3D0,Movable=3Dtrue,ItemID=3D123,It=
+emData=3D{Impassable=3Dfalse,Flags=3D123}}
+-	-- table.insert(res,item)
+-	return res
+-end
+-
+--- returns tiletype,z
+-function W3_GetGround		(xloc,yloc)	=
+
+-	-- todo : cached access			=
+
+-	local tiletype,z =3D gGroundBlockLoader:GetTile(xloc,yloc)
+-	return tiletype,z
+-end
+-
+-function W3_GetMobile			(irismobile)			assert(false,&quot;TODO&quot;) return {Z=3D0,=
+CanSwim=3Dfalse,CantWalk=3Dfalse,Alive=3Dtrue,Body=3D{BodyID=3D123},IsDeadB=
+ondedPet=3Dfalse} end
+-function W3_GetMapW				()						assert(false,&quot;TODO&quot;) return gGroundBlockLoa=
+der:GetMapW() end
+-function W3_GetMapH				()						assert(false,&quot;TODO&quot;) return gGroundBlockLoa=
+der:GetMapH() end
+-function W3_GetLandTile			(xloc,yloc)				assert(false,&quot;TODO&quot;)
+-	local tiletype,z =3D W3_GetGround(xloc,yloc)
+-	return {ID=3Dtiletype,Ignored=3Dfalse}
+-end -- ID : iTileType for W3_GetLandTypeFlags, Ignored : =
+
+-function W3_GetStaticTiles		(xloc,yloc,bUnknown)	assert(false,&quot;TODO&quot;) retu=
+rn {{ID=3D123,Z=3D0}} end --  : W3_IsOK : check
+-function W3_GetAverageZ			(xloc,yloc)				assert(false,&quot;TODO&quot;) local landZ,=
+landCenter,landTop =3D 0,0,0 return landZ,landCenter,landTop end -- min,avg=
+,max of 4 vertices
+-function W3_GetLandTypeFlags	(iTileType)				assert(false,&quot;TODO&quot;) return 0 =
+end -- LandTable[landTileTypeID] =
+
+-function W3_GetTileType			(iTileType)				assert(false,&quot;TODO&quot;) return {Flag=
+s=3D0,Height=3D0,CalcHeight=3D0,Bridge=3Dfalse} end -- ItemTable[iTileType]=
+ itemData
+-
+---~ public int CalcHeight : if ( (m_Flags &amp; TileFlag.Bridge) !=3D 0 ) and =
+math.floor(m_Height / 2) or m_Height;   RunUO1/src/TileData.cs:153:
+- =
+
++gW3CacheBlocks =3D {}
++gW3ItemTypeFlagsCache =3D {}
++kW3CacheBlocks_MaxSqDist =3D 8*8
++
++
++function W3_GetCacheBlock (xloc,yloc)
++	local bx =3D math.floor(xloc/8) -- block
++	local by =3D math.floor(yloc/8) -- block
++	local n =3D bx..&quot;,&quot;..by
++	local b =3D gW3CacheBlocks[n]
++	if (b) then return b end
++	=
+
++	-- create new cacheblock
++	b =3D { bx=3Dbx,by=3Dby }
++	gW3CacheBlocks[n] =3D b
++	=
+
++	-- erase blocks outside maxdist
++	for k,v in pairs(gW3CacheBlocks) do
++		if (sqdist2(v.bx,v.by,bx,by) &gt; kW3CacheBlocks_MaxSqDist) then
++			gW3CacheBlocks[k] =3D nil -- erase block from cache
++		end
++	end
++	=
+
++	-- init block
++	b.statics =3D {}
++	for y =3D 0,7 do for x =3D 0,7 do b.statics[x..&quot;,&quot;..y] =3D {} end end
++	=
+
++	-- load statics
++	gStaticBlockLoader:Load(bx,by) -- following gStaticBlockLoader commands o=
+perate on this loaded block
++	local iStaticCount =3D gStaticBlockLoader:Count()
++	for i =3D 0,iStaticCount-1 do
++		local iTileTypeID,iX,iY,iZ,iHue =3D gStaticBlockLoader:GetStatic(i)
++		local xloc,yloc =3D bx*8 + iX,by*8 + iY
++		table.insert(b.statics[xloc..&quot;,&quot;..yloc],{zloc=3DiZ,artid=3DiTileTypeID,b=
+IsStatic=3Dtrue})
++	end
++	=
+
++	b.ground =3D {}
++	for ty =3D 0,7 do
++	for tx =3D 0,7 do
++		local xloc,yloc =3D bx*8+tx,by*8+ty
++		local iTileType,zloc =3D gGroundBlockLoader:GetTile2(xloc,yloc)  -- TODO=
+ : season translation ??? iTranstile	=
+
++		-- RunUO1.0/src/TileMatrix.cs:600: public bool Ignored
++		local bIgnored =3D iTileTypeID =3D=3D 2 or iTileTypeID =3D=3D 0x1DB or (=
+ iTileTypeID &gt;=3D 0x1AE and iTileTypeID &lt;=3D 0x1B5 ) =
+
++		b.ground[xloc..&quot;,&quot;..yloc] =3D {iTileType=3DiTileType,zloc=3Dzloc,bIgnore=
+d=3DbIgnored,flags=3DGetGroundTileType(iTileType).miFlags}
++	end
++	end
++	=
+
++	return b
++end
++
++function W3_GetStaticTiles		(xloc,yloc)	return W3_GetCacheBlock(xloc,yloc)=
+.statics[xloc..&quot;,&quot;..yloc] end =
+
++function W3_GetLandTile			(xloc,yloc)	return W3_GetCacheBlock(xloc,yloc).g=
+round[xloc..&quot;,&quot;..yloc] end
++function W3_GetMapW				()			return gGroundBlockLoader:GetMapW() end
++function W3_GetMapH				()			return gGroundBlockLoader:GetMapH() end
++
++-- old : Movable runuo:ImplFlag.Movable , probably true for dynamic, false=
+ for static    (door?)
++function W3_ItemIsMovable		(item)		return not item.bIsStatic end
++
++
++function W3_ForAllMultiPartsAtPos	(xloc,yloc,multi_item,fun,param)
++	assert(false,&quot;TODO&quot;)
++	local mycache =3D multi.cache
++	if (not mycache) then
++		mycache =3D {}
++		multi.cache =3D mycache
++		for k,v in pairs(multi.lparts or {}) do
++			local iTileTypeID,iX,iY,iZ,iHue =3D unpack(v)
++			local myarr =3D mycache[iX..&quot;,&quot;..iY]
++			if (not myarr) then myarr =3D {}   mycache[iX..&quot;,&quot;..iY] =3D myarr end
++			table.insert(myarr,{iZ=3DiZ,iTileTypeID=3DiTileTypeID,iHue=3DiHue})
++		end
++	end
++	return mycache[xloc..&quot;,&quot;..yloc] or {}
++	-- TODO : clientside multi
++	-- TODO : serverside multi
++	--~ see also lib.3d.dynamic.lua:114:	if item.artid &gt;=3D gMulti_ID then
++	--~ see also lib.3d.dynamic.lua:151:	multi.id =3D item.artid - gMulti_ID
++	=
+
++	-- TODO : consider multis as well ! (serverside &amp; clientside)   , walk2:G=
+etMultiPartsAtPos()
++	--  lua/net/net.multi.lua gMultiLoader kPacket_Generic_SubCommand_Revisio=
+nCustomHouse kPacket_Target_Multi
++	--- lua/lib.3d.dynamic.lua gMultis
++	--- lua/lib.3d.map.lua:510 : multi.lparts
++	--[[ =
+
++			/cavern/code/iris/lua/lib.3d.dynamic.lua:114:	if item.artid &gt;=3D gMulti=
+_ID then
++			/cavern/code/iris/lua/lib.3d.dynamic.lua:151:	multi.id =3D item.artid -=
+ gMulti_ID
++			/cavern/code/iris/lua/lib.3d.dynamic.lua:144:	gMultis[multi] =3D true
++			/cavern/code/iris/lua/lib.3d.dynamic.lua:184:	gMultis[multi] =3D true
++			/cavern/code/iris/lua/lib.3d.dynamic.lua:388:	gMultis[dynamic.multi] =
+=3D nil =
+
++			/cavern/code/iris/lua/lib.3d.map.lua:497:	if (gMultis) then
++			/cavern/code/iris/lua/lib.3d.map.lua:502:	for k,v in pairs(gMultis) do
++			/cavern/code/iris/lua/lib.3d.map.lua:658:	for k,v in pairs(gMultis) do
++			=
+
++			for k,v in pairs(gMultis) do
++				multi =3D k
++				if multi.lparts then
++					for k,v in pairs(multi.lparts) do
++						iTileTypeID,iX,iY,iZ,iHue =3D unpack(v)
++						if	iX =3D=3D x and iY =3D=3D y  and iZ &gt;=3D playerheadpos then
++							playerIsInside =3D true
++							if ((not zloc_roof) or (zloc_roof &gt; iZ)) then zloc_roof =3D iZ end
++						end
++					end
++				end
++			end
++	]]--
++end
++
++-- considers statics, dynamics and multis
++function W3_ForAllItemsAtPos	(xloc,yloc,fun,param)
++	local b =3D W3_GetCacheBlock(xloc,yloc)
++	local n =3D xloc..&quot;,&quot;..yloc
++	for k,static in pairs(b.statics[n]) do fun(static,param) end
++	for k,dynamic in pairs(GetDynamicList()) do
++		if (DynamicIsInWorld(dynamic) and dynamic.artid) then
++			if (dynamic.artid &gt;=3D gMulti_ID) then -- multi =
+
++				W3_ForAllMultiPartsAtPos(xloc,yloc,multi_item,fun,param)
++			elseif (dynamic.xloc =3D=3D xloc and dynamic.yloc =3D=3D yloc) then -- =
+normal
++				fun(dynamic,param)
++			end
++		end
++	end
++end
++
++
++
++function W3_GetMobile			(irismobile)			assert(false,&quot;TODO&quot;) return {zloc=
+=3D0,CanSwim=3Dfalse,CantWalk=3Dfalse,Alive=3Dtrue,Body=3D{BodyID=3D123},Is=
+DeadBondedPet=3Dfalse} end
++
++-- returns min,avg,max of 4 vertices
++function W3_GetAverageZ			(xloc,yloc)			=
+
++	-- /cavern/RunUO1.0/src/Map.cs:173:        public void GetAverageZ
++	local zTop		=3D W3_GetLandTile(xloc  ,yloc  ).zloc
++	local zLeft		=3D W3_GetLandTile(xloc  ,yloc+1).zloc
++	local zRight	=3D W3_GetLandTile(xloc+1,yloc  ).zloc
++	local zBottom	=3D W3_GetLandTile(xloc+1,yloc+1).zloc
++
++	local z,top,avg =3D zTop,zTop
++	if ( zLeft   &lt; z ) then z =3D zLeft	end
++	if ( zRight  &lt; z ) then z =3D zRight	end
++	if ( zBottom &lt; z ) then z =3D zBottom	end
++
++	if ( zLeft   &gt; top ) then top =3D zLeft	end
++	if ( zRight  &gt; top ) then top =3D zRight	end
++	if ( zBottom &gt; top ) then top =3D zBottom	end
++
++	if ( math.abs( zTop - zBottom ) &gt; math.abs( zLeft - zRight) ) then
++		avg =3D math.floor( (zLeft + zRight) / 2.0 )
++	else
++		avg =3D math.floor( (zTop + zBottom) / 2.0 )
++	end
++	return z,avg,top
++end
++
++
+ --- bMoveIsOk,newZ =3D CheckMovement( Mobile mobile, Point3D loc, Directio=
+n d, out int newZ )
+ -- see also RunUO1.0/Scripts/Engines/Pathing/Movement.cs : CheckMovement a=
+nd Check
+ -- TODO : see also RunUO1.0/src/Mobile.cs : Move : checks items(dynamics?)=
+ and mobiles
+@@ -83,14 +203,15 @@
+ =
+
+ 	if ( mobile.CanSwim ) then reqFlags =3D BitwiseOR(reqFlags,kTileFlag.Wet)=
+ end
+ =
+
+-	local filterItemFun =3D function (item)
+-		if ( ignoreMovableImpassables and item.Movable and item.ItemData.Impassa=
+ble ) then return false end
+-		if ( BitwiseAND(item.ItemData.Flags,reqFlags) =3D=3D 0 ) then return fal=
+se end
+-		return item.ItemID &lt; 0x4000
+-	end
+-	=
+
+-	local itemsStart	=3D FilterArray(W3_GetItemsAtPos(xStart		,yStart		),filt=
+erItemFun)
+-	local itemsForward	=3D FilterArray(W3_GetItemsAtPos(xForward	,yForward	),=
+filterItemFun)
++	local filterItemFun =3D function (item,param)
++		local flags =3D GetStaticTileTypeFlags(item.artid)
++		if (ignoreMovableImpassables and W3_ItemIsMovable(item) and TestMask(fla=
+gs,kTileFlag.Impassable)) then return end
++		if (BitwiseAND(flags,reqFlags) =3D=3D 0) then return end
++		if (item.artid &lt; 0x4000) then table.insert(param,item) end
++	end
++	=
+
++	local itemsStart	=3D {} W3_ForAllItemsAtPos(xStart		,yStart		,filterItemF=
+un	,itemsStart)
++	local itemsForward	=3D {} W3_ForAllItemsAtPos(xForward	,yForward	,filterI=
+temFun	,itemsForward)
+ 	local items
+ 	=
+
+ 	local startZ,startTop =3D W3_GetStartZ( mobile, posx,posy,posz, itemsStar=
+t)
+@@ -98,8 +219,8 @@
+ 	moveIsOk,newZ =3D W3_Check( mobile, itemsForward, xForward, yForward, sta=
+rtTop, startZ, mobile.CanSwim, mobile.CantWalk)
+ =
+
+ 	if ( moveIsOk and checkDiagonals ) then
+-		local itemsLeft		=3D FilterArray(W3_GetItemsAtPos(xLeft	,yLeft		),filter=
+ItemFun)
+-		local itemsRight	=3D FilterArray(W3_GetItemsAtPos(xRight	,yRight		),filt=
+erItemFun)
++		local itemsLeft		=3D {} W3_ForAllItemsAtPos(xLeft	,yLeft	,filterItemFun	=
+,itemsLeft)
++		local itemsRight	=3D {} W3_ForAllItemsAtPos(xRight	,yRight	,filterItemFu=
+n	,itemsRight)
+ 		local myok1,ignored_z =3D W3_Check( mobile, itemsLeft , xLeft , yLeft , =
+startTop, startZ, mobile.CanSwim, mobile.CantWalk)
+ 		local myok2,ignored_z =3D W3_Check( mobile, itemsRight, xRight, yRight, =
+startTop, startZ, mobile.CanSwim, mobile.CantWalk)
+ 		if ( (not myok1) and (not myok2) ) then  moveIsOk =3D false  end
+@@ -112,30 +233,30 @@
+ =
+
+ --~ private bool IsOk( bool ignoreDoors, int ourZ, int ourTop, Tile[] tile=
+s, ArrayList items )
+ function W3_IsOK(  ignoreDoors,  ourZ, ourTop, tiles, items )
+-	for i,check in pairs(tiles) do -- Tile  ( check.ID check.Z )
+-		local itemData =3D W3_GetTileType(BitwiseAND(check.ID,0x3FFF))
+-		if ( TestMask(itemData.Flags,kImpassableSurface) ) then -- Impassable or=
+ Surface
+-			if ( check.Z + itemData.CalcHeight &gt; ourZ and ourTop &gt; check.Z ) then r=
+eturn false end -- intersection =
+
++	for i,check in pairs(tiles) do
++		local itemtype =3D GetStaticTileType(BitwiseAND(check.artid,0x3FFF))
++		if ( TestMask(itemtype.miFlags,kImpassableSurface) ) then -- Impassable =
+or Surface
++			if ( check.zloc + itemtype.iCalcHeight &gt; ourZ and ourTop &gt; check.zloc )=
+ then return false end -- intersection =
+
+ 		end
+ 	end
+ =
+
+ 	for i,item in pairs(items) do -- Item
+-		local itemID =3D BitwiseAND(item.ItemID,0x3FFF) -- int
+-		local itemData =3D W3_GetTileType(itemID) -- ItemData
+-		local flags =3D itemData.Flags -- TileFlag
++		local iTileTypeID =3D BitwiseAND(item.artid,0x3FFF) -- int
++		local itemtype =3D GetStaticTileType(iTileTypeID) -- ItemData
++		local flags =3D itemtype.miFlags -- TileFlag
+ =
+
+ 		if (TestMask(flags,kImpassableSurface)) then -- Impassable or Surface
+ 			if (ignoreDoors and -- doors
+ 				(	TestMask(flags,kTileFlag.Door) or =
+
+-					itemID =3D=3D 0x692 or =
+
+-					itemID =3D=3D 0x846 or =
+
+-					itemID =3D=3D 0x873 or =
+
+-					(itemID &gt;=3D 0x6F5 and itemID &lt;=3D 0x6F6)
++					iTileTypeID =3D=3D 0x692 or =
+
++					iTileTypeID =3D=3D 0x846 or =
+
++					iTileTypeID =3D=3D 0x873 or =
+
++					(iTileTypeID &gt;=3D 0x6F5 and iTileTypeID &lt;=3D 0x6F6)
+ 				) ) then
+ 				--continue
+ 			else
+-				local checkZ =3D item.Z -- int
+-				local checkTop =3D checkZ + itemData.CalcHeight -- int
++				local checkZ =3D item.zloc -- int
++				local checkTop =3D checkZ + itemtype.iCalcHeight -- int
+ =
+
+ 				if ( checkTop &gt; ourZ and ourTop &gt; checkZ ) then return false end
+ 			end
+@@ -151,14 +272,13 @@
+ function W3_Check(  mobile,  items,  x,  y,  startTop,  startZ,  canSwim, =
+ cantWalk )
+ 	local newZ =3D 0
+ =
+
+-	local tiles			 =3D W3_GetStaticTiles( x, y, true ) -- Tile[]
++	local tiles			 =3D W3_GetStaticTiles( x, y ) -- Tile[]
+ 	local landTile		 =3D W3_GetLandTile( x, y ) -- Tile
+-	local landTileTypeID =3D BitwiseAND(landTile.ID,0x3FFF)
+-	local landTileFlags  =3D W3_GetLandTypeFlags(landTileTypeID)
++	local landTileFlags  =3D landTile.flags
+ 	local landTileIsWet	 =3D TestMask(landTileFlags,kTileFlag.Wet)
+ =
+
+ 	local landBlocks =3D TestMask(landTileFlags,kTileFlag.Impassable) -- bool
+-	local considerLand =3D not landTile.Ignored -- bool
++	local considerLand =3D not landTile.bIgnored -- bool
+ =
+
+ 	if ( landBlocks and canSwim and landTileIsWet ) then
+ 		landBlocks =3D false
+@@ -180,24 +300,23 @@
+ 	local ignoreDoors =3D ( kAlwaysIgnoreDoors or (not mobile.Alive) or mobil=
+e.Body.BodyID =3D=3D 0x3DB or mobile.IsDeadBondedPet )
+ =
+
+ 	for i,tile in pairs(tiles) do -- Tile
+-		local itemData =3D W3_GetTileType(BitwiseAND(tile.ID,0x3FFF)) -- ItemData
+-		local flags =3D itemData.Flags -- TileFlag
++		local itemtype =3D GetStaticTileType(BitwiseAND(tile.artid,0x3FFF)) -- I=
+temData
++		local flags =3D itemtype.miFlags -- TileFlag
+ =
+
+ 		if ( BitwiseAND(flags,kImpassableSurface) =3D=3D kTileFlag.Surface or (c=
+anSwim and TestMask(flags , kTileFlag.Wet)) ) then -- Surface and (not Impa=
+ssable)
+ 			if ( cantWalk and BitwiseAND(flags , kTileFlag.Wet) =3D=3D 0 ) then
+ 				--continue
+ 			else
+ =
+
+-				local itemZ =3D tile.Z
++				local itemZ =3D tile.zloc
+ 				local itemTop =3D itemZ
+-				local ourZ =3D itemZ + itemData.CalcHeight
++				local ourZ =3D itemZ + itemtype.iCalcHeight
+ 				local ourTop =3D ourZ + kPersonHeight
+ 				local testTop =3D checkTop
+ =
+
+ 				local bMyContinue =3D false
+-				if ( moveIsOk )
+-				then
+-					local cmp =3D math.abs( ourZ - mobile.Z ) - math.abs( newZ - mobile.Z=
+ )
++				if ( moveIsOk ) then
++					local cmp =3D math.abs( ourZ - mobile.zloc ) - math.abs( newZ - mobil=
+e.zloc )
+ =
+
+ 					if ( cmp &gt; 0 or (cmp =3D=3D 0 and ourZ &gt; newZ) ) then bMyContinue =3D=
+ true end
+ 				end
+@@ -205,15 +324,15 @@
+ 				if (not bMyContinue) then
+ 					if ( ourZ + kPersonHeight &gt; testTop ) then testTop =3D ourZ + kPerson=
+Height end
+ =
+
+-					if ( not itemData.Bridge ) then itemTop =3D itemTop + itemData.Height=
+ end
++					if ( not itemtype.bBridge ) then itemTop =3D itemTop + itemtype.miHei=
+ght end
+ =
+
+ 					if ( stepTop &gt;=3D itemTop ) then
+ 						local landCheck =3D itemZ
+ =
+
+-						if ( itemData.Height &gt;=3D kStepHeight ) then
++						if ( itemtype.miHeight &gt;=3D kStepHeight ) then
+ 							landCheck =3D landCheck + kStepHeight
+ 						else
+-							landCheck =3D landCheck + itemData.Height
++							landCheck =3D landCheck + itemtype.miHeight
+ 						end
+ =
+
+ 						if ( considerLand and landCheck &lt; landCenter and landCenter &gt; ourZ a=
+nd testTop &gt; landZ ) then
+@@ -231,26 +350,24 @@
+ 	end
+ =
+
+ 	for i,item in pairs(items) do  -- Item
+-		local itemData =3D item.ItemData --W3_GetTileType(BitwiseAND(item.ItemID=
+ , 0x3FFF)) ItemData
+-		local flags =3D itemData.Flags -- TileFlag
+-
+-		if ( BitwiseAND(flags , kImpassableSurface) =3D=3D kTileFlag.Surface or =
+(mobile.CanSwim and TestMask(flags , kTileFlag.Wet)) ) -- Surface and (not =
+Impassable)
+-		then
++		local itemtype =3D GetStaticTileType(item.artid) --GetStaticTileType(Bit=
+wiseAND(item.artid , 0x3FFF)) ItemData
++		local flags =3D GetStaticTileTypeFlags(item.artid)  -- itemtype.miFlags =
+ TileFlag
++
++		if ( BitwiseAND(flags , kImpassableSurface) =3D=3D kTileFlag.Surface or =
+(mobile.CanSwim and TestMask(flags , kTileFlag.Wet)) ) then -- Surface and =
+(not Impassable)
+ 			if ( cantWalk and BitwiseAND(flags , kTileFlag.Wet) =3D=3D 0 ) then
+ 				--~ continue
+ 			else
+ =
+
+-				local itemZ =3D item.Z
++				local itemZ =3D item.zloc
+ 				local itemTop =3D itemZ
+-				local ourZ =3D itemZ + itemData.CalcHeight
++				local ourZ =3D itemZ + itemtype.iCalcHeight
+ 				local ourTop =3D ourZ + kPersonHeight
+ 				local testTop =3D checkTop
+ =
+
+ 				local bMyContinue =3D false
+ 				=
+
+-				if ( moveIsOk )
+-				then
+-					local cmp =3D math.abs( ourZ - mobile.Z ) - math.abs( newZ - mobile.Z=
+ )
++				if ( moveIsOk ) then
++					local cmp =3D math.abs( ourZ - mobile.zloc ) - math.abs( newZ - mobil=
+e.zloc )
+ =
+
+ 					if ( cmp &gt; 0 or (cmp =3D=3D 0 and ourZ &gt; newZ) ) then bMyContinue =3D=
+ true end
+ 				end
+@@ -258,23 +375,21 @@
+ 				if (not bMyContinue) then
+ 					if ( ourZ + kPersonHeight &gt; testTop ) then testTop =3D ourZ + kPerson=
+Height end
+ =
+
+-					if ( not itemData.Bridge ) then itemTop =3D itemTop + itemData.Height=
+ end
+-
+-					if ( stepTop &gt;=3D itemTop )
+-					then
++					if ( not itemtype.bBridge ) then itemTop =3D itemTop + itemtype.miHei=
+ght end
++
++					if ( stepTop &gt;=3D itemTop ) then
+ 						local landCheck =3D itemZ
+ =
+
+-						if ( itemData.Height &gt;=3D kStepHeight ) then
++						if ( itemtype.miHeight &gt;=3D kStepHeight ) then
+ 							landCheck =3D landCheck + kStepHeight
+ 						else
+-							landCheck =3D landCheck + itemData.Height
++							landCheck =3D landCheck + itemtype.miHeight
+ 						end
+ =
+
+ 						if ( considerLand and landCheck &lt; landCenter and landCenter &gt; ourZ a=
+nd testTop &gt; landZ ) then
+ 							--continue
+ 						else
+-							if ( W3_IsOK( ignoreDoors, ourZ, testTop, tiles, items ) )
+-							then
++							if ( W3_IsOK( ignoreDoors, ourZ, testTop, tiles, items ) ) then
+ 								newZ =3D ourZ
+ 								moveIsOk =3D true
+ 							end
+@@ -285,8 +400,7 @@
+ 		end
+ 	end
+ =
+
+-	if ( considerLand and (not landBlocks) and stepTop &gt;=3D landZ )
+-	then
++	if ( considerLand and (not landBlocks) and stepTop &gt;=3D landZ ) then
+ 		local ourZ =3D landCenter
+ 		local ourTop =3D ourZ + kPersonHeight
+ 		local testTop =3D checkTop
+@@ -295,15 +409,12 @@
+ =
+
+ 		local shouldCheck =3D true
+ =
+
+-		if ( moveIsOk )
+-		then
+-			local cmp =3D math.abs( ourZ - mobile.Z ) - math.abs( newZ - mobile.Z )=
+ -- int
+-
++		if ( moveIsOk ) then
++			local cmp =3D math.abs( ourZ - mobile.zloc ) - math.abs( newZ - mobile.=
+zloc ) -- int
+ 			if ( cmp &gt; 0 or (cmp =3D=3D 0 and ourZ &gt; newZ) ) then shouldCheck =3D f=
+alse end
+ 		end
+ =
+
+-		if ( shouldCheck and W3_IsOK( ignoreDoors, ourZ, testTop, tiles, items )=
+ )
+-		then
++		if ( shouldCheck and W3_IsOK( ignoreDoors, ourZ, testTop, tiles, items )=
+ ) then
+ 			newZ =3D ourZ
+ 			moveIsOk =3D true
+ 		end
+@@ -317,13 +428,12 @@
+ function W3_GetStartZ(  mobile,  posx,posy,posz,  itemList )
+ 	local zLow,zTop =3D 0,0
+ =
+
+-	local landTile =3D W3_GetLandTile( posx, posy ) -- Tile
+-	local landZ =3D 0
+-	local landCenter =3D 0
+-	local landTop =3D 0
+-	local landTileID =3D BitwiseAND(landTile.ID , 0x3FFF)
+-	local landTileFlags =3D W3_GetLandTypeFlags(landTileID)
+-	local landBlocks =3D TestMask(landTileFlags, kTileFlag.Impassable)
++	local landZ 		=3D 0
++	local landCenter	=3D 0
++	local landTop		=3D 0
++	local landTile 		=3D W3_GetLandTile( posx, posy ) -- Tile
++	local landTileFlags	=3D landTile.flags
++	local landBlocks	=3D TestMask(landTileFlags, kTileFlag.Impassable)
+ =
+
+ 	if ( landBlocks and mobile.CanSwim and TestMask(landTileFlags , kTileFlag=
+.Wet) ) then
+ 		landBlocks =3D false
+@@ -333,37 +443,36 @@
+ =
+
+ 	landZ,landCenter,landTop =3D W3_GetAverageZ( posx, posy)
+ =
+
+-	local considerLand =3D not landTile.Ignored
++	local considerLand =3D not landTile.bIgnored
+ =
+
+ 	local zCenter =3D 0
+ 	local isSet =3D false
+ =
+
+-	if ( considerLand and (not landBlocks) and posz &gt;=3D landCenter )
+-	then
++	if ( considerLand and (not landBlocks) and posz &gt;=3D landCenter ) then
+ 		zLow =3D landZ
+ 		zCenter =3D landCenter
+-
+ 		if ( (not isSet) or landTop &gt; zTop ) then zTop =3D landTop end
+-
+ 		isSet =3D true
+ 	end
+ =
+
+-	local staticTiles =3D W3_GetStaticTiles( posx, posy, true ) -- Tile[]
++	local staticTiles =3D W3_GetStaticTiles( posx, posy ) -- Tile[]
+ =
+
+ 	for i,tile in pairs(staticTiles) do -- Tile
+-		local id =3D W3_GetTileType(BitwiseAND(tile.ID , 0x3FFF)) -- ItemData
+-
+-		local calcTop =3D (tile.Z + id.CalcHeight)
+-
+-		if ( ((not isSet) or calcTop &gt;=3D zCenter) and ( TestMask(id.Flags , kTi=
+leFlag.Surface) or ( mobile.CanSwim and TestMask(id.Flags,kTileFlag.Wet) ) =
+) and posz &gt;=3D calcTop )
+-		then
+-			if ( mobile.CantWalk and BitwiseAND(id.Flags , kTileFlag.Wet) =3D=3D 0 =
+) then
++		local itemtype =3D GetStaticTileType(BitwiseAND(tile.artid , 0x3FFF)) --=
+ ItemData
++
++		local calcTop =3D (tile.zloc + itemtype.iCalcHeight)
++
++		if	(((not isSet) or calcTop &gt;=3D zCenter) and =
+
++			 (TestMask(itemtype.miFlags , kTileFlag.Surface) or (mobile.CanSwim and=
+ TestMask(itemtype.miFlags,kTileFlag.Wet))) and =
+
++			 posz &gt;=3D calcTop =
+
++			) then
++			if ( mobile.CantWalk and BitwiseAND(itemtype.miFlags , kTileFlag.Wet) =
+=3D=3D 0 ) then
+ 				--continue
+ 			else
+-				zLow =3D tile.Z
++				zLow =3D tile.zloc
+ 				zCenter =3D calcTop
+ =
+
+-				local top =3D tile.Z + id.Height
++				local top =3D tile.zloc + itemtype.miHeight
+ =
+
+ 				if ( (not isSet) or top &gt; zTop ) then zTop =3D top end
+ =
+
+@@ -373,22 +482,22 @@
+ 	end
+ =
+
+ 	for i,item in pairs(itemList) do -- Item
+-		local id =3D item.ItemData -- ItemData
+-
+-		local calcTop =3D item.Z + id.CalcHeight
++		local itemtype =3D GetStaticTileType(item.artid) -- ItemData
++
++		local calcTop =3D item.zloc + itemtype.iCalcHeight
+ =
+
+ 		if (	((not isSet) or calcTop &gt;=3D zCenter) and =
+
+-				(	TestMask(id.Flags , kTileFlag.Surface) or =
+
+-					( mobile.CanSwim and TestMask(id.Flags,kTileFlag.Wet) ) ) and =
+
++				(	TestMask(itemtype.miFlags , kTileFlag.Surface) or =
+
++					( mobile.CanSwim and TestMask(itemtype.miFlags,kTileFlag.Wet) ) ) and =
+
+ 				posz &gt;=3D calcTop )
+ 		then
+-			if ( mobile.CantWalk and BitwiseAND(id.Flags , kTileFlag.Wet) =3D=3D 0 =
+) then
++			if ( mobile.CantWalk and BitwiseAND(itemtype.miFlags , kTileFlag.Wet) =
+=3D=3D 0 ) then
+ 				--continue
+ 			else =
+
+-				zLow =3D item.Z
++				zLow =3D item.zloc
+ 				zCenter =3D calcTop
+ =
+
+-				local top =3D item.Z + id.Height
++				local top =3D item.zloc + itemtype.miHeight
+ =
+
+ 				if ( (not isSet) or top &gt; zTop ) then zTop =3D top end
+ =
+
+
+Modified: trunk/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/main.lua (original)
++++ trunk/lua/main.lua Mon Apr  7 02:12:41 2008
+@@ -81,6 +81,7 @@
+ dofile(libpath .. &quot;lib.unifont.lua&quot;)
+ dofile(libpath .. &quot;lib.pathfind.lua&quot;)
+ dofile(libpath .. &quot;lib.plugin.lua&quot;)
++dofile(libpath .. &quot;lib.uoutils.lua&quot;)
+ =
+
+ dofile(libpath .. &quot;gui/gui.main.lua&quot;)
+ dofile(libpath .. &quot;obj/obj.main.lua&quot;)
+
+Modified: trunk/src/data_L.cpp
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/src/data_L.cpp (original)
++++ trunk/src/data_L.cpp Mon Apr  7 02:12:41 2008
+@@ -34,6 +34,7 @@
+ 			REGISTER_METHOD(GetMapH);
+ 			REGISTER_METHOD(WriteMapImageToFile);
+ 			REGISTER_METHOD(GetTile);
++			REGISTER_METHOD(GetTile2);
+ 			REGISTER_METHOD(GetNormals);
+ 			REGISTER_METHOD(GetHeightMap);
+ 			REGISTER_METHOD(CountTileTypes);
+@@ -78,6 +79,22 @@
+ 			int tx =3D mymax(0,mymin(7,luaL_checkint(L,4)));
+ 			int ty =3D mymax(0,mymin(7,luaL_checkint(L,5)));
+ 			RawGroundTile* pTile =3D &amp;pChunk-&gt;mTiles[ty][tx];
++			lua_pushnumber(L,pTile-&gt;miTileType);
++			lua_pushnumber(L,pTile-&gt;miZ);
++			return 2; =
+
++		}
++		=
+
++		/// for lua  tiletype,z		GetTile2	(xloc,yloc)
++		static int					GetTile2	(lua_State *L) { PROFILE =
+
++			int x =3D luaL_checkint(L,2);
++			int y =3D luaL_checkint(L,3);
++			if (x &lt; 0 || y &lt; 0) return 0;
++			cGroundBlockLoader* target =3D checkudata_alive(L);
++			cGroundBlock* pGroundBlock =3D target-&gt;GetGroundBlock(x/8,y/8);
++			if (!pGroundBlock) return 0;
++			RawGroundBlock* pChunk =3D pGroundBlock-&gt;mpRawGroundBlock;
++			if (!pChunk) return 0;
++			RawGroundTile* pTile =3D &amp;pChunk-&gt;mTiles[y%8][x%8];
+ 			lua_pushnumber(L,pTile-&gt;miTileType);
+ 			lua_pushnumber(L,pTile-&gt;miZ);
+ 			return 2; =
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000844.html">[Iris-commit] [IRIS] r2033 - in /trunk: data/base/ui/sd_pd_enemy.png data/base/ui/sd_pd_good.png data/base/ui/sd_pd_murderer.png data/base/ui/sd_pd_neutral.png data/base/ui/sd_pd_unknown.png plugins/hudenemylist.lua
+</A></li>
+	<LI>Next message: <A HREF="000846.html">[Iris-commit] [IRIS] r2035 - in /trunk: data/config.lua.dist lua/lib.walking2.lua lua/lib.walking3.lua lua/main.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#845">[ date ]</a>
+              <a href="thread.html#845">[ thread ]</a>
+              <a href="subject.html#845">[ subject ]</a>
+              <a href="author.html#845">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

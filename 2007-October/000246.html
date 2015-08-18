@@ -1,0 +1,124 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1431 - /trunk/data/lua/lib.tilefreewalk.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2007-October/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1431%20-%20/trunk/data/lua/lib.tilefreewalk.lua&In-Reply-To=%3C20070930234715.D00371C181BA%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000245.html">
+   <LINK REL="Next"  HREF="000247.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1431 - /trunk/data/lua/lib.tilefreewalk.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1431%20-%20/trunk/data/lua/lib.tilefreewalk.lua&In-Reply-To=%3C20070930234715.D00371C181BA%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1431 - /trunk/data/lua/lib.tilefreewalk.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Mon Oct  1 01:47:15 CEST 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000245.html">[Iris-commit] [IRIS] r1430 - /trunk/data/lua/lib.tilefreewalk.lua
+</A></li>
+        <LI>Next message: <A HREF="000247.html">[Iris-commit] [IRIS] r1432 - /trunk/data/lua/lib.tilefreewalk.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#246">[ date ]</a>
+              <a href="thread.html#246">[ thread ]</a>
+              <a href="subject.html#246">[ subject ]</a>
+              <a href="author.html#246">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Mon Oct  1 01:47:15 2007
+New Revision: 1431
+
+Log:
+added a few comments to tilefree collision handling
+
+Modified:
+    trunk/data/lua/lib.tilefreewalk.lua
+
+Modified: trunk/data/lua/lib.tilefreewalk.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.tilefreewalk.lua (original)
++++ trunk/data/lua/lib.tilefreewalk.lua Mon Oct  1 01:47:15 2007
+@@ -40,6 +40,7 @@
+ 	self.pathpoints =3D {}
+ 	self.debugmarkers =3D {}
+ 	self.debugmarkergroups =3D {}
++	self.walls =3D {}
+ 	self.movedirx =3D 0
+ 	self.movediry =3D 1
+ 	=
+
+@@ -126,8 +127,9 @@
+ 		-- block movement here
+ 		local r =3D 0.2 -- radius of player/human
+ 		local h =3D 0.7
+-		self:DebugMarkerGroup_Clear(&quot;touchwalls&quot;)
+-		for k,wallarr in pairs(self.walls or {}) do -- block straight
++		--self:DebugMarkerGroup_Clear(&quot;touchwalls&quot;)
++		-- 1st collision : with wall center, to avoid speed bumps while walking =
+along a wall
++		for k,wallarr in pairs(self.walls) do -- block straight
+ 			local x1,y1,x2,y2,dx,dy,nx,ny,invsqlen =3D unpack(wallarr)
+ 			local vx,vy =3D sub2(x,y,x1,y1)
+ 			local pos =3D dot2(vx,vy,dx,dy) * invsqlen
+@@ -140,7 +142,8 @@
+ 				end
+ 			end
+ 		end
+-		for k,wallarr in pairs(self.walls or {}) do -- block edge
++		-- 2nd collision : with wall edges, otherwise it would be possible to mo=
+ve into an edge between 2 non-parallel walls
++		for k,wallarr in pairs(self.walls) do -- block edge
+ 			local x1,y1,x2,y2,dx,dy,nx,ny,invsqlen =3D unpack(wallarr)
+ 			local vx,vy =3D sub2(x,y,x1,y1)
+ 			local pos =3D dot2(vx,vy,dx,dy) * invsqlen
+@@ -153,7 +156,8 @@
+ 				if (pushoutdist &gt; 0) then x,y =3D add2(x,y,tolen2(vx,vy,pushoutdist)) =
+end
+ 			end
+ 		end
+-		for k,wallarr in pairs(self.walls or {}) do -- block straight
++		-- 3rd collision : with wall center again, to avoid the edge collision p=
+ushing the player slowly inside the walls
++		for k,wallarr in pairs(self.walls) do -- block straight
+ 			local x1,y1,x2,y2,dx,dy,nx,ny,invsqlen =3D unpack(wallarr)
+ 			local vx,vy =3D sub2(x,y,x1,y1)
+ 			local pos =3D dot2(vx,vy,dx,dy) * invsqlen
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000245.html">[Iris-commit] [IRIS] r1430 - /trunk/data/lua/lib.tilefreewalk.lua
+</A></li>
+	<LI>Next message: <A HREF="000247.html">[Iris-commit] [IRIS] r1432 - /trunk/data/lua/lib.tilefreewalk.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#246">[ date ]</a>
+              <a href="thread.html#246">[ thread ]</a>
+              <a href="subject.html#246">[ subject ]</a>
+              <a href="author.html#246">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

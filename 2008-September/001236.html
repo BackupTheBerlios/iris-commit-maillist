@@ -1,0 +1,145 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2431 - in /trunk/lua: lib.3d.cam.lua lib.3d.map.lua lib.3d.renderer.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-September/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2431%20-%20in%20/trunk/lua%3A%20lib.3d.cam.lua%0A%20lib.3d.map.lua%20lib.3d.renderer.lua&In-Reply-To=%3C20080901173718.CDEA01C186A4%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001235.html">
+   <LINK REL="Next"  HREF="001237.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2431 - in /trunk/lua: lib.3d.cam.lua lib.3d.map.lua lib.3d.renderer.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2431%20-%20in%20/trunk/lua%3A%20lib.3d.cam.lua%0A%20lib.3d.map.lua%20lib.3d.renderer.lua&In-Reply-To=%3C20080901173718.CDEA01C186A4%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2431 - in /trunk/lua: lib.3d.cam.lua lib.3d.map.lua lib.3d.renderer.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Mon Sep  1 19:37:18 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001235.html">[Iris-commit] [IRIS] r2430 - in /trunk/lua: lib.3d.dynamic.lua	lib.3d.mousepick.lua
+</A></li>
+        <LI>Next message: <A HREF="001237.html">[Iris-commit] [IRIS] r2432 - in /trunk/lua: lib.3d.mousepick.lua	lib.3d.tilebatch.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1236">[ date ]</a>
+              <a href="thread.html#1236">[ thread ]</a>
+              <a href="subject.html#1236">[ subject ]</a>
+              <a href="author.html#1236">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Mon Sep  1 19:37:18 2008
+New Revision: 2431
+
+Log:
+disabled blendout in free-cam-mode
+
+Modified:
+    trunk/lua/lib.3d.cam.lua
+    trunk/lua/lib.3d.map.lua
+    trunk/lua/lib.3d.renderer.lua
+
+Modified: trunk/lua/lib.3d.cam.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.cam.lua (original)
++++ trunk/lua/lib.3d.cam.lua Mon Sep  1 19:37:18 2008
+@@ -124,6 +124,12 @@
+ end
+ =
+
+ function Renderer3D:IsFirstPersonCam () return self.gCamMode =3D=3D self.k=
+CamMode_Ego end
++
++function Renderer3D:CamModeAllowsBlendout () =
+
++	if (self.gCamMode =3D=3D self.kCamMode_Ego) then return false end
++	if (self.gCamMode =3D=3D self.kCamMode_FreeMove) then return false end
++	return true
++end
+ =
+
+ function Renderer3D:CamChangeZoom (add) =
+
+ 	if (self.gCamMode ~=3D self.kCamMode_Third) then return end
+
+Modified: trunk/lua/lib.3d.map.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.map.lua (original)
++++ trunk/lua/lib.3d.map.lua Mon Sep  1 19:37:18 2008
+@@ -103,8 +103,8 @@
+ 	local bTerrainVisible =3D true
+ 	local zloc_roof =3D nil -- becomes the minimum of the statics above the p=
+layer
+ 	=
+
+-	-- only blend out if not in first person mode
+-	if (not Renderer3D:IsFirstPersonCam()) then =
+
++	-- only blend out if not in first person mode or in freecam
++	if (Renderer3D:CamModeAllowsBlendout()) then =
+
+ 		=
+
+ 		-- check ground
+ 		local iPlayerGroundTileType,iPlayerGroundZLoc =3D GetAbsTile(x,y) =
+
+
+Modified: trunk/lua/lib.3d.renderer.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.renderer.lua (original)
++++ trunk/lua/lib.3d.renderer.lua Mon Sep  1 19:37:18 2008
+@@ -129,7 +129,8 @@
+ =
+
+ -- for hotkey
+ function Renderer3D:OfflineTeleportToMouse()
+-	gTileFreeWalk:SetPos_All(self:LocalToUOPos(gTileFreeWalk:RoundPos(gTileFr=
+eeWalk:MousePickPos())))
++	local rx,ry,rz =3D gTileFreeWalk:RoundPos(gTileFreeWalk:MousePickPos())
++	gTileFreeWalk:SetPos_All(self:LocalToUOPos(rx,ry,rz*10))
+ end
+ =
+
+ -- used by MacroRead_GetPlayerPosition when no playermobile found (yet)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001235.html">[Iris-commit] [IRIS] r2430 - in /trunk/lua: lib.3d.dynamic.lua	lib.3d.mousepick.lua
+</A></li>
+	<LI>Next message: <A HREF="001237.html">[Iris-commit] [IRIS] r2432 - in /trunk/lua: lib.3d.mousepick.lua	lib.3d.tilebatch.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1236">[ date ]</a>
+              <a href="thread.html#1236">[ thread ]</a>
+              <a href="subject.html#1236">[ subject ]</a>
+              <a href="author.html#1236">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

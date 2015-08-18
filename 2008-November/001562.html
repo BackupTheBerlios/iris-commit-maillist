@@ -1,0 +1,899 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2758 - in /trunk: include/ lua/ lua/net/	lua/obj/ plugins/ src/
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-November/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2758%20-%20in%20/trunk%3A%20include/%20lua/%20lua/net/%0A%09lua/obj/%20plugins/%20src/&In-Reply-To=%3C20081129035432.972741C1877C%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001561.html">
+   <LINK REL="Next"  HREF="001563.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2758 - in /trunk: include/ lua/ lua/net/	lua/obj/ plugins/ src/</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2758%20-%20in%20/trunk%3A%20include/%20lua/%20lua/net/%0A%09lua/obj/%20plugins/%20src/&In-Reply-To=%3C20081129035432.972741C1877C%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2758 - in /trunk: include/ lua/ lua/net/	lua/obj/ plugins/ src/">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat Nov 29 04:54:31 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001561.html">[Iris-commit] [IRIS] r2757 - in /trunk/lua: lib.2d.dynamic.lua	lib.huepicker.lua
+</A></li>
+        <LI>Next message: <A HREF="001563.html">[Iris-commit] [IRIS] r2759 - /trunk/bin/iris2.exe
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1562">[ date ]</a>
+              <a href="thread.html#1562">[ thread ]</a>
+              <a href="subject.html#1562">[ subject ]</a>
+              <a href="author.html#1562">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sat Nov 29 04:54:29 2008
+New Revision: 2758
+
+Log:
+multitex terrain : added zmod option, for water-ground. SpellBarRiseTextOnP=
+os, for soundeffectsanims.  Hook_Packet_Animation and Hook_Packet_Sound lis=
+teners, CompleteTargetMode:maxrange param (12 is good),  MacroCmd_GetPlayer=
+Equipment , MacroCmd_DragAndEquip , MacroCmd_ListNonFriendlyPlayers , Macro=
+Cmd_GetNearestMobFromList , Renderer2D:HUDFX_Step : added position option, =
+gNodrawByArtID list to hide nodraw tiles,  constants for kNotoriety_Blue et=
+c,  ToggleMultiOnlyShowFloor : rebuilds multis now, so toggle at runtime po=
+ssible
+
+Modified:
+    trunk/include/terrain.h
+    trunk/lua/lib.2d.dynamic.lua
+    trunk/lua/lib.2d.hudfx.lua
+    trunk/lua/lib.2d.mousepick.lua
+    trunk/lua/lib.2d.spriteblock.lua
+    trunk/lua/lib.cursor.lua
+    trunk/lua/lib.macrolist.lua
+    trunk/lua/lib.terrain.multitex.lua
+    trunk/lua/lib.uoids.lua
+    trunk/lua/net/net.mobile.lua
+    trunk/lua/net/net.sound.lua
+    trunk/lua/obj/obj.mobile.lua
+    trunk/plugins/lib.spellbar.lua
+    trunk/src/scripting.iris.cpp
+    trunk/src/terrain_multitex.cpp
+
+Modified: trunk/include/terrain.h
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/include/terrain.h (original)
++++ trunk/include/terrain.h Sat Nov 29 04:54:29 2008
+@@ -3,6 +3,7 @@
+ =
+
+ #include &lt;OgreVector3.h&gt;
+ #include &lt;string&gt;
++#include &lt;map&gt;
+ =
+
+ class cGroundBlockLoader;
+ namespace Lugre {
+@@ -15,6 +16,7 @@
+ =
+
+ void	 		TerrainMultiTexWrite		(cGroundBlockLoader* pGroundBlockLoader,cons=
+t int iBlockX,const int iBlockY,const int iDX,const int iDY,const float fZU=
+nit,Lugre::cRobRenderOp&amp; pRobRenderOp);
+ void	 		TerrainMultiTex_SetGroundMaterialTypeLookUp	(const int* piValues,c=
+onst int iCount);
++void	 		TerrainMultiTex_SetZModTable(const std::map&lt;int,int&gt;&amp; myZModTable);
+ void			TerrainMultiTex_AddTexCoordSet				(int iMode,float tx,float ty,floa=
+t tw,float th,int iTileSpan); ///&lt; 0:ground,1:mainmask,2:mask
+ void			TerrainMultiTex_AddMaskTexCoordSet			(float u1,float v1, float u2,f=
+loat v2, float u3,float v3, float u4,float v4);
+ =
+
+
+Modified: trunk/lua/lib.2d.dynamic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.dynamic.lua (original)
++++ trunk/lua/lib.2d.dynamic.lua Sat Nov 29 04:54:29 2008
+@@ -40,6 +40,7 @@
+ 	if (gMulti_OnlyShowFloor =3D=3D bValue) then return end
+ 	gMulti_OnlyShowFloor =3D bValue
+ 	for k,block in pairs(self.gDynamicBlocks) do self:DynamicBlockRebuild(blo=
+ck) end
++	for multi,v in pairs(gMultis) do self:UpdateMultiItemGfx(multi.item) end
+ end
+ 	=
+
+ 	=
+
+
+Modified: trunk/lua/lib.2d.hudfx.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.hudfx.lua (original)
++++ trunk/lua/lib.2d.hudfx.lua Sat Nov 29 04:54:29 2008
+@@ -27,14 +27,21 @@
+ =
+
+ function Renderer2D:HUDFX_Step (hudfx,t)
+ 	if (t &gt; hudfx.endt) then self:HUDFX_Destroy(hudfx) return end
+-	if (hudfx.mob and hudfx.gfx) then
+-		local mobile =3D hudfx.mob
+-		local xloc,yloc,zloc =3D self:GetExactMobilePos(mobile)
+-		local px,py =3D self:UOPosToPixelPos(xloc,yloc,zloc+hudfx.zadd)
+-		if (px) then =
+
+-			local dur =3D hudfx.dur
+-			local ft =3D min(dur,t - hudfx.startt) / dur
+-			hudfx.gfx:SetPos(px + hudfx.offsetx,py - sqrt(ft)*hudfx.riseh)
++	if (hudfx.gfx) then =
+
++		local xloc,yloc,zloc
++		if (hudfx.mob) then
++			local mobile =3D hudfx.mob
++			xloc,yloc,zloc =3D self:GetExactMobilePos(mobile)
++		else
++			xloc,yloc,zloc =3D hudfx.xloc,hudfx.yloc,hudfx.zloc
++		end
++		if (xloc) then =
+
++			local px,py =3D self:UOPosToPixelPos(xloc,yloc,zloc+hudfx.zadd)
++			if (px) then =
+
++				local dur =3D hudfx.dur
++				local ft =3D min(dur,t - hudfx.startt) / dur
++				hudfx.gfx:SetPos(px + hudfx.offsetx,py - sqrt(ft)*hudfx.riseh)
++			end
+ 		end
+ 	end
+ end
+@@ -45,8 +52,30 @@
+ 	local offsetx =3D isOnSelf and -32 or 0
+ 	local r,g,b =3D unpack(col)
+ 	self:HUDFX_AddRisingTextOnMob(GetMobile(mobile_serial),sprintf(&quot;%d&quot;,damag=
+e),r,g,b,offsetx)
++	--~ print(&quot;2D:NotifyDamage ##################&quot;,Client_GetTicks(),damage,m=
+obile_serial)
+ end
+ =
+
++
++function Renderer2D:HUDFX_AddRisingTextOnPos (xloc,yloc,zloc,text,r,g,b,of=
+fsetx,risetime,riseh)
++	local hudfx =3D {}
++	hudfx.dur =3D risetime or 1000
++	hudfx.riseh =3D riseh or 64 -- in pixels
++
++	local t =3D Client_GetTicks()
++	hudfx.startt =3D t
++	hudfx.endt =3D t + hudfx.dur
++	hudfx.text =3D text
++	hudfx.xloc =3D xloc
++	hudfx.yloc =3D yloc
++	hudfx.zloc =3D zloc
++	hudfx.zadd =3D 10
++	hudfx.offsetx =3D offsetx or 0
++	=
+
++	local gfx =3D gRootWidget.hudfx:CreateChild(&quot;UOText&quot;,{x=3D0,y=3D0,text=3D=
+text,col=3D{r=3Dr,g=3Dg,b=3Db},bold=3Dtrue})
++	=
+
++	hudfx.gfx =3D gfx
++	Renderer2D.gHUDFXList[hudfx] =3D true
++end
+ =
+
+ function Renderer2D:HUDFX_AddRisingTextOnMob (mob,text,r,g,b,offsetx,riset=
+ime,riseh)
+ 	if (not mob) then return end
+
+Modified: trunk/lua/lib.2d.mousepick.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.mousepick.lua (original)
++++ trunk/lua/lib.2d.mousepick.lua Sat Nov 29 04:54:29 2008
+@@ -110,6 +110,10 @@
+ 			hitinfo =3D hitinfo..sprintf(&quot;notoriety=3D%d,&quot;,o.mobile and o.mobile.no=
+toriety or -1)
+ 			hitinfo =3D hitinfo..sprintf(&quot;flags=3D0x%04x,&quot;,o.mobile and o.mobile.fl=
+ag or 0)
+ 		end
++		if (o.hittype =3D=3D kMousePickHitType_Terrain 			) then =
+
++			local tiletype,z =3D GetGroundAtAbsPos(o.hit_xloc,o.hit_yloc) =
+
++			hitinfo =3D hitinfo..sprintf(&quot;tiletype=3D0x%04x,&quot;,tiletype or 0) =
+
++		end
+ 		if (o.hittype =3D=3D kMousePickHitType_Static			) then hitinfo =3D hitin=
+fo..&quot;static&quot; end
+ 		if (o.hittype =3D=3D kMousePickHitType_Terrain 			) then hitinfo =3D hit=
+info..&quot;terrain&quot; end
+ 		if (o.hittype =3D=3D kMousePickHitType_Dynamic 			) then hitinfo =3D hit=
+info..&quot;dynamic&quot; end
+
+Modified: trunk/lua/lib.2d.spriteblock.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.spriteblock.lua (original)
++++ trunk/lua/lib.2d.spriteblock.lua Sat Nov 29 04:54:29 2008
+@@ -188,6 +188,7 @@
+ =
+
+ -- load textures to atlas, artid-hue
+ function cUOSpriteBlock:AddArtSprite (tx,ty,zloc,artid,hue,sortbonus,data)
++	if (gNodrawByArtID[artid]) then return end
+ 	sortbonus =3D sortbonus or 0
+ 	hue =3D hue or 0
+ 	local arr =3D self.pTileTypeAtlasMats[artid]
+@@ -290,6 +291,7 @@
+ end
+ =
+
+ function cUOSpriteBlock:AddWaterTile(tx,ty,zloc,artid,data,sortrelidx) =
+
++	--~ if (true) then return end -- debug : nowater
+ 	local multitile =3D 8 -- gWater2DMatName
+ 	local e =3D 1/multitile
+ 	local u0,v0 =3D (tx%multitile)*e,(ty%multitile)*e
+
+Modified: trunk/lua/lib.cursor.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.cursor.lua (original)
++++ trunk/lua/lib.cursor.lua Sat Nov 29 04:54:29 2008
+@@ -124,7 +124,7 @@
+ 	CompleteTargetMode(hit)
+ end
+ =
+
+-function CompleteTargetMode (hitobject)
++function CompleteTargetMode (hitobject,maxrange) -- maxrange=3Dnil
+ 	if (not hitobject) then
+ 		MainMousePick()
+ 		if (not gMousePickFoundHit) then =
+
+@@ -132,6 +132,11 @@
+ 			return =
+
+ 		end
+ 		hitobject =3D gMousePickFoundHit
++	end
++	=
+
++	if (maxrange and hitobject.hittype =3D=3D kMousePickHitType_Mobile) then
++		local mobile =3D hitobject.mobile
++		if (IsOutsideRange(mobile.xloc,mobile.yloc,gPlayerXLoc,gPlayerYLoc,maxra=
+nge)) then return end
+ 	end
+ 	=
+
+ 	MacroRememberTarget(hitobject)
+
+Modified: trunk/lua/lib.macrolist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.macrolist.lua (original)
++++ trunk/lua/lib.macrolist.lua Sat Nov 29 04:54:29 2008
+@@ -116,11 +116,11 @@
+ end
+ =
+
+ =
+
+-function MacroCmd_SendTargetSerial	(serial) =
+
++function MacroCmd_SendTargetSerial	(serial,maxrange) =
+
+ 	local mobile =3D GetMobile(serial)
+-	if mobile then return CompleteTargetMode({ hittype =3D kMousePickHitType_=
+Mobile,  mobile =3D mobile }) end
++	if mobile then return CompleteTargetMode({ hittype =3D kMousePickHitType_=
+Mobile,  mobile =3D mobile },maxrange) end
+ 	local dynamic =3D GetDynamic(serial)
+-	if dynamic then return CompleteTargetMode({ hittype =3D kMousePickHitType=
+_Dynamic,  dynamic =3D dynamic }) end
++	if dynamic then return CompleteTargetMode({ hittype =3D kMousePickHitType=
+_Dynamic,  dynamic =3D dynamic },maxrange) end
+ end
+ =
+
+ -- timeout : in ms
+@@ -351,13 +351,7 @@
+ 	return true
+ end
+ =
+
+-function MacroCmd_IsMounted ()
+-	local playermobile =3D GetPlayerMobile()
+-	return playermobile and GetMobileEquipmentItem(playermobile,kLayer_Mount)
+-end
+-function MacroCmd_Dismount ()
+-	if (MacroCmd_IsMounted()) then Send_DoubleClick(GetPlayerSerial()) return=
+ true end -- todo : check if mounted
+-end
++	=
+
+ =
+
+ function MacroCmd_RiseText (r,g,b,text,serial)
+ 	serial =3D serial or GetPlayerSerial()
+@@ -373,6 +367,22 @@
+ function MacroCmd_Item_FindFirstByArtID	(artid,hue,container) local list =
+=3D MacroCmd_Item_FindByArtID(artid,hue,container) return list[1] end
+ function MacroCmd_Item_FindFirstNearByArtID	(artid,hue,dist) local list =
+=3D MacroCmd_Item_FindNearByArtID(artid,hue,dist) return list[1] end
+ =
+
++function MacroCmd_GetPlayerEquipment (layer) =
+
++	local playermobile =3D GetPlayerMobile()
++	return playermobile and GetMobileEquipmentItem(playermobile,layer)
++end
++function MacroCmd_IsMounted () return MacroCmd_GetPlayerEquipment(kLayer_M=
+ount) ~=3D nil end
++function MacroCmd_Dismount ()
++	if (MacroCmd_IsMounted()) then Send_DoubleClick(GetPlayerSerial()) return=
+ true end -- todo : check if mounted
++end
++
++function MacroCmd_DragAndEquip (takeserial,mobileserial)
++	local item =3D GetDynamic(takeserial)
++	local layer =3D item and GetPaperdollLayerFromTileType(item.artid)
++	if (not layer) then print(&quot;MacroCmd_DragEquip not wearable or item not fo=
+und, artid=3D&quot;,item.artid) return end
++	Send_Take_Object(takeserial,1)
++	Send_Equip_Item_Request(takeserial,layer,mobileserial or GetPlayerSerial(=
+))
++end =
+
+ function MacroCmd_DragDrop (takeserial,amount,dropcontainerserial) =
+
+ 	Send_Take_Object(takeserial,amount)
+ 	Send_Drop_Object_AutoStack(takeserial,dropcontainerserial or GetPlayerBac=
+kPackSerial())
+@@ -443,20 +453,30 @@
+ 	return foundmob
+ end
+ =
+
+-function MacroCmd_FindNearestNonFriendlyPlayer ()
++function MacroCmd_GetNearestMobFromList (list)
+ 	local founddist,foundmob
+ 	local xloc,yloc =3D GetPlayerPos()
++	for k,mobile in pairs(list) do =
+
++		local dist =3D dist2(xloc,yloc,mobile.xloc,mobile.yloc)
++		if ((not founddist) or dist &lt; founddist) then =
+
++			founddist =3D dist
++			foundmob =3D mobile
++		end
++	end
++	return foundmob
++end
++
++function MacroCmd_ListNonFriendlyPlayers ()
++	local res =3D {}
+ 	for k,mobile in pairs(GetMobileList()) do =
+
+-		if ((mobile.artid =3D=3D 400 or mobile.artid =3D=3D 401) and (not IsMobi=
+leInParty(mobile.serial))) then =
+
+-			local dist =3D dist2(xloc,yloc,mobile.xloc,mobile.yloc)
+-			if (((not founddist) or dist &lt; founddist) and (not IsPlayerMobile(mobil=
+e))) then =
+
+-				founddist =3D dist
+-				foundmob =3D mobile
+-			end
+-		end
+-	end
+-	return foundmob
+-end
++		if ((mobile.artid =3D=3D 400 or mobile.artid =3D=3D 401) and =
+
++			(not IsMobileInParty(mobile.serial)) and
++			(not IsPlayerMobile(mobile))) then res[mobile.serial] =3D mobile end
++	end
++	return res
++end
++
++function MacroCmd_FindNearestNonFriendlyPlayer () return MacroCmd_GetNeare=
+stMobFromList(MacroCmd_ListNonFriendlyPlayers()) end
+ =
+
+ function MacroCmd_ListMobilesInRange (filterfun,maxdist)
+ 	local res =3D {}
+
+Modified: trunk/lua/lib.terrain.multitex.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.terrain.multitex.lua (original)
++++ trunk/lua/lib.terrain.multitex.lua Sat Nov 29 04:54:29 2008
+@@ -84,11 +84,23 @@
+ ,{tilespan=3D1,src=3D&quot;terrain1_darktile4.png&quot;		,uoids=3D{1089}}
+ }
+ =
+
++--~ gWaterGroundTileTypes =3D {0x00a8=3D168,0x00a9=3D169,0x00aa=3D170,0x00=
+ab=3D171,0x0136=3D310,0x0137=3D311}
++
+ -- skipped tiles
+ gMultiTextureSkipList =3D {
+-	168,169,170,171,310,311,  -- water --,100,94,91,99,87,82,79,149,131}
++	--~ 168,169,170,171,310,311,  -- water --,100,94,91,99,87,82,79,149,131}
+ } =
+
+ =
+
++kMultiTexTerrainWaterZMod =3D -20
++--~ kMultiTexTerrainWaterZMod =3D 0
++gMultiTexTerrainZModTable =3D {
++	[168]=3DkMultiTexTerrainWaterZMod,
++	[169]=3DkMultiTexTerrainWaterZMod,
++	[170]=3DkMultiTexTerrainWaterZMod,
++	[171]=3DkMultiTexTerrainWaterZMod,
++	[310]=3DkMultiTexTerrainWaterZMod,
++	[311]=3DkMultiTexTerrainWaterZMod,
++}
+ =
+
+ -- old : gMultiTextureAtlasList_Span
+ =
+
+@@ -224,6 +236,7 @@
+ 	=
+
+ 	for k2,uoid in pairs(gMultiTextureSkipList) do gMultiTexTerrainTypeLookup=
+[uoid] =3D -1 end -- skip tiles, e.g. water =
+
+ 	TerrainMultiTex_SetGroundMaterialTypeLookUp(gMultiTexTerrainTypeLookup) =
+
++	if (TerrainMultiTex_SetZModTable) then TerrainMultiTex_SetZModTable(gMult=
+iTexTerrainZModTable) end
+ 	=
+
+ 	-- TexCoordSet 1 : main mask
+ 	if (true) then
+
+Modified: trunk/lua/lib.uoids.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.uoids.lua (original)
++++ trunk/lua/lib.uoids.lua Sat Nov 29 04:54:29 2008
+@@ -311,6 +311,16 @@
+ gCharCreateSkillIDs[&quot;Bushido&quot;]					=3D 52
+ gCharCreateSkillIDs[&quot;Ninjitsu&quot;]					=3D 53
+ gCharCreateSkillIDs[&quot;Spellweaving&quot;]				=3D 54 -- not possible to set &gt; 0 a=
+t charcreate !!!!
++
++
++kNotoriety_Invalid		=3D 0 -- invalid/across server line
++kNotoriety_Blue			=3D 1 -- innocent (blue)
++kNotoriety_Friend		=3D 2 -- guilded/ally (green)
++kNotoriety_Neutral		=3D 3 -- attackable but not criminal (original : gray,=
+ animals etc)
++kNotoriety_Crime		=3D 4 -- criminal (gray)
++kNotoriety_Orange		=3D 5 -- enemy (orange)
++kNotoriety_Red			=3D 6 -- murderer (red)
++kNotoriety_Invul		=3D 7 -- unknown use (translucent (like 0x4000 hue)) =
+
+ =
+
+ =
+
+ kTextType_Normal			=3D 0x00
+@@ -649,6 +659,10 @@
+ 	[11573] =3D {first=3D17,second=3D24},
+ }
+ =
+
++gNodrawArtIDs =3D {0x21a4,0x2199}
++gNodrawByArtID =3D {}
++for k,artid in ipairs(gNodrawArtIDs) do gNodrawByArtID[artid] =3D true end
++
+ gBroken2DArtAnims =3D {0x154d}
+ gBroken2DArtAnimsByID =3D {}
+ for k,artid in ipairs(gBroken2DArtAnims) do gBroken2DArtAnimsByID[artid] =
+=3D true end
+
+Modified: trunk/lua/net/net.mobile.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.mobile.lua (original)
++++ trunk/lua/net/net.mobile.lua Sat Nov 29 04:54:29 2008
+@@ -105,6 +105,7 @@
+ 	NotifyTeleport(mobiledata) -- calls CreateOrUpdateMobile and assigns play=
+erid
+ end
+ =
+
++
+ -- Character Animation (0x6e)
+ function gPacketHandler.kPacket_Animation ()	-- [0x6e] 14 Bytes
+ 	local input =3D GetRecvFIFO()
+@@ -119,13 +120,14 @@
+ 	animdata.m_repeatFlag	=3D input:PopNetUint8()	--(0 - Don't repeat / 1 rep=
+eat)
+ 	animdata.m_frameDelay	=3D input:PopNetUint8()	--(0x00 - fastest / 0xFF - =
+Too slow to watch)
+ 	printdebug(&quot;animation&quot;,&quot;Animation &quot;..vardump2(animdata))
+-	=
+
++
+ 	gCurrentRenderer:MobileStartServerSideAnim(animdata)
+-	=
+
+ 	=
+
+ 	gAnimCounter =3D gAnimCounter or {}
+ 	gAnimCounter[animdata.mobileserial] =3D gAnimCounter[animdata.mobileseria=
+l] or {}
+ 	gAnimCounter[animdata.mobileserial][animdata.m_animation] =3D (gAnimCount=
+er[animdata.mobileserial][animdata.m_animation] or 0) + 1
++	=
+
++	NotifyListener(&quot;Hook_Packet_Animation&quot;,animdata)
+ end
+ =
+
+ -- Note: For characters other than the player, curHits and maxHits are not=
+ the actual values.
+
+Modified: trunk/lua/net/net.sound.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.sound.lua (original)
++++ trunk/lua/net/net.sound.lua Sat Nov 29 04:54:29 2008
+@@ -1,20 +1,24 @@
+ -- TODO: allow more Soundeffect than one, sound.def parsing
+ -- effect sound
+-function gPacketHandler.kPacket_Sound ()	-- [0x45]
+-	local input =3D GetRecvFIFO()
+-	local id =3D input:PopNetUint8()
+-	local singular =3D input:PopNetUint8()
+-	local effect =3D input:PopNetUint16()
+-	local unknown =3D input:PopNetUint16()
+-	local x =3D input:PopNetUint16()
+-	local y =3D input:PopNetUint16()
+-	local z =3D input:PopNetUint16()
+-	printdebug(&quot;sound&quot;,sprintf(&quot;NET: kPacket_Sound: effect: %i singular: %i x=
+:<i> %i y: %i z: %i\n&quot;,effect,singular,x,y,z))
+</I>+function gPacketHandler.kPacket_Sound ()	-- [0x54]
++	local input		=3D GetRecvFIFO()
++	local id		=3D input:PopNetUint8()
++	local sounddata =3D {}
++	sounddata.flags			=3D input:PopNetInt8() -- runuo:always 1
++	sounddata.effectid		=3D input:PopNetInt16()
++	sounddata.volume		=3D input:PopNetInt16() -- runuo:always 0
++	sounddata.xloc			=3D input:PopNetInt16()
++	sounddata.yloc			=3D input:PopNetInt16()
++	sounddata.zloc			=3D input:PopNetInt16()
+ 	=
+
+-	if (not gDisableUOSounds) then SoundPlayEffect_UO(x,y,z * 0.1,effect) end
++	printdebug(&quot;sound&quot;,&quot;NET: kPacket_Sound:&quot;..SmartDump(sounddata))
++	=
+
++	if (not gDisableUOSounds) then SoundPlayEffect_UO(sounddata.xloc,sounddat=
+a.yloc,sounddata.zloc * 0.1,sounddata.effectid) end
+ 	=
+
+ 	gSoundCounter =3D gSoundCounter or {}
+-	gSoundCounter[effect] =3D (gSoundCounter[effect] or 0) + 1
++	gSoundCounter[sounddata.effectid] =3D (gSoundCounter[sounddata.effectid] =
+or 0) + 1
++	=
+
++	NotifyListener(&quot;Hook_Packet_Sound&quot;,sounddata)
+ end
+ =
+
+ -- ProtocolRecv_Play_Midi
+
+Modified: trunk/lua/obj/obj.mobile.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/obj/obj.mobile.lua (original)
++++ trunk/lua/obj/obj.mobile.lua Sat Nov 29 04:54:29 2008
+@@ -415,13 +415,13 @@
+ =
+
+ -- return r,g,b
+ function GetNotorietyColor (n)
+-	if (n =3D=3D  0) then return 0.0 , 0.0 , 0.0 end -- 0.0 =3D invalid/acros=
+s server line
+-	if (n =3D=3D  1) then return 0.1 , 0.1 , 1.0 end -- 1 =3D innocent (blue)
+-	if (n =3D=3D  2) then return 0.0 , 1.0 , 0.0 end -- 2 =3D guilded/ally (g=
+reen)
+-	if (n =3D=3D  3) then return 1.0 , 1.0 , 0.3 end -- 3 =3D attackable but =
+not criminal (original : gray, here : yellow)
+-	if (n =3D=3D  4) then return 0.5 , 0.5 , 0.5 end -- 4 =3D criminal (gray)
+-	if (n =3D=3D  5) then return 1.0 , 0.5 , 0.0 end -- 5 =3D enemy (orange)
+-	if (n =3D=3D  6) then return 1.0 , 0.0 , 0.0 end -- 6 =3D murderer (red)
+-	if (n =3D=3D  7) then return 1.0 , 0.0 , 1.0 end -- 7 =3D unknown use (tr=
+anslucent (like 0x4000 hue)) =
+
++	if (n =3D=3D  kNotoriety_Invalid	) then return 0.0 , 0.0 , 0.0 end -- inv=
+alid/across server line
++	if (n =3D=3D  kNotoriety_Blue		) then return 0.1 , 0.1 , 1.0 end -- innoc=
+ent (blue)
++	if (n =3D=3D  kNotoriety_Friend		) then return 0.0 , 1.0 , 0.0 end -- gui=
+lded/ally (green)
++	if (n =3D=3D  kNotoriety_Neutral	) then return 1.0 , 1.0 , 0.3 end -- att=
+ackable but not criminal (original : gray, here : yellow)
++	if (n =3D=3D  kNotoriety_Crime		) then return 0.5 , 0.5 , 0.5 end -- crim=
+inal (gray)
++	if (n =3D=3D  kNotoriety_Orange		) then return 1.0 , 0.5 , 0.0 end -- ene=
+my (orange)
++	if (n =3D=3D  kNotoriety_Red		) then return 1.0 , 0.0 , 0.0 end -- murder=
+er (red)
++	if (n =3D=3D  kNotoriety_Invul		) then return 1.0 , 0.0 , 1.0 end -- unkn=
+own use (translucent (like 0x4000 hue)) =
+
+ 	return 0.5,0.5,0.5
+ end
+
+Modified: trunk/plugins/lib.spellbar.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/plugins/lib.spellbar.lua (original)
++++ trunk/plugins/lib.spellbar.lua Sat Nov 29 04:54:29 2008
+@@ -88,6 +88,11 @@
+ 	if (gCurrentRenderer ~=3D Renderer2D) then return end
+ 	Renderer2D:HUDFX_AddRisingTextOnMob(GetMobile(serial),text,r,g,b) -- see =
+2d.hudfx.lua
+ end
++
++function SpellBarRiseTextOnPos (xloc,yloc,zloc,r,g,b,text) =
+
++	Renderer2D:HUDFX_AddRisingTextOnPos(xloc,yloc,zloc,text,r,g,b) -- see 2d.=
+hudfx.lua
++end
++
+      =
+
+ =
+
+ RegisterListener(&quot;Hook_Text&quot;,function (name,plaintext,serial,data)
+@@ -136,9 +141,17 @@
+ end)
+ 	=
+
+ gSpellbarEffectShortMessages =3D {}
+-gSpellbarEffectShortMessages[0x37B9 ] =3D {r=3D1,g=3D0,b=3D0,txt=3D&quot;reflec=
+t&quot; } -- Magic Reflection (preaos)
+-	=
+
+-	=
+
++gSpellbarEffectShortMessages[0x37B9 ] =3D {r=3D1,g=3D0,b=3D0,txt=3D&quot;reflec=
+t&quot; } -- Magic Reflection (preaos) or parrying
++	=
+
++gSpellbarAnimationShortMessages =3D {}
++gSpellbarAnimationShortMessages[11 ] =3D {r=3D0.5,g=3D0.5,b=3D0.5,txt=3D&quot;s=
+wing&quot; } -- melee combat : swing weapon
++gSpellbarAnimationShortMessages[20 ] =3D {r=3D0.5,g=3D0.5,b=3D0.5,txt=3D&quot;g=
+ethit&quot; } -- melee combat : take damage
++gSpellbarAnimationShortMessages[34 ] =3D {r=3D0.5,g=3D0.5,b=3D0.5,txt=3D&quot;d=
+rinkpot&quot; }
++gSpellbarAnimationShortMessages[92 ] =3D {r=3D0.8,g=3D0.5,b=3D0.5,txt=3D&quot;f=
+izzle&quot; } -- spellfail
++gSpellbarAnimationShortMessages[526] =3D {r=3D0.5,g=3D0.5,b=3D0.5,txt=3D&quot;g=
+ate&quot; }
++gSpellbarAnimationShortMessages[508] =3D {r=3D0.5,g=3D0.5,b=3D0.5,txt=3D&quot;r=
+ecall&quot; }
++	=
+
++gSpellbarSoundShortMessages =3D {}
+ =
+
+ gSpellbarShortMessages =3D {}
+ gSpellbarShortMessages[502642 ] =3D {r=3D1,g=3D0,b=3D0,txt=3D&quot;already cast=
+ing&quot;	}-- You are already casting a spell.	=
+
+@@ -155,6 +168,9 @@
+ gSpellbarShortMessages[1061605 ] =3D {r=3D1,g=3D0,b=3D0,txt=3D&quot;already&quot;			=
+,bInterrupt=3Dtrue} -- You already have a familiar.
+ gSpellbarShortMessages[1005385 ] =3D {r=3D1,g=3D0,b=3D0,txt=3D&quot;will not ad=
+here&quot;	,bInterrupt=3Dtrue} -- The spell will not adhere to you at this time.=
+ (preaos,reactive armor or spellresist still active)
+ gSpellbarShortMessages[1005559 ] =3D {r=3D1,g=3D0,b=3D0,txt=3D&quot;already&quot;			=
+,bInterrupt=3Dtrue} -- This spell is already in effect.
++gSpellbarShortMessages[1005561 ] =3D {r=3D1,g=3D0,b=3D0,txt=3D&quot;crime&quot;				,=
+bInterrupt=3Dtrue} -- Thou'rt a criminal and cannot escape so easily...
++gSpellbarShortMessages[1005564 ] =3D {r=3D1,g=3D0,b=3D0,txt=3D&quot;crime&quot;				,=
+bInterrupt=3Dtrue} -- Wouldst thou flee during the heat of battle??
++
+ =
+
+ =
+
+ for k,v in pairs(gSpellbarShortMessages) do if (v.bInterrupt) then gSpellI=
+nterruptMessages[k] =3D true end end
+@@ -236,7 +252,17 @@
+ 	if (short) then SpellBarRiseTextOnMob(effect.sourceserial,short.r,short.g=
+,short.b,short.txt) end
+ end)
+ =
+
+-
++RegisterListener(&quot;Hook_Packet_Animation&quot;,	function (animdata)
++	local short =3D gSpellbarAnimationShortMessages[animdata.m_animation] =
+
++	if (short) then SpellBarRiseTextOnMob(animdata.mobileserial,short.r,short=
+.g,short.b,short.txt) end
++	if ((not short) and gDebugSpellbarAnim) then SpellBarRiseTextOnMob(animda=
+ta.mobileserial,0.5,0.5,0.5,&quot;Anim:&quot;..animdata.m_animation) print(&quot;spellbar:=
+anim:&quot;,animdata.m_animation) end
++end)
++
++RegisterListener(&quot;Hook_Packet_Sound&quot;,	function (sounddata)
++	local short =3D gSpellbarSoundShortMessages[sounddata.effectid] =
+
++	if (short) then SpellBarRiseTextOnPos(sounddata.xloc,sounddata.yloc,sound=
+data.zloc,short.r,short.g,short.b,short.txt) end
++	if ((not short) and gDebugSpellbarSound) then SpellBarRiseTextOnPos(sound=
+data.xloc,sounddata.yloc,sounddata.zloc,0.5,0.5,0.5,&quot;Sound:&quot;..sounddata.eff=
+ectid) print(&quot;spellbar:sound:&quot;,sounddata.effectid) end
++end)
+ 	=
+
+ --[[
+ Hook_Packet_Localized_Text      382928   a Crane        1050045
+
+Modified: trunk/src/scripting.iris.cpp
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/src/scripting.iris.cpp (original)
++++ trunk/src/scripting.iris.cpp Sat Nov 29 04:54:29 2008
+@@ -330,6 +330,26 @@
+ 	return 4;
+ }
+ =
+
++
++
++
++/// for lua : void	TerrainMultiTex_SetZModTable (table{[tileid]=3Dzadd}) =
+
++static int l_TerrainMultiTex_SetZModTable (lua_State *L) { PROFILE
++	int t =3D 1; // index where table is
++	std::map&lt;int,int&gt; myZModTable;
++	if (lua_istable(L,t)) { // iterate over attributes
++		lua_pushnil(L);  // first key
++		while (lua_next(L,t) !=3D 0) {
++			int iTileType	=3D luaL_checkint(L,-2);
++			int iZMod		=3D luaL_checkint(L,-1);
++			myZModTable[iTileType] =3D iZMod;
++			lua_pop(L, 1); // removes 'value'; keeps 'key' for next iteration
++		}
++	}
++	TerrainMultiTex_SetZModTable(myZModTable);
++	return 0;
++}
++
+ /// for lua : void	TerrainMultiTex_SetGroundMaterialTypeLookUp (table) =
+
+ /// key=3Duo-ground-tiletype-id  value=3Dindex_for_AddTexCoordSet_mode_0
+ /// use value=3D-1 to skip tiles
+@@ -479,6 +499,7 @@
+ 			lua_register(L,&quot;BuildTerrainEntity_Shaded&quot;,		l_BuildTerrainEntity_Shade=
+d);
+ 			lua_register(L,&quot;Gfx3D_SetMultiTexTerrain&quot;,		l_Gfx3D_SetMultiTexTerrain);
+ 			lua_register(L,&quot;TerrainMultiTex_RayPick&quot;,		l_TerrainMultiTex_RayPick);
++			lua_register(L,&quot;TerrainMultiTex_SetZModTable&quot;,					l_TerrainMultiTex_Se=
+tZModTable);
+ 			lua_register(L,&quot;TerrainMultiTex_SetGroundMaterialTypeLookUp&quot;,	l_Terrain=
+MultiTex_SetGroundMaterialTypeLookUp);
+ 			lua_register(L,&quot;TerrainMultiTex_AddTexCoordSet&quot;,				l_TerrainMultiTex_A=
+ddTexCoordSet);
+ 			lua_register(L,&quot;TerrainMultiTex_AddMaskTexCoordSet&quot;,			l_TerrainMultiTe=
+x_AddMaskTexCoordSet);
+
+Modified: trunk/src/terrain_multitex.cpp
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/src/terrain_multitex.cpp (original)
++++ trunk/src/terrain_multitex.cpp Sat Nov 29 04:54:29 2008
+@@ -47,6 +47,7 @@
+ 	std::vector&lt;float&gt; mTexCoords_Ground;
+ 	std::vector&lt;float&gt; mTexCoords_MainMask;
+ 	std::vector&lt;float&gt; mTexCoords_Mask;
++	std::map&lt;int,int&gt;	mZModTable;
+ 	int		mGroundMaterialTypeLookUp[kGroundMatLookUpSize]; ///&lt; key=3Duo-groun=
+dtype, value=3D in [0,16] or so (depends on tex-atlas)
+ 	float	mNormalLookup[kMaxZDiff*2+1][kMaxZDiff*2+1][3]; ///&lt; y,x : 192kb wi=
+th 64 maxdiff
+ 	float*	mNormals[(T+1)*(T+1)]; ///&lt; internal cache
+@@ -59,7 +60,7 @@
+ 	/// x,y must be in [-7,8+7]
+ 	/// returns original uo z integer (16bit)
+ 	/// this is a bit more expensive than the cached GetZ below
+-	inline int		GetZRaw	(const int x,const int y) { return GetTile(x,y).miZ; }
++	inline int		GetZRaw	(const int x,const int y) { RawGroundTile&amp; t =3D GetT=
+ile(x,y); return t.miZ + mZModTable[t.miTileType]; }
+ 	=
+
+ 	/// x,y must be in [-1,9]
+ 	/// returns original uo z integer (16bit)
+@@ -431,6 +432,10 @@
+ 	gTiledMultiTexTerrain.WriteToRobRenderOp(pGroundBlockLoader,iBlockX,iBloc=
+kY,iDX,iDY,fZUnit,pRobRenderOp);
+ }
+ =
+
++void	 TerrainMultiTex_SetZModTable	(const std::map&lt;int,int&gt;&amp; myZModTable) {
++	gTiledMultiTexTerrain.mZModTable =3D myZModTable;
++}
++
+ void	 TerrainMultiTex_SetGroundMaterialTypeLookUp	(const int* piValues,con=
+st int iCount) {
+ 	for (int i=3D0;i&lt;cTiledMultiTexTerrain&lt;8&gt;::kGroundMatLookUpSize;++i) {
+ 		gTiledMultiTexTerrain.mGroundMaterialTypeLookUp[i] =3D (i&lt;iCount) ? piVa=
+lues[i] : 0;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001561.html">[Iris-commit] [IRIS] r2757 - in /trunk/lua: lib.2d.dynamic.lua	lib.huepicker.lua
+</A></li>
+	<LI>Next message: <A HREF="001563.html">[Iris-commit] [IRIS] r2759 - /trunk/bin/iris2.exe
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1562">[ date ]</a>
+              <a href="thread.html#1562">[ thread ]</a>
+              <a href="subject.html#1562">[ subject ]</a>
+              <a href="author.html#1562">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

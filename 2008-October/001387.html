@@ -1,0 +1,109 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2582 - in /trunk: lua/lib.spellinfo.lua lua/main.lua plugins/lib.spellbar.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-October/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2582%20-%20in%20/trunk%3A%20lua/lib.spellinfo.lua%0A%20lua/main.lua%20plugins/lib.spellbar.lua&In-Reply-To=%3C20081015192317.83A571C181B8%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001386.html">
+   <LINK REL="Next"  HREF="001388.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2582 - in /trunk: lua/lib.spellinfo.lua lua/main.lua plugins/lib.spellbar.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2582%20-%20in%20/trunk%3A%20lua/lib.spellinfo.lua%0A%20lua/main.lua%20plugins/lib.spellbar.lua&In-Reply-To=%3C20081015192317.83A571C181B8%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2582 - in /trunk: lua/lib.spellinfo.lua lua/main.lua plugins/lib.spellbar.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Wed Oct 15 21:23:17 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001386.html">[Iris-commit] [IRIS] r2581 - /trunk/lua/gui/gui.paperdoll.lua
+</A></li>
+        <LI>Next message: <A HREF="001388.html">[Iris-commit] [IRIS] r2583 - in /trunk: lua/lib.2d.hudfx.lua lua/lib.2d.renderer.lua lua/lib.3d.renderer.lua lua/main.lua plugins/moblist.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1387">[ date ]</a>
+              <a href="thread.html#1387">[ thread ]</a>
+              <a href="subject.html#1387">[ subject ]</a>
+              <a href="author.html#1387">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Wed Oct 15 21:23:17 2008
+New Revision: 2582
+
+Log:
+spell-powerword/mantra recognition
+
+Added:
+    trunk/lua/lib.spellinfo.lua
+Modified:
+    trunk/lua/main.lua
+    trunk/plugins/lib.spellbar.lua
+
+Modified: trunk/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/main.lua (original)
++++ trunk/lua/main.lua Wed Oct 15 21:23:17 2008
+@@ -58,6 +58,7 @@
+ dofile(libpath .. &quot;lib.macrolist.lua&quot;)
+ dofile(libpath .. &quot;lib.walking3.lua&quot;)
+ dofile(libpath .. &quot;lib.spellbooks.lua&quot;)
++dofile(libpath .. &quot;lib.spellinfo.lua&quot;)
+ dofile(libpath .. &quot;lib.speech.lua&quot;)
+ dofile(libpath .. &quot;lib.granny.lua&quot;)
+ dofile(libpath .. &quot;lib.bodygfx.lua&quot;)
+
+Modified: trunk/plugins/lib.spellbar.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/plugins/lib.spellbar.lua (original)
++++ trunk/plugins/lib.spellbar.lua Wed Oct 15 21:23:17 2008
+@@ -136,6 +136,8 @@
+ end)
+ RegisterListener(&quot;Hook_Packet_Text&quot;,			function (serial,plaintext)  -- kPa=
+cket_Text
+ 	local r,g,b =3D 1,1,0 -- yellow
++	local spellname =3D GetSpellNameFromMantra(plaintext)
++	if (spellname) then plaintext =3D spellname r,g,b =3D 0.5,0.5,0.5 end
+ 	SpellBarRiseTextOnMob(serial,r,g,b,plaintext)
+ 	--~ print(&quot;Hook_Packet_Text&quot;,serial,plaintext) =
+
+ end)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001386.html">[Iris-commit] [IRIS] r2581 - /trunk/lua/gui/gui.paperdoll.lua
+</A></li>
+	<LI>Next message: <A HREF="001388.html">[Iris-commit] [IRIS] r2583 - in /trunk: lua/lib.2d.hudfx.lua lua/lib.2d.renderer.lua lua/lib.3d.renderer.lua lua/main.lua plugins/moblist.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1387">[ date ]</a>
+              <a href="thread.html#1387">[ thread ]</a>
+              <a href="subject.html#1387">[ subject ]</a>
+              <a href="author.html#1387">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

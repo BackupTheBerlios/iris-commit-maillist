@@ -1,0 +1,391 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2590 - in /trunk: lua/ lua/net/ lua/obj/	lua/widgets/ plugins/
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-October/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2590%20-%20in%20/trunk%3A%20lua/%20lua/net/%20lua/obj/%0A%09lua/widgets/%20plugins/&In-Reply-To=%3C20081016180003.675441C18428%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001394.html">
+   <LINK REL="Next"  HREF="001396.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2590 - in /trunk: lua/ lua/net/ lua/obj/	lua/widgets/ plugins/</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2590%20-%20in%20/trunk%3A%20lua/%20lua/net/%20lua/obj/%0A%09lua/widgets/%20plugins/&In-Reply-To=%3C20081016180003.675441C18428%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2590 - in /trunk: lua/ lua/net/ lua/obj/	lua/widgets/ plugins/">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Thu Oct 16 19:15:23 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001394.html">[Iris-commit] [IRIS] r2589 - /trunk/lua/net/net.other.lua
+</A></li>
+        <LI>Next message: <A HREF="001396.html">[Iris-commit] [IRIS] r2591 - in /trunk: lua/lib.2d.mousepick.lua lua/lib.macrolist.lua lua/lib.mousepick.lua lua/main.lua lua/widgets/widget.uocontainer.lua plugins/loot.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1395">[ date ]</a>
+              <a href="thread.html#1395">[ thread ]</a>
+              <a href="subject.html#1395">[ subject ]</a>
+              <a href="author.html#1395">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Thu Oct 16 19:15:21 2008
+New Revision: 2590
+
+Log:
+fixed drop on container/autostack by server, gold-lootscript (tokuchamp), i=
+mproved moblist a bit (red-human-enemies : ronins,cannibals,brigards..)
+
+Added:
+    trunk/plugins/loot.lua
+Modified:
+    trunk/lua/config_declarations.lua
+    trunk/lua/lib.uodragdrop.lua
+    trunk/lua/net/net.dynamic.lua
+    trunk/lua/net/net.uodragdrop.lua
+    trunk/lua/obj/obj.container.lua
+    trunk/lua/obj/obj.player.lua
+    trunk/lua/widgets/widget.uocontaineritem.lua
+    trunk/plugins/lib.spellbar.lua
+    trunk/plugins/moblist.lua
+
+Modified: trunk/lua/config_declarations.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/config_declarations.lua (original)
++++ trunk/lua/config_declarations.lua Thu Oct 16 19:15:21 2008
+@@ -490,6 +490,7 @@
+ gAlwaysRun =3D false
+ -- gReActivateWeaponAbilityInterval =3D 3100  -- don't reactivate if nil
+ gDisabledPlugins.moblist =3D true
++gDisabledPlugins.loot =3D true
+ gFriendlyGuildTags =3D {} -- gFriendlyGuildTags =3D {&quot;[ABC]&quot;,&quot;[DEF]&quot;} -- u=
+sed by moblist plugin
+ gEnableWalkLog =3D false
+ =
+
+
+Modified: trunk/lua/lib.uodragdrop.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.uodragdrop.lua (original)
++++ trunk/lua/lib.uodragdrop.lua Thu Oct 16 19:15:21 2008
+@@ -364,6 +364,9 @@
+ 			local targettiletype =3D {}
+ 			targettiletype =3D GetStaticTileType(gMousePickFoundHit.item.artid)
+ =
+
++			x =3D 0xffff
++			y =3D 0xffff
++			z =3D 0
+ 			target =3D gMousePickFoundHit.item.serial =
+
+ 			--[[
+ 			-- if the item beneath has the same artid and stackable, try to stack t=
+hem
+@@ -408,6 +411,11 @@
+ 		=
+
+ 		-- todo : stack ?
+ 		Send_Drop_Object(item.serial,x-kSecureTradeContainerPos_LeftX,y-kSecureT=
+radeContainerPos_LeftY,z,target)
++	elseif (gMousePickFoundHit and =
+
++			gMousePickFoundHit.hittype =3D=3D kMousePickHitType_PaperdollItem and =
+
++			gMousePickFoundHit.item and gMousePickFoundHit.item.layer =3D=3D kLayer=
+_Backpack) then =
+
++		-- drop on packpack in paperdoll
++		Send_Drop_Object_AutoStack(item.serial,gMousePickFoundHit.item.serial)
+ 	elseif (dialog_under_mouse and dialog_under_mouse.uoPaperdoll) then
+ 		-- drop on paperdoll
+ 		local paperdoll =3D dialog_under_mouse.uoPaperdoll
+@@ -451,6 +459,7 @@
+ 		=
+
+ 		if (iSerial and iSerial ~=3D 0) then =
+
+ 			-- drop on mobile,dynamic etc =
+
++			print(&quot;drop on mobile,dynamic etc &quot;)
+ 			printdebug(&quot;dragdrop&quot;,&quot;MouseUpUODragDrop: drop on worlobject : &quot;,item.s=
+erial,item.amount,x,y,z,iSerial)
+ 			Send_Drop_Object(item.serial,x,y,z,iSerial)
+ 		else
+
+Modified: trunk/lua/net/net.dynamic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.dynamic.lua (original)
++++ trunk/lua/net/net.dynamic.lua Thu Oct 16 19:15:21 2008
+@@ -112,6 +112,7 @@
+ 		CreateOrUpdateDynamic(dynamicdata)
+ 	end
+ 	if (iLastSerial) then Update_Spellbook(iLastSerial) end
++	NotifyListener(&quot;Hook_Container_Contents&quot;,iLastSerial)
+ end
+ =
+
+ -- This is sent by the server to add/update a single item to a container. =
+(response to player dragdrop)
+
+Modified: trunk/lua/net/net.uodragdrop.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.uodragdrop.lua (original)
++++ trunk/lua/net/net.uodragdrop.lua Thu Oct 16 19:15:21 2008
+@@ -19,16 +19,20 @@
+ 	out:SendPacket()
+ end
+ =
+
++
++function Send_Drop_Object_AutoStack (serial,containerid) Send_Drop_Object(=
+serial,0xffff,0xffff,0,containerid) end
++
+ -- This is sent by the client when the player drops an item. 0x08
+ -- containerid =3D 0xFFFFFFFF  when the container is the ground
+ function Send_Drop_Object(serial,x,y,z,containerid)
++	--~ print(&quot;Send_Drop_Object&quot;,_TRACEBACK())
+ 	printdebug(&quot;net&quot;,&quot;NET: Send_Drop_Object:&quot;,sprintf(&quot;0x%08x&quot;,serial),x,y,z,=
+containerid)
+ 	local out =3D GetSendFIFO()
+ 	out:PushNetUint8(kPacket_Drop_Object)
+ 	out:PushNetUint32(serial)
+-	out:PushNetUint16(x)
+-	out:PushNetUint16(y)
+-	out:PushInt8(z) -- SIGNED !!
++	out:PushNetUint16(x) -- 0xffff for autostack
++	out:PushNetUint16(y) -- 0xffff for autostack
++	out:PushInt8(z) -- SIGNED !!   -- 0 for autostack
+ 	if (ClientVersionIsPost6017()) then out:PushInt8(0) end
+ 	out:PushNetUint32(containerid)
+ 	out:SendPacket()
+
+Modified: trunk/lua/obj/obj.container.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/obj/obj.container.lua (original)
++++ trunk/lua/obj/obj.container.lua Thu Oct 16 19:15:21 2008
+@@ -103,7 +103,7 @@
+ 	if (not container.dialog) then container.dialog =3D CreateUOContainerDial=
+og(container) end
+ 	gLastDebugContainer =3D container
+ 	RefreshContainerItemWidgets(container)
+-	NotifyListener(&quot;Hook_OpenContainer&quot;,container.dialog,container.serial)
++	NotifyListener(&quot;Hook_OpenContainer&quot;,container.dialog,container.serial,con=
+tainerdata.gumpid)
+ end
+ =
+
+ -- packet handlers for containers (chests, drawers, inventory..)
+
+Modified: trunk/lua/obj/obj.player.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/obj/obj.player.lua (original)
++++ trunk/lua/obj/obj.player.lua Thu Oct 16 19:15:21 2008
+@@ -27,6 +27,13 @@
+ 	end
+ end
+ =
+
++-- returns cur,max
++function GetPlayerWeight ()
++	local playermobile =3D GetPlayerMobile()
++	local stats =3D playermobile and playermobile.stats
++	if (stats) then return stats.curWeight,stats.maxWeight end
++end
++
+ function IsPlayerGhost ()
+ 	local playermobile =3D GetPlayerMobile()
+ 	return playermobile and playermobile.bIsGhost
+@@ -47,6 +54,8 @@
+ 	local mobile =3D GetPlayerMobile()
+ 	return mobile and mobile.name
+ end
++
++function GetPlayerBackPackSerial () return gPlayerBackPack and gPlayerBack=
+Pack.serial end
+ =
+
+ function GetPlayerBackPackContainer ()
+ 	if (not gPlayerBackPack) then return end -- not yet received from server
+
+Modified: trunk/lua/widgets/widget.uocontaineritem.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/widgets/widget.uocontaineritem.lua (original)
++++ trunk/lua/widgets/widget.uocontaineritem.lua Thu Oct 16 19:15:21 2008
+@@ -27,7 +27,8 @@
+ 		self.gfx_stackside	=3D self:CreateChild(&quot;UOImage&quot;,{x=3D5,y=3D5,gump_id=
+=3Dgump_id,art_id=3Dart_id,hue=3Ditem.hue})
+ 	end
+ 	=
+
+-	self:SetPos(item.xloc,item.yloc + (item.gumpyoffset or 0))
++	local maxx,maxy =3D 200,200
++	self:SetPos(min(maxx,item.xloc),min(maxy,item.yloc + (item.gumpyoffset or=
+ 0)))
+ 	=
+
+ 	if (gTooltipSupport and self) then
+ 		self.tooltip_offx =3D kUOToolTippOffX
+
+Modified: trunk/plugins/lib.spellbar.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/plugins/lib.spellbar.lua (original)
++++ trunk/plugins/lib.spellbar.lua Thu Oct 16 19:15:21 2008
+@@ -172,6 +172,8 @@
+ gSpellbarShortMessages[500112] =3D {r=3D0,g=3D0.5,b=3D0,txt=3D&quot;goardzone o=
+n&quot;			} -- You are now under the protection of the town guards. =
+
+ gSpellbarShortMessages[500113] =3D {r=3D0.5,g=3D0,b=3D0,txt=3D&quot;goardzone o=
+ff&quot;			} -- You have left the protection of the town guards.     =
+
+ gSpellbarShortMessages[501942] =3D {r=3D0.5,g=3D0.5,b=3D0.5,txt=3D&quot;locatio=
+n blocked&quot;	} -- That location is blocked.           =
+
++gSpellbarShortMessages[500119] =3D {r=3D0.5,g=3D0.5,b=3D0.5,txt=3D&quot;mustwai=
+t&quot;			} -- You must wait to perform another action.     =
+
++gSpellbarShortMessages[500446] =3D {r=3D0.5,g=3D0.5,b=3D0.5,txt=3D&quot;too far=
+&quot;			} -- That is too far away.  =
+
+ =
+
+ --[[
+ Hook_Packet_Localized_Text      4294967295      You prepare to hit your op=
+ponent with a Death Strike.   1063091
+@@ -187,7 +189,11 @@
+ 		SpellBarRiseTextOnMob(GetPlayerSerial(),short.r,short.g,short.b,short.tx=
+t)
+ 		if (short.bInterrupt) then SpellBarInterrupt() end
+ 	end
+-	--~ if ((not short) and serial =3D=3D 0xFFFFFFFF) then print(&quot;Hook_Packet=
+_Localized_Text&quot;,serial,plaintext,text_messagenum) end
++	if ((not short) and serial =3D=3D 0xFFFFFFFF) then print(&quot;Hook_Packet_Loc=
+alized_Text&quot;,serial,plaintext,text_messagenum) end
++	if (serial ~=3D 0xFFFFFFFF) then
++		local r,g,b =3D 1,1,0 -- yellow
++		SpellBarRiseTextOnMob(serial,r,g,b,plaintext)
++	end
+ end)
+ =
+
+ =
+
+
+Modified: trunk/plugins/moblist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/plugins/moblist.lua (original)
++++ trunk/plugins/moblist.lua Thu Oct 16 19:15:21 2008
+@@ -166,8 +166,7 @@
+ end
+ =
+
+ function gWidgetPrototype.UOMobListItem:UpdateName(name,clilocid)
+-	if (name) then self.lowname =3D name end
+-	if (clilocid) then self.namecliloc =3D clilocid end
++	if (name and (not self.lowname)) then self.lowname =3D name self.nameclil=
+oc =3D clilocid end
+ 	local tooltip =3D AosToolTip_GetText(self.serial)
+ 	local text =3D tooltip or self.lowname
+ 	self.bNameUnknown =3D false
+@@ -244,14 +243,18 @@
+ =
+
+ function gWidgetPrototype.UOMobListItem:RecalcCat ()
+ 	local serial =3D self.serial	=
+
++	local mobile =3D self.mobile
+ 	if (self.bNameUnknown) then 								return self:SetCat(kMobListCat_Rest) =
+end
+ 	if (GetPlayerSerial() =3D=3D serial) then						return self:SetCat(kMobLis=
+tCat_Self) end
+ 	if (IsMobileInParty(serial) or self.bIsFriendlyGuild) then	return self:Se=
+tCat(kMobListCat_Friends) end
+ 	if (self.bIsPet) then										return self:SetCat(kMobListCat_Pets) end =
+
+-	if (self.namecliloc and self.mobile.notoriety =3D=3D kMobNotoriety_Green)=
+ then return self:SetCat(kMobListCat_Pets) end =
+
+-	if (self.namecliloc and self.mobile.notoriety =3D=3D kMobNotoriety_Red) t=
+hen return self:SetCat(kMobListCat_Pets) end =
+
+-	if (self.namecliloc or self.bIsNPC) then 					return self:SetCat(kMobList=
+Cat_Rest) end
+-	if (self.mobile.notoriety =3D=3D kMobNotoriety_Green) then 	return self:S=
+etCat(kMobListCat_Friends) end =
+
++	if (self.namecliloc) then
++		if (mobile.notoriety =3D=3D kMobNotoriety_Green) then return self:SetCat=
+(kMobListCat_Pets) end =
+
++		local bIsHuman =3D mobile.artid =3D=3D 400 or mobile.artid =3D=3D 401  -=
+- red humands like brigards,cannibals,ronins,ninjas...
++		if (mobile.notoriety =3D=3D kMobNotoriety_Red and (not bIsHuman)) then r=
+eturn self:SetCat(kMobListCat_Pets) end -- evortex,undead..
++	end
++	if (self.namecliloc or self.bIsNPC) then 			return self:SetCat(kMobListCa=
+t_Rest) end
++	if (mobile.notoriety =3D=3D kMobNotoriety_Green) then 	return self:SetCat=
+(kMobListCat_Friends) end =
+
+ 	return self:SetCat(kMobListCat_Players)
+ end
+ =
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001394.html">[Iris-commit] [IRIS] r2589 - /trunk/lua/net/net.other.lua
+</A></li>
+	<LI>Next message: <A HREF="001396.html">[Iris-commit] [IRIS] r2591 - in /trunk: lua/lib.2d.mousepick.lua lua/lib.macrolist.lua lua/lib.mousepick.lua lua/main.lua lua/widgets/widget.uocontainer.lua plugins/loot.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1395">[ date ]</a>
+              <a href="thread.html#1395">[ thread ]</a>
+              <a href="subject.html#1395">[ subject ]</a>
+              <a href="author.html#1395">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

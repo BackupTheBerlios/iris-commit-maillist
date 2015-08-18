@@ -1,0 +1,308 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2583 - in /trunk: lua/lib.2d.hudfx.lua lua/lib.2d.renderer.lua lua/lib.3d.renderer.lua lua/main.lua plugins/moblist.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-October/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2583%20-%20in%20/trunk%3A%20lua/lib.2d.hudfx.lua%0A%20lua/lib.2d.renderer.lua%20lua/lib.3d.renderer.lua%20lua/main.lua%0A%20plugins/moblist.lua&In-Reply-To=%3C20081015202241.A086D1C18799%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001387.html">
+   <LINK REL="Next"  HREF="001389.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2583 - in /trunk: lua/lib.2d.hudfx.lua lua/lib.2d.renderer.lua lua/lib.3d.renderer.lua lua/main.lua plugins/moblist.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2583%20-%20in%20/trunk%3A%20lua/lib.2d.hudfx.lua%0A%20lua/lib.2d.renderer.lua%20lua/lib.3d.renderer.lua%20lua/main.lua%0A%20plugins/moblist.lua&In-Reply-To=%3C20081015202241.A086D1C18799%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2583 - in /trunk: lua/lib.2d.hudfx.lua lua/lib.2d.renderer.lua lua/lib.3d.renderer.lua lua/main.lua plugins/moblist.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Wed Oct 15 22:22:41 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001387.html">[Iris-commit] [IRIS] r2582 - in /trunk: lua/lib.spellinfo.lua lua/main.lua plugins/lib.spellbar.lua
+</A></li>
+        <LI>Next message: <A HREF="001389.html">[Iris-commit] [IRIS] r2584 - /trunk/plugins/moblist.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1388">[ date ]</a>
+              <a href="thread.html#1388">[ thread ]</a>
+              <a href="subject.html#1388">[ subject ]</a>
+              <a href="author.html#1388">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Wed Oct 15 22:22:38 2008
+New Revision: 2583
+
+Log:
+moblist : click to mark current target, shown on screen
+
+Modified:
+    trunk/lua/lib.2d.hudfx.lua
+    trunk/lua/lib.2d.renderer.lua
+    trunk/lua/lib.3d.renderer.lua
+    trunk/lua/main.lua
+    trunk/plugins/moblist.lua
+
+Modified: trunk/lua/lib.2d.hudfx.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.hudfx.lua (original)
++++ trunk/lua/lib.2d.hudfx.lua Wed Oct 15 22:22:38 2008
+@@ -23,20 +23,6 @@
+ function Renderer2D:HUDFX_Destroy (hudfx)
+ 	if (hudfx.gfx) then hudfx.gfx:Destroy() hudfx.gfx =3D nil end
+ 	Renderer2D.gHUDFXList[hudfx] =3D nil
+-end
+-
+-
+-function Renderer2D:UOPosToPixelPos (xloc,yloc,zloc)
+-	return self:LocalPosToPixelPos(self:UOPosToLocal(xloc,yloc,zloc*kRenderer=
+2D_ZScale))
+-end
+-
+-function Renderer2D:LocalPosToPixelPos (x,y,z)
+-	local bIsInFront,px,py =3D ProjectPos(x,y,z)
+-	if (bIsInFront) then =
+
+-		local viewport =3D GetMainViewport()
+-		local vw,vh =3D viewport:GetActualWidth(),viewport:GetActualHeight()
+-		return floor((1+px)*vw*0.5 + 0.5),floor((1-py)*vh*0.5 + 0.5)
+-	end
+ end
+ =
+
+ function Renderer2D:HUDFX_Step (hudfx,t)
+
+Modified: trunk/lua/lib.2d.renderer.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.renderer.lua (original)
++++ trunk/lua/lib.2d.renderer.lua Wed Oct 15 22:22:38 2008
+@@ -176,6 +176,17 @@
+ 			 (z or 0)
+ end
+ =
+
++-- returns px,py,bIsInFront
++function Renderer2D:UOPosToPixelPos (xloc,yloc,zloc)
++	return self:LocalPosToPixelPos(self:UOPosToLocal(xloc,yloc,zloc*kRenderer=
+2D_ZScale))
++end
++
++-- returns px,py,bIsInFront
++function Renderer2D:LocalPosToPixelPos (x,y,z)
++	local bIsInFront,px,py =3D ProjectPos(x,y,z)
++	return floor((1+px)*gViewportW*0.5 + 0.5),floor((1-py)*gViewportH*0.5 + 0=
+.5),bIsInFront
++end
++
+ function Renderer2D:InitLocalCam				(x,y,z) end -- ??? offline mode ?
+ function Renderer2D:ChangeCamMode				() end
+ function Renderer2D:SelectMobile				() end
+
+Modified: trunk/lua/lib.3d.renderer.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.renderer.lua (original)
++++ trunk/lua/lib.3d.renderer.lua Wed Oct 15 22:22:38 2008
+@@ -157,6 +157,17 @@
+ 	return	-(xlocal + 8*self.giMapOriginX * self.ROBMAP_CHUNK_SIZE),
+ 			ylocal + 8*self.giMapOriginY * self.ROBMAP_CHUNK_SIZE,
+ 			(zlocal or 0) - self.gZ_Factor
++end
++
++-- returns px,py,bIsInFront
++function Renderer3D:UOPosToPixelPos (xloc,yloc,zloc)
++	return self:LocalPosToPixelPos(self:UOPosToLocal(xloc,yloc,zloc*0.1))
++end
++
++-- returns px,py,bIsInFront
++function Renderer3D:LocalPosToPixelPos (x,y,z)
++	local bIsInFront,px,py =3D ProjectPos(x,y,z)
++	return floor((1+px)*gViewportW*0.5 + 0.5),floor((1-py)*gViewportH*0.5 + 0=
+.5),bIsInFront
+ end
+ =
+
+ -- param and result in DEGREES
+
+Modified: trunk/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/main.lua (original)
++++ trunk/lua/main.lua Wed Oct 15 22:22:38 2008
+@@ -342,6 +342,7 @@
+ 	InitArtFilter()
+ 	=
+
+ 	Client_RenderOneFrame() -- first frame rendered with ogre, needed for ini=
+t of viewport size
++	gViewportW,gViewportH =3D GetViewportSize()
+ 	--~ Client_USleep(1000/30)
+ =
+
+ 	NotifyListener(&quot;Hook_PreLoad&quot;)
+
+Modified: trunk/plugins/moblist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/plugins/moblist.lua (original)
++++ trunk/plugins/moblist.lua Wed Oct 15 22:22:38 2008
+@@ -24,6 +24,8 @@
+ 	self.items =3D {}
+ 	self.catgroup =3D {}
+ 	for i=3D1,kMobList_MaxCat do self.catgroup[i] =3D self:CreateChild(&quot;Group=
+&quot;) end
++	=
+
++	self.gfx_maintarget =3D gRootWidget.tooltip:CreateChild(&quot;UOText&quot;,{x=3D0,y=
+=3D0,text=3D&quot;&quot;,col=3D{r=3D1,g=3D0,b=3D0},bold=3Dtrue})
+ 	=
+
+ 	local vw,vh =3D GetViewportSize()
+ 	self:SetPos(vw-kMobList_CatW,230)
+@@ -63,6 +65,19 @@
+ =
+
+ function gWidgetPrototype.UOMobList:RecalcCat ()
+ 	for item,v in pairs(self.items) do item:RecalcCat() end
++end
++
++function gWidgetPrototype.UOMobList:SetMainTarget (serial,name)
++	if (serial =3D=3D 0 or serial =3D=3D GetPlayerSerial()) then serial =3D n=
+il end
++	self.maintarget_serial =3D serial
++	print(&quot;UOMobList:SetMainTarget&quot;,serial,name)
++	local gfx =3D self.gfx_maintarget
++	if (self.maintarget_serial) then
++		gfx:SetVisible(true)
++		gfx:SetText(name)
++	else
++		gfx:SetVisible(false)
++	end
+ end
+ =
+
+ function gWidgetPrototype.UOMobList:Step ()
+@@ -77,6 +92,33 @@
+ 		end
+ 	end
+ 	for item,v in pairs(self.items) do item:Step() end
++	=
+
++	=
+
++	-- maintarget text : update position on screen
++	if (self.maintarget_serial) then
++		local mobile =3D GetMobile(self.maintarget_serial)
++		local xloc,yloc,zloc
++		local bInRange =3D true
++		if (mobile) then =
+
++			xloc,yloc,zloc =3D mobile.xloc,mobile.yloc,mobile.zloc
++			self.maintarget_last_xloc =3D xloc
++			self.maintarget_last_yloc =3D yloc
++			self.maintarget_last_zloc =3D zloc
++		else
++			bInRange =3D false
++			xloc =3D self.maintarget_last_xloc
++			yloc =3D self.maintarget_last_yloc
++			zloc =3D self.maintarget_last_zloc
++		end
++		local zadd =3D 10
++		local gfx =3D self.gfx_maintarget
++		local px,py =3D gCurrentRenderer:UOPosToPixelPos(xloc,yloc,zloc+zadd)
++		local w,h =3D gfx:GetSize()
++		local minx,miny,maxx,maxy =3D 0,64,gViewportW-200,gViewportH-32
++		local x =3D max(minx,min(maxx-w,px or 0))
++		local y =3D max(miny,min(maxy-h,py or 0))
++		gfx:SetPos(x,y)
++	end
+ end
+ =
+
+ -- ***** ***** ***** ***** ***** UOMobListItem
+@@ -98,7 +140,7 @@
+ 	=
+
+ 	local paramb =3D MakeSpritePanelParam_BorderPartMatrix(GetPlainTextureGUI=
+Mat(&quot;simplebutton.png&quot;),w,h, xoff,yoff, 0,0, 4,8,4, 4,8,4, 32,32, 1,1, fals=
+e, false)
+ 	local paramf =3D MakeSpritePanelParam_BorderPartMatrix(GetPlainTextureGUI=
+Mat(&quot;simplebutton.png&quot;),w,h, xoff,yoff, 0,0, 4,8,4, 4,8,4, 32,32, 1,1, fals=
+e, false)
+-	paramb.r,paramb.g,paramb.b =3D GetNotorietyColor(mobile.notoriety)
++	paramb.r,paramb.g,paramb.b =3D 1,0,0
+ 	paramf.r,paramf.g,paramf.b =3D 0,0.5,1
+ 	self.border	=3D self:CreateChild(&quot;Image&quot;,{gfxparam_init=3Dparamb})
+ 	self.fill	=3D self:CreateChild(&quot;Image&quot;,{gfxparam_init=3Dparamf,bVertexBuf=
+ferDynamic=3Dtrue})
+@@ -151,6 +193,10 @@
+ 	self.text:SetText(self.old_text)
+ end
+ =
+
++function gWidgetPrototype.UOMobListItem:SetSelfAsMainTarget ()
++	self.moblist:SetMainTarget(self.serial,self.old_text or &quot;???&quot;)
++end
++
+ function gWidgetPrototype.UOMobListItem:Step ()
+ 	local mobile =3D self.mobile
+ 	if (self.old_notoriety ~=3D mobile.notoriety) then =
+
+@@ -188,6 +234,10 @@
+ 	group.itemcount =3D group.itemcount + 1
+ end
+ =
+
++
++function gWidgetPrototype.UOMobListItem:on_mouse_left_down	() self:SetSelf=
+AsMainTarget() end
++
++
+ -- ***** ***** ***** ***** ***** rest
+ =
+
+ RegisterListener(&quot;Hook_PostLoad&quot;,function () gMobList =3D GetDesktopWidget=
+():CreateChild(&quot;UOMobList&quot;) end)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001387.html">[Iris-commit] [IRIS] r2582 - in /trunk: lua/lib.spellinfo.lua lua/main.lua plugins/lib.spellbar.lua
+</A></li>
+	<LI>Next message: <A HREF="001389.html">[Iris-commit] [IRIS] r2584 - /trunk/plugins/moblist.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1388">[ date ]</a>
+              <a href="thread.html#1388">[ thread ]</a>
+              <a href="subject.html#1388">[ subject ]</a>
+              <a href="author.html#1388">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

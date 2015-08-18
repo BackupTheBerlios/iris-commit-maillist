@@ -1,0 +1,217 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2613 - in /trunk/lua: gui/gui.gumpparser.lua lib.macrolist.lua widgets/widget.gumpdialog.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-October/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2613%20-%20in%20/trunk/lua%3A%20gui/gui.gumpparser.lua%0A%20lib.macrolist.lua%20widgets/widget.gumpdialog.lua&In-Reply-To=%3C20081020000301.736991524030%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001417.html">
+   <LINK REL="Next"  HREF="001419.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2613 - in /trunk/lua: gui/gui.gumpparser.lua lib.macrolist.lua widgets/widget.gumpdialog.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2613%20-%20in%20/trunk/lua%3A%20gui/gui.gumpparser.lua%0A%20lib.macrolist.lua%20widgets/widget.gumpdialog.lua&In-Reply-To=%3C20081020000301.736991524030%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2613 - in /trunk/lua: gui/gui.gumpparser.lua lib.macrolist.lua widgets/widget.gumpdialog.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Mon Oct 20 02:03:01 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001417.html">[Iris-commit] [IRIS] r2612 - in /trunk/lua: lib.uoam.lua net/net.dynamic.lua net/net.login.lua net/net.mobile.lua obj/obj.mobile.lua obj/obj.player.lua widgets/widget.uotext.lua
+</A></li>
+        <LI>Next message: <A HREF="001419.html">[Iris-commit] [IRIS] r2614 - in /trunk/lua: lib.macrolist.lua	net/net.other.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1418">[ date ]</a>
+              <a href="thread.html#1418">[ thread ]</a>
+              <a href="subject.html#1418">[ subject ]</a>
+              <a href="author.html#1418">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Mon Oct 20 02:03:00 2008
+New Revision: 2613
+
+Log:
+macrolist : added MacroCmd_NextGumpContaining(searchtext,timeout,callback) =
+and gump:SendClick(relx,rely)
+
+Modified:
+    trunk/lua/gui/gui.gumpparser.lua
+    trunk/lua/lib.macrolist.lua
+    trunk/lua/widgets/widget.gumpdialog.lua
+
+Modified: trunk/lua/gui/gui.gumpparser.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.gumpparser.lua (original)
++++ trunk/lua/gui/gui.gumpparser.lua Mon Oct 20 02:03:00 2008
+@@ -278,6 +278,7 @@
+ 	=
+
+ 	for k,command_chunk in pairs(command_chunks) do =
+
+ 		local command,bToken,param =3D unpack(command_chunk)
++		if (param and param.cliloc_id) then dialog:MarkUsedCliloc(param.cliloc_i=
+d) end
+ 		------------------------------------------------------------------------=
+--------------------
+ 		if (command =3D=3D &quot;&quot;) then -- no word in line
+ 		elseif (command =3D=3D &quot;noclose&quot;) then
+
+Modified: trunk/lua/lib.macrolist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.macrolist.lua (original)
++++ trunk/lua/lib.macrolist.lua Mon Oct 20 02:03:00 2008
+@@ -104,7 +104,11 @@
+ end
+ =
+
+ RegisterStepper(function () =
+
+-	if (gMacroQueuedTarget_Timeout and Client_GetTicks() &gt; gMacroQueuedTarget=
+_Timeout) then MacroCmd_QueuedTargetEnd(false,&quot;timeout&quot;) end
++	local t =3D Client_GetTicks()
++	if (gMacroQueuedTarget_Timeout and t &gt; gMacroQueuedTarget_Timeout) then M=
+acroCmd_QueuedTargetEnd(false,&quot;timeout&quot;) end
++	for data,v in pairs(gMacroGumpWaiters) do
++		if (t &gt; data.timeout) then data.callback() gMacroGumpWaiters[data] =3D n=
+il end
++	end
+ end)
+ RegisterListener(&quot;Hook_Spell_Interrupt&quot;,	function ()
+ 	if (gMacroQueuedTarget_FailBySpellInterrupt) then MacroCmd_QueuedTargetEn=
+d(false,&quot;spell-interrupt&quot;) end
+@@ -112,7 +116,21 @@
+ RegisterListener(&quot;Hook_TargetMode_Start&quot;,	function () =
+
+ 	if (gMacroQueuedTarget_Serial) then MacroCmd_SendTargetSerial(gMacroQueue=
+dTarget_Serial) MacroCmd_QueuedTargetEnd(true) end
+ end)
+-
++RegisterListener(&quot;Hook_TargetMode_Start&quot;,	function () =
+
++	if (gMacroQueuedTarget_Serial) then MacroCmd_SendTargetSerial(gMacroQueue=
+dTarget_Serial) MacroCmd_QueuedTargetEnd(true) end
++end)
++RegisterListener(&quot;Hook_OpenServersideGump&quot;,	function (dialog,playerid,dial=
+ogId,Length_Data)	=
+
++	for data,v in pairs(gMacroGumpWaiters) do
++		if ((not data.search) or dialog:Search(data.search)) then data.callback(=
+dialog) gMacroGumpWaiters[data] =3D nil end
++	end
++end)
++
++gMacroGumpWaiters =3D {} =
+
++-- callback(dialog) or callback(nil) for timeout
++function MacroCmd_NextGumpContaining (search,timeout,callback) =
+
++	if (not callback) then return end
++	gMacroGumpWaiters[{search=3Dsearch,timeout=3DClient_GetTicks()+(timeout o=
+r 1000),callback=3Dcallback}] =3D true
++end
+ =
+
+ =
+
+ =
+
+
+Modified: trunk/lua/widgets/widget.gumpdialog.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/widgets/widget.gumpdialog.lua (original)
++++ trunk/lua/widgets/widget.gumpdialog.lua Mon Oct 20 02:03:00 2008
+@@ -20,7 +20,8 @@
+ 	self.uo_check	=3D {} -- for return-message
+ 	self.uo_text	=3D {} -- for return-message
+ 	self.radiogroups =3D {} -- see widget.uoradiobutton.lua
+-	self.pages		=3D {}
++	self.pages			=3D {}
++	self.usedClilocs	=3D {}
+ 	self.Gumpdata	=3D params.Gumpdata
+ 	=
+
+ 	-- set gumpposition
+@@ -35,6 +36,31 @@
+ 	end
+ end
+ =
+
++function gWidgetPrototype.GumpDialog:SendClick		(relx,rely)
++	local x,y =3D self:GetPos()
++	local widget =3D self:GetWidgetUnderPos(x+relx,y+rely) =
+
++	if (not widget) then return end
++	GUI_TriggerWidgetEventCallback(widget,&quot;button_click&quot;) =
+
++end
++function gWidgetPrototype.GumpDialog:MarkUsedCliloc		(cliloc_id)
++	if (cliloc_id) then self.usedClilocs[cliloc_id] =3D true end
++end
++function gWidgetPrototype.GumpDialog:Search		(search)
++	local gumpdata =3D self.Gumpdata
++	if (not gumpdata) then return end
++	if (gumpdata.Data) then
++		print(&quot;GumpDialog:Search main&quot;,search,gumpdata.Data)
++		if (StringContains(gumpdata.Data,search)) then return true end
++	end
++	if (gumpdata.textline) then =
+
++		for k,line in pairs(gumpdata.textline) do print(&quot;GumpDialog:Search line&quot;=
+,search,line) if (StringContains(line,search)) then return true end end
++	end
++	if (gClilocLoader) then
++		for cliloc_id,v in pairs(self.usedClilocs) do
++			if (StringContains(gClilocLoader:Get(cliloc_id),search)) then return tr=
+ue end
++		end
++	end
++end
+ function gWidgetPrototype.GumpDialog:GetCtrlByName	(name) return self.cont=
+rols[name] end -- see gumpparser
+ =
+
+ function gWidgetPrototype.GumpDialog:GetDialog	() return self end -- overr=
+ide, normaly parent:GetDialog(), so this ends recursion
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001417.html">[Iris-commit] [IRIS] r2612 - in /trunk/lua: lib.uoam.lua net/net.dynamic.lua net/net.login.lua net/net.mobile.lua obj/obj.mobile.lua obj/obj.player.lua widgets/widget.uotext.lua
+</A></li>
+	<LI>Next message: <A HREF="001419.html">[Iris-commit] [IRIS] r2614 - in /trunk/lua: lib.macrolist.lua	net/net.other.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1418">[ date ]</a>
+              <a href="thread.html#1418">[ thread ]</a>
+              <a href="subject.html#1418">[ subject ]</a>
+              <a href="author.html#1418">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

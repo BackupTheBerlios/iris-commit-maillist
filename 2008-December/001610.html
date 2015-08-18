@@ -1,0 +1,614 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2806 - in /trunk: data/models/materials/textures.material lua/lib.configdialog.lua lua/lib.macrolist.lua lua/lib.spellbooks.lua lua/lib.uoids.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-December/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2806%20-%20in%20/trunk%3A%0A%20data/models/materials/textures.material%20lua/lib.configdialog.lua%0A%20lua/lib.macrolist.lua%20lua/lib.spellbooks.lua%20lua/lib.uoids.lua&In-Reply-To=%3C20081221225340.386A91C1882D%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001609.html">
+   <LINK REL="Next"  HREF="001611.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2806 - in /trunk: data/models/materials/textures.material lua/lib.configdialog.lua lua/lib.macrolist.lua lua/lib.spellbooks.lua lua/lib.uoids.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2806%20-%20in%20/trunk%3A%0A%20data/models/materials/textures.material%20lua/lib.configdialog.lua%0A%20lua/lib.macrolist.lua%20lua/lib.spellbooks.lua%20lua/lib.uoids.lua&In-Reply-To=%3C20081221225340.386A91C1882D%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2806 - in /trunk: data/models/materials/textures.material lua/lib.configdialog.lua lua/lib.macrolist.lua lua/lib.spellbooks.lua lua/lib.uoids.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sun Dec 21 23:53:39 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001609.html">[Iris-commit] [IRIS] r2805 - in /trunk/lua: lib.data.lua	lib.tilefreewalk.lua
+</A></li>
+        <LI>Next message: <A HREF="001611.html">[Iris-commit] [IRIS] r2807 - /trunk/lua/gui/gui.menubar.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1610">[ date ]</a>
+              <a href="thread.html#1610">[ thread ]</a>
+              <a href="subject.html#1610">[ subject ]</a>
+              <a href="author.html#1610">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sun Dec 21 23:53:38 2008
+New Revision: 2806
+
+Log:
+new macro MacroCmd_UseNearbyGate, configdialog:worked on hotkey system desi=
+gn,  spellbooks: SearchSpellIDByName + aliaslist for some some spell names,=
+ fixed a few skillnames
+
+Modified:
+    trunk/data/models/materials/textures.material
+    trunk/lua/lib.configdialog.lua
+    trunk/lua/lib.macrolist.lua
+    trunk/lua/lib.spellbooks.lua
+    trunk/lua/lib.uoids.lua
+
+Modified: trunk/data/models/materials/textures.material
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/models/materials/textures.material (original)
++++ trunk/data/models/materials/textures.material Sun Dec 21 23:53:38 2008
+@@ -20,6 +20,10 @@
+ 			// needed for xmirror fix
+ 			//cull_hardware anticlockwise
+ 			//cull_software front
++
++			// correct behavior for model preview dump (too costly for ingame?)
++			// cull_hardware none   =
+
++			// cull_software none
+ 			=
+
+ 			texture_unit
+ 			{
+
+Modified: trunk/lua/lib.configdialog.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.configdialog.lua (original)
++++ trunk/lua/lib.configdialog.lua Sun Dec 21 23:53:38 2008
+@@ -5,15 +5,222 @@
+ 	Load_Hue() -- iris specific
+ 	Load_Gump() -- iris specific
+ 	OpenConfigDialog()
+-end
++	InitConfigSpellList()
++end
++
++
++gConfigDialogHotkeyActions				=3D {}
++gConfigDialogHotkeyActionGroupByName	=3D {}
++
++function HotkeyAction_Spell (info,target)
++	-- info.spellid
++end
++function HotkeyAction_Skill (info,target)
++	-- info.skillid_onebased
++end
++function HotkeyAction_Chat (info,text)
++
++end
++
++function InitConfigSpellList ()
++	function MyAddHotkeyAction (groupname,actiondata)
++		local group =3D gConfigDialogHotkeyActionGroupByName[groupname]
++		if (not group) then =
+
++			group =3D { name=3Dgroupname, bIsGroup=3Dtrue, list=3D{} }
++			gConfigDialogHotkeyActionGroupByName[groupname] =3D group
++			print(&quot;group:&quot;,groupname)
++		end
++		table.insert(group.list,actiondata)
++		print(&quot; +&quot;,actiondata.skillid_onebased or actiondata.spellid,actiondata.=
+name)
++	end
++	=
+
++	-- add spell utils
++	function MyAddSpell (bookname,spellname) =
+
++		spellname =3D gSpellNameAlias[spellname] or spellname
++		local spellid =3D SearchSpellIDByName(spellname)
++		MyAddHotkeyAction(bookname,{name=3Dspellname,callback=3DHotkeyAction_Spe=
+ll,spellid=3Dspellid,bHasTargetOption=3Dtrue}) =
+
++	end
++	function MyAddSpellByInfo (bookname,spellinfo) =
+
++		MyAddSpell(bookname,spellinfo.name)
++	end
++	function AddSpellsFromSpellbook (bookname,spellbookid)
++		for pagenum,pagearr in ipairs(gSpellBooks[spellbookid].spells) do for k,=
+spellname in ipairs(pagearr) do =
+
++			MyAddSpell(bookname,spellname)
++		end end
++	end
++	=
+
++	-- add all spells
++	for i=3D1,8 do for k,info in pairs(gSpellInfo) do if (info.book =3D=3D &quot;M=
+agery&quot; and info.circle =3D=3D i) then MyAddSpellByInfo(&quot;Magery&quot;..i,info) en=
+d end end
++	for k,info in pairs(gSpellInfo) do if (info.book =3D=3D &quot;Necro&quot;			) then =
+MyAddSpellByInfo(&quot;Necromancy&quot;	,info) end end
++	for k,info in pairs(gSpellInfo) do if (info.book =3D=3D &quot;Chiv&quot;			) then M=
+yAddSpellByInfo(&quot;Chivalry&quot;		,info) end end
++	for k,info in pairs(gSpellInfo) do if (info.book =3D=3D &quot;Spellweaving&quot;	) =
+then MyAddSpellByInfo(&quot;Spellweaving&quot;	,info) end end
++	AddSpellsFromSpellbook(&quot;Bushido&quot;,BushidoSpellbook)
++	AddSpellsFromSpellbook(&quot;Ninjitsu&quot;,NinjitsuSpellbook)
++	=
+
++	-- skills
++	for id_onebased,skillname in ipairs(glSkillNames) do =
+
++		MyAddHotkeyAction(&quot;skill&quot;,{name=3Dskillname,callback=3DHotkeyAction_Skil=
+l,skillid_onebased=3Did_onebased,bHasTargetOption=3Dtrue})
++	end
++	=
+
++	-- actions
++	gUOActions =3D {}
++	gUOActionByName =3D {}
++	function RegisterUOAction (action) =
+
++		table.insert(gUOActions,action)
++		gUOActionByName[action.name] =3D action
++	end
++	RegisterUOAction({name=3D&quot;WeaponSkill:Primary&quot;	,callback=3DMacroCmd_Weapo=
+nAbilityPrimary}) =
+
++	RegisterUOAction({name=3D&quot;WeaponSkill:Secondary&quot;	,callback=3DMacroCmd_Wea=
+ponAbilitySecondary})
++	RegisterUOAction({name=3D&quot;Dismount&quot;				,callback=3DMacroCmd_Dismount})
++	RegisterUOAction({name=3D&quot;ToggleWarmode&quot;			,callback=3DMacroCmd_ToggleWar=
+mode})
++	RegisterUOAction({name=3D&quot;LastSpell&quot;				,callback=3DMacroCmd_RepeatLastSp=
+ell}) -- todo : targetlast option ?
++	RegisterUOAction({name=3D&quot;LastChat&quot;				,callback=3DMacroCmd_RepeatLastCha=
+t})
++	RegisterUOAction({name=3D&quot;LastObject&quot;				,callback=3DMacroCmd_RepeatLastD=
+oubleClick})
++	RegisterUOAction({name=3D&quot;UseItemInHand(Wands)&quot;	})
++	RegisterUOAction({name=3D&quot;UseObjectByType&quot;		,bHasObjectTypeParam=3Dtrue})=
+ -- {potions,fukija,shuriken,bandage(old)}
++	RegisterUOAction({name=3D&quot;UseObjectByID&quot;			,bHasObjectIDParam=3Dtrue})
++	RegisterUOAction({name=3D&quot;UseNearestGate&quot;			,callback=3DMacroCmd_UseNearb=
+yGate})
++	RegisterUOAction({name=3D&quot;OpenDoor(new)&quot;			,callback=3DMacroCmd_OpenDoors=
+})
++	RegisterUOAction({name=3D&quot;OpenDoor(old/preaos)&quot;	})
++	RegisterUOAction({name=3D&quot;SelfInterrupt(hat)&quot;		,callback=3Dfunction () In=
+terruptOwnSpell(MacroCmd_GetPlayerEquipment(kLayer_Helm)) end})
++	RegisterUOAction({name=3D&quot;SelfInterrupt(robe)&quot;	,callback=3Dfunction () In=
+terruptOwnSpell(MacroCmd_GetPlayerEquipment(kLayer_TorsoOuter)) end})
++	RegisterUOAction({name=3D&quot;Select&quot;					,bHasTargetOption=3Dtrue})
++	RegisterUOAction({name=3D&quot;Attack&quot;					,bHasTargetOption=3Dtrue})
++	RegisterUOAction({name=3D&quot;Target&quot;					,bHasTargetOption=3Dtrue})
++	RegisterUOAction({name=3D&quot;Mini Heal/Cure&quot;			,bHasTargetOption=3Dtrue})
++	RegisterUOAction({name=3D&quot;Big Heal/Cure&quot;			,bHasTargetOption=3Dtrue})
++	RegisterUOAction({name=3D&quot;Bandage&quot;				,bHasTargetOption=3Dtrue})
++	RegisterUOAction({name=3D&quot;ReloadFukija&quot;})
++	RegisterUOAction({name=3D&quot;ReloadShuriken&quot;})
++	--~ RegisterUOAction({name=3D&quot;ScavengerStep&quot;})
++	--~ RegisterUOAction({name=3D&quot;ScavengerReset&quot;})
++	--~ RegisterUOAction({name=3D&quot;Looter&quot;})
++	--~ RegisterUOAction({name=3D&quot;OpenCorpse&quot;})
++	--~ RegisterUOAction({name=3D&quot;CutCorpse&quot;})
++	--~ RegisterUOAction({name=3D&quot;CutLeather&quot;}) -- scissor
++	--~ RegisterUOAction({name=3D&quot;LeatherStep(lootleather,scissor leather,cut=
+ corpse,opencorpse)&quot;})
++	--~ RegisterUOAction({name=3D&quot;Harvester(cotton,flax,sheep)&quot;})
++	--~ RegisterUOAction({name=3D&quot;Restock(regs,pots,pouches,clothes)&quot;})
++	--~ RegisterUOAction({name=3D&quot;BuyAgent&quot;})
++	--~ RegisterUOAction({name=3D&quot;SellAgent&quot;})
++	--~ RegisterUOAction({name=3D&quot;Mover/Organizer(items)&quot;})  -- move between =
+containers, or to grid positions
++	--~ RegisterUOAction({name=3D&quot;UseOnce(Pouches)&quot;}) -- saves a list, when a=
+n item is used, it is removed from list, when list is empty, it is refilled=
+ ?
++	-- (razor:add/remove friend (targetting))
++	=
+
++	-- misc
++	local groupname =3D &quot;misc&quot;
++	for k,action in pairs(gUOActions) do MyAddHotkeyAction(groupname,action) =
+end
++	=
+
++	-- chat
++	local groupname =3D &quot;chat&quot;
++	MyAddHotkeyAction(groupname,{name=3D&quot;Say&quot;,		bHasTextParam=3Dtrue,bHasTarg=
+etOption=3Dtrue,	callback=3DHotkeyAction_Chat})  =
+
++	MyAddHotkeyAction(groupname,{name=3D&quot;Yell&quot;,		bHasTextParam=3Dtrue,bHasTar=
+getOption=3Dtrue,	callback=3DHotkeyAction_Chat, texttype=3DkTextType_Yell})=
+  =
+
++	MyAddHotkeyAction(groupname,{name=3D&quot;Wisper&quot;,		bHasTextParam=3Dtrue,bHasT=
+argetOption=3Dtrue,	callback=3DHotkeyAction_Chat, texttype=3DkTextType_Whis=
+per})  =
+
++	MyAddHotkeyAction(groupname,{name=3D&quot;Emote&quot;,		bHasTextParam=3Dtrue,						=
+	callback=3DHotkeyAction_Chat, texttype=3DkTextType_Emote})  =
+
++	MyAddHotkeyAction(groupname,{name=3D&quot;Guild&quot;,		bHasTextParam=3Dtrue,						=
+	callback=3DHotkeyAction_Chat, texttype=3DkTextType_Guild})  =
+
++	MyAddHotkeyAction(groupname,{name=3D&quot;Alliance&quot;,	bHasTextParam=3Dtrue,				=
+			callback=3DHotkeyAction_Chat, texttype=3DkTextType_Alliance})  =
+
++	MyAddHotkeyAction(groupname,{name=3D&quot;Party&quot;,		bHasTextParam=3Dtrue,						=
+	callback=3DHotkeyAction_Chat, bIsPartChat=3Dtrue})  =
+
++	=
+
++	-- macros
++	local groupname =3D &quot;macros&quot;
++	-- todo =
+
++	=
+
++	-- dress
++	local groupname =3D &quot;dress&quot;
++	MyAddHotkeyAction(groupname,{name=3D&quot;Toggle Left-Hand&quot;})
++	MyAddHotkeyAction(groupname,{name=3D&quot;Toggle Right-Hand&quot;})
++	MyAddHotkeyAction(groupname,{name=3D&quot;Redress(after death)&quot;})
++	-- todo =
+
++	=
+
++	-- todo : moblist : don't add self to list.
++	gMobListSelector =3D {}
++	function gMobListSelector.random	(moblist) return GetRandomArrayElement(m=
+oblist) end -- needs array, e.g. not serial as key
++	function gMobListSelector.weakest	(moblist) return gMobListSelector.min(m=
+oblist,function (mobile) return  (mobile:GetRelHP() or 1) end) end
++	function gMobListSelector.strongest	(moblist) return gMobListSelector.min=
+(moblist,function (mobile) return -(mobile:GetRelHP() or 1) end) end
++	function gMobListSelector.nearest	(moblist) =
+
++		return gMobListSelector.min(moblist,function (mobile) =
+
++			local xloc,yloc =3D GetPlayerPos()
++			return dist2(xloc,yloc,mobile.xloc,mobile.yloc)
++			end) =
+
++	end
++	function gMobListSelector.min	(moblist,evaluation) =
+
++		local foundvalue,foundmob
++		for k,mobile in pairs(moblist) do =
+
++			local value =3D evaluation(mobile)
++			if ((not foundvalue) or value &lt; foundvalue) then =
+
++				foundvalue =3D value =
+
++				foundmob =3D mobile
++			end
++		end
++		return foundmob
++	end
++
++	=
+
++	--[[
++	todo : party/guild : treat as friend : options
++	todo : target specific ids (for runebooks or curepet)
++	=
+
++	target : instant(nodelay:only works when targetcursor is already there),a=
+uto,specified
++	=
+
++	selection
++		random/nearest/weakest(hp)/strongest(hp)/cycle?
++	=
+
++	category
++		*self
++		*selected
++		*last
++		*smart (heal/cure or selected, only works with spells)
++		*any
++		party
++		friendly   (party?guild?options)
++		nonfriendly
++		blue =
+
++		red =
+
++		orange
++		attackable/enemy (orange,red or crime)
++		hostile (battleflagged?)
++		criminal
++		party
++		nonparty =
+
++		neutral (by reputation,mainly animals)
++		summons (dispel: bladespirit,evortex,revenant) =
+
++		byname  (tooltip scan)
++		bytype  (bodyid)
++		?gate (item! dispel)
++		?field (item! dispel:next to self or under selected target(when efieldin=
+g in group fights))
++		?ground near self 	(summons : free tile, insight,inrange)
++		?ground near target	(summons : free tile, insight,inrange)
++		?BackpackObjectByType (retrap pouch)
++		?BackpackObjectByID
++		=
+
++	filters :  (and-combined)
++		[noself]
++		[nonparty]
++		[nonfriends]
++		[inrange]
++		[insight]
++		[poisoned]=3Dcurable
++		[healable]=3Dnonpoisoned and non-grey (and nonfull)
++		[fullhp]
++		[wounded] &lt; 90% hp
++		[weak] &lt; 50% hp
++		[humanoid](human transform forms and non-npc)  =
+
++		[nonhumanoid]
++		[pet] : tame
++		[nonpet]
++		[tamable] (postaos-tooltip contains gender)
++	]]--
++	=
+
++	-- spells,skills,useobject/type/say
++	-- spellparam : target + target-delay (delay/timeout : auto? hardcode?)
++	=
+
++	os.exit(0)
++end
++
++
+ =
+
+ function OpenConfigDialog ()
+-	print(&quot;hello world!&quot;)
+-	=
+
+-	=
+
+-	=
+
+-	=
+
+-	=
+
++
+ 	local texname,w,h,xoff,yoff =3D &quot;simplebutton.png&quot;,80,80,0,0
+ 	local u0,v0,w0,w1,w2,h0,h1,h2, tcx,tcy =3D 0,0, 4,8,4, 4,8,4, 32,32
+ 	local gfxparam_white =3D MakeSpritePanelParam_BorderPartMatrix(GetPlainTe=
+xtureGUIMat(texname),w,h,xoff,yoff, u0,v0,w0,w1,w2,h0,h1,h2, tcx,tcy, 1,1, =
+false, false)
+@@ -232,3 +439,32 @@
+ function ConfigDialogPage_Config(page)
+ 	local group =3D page:AddWidget(CreateWidgetFromXMLString(nil,&quot;&lt;UOText bol=
+d=3D1 text=3D'not yet implemented'&gt;&quot;))
+ end
++
++
++--[[
++--~ gCharCreateSkillIDs[&quot;Anatomy&quot;]					=3D 1
++--~ glSkillNames =3D {	[2]		=3D &quot;Anatomy&quot;,    1-55
++for id_onebased =3D 1,55 do =
+
++	local name =3D glSkillNames[id_onebased]
++	local name2
++	for k,id_zerobased in pairs(gCharCreateSkillIDs) do =
+
++		if (id_zerobased + 1 =3D=3D id_onebased) then name2 =3D k end
++	end
++	local id_zerobased =3D gCharCreateSkillIDs[name]
++	if (name ~=3D name2) then =
+
++		print(&quot;skillname mismatch : id_onebased,name(glSkillNames),name2(gCharCr=
+eateSkillIDs)&quot;,id_onebased,name,name2)
++	end
++end
++--~ skillname mismatch : id_onebased,name(glSkillNames),name2(gCharCreateS=
+killIDs)  4       Item ID (Appraise)      		Item Identification
++--~ skillname mismatch : id_onebased,name(glSkillNames),name2(gCharCreateS=
+killIDs)  6       Parrying (Battle Defense)       Parrying
++--~ skillname mismatch : id_onebased,name(glSkillNames),name2(gCharCreateS=
+killIDs)  8       Blacksmithing   				Blacksmith
++--~ skillname mismatch : id_onebased,name(glSkillNames),name2(gCharCreateS=
+killIDs)  9       Bowcraft        				Bowcraft/Fletching
++--~ skillname mismatch : id_onebased,name(glSkillNames),name2(gCharCreateS=
+killIDs)  10      Peacemaking (Calming)   		Peacemaking
++--~ skillname mismatch : id_onebased,name(glSkillNames),name2(gCharCreateS=
+killIDs)  15      Detect Hidden   				Detecting Hidden
++--~ skillname mismatch : id_onebased,name(glSkillNames),name2(gCharCreateS=
+killIDs)  27      Magic Resistance        		Resisting Spells
++--~ skillname mismatch : id_onebased,name(glSkillNames),name2(gCharCreateS=
+killIDs)  36      Animal Taming (Taming)  		Animal Taming
++skillname mismatch : id_onebased,name(glSkillNames),name2(gCharCreateSkill=
+IDs)  27      Magic Resistance        Resisting Spells
++skillname mismatch : id_onebased,name(glSkillNames),name2(gCharCreateSkill=
+IDs)  36      Animal Taming (Taming)  Animal Taming
++]]--
++
++
+
+Modified: trunk/lua/lib.macrolist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.macrolist.lua (original)
++++ trunk/lua/lib.macrolist.lua Sun Dec 21 23:53:38 2008
+@@ -139,6 +139,8 @@
+ 	if (not f) then return MacroErrorNameMismatch(&quot;MacroCmd_Open&quot;,dialogtype,=
+gMacroOpenCommands) end
+ 	f() =
+
+ end
++
++function MacroCmd_UseNearbyGate () local gate =3D MacroCmd_Item_FindFirstN=
+earByArtID(kMoongateGateArtID,nil,1) MacroCmd_Item_Use(gate) return gate ~=
+=3D nil end
+ =
+
+ function MacroCmd_ToggleHideGUI () GuiToggleHide() Client_RenderOneFrame()=
+ end
+ =
+
+
+Modified: trunk/lua/lib.spellbooks.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.spellbooks.lua (original)
++++ trunk/lua/lib.spellbooks.lua Sun Dec 21 23:53:38 2008
+@@ -7,6 +7,38 @@
+ gSpellbookExpansion[&quot;AOS&quot;]	=3D hex2num(&quot;0x00&quot;)		--Mage, Necromancer and Pa=
+ladin spells
+ gSpellbookExpansion[&quot;SE&quot;]	=3D hex2num(&quot;0x01&quot;)		--Samurai and Ninja Spells
+ gSpellbookExpansion[&quot;ML&quot;]	=3D hex2num(&quot;0x02&quot;)		--Spellweaving Spells
++
++gSpellNameAlias =3D {} -- spellbook(gui,spellid),spellinfo(runuo,powerword=
+s/mantra,regs),razor-config-ids?
++gSpellNameAlias[&quot;Feeblemind&quot;		] =3D &quot;FeebleMind&quot;
++gSpellNameAlias[&quot;Remove Trap&quot;		] =3D &quot;Magic Untrap&quot;
++gSpellNameAlias[&quot;Fireball&quot;			] =3D &quot;Fire Ball&quot;
++gSpellNameAlias[&quot;Unlock Spell&quot;		] =3D &quot;Unlock&quot;
++gSpellNameAlias[&quot;Blade Spirits&quot;		] =3D &quot;Blade Spirit&quot;
++gSpellNameAlias[&quot;Magic Reflection&quot;	] =3D &quot;Spell Reflection&quot;
++gSpellNameAlias[&quot;Summon Creature&quot;	] =3D &quot;Summ.Creature&quot;
++gSpellNameAlias[&quot;Flame Strike&quot;		] =3D &quot;FlameStrike&quot;
++gSpellNameAlias[&quot;Gate Travel&quot;		] =3D &quot;Gate&quot;
++gSpellNameAlias[&quot;Wraith Form&quot;		] =3D &quot;WraithForm&quot;
++gSpellNameAlias[&quot;Enemy of One&quot;		] =3D &quot;Enemy of one&quot;
++gSpellNameAlias[&quot;Gift of Renewal&quot;	] =3D &quot;Gift Of Renewal&quot;
++gSpellNameAlias[&quot;Nature's Fury&quot;		] =3D &quot;Nature Fury&quot;
++gSpellNameAlias[&quot;Essence of Wind&quot;	] =3D &quot;Essence Of Wind&quot;
++gSpellNameAlias[&quot;Word of Death&quot;		] =3D &quot;Word Of Death&quot;
++gSpellNameAlias[&quot;Gift of Life&quot;		] =3D &quot;Gift Of Life&quot;
++gSpellNameAlias[&quot;Attune Weapon&quot;		] =3D &quot;Attunement&quot;
++
++function SearchSpellIDByName (spellname)
++	for spellbookid,spellbook in pairs(gSpellBooks) do
++	local spellnumber =3D countarr(spellbook.spells[1])
++	for kcircle,pagearr in ipairs(spellbook.spells) do =
+
++	for kspell,spellname2 in ipairs(pagearr) do =
+
++		if (spellname =3D=3D spellname2) then return spellbook.startindex + kspe=
+ll + (kcircle - 1) * spellnumber end
++	end =
+
++	end
++	end
++end
++
++
+ =
+
+ --RunUO1 old_spellbook Items
+ --[[
+
+Modified: trunk/lua/lib.uoids.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.uoids.lua (original)
++++ trunk/lua/lib.uoids.lua Sun Dec 21 23:53:38 2008
+@@ -276,7 +276,7 @@
+ gCharCreateSkillIDs[&quot;Arms Lore&quot;]				=3D 4
+ gCharCreateSkillIDs[&quot;Parrying&quot;]					=3D 5
+ gCharCreateSkillIDs[&quot;Begging&quot;]					=3D 6
+-gCharCreateSkillIDs[&quot;Blacksmith&quot;]				=3D 7
++gCharCreateSkillIDs[&quot;Blacksmithy&quot;]				=3D 7
+ gCharCreateSkillIDs[&quot;Bowcraft/Fletching&quot;]		=3D 8
+ gCharCreateSkillIDs[&quot;Peacemaking&quot;]				=3D 9
+ gCharCreateSkillIDs[&quot;Camping&quot;]					=3D 10
+@@ -357,18 +357,18 @@
+ 	[1] 	=3D &quot;Alchemy&quot;,
+ 	[2]		=3D &quot;Anatomy&quot;,
+ 	[3]		=3D &quot;Animal Lore&quot;,
+-	[4]		=3D &quot;Item ID (Appraise)&quot;,
++	[4]		=3D &quot;Item Identification&quot;, -- (Appraise)
+ 	[5]		=3D &quot;Arms Lore&quot;,
+-	[6]		=3D &quot;Parrying (Battle Defense)&quot;,
++	[6]		=3D &quot;Parrying&quot;, -- (Battle Defense)
+ 	[7]		=3D &quot;Begging&quot;,
+-	[8]		=3D &quot;Blacksmithing&quot;,
+-	[9]		=3D &quot;Bowcraft&quot;,
+-	[10]	=3D &quot;Peacemaking (Calming)&quot;,
++	[8]		=3D &quot;Blacksmithy&quot;,
++	[9]		=3D &quot;Bowcraft/Fletching&quot;,
++	[10]	=3D &quot;Peacemaking&quot;, -- (Calming)
+ 	[11]	=3D &quot;Camping&quot;,
+ 	[12]	=3D &quot;Carpentry&quot;,
+ 	[13]	=3D &quot;Cartography&quot;,
+ 	[14]	=3D &quot;Cooking&quot;,
+-	[15]	=3D &quot;Detect Hidden&quot;,
++	[15]	=3D &quot;Detecting Hidden&quot;,
+ 	[16]	=3D &quot;Discordance&quot;,
+ 	[17]	=3D &quot;Evaluate Intelligence&quot;,
+ 	[18]	=3D &quot;Healing&quot;,
+@@ -380,7 +380,7 @@
+ 	[24]	=3D &quot;Inscription&quot;,
+ 	[25]	=3D &quot;Lockpicking&quot;,
+ 	[26]	=3D &quot;Magery&quot;,
+-	[27]	=3D &quot;Magic Resistance&quot;,
++	[27]	=3D &quot;Resisting Spells&quot;, -- Magic Resistance
+ 	[28]	=3D &quot;Tactics&quot;,
+ 	[29]	=3D &quot;Snooping&quot;,
+ 	[30]	=3D &quot;Musicianship&quot;,
+@@ -389,7 +389,7 @@
+ 	[33]	=3D &quot;Spirit Speak&quot;,
+ 	[34]	=3D &quot;Stealing&quot;,
+ 	[35]	=3D &quot;Tailoring&quot;,
+-	[36]	=3D &quot;Animal Taming (Taming)&quot;,
++	[36]	=3D &quot;Animal Taming&quot;,
+ 	[37]	=3D &quot;Taste Identification&quot;,
+ 	[38]	=3D &quot;Tinkering&quot;,
+ 	[39]	=3D &quot;Tracking&quot;,
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001609.html">[Iris-commit] [IRIS] r2805 - in /trunk/lua: lib.data.lua	lib.tilefreewalk.lua
+</A></li>
+	<LI>Next message: <A HREF="001611.html">[Iris-commit] [IRIS] r2807 - /trunk/lua/gui/gui.menubar.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1610">[ date ]</a>
+              <a href="thread.html#1610">[ thread ]</a>
+              <a href="subject.html#1610">[ subject ]</a>
+              <a href="author.html#1610">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,228 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r3297 - in /trunk/lua: gui/gui.helper.lua lib.mapblock.3d.statics.lua lib.mapblock.3d.terrain.lua lib.mapblock.scheduler.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2010-March/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3297%20-%20in%20/trunk/lua%3A%20gui/gui.helper.lua%0A%20lib.mapblock.3d.statics.lua%20lib.mapblock.3d.terrain.lua%0A%20lib.mapblock.scheduler.lua&In-Reply-To=%3C20100320223216.316867A98079%40simon%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="002056.html">
+   <LINK REL="Next"  HREF="002058.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r3297 - in /trunk/lua: gui/gui.helper.lua lib.mapblock.3d.statics.lua lib.mapblock.3d.terrain.lua lib.mapblock.scheduler.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3297%20-%20in%20/trunk/lua%3A%20gui/gui.helper.lua%0A%20lib.mapblock.3d.statics.lua%20lib.mapblock.3d.terrain.lua%0A%20lib.mapblock.scheduler.lua&In-Reply-To=%3C20100320223216.316867A98079%40simon%3E"
+       TITLE="[Iris-commit] [IRIS] r3297 - in /trunk/lua: gui/gui.helper.lua lib.mapblock.3d.statics.lua lib.mapblock.3d.terrain.lua lib.mapblock.scheduler.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat Mar 20 23:32:16 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="002056.html">[Iris-commit] [IRIS] r3296 - /trunk/lua/gui/gui.helper.lua
+</A></li>
+        <LI>Next message: <A HREF="002058.html">[Iris-commit] [IRIS] r3298 - in /trunk/lua: lib.granny.anim.lua lib.granny.debug.lua lib.granny.loader.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2057">[ date ]</a>
+              <a href="thread.html#2057">[ thread ]</a>
+              <a href="subject.html#2057">[ subject ]</a>
+              <a href="author.html#2057">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: hagish
+Date: Sat Mar 20 23:32:15 2010
+New Revision: 3297
+
+Log:
+* small 3d map improvements
+
+Modified:
+    trunk/lua/gui/gui.helper.lua
+    trunk/lua/lib.mapblock.3d.statics.lua
+    trunk/lua/lib.mapblock.3d.terrain.lua
+    trunk/lua/lib.mapblock.scheduler.lua
+
+Modified: trunk/lua/gui/gui.helper.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.helper.lua (original)
++++ trunk/lua/gui/gui.helper.lua Sat Mar 20 23:32:15 2010
+@@ -17,7 +17,8 @@
+ 	-- calculate frame number
+ 	local f =3D 0
+ 	if giShowLoading &gt; 0 then
+-		f =3D 1 + math.mod(math.floor(gMyTicks / 1000 * fps), frames-1)
++		local speed =3D Clamp(1 + giShowLoading / 200, 1, 2)
++		f =3D 1 + math.mod(math.floor(gMyTicks / 1000 * fps * speed), frames-1)
+ 	end
+ 	=
+
+ 	-- on demand create icon
+
+Modified: trunk/lua/lib.mapblock.3d.statics.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mapblock.3d.statics.lua (original)
++++ trunk/lua/lib.mapblock.3d.statics.lua Sat Mar 20 23:32:15 2010
+@@ -15,7 +15,7 @@
+ =
+
+ cMapBlock_3D_Statics	=3D CreateClass(cMapBlockGrid)
+ cMapBlock_3D_Statics.iBlockSize		=3D 8*2 -- in tiles
+-cMapBlock_3D_Statics.iLoadRadius	=3D 8 -- in iBlockSize-blocks
++cMapBlock_3D_Statics.iLoadRadius	=3D 4 -- in iBlockSize-blocks
+ cMapBlock_3D_Statics.kMaxDist_Visible		=3D cMapBlock_3D_Statics.iBlockSize=
+ * 8 -- camdist in tiles  see mapblock.base for default
+ cMapBlock_3D_Statics.kMaxDist_Detail		=3D cMapBlock_3D_Statics.iBlockSize =
+* 4 -- camdist in tiles
+ =
+
+
+Modified: trunk/lua/lib.mapblock.3d.terrain.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mapblock.3d.terrain.lua (original)
++++ trunk/lua/lib.mapblock.3d.terrain.lua Sat Mar 20 23:32:15 2010
+@@ -1,6 +1,6 @@
+ cMapBlock_3D_Terrain	=3D CreateClass(cMapBlockGrid)
+ cMapBlock_3D_Terrain.iBlockSize		=3D 8*2 -- in tiles
+-cMapBlock_3D_Terrain.iLoadRadius	=3D 8 -- in iBlockSize-blocks
++cMapBlock_3D_Terrain.iLoadRadius	=3D 4 -- in iBlockSize-blocks
+ cMapBlock_3D_Terrain.kMaxDist_Visible		=3D cMapBlock_3D_Terrain.iBlockSize=
+ * 8 -- camdist in tiles  see mapblock.base for default
+ cMapBlock_3D_Terrain.kMaxDist_Detail		=3D cMapBlock_3D_Terrain.iBlockSize =
+* 4 -- camdist in tiles
+ =
+
+
+Modified: trunk/lua/lib.mapblock.scheduler.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mapblock.scheduler.lua (original)
++++ trunk/lua/lib.mapblock.scheduler.lua Sat Mar 20 23:32:15 2010
+@@ -11,6 +11,9 @@
+ 	self.kGoodFPS =3D 50
+ 	self.kGoodTicksBetweenFrames =3D 1000 / self.kGoodFPS -- 1000=3D1sec
+ 	self.kAllowedTicksPerFrame =3D self.kGoodTicksBetweenFrames
++	=
+
++	self.lastSort =3D nil
++	self.sortTimeout =3D 1000 / 5
+ end
+ =
+
+ function cScheduler:AddProcess		(process) =
+
+@@ -28,12 +31,9 @@
+ gfScheduler_WorkTime =3D 0
+ gfScheduler_WorkCount =3D 0
+ =
+
++
+ -- x,y,z : cam/focus-pos
+ function cScheduler:Step		(x,y,z)
+-	--~ if math.mod(gMyFrameCounter, 100) =3D=3D 0 then
+-		--~ print(&quot;procs&quot;,table.getn(self.pProcessList))
+-	--~ end
+-
+ 	local t =3D Client_GetTicks()
+ 	local t_end =3D gMyTicks + self.kAllowedTicksPerFrame
+ 	=
+
+@@ -46,6 +46,10 @@
+ 			table.insert(active_blocks, process)
+ 		end
+ 	end =
+
++	=
+
++	--~ if math.mod(gMyFrameCounter, 30) =3D=3D 0 then
++		--~ print(&quot;procs&quot;,table.getn(self.pProcessList), countarr(active_blocks))
++	--~ end
+ 	=
+
+ 	giShowLoading =3D countarr(active_blocks)
+ 	if (gDebugJobOrigin and giShowLoading &gt; 20) then =
+
+@@ -61,19 +65,31 @@
+ 	end
+ 	=
+
+ 	-- sort by priority
+-	table.sort(active_blocks,self.CmpProcess)
++	if self.lastSort =3D=3D nil or (t - self.lastSort &gt; self.sortTimeout) then
++		table.sort(active_blocks, self.CmpProcess)
++		=
+
++		if self.lastSort =3D=3D nil then =
+
++			self.lastSort =3D t
++		else
++			self.lastSort =3D self.lastSort + self.sortTimeout
++		end
++	end
+ 	=
+
+-	-- work until no time left
++	-- work until no time left but to atleast a small number of blocks
+ 	local avgdt =3D nil
++	local done =3D 0
++	local minDone =3D 3
+ 	for k,process in ipairs(active_blocks) do =
+
+ 		local t1 =3D Client_GetTicks()
+ 		process:Work(t_end)
+ 		local t2 =3D Client_GetTicks()
+ =
+
++		done =3D done + 1
++
+ 		avgdt =3D avgdt and (avgdt*0.5+(t2-t1)*0.5) or (t2-t1)
+ 		=
+
+ 		--~ if (Client_GetTicks() &gt;=3D t_end) then break end
+-		if (t2 + avgdt &gt;=3D t_end) then break end
++		if (t2 + avgdt &gt;=3D t_end and done &gt;=3D minDone) then break end
+ 	end
+ end
+ =
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="002056.html">[Iris-commit] [IRIS] r3296 - /trunk/lua/gui/gui.helper.lua
+</A></li>
+	<LI>Next message: <A HREF="002058.html">[Iris-commit] [IRIS] r3298 - in /trunk/lua: lib.granny.anim.lua lib.granny.debug.lua lib.granny.loader.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2057">[ date ]</a>
+              <a href="thread.html#2057">[ thread ]</a>
+              <a href="subject.html#2057">[ subject ]</a>
+              <a href="author.html#2057">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

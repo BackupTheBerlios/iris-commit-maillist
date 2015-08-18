@@ -1,0 +1,268 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2650 - in /trunk/lua: lib.2d.hudfx.lua lib.2d.mobile.lua lib.2d.renderer.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-October/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2650%20-%20in%20/trunk/lua%3A%20lib.2d.hudfx.lua%0A%20lib.2d.mobile.lua%20lib.2d.renderer.lua&In-Reply-To=%3C20081024211118.56DD11C18631%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001454.html">
+   <LINK REL="Next"  HREF="001456.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2650 - in /trunk/lua: lib.2d.hudfx.lua lib.2d.mobile.lua lib.2d.renderer.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2650%20-%20in%20/trunk/lua%3A%20lib.2d.hudfx.lua%0A%20lib.2d.mobile.lua%20lib.2d.renderer.lua&In-Reply-To=%3C20081024211118.56DD11C18631%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2650 - in /trunk/lua: lib.2d.hudfx.lua lib.2d.mobile.lua lib.2d.renderer.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Fri Oct 24 23:11:18 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001454.html">[Iris-commit] [IRIS] r2649 - in /trunk: lua/lib.2d.mobile.lua lua/obj/obj.mobile.lua plugins/loot.lua
+</A></li>
+        <LI>Next message: <A HREF="001456.html">[Iris-commit] [IRIS] r2651 - /trunk/lua/lib.2d.cam.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1455">[ date ]</a>
+              <a href="thread.html#1455">[ thread ]</a>
+              <a href="subject.html#1455">[ subject ]</a>
+              <a href="author.html#1455">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Fri Oct 24 23:11:17 2008
+New Revision: 2650
+
+Log:
+2d : smoothwalk
+
+Modified:
+    trunk/lua/lib.2d.hudfx.lua
+    trunk/lua/lib.2d.mobile.lua
+    trunk/lua/lib.2d.renderer.lua
+
+Modified: trunk/lua/lib.2d.hudfx.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.hudfx.lua (original)
++++ trunk/lua/lib.2d.hudfx.lua Fri Oct 24 23:11:17 2008
+@@ -29,7 +29,8 @@
+ 	if (t &gt; hudfx.endt) then self:HUDFX_Destroy(hudfx) return end
+ 	if (hudfx.mob and hudfx.gfx) then
+ 		local mobile =3D hudfx.mob
+-		local px,py =3D self:UOPosToPixelPos(mobile.xloc,mobile.yloc,mobile.zloc=
++hudfx.zadd)
++		local xloc,yloc,zloc =3D self:GetExactMobilePos(mobile)
++		local px,py =3D self:UOPosToPixelPos(xloc,yloc,zloc+hudfx.zadd)
+ 		if (px) then =
+
+ 			local dur =3D hudfx.dur
+ 			local ft =3D min(dur,t - hudfx.startt) / dur
+
+Modified: trunk/lua/lib.2d.mobile.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.mobile.lua (original)
++++ trunk/lua/lib.2d.mobile.lua Fri Oct 24 23:11:17 2008
+@@ -2,6 +2,7 @@
+ -- TODO : Equipconv.def ?
+ =
+
+ Renderer2D.gStepMobiles =3D {}
++Renderer2D.gStepMobilesSmoothWalk =3D {}
+ =
+
+ -- main updater, create, position ...
+ function Renderer2D:MobileSetVisible			(mobile,bVisible) =
+
+@@ -15,13 +16,59 @@
+ 		mobile.gfx2d =3D spriteblock
+ 	end
+ 	if (mobile.xloc ~=3D mobile.r2d_lastxloc or
+-		mobile.yloc ~=3D mobile.r2d_lastyloc) then
+-		mobile.r2d_lastxloc =3D mobile.xloc
+-		mobile.r2d_lastyloc =3D mobile.yloc
++		mobile.yloc ~=3D mobile.r2d_lastyloc or
++		mobile.zloc ~=3D mobile.r2d_lastzloc) then
++		mobile.r2d_lastxloc2 =3D mobile.r2d_lastxloc
++		mobile.r2d_lastyloc2 =3D mobile.r2d_lastyloc
++		mobile.r2d_lastzloc2 =3D mobile.r2d_lastzloc
++		mobile.r2d_lastxloc  =3D mobile.xloc
++		mobile.r2d_lastyloc  =3D mobile.yloc
++		mobile.r2d_lastzloc  =3D mobile.zloc
+ 		mobile.r2d_lastmoved =3D gMyTicks
++		mobile.r2d_iMoveInterval =3D WalkGetIntervalEx(mobile:GetEquipmentAtLaye=
+r(kLayer_Mount),mobile.artid,TestBit(mobile.dir or 0,0x80))
++		local bSmoothWalk =3D mobile.r2d_lastxloc2 and dist2(	mobile.r2d_lastxlo=
+c2,
++															mobile.r2d_lastyloc2,
++															mobile.r2d_lastxloc,
++															mobile.r2d_lastyloc) &lt;=3D 2
++		mobile.r2d_bSmoothWalk =3D bSmoothWalk
++		self.gStepMobilesSmoothWalk[mobile] =3D bSmoothWalk or nil
+ 	end
+ 	self:UpdateMobileGfx(mobile)
+-end =
+
++end
++
++
++
++function Renderer2D:GetExactMobilePos (mobile)
++	if (not mobile) then return end
++	if (mobile.gfx2d and mobile.gfx2d.exactxloc) then
++		return	mobile.gfx2d.exactxloc,
++				mobile.gfx2d.exactyloc,
++				mobile.gfx2d.exactzloc
++	end
++	return	mobile.xloc,
++			mobile.yloc,
++			mobile.zloc
++end
++
++function Renderer2D:UpdateMobilePos			(mobile) =
+
++	if (not mobile.gfx2d) then return end
++	local xloc,yloc,zloc =3D mobile.xloc,mobile.yloc,mobile.zloc
++	local t
++	if (mobile.r2d_bSmoothWalk) then
++		t =3D (gMyTicks - mobile.r2d_lastmoved) / mobile.r2d_iMoveInterval
++		if (t &gt;=3D 1) then t =3D 1 self.gStepMobilesSmoothWalk[mobile] =3D nil e=
+nd
++		local it =3D 1 - t
++		xloc =3D mobile.r2d_lastxloc2*it + xloc*t
++		yloc =3D mobile.r2d_lastyloc2*it + yloc*t
++		zloc =3D mobile.r2d_lastzloc2*it + zloc*t
++	end    =
+
++	--~ print(&quot;UpdateMobilePos&quot;,t)
++	mobile.gfx2d.exactxloc =3D xloc
++	mobile.gfx2d.exactyloc =3D yloc
++	mobile.gfx2d.exactzloc =3D zloc
++	local x,y,z =3D self:UOPosToLocal(xloc,yloc,zloc*kRenderer2D_ZScale)
++	mobile.gfx2d:SetPosition(x,y,z)
++end
+ =
+
+ function Renderer2D:MobileStepOne(mobile)
+ 	self:UpdateMobileGfx(mobile)
+@@ -74,8 +121,7 @@
+ 	=
+
+ 	local fTimeSinceLastMove =3D gMyTicks - (mobile.r2d_lastmoved or 0)
+ 	local bRun =3D TestBit(mobile.dir or 0,0x80)
+-	local iMoveInterval =3D WalkGetIntervalEx(mount,mobile.artid,bRun)
+-	local bMoving =3D fTimeSinceLastMove &lt;=3D iMoveInterval + 50
++	local bMoving =3D fTimeSinceLastMove &lt;=3D (mobile.r2d_iMoveInterval or 20=
+0) + 50
+ 	self.gStepMobiles[mobile] =3D bMoving and (gMyTicks + 10) or (gMyTicks + =
+500)
+ =
+
+ 	local xloc,yloc,zloc =3D mobile.xloc,mobile.yloc,mobile.zloc
+@@ -131,14 +177,13 @@
+ 		end
+ 	end
+ 	spriteblock:Build(Renderer2D.kSpriteBaseMaterial,false)
+-	=
+
+-	local x,y,z =3D self:UOPosToLocal(mobile.xloc,mobile.yloc,mobile.zloc*kRe=
+nderer2D_ZScale)
+-	mobile.gfx2d:SetPosition(x,y,z)
++	self:UpdateMobilePos(mobile)
+ end
+ =
+
+ function Renderer2D:DestroyMobileGfx			(mobile) =
+
+ 	if (mobile.gfx2d) then mobile.gfx2d:Destroy() mobile.gfx2d =3D nil end
+ 	self.gStepMobiles[mobile] =3D nil
++	self.gStepMobilesSmoothWalk[mobile] =3D nil
+ end
+ =
+
+ function Renderer2D:CreateMobileGfx				(mobile) self:UpdateMobile(mobile) =
+end	=
+
+@@ -154,6 +199,7 @@
+ 	for mobile,t in pairs(self.gStepMobiles) do =
+
+ 		if (curt &gt;=3D t) then self:MobileStepOne(mobile) end
+ 	end
++	for mobile,v in pairs(self.gStepMobilesSmoothWalk) do self:UpdateMobilePo=
+s(mobile) end
+ 	=
+
+ 	--~ local playermobile =3D GetPlayerMobile()
+ 	--~ print(&quot;playermobile.dir&quot;,playermobile and DirWrap(playermobile.dir)) =
+
+
+Modified: trunk/lua/lib.2d.renderer.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.renderer.lua (original)
++++ trunk/lua/lib.2d.renderer.lua Fri Oct 24 23:11:17 2008
+@@ -118,8 +118,11 @@
+ 	end
+ 	=
+
+ 	-- TODO : self:CombatGuiStep() ?
++	self:MobileStep() -- bevore cam pos so cam is exactly on player
+ 	local xloc,yloc,zloc =3D GetPlayerPos()
+-	if (xloc and (not g2DCamMove)) then self:SetCamPos(xloc,yloc,zloc) end
++	if (xloc and (not g2DCamMove)) then =
+
++		self:SetCamPos(self:GetExactMobilePos(GetPlayerMobile())) -- after Mobil=
+eStep so cam is exactly on player
++	end
+ 	=
+
+ 	-- keyboard move cam
+ 	local bKeyBoardMoveCam =3D g2DCamMove or bOfflineMode
+@@ -135,7 +138,6 @@
+ =
+
+ 	self:EffectAnimStep() -- should be after player pos is updated, for effec=
+ts moving with player
+ 	self:MapStep()
+-	self:MobileStep()
+ 	self:HUDFX_MainStep()
+ 	self:Dynamics_MainStep()
+ 	self:MousePickStep()
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001454.html">[Iris-commit] [IRIS] r2649 - in /trunk: lua/lib.2d.mobile.lua lua/obj/obj.mobile.lua plugins/loot.lua
+</A></li>
+	<LI>Next message: <A HREF="001456.html">[Iris-commit] [IRIS] r2651 - /trunk/lua/lib.2d.cam.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1455">[ date ]</a>
+              <a href="thread.html#1455">[ thread ]</a>
+              <a href="subject.html#1455">[ subject ]</a>
+              <a href="author.html#1455">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

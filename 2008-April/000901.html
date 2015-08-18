@@ -1,0 +1,430 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2090 - in /trunk: data/config.lua.dist include/builder.h lua/lib.compass.lua src/builder.cpp src/scripting.iris.cpp
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-April/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2090%20-%20in%20/trunk%3A%20data/config.lua.dist%0A%20include/builder.h%20lua/lib.compass.lua%20src/builder.cpp%0A%20src/scripting.iris.cpp&In-Reply-To=%3C20080424233616.0D1E21C18749%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000900.html">
+   <LINK REL="Next"  HREF="000902.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2090 - in /trunk: data/config.lua.dist include/builder.h lua/lib.compass.lua src/builder.cpp src/scripting.iris.cpp</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2090%20-%20in%20/trunk%3A%20data/config.lua.dist%0A%20include/builder.h%20lua/lib.compass.lua%20src/builder.cpp%0A%20src/scripting.iris.cpp&In-Reply-To=%3C20080424233616.0D1E21C18749%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2090 - in /trunk: data/config.lua.dist include/builder.h lua/lib.compass.lua src/builder.cpp src/scripting.iris.cpp">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Fri Apr 25 01:36:15 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000900.html">[Iris-commit] [IRIS] r2089 - in /trunk: include/builder.h lua/lib.test.lua lua/main.lua src/builder.cpp src/scripting.iris.cpp
+</A></li>
+        <LI>Next message: <A HREF="000902.html">[Iris-commit] [IRIS] r2091 - in /trunk/lua: gui/gui.healthbar.lua lib.uoids.lua main.lua obj/obj.mobile.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#901">[ date ]</a>
+              <a href="thread.html#901">[ thread ]</a>
+              <a href="subject.html#901">[ subject ]</a>
+              <a href="author.html#901">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Fri Apr 25 01:36:15 2008
+New Revision: 2090
+
+Log:
+new detailcompass up and running
+
+Modified:
+    trunk/data/config.lua.dist
+    trunk/include/builder.h
+    trunk/lua/lib.compass.lua
+    trunk/src/builder.cpp
+    trunk/src/scripting.iris.cpp
+
+Modified: trunk/data/config.lua.dist
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/config.lua.dist (original)
++++ trunk/data/config.lua.dist Fri Apr 25 01:36:15 2008
+@@ -83,7 +83,7 @@
+ gCompassZoomFactor =3D 1.5
+ gCompassSize =3D 150 -- in pixels on screen, set to 0 to disable
+ giCompassDetailLimit =3D 12 -- in mapblocks shown
+-gCompassVisibleRad =3D giCompassDetailLimit * 4
++gCompassVisibleRad =3D giCompassDetailLimit -- start with detailcompass * 4
+ -- todo : gMapImagePath_Small	=3D &quot;tempmap_small.tga&quot;
+ -- todo : gMapImagePath_Big		=3D &quot;tempmap_big.tga&quot;
+ =
+
+
+Modified: trunk/include/builder.h
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/include/builder.h (original)
++++ trunk/include/builder.h Fri Apr 25 01:36:15 2008
+@@ -43,7 +43,7 @@
+ =
+
+ void				WriteMapImageToFile		(cGroundBlockLoader&amp; oGroundBlockLoader,cRada=
+rColorLoader&amp; radarColors,cStaticBlockLoader* pStaticBlockLoader,const char=
+* szOutPath,const bool bBig);
+ Ogre::TexturePtr	GenerateRadarImageRaw	(int iPosX, int iPosY, cGroundBlock=
+Loader&amp; oGroundBlockLoader, cStaticBlockLoader&amp; oStaticBlockLoader, cRadarC=
+olorLoader&amp; oRadarColorLoader, const char* szMatName);
+-bool				GenerateRadarImage		(Ogre::Image&amp; pDest,const int bx0,const int by=
+0,const int bx1,const int by1,cGroundBlockLoader&amp; oGroundBlockLoader, cStat=
+icBlockLoader&amp; oStaticBlockLoader, cRadarColorLoader&amp; oRadarColorLoader);
++bool				GenerateRadarImage		(Ogre::Image&amp; pDest,const int bx0,const int by=
+0,const int dbx,const int dby,cGroundBlockLoader&amp; oGroundBlockLoader, cStat=
+icBlockLoader&amp; oStaticBlockLoader, cRadarColorLoader&amp; oRadarColorLoader);
+ void				GenerateMapImageRaw		(int iLeftTileNum,int iTopTileNum,int iImgW,i=
+nt iImgH,cGroundBlockLoader&amp; oGroundBlockLoader,cRadarColorLoader&amp; radarCol=
+s,cStaticBlockLoader* pStaticBlockLoader,short* pRawBuffer,bool bBig);
+ =
+
+ void	GenerateArtBitMask	(cArtMapLoader&amp; oArtMapLoader,	const int iID,cBitM=
+ask&amp; bitmask);
+
+Modified: trunk/lua/lib.compass.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.compass.lua (original)
++++ trunk/lua/lib.compass.lua Fri Apr 25 01:36:15 2008
+@@ -1,6 +1,60 @@
+ -- manages the small compass/radar/map thing in the upper right corner of =
+the screen
+ =
+
+ gCompassOff =3D 20
++
++gDetailMapCacheImage =3D nil
++gDetailMapCacheTexture =3D nil
++gDetailMapCacheMaterial =3D nil
++gDetailMapCacheBX =3D nil
++gDetailMapCacheBY =3D nil
++kDetailMapCacheSize =3D 256
++kDetailMapCacheViewRad =3D 80
++
++-- param : compass-center-pos (player or cam)
++function UpdateDetailMapCacheIfNeeded (xloc,yloc)
++	-- check if we need to update cache, return if not
++	if (gDetailMapCacheBX) then
++		local r =3D kDetailMapCacheViewRad
++		local dx =3D xloc - gDetailMapCacheBX * 8
++		local dy =3D yloc - gDetailMapCacheBY * 8
++		if (dx &gt;=3D r and dx &lt;=3D kDetailMapCacheSize - r and
++			dy &gt;=3D r and dy &lt;=3D kDetailMapCacheSize - r) then return end -- no up=
+date needed
++	end
++	=
+
++	-- first time init
++	if (not gDetailMapCacheImage) then
++		gDetailMapCacheImage =3D CreateImage()
++	end
++	=
+
++	print(&quot;UpdateDetailMapCacheIfNeeded : updating....&quot;)
++	=
+
++	-- update image
++	local bx0,dbx =3D math.floor((xloc-kDetailMapCacheSize/2)/8),kDetailMapCa=
+cheSize/8
++	local by0,dby =3D math.floor((yloc-kDetailMapCacheSize/2)/8),kDetailMapCa=
+cheSize/8
++	GenerateRadarImage(gDetailMapCacheImage,bx0,by0,dbx,dby,gGroundBlockLoade=
+r,gStaticBlockLoader,gRadarColorLoader)
++	gDetailMapCacheBX =3D bx0
++	gDetailMapCacheBY =3D by0
++	=
+
++	-- create or update texture
++	if (gDetailMapCacheTexture) then =
+
++		gDetailMapCacheImage:LoadToTexture(gDetailMapCacheTexture) -- update exi=
+sting texture
++	else
++		gDetailMapCacheTexture =3D gDetailMapCacheImage:MakeTexture() -- generat=
+e new texture
++	end
++	=
+
++	-- create material on first time init
++	if (not gDetailMapCacheMaterial) then
++		gDetailMapCacheMaterial =3D GetPlainTextureMat(gDetailMapCacheTexture)
++	end
++end
++
++--[[
+++       gDetailImage =3D CreateImage()
+++       local bx0,by0 =3D 160,160
+++       local bx1,by1 =3D bx0+16*5,by0+16*5
+++       GenerateRadarImage(a,bx0,by0,bx1,by1,gGroundBlockLoader,gStaticBlo=
+ckLoader,gRadarColorLoader)
+++       a:SaveAsFile(&quot;myimagetest3.png&quot;)
++]]--
+ =
+
+ -- called from lib.gui.lua : gui.StartGame()
+ function InitCompassIfNeeded () =
+
+@@ -13,6 +67,7 @@
+ 	if (gCompassSize &gt; 0) then
+ 		gIrisCompassDialog =3D guimaker.MakeSortedDialog()
+ 		gIrisCompassDialog.rootwidget.gfx:SetPos(vw-gCompassSize - gCompassOff,1=
+5 + gCompassOff)
++		gIrisCompassDialog.detailcompass 		=3D gIrisCompassDialog.rootwidget:Cre=
+ateChild()
+ 		gIrisCompassDialog.compass 				=3D gIrisCompassDialog.rootwidget:CreateC=
+hild()
+ 		gIrisCompassDialog.mapdot 				=3D gIrisCompassDialog.rootwidget:CreateCh=
+ild()
+ 		gIrisCompassDialog.compassframe_static	=3D gIrisCompassDialog.rootwidget=
+:<i>CreateChild()
+</I>@@ -25,6 +80,12 @@
+ 		if (gIrisCompassDialog.compass) then
+ 			gIrisCompassDialog.compass.gfx:InitCompass()
+ 			gIrisCompassDialog.compass.gfx:SetDimensions(gCompassSize,gCompassSize)
++		end
++		=
+
++		-- detail compass
++		if (gIrisCompassDialog.detailcompass) then
++			local mygfx =3D gIrisCompassDialog.detailcompass.gfx
++			mygfx:InitRROC()
+ 		end
+ 		=
+
+ 		gIrisCompassDialog.bDoUpdate =3D true
+@@ -152,11 +213,15 @@
+ 	gCompassMapH =3D gGroundBlockLoader and gGroundBlockLoader:GetMapH() or 1
+ 	ZoomCompass(1.0)
+ 	=
+
+-	if (gGroundBlockLoader and gStaticBlockLoader and gRadarColorLoader and g=
+EnableCompassRadar) then
+-		profile:StartSection(&quot;radar&quot;)
+-		gIrisCompassDialog.radar:Destroy()
+-		gIrisCompassDialog.radar =3D CreateRadar( gGroundBlockLoader, gStaticBlo=
+ckLoader, gRadarColorLoader )
+-	end
++	-- mapchange, reload detail map
++	gDetailMapCacheBX =3D nil
++	gDetailMapCacheBY =3D nil
++	=
+
++	--~ if (gGroundBlockLoader and gStaticBlockLoader and gRadarColorLoader a=
+nd gEnableCompassRadar) then
++		--~ profile:StartSection(&quot;radar&quot;)
++		--~ gIrisCompassDialog.radar:Destroy()
++		--~ gIrisCompassDialog.radar =3D CreateRadar( gGroundBlockLoader, gStati=
+cBlockLoader, gRadarColorLoader )
++	--~ end
+ 	=
+
+ 	-- to set geometry correctly
+ 	profile:StartSection(&quot;updategeom&quot;)
+@@ -165,6 +230,11 @@
+ 	profile:Finish()
+ end
+ =
+
++
++function IsRoughCompassActive ()
++	return (gCompassVisibleRad &gt; giCompassDetailLimit)
++end
++
+ -- factor &gt; 1 increases sight radius
+ -- zoom map in compass, called from lib.input.lua on keypress (,.)
+ function ZoomCompass (factor) =
+
+@@ -172,9 +242,10 @@
+ 	if (not gIrisCompassDialog) then return end
+ 	gCompassVisibleRad =3D gCompassVisibleRad * factor
+ 	--AddFadeLines(&quot;visrad=3D&quot;..gCompassVisibleRad)
+-	local bRoughCompass =3D (gCompassVisibleRad &gt; giCompassDetailLimit) or (n=
+ot gIrisCompassDialog.radar)
+ 	gCompassVisibleRad =3D max(gCompassVisibleRad,giCompassDetailLimit)
+-	gIrisCompassDialog.compass.gfx:SetVisible( bRoughCompass )
++	local bRough =3D IsRoughCompassActive()
++	gIrisCompassDialog.detailcompass.gfx:SetVisible( not bRough )
++	gIrisCompassDialog.compass.gfx:SetVisible( bRough )
+ 	gIrisCompassDialog.compass.gfx:SetUVRad(gCompassVisibleRad/gCompassMapW,
+ 											gCompassVisibleRad/gCompassMapH)
+ end
+@@ -199,7 +270,41 @@
+ 		local mx =3D vw - gCompassSize/2 - gCompassOff
+ 		local my =3D 15 + gCompassSize/2 + gCompassOff
+ 		local halfwidth =3D 128
+-
++		local bRough =3D IsRoughCompassActive()
++		=
+
++		-- detail compass
++		if (not bRough) then
++			local xloc,yloc =3D iCamOverBlockX*8, iCamOverBlockY*8
++			UpdateDetailMapCacheIfNeeded(xloc,yloc)
++			local mygfx =3D gIrisCompassDialog.detailcompass.gfx
++			=
+
++			-- set material, only needed once
++			if (not mygfx.bDetailCompassMatHasBeenSet) then =
+
++				mygfx.bDetailCompassMatHasBeenSet =3D true
++				mygfx:SetMaterial(gDetailMapCacheMaterial) =
+
++			end
++			=
+
++			-- prepare vars
++			local e =3D 1/kDetailMapCacheSize
++			local dx =3D xloc - gDetailMapCacheBX * 8
++			local dy =3D yloc - gDetailMapCacheBY * 8
++			local k =3D 11
++			=
+
++			mygfx:RenderableBegin(k+2,0,true,false,OT_TRIANGLE_FAN)
++			mygfx:RenderableVertex((mx)/vw * 2.0 - 1.0,(my)/vh * (-2.0) + 1.0,z, dx=
+*e,dy*e)
++			for i =3D 0,k do
++				local a =3D 360*gfDeg2Rad*i/k
++				local x =3D   kDetailMapCacheViewRad * math.sin(a)
++				local y =3D   kDetailMapCacheViewRad * math.cos(a)
++				local u =3D ( kDetailMapCacheViewRad * math.sin(a + ax + gfDeg2Rad*180=
+) + dx)*e
++				local v =3D ( kDetailMapCacheViewRad * math.cos(a + ax + gfDeg2Rad*180=
+) + dy)*e
++				mygfx:RenderableVertex((mx + x)/vw * 2.0 - 1.0,(my + y)/vh * (-2.0) + =
+1.0,z, u,v)
++			end
++			mygfx:RenderableEnd()
++		end
++		=
+
++		-- old radar
++		--[[
+ 		if (gIrisCompassDialog.radar) then
+ 			--MemProfile(&quot;a&quot;)
+ 			gIrisCompassDialog.radar:SetLocation( iCamOverBlockX*8, iCamOverBlockY*=
+8 ) -- TODO : memleak, old tiles (and textures?) not freed
+@@ -213,8 +318,9 @@
+ 				gIrisCompassDialog.radar:SetMirrorX( false )
+ 			end
+ 		end
+-
+-		if (gIrisCompassDialog.compass.gfx) then
++		]]--
++
++		if (gIrisCompassDialog.compass.gfx and bRough) then
+ 			gIrisCompassDialog.compass.gfx:SetAngBias(ax)
+ 			gIrisCompassDialog.compass.gfx:SetUVMid(iCamOverBlockX/gCompassMapW, iC=
+amOverBlockY/gCompassMapH)
+ 		end
+
+Modified: trunk/src/builder.cpp
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/src/builder.cpp (original)
++++ trunk/src/builder.cpp Fri Apr 25 01:36:15 2008
+@@ -483,10 +483,8 @@
+ 	return true;
+ }
+ =
+
+-/// render radar map for blocks bx0 to bx1 , excluding bx1  [bx0;bx1[
+-bool	GenerateRadarImage		(Ogre::Image&amp; pDest,const int bx0,const int by0,c=
+onst int bx1,const int by1,cGroundBlockLoader&amp; oGroundBlockLoader, cStaticB=
+lockLoader&amp; oStaticBlockLoader, cRadarColorLoader&amp; oRadarColorLoader) {
+-	int dbx =3D bx1 - bx0;
+-	int dby =3D by1 - by0;
++/// render radar map for dbx,dby blocks starting at bx0,by0
++bool	GenerateRadarImage		(Ogre::Image&amp; pDest,const int bx0,const int by0,c=
+onst int dbx,const int dby,cGroundBlockLoader&amp; oGroundBlockLoader, cStaticB=
+lockLoader&amp; oStaticBlockLoader, cRadarColorLoader&amp; oRadarColorLoader) {
+ 	int iImgW =3D dbx*8;
+ 	int iImgH =3D dby*8;
+ 	if (iImgW &lt;=3D 0 || iImgH &lt;=3D 0) return false;
+
+Modified: trunk/src/scripting.iris.cpp
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/src/scripting.iris.cpp (original)
++++ trunk/src/scripting.iris.cpp Fri Apr 25 01:36:15 2008
+@@ -450,18 +450,18 @@
+ =
+
+ 		=
+
+ /// return true on success
+-/// renders radarmap into a Ogre::Image (lua wrapper : cImage)
+-/// bSuccess	  GenerateRadarImage	(pImage,bx0,by0,bx1,by1,oGroundBlockLoad=
+er,oStaticBlockLoader,oRadarColorLoader)
++/// renders radarmap into a Ogre::Image (lua wrapper : cImage)  for dbx,db=
+y blocks starting at bx0,by0
++/// bSuccess	  GenerateRadarImage	(pImage,bx0,by0,dbx,dby,oGroundBlockLoad=
+er,oStaticBlockLoader,oRadarColorLoader)
+ static int		l_GenerateRadarImage	(lua_State *L) { PROFILE
+ 	Ogre::Image&amp;			pImage				=3D cLuaBind&lt;cImage&gt;::checkudata_alive(L,1)-&gt;mIm=
+age;
+ 	int						bx0					=3D luaL_checkint(L,2);
+ 	int						by0					=3D luaL_checkint(L,3);
+-	int						bx1					=3D luaL_checkint(L,4);
+-	int						by1					=3D luaL_checkint(L,5);
++	int						dbx					=3D luaL_checkint(L,4);
++	int						dby					=3D luaL_checkint(L,5);
+ 	cGroundBlockLoader&amp;		oGroundBlockLoader	=3D *cLuaBind&lt;cGroundBlockLoader&gt;=
+::<i>checkudata_alive(L,6);
+</I> 	cStaticBlockLoader&amp;		oStaticBlockLoader	=3D *cLuaBind&lt;cStaticBlockLoader&gt;=
+::<i>checkudata_alive(L,7);
+</I> 	cRadarColorLoader&amp;		oRadarColorLoader	=3D *cLuaBind&lt;cRadarColorLoader&gt;::c=
+heckudata_alive(L,8);
+-	if (!GenerateRadarImage(pImage,bx0,by0,bx1,by1,oGroundBlockLoader,oStatic=
+BlockLoader,oRadarColorLoader)) return 0;
++	if (!GenerateRadarImage(pImage,bx0,by0,dbx,dby,oGroundBlockLoader,oStatic=
+BlockLoader,oRadarColorLoader)) return 0;
+ 	lua_pushboolean(L,true);
+ 	return 1;
+ }
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000900.html">[Iris-commit] [IRIS] r2089 - in /trunk: include/builder.h lua/lib.test.lua lua/main.lua src/builder.cpp src/scripting.iris.cpp
+</A></li>
+	<LI>Next message: <A HREF="000902.html">[Iris-commit] [IRIS] r2091 - in /trunk/lua: gui/gui.healthbar.lua lib.uoids.lua main.lua obj/obj.mobile.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#901">[ date ]</a>
+              <a href="thread.html#901">[ thread ]</a>
+              <a href="subject.html#901">[ subject ]</a>
+              <a href="author.html#901">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

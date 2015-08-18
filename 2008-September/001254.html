@@ -1,0 +1,1265 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2449 - in /trunk/lua: gui/gui.spellbook.lua lib.spellbooks.lua net/net.dynamic.lua net/net.other.lua obj/obj.container.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-September/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2449%20-%20in%20/trunk/lua%3A%20gui/gui.spellbook.lua%0A%20lib.spellbooks.lua%20net/net.dynamic.lua%20net/net.other.lua%0A%20obj/obj.container.lua&In-Reply-To=%3C20080904145441.C19321C1801A%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001253.html">
+   <LINK REL="Next"  HREF="001255.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2449 - in /trunk/lua: gui/gui.spellbook.lua lib.spellbooks.lua net/net.dynamic.lua net/net.other.lua obj/obj.container.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2449%20-%20in%20/trunk/lua%3A%20gui/gui.spellbook.lua%0A%20lib.spellbooks.lua%20net/net.dynamic.lua%20net/net.other.lua%0A%20obj/obj.container.lua&In-Reply-To=%3C20080904145441.C19321C1801A%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2449 - in /trunk/lua: gui/gui.spellbook.lua lib.spellbooks.lua net/net.dynamic.lua net/net.other.lua obj/obj.container.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Thu Sep  4 16:54:41 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001253.html">[Iris-commit] [IRIS] r2448 - /trunk/lua/lib.protocol.lua
+</A></li>
+        <LI>Next message: <A HREF="001255.html">[Iris-commit] [IRIS] r2450 - /trunk/lua/gui/gui.amount.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1254">[ date ]</a>
+              <a href="thread.html#1254">[ thread ]</a>
+              <a href="subject.html#1254">[ subject ]</a>
+              <a href="author.html#1254">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Thu Sep  4 16:54:40 2008
+New Revision: 2449
+
+Log:
+fixed spellbook for uogamers, genericcmd:debug output for name of subpacket
+
+Modified:
+    trunk/lua/gui/gui.spellbook.lua
+    trunk/lua/lib.spellbooks.lua
+    trunk/lua/net/net.dynamic.lua
+    trunk/lua/net/net.other.lua
+    trunk/lua/obj/obj.container.lua
+
+Modified: trunk/lua/gui/gui.spellbook.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.spellbook.lua (original)
++++ trunk/lua/gui/gui.spellbook.lua Thu Sep  4 16:54:40 2008
+@@ -1,4 +1,4 @@
+-gAvailSpellbooks =3D {}
++gSpellbooks =3D {}
+ =
+
+ function GetSpellname(spellid)
+ 	for kbook,vbook in pairs(gSpellBooks) do
+@@ -64,294 +64,307 @@
+ 	return d
+ end
+ =
+
+-function Open_Spellbook(spellbook)
+---	if true then return end
+-
+-	local dialog =3D gAvailSpellbooks[spellbook.serial]
+-
+-	if (dialog and not(spellbook.old)) then
+-		printf(&quot;Spellbook Container already exists. Delete this Container. seria=
+l=3D0x%08x\n&quot;,spellbook.serial)
+-		dialog:SetVisible(false)
+-		gAvailSpellbooks[dialog.spellbookserial]=3Dnil
+-		dialog =3D nil
+-	end
+-
+-	if (not(dialog)) then
+-		dialog =3D guimaker.MakeSortedDialog()
+-		dialog.Close =3D function (dialog)
+-			-- TODO : close this properly, destroy widgets etc... =
+
+-			dialog:SetVisible(false)
+-			gAvailSpellbooks[dialog.spellbookserial]=3Dnil
+-			dialog =3D nil
+-		end
+-
+-		--Mapping for Old_Spellbook package
+-		if (spellbook.old) then
+-			if (spellbook.itemid =3D=3D hex2num(&quot;0xffff&quot;)) then
+-				-- check and get invisible spellbook container with spellbook items (s=
+crolls)
+-				local container =3D GetOrCreateContainer(spellbook.serial)
+-				spellbook.matrix =3D Convert_Spellbookcontainer(spellbook.matrix,conta=
+iner)
+-				spellbook.itemid =3D MageSpellbook
+-			end
+-		end
+-
+-		--base( Core.AOS ? 0x22C5 : 0xEFA )  - if AoS take Runebook otherwise Sp=
+ellbook
+-		if (gSpellBooks[spellbook.itemid]) then
+-			dialog.gumpid =3D gSpellBooks[spellbook.itemid].gumpid
+-			dialog.spellbookserial=3Dspellbook.serial
+-			gAvailSpellbooks[dialog.spellbookserial] =3D dialog
+-		else
+-			print(&quot;SpellbookID=3D(&quot;..spellbook.itemid..&quot;) not found (maybe old_spel=
+lbook packet)!&quot;)
+-		end
+-	=
+
+-		if	(dialog.gumpid) then
+-			dialog.rootwidget.gfx:SetPos(gXGumppos or 200,gYGumppos or 100)
+-			dialog.controls =3D {} -- associative list of controlls, key=3Dname of =
+controll
+-			dialog.childs =3D {} -- all controls, also those without name
+-	=
+
+-			dialog.onMouseDown =3D function (widget,mousebutton)
+-	               					if (mousebutton =3D=3D 2) then dialog:Close() print(&quot;=
+Destroy Spellbook!&quot;) end
+-	               					if (mousebutton =3D=3D 1) then widget.dialog:BringToF=
+ront() gui.StartMoveDialog(widget.dialog.rootwidget) end
+-	               				end
+-	        dialog.onMouseUp =3D function (widget,mousebutton)
+-										gXGumppos=3Dwidget.gfx:GetDerivedLeft()
+-										gYGumppos=3Dwidget.gfx:GetDerivedTop()
+-	       						end
+-	=
+
+-			-- Hide all except page 0 and pagenum
+-			dialog.ShowPage =3D function (dialog,pagenum)
+-				local myc =3D 0
+-				for k,widget in pairs(dialog.childs) do if (widget.pagenum =3D=3D page=
+num) then myc =3D myc + 1 end end
+-				--print(&quot;dialog.ShowPage&quot;,pagenum,myc)
+-				=
+
+-				for k,widget in pairs(dialog.childs) do =
+
+-					widget.gfx:SetVisible((widget.pagenum =3D=3D 0) or (widget.pagenum =
+=3D=3D pagenum))
+-				end
+-			end
+-			local curparent =3D dialog.rootwidget
+-	=
+
+-			local pages =3D {}
+-			dialog.pages =3D pages
+-	=
+
+-			-- Backpage 0 --------------------------------------
+-			local curpage =3D guimaker.MakePage(0)
+-			pages[0] =3D curpage
+-	=
+
+-			local backpane =3D MakeBorderGumpPart(curparent,dialog.gumpid,0,0)
+-			backpane.mbIgnoreMouseOver =3D false
+-	=
+
++
++-- can come from kPacket_Generic_SubCommand_NewSpellbook (includes matrix)=
+ or from HandleOpenContainer (matrix sent later by container)
++function Open_Spellbook(spellbookdata)
++	local serial =3D spellbookdata.serial
++	local spellbook =3D gSpellbooks[serial]
++	if (gSpellbooks[serial]) then =
+
++		for k,v in pairs(spellbookdata) do spellbook[k] =3D v end
++	else
++		spellbook =3D spellbookdata
++		gSpellbooks[serial] =3D spellbook =
+
++	end
++	if (not spellbook.scrolloffset) then spellbook.scrolloffset =3D 0 end
++	if (not spellbook.matrix) then =
+
++		spellbook.matrix =3D {} =
+
++		for i=3D1,8 do spellbook.matrix[i] =3D 0 end
++	end
++	--~ print(&quot;Open_Spellbook&quot;,SmartDump(spellbook.matrix))
++	Update_Spellbook(serial)
++end
++
++
++function Update_Spellbook (serial)
++	local spellbook =3D gSpellbooks[serial]
++	if (not spellbook) then return end
++	--~ print(&quot;Update_Spellbook&quot;,SmartDump(serial),SmartDump(spellbook))
++	=
+
++	if (spellbook.dialog) then spellbook.dialog:Destroy() end
++	=
+
++	local dialog =3D guimaker.MakeSortedDialog()
++	spellbook.dialog =3D dialog
++	dialog.spellbook =3D spellbook
++	=
+
++	-- close button
++	dialog.Close =3D function (dialog)
++		dialog:Destroy()
++		dialog.spellbook.dialog =3D nil
++	end
++
++	--Mapping for Old_Spellbook package
++	if (spellbook.old) then
++		-- check and get invisible spellbook container with spellbook items (scr=
+olls)
++		local container =3D GetOrCreateContainer(spellbook.serial)
++		spellbook.matrix =3D Convert_Spellbookcontainer(spellbook.matrix,contain=
+er)
++		spellbook.itemid =3D MageSpellbook
++	end
++
++	--base( Core.AOS ? 0x22C5 : 0xEFA )  - if AoS take Runebook otherwise Spe=
+llbook
++	if (gSpellBooks[spellbook.itemid]) then
++		dialog.gumpid =3D gSpellBooks[spellbook.itemid].gumpid
++		dialog.spellbookserial=3Dspellbook.serial
++	else
++		print(&quot;SpellbookID=3D(&quot;..spellbook.itemid..&quot;) not found (maybe old_spell=
+book packet)!&quot;)
++	end
++
++	if	(dialog.gumpid) then
++		dialog.rootwidget.gfx:SetPos(gXGumppos or 200,gYGumppos or 100)
++		dialog.controls =3D {} -- associative list of controlls, key=3Dname of c=
+ontroll
++		dialog.childs =3D {} -- all controls, also those without name
++
++		dialog.onMouseDown =3D function (widget,mousebutton)
++								if (mousebutton =3D=3D 2) then dialog:Close() print(&quot;Destroy Spell=
+book!&quot;) end
++								if (mousebutton =3D=3D 1) then widget.dialog:BringToFront() gui.St=
+artMoveDialog(widget.dialog.rootwidget) end
++							end
++		dialog.onMouseUp =3D function (widget,mousebutton)
++									gXGumppos=3Dwidget.gfx:GetDerivedLeft()
++									gYGumppos=3Dwidget.gfx:GetDerivedTop()
++							end
++
++		-- Hide all except page 0 and pagenum
++		dialog.ShowPage =3D function (dialog,pagenum)
++			local myc =3D 0
++			for k,widget in pairs(dialog.childs) do if (widget.pagenum =3D=3D pagen=
+um) then myc =3D myc + 1 end end
++			--print(&quot;dialog.ShowPage&quot;,pagenum,myc)
++			=
+
++			for k,widget in pairs(dialog.childs) do =
+
++				widget.gfx:SetVisible((widget.pagenum =3D=3D 0) or (widget.pagenum =3D=
+=3D pagenum))
++			end
++		end
++		local curparent =3D dialog.rootwidget
++
++		local pages =3D {}
++		dialog.pages =3D pages
++
++		-- Backpage 0 --------------------------------------
++		local curpage =3D guimaker.MakePage(0)
++		pages[0] =3D curpage
++
++		local backpane =3D MakeBorderGumpPart(curparent,dialog.gumpid,0,0)
++		backpane.mbIgnoreMouseOver =3D false
++
++		-- add all newly created widgets to current page
++		local myc =3D 0
++		for k,widget in pairs(dialog.childs) do =
+
++			if (not widget.pagenum) then
++				myc =3D myc + 1
++				widget.pagenum =3D curpage.pagenum
++				table.insert(curpage.pagewidgets,widget)
++			end
++		end
++		-- Backpage 0 End ----------------------------------
++
++		local rightspacer=3D0
++		local top_align=3D0
++		local pageside=3D0
++		local fix_layout=3D0
++		local pagenumber=3D1
++
++		local bHasNonZero =3D false
++		for k,v in pairs(spellbook.matrix) do if (tonumber(v) ~=3D 0) then bHasN=
+onZero  =3D true end end
++		local circlenumber=3Dtable.getn(gSpellBooks[spellbook.itemid].circles)
++		local available_spells=3D0
++
++		for circle=3D1, circlenumber do
++			local spellnumber=3Dtable.getn(gSpellBooks[spellbook.itemid].spells[cir=
+cle])
++
++			local page =3D pages[pagenumber]
++			if (not(page)) then
++				page =3D guimaker.MakePage(pagenumber)
++				pages[pagenumber] =3D page
++			end
++			=
+
++			-- Pageselektor left
++			if (page.pagenum~=3D1) then
++				local browse_back =3D MakeGumpButton (curparent, hex2num(&quot;0x8bb&quot;), hex=
+2num(&quot;0x8bb&quot;), hex2num(&quot;0x8bb&quot;), 48, 8,nil,nil,false)
++				browse_back.page=3Dpagenumber-1
++				browse_back.onLeftClick =3D function (widget)
++												if (widget.page &gt; 0 and not(widget.page &gt; table.getn(pages)) )=
+ then
++													widget.dialog:ShowPage(browse_back.page)
++												end
++										end
++				end				=
+
++			-- Pageselektor right
++			-- check if spell follows
++			if (bHasNonZero) then
++				local browse_forward =3D MakeGumpButton (curparent, hex2num(&quot;0x8bc&quot;), =
+hex2num(&quot;0x8bc&quot;), hex2num(&quot;0x8bc&quot;), 322, 8,nil,nil,false)
++				browse_forward.page=3Dpagenumber+1
++				browse_forward.onLeftClick =3D function (widget)
++											if (widget.page &gt; 0 and not(widget.page &gt; table.getn(pages)) ) =
+then
++												widget.dialog:ShowPage(browse_forward.page)
++											end
++										end
++			end
++			-- Pageselektors on bottom
++			for i=3D1, circlenumber/2 do
++				local btn_gumpid=3Dhex2num(&quot;0x8b0&quot;)+i+(circlenumber/2)*pageside
++				local btn_x=3D24+165*pageside+i*35
++				local pageselector =3D MakeGumpButton (curparent, btn_gumpid, btn_gump=
+id, btn_gumpid, btn_x, 175,nil,nil,false)
++				pageselector.page=3DgSpellBooks[spellbook.itemid].pages[i+(circlenumbe=
+r/2)*pageside]
++				pageselector.onLeftClick =3D function (widget)
++											if (widget.page &gt; 0 and not(widget.page &gt; table.getn(pages)) ) =
+then
++												widget.dialog:ShowPage(pageselector.page)
++											end
++										end
++			end
++
++			-- Circle Names
++			local circlename =3D guimaker.MakeText (curparent, 90 + rightspacer, 20,
++													gSpellBooks[spellbook.itemid].circles[circle], gFontDefs[&quot;Gum=
+p&quot;].size,
++													{255/255,255/255,255/255,1.0}, gFontDefs[&quot;Gump&quot;].name)
++
++			-- counter for available spells
++			local spellcounter=3D0
++
++			for spell=3D1, spellnumber do
++				-- print(&quot;SPELL&quot;,gSpellBooks[spellbook.itemid].ignore_available_flags,=
+spell,spellnumber,spellbook.matrix[circle],BitwiseSHL(1,spell-1))
++				if (gSpellBooks[spellbook.itemid].ignore_available_flags or TestBit(sp=
+ellbook.matrix[circle], BitwiseSHL(1,spell-1))) then
++					-- print(&quot;ADD&quot;)
++					-- increase number of available spells
++					spellcounter=3Dspellcounter+1
++					local spellbutton =3D MakeBorderGumpPart(curparent, hex2num(&quot;0x837&quot;),=
+ 60 + rightspacer, 20+((spellcounter+1)*15) - top_align)
++					spellbutton.spell=3Dspell+(circle-1)*spellnumber
++					spellbutton.mbIgnoreMouseOver =3D false
++					spellbutton.onLeftClick =3D function (widget)
++												Send_Spell(spellbutton.spell+gSpellBooks[spellbook.itemid].sta=
+rtindex,gSpellbookExpansion[&quot;AOS&quot;])
++											end
++					=
+
++					local spellname =3D gSpellBooks[spellbook.itemid].spells[circle][spel=
+l]
++					-- TODO finish spell drag buttons
++					spellbutton.onMouseDown =3D function (widget,mousebutton)
++						if (mousebutton =3D=3D 1) then =
+
++							spellbutton.mStartX,spellbutton.mStartY =3D spellbutton.gfx:GetPos()
++							spellbutton.dialog:BringToFront() =
+
++							gui.StartMoveDialog(spellbutton) =
+
++						end
++					end
++					spellbutton.CustomMoveStop =3D function(widget)
++						-- reset button to source and create quick use/cast button
++						-- current position
++						local x,y =3D GetMousePos()
++						CreateQuickCastButtonSpell(x,y,spellbutton.spell+gSpellBooks[spellbo=
+ok.itemid].startindex)
++						spellbutton.gfx:SetPos(spellbutton.mStartX,spellbutton.mStartY)
++					end
++					=
+
++					=
+
++					local spellname =3D guimaker.MakeText (curparent, 80 + rightspacer, 2=
+0+((spellcounter+1)*15) - top_align,
++														gSpellBooks[spellbook.itemid].spells[circle][spell], gFontDe=
+fs[&quot;Gump&quot;].size,
++														{190/255,237/255,231/255,1.0}, gFontDefs[&quot;Gump&quot;].name)
++				end
++			end
++
+ 			-- add all newly created widgets to current page
+ 			local myc =3D 0
+ 			for k,widget in pairs(dialog.childs) do =
+
+ 				if (not widget.pagenum) then
+ 					myc =3D myc + 1
+-					widget.pagenum =3D curpage.pagenum
+-					table.insert(curpage.pagewidgets,widget)
+-				end
+-			end
+-			-- Backpage 0 End ----------------------------------
+-	=
+
+-			local rightspacer=3D0
+-			local top_align=3D0
+-			local pageside=3D0
+-			local fix_layout=3D0
+-			local pagenumber=3D1
+-	=
+
+-			local bHasNonZero =3D false
+-			for k,v in pairs(spellbook.matrix) do if (tonumber(v) ~=3D 0) then bHas=
+NonZero  =3D true end end
+-			local circlenumber=3Dtable.getn(gSpellBooks[spellbook.itemid].circles)
+-			local available_spells=3D0
+-	=
+
+-			for circle=3D1, circlenumber do
+-				local spellnumber=3Dtable.getn(gSpellBooks[spellbook.itemid].spells[ci=
+rcle])
+-	=
+
+-				local page =3D pages[pagenumber]
+-				if (not(page)) then
+-					page =3D guimaker.MakePage(pagenumber)
+-					pages[pagenumber] =3D page
+-				end
+-				=
+
+-				-- Pageselektor left
+-				if (page.pagenum~=3D1) then
+-					local browse_back =3D MakeGumpButton (curparent, hex2num(&quot;0x8bb&quot;), he=
+x2num(&quot;0x8bb&quot;), hex2num(&quot;0x8bb&quot;), 48, 8,nil,nil,false)
+-					browse_back.page=3Dpagenumber-1
+-					browse_back.onLeftClick =3D function (widget)
++					widget.pagenum =3D page.pagenum
++					table.insert(page.pagewidgets,widget)
++				end
++			end
++			--print(&quot;ServerSideGump page &quot;,page.pagenum,&quot; childs: &quot;,myc)
++			if (rightspacer=3D=3D0) then rightspacer=3D150 else rightspacer=3D0 end
++			if (pageside=3D=3D0) then pageside=3D1 else pageside=3D0 end
++			if (math.mod(circle,2)=3D=3D0) then pagenumber=3Dpagenumber+1 end
++			available_spells=3Davailable_spells+spellcounter
++		end
++
++		pageside=3D0
++		rightspacer=3D0
++		local index_end=3Dpagenumber-1
++		=
+
++		-- counter for available spells
++		local spellcounter=3D0
++
++		for circle=3D1, circlenumber do
++			local spellnumber=3Dtable.getn(gSpellBooks[spellbook.itemid].spells[cir=
+cle])
++		=
+
++			for spell=3D1, spellnumber do
++				if (TestBit(spellbook.matrix[circle], BitwiseSHL(1,spell-1))) then
++					-- increase number of available spells
++					spellcounter=3Dspellcounter+1
++
++					local page =3D pages[pagenumber]
++					if (not(page)) then
++						page =3D guimaker.MakePage(pagenumber)
++						pages[pagenumber] =3D page
++					end
++					-- Pageselektor left
++					if (page.pagenum~=3D1) then
++						local browse_back =3D MakeGumpButton (curparent, hex2num(&quot;0x8bb&quot;), h=
+ex2num(&quot;0x8bb&quot;), hex2num(&quot;0x8bb&quot;), 48, 8,nil,nil,false)
++						browse_back.page=3Dpagenumber-1
++						browse_back.onLeftClick =3D function (widget)
++														if (widget.page &gt; 0 and not(widget.page &gt; table.getn(pages))=
+ ) then
++															widget.dialog:ShowPage(browse_back.page)
++														end
++												end
++					end				=
+
++					-- Pageselektor right
++					-- check for last-page
++					if (spellcounter &lt; available_spells-1) then
++						local browse_forward =3D MakeGumpButton (curparent, hex2num(&quot;0x8bc&quot;)=
+, hex2num(&quot;0x8bc&quot;), hex2num(&quot;0x8bc&quot;), 322, 8,nil,nil,false)
++						browse_forward.page=3Dpagenumber+1
++						browse_forward.onLeftClick =3D function (widget)
+ 													if (widget.page &gt; 0 and not(widget.page &gt; table.getn(pages)) =
+) then
+-														widget.dialog:ShowPage(browse_back.page)
++														widget.dialog:ShowPage(browse_forward.page)
+ 													end
+-											end
+-					end				=
+
+-				-- Pageselektor right
+-				-- check if spell follows
+-				if (bHasNonZero) then
+-					local browse_forward =3D MakeGumpButton (curparent, hex2num(&quot;0x8bc&quot;),=
+ hex2num(&quot;0x8bc&quot;), hex2num(&quot;0x8bc&quot;), 322, 8,nil,nil,false)
+-					browse_forward.page=3Dpagenumber+1
+-					browse_forward.onLeftClick =3D function (widget)
+-												if (widget.page &gt; 0 and not(widget.page &gt; table.getn(pages)) )=
+ then
+-													widget.dialog:ShowPage(browse_forward.page)
+ 												end
+-											end
+-				end
+-				-- Pageselektors on bottom
+-	 			for i=3D1, circlenumber/2 do
+-	 				local btn_gumpid=3Dhex2num(&quot;0x8b0&quot;)+i+(circlenumber/2)*pageside
+-	 				local btn_x=3D24+165*pageside+i*35
+-					local pageselector =3D MakeGumpButton (curparent, btn_gumpid, btn_gum=
+pid, btn_gumpid, btn_x, 175,nil,nil,false)
+-					pageselector.page=3DgSpellBooks[spellbook.itemid].pages[i+(circlenumb=
+er/2)*pageside]
+-					pageselector.onLeftClick =3D function (widget)
+-												if (widget.page &gt; 0 and not(widget.page &gt; table.getn(pages)) )=
+ then
+-													widget.dialog:ShowPage(pageselector.page)
+-												end
+-											end
+-				end
+-
+-				-- Circle Names
+-				local circlename =3D guimaker.MakeText (curparent, 90 + rightspacer, 2=
+0,
+-														gSpellBooks[spellbook.itemid].circles[circle], gFontDefs[&quot;Gu=
+mp&quot;].size,
+-														{255/255,255/255,255/255,1.0}, gFontDefs[&quot;Gump&quot;].name)
+-	=
+
+-				-- counter for available spells
+-				local spellcounter=3D0
+-
+-				for spell=3D1, spellnumber do
+-					-- print(&quot;SPELL&quot;,gSpellBooks[spellbook.itemid].ignore_available_flags=
+,spell,spellnumber,spellbook.matrix[circle],BitwiseSHL(1,spell-1))
+-					if (gSpellBooks[spellbook.itemid].ignore_available_flags or TestBit(s=
+pellbook.matrix[circle], BitwiseSHL(1,spell-1))) then
+-						-- print(&quot;ADD&quot;)
+-						-- increase number of available spells
+-						spellcounter=3Dspellcounter+1
+-						local spellbutton =3D MakeBorderGumpPart(curparent, hex2num(&quot;0x837&quot;)=
+, 60 + rightspacer, 20+((spellcounter+1)*15) - top_align)
+-						spellbutton.spell=3Dspell+(circle-1)*spellnumber
+-						spellbutton.mbIgnoreMouseOver =3D false
+-						spellbutton.onLeftClick =3D function (widget)
+-													Send_Spell(spellbutton.spell+gSpellBooks[spellbook.itemid].st=
+artindex,gSpellbookExpansion[&quot;AOS&quot;])
+-												end
+-						=
+
+-						local spellname =3D gSpellBooks[spellbook.itemid].spells[circle][spe=
+ll]
+-						-- TODO finish spell drag buttons
+-						spellbutton.onMouseDown =3D function (widget,mousebutton)
+-							if (mousebutton =3D=3D 1) then =
+
+-								spellbutton.mStartX,spellbutton.mStartY =3D spellbutton.gfx:GetPos=
+()
+-								spellbutton.dialog:BringToFront() =
+
+-								gui.StartMoveDialog(spellbutton) =
+
+-							end
++					end
++	=
+
++					-- Calc SpellIcon GumpID
++					local spelliconid=3DgSpellBooks[spellbook.itemid].iconoffset + ((circ=
+le-1) * spellnumber) + spell-1
++					-- Circle Names
++					local circlename =3D guimaker.MakeText (curparent, 85 + rightspacer, =
+15 - top_align,
++															gSpellBooks[spellbook.itemid].circles[circle], gFontDefs[&quot;G=
+ump&quot;].size-1,
++															{255/255,255/255,255/255,1.0}, gFontDefs[&quot;Gump&quot;].name)
++					local spellname =3D guimaker.MakeText (curparent, 85 + rightspacer, 3=
+0 - top_align,
++															gSpellBooks[spellbook.itemid].spells[circle][spell], gFontD=
+efs[&quot;Gump&quot;].size-1,
++															{190/255,237/255,231/255,1.0}, gFontDefs[&quot;Gump&quot;].name)
++					local spellicon =3D MakeGumpButton (curparent, spelliconid, spellicon=
+id, spelliconid,
++															75 + rightspacer, 50,nil,nil,false)
++					local reagents =3D guimaker.MakeText (curparent, 75 + rightspacer, 10=
+8 - top_align,
++															&quot;Reagents:&quot;, gFontDefs[&quot;Gump&quot;].size-2,
++															{190/255,237/255,231/255,1.0}, gFontDefs[&quot;Gump&quot;].name)
++					-- Display Reagentz
++					if (gSpellBooks[spellbook.itemid].spell_reags[circle][spell]) then
++						for reag=3D1, table.getn( gSpellBooks[spellbook.itemid].spell_reags[=
+circle][spell] ) do
++							local reagentname=3D gSpellBooks[spellbook.itemid].reagenz[ gSpellB=
+ooks[spellbook.itemid].spell_reags[circle][spell][reag] ]
++							local reagentzia =3D guimaker.MakeText (curparent, 75 + rightspacer=
+, 112 + reag*14 - top_align,
++																	reagentname, gFontDefs[&quot;Gump&quot;].size,
++																	{190/255,237/255,231/255,1.0}, gFontDefs[&quot;Gump&quot;].name)
+ 						end
+-						spellbutton.CustomMoveStop =3D function(widget)
+-							-- reset button to source and create quick use/cast button
+-							-- current position
+-							local x,y =3D GetMousePos()
+-							CreateQuickCastButtonSpell(x,y,spellbutton.spell+gSpellBooks[spellb=
+ook.itemid].startindex)
+-							spellbutton.gfx:SetPos(spellbutton.mStartX,spellbutton.mStartY)
++					end
++	=
+
++					-- add all newly created widgets to current page
++					local myc =3D 0
++					for k,widget in pairs(dialog.childs) do =
+
++						if (not widget.pagenum) then
++							myc =3D myc + 1
++							widget.pagenum =3D page.pagenum
++							table.insert(page.pagewidgets,widget)
+ 						end
+-						=
+
+-						=
+
+-						local spellname =3D guimaker.MakeText (curparent, 80 + rightspacer, =
+20+((spellcounter+1)*15) - top_align,
+-															gSpellBooks[spellbook.itemid].spells[circle][spell], gFontD=
+efs[&quot;Gump&quot;].size,
+-															{190/255,237/255,231/255,1.0}, gFontDefs[&quot;Gump&quot;].name)
+-					end
+-			  	end
+-
+-				-- add all newly created widgets to current page
+-				local myc =3D 0
+-				for k,widget in pairs(dialog.childs) do =
+
+-					if (not widget.pagenum) then
+-						myc =3D myc + 1
+-						widget.pagenum =3D page.pagenum
+-						table.insert(page.pagewidgets,widget)
+-					end
+-				end
+-				--print(&quot;ServerSideGump page &quot;,page.pagenum,&quot; childs: &quot;,myc)
+-				if (rightspacer=3D=3D0) then rightspacer=3D150 else rightspacer=3D0 end
+-				if (pageside=3D=3D0) then pageside=3D1 else pageside=3D0 end
+-				if (math.mod(circle,2)=3D=3D0) then pagenumber=3Dpagenumber+1 end
+-				available_spells=3Davailable_spells+spellcounter
+-			end
+-	=
+
+-			pageside=3D0
+-			rightspacer=3D0
+-			local index_end=3Dpagenumber-1
+-			=
+
+-			-- counter for available spells
+-			local spellcounter=3D0
+-
+-			for circle=3D1, circlenumber do
+-				local spellnumber=3Dtable.getn(gSpellBooks[spellbook.itemid].spells[ci=
+rcle])
+-			=
+
+-				for spell=3D1, spellnumber do
+-					if (TestBit(spellbook.matrix[circle], BitwiseSHL(1,spell-1))) then
+-						-- increase number of available spells
+-						spellcounter=3Dspellcounter+1
+-
+-						local page =3D pages[pagenumber]
+-						if (not(page)) then
+-							page =3D guimaker.MakePage(pagenumber)
+-							pages[pagenumber] =3D page
+-						end
+-						-- Pageselektor left
+-						if (page.pagenum~=3D1) then
+-							local browse_back =3D MakeGumpButton (curparent, hex2num(&quot;0x8bb&quot;), =
+hex2num(&quot;0x8bb&quot;), hex2num(&quot;0x8bb&quot;), 48, 8,nil,nil,false)
+-							browse_back.page=3Dpagenumber-1
+-							browse_back.onLeftClick =3D function (widget)
+-															if (widget.page &gt; 0 and not(widget.page &gt; table.getn(pages)=
+) ) then
+-																widget.dialog:ShowPage(browse_back.page)
+-															end
+-													end
+-						end				=
+
+-						-- Pageselektor right
+-						-- check for last-page
+-						if (spellcounter &lt; available_spells-1) then
+-							local browse_forward =3D MakeGumpButton (curparent, hex2num(&quot;0x8bc&quot;=
+), hex2num(&quot;0x8bc&quot;), hex2num(&quot;0x8bc&quot;), 322, 8,nil,nil,false)
+-							browse_forward.page=3Dpagenumber+1
+-							browse_forward.onLeftClick =3D function (widget)
+-														if (widget.page &gt; 0 and not(widget.page &gt; table.getn(pages))=
+ ) then
+-															widget.dialog:ShowPage(browse_forward.page)
+-														end
+-													end
+-						end
+-		=
+
+-						-- Calc SpellIcon GumpID
+-						local spelliconid=3DgSpellBooks[spellbook.itemid].iconoffset + ((cir=
+cle-1) * spellnumber) + spell-1
+-						-- Circle Names
+-						local circlename =3D guimaker.MakeText (curparent, 85 + rightspacer,=
+ 15 - top_align,
+-																gSpellBooks[spellbook.itemid].circles[circle], gFontDefs[&quot;=
+Gump&quot;].size-1,
+-																{255/255,255/255,255/255,1.0}, gFontDefs[&quot;Gump&quot;].name)
+-						local spellname =3D guimaker.MakeText (curparent, 85 + rightspacer, =
+30 - top_align,
+-																gSpellBooks[spellbook.itemid].spells[circle][spell], gFont=
+Defs[&quot;Gump&quot;].size-1,
+-																{190/255,237/255,231/255,1.0}, gFontDefs[&quot;Gump&quot;].name)
+-						local spellicon =3D MakeGumpButton (curparent, spelliconid, spellico=
+nid, spelliconid,
+-																75 + rightspacer, 50,nil,nil,false)
+-						local reagents =3D guimaker.MakeText (curparent, 75 + rightspacer, 1=
+08 - top_align,
+-																&quot;Reagents:&quot;, gFontDefs[&quot;Gump&quot;].size-2,
+-																{190/255,237/255,231/255,1.0}, gFontDefs[&quot;Gump&quot;].name)
+-						-- Display Reagentz
+-						if (gSpellBooks[spellbook.itemid].spell_reags[circle][spell]) then
+-							for reag=3D1, table.getn( gSpellBooks[spellbook.itemid].spell_reags=
+[circle][spell] ) do
+-								local reagentname=3D gSpellBooks[spellbook.itemid].reagenz[ gSpell=
+Books[spellbook.itemid].spell_reags[circle][spell][reag] ]
+-								local reagentzia =3D guimaker.MakeText (curparent, 75 + rightspace=
+r, 112 + reag*14 - top_align,
+-																		reagentname, gFontDefs[&quot;Gump&quot;].size,
+-																		{190/255,237/255,231/255,1.0}, gFontDefs[&quot;Gump&quot;].name)
+-							end
+-						end
+-		=
+
+-						-- add all newly created widgets to current page
+-						local myc =3D 0
+-						for k,widget in pairs(dialog.childs) do =
+
+-							if (not widget.pagenum) then
+-								myc =3D myc + 1
+-								widget.pagenum =3D page.pagenum
+-								table.insert(page.pagewidgets,widget)
+-							end
+-						end
+-						--print(&quot;Spellbook page &quot;,page.pagenum,&quot; childs: &quot;,myc)
+-						--print(gSpellBooks[spellbook.itemid].spells[circle][spell])
+-						--print(&quot;pageside=3D&quot;..pageside)
+-						--print(&quot;pagenumber=3D&quot;..pagenumber)
+-						if (rightspacer=3D=3D0) then rightspacer=3D150 else rightspacer=3D0 =
+end
+-						if (pageside=3D=3D0) then pageside=3D1 else pageside=3D0 end
+-						if (pageside=3D=3D0) then pagenumber=3Dpagenumber+1 end
+-					end
+-				end
+-			end
+-			dialog:ShowPage(1)
+-		end
+-	end
+-end
++					end
++					--print(&quot;Spellbook page &quot;,page.pagenum,&quot; childs: &quot;,myc)
++					--print(gSpellBooks[spellbook.itemid].spells[circle][spell])
++					--print(&quot;pageside=3D&quot;..pageside)
++					--print(&quot;pagenumber=3D&quot;..pagenumber)
++					if (rightspacer=3D=3D0) then rightspacer=3D150 else rightspacer=3D0 e=
+nd
++					if (pageside=3D=3D0) then pageside=3D1 else pageside=3D0 end
++					if (pageside=3D=3D0) then pagenumber=3Dpagenumber+1 end
++				end
++			end
++		end
++		dialog:ShowPage(1)
++	end
++end
+
+Modified: trunk/lua/lib.spellbooks.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.spellbooks.lua (original)
++++ trunk/lua/lib.spellbooks.lua Thu Sep  4 16:54:40 2008
+@@ -8,44 +8,62 @@
+ =
+
+ --RunUO1 old_spellbook Items
+ --[[
+-NET: Old_Spellbook: serial=3D0x41b72b8a itemId=3D0xffff offset=3D0x0000
+-container=3D0x41b72b8a item.serial=3D0x7fffffff artid=3D0x0000 artid_stack=
+=3D0 item.amount=3D1
+-container=3D0x41b72b8a item.serial=3D0x7ffffffc artid=3D0x0000 artid_stack=
+=3D0 item.amount=3D4
+-container=3D0x41b72b8a item.serial=3D0x7ffffffb artid=3D0x0000 artid_stack=
+=3D0 item.amount=3D5
+-container=3D0x41b72b8a item.serial=3D0x7ffffffa artid=3D0x0000 artid_stack=
+=3D0 item.amount=3D6
+-container=3D0x41b72b8a item.serial=3D0x7ffffff5 artid=3D0x0000 artid_stack=
+=3D0 item.amount=3D11
+-container=3D0x41b72b8a item.serial=3D0x7ffffff4 artid=3D0x0000 artid_stack=
+=3D0 item.amount=3D12
+-container=3D0x41b72b8a item.serial=3D0x7ffffff0 artid=3D0x0000 artid_stack=
+=3D0 item.amount=3D16
+-container=3D0x41b72b8a item.serial=3D0x7fffffee artid=3D0x0000 artid_stack=
+=3D0 item.amount=3D18
+-container=3D0x41b72b8a item.serial=3D0x7fffffec artid=3D0x0000 artid_stack=
+=3D0 item.amount=3D20
+-container=3D0x41b72b8a item.serial=3D0x7fffffea artid=3D0x0000 artid_stack=
+=3D0 item.amount=3D22
+-container=3D0x41b72b8a item.serial=3D0x7fffffe4 artid=3D0x0000 artid_stack=
+=3D0 item.amount=3D28
+-container=3D0x41b72b8a item.serial=3D0x7fffffe3 artid=3D0x0000 artid_stack=
+=3D0 item.amount=3D29
+-container=3D0x41b72b8a item.serial=3D0x7fffffe2 artid=3D0x0000 artid_stack=
+=3D0 item.amount=3D30
++uogamers, open/doubleclick spellbook :
++kPacket_Object_to_Object        {hue=3D0,iContainerSerial=3D0x409a8753,xlo=
+c=3D103=3D0x67,yloc=3D96=3D0x60,artid_base=3D3834=3D0x0efa,artid_addstack=
+=3D0,zloc=3D0,amount=3D1=3D0x01,serial=3D0x409a8767,
++HandleOpenContainer     {serial=3D0x409a8767,gumpid=3D0xffff,
++NET: Old_Spellbook: serial=3D0x409a8767 itemId=3D0x0efa offset=3D0x0000
++packet  typeid=3D0x3c,size=3D252,typename=3DkPacket_Container_Contents
++	=
+
++Convert_Spellbookcontainer      table: 0xc635b90
+++       {usegump=3Dfalse,amount=3D1,		=3D 0+1,	iContainerSerial=3D0x409a87=
+67,artid=3D0,serial=3D0x7fffffff,}  -7981   0
+++       {usegump=3Dfalse,amount=3D4,		=3D 0+4,	iContainerSerial=3D0x409a87=
+67,artid=3D0,serial=3D0x7ffffffc,}  -7981   0
+++       {usegump=3Dfalse,amount=3D5,		=3D 0+5,	iContainerSerial=3D0x409a87=
+67,artid=3D0,serial=3D0x7ffffffb,}  -7981   0
+++       {usegump=3Dfalse,amount=3D6,		=3D 0+6,	iContainerSerial=3D0x409a87=
+67,artid=3D0,serial=3D0x7ffffffa,}  -7981   0
++
+++       {usegump=3Dfalse,amount=3D11=3D0x0b,	=3D 8+3,	iContainerSerial=3D0=
+x409a8767,artid=3D0,serial=3D0x7ffffff5,}  -7981   0
+++       {usegump=3Dfalse,amount=3D12=3D0x0c	=3D 8+4,	iContainerSerial=3D0x=
+409a8767,artid=3D0,serial=3D0x7ffffff4,}  -7981   0
+++       {usegump=3Dfalse,amount=3D16=3D0x10,	=3D 8+8,	iContainerSerial=3D0=
+x409a8767,artid=3D0,serial=3D0x7ffffff0,}  -7981   0
++
+++       {usegump=3Dfalse,amount=3D18=3D0x12,	=3D16+2,	iContainerSerial=3D0=
+x409a8767,artid=3D0,serial=3D0x7fffffee,}  -7981   0
+++       {usegump=3Dfalse,amount=3D20=3D0x14,	=3D16+4,	iContainerSerial=3D0=
+x409a8767,artid=3D0,serial=3D0x7fffffec,}  -7981   0
+++       {usegump=3Dfalse,amount=3D22=3D0x16,	=3D16+6,	iContainerSerial=3D0=
+x409a8767,artid=3D0,serial=3D0x7fffffea,}  -7981   0
++                                                                    =
+
+++       {usegump=3Dfalse,amount=3D28=3D0x1c,	=3D24+4,	iContainerSerial=3D0=
+x409a8767,artid=3D0,serial=3D0x7fffffe4,}  -7981   0
+++       {usegump=3Dfalse,amount=3D29=3D0x1d,	=3D24+5,	iContainerSerial=3D0=
+x409a8767,artid=3D0,serial=3D0x7fffffe3,}  -7981   0
+++       {usegump=3Dfalse,amount=3D30=3D0x1e	=3D24+6,	iContainerSerial=3D0x=
+409a8767,artid=3D0,serial=3D0x7fffffe2,}  -7981   0
++1st : clumsy,heal,magicarrow,nightsight                                 =
+
++2nd : cure,harm,strength
++3rd : fireball,poison,teleport
++4th : firefield,greaterheal,lightning
++
++[1] =3D { [1] =3D &quot;Clumsy&quot;, [4] =3D &quot;Heal&quot;, [5] =3D &quot;Magic Arrow&quot;, [6] =3D=
+ &quot;Night Sight&quot; },
++[2] =3D { [3] =3D &quot;Cure&quot;, [4] =3D &quot;Harm&quot;,  [8] =3D &quot;Strength&quot; },
++[3] =3D { [2] =3D &quot;Fire Ball&quot;,[4] =3D &quot;Poison&quot;, [6] =3D &quot;Teleport&quot; },
++[4] =3D { [4] =3D &quot;Fire Field&quot;, [5] =3D &quot;Greater Heal&quot;, [6] =3D &quot;Lightning=
+&quot;},
++
+ ]]--
+ function Convert_Spellbookcontainer(matrix,container)
++	print(&quot;Convert_Spellbookcontainer&quot;,container:GetContent())
+ 	if (container:GetContent()) then
+ 		for k,v in pairs(container:GetContent()) do
+-			local circle=3D0
+-			v.artid=3Dtonumber(v.artid)
+-			if (v.artid &gt;=3D hex2num(&quot;0x1F2D&quot;) and v.artid &lt; hex2num(&quot;0x1F35&quot;)) then
+-				circle=3D0
+-			elseif (v.artid &gt;=3D hex2num(&quot;0x1F35&quot;) and v.artid &lt; hex2num(&quot;0x1F3D&quot;))=
+ then
+-				circle=3D1
+-			elseif (v.artid &gt;=3D hex2num(&quot;0x1F3D&quot;) and v.artid &lt; hex2num(&quot;0x1F45&quot;))=
+ then
+-				circle=3D2
+-			elseif (v.artid &gt;=3D hex2num(&quot;0x1F45&quot;) and v.artid &lt; hex2num(&quot;0x1F4D&quot;))=
+ then
+-				circle=3D3
+-			elseif (v.artid &gt;=3D hex2num(&quot;0x1F4D&quot;) and v.artid &lt; hex2num(&quot;0x1F55&quot;))=
+ then
+-				circle=3D4
+-			elseif (v.artid &gt;=3D hex2num(&quot;0x1F55&quot;) and v.artid &lt; hex2num(&quot;0x1F5D&quot;))=
+ then
+-				circle=3D5
+-			elseif (v.artid &gt;=3D hex2num(&quot;0x1F5D&quot;) and v.artid &lt; hex2num(&quot;0x1F65&quot;))=
+ then
+-				circle=3D6
+-			elseif (v.artid &gt;=3D hex2num(&quot;0x1F65&quot;) and v.artid &lt; hex2num(&quot;0x1F6D&quot;))=
+ then
+-				circle=3D7
++			local circle,spellpos =3D 0,0
++			local artid =3D tonumber(v.artid)
++			if (artid =3D=3D 0) then
++				circle   =3D floor((v.amount-1)/8)
++				spellpos =3D mod(v.amount-1,8)
++			else
++				if     (artid &gt;=3D 0x1F2D and artid &lt; 0x1F35) then	circle=3D0
++				elseif (artid &gt;=3D 0x1F35 and artid &lt; 0x1F3D) then	circle=3D1
++				elseif (artid &gt;=3D 0x1F3D and artid &lt; 0x1F45) then	circle=3D2
++				elseif (artid &gt;=3D 0x1F45 and artid &lt; 0x1F4D) then	circle=3D3
++				elseif (artid &gt;=3D 0x1F4D and artid &lt; 0x1F55) then	circle=3D4
++				elseif (artid &gt;=3D 0x1F55 and artid &lt; 0x1F5D) then	circle=3D5
++				elseif (artid &gt;=3D 0x1F5D and artid &lt; 0x1F65) then	circle=3D6
++				elseif (artid &gt;=3D 0x1F65 and artid &lt; 0x1F6D) then	circle=3D7
++				end
++				spellpos =3D v.artid - (0x1F2D + (circle * 8))
+ 			end
+-			local spellpos =3D v.artid - (hex2num(&quot;0x1F2D&quot;) + (circle * 8))
++			--~ print(&quot;+&quot;,SmartDump(v),spellpos,circle)
+ 			matrix[circle+1] =3D BitwiseOR(matrix[circle+1], BitwiseSHL(1, spellpos=
+))
+ 		end
+ 	end
+
+Modified: trunk/lua/net/net.dynamic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.dynamic.lua (original)
++++ trunk/lua/net/net.dynamic.lua Thu Sep  4 16:54:40 2008
+@@ -93,6 +93,7 @@
+ 	local id		=3D input:PopNetUint8()
+ 	local size		=3D input:PopNetUint16()
+ 	local itemcount	=3D input:PopNetUint16()
++	local iLastSerial
+ =
+
+ 	for i=3D1,itemcount do
+ 		local dynamicdata =3D {}
+@@ -105,9 +106,12 @@
+ 		dynamicdata.zloc				=3D 0						--Grid Index (only since 6.0.1.7 2D and 2=
+.45.5.6 KR)
+ 		dynamicdata.iContainerSerial 	=3D input:PopNetUint32()
+ 		dynamicdata.hue 				=3D input:PopNetUint16()
+-
++		iLastSerial =3D dynamicdata.iContainerSerial
++		=
+
++		--~ printf(&quot;kPacket_Container_Contents %d/%d %s\n&quot;,i,itemcount,SmartDump=
+(dynamicdata))
+ 		CreateOrUpdateDynamic(dynamicdata)
+ 	end
++	if (iLastSerial) then Update_Spellbook(iLastSerial) end
+ end
+ =
+
+ -- This is sent by the server to add/update a single item to a container. =
+(response to player dragdrop)
+@@ -124,6 +128,6 @@
+ 	dynamicdata.zloc				=3D 0						--Grid Index (only since 6.0.1.7 2D and 2.=
+45.5.6 KR)
+ 	dynamicdata.iContainerSerial	=3D input:PopNetUint32()
+ 	dynamicdata.hue					=3D input:PopNetUint16()
+-	=
+
++	--~ print(&quot;kPacket_Object_to_Object&quot;,SmartDump(dynamicdata))
+ 	CreateOrUpdateDynamic(dynamicdata)
+ end
+
+Modified: trunk/lua/net/net.other.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.other.lua (original)
++++ trunk/lua/net/net.other.lua Thu Sep  4 16:54:40 2008
+@@ -2,39 +2,40 @@
+ -- see also lib.packet.lua and lib.protocol.lua
+ -- see also net.popup.lua
+ =
+
+-kPacket_Generic_SubCommand_FastWalkInit			=3D 0x01
+-kPacket_Generic_SubCommand_FastWalkAddKey		=3D 0x02
+-kPacket_Generic_SubCommand_CloseGenericGump		=3D 0x04
+-kPacket_Generic_SubCommand_Screensize			=3D 0x05
+-kPacket_Generic_SubCommand_PartySystem			=3D 0x06
+-kPacket_Generic_SubCommand_QuestArrow			=3D 0x07
+-kPacket_Generic_SubCommand_MapChange			=3D 0x08
+-kPacket_Generic_SubCommand_DisarmRequest		=3D 0x09
+-kPacket_Generic_SubCommand_AOSTooltip			=3D 0x10
++gGenericSubCommands =3D {}
++gGenericSubCommands.kPacket_Generic_SubCommand_FastWalkInit			=3D 0x01
++gGenericSubCommands.kPacket_Generic_SubCommand_FastWalkAddKey		=3D 0x02
++gGenericSubCommands.kPacket_Generic_SubCommand_CloseGenericGump		=3D 0x04
++gGenericSubCommands.kPacket_Generic_SubCommand_Screensize			=3D 0x05
++gGenericSubCommands.kPacket_Generic_SubCommand_PartySystem			=3D 0x06
++gGenericSubCommands.kPacket_Generic_SubCommand_QuestArrow			=3D 0x07
++gGenericSubCommands.kPacket_Generic_SubCommand_MapChange			=3D 0x08
++gGenericSubCommands.kPacket_Generic_SubCommand_DisarmRequest		=3D 0x09
++gGenericSubCommands.kPacket_Generic_SubCommand_AOSTooltip			=3D 0x10
+ --(0x0A) Sent by using the client Wrestle Stun Macro key in Options.
+ --This is no longer used since AoS was introduced. The Macro selection tha=
+t used it was removed.
+-kPacket_Generic_SubCommand_Wrestling_Stun		=3D 0x0A
+-kPacket_Generic_SubCommand_ClientLanguage		=3D 0x0B	-- Client sends Client=
+-language to Server
+-kPacket_Generic_SubCommand_CloseStatus			=3D 0x0C
+-kPacket_Generic_SubCommand_3DClientAction		=3D 0x0E	-- Client Sent. Server=
+ responds with Play Animation packets.
+-kPacket_Generic_SubCommand_PopupRequest			=3D 0x13	-- Client -&gt; Server pac=
+ket
+-kPacket_Generic_SubCommand_DisplayPopup			=3D 0x14
+-kPacket_Generic_SubCommand_PopupEntrySelect		=3D 0x15
+-kPacket_Generic_SubCommand_CodexOfWisdom		=3D 0x17
+-kPacket_Generic_SubCommand_EnableMapDiff		=3D 0x18
+-kPacket_Generic_SubCommand_ExtendedStats		=3D 0x19
+-kPacket_Generic_SubCommand_ExtendedStats2		=3D 0x1A
+-kPacket_Generic_SubCommand_NewSpellbook			=3D 0x1B	-- Create New Spellbook
+-kPacket_Generic_SubCommand_SpellSelected		=3D 0x1C	-- Client -&gt; Server pac=
+ket ! Doppelclick auf Spell
+-kPacket_Generic_SubCommand_RevisionCustomHouse	=3D 0x1D	-- Sends a house R=
+evision number for handling client multi cache.
++gGenericSubCommands.kPacket_Generic_SubCommand_Wrestling_Stun		=3D 0x0A
++gGenericSubCommands.kPacket_Generic_SubCommand_ClientLanguage		=3D 0x0B	--=
+ Client sends Client-language to Server
++gGenericSubCommands.kPacket_Generic_SubCommand_CloseStatus			=3D 0x0C
++gGenericSubCommands.kPacket_Generic_SubCommand_3DClientAction		=3D 0x0E	--=
+ Client Sent. Server responds with Play Animation packets.
++gGenericSubCommands.kPacket_Generic_SubCommand_PopupRequest			=3D 0x13	-- =
+Client -&gt; Server packet
++gGenericSubCommands.kPacket_Generic_SubCommand_DisplayPopup			=3D 0x14
++gGenericSubCommands.kPacket_Generic_SubCommand_PopupEntrySelect		=3D 0x15
++gGenericSubCommands.kPacket_Generic_SubCommand_CodexOfWisdom		=3D 0x17
++gGenericSubCommands.kPacket_Generic_SubCommand_EnableMapDiff		=3D 0x18
++gGenericSubCommands.kPacket_Generic_SubCommand_ExtendedStats		=3D 0x19
++gGenericSubCommands.kPacket_Generic_SubCommand_ExtendedStats2		=3D 0x1A
++gGenericSubCommands.kPacket_Generic_SubCommand_NewSpellbook			=3D 0x1B	-- =
+Create New Spellbook
++gGenericSubCommands.kPacket_Generic_SubCommand_SpellSelected		=3D 0x1C	-- =
+Client -&gt; Server packet ! Doppelclick auf Spell
++gGenericSubCommands.kPacket_Generic_SubCommand_RevisionCustomHouse	=3D 0x1=
+D	-- Sends a house Revision number for handling client multi cache.
+ 															-- If revision is newer than what client has it asks for th=
+e new multi packets to cache it.
+-kPacket_Generic_SubCommand_HouseSerial			=3D 0x1E
+-kPacket_Generic_SubCommand_Ability_Icon			=3D 0x21	-- nodata just (bf 00 0=
+5 21) , used together with weapon abilities / combat skills
+-kPacket_Generic_SubCommand_OldDamage			=3D 0x22	-- Done!
+-kPacket_Generic_SubCommand_UnknownSE			=3D 0x24	-- Client -&gt; Server packet
+-kPacket_Generic_SubCommand_EnableSESpellIcons	=3D 0x25
+-kPacket_Generic_SubCommand_SpeedMode			=3D 0x26
+-kPacket_Generic_SubCommand_NewRaceGender		=3D 0x2A
++gGenericSubCommands.kPacket_Generic_SubCommand_HouseSerial			=3D 0x1E
++gGenericSubCommands.kPacket_Generic_SubCommand_Ability_Icon			=3D 0x21	-- =
+nodata just (bf 00 05 21) , used together with weapon abilities / combat sk=
+ills
++gGenericSubCommands.kPacket_Generic_SubCommand_OldDamage			=3D 0x22	-- Don=
+e!
++gGenericSubCommands.kPacket_Generic_SubCommand_UnknownSE			=3D 0x24	-- Cli=
+ent -&gt; Server packet
++gGenericSubCommands.kPacket_Generic_SubCommand_EnableSESpellIcons	=3D 0x25
++gGenericSubCommands.kPacket_Generic_SubCommand_SpeedMode			=3D 0x26
++gGenericSubCommands.kPacket_Generic_SubCommand_NewRaceGender		=3D 0x2A
+ --[[
+ -race_gender-packet
+ Client -&gt; Server =
+
+@@ -47,30 +48,32 @@
+ WORD 	BeardId =
+
+ WORD 	BeardHue
+ ]]--
+-kPacket_Generic_SubCommand_BandageTarget		=3D hex2num(&quot;0x2C&quot;)	-- Client -&gt;=
+ Server packet,For use with the new Bandage Self client macro. Introduced i=
+n 5.0.4x
++gGenericSubCommands.kPacket_Generic_SubCommand_BandageTarget		=3D hex2num(=
+&quot;0x2C&quot;)	-- Client -&gt; Server packet,For use with the new Bandage Self client=
+ macro. Introduced in 5.0.4x
+ =
+
+ --[[
+ --new sincec KR
+-kPacket_Generic_SubCommand_KR_HouseGumpResponse =3D hex2num(&quot;0x2F&quot;)	-- BF.=
+2F - KR House Menu Gump Response
+-kPacket_Generic_SubCommand_KR_HouseGumpResponse_default =3D hex2num(&quot;0x63&quot;=
+)	--BF.2F.63 - KR Default House Menu Gump Response
+-kPacket_Generic_SubCommand_KR_HouseGumpResponse_pubpriv =3D hex2num(&quot;0x65&quot;=
+)	--BF.2F.65 - KR Change Public/Private House Menu Gump Response
+-kPacket_Generic_SubCommand_KR_HouseGumpResponse_convert =3D hex2num(&quot;0x66&quot;=
+)	--BF.2F.66 - KR Convert into the customizable House Menu Gump Response
+-kPacket_Generic_SubCommand_KR_HouseGumpResponse_relocate=3D hex2num(&quot;0x68&quot;=
+)	--BF.2F.68 - KR Relocate Moving Crate House Menu Gump Response
+-kPacket_Generic_SubCommand_KR_HouseGumpResponse_sign	=3D hex2num(&quot;0x69&quot;)	-=
+-BF.2F.69 - KR Change Sign House Menu Gump Response
+-kPacket_Generic_SubCommand_KR_HouseGumpResponse_hanger	=3D hex2num(&quot;0x6A&quot;)=
+	--BF.2F.6A - KR Change Sign Hanger House Menu Gump Response
+-kPacket_Generic_SubCommand_KR_HouseGumpResponse_post	=3D hex2num(&quot;0x6B&quot;)	-=
+-BF.2F.6B - KR Change Sign Post House Menu Gump Response
+-kPacket_Generic_SubCommand_KR_HouseGumpResponse_foundation=3D hex2num(&quot;0x6=
+C&quot;)	--BF.2F.6C - KR Change Foundation Style House Menu Gump Response
+-kPacket_Generic_SubCommand_KR_HouseGumpResponse_rename	=3D hex2num(&quot;0x6D&quot;)=
+	--BF.2F.6D - KR Rename House Menu Gump Response
+-kPacket_Generic_SubCommand_KR_HouseGumpResponse_demolish=3D hex2num(&quot;0x6E&quot;=
+)	--BBF.2F.6E - KR Demolish House Menu Gump Response
+-kPacket_Generic_SubCommand_KR_HouseGumpResponse_trade	=3D hex2num(&quot;0x6F&quot;)	=
+--BF.2F.6F - KR Trade House Menu Gump Response
+-kPacket_Generic_SubCommand_KR_HouseGumpResponse_primary	=3D hex2num(&quot;0x70&quot;=
+)	--BF.2F.70 - KR Make Primary House Menu Gump Response
+-kPacket_Generic_SubCommand_KR_HouseGumpResponse_coowner	=3D hex2num(&quot;0x71&quot;=
+)	--BF.2F.71 - KR Change To Co-Owner House Menu Gump Response
+-kPacket_Generic_SubCommand_KR_HouseGumpResponse_friend	=3D hex2num(&quot;0x72&quot;)=
+	--BF.2F.72 - KR Change To Friend House Menu Gump Response
+-kPacket_Generic_SubCommand_KR_HouseGumpResponse_access	=3D hex2num(&quot;0x73&quot;)=
+	--BF.2F.73 - KR Change To Access House Menu Gump Response
+-kPacket_Generic_SubCommand_KR_HouseGumpResponse_primary	=3D hex2num(&quot;0x74&quot;=
+)	--BF.2F.74 - KR Ban House Menu Gump Response
++gGenericSubCommands.kPacket_Generic_SubCommand_KR_HouseGumpResponse =3D he=
+x2num(&quot;0x2F&quot;)	-- BF.2F - KR House Menu Gump Response
++gGenericSubCommands.kPacket_Generic_SubCommand_KR_HouseGumpResponse_defaul=
+t =3D hex2num(&quot;0x63&quot;)	--BF.2F.63 - KR Default House Menu Gump Response
++gGenericSubCommands.kPacket_Generic_SubCommand_KR_HouseGumpResponse_pubpri=
+v =3D hex2num(&quot;0x65&quot;)	--BF.2F.65 - KR Change Public/Private House Menu Gump=
+ Response
++gGenericSubCommands.kPacket_Generic_SubCommand_KR_HouseGumpResponse_conver=
+t =3D hex2num(&quot;0x66&quot;)	--BF.2F.66 - KR Convert into the customizable House M=
+enu Gump Response
++gGenericSubCommands.kPacket_Generic_SubCommand_KR_HouseGumpResponse_reloca=
+te=3D hex2num(&quot;0x68&quot;)	--BF.2F.68 - KR Relocate Moving Crate House Menu Gump=
+ Response
++gGenericSubCommands.kPacket_Generic_SubCommand_KR_HouseGumpResponse_sign	=
+=3D hex2num(&quot;0x69&quot;)	--BF.2F.69 - KR Change Sign House Menu Gump Response
++gGenericSubCommands.kPacket_Generic_SubCommand_KR_HouseGumpResponse_hanger=
+	=3D hex2num(&quot;0x6A&quot;)	--BF.2F.6A - KR Change Sign Hanger House Menu Gump Res=
+ponse
++gGenericSubCommands.kPacket_Generic_SubCommand_KR_HouseGumpResponse_post	=
+=3D hex2num(&quot;0x6B&quot;)	--BF.2F.6B - KR Change Sign Post House Menu Gump Respon=
+se
++gGenericSubCommands.kPacket_Generic_SubCommand_KR_HouseGumpResponse_founda=
+tion=3D hex2num(&quot;0x6C&quot;)	--BF.2F.6C - KR Change Foundation Style House Menu =
+Gump Response
++gGenericSubCommands.kPacket_Generic_SubCommand_KR_HouseGumpResponse_rename=
+	=3D hex2num(&quot;0x6D&quot;)	--BF.2F.6D - KR Rename House Menu Gump Response
++gGenericSubCommands.kPacket_Generic_SubCommand_KR_HouseGumpResponse_demoli=
+sh=3D hex2num(&quot;0x6E&quot;)	--BBF.2F.6E - KR Demolish House Menu Gump Response
++gGenericSubCommands.kPacket_Generic_SubCommand_KR_HouseGumpResponse_trade	=
+=3D hex2num(&quot;0x6F&quot;)	--BF.2F.6F - KR Trade House Menu Gump Response
++gGenericSubCommands.kPacket_Generic_SubCommand_KR_HouseGumpResponse_primar=
+y	=3D hex2num(&quot;0x70&quot;)	--BF.2F.70 - KR Make Primary House Menu Gump Response
++gGenericSubCommands.kPacket_Generic_SubCommand_KR_HouseGumpResponse_coowne=
+r	=3D hex2num(&quot;0x71&quot;)	--BF.2F.71 - KR Change To Co-Owner House Menu Gump Re=
+sponse
++gGenericSubCommands.kPacket_Generic_SubCommand_KR_HouseGumpResponse_friend=
+	=3D hex2num(&quot;0x72&quot;)	--BF.2F.72 - KR Change To Friend House Menu Gump Respo=
+nse
++gGenericSubCommands.kPacket_Generic_SubCommand_KR_HouseGumpResponse_access=
+	=3D hex2num(&quot;0x73&quot;)	--BF.2F.73 - KR Change To Access House Menu Gump Respo=
+nse
++gGenericSubCommands.kPacket_Generic_SubCommand_KR_HouseGumpResponse_primar=
+y	=3D hex2num(&quot;0x74&quot;)	--BF.2F.74 - KR Ban House Menu Gump Response
+ --a.s.o. to BF.2F.80
+-kPacket_Generic_SubCommand_TargetbyResource		=3D hex2num(&quot;0x30&quot;)	---BF.30 =
+- KR Target By Resource Macro
++gGenericSubCommands.kPacket_Generic_SubCommand_TargetbyResource		=3D hex2n=
+um(&quot;0x30&quot;)	---BF.30 - KR Target By Resource Macro
+ ]]--
++gGenericSubCommandNamesByID =3D {}
++for k,v in pairs(gGenericSubCommands) do _G[k] =3D v gGenericSubCommandNam=
+esByID[v] =3D k end
+ =
+
+ gActWarmode =3D 0
+ 		=
+
+@@ -142,7 +145,8 @@
+ 	local id =3D input:PopNetUint8()
+ 	local size =3D input:PopNetUint16()
+ 	local subcmd =3D input:PopNetUint16()
+-	printdebug(&quot;net&quot;,sprintf(&quot;NET: kPacket_Generic_Command size=3D0x%04x subc=
+md=3D0x%04x\n&quot;,size,subcmd))
++	printf(&quot;NET: kPacket_Generic_Command size=3D0x%04x subcmd=3D0x%04x=3D%s\n=
+&quot;,size,subcmd,tostring(gGenericSubCommandNamesByID[subcmd]))
++	printdebug(&quot;net&quot;,sprintf(&quot;NET: kPacket_Generic_Command size=3D0x%04x subc=
+md=3D0x%04x=3D%s\n&quot;,size,subcmd,tostring(gGenericSubCommandNamesByID[subcmd=
+])))
+ =
+
+ 	-- FastWalkInit : 6 keys (runuo's fifosize 0-255)
+ 	if (subcmd =3D=3D kPacket_Generic_SubCommand_FastWalkInit) then -- 0x01
+
+Modified: trunk/lua/obj/obj.container.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/obj/obj.container.lua (original)
++++ trunk/lua/obj/obj.container.lua Thu Sep  4 16:54:40 2008
+@@ -74,6 +74,7 @@
+ -- called from kPacket_Open_Container
+ function HandleOpenContainer	(containerdata)
+ 	if (not gGumpLoader) then return end
++	--~ print(&quot;HandleOpenContainer&quot;,SmartDump(containerdata))
+ 	=
+
+ 	--Ignore Shop container - created somewhere else
+ 	if (containerdata.gumpid =3D=3D kGumpIDShopContainer) then
+@@ -87,9 +88,6 @@
+ 		spellbook.old=3Dtrue
+ 		spellbook.serial =3D containerdata.serial
+ 		spellbook.itemid =3D containerdata.gumpid
+-		spellbook.scrolloffset =3D 0
+-		spellbook.matrix =3D {}
+-		for i=3D1, 8 do spellbook.matrix[i] =3D 0 end
+ 		-- container with spell is already created (invisible)
+ 		Open_Spellbook(spellbook)
+ 		printf(&quot;NET: Old_Spellbook: serial=3D0x%08x itemId=3D0x%04x offset=3D0x%=
+04x\n&quot;,spellbook.serial, spellbook.itemid, spellbook.scrolloffset)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001253.html">[Iris-commit] [IRIS] r2448 - /trunk/lua/lib.protocol.lua
+</A></li>
+	<LI>Next message: <A HREF="001255.html">[Iris-commit] [IRIS] r2450 - /trunk/lua/gui/gui.amount.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1254">[ date ]</a>
+              <a href="thread.html#1254">[ thread ]</a>
+              <a href="subject.html#1254">[ subject ]</a>
+              <a href="author.html#1254">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,129 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2990 - in /trunk: config/shards/uogamers.com.xml lua/net/net.extended.lua lua/net/net.partysystem.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2009-April/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2990%20-%20in%20/trunk%3A%0A%20config/shards/uogamers.com.xml%20lua/net/net.extended.lua%0A%20lua/net/net.partysystem.lua&In-Reply-To=%3C20090407000101.60F701C18830%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001788.html">
+   <LINK REL="Next"  HREF="001790.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2990 - in /trunk: config/shards/uogamers.com.xml lua/net/net.extended.lua lua/net/net.partysystem.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2990%20-%20in%20/trunk%3A%0A%20config/shards/uogamers.com.xml%20lua/net/net.extended.lua%0A%20lua/net/net.partysystem.lua&In-Reply-To=%3C20090407000101.60F701C18830%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2990 - in /trunk: config/shards/uogamers.com.xml lua/net/net.extended.lua lua/net/net.partysystem.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Tue Apr  7 01:31:12 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001788.html">[Iris-commit] [IRIS] r2989 - /trunk/lua/net/net.login.lua
+</A></li>
+        <LI>Next message: <A HREF="001790.html">[Iris-commit] [IRIS] r2991 - /trunk/config/shards/uogamers.com.xml
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1789">[ date ]</a>
+              <a href="thread.html#1789">[ thread ]</a>
+              <a href="subject.html#1789">[ subject ]</a>
+              <a href="author.html#1789">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Tue Apr  7 01:31:10 2009
+New Revision: 2990
+
+Log:
+party pos update only sent when not alone in party
+
+Modified:
+    trunk/config/shards/uogamers.com.xml
+    trunk/lua/net/net.extended.lua
+    trunk/lua/net/net.partysystem.lua
+
+Modified: trunk/config/shards/uogamers.com.xml
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/config/shards/uogamers.com.xml (original)
++++ trunk/config/shards/uogamers.com.xml Tue Apr  7 01:31:10 2009
+@@ -1,6 +1,7 @@
+ &lt;table&gt;
+     &lt;string key=3D&quot;gLoginname&quot;&gt;&lt;/string&gt;
+     &lt;boolean key=3D&quot;gPolServer&quot;&gt;false&lt;/boolean&gt;
++    &lt;boolean key=3D&quot;gDisableAosToolTipRequests&quot;&gt;true&lt;/boolean&gt;
+     &lt;number key=3D&quot;gServerSeed&quot;&gt;4294967295&lt;/number&gt;
+     &lt;number key=3D&quot;gLoginServerPort&quot;&gt;2593&lt;/number&gt;
+     &lt;string key=3D&quot;gPassword&quot;&gt;&lt;/string&gt;
+
+Modified: trunk/lua/net/net.extended.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.extended.lua (original)
++++ trunk/lua/net/net.extended.lua Tue Apr  7 01:31:10 2009
+@@ -10,6 +10,7 @@
+ -- answer : kPacket_ExtBundledPacket
+ function	PartySendQueryPos () =
+
+ 	if (gDisableSendingPartyPos) then return end
++	if (not IsPlayerInPartyWithOthers()) then return end -- don't send if alo=
+ne
+ 	local out =3D GetSendFIFO()
+ 	out:PushNetUint8(kPacket_ExtBundledPacket) -- 0xF0
+ 	out:PushNetUint16(4)
+
+Modified: trunk/lua/net/net.partysystem.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.partysystem.lua (original)
++++ trunk/lua/net/net.partysystem.lua Tue Apr  7 01:31:10 2009
+@@ -58,6 +58,7 @@
+ function IsMobileInParty		(serial)	return gPartySystemMemberListByID[seria=
+l] end
+ function IsMobilePartyLeader	(serial)	return gPartySystemMemberList[1] =3D=
+=3D serial end
+ function GetPartyMemberList		() 			return gPartySystemMemberListByID end -=
+- {[serial]=3Dtrue,...}
++function IsPlayerInPartyWithOthers ()		return countarr(GetPartyMemberList(=
+)) &gt; 1 end -- returns true if not alone
+ =
+
+ function	PartySendAccept () =
+
+ 	local out =3D GetSendFIFO()
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001788.html">[Iris-commit] [IRIS] r2989 - /trunk/lua/net/net.login.lua
+</A></li>
+	<LI>Next message: <A HREF="001790.html">[Iris-commit] [IRIS] r2991 - /trunk/config/shards/uogamers.com.xml
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1789">[ date ]</a>
+              <a href="thread.html#1789">[ thread ]</a>
+              <a href="subject.html#1789">[ subject ]</a>
+              <a href="author.html#1789">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

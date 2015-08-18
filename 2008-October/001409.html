@@ -1,0 +1,228 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2604 - in /trunk/lua: lib.loading.lua obj/obj.main.lua obj/obj.mobile.lua obj/obj.player.lua widgets/widget.uocontainer.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-October/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2604%20-%20in%20/trunk/lua%3A%20lib.loading.lua%0A%20obj/obj.main.lua%20obj/obj.mobile.lua%20obj/obj.player.lua%0A%20widgets/widget.uocontainer.lua&In-Reply-To=%3C20081019165923.449FD1C18030%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001408.html">
+   <LINK REL="Next"  HREF="001410.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2604 - in /trunk/lua: lib.loading.lua obj/obj.main.lua obj/obj.mobile.lua obj/obj.player.lua widgets/widget.uocontainer.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2604%20-%20in%20/trunk/lua%3A%20lib.loading.lua%0A%20obj/obj.main.lua%20obj/obj.mobile.lua%20obj/obj.player.lua%0A%20widgets/widget.uocontainer.lua&In-Reply-To=%3C20081019165923.449FD1C18030%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2604 - in /trunk/lua: lib.loading.lua obj/obj.main.lua obj/obj.mobile.lua obj/obj.player.lua widgets/widget.uocontainer.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sun Oct 19 18:59:22 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001408.html">[Iris-commit] [IRIS] r2603 - /trunk/data/profiles/gfx_ultrahigh.lua
+</A></li>
+        <LI>Next message: <A HREF="001410.html">[Iris-commit] [IRIS] r2605 - /trunk/lua/lib.macrolist.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1409">[ date ]</a>
+              <a href="thread.html#1409">[ thread ]</a>
+              <a href="subject.html#1409">[ subject ]</a>
+              <a href="author.html#1409">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sun Oct 19 18:59:21 2008
+New Revision: 2604
+
+Log:
+auto-open backpack and prevent closing backpack on invis and recall/mapchan=
+ge
+
+Modified:
+    trunk/lua/lib.loading.lua
+    trunk/lua/obj/obj.main.lua
+    trunk/lua/obj/obj.mobile.lua
+    trunk/lua/obj/obj.player.lua
+    trunk/lua/widgets/widget.uocontainer.lua
+
+Modified: trunk/lua/lib.loading.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.loading.lua (original)
++++ trunk/lua/lib.loading.lua Sun Oct 19 18:59:21 2008
+@@ -328,7 +328,7 @@
+ 	=
+
+ 	-- unloading of all objects must happen immediately on change request, =
+
+ 	-- otherwise items sent after changerequest might be destroyed
+-	UnloadOldMap()
++	UnloadOldMap(false,true) -- clear objects, but not player
+ 	=
+
+ 	-- TODO ! don't trigger mapload here, as some servers send a lot of mapch=
+anges in a row
+ 	-- problem : loaders are needed instantly (sky,ground,static,compass)
+@@ -343,11 +343,11 @@
+ end
+ =
+
+ -- destroys old items, and cleans up old static,ground loaders
+-function UnloadOldMap (bDoNotClearObjects)
++function UnloadOldMap (bDoNotClearObjects,bDontClearPlayer)
+ 	if (not gMapLoaded) then return end
+ 	gMapLoaded =3D false
+ 	-- destroy all objects
+-	if (not bDoNotClearObjects) then DestroyAllObjects() end
++	if (not bDoNotClearObjects) then DestroyAllObjects(bDontClearPlayer) end
+ 	-- destroy old ground and static loaders
+ 	if (gGroundBlockLoader) then gGroundBlockLoader:Destroy() gGroundBlockLoa=
+der =3D nil end
+ 	if (gStaticBlockLoader) then gStaticBlockLoader:Destroy() gStaticBlockLoa=
+der =3D nil end
+
+Modified: trunk/lua/obj/obj.main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/obj/obj.main.lua (original)
++++ trunk/lua/obj/obj.main.lua Sun Oct 19 18:59:21 2008
+@@ -102,9 +102,21 @@
+ end
+ =
+
+ -- needed for mapchange
+-function DestroyAllObjects () =
+
++function DestroyAllObjects (bDontClearPlayer) =
+
+ 	CancelUODragDrop()
+-	for k,object in pairs(gObjectList) do object:Destroy() end
++	local playerserial =3D GetPlayerSerial()
++	local backpackserial =3D GetPlayerBackPackSerial()
++	for k,object in pairs(gObjectList) do =
+
++		local bDestroy =3D true
++		if (bDontClearPlayer) then
++			if (object.serial =3D=3D playerserial or =
+
++				object.iContainerSerial =3D=3D playerserial or =
+
++				(object.iContainerSerial =3D=3D backpackserial and backpackserial)) th=
+en
++				bDestroy =3D false
++			end
++		end
++		if (bDestroy) then object:Destroy() end =
+
++	end
+ end
+ =
+
+ =
+
+
+Modified: trunk/lua/obj/obj.mobile.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/obj/obj.mobile.lua (original)
++++ trunk/lua/obj/obj.mobile.lua Sun Oct 19 18:59:21 2008
+@@ -152,7 +152,15 @@
+ 	-- full equipment overwrite
+ 	if (equipmentdata) then
+ 		self.bEquipmentUpdateInProgress =3D true -- prevent self:Update during e=
+quipment update...
+-		self:DestroyContent() -- destroy old equipment items
++		=
+
++		-- self:DestroyContent() -- destroy old equipment items  .. doesn't work=
+ as expected, closes backpack when player becomes invis
++		for serial,object in pairs(self:GetContent()) do =
+
++			local bFound =3D false
++			for layer,dynamicdata in pairs(equipmentdata) do =
+
++				if (dynamicdata.serial =3D=3D object.serial) then bFound =3D true brea=
+k end
++			end
++			if (not bFound) then object:Destroy() end
++		end
+ =
+
+ 		for layer,dynamicdata in pairs(equipmentdata) do
+ 			CreateOrUpdateDynamic(dynamicdata,self)
+
+Modified: trunk/lua/obj/obj.player.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/obj/obj.player.lua (original)
++++ trunk/lua/obj/obj.player.lua Sun Oct 19 18:59:21 2008
+@@ -22,6 +22,7 @@
+ 		if ((not gPlayerBackPack) or (gPlayerBackPack.serial ~=3D backpack.seria=
+l)) then
+ 			-- backpack item changed
+ 			gPlayerBackPack =3D backpack
++			if (gPlayerBackPack) then Send_DoubleClick(gPlayerBackPack.serial) end
+ 		end
+ 	-- else TODO : maybe check if backpack was removed ? must look if playeri=
+d is available so far
+ 	end
+
+Modified: trunk/lua/widgets/widget.uocontainer.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/widgets/widget.uocontainer.lua (original)
++++ trunk/lua/widgets/widget.uocontainer.lua Sun Oct 19 18:59:21 2008
+@@ -25,6 +25,11 @@
+ 	self:RefreshItems()
+ end
+ =
+
++--~ function gWidgetPrototype.UOContainerDialog:on_destroy ()
++	--~ local container		=3D self.uoContainer
++	--~ print(&quot;container destroy&quot;,container and container.serial,_TRACEBACK())
++--~ end
++	=
+
+ function gWidgetPrototype.UOContainerDialog:RefreshItems ()
+ 	local container =3D self.uoContainer
+ 	--~ print(&quot;UOContainerDialog : gumpid&quot;,container.gumpid)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001408.html">[Iris-commit] [IRIS] r2603 - /trunk/data/profiles/gfx_ultrahigh.lua
+</A></li>
+	<LI>Next message: <A HREF="001410.html">[Iris-commit] [IRIS] r2605 - /trunk/lua/lib.macrolist.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1409">[ date ]</a>
+              <a href="thread.html#1409">[ thread ]</a>
+              <a href="subject.html#1409">[ subject ]</a>
+              <a href="author.html#1409">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

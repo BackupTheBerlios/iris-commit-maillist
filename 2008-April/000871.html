@@ -1,0 +1,152 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2060 - in /trunk/lua/net: net.dynamic.lua	net.login.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-April/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2060%20-%20in%20/trunk/lua/net%3A%20net.dynamic.lua%0A%09net.login.lua&In-Reply-To=%3C20080419000749.47F401C187B5%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000870.html">
+   <LINK REL="Next"  HREF="000872.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2060 - in /trunk/lua/net: net.dynamic.lua	net.login.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2060%20-%20in%20/trunk/lua/net%3A%20net.dynamic.lua%0A%09net.login.lua&In-Reply-To=%3C20080419000749.47F401C187B5%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2060 - in /trunk/lua/net: net.dynamic.lua	net.login.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat Apr 19 02:07:48 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000870.html">[Iris-commit] [IRIS] r2059 - in /trunk/lua: lib.3d.dynamic.lua lib.3d.mousepick.lua lib.bodygfx.lua net/net.corpse.lua net/net.mobile.lua
+</A></li>
+        <LI>Next message: <A HREF="000872.html">[Iris-commit] [IRIS] r2061 - in /trunk/lua: lib.bodygfx.lua lib.walking2.lua obj/obj.mobile.lua obj/obj.player.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#871">[ date ]</a>
+              <a href="thread.html#871">[ thread ]</a>
+              <a href="subject.html#871">[ subject ]</a>
+              <a href="author.html#871">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: hagish
+Date: Sat Apr 19 02:07:47 2008
+New Revision: 2060
+
+Log:
+bugfix: pol login not working
+
+Modified:
+    trunk/lua/net/net.dynamic.lua
+    trunk/lua/net/net.login.lua
+
+Modified: trunk/lua/net/net.dynamic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.dynamic.lua (original)
++++ trunk/lua/net/net.dynamic.lua Sat Apr 19 02:07:47 2008
+@@ -45,7 +45,7 @@
+ 		dynamicdata.amount =3D 1
+ 	end
+ 	=
+
+-	printdebug(&quot;login&quot;,sprintf(&quot;NET: Show_Item: artid_base=3D%d artidhex=3D0x=
+%04x bitwiseand=3D%d\n&quot;,
++	printdebug(&quot;net&quot;,sprintf(&quot;NET: Show_Item: artid_base=3D%d artidhex=3D0x%0=
+4x bitwiseand=3D%d\n&quot;,
+ 				dynamicdata.artid_base,dynamicdata.artid_base,BitwiseAND(dynamicdata.a=
+rtid_base,hex2num(&quot;0x8000&quot;)) )) =
+
+ 	=
+
+ 	-- dynamicdata.artid_addstack : The number to add to the item's artwork w=
+hen Amount &gt; 1.
+
+Modified: trunk/lua/net/net.login.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.login.lua (original)
++++ trunk/lua/net/net.login.lua Sat Apr 19 02:07:47 2008
+@@ -74,21 +74,28 @@
+ function gPacketHandler.kPacket_Server_Redirect ()
+ 	local input =3D GetRecvFIFO()
+ 	local id =3D input:PopNetUint8()
+-	local gameserverip =3D input:PopNetUint32()
++	=
+
++	-- local gameserverip =3D input:PopNetUint32()
++	local ip1 =3D input:PopNetUint8()
++	local ip2 =3D input:PopNetUint8()
++	local ip3 =3D input:PopNetUint8()
++	local ip4 =3D input:PopNetUint8()
++	local gameserverip =3D ip1..&quot;.&quot;..ip2..&quot;.&quot;..ip3..&quot;.&quot;..ip4
++	=
+
+ 	local gameserverport =3D input:PopNetUint16()
+ 	local gameserveraccount =3D input:PopNetUint32()
+-	printdebug(&quot;login&quot;,sprintf(&quot;NET: server redirect: id=3D0x%08x ip=3D%x por=
+t=3D%i AccountNr.:0x%08x\n&quot;,
++	printdebug(&quot;login&quot;,sprintf(&quot;NET: server redirect: id=3D0x%08x ip=3D%s por=
+t=3D%i AccountNr.:0x%08x\n&quot;,
+ 			id,gameserverip,gameserverport,gameserveraccount))
+-	printdebug(&quot;login&quot;,sprintf(&quot;DEBUG IP STRINGS %s &lt;&gt; %s\n&quot;,NtoA(gameserveri=
+p),GetHostByName(gLoginServerIP)))
++	printdebug(&quot;login&quot;,sprintf(&quot;DEBUG IP STRINGS %s &lt;&gt; %s\n&quot;,gameserverip,Get=
+HostByName(gLoginServerIP)))
+ =
+
+ 	-- login &amp; gameserver are not the same: redirect is received
+-	if ((gServerType[gServerEmulator] =3D=3D &quot;SpherePolUox3&quot;) or (NtoA(gamese=
+rverip) ~=3D GetHostByName(gLoginServerIP)) or (gameserverport ~=3D gLoginS=
+erverPort)) then
++	if ((gServerType[gServerEmulator] =3D=3D &quot;SpherePolUox3&quot;) or (gameserveri=
+p ~=3D GetHostByName(gLoginServerIP)) or (gameserverport ~=3D gLoginServerP=
+ort)) then
+ 		--disconnect from Loginserver
+ 		printdebug(&quot;login&quot;,&quot;NET: disconnect from loginserver&quot;)
+ 		NetDisconnect()
+ 		--connect to gameserver
+ 		printdebug(&quot;login&quot;,&quot;NET: connect to gameserver&quot;)
+-		local res =3D NetConnectWithKey(NtoA(gameserverip),gameserverport,gamese=
+rveraccount)
++		local res =3D NetConnectWithKey(gameserverip,gameserverport,gameserverac=
+count)
+ 		if (not res) then
+ 			FatalErrorMessage(&quot;kPacket_Server_Redirect : login server redirect fail=
+ed&quot;)
+ 		end
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000870.html">[Iris-commit] [IRIS] r2059 - in /trunk/lua: lib.3d.dynamic.lua lib.3d.mousepick.lua lib.bodygfx.lua net/net.corpse.lua net/net.mobile.lua
+</A></li>
+	<LI>Next message: <A HREF="000872.html">[Iris-commit] [IRIS] r2061 - in /trunk/lua: lib.bodygfx.lua lib.walking2.lua obj/obj.mobile.lua obj/obj.player.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#871">[ date ]</a>
+              <a href="thread.html#871">[ thread ]</a>
+              <a href="subject.html#871">[ subject ]</a>
+              <a href="author.html#871">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

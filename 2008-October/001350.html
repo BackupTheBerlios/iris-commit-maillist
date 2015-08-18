@@ -1,0 +1,167 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2545 - in /trunk: lua/obj/obj.mobile.lua	plugins/lib.spellbar.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-October/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2545%20-%20in%20/trunk%3A%20lua/obj/obj.mobile.lua%0A%09plugins/lib.spellbar.lua&In-Reply-To=%3C20081011193134.9E7211C187C4%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001349.html">
+   <LINK REL="Next"  HREF="001351.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2545 - in /trunk: lua/obj/obj.mobile.lua	plugins/lib.spellbar.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2545%20-%20in%20/trunk%3A%20lua/obj/obj.mobile.lua%0A%09plugins/lib.spellbar.lua&In-Reply-To=%3C20081011193134.9E7211C187C4%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2545 - in /trunk: lua/obj/obj.mobile.lua	plugins/lib.spellbar.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat Oct 11 21:31:34 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001349.html">[Iris-commit] [IRIS] r2544 - in /trunk: lua/lib.2d.hudfx.lua lua/lib.2d.mobile.lua lua/widgets/widget.uotext.lua plugins/lib.spellbar.lua
+</A></li>
+        <LI>Next message: <A HREF="001351.html">[Iris-commit] [IRIS] r2546 - in /trunk: lua/lib.2d.mousepick.lua lua/lib.uotooltip.lua plugins/lib.spellbar.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1350">[ date ]</a>
+              <a href="thread.html#1350">[ thread ]</a>
+              <a href="subject.html#1350">[ subject ]</a>
+              <a href="author.html#1350">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sat Oct 11 21:31:34 2008
+New Revision: 2545
+
+Log:
+optimized mobile equipchange a bit, called less often now
+
+Modified:
+    trunk/lua/obj/obj.mobile.lua
+    trunk/plugins/lib.spellbar.lua
+
+Modified: trunk/lua/obj/obj.mobile.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/obj/obj.mobile.lua (original)
++++ trunk/lua/obj/obj.mobile.lua Sat Oct 11 21:31:34 2008
+@@ -107,11 +107,12 @@
+ -- ##### ##### ##### ##### ##### updates
+ =
+
+ =
+
+-function gMobilePrototype:UpdateContent () self:Update() end
++function gMobilePrototype:UpdateContent () self.bEquipmentChanged =3D true=
+ self:Update() end
+ =
+
+ -- updates mobile status, and the position of the graphical representation=
+ and other things
+ function gMobilePrototype:Update (mobiledata,equipmentdata)
+ 	if (self.bDestructionInProgress) then return end -- avoid updates during =
+destruction
++	if (self.bEquipmentUpdateInProgress) then return end -- update triggered =
+by
+ 	=
+
+ 	if (mobiledata) then for k,v in pairs(mobiledata) do self[k] =3D v end end
+ 	self:UpdateFlags()
+@@ -141,11 +142,13 @@
+ 	=
+
+ 	-- full equipment overwrite
+ 	if (equipmentdata) then
++		self.bEquipmentUpdateInProgress =3D true -- prevent self:Update during e=
+quipment update...
+ 		self:DestroyContent() -- destroy old equipment items
+ =
+
+ 		for layer,dynamicdata in pairs(equipmentdata) do
+ 			CreateOrUpdateDynamic(dynamicdata,self)
+ 		end
++		self.bEquipmentUpdateInProgress =3D false
+ 	end
+ 	=
+
+ 	local bIsPlayer =3D self.serial =3D=3D gPlayerBodySerial
+@@ -153,7 +156,9 @@
+ 	-- if something related to equipment might have changed =
+
+ 	-- this can also have happened if equipmentdata=3Dnil, e.g. when an equip=
+ment item was destroyed directly
+ 	-- maybe only in UpdateContent and/or if equipmentdata is set ?
+-	if (true) then
++	if (self.bEquipmentChanged) then
++		self.bEquipmentChanged =3D false
++		NotifyListener(&quot;Hook_MobileEquipmentChanged&quot;,self)
+ 		if (bIsPlayer) then PlayerBackpackItemUpdated() end
+ 		local paperdoll =3D gPaperdolls[self.serial]
+ 		if (paperdoll) then RebuildPaperdoll(paperdoll) end
+
+Modified: trunk/plugins/lib.spellbar.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/plugins/lib.spellbar.lua (original)
++++ trunk/plugins/lib.spellbar.lua Sat Oct 11 21:31:34 2008
+@@ -2,9 +2,18 @@
+ =
+
+ if (not gDisabledPlugins.spellbar) then =
+
+ =
+
++
++RegisterListener(&quot;Hook_MobileEquipmentChanged&quot;,function (mobile)
++	if (not IsPlayerMobile(mobile)) then return end
++	print(&quot;spellbar : Hook_MobileEquipmentChanged&quot;)
++	=
+
++	=
+
++end)
++	=
+
+ RegisterListener(&quot;Hook_HUDStep&quot;,function ()
+ 	=
+
+ end)
++
+ RegisterListener(&quot;Hook_SendSpell&quot;,function (spellid)
+ 	local spellname =3D GetSpellNameByID(spellid)
+ 	print(&quot;spellbar:Hook_SendSpell&quot;,spellid,spellname)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001349.html">[Iris-commit] [IRIS] r2544 - in /trunk: lua/lib.2d.hudfx.lua lua/lib.2d.mobile.lua lua/widgets/widget.uotext.lua plugins/lib.spellbar.lua
+</A></li>
+	<LI>Next message: <A HREF="001351.html">[Iris-commit] [IRIS] r2546 - in /trunk: lua/lib.2d.mousepick.lua lua/lib.uotooltip.lua plugins/lib.spellbar.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1350">[ date ]</a>
+              <a href="thread.html#1350">[ thread ]</a>
+              <a href="subject.html#1350">[ subject ]</a>
+              <a href="author.html#1350">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

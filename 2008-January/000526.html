@@ -1,0 +1,274 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1710 - in /trunk: data/config.lua.dist lua/filter/filter.art.lua lua/lib.3d.map.lua lua/lib.3d.mousepick.lua lua/lib.static.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-January/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1710%20-%20in%20/trunk%3A%20data/config.lua.dist%0A%20lua/filter/filter.art.lua%20lua/lib.3d.map.lua%20lua/lib.3d.mousepick.lua%0A%20lua/lib.static.lua&In-Reply-To=%3C20080105000306.A28911C1868F%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000525.html">
+   <LINK REL="Next"  HREF="000528.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1710 - in /trunk: data/config.lua.dist lua/filter/filter.art.lua lua/lib.3d.map.lua lua/lib.3d.mousepick.lua lua/lib.static.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1710%20-%20in%20/trunk%3A%20data/config.lua.dist%0A%20lua/filter/filter.art.lua%20lua/lib.3d.map.lua%20lua/lib.3d.mousepick.lua%0A%20lua/lib.static.lua&In-Reply-To=%3C20080105000306.A28911C1868F%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1710 - in /trunk: data/config.lua.dist lua/filter/filter.art.lua lua/lib.3d.map.lua lua/lib.3d.mousepick.lua lua/lib.static.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat Jan  5 01:03:06 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000525.html">[Iris-commit] [IRIS] r1709 - /trunk/lua/lib.3d.dynamic.lua
+</A></li>
+        <LI>Next message: <A HREF="000528.html">[Iris-commit] [IRIS] r1711 - in /trunk/lua: lib.3d.map.lua	lib.3d.mousepick.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#526">[ date ]</a>
+              <a href="thread.html#526">[ thread ]</a>
+              <a href="subject.html#526">[ subject ]</a>
+              <a href="author.html#526">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sat Jan  5 01:03:04 2008
+New Revision: 1710
+
+Log:
+fastbatch experiment for statics
+
+Modified:
+    trunk/data/config.lua.dist
+    trunk/lua/filter/filter.art.lua
+    trunk/lua/lib.3d.map.lua
+    trunk/lua/lib.3d.mousepick.lua
+    trunk/lua/lib.static.lua
+
+Modified: trunk/data/config.lua.dist
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/config.lua.dist (original)
++++ trunk/data/config.lua.dist Sat Jan  5 01:03:04 2008
+@@ -412,3 +412,4 @@
+ =
+
+ gEnableMultiTexTerrain =3D false
+ gDisableMultiTexTerrainTransitions =3D false -- ugly, but faster
++gFastBatchStatics =3D false -- faster, but mousepicking and blend-out-uppe=
+r-floors doesn't work yet
+
+Modified: trunk/lua/filter/filter.art.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/filter/filter.art.lua (original)
++++ trunk/lua/filter/filter.art.lua Sat Jan  5 01:03:04 2008
+@@ -9,9 +9,10 @@
+ 	return iTranslatedTileTypeID
+ end
+ function FilterOrientation(iTranslatedTileTypeID)
+-	if (gArtFilter[iTranslatedTileTypeID]) then
+-		if (gArtFilter[iTranslatedTileTypeID].rotation) then
+-			return QuaternionFromString(gArtFilter[iTranslatedTileTypeID].rotation)
++	local f =3D gArtFilter[iTranslatedTileTypeID]
++	if (f) then
++		if (f.rotation) then
++			return QuaternionFromString(f.rotation)
+ 		end
+ 	end
+ 	return nil
+
+Modified: trunk/lua/lib.3d.map.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.map.lua (original)
++++ trunk/lua/lib.3d.map.lua Sat Jan  5 01:03:04 2008
+@@ -201,7 +201,6 @@
+ ]]--
+ 	-- create Mesh
+ 	if (meshname and meshname ~=3D false) then 	--and (not MeshIsPseudoBillBo=
+ard(iTileTypeID))) then	--currently disabled
+-		entity.staticentity =3D CreateMeshEntity(meshname)
+ 		local qw,qx,qy,qz =3D GetStaticMeshOrientation(iTileTypeID)
+ 		local sx,sy,sz =3D -1,1,1 -- scale
+ 		entity.qw =3D qw
+@@ -212,15 +211,22 @@
+ 		entity.sy =3D sy
+ 		entity.sz =3D sz
+ =
+
+-		local myLayer =3D Renderer3D:ZToLayer(entity.zloc)
+-		local myLayerStaticGeom =3D chunk.pStaticGeometryLayers[myLayer]
+-		if (not myLayerStaticGeom) then
+-			myLayerStaticGeom =3D CreateStaticGeometry()
+-			chunk.pStaticGeometryLayers[myLayer] =3D myLayerStaticGeom
+-		end
+-
+-		-- apply x mirror
+-		myLayerStaticGeom:AddEntity(entity.staticentity,entity.x,entity.y,entity=
+.z,qw,qx,qy,qz,sx,sy,sz)
++		if (gFastBatchStatics) then
++			-- fastbatch : todo : mousepicking withtout entity, meshname+meshbuffer=
+ ?
++			chunk.fastbatch:FastBatch_AddMesh(meshname,entity.x,entity.y,entity.z, =
+qw,qx,qy,qz, sx,sy,sz) =
+
++			-- pos,rot,scale
++			-- pos,rot,scale,col_rgba
++		else
++			entity.staticentity =3D CreateMeshEntity(meshname)
++			local myLayer =3D Renderer3D:ZToLayer(entity.zloc)
++			local myLayerStaticGeom =3D chunk.pStaticGeometryLayers[myLayer]
++			if (not myLayerStaticGeom) then
++				myLayerStaticGeom =3D CreateStaticGeometry()
++				chunk.pStaticGeometryLayers[myLayer] =3D myLayerStaticGeom
++			end
++			myLayerStaticGeom:AddEntity(entity.staticentity,entity.x,entity.y,entit=
+y.z,qw,qx,qy,qz,sx,sy,sz)
++		end
++
+ 		table.insert(chunk.lStaticEntities,entity)
+ =
+
+ 	-- if no *.mesh is available, a fallback billboard with original uo_art i=
+s generated
+@@ -254,12 +260,19 @@
+ -- coords in chunks
+ function Renderer3D:CreateMapChunk (x,y)
+ 	if ((x &lt; 0) or (y &lt; 0)) then return end	-- we might also check the heighs=
+t value !?
++	=
+
+ =
+
+ 	local chunk =3D {}
+ 	chunk.bIsDead =3D false
+ 	chunk.miX =3D x
+ 	chunk.miY =3D y
+ 	chunk.pStaticGeometryLayers =3D {}
++	=
+
++	-- start fastbatch
++	if (gFastBatchStatics) then
++		chunk.fastbatch =3D CreateRootGfx3D()
++		chunk.fastbatch:SetFastBatch()
++	end
+ =
+
+ 	local iBlockUO_X =3D x * self.ROBMAP_CHUNK_SIZE
+ 	local iBlockUO_Y =3D y * self.ROBMAP_CHUNK_SIZE
+@@ -346,11 +359,16 @@
+ =
+
+ 	-- TODO : fish in water ? other gimiks ?
+ 	=
+
+-	for layerZ,layerStaticGeom in pairs(chunk.pStaticGeometryLayers) do =
+
+-		layerStaticGeom:SetCastShadows(gStaticsCastShadows)
+-		layerStaticGeom:SetVisible(self:IsZLayerVisible(Renderer3D:LayerToZ(laye=
+rZ)))
+-		layerStaticGeom:Build()
+-	end
++	if (gFastBatchStatics) then
++		chunk.fastbatch:FastBatch_Build()
++	else
++		for layerZ,layerStaticGeom in pairs(chunk.pStaticGeometryLayers) do =
+
++			layerStaticGeom:SetCastShadows(gStaticsCastShadows)
++			layerStaticGeom:SetVisible(self:IsZLayerVisible(Renderer3D:LayerToZ(lay=
+erZ)))
++			layerStaticGeom:Build()
++		end
++	end
++	=
+
+ 	return chunk
+ end
+ =
+
+@@ -475,6 +493,7 @@
+ 	if (not chunk.bIsDead) then
+ 		--print(&quot;DestroyMapChunk&quot;,x,y)
+ 		chunk.bIsDead =3D true
++		if (chunk.fastbatch) then chunk.fastbatch:Destroy() end
+ 		if (chunk.pStaticGeometryTerrain) then chunk.pStaticGeometryTerrain:Dest=
+roy() chunk.pStaticGeometryTerrain =3D nil end
+ 		if (chunk.terraingfx) then chunk.terraingfx:Destroy() chunk.terraingfx =
+=3D nil end
+ 		if (chunk.pTerrainEntity) then chunk.pTerrainEntity:Destroy() chunk.pTer=
+rainEntity =3D nil end
+
+Modified: trunk/lua/lib.3d.mousepick.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.mousepick.lua (original)
++++ trunk/lua/lib.3d.mousepick.lua Sat Jan  5 01:03:04 2008
+@@ -90,7 +90,7 @@
+ 							local x,y,z =3D entity.gfx.billboard:GetDerivedPosition()
+ 							fHitDist =3D SphereRayPick(x,y,z,0.5,rx,ry,rz,rvx,rvy,rvz) -- 0.5 r=
+ad
+ 							bHit =3D (fHitDist ~=3D nil)
+-						else
++						elseif (entity.staticentity) then
+ 							bHit,fHitDist =3D entity.staticentity:RayPick(rx,ry,rz,rvx,rvy,rvz,
+ 								entity.x,entity.y,entity.z,
+ 								entity.qw,entity.qx,entity.qy,entity.qz,
+
+Modified: trunk/lua/lib.static.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.static.lua (original)
++++ trunk/lua/lib.static.lua Sat Jan  5 01:03:04 2008
+@@ -162,9 +162,7 @@
+ =
+
+ function GetStaticMeshOrientation (iTileTypeID)
+ 	local w,x,y,z =3D FilterOrientation(iTileTypeID)
+-	if (not w or not x or not y or not z) then
+-		w,x,y,z =3D Quaternion.identity()
+-	end
++	if (not w) then return 1,0,0,0 end -- identity
+ 	return w,x,y,z
+ end
+ =
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000525.html">[Iris-commit] [IRIS] r1709 - /trunk/lua/lib.3d.dynamic.lua
+</A></li>
+	<LI>Next message: <A HREF="000528.html">[Iris-commit] [IRIS] r1711 - in /trunk/lua: lib.3d.map.lua	lib.3d.mousepick.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#526">[ date ]</a>
+              <a href="thread.html#526">[ thread ]</a>
+              <a href="subject.html#526">[ subject ]</a>
+              <a href="author.html#526">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,693 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2980 - in /trunk/lua: ./ gui/ net/ obj/
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2009-April/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2980%20-%20in%20/trunk/lua%3A%20./%20gui/%20net/%20obj/&In-Reply-To=%3C20090404202340.1EA2E1C1881E%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   <LINK REL="Next"  HREF="001780.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2980 - in /trunk/lua: ./ gui/ net/ obj/</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2980%20-%20in%20/trunk/lua%3A%20./%20gui/%20net/%20obj/&In-Reply-To=%3C20090404202340.1EA2E1C1881E%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2980 - in /trunk/lua: ./ gui/ net/ obj/">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat Apr  4 22:23:39 CEST 2009</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="001780.html">[Iris-commit] [IRIS] r2981 - in /trunk/lua: lib.proxy.lua main.lua	net/net.login.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1779">[ date ]</a>
+              <a href="thread.html#1779">[ thread ]</a>
+              <a href="subject.html#1779">[ subject ]</a>
+              <a href="author.html#1779">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sat Apr  4 22:23:39 2009
+New Revision: 2980
+
+Log:
+some experiments with login procedure
+
+Modified:
+    trunk/lua/gui/gui.gumpparser.lua
+    trunk/lua/lib.mapblock.spawner.lua
+    trunk/lua/lib.net.lua
+    trunk/lua/lib.protocol.lua
+    trunk/lua/lib.uotooltip.lua
+    trunk/lua/net/net.dynamic.lua
+    trunk/lua/net/net.extended.lua
+    trunk/lua/net/net.generic.lua
+    trunk/lua/net/net.login.lua
+    trunk/lua/net/net.mobile.lua
+    trunk/lua/net/net.other.lua
+    trunk/lua/net/net.packethandlers.lua
+    trunk/lua/net/net.world.lua
+    trunk/lua/obj/obj.mobile.lua
+    trunk/lua/obj/obj.player.lua
+
+Modified: trunk/lua/gui/gui.gumpparser.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.gumpparser.lua (original)
++++ trunk/lua/gui/gui.gumpparser.lua Sat Apr  4 22:23:39 2009
+@@ -141,7 +141,7 @@
+ 	return params
+ end
+ =
+
+-function CloseServerSideGump (playerId, dialogId, buttonId)
++function CloseServerSideGump (playerId, dialogId, buttonId, bServerSideClo=
+se)
+ 	if (buttonId) then
+ 		printdebug(&quot;gump&quot;,&quot;CloseServerSideGump dialogId=3D&quot;..dialogId..&quot; buttonI=
+d=3D&quot;..buttonId)
+ 	else
+@@ -150,6 +150,7 @@
+ =
+
+ 	local dialog =3D gServerSideGump[dialogId]
+ 	if (not dialog) then printdebug(&quot;gump&quot;,&quot;CloseServerSideGump : dialog not =
+found=3D&quot;,dialogId) return end
++	if (bServerSideClose) then return end -- no return message if gump was cl=
+osed by server
+ 	if (dialog.SendClose) then dialog:SendClose(buttonId) return end
+ 	=
+
+ 	local params =3D ServerSideGump_GetParams(dialogId)
+
+Modified: trunk/lua/lib.mapblock.spawner.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mapblock.spawner.lua (original)
++++ trunk/lua/lib.mapblock.spawner.lua Sat Apr  4 22:23:39 2009
+@@ -81,18 +81,6 @@
+ 	for block,v in pairs(self.pMapBlocks) do if (block.bx =3D=3D bx and block=
+.by =3D=3D by) then return block end end =
+
+ end
+ =
+
+-function GetOneLineBackTrace (l)
+-	local res =3D {}
+-	l =3D (l or 1) + 1
+-	repeat =
+
+-		local i =3D debug.getinfo(l,&quot;Sl&quot;)
+-		if (not i ) then break end
+-		table.insert(res,i.source..&quot;:&quot;..i.currentline)
+-		l =3D l + 1
+-	until l &gt; 5
+-	return table.concat(res,&quot; &quot;)
+-end
+-
+ function cMapBlockSpawner:CreateMapBlock	(bx,by)
+ 	--~ print(&quot;cMapBlockSpawner:CreateMapBlock&quot;,bx,by)
+ 	local block =3D CreateClassInstance(self.pBlockClass, bx,by)
+
+Modified: trunk/lua/lib.net.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.net.lua (original)
++++ trunk/lua/lib.net.lua Sat Apr  4 22:23:39 2009
+@@ -27,9 +27,11 @@
+ function GetSendFIFO () return gSendFifo end
+ function GetRecvFIFO () return gRecvFifoOverride or gRecvFifo end
+ =
+
+-function NetSendPacket ()
+-	if (PacketVideo_BlockSend(gSendFifo)) then return end
+-	LogOutgoingPacket(gSendFifo,gSendFifo:Size()) =
+
++function NetSendPacket (ignored,bOutsideProtocol) -- bOutsideProtocol is o=
+nly true for the first few bytes sent
++	if (not bOutsideProtocol) then =
+
++		if (PacketVideo_BlockSend(gSendFifo)) then gSendFifo:Clear() return end
++		LogOutgoingPacket(gSendFifo,gSendFifo:Size()) =
+
++	end
+ 	NetTrafficStep()
+ end
+ =
+
+@@ -42,8 +44,18 @@
+ 	if (not gMainConnection) then return false end
+ 	NetTrafficStep()
+ 	local out =3D GetSendFIFO()
+-	out:PushNetUint32(key)		--IP from Client/or GameAccount, only required fo=
+r osi servers (uncompressed/unencrypted)
+-	out:SendPacket()
++	if (gAlternateProtocolStart) then
++		out:PushNetUint8(0xef)
++		out:SendPacket(true)
++		-- gPacketType.kPacket_Edit =3D { id=3D0x0A, size=3D11 }
++		for k,v in ipairs({0x0a,0x00,0x02,0x0f,0x00,0x00,0x00,0x06,0x00,0x00,0x0=
+0,0x00,0x00,0x00,0x00,0x09,0x00,0x00,0x00,0x02}) do =
+
++			out:PushNetUint8(v)
++		end
++		out:SendPacket(true)
++	else
++		out:PushNetUint32(key)		--IP from Client/or GameAccount, only required f=
+or osi servers (uncompressed/unencrypted)
++		out:SendPacket(true)
++	end
+ 	return true
+ end
+ =
+
+
+Modified: trunk/lua/lib.protocol.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.protocol.lua (original)
++++ trunk/lua/lib.protocol.lua Sat Apr  4 22:23:39 2009
+@@ -92,11 +92,23 @@
+ function LogPacket (fifo,len,direction) =
+
+ 	if (not gLogPackets or not (len &gt; 0)) then return end
+ 	local cmd =3D fifo:PeekNetUint8(0)
++	if (gFileNoLogPackets and in_array(cmd,gFileNoLogPackets)) then return end
+ =
+
+ 	local dirother =3D (direction =3D=3D &quot;Client&quot;) and &quot;Server&quot; or &quot;Client&quot;
+ 	local subtime =3D Client_GetTicks()
++	if (cmd =3D=3D 0xff) then print(&quot;########!!!!!!! 0xFF sent : &quot;,GetOneLine=
+BackTrace(2)) os.exit(0) end
+ 	local name =3D gPacketTypeId2Name[cmd] or &quot;???&quot;
+-	local info =3D sprintf(&quot;%s.%d: %s -&gt; %s 0x%02X (Length: %d, name=3D%s)\n&quot;=
+,os.date(&quot;%H:%M:%S&quot;),subtime,direction,dirother,cmd,len,name)
++	local traceback =3D &quot;&quot;
++	--~ local traceback =3D (not gPacketLogBackTrace) and (&quot; trace=3D&quot;..GetOn=
+eLineBackTrace(4)) or &quot;&quot;
++	if (MyGetBackTrace) then traceback =3D (not gPacketLogBackTrace) and (&quot; t=
+race=3D&quot;..MyGetBackTrace(4,&quot; &quot;)) or &quot;&quot; end
++	=
+
++	local info =3D &quot;&quot;
++	=
+
++	local t =3D subtime
++	if (gLastPacketLogTime) then info =3D info..&quot;timediff	&quot;..(t-gLastPacketLo=
+gTime)..&quot;\n&quot; end
++	gLastPacketLogTime =3D t
++		=
+
++	info =3D info..sprintf(&quot;%s.%d: %s -&gt; %s 0x%02X (Length: %d) (name=3D%s%s)=
+\n&quot;,os.date(&quot;%H:%M:%S&quot;),subtime,direction,dirother,cmd,len,name,traceback)
+ 	-- 17:55:14.5486: Client -&gt; Server 0x80 (Length: 62)
+ 	info =3D info..&quot;        0  1  2  3  4  5  6  7   8  9  A  B  C  D  E  F\n&quot;
+ 	info =3D info..&quot;       -- -- -- -- -- -- -- --  -- -- -- -- -- -- -- --\n&quot;
+@@ -128,6 +140,9 @@
+ 		end
+ 		info =3D info..sprintf(&quot;%04X   &quot;,linepos)..hexdump..&quot;  &quot;..ascidump..&quot;\n&quot;
+ 	end
++	=
+
++	if (gPacketLogBackTrace) then info =3D info..&quot;\n&quot;..MyGetBackTrace(4)..&quot;\n=
+\n&quot; end
++	=
+
+ 	info =3D info..&quot;\n\n&quot;
+ 	=
+
+ 	if (gPacketLogInit) then
+
+Modified: trunk/lua/lib.uotooltip.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.uotooltip.lua (original)
++++ trunk/lua/lib.uotooltip.lua Sat Apr  4 22:23:39 2009
+@@ -76,6 +76,7 @@
+ -- if clilochash is wrong, request new megacliloc tooltip from server
+ -- used in function gPacketHandler.kPacket_AOSObjProp()  &amp;  gPacketHandler=
+.kPacket_Generic_Command()
+ function Send_ToolTipRequest(objserial)
++	if (gDisableAosToolTipRequests) then return end
+ 	gAosToolTipRequested[objserial] =3D true =
+
+ 	local out =3D GetSendFIFO()
+ 	out:PushNetUint8(kPacket_Generic_Command)
+
+Modified: trunk/lua/net/net.dynamic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.dynamic.lua (original)
++++ trunk/lua/net/net.dynamic.lua Sat Apr  4 22:23:39 2009
+@@ -147,6 +147,10 @@
+ 	gProfiler_Container_Contents:Section(&quot;Hook_Container_Contents&quot;)
+ 	NotifyListener(&quot;Hook_Container_Contents&quot;,iLastSerial)
+ 	gProfiler_Container_Contents:End()
++	=
+
++	if (gSendSelfDoubleClickAtNextContainerContents and gLoginConfirmPlayerSe=
+rial) then =
+
++		gSendSelfDoubleClickAtNextContainerContents =3D false
++		Send_DoubleClick(BitwiseOR(gLoginConfirmPlayerSerial,0x80000000)) end --=
+ 0x800... : prevents dismount, and only opens paperdoll
+ end
+ =
+
+ -- This is sent by the server to add/update a single item to a container. =
+(response to player dragdrop)
+
+Modified: trunk/lua/net/net.extended.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.extended.lua (original)
++++ trunk/lua/net/net.extended.lua Sat Apr  4 22:23:39 2009
+@@ -9,6 +9,7 @@
+ =
+
+ -- answer : kPacket_ExtBundledPacket
+ function	PartySendQueryPos () =
+
++	if (gDisableSendingPartyPos) then return end
+ 	local out =3D GetSendFIFO()
+ 	out:PushNetUint8(kPacket_ExtBundledPacket) -- 0xF0
+ 	out:PushNetUint16(4)
+
+Modified: trunk/lua/net/net.generic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.generic.lua (original)
++++ trunk/lua/net/net.generic.lua Sat Apr  4 22:23:39 2009
+@@ -106,7 +106,7 @@
+ 		local dialogId =3D input:PopNetUint32()
+ 		local buttonId =3D (size &gt;=3D 5+4+4) and input:PopNetUint32() or 0
+ 		local playermobile =3D GetPlayerMobile()
+-		CloseServerSideGump(playermobile.serial,dialogId,buttonId)
++		CloseServerSideGump(playermobile.serial,dialogId,buttonId,true)
+ 		printdebug(&quot;net&quot;,sprintf(&quot;NET: kPacket_Generic_SubCommand_CloseGenericGu=
+mp (0xbf sub=3D0x04)&quot;))
+ 	end
+ =
+
+
+Modified: trunk/lua/net/net.login.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.login.lua (original)
++++ trunk/lua/net/net.login.lua Sat Apr  4 22:23:39 2009
+@@ -259,17 +259,20 @@
+ 	=
+
+ 	mobiledata.hue	=3D 0
+ 	local playerid =3D mobiledata.serial
++	=
+
++	=
+
++	gLoginConfirmPlayerSerial =3D mobiledata.serial
++	print(&quot;#########!!!!!!!!!gLoginConfirmPlayerSerial&quot;,gLoginConfirmPlayerSe=
+rial)
+ =
+
+ 	--Request Skills and stats
+ 	Send_ClientQuery(gRequest_Skills,playerid)
+ =
+
+ 	--Send Client ident string
+-	Send_ClientVersion(gClientVersion or &quot;4.0.11c5 3D&quot;)
+-
+-	Send_Screensize()
+-	Send_ClientLanguage(gLanguage or &quot;ENU&quot;)
+-	Send_UnknownCommand()
+-	Send_UnknownSE()
++	if (gAltenatePostLoginHandling) then =
+
++		InvokeLater(1000,SendLoginConfirmSpecials)
++	else
++		SendLoginConfirmSpecials()
++	end
+ 	--~ Send_UpdateRangeRequest(gUpdateRange_Base)
+ =
+
+ 	StartInGame()
+@@ -277,6 +280,25 @@
+ 	-- TODO : HintStartPosition(mobiledata.xloc, mobiledata.yloc, mobiledata.=
+zloc) hint for campos ?
+ 	UpdatePlayerBodySerial(mobiledata.serial)
+ 	CreateOrUpdateMobile(mobiledata)
++end
++
++function SendLoginConfirmSpecials ()
++	print(&quot;#########!!!!!!!!!SendLoginConfirmSpecials&quot;,gAltenatePostLoginHand=
+ling,gLoginConfirmPlayerSerial)
++	if (gAltenatePostLoginHandling and gLoginConfirmPlayerSerial) then Send_C=
+lientQuery(0x05,gLoginConfirmPlayerSerial,true) end
++	Send_ClientVersion(gClientVersion or &quot;4.0.11c5 3D&quot;) =
+
++	Send_Screensize()
++	Send_ClientLanguage(gLanguage or &quot;ENU&quot;) =
+
++	Send_UnknownCommand() =
+
++	if (not gAltenatePostLoginHandling) then Send_UnknownSE() end
++	--~ if (gPlayerBackPack) then Send_DoubleClick(gPlayerBackPack.serial) end
++	gSendSelfDoubleClickAtNextContainerContents =3D true
++	--~ if (gLoginConfirmPlayerSerial) then Send_DoubleClick(BitwiseOR(gLogin=
+ConfirmPlayerSerial,0x80000000)) end -- 0x800... : prevents dismount, and o=
+nly opens paperdoll
++	Send_ClientQuery(0x04,gLoginConfirmPlayerSerial,true)
++	if (gAltenatePostLoginHandling) then =
+
++		RegisterIntervalStepper(4000,function ()
++			Send_UnknownSE(math.random(1,255))
++			end) =
+
++	end
+ end
+ =
+
+ -- if packet is received we can Start the Game now !
+@@ -352,7 +374,8 @@
+ -- Send Packets -----------------------------------------------------------
+ =
+
+ function UOLoginPushFilledStringAddByte (fifo,str,filllen,addbyte)
+-	-- original seem to place addbyte=3D0x74 after the first 0 byte in the st=
+ring.. (hybrid check?)
++	if (true) then fifo:PushFilledString(str,filllen) return end -- deactivat=
+ed for now
++	-- original seem to place addbyte=3D0x74 after the first 0 byte in the st=
+ring.. (hybrid check?) ..nope...
+ 	local namefifo =3D CreateFIFO()
+ 	namefifo:PushFilledString(str,filllen)
+ 	local bWaitForFirstZero =3D true
+@@ -382,6 +405,7 @@
+ 	out:PushFilledString(sPassword,30)
+ 	out:PushNetUint8(iSeed or hex2num(&quot;0x5D&quot;))
+ 	out:SendPacket()
++	gNextPingTime =3D gMyTicks + gPingInterval
+ end
+ =
+
+ -- send gameserverselect to loginserver : kPacket_Server_Select 0xA0
+@@ -506,18 +530,18 @@
+ 	out:PushNetUint8(0x00)
+ 	out:PushNetUint8(0x00)
+ 	out:PushNetUint8(0x00)
+-	out:PushNetUint32(0x01000000)
++	out:PushNetUint32(0x00000000)
+ 	=
+
+ 	-- addr0x30
+-	out:PushNetUint32(0x34000000) -- was 0x30000000  before?
++	out:PushNetUint32(0x37000000) -- was 0x30000000  before?
+ 	out:PushNetUint32(0x00000000)
+ 	out:PushNetUint32(0x00000000)
+ 	out:PushNetUint32(0x00000000)
+ 	=
+
+ 	-- addr0x40
+ 	out:PushNetUint32(0x00000000)
+-	out:PushNetUint32(0x000A0002)
+-	out:PushNetUint8(0x0F)
++	out:PushNetUint32(0x007F0C22)
++	out:PushNetUint8(0x38)
+ 	=
+
+ 	=
+
+ 	--[[ old :31.03.2009
+@@ -535,7 +559,8 @@
+ end
+ =
+
+ -- client identification  0x34
+-function Send_ClientQuery(iMode,iCharacterID)
++function Send_ClientQuery(iMode,iCharacterID,bAlternateForced)
++	if (gbDisableClientQuery and (not bAlternateForced)) then return end
+ 	LoginDebug2(&quot;s:0x34 Send_ClientQuery&quot;..iMode..sprintf(&quot;:0x%08x&quot;,iCharacte=
+rID))
+ 	--~ print(_TRACEBACK())
+ 	local out =3D GetSendFIFO()
+@@ -567,7 +592,7 @@
+ 	out:PushNetUint8(kPacket_Generic_Command) -- 0xBF
+ 	out:PushNetUint16(hex2num(&quot;0x09&quot;))
+ 	out:PushNetUint16(kPacket_Generic_SubCommand_ClientLanguage)
+-	out:PushFilledString(lang, 3)
++	out:PushFilledString(string.lower(lang), 3)
+ 	out:PushNetUint8(0)
+ 	out:SendPacket()
+ end
+@@ -578,10 +603,10 @@
+ 	printdebug(&quot;login&quot;,sprintf(&quot;NET: Client submits Screensize=3D%s\n&quot;,&quot;x,y&quot;))
+ 	local out =3D GetSendFIFO()
+ 	out:PushNetUint8(kPacket_Generic_Command) -- 0xBF
+-	out:PushNetUint16(hex2num(&quot;0x0D&quot;))
++	out:PushNetUint16(0x0D)
+ 	out:PushNetUint16(kPacket_Generic_SubCommand_Screensize)
+-	out:PushNetUint32(hex2num(&quot;0x00000320&quot;))
+-	out:PushNetUint32(hex2num(&quot;0x01FFFFA7&quot;))
++	out:PushNetUint32(0x00000320)
++	out:PushNetUint32(0x3FE9AC28)
+ 	out:SendPacket()
+ end
+ =
+
+@@ -591,21 +616,23 @@
+ 	printdebug(&quot;login&quot;,sprintf(&quot;NET: Client submits Unknowncmd=3D%s\n&quot;,&quot;0x0A0=
+000001F&quot;))
+ 	local out =3D GetSendFIFO()
+ 	out:PushNetUint8(kPacket_Generic_Command) -- 0xBF
+-	out:PushNetUint16(hex2num(&quot;0x0A&quot;))
+-	out:PushNetUint16(hex2num(&quot;0x000F&quot;))
+-	out:PushNetUint32(hex2num(&quot;0x0A000000&quot;))
+-	out:PushNetUint8(hex2num(&quot;0x1F&quot;))
+-	out:SendPacket()
+-end
++	out:PushNetUint16(0x0A)
++	out:PushNetUint16(0x000F)
++	out:PushNetUint32(0x0A000000)
++	out:PushNetUint8(0x3F) -- old:0x1F
++	out:SendPacket()
++end
++
++
+ =
+
+ -- Submits UnknownSE
+-function Send_UnknownSE()
++function Send_UnknownSE(databyte)
+ 	LoginDebug2(&quot;s:0xBF Send_UnknownSE&quot;)
+ 	printdebug(&quot;login&quot;,sprintf(&quot;NET: Client submits UnknownSE%s\n&quot;,&quot;&quot;))
+ 	local out =3D GetSendFIFO()
+ 	out:PushNetUint8(kPacket_Generic_Command) -- 0xBF
+-	out:PushNetUint16(hex2num(&quot;0x06&quot;))
++	out:PushNetUint16(0x06)
+ 	out:PushNetUint16(kPacket_Generic_SubCommand_UnknownSE)
+-	out:PushNetUint8(hex2num(&quot;0x83&quot;))
+-	out:SendPacket()
+-end
++	out:PushNetUint8(databyte or 0x83)
++	out:SendPacket()
++end
+
+Modified: trunk/lua/net/net.mobile.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.mobile.lua (original)
++++ trunk/lua/net/net.mobile.lua Sat Apr  4 22:23:39 2009
+@@ -107,6 +107,11 @@
+ 	=
+
+ 	--~ print(&quot;#&gt;--&lt;#kPacket_Teleport&quot;,sprintf(&quot;0x%08x&quot;,mobiledata.serial),mo=
+biledata.xloc,mobiledata.yloc)
+ 	NotifyTeleport(mobiledata) -- calls CreateOrUpdateMobile and assigns play=
+erid
++
++	if (gReceivedSunlight and gAltenatePostLoginHandling and (not gFirstTelep=
+ortHandled)) then
++		gFirstTeleportHandled =3D true
++		Send_DoubleClick(0x4192CF5B) -- todo : remembered backpack id ?
++	end
+ end
+ =
+
+ =
+
+
+Modified: trunk/lua/net/net.other.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.other.lua (original)
++++ trunk/lua/net/net.other.lua Sat Apr  4 22:23:39 2009
+@@ -10,14 +10,20 @@
+ gPingInterval =3D 61000 --61000 exact pingpong time from client-&gt;server-&gt;c=
+lient (61sec) in msec, 1000=3D1second
+ =
+
+ function PingStep ()
++	if (gLastKnownNextPingTime ~=3D gNextPingTime) then =
+
++		gLastKnownNextPingTime =3D gNextPingTime
++		print(&quot;PingStep NextTimeUpdateDetected t/next&quot;,gMyTicks,gNextPingTime)
++	end
++	--~ print(&quot;pingstep&quot;,gNextPingTime,gMyTicks,gMyTicks &gt;=3D gNextPingTime,I=
+sNetConnected(),gPingActive)
+ 	if (gMyTicks &gt;=3D gNextPingTime and IsNetConnected() and gPingActive) then
++		if (gNextPingTime &gt; 0 and (not gStartGameWithoutNetwork)) then Send_Ping=
+() end -- don't send the first time...
+ 		gNextPingTime =3D gMyTicks + gPingInterval
+-		if (not gStartGameWithoutNetwork) then Send_Ping() end
+ 	end
+ end
+ =
+
+ -- 0x73 : send every gPingInterval
+ function Send_Ping ()
++	print(&quot;sendping&quot;)
+ 	local out =3D GetSendFIFO()
+ 	out:PushNetUint8(kPacket_Ping)
+ 	out:PushNetUint8(0) -- value, usually 0
+
+Modified: trunk/lua/net/net.packethandlers.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.packethandlers.lua (original)
++++ trunk/lua/net/net.packethandlers.lua Sat Apr  4 22:23:39 2009
+@@ -20,6 +20,16 @@
+ 	paperdoll.flag		=3D input:PopNetUint8()
+ 	=
+
+ 	HandleOpenPaperdoll(paperdoll)
++	=
+
++	if (gAltenatePostLoginHandling) then
++		if (not gFirstPaperdollReceived) then
++			gFirstPaperdollReceived =3D true
++			InvokeLater(2000,function () =
+
++				print(&quot;#######!!!!!!!!! postlogin open backpack?&quot;,gPlayerBackPack,gPla=
+yerBackPack and gPlayerBackPack.serial)
++				if (gPlayerBackPack) then Send_DoubleClick(gPlayerBackPack.serial) end
++				end)
++		end
++	end
+ end
+ =
+
+ -- Request WarMode Change/Send War Mode Status
+
+Modified: trunk/lua/net/net.world.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.world.lua (original)
++++ trunk/lua/net/net.world.lua Sat Apr  4 22:23:39 2009
+@@ -46,6 +46,7 @@
+ 	local id =3D input:PopNetUint8()
+ 	local sunlight =3D input:PopNetUint8()
+ 	printdebug(&quot;net&quot;,sprintf(&quot;NET: Sunlight id: %i sunlight: %i\n&quot;,id,sunligh=
+t))
++	gReceivedSunlight =3D true
+ =
+
+ 	local f =3D gIgnoreGlobalLightLevel and 1 or (1 - (sunlight/0x1F))
+ =
+
+
+Modified: trunk/lua/obj/obj.mobile.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/obj/obj.mobile.lua (original)
++++ trunk/lua/obj/obj.mobile.lua Sat Apr  4 22:23:39 2009
+@@ -91,7 +91,7 @@
+ 	NotifyListener(&quot;Hook_Object_CreateMobile&quot;,mobile)
+ 	=
+
+ 	-- for mobile names and tooltips
+-	Send_SingleClick(serial,true)
++	if (not gDisableSingleClickOnMobInit) then Send_SingleClick(serial,true) =
+end
+ 	gMobileSerialMemory[serial] =3D true
+ 	=
+
+ 	return mobile
+
+Modified: trunk/lua/obj/obj.player.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/obj/obj.player.lua (original)
++++ trunk/lua/obj/obj.player.lua Sat Apr  4 22:23:39 2009
+@@ -33,7 +33,7 @@
+ 		if ((not gPlayerBackPack) or (gPlayerBackPack.serial ~=3D backpack.seria=
+l)) then
+ 			-- backpack item changed
+ 			gPlayerBackPack =3D backpack
+-			if (gPlayerBackPack) then Send_DoubleClick(gPlayerBackPack.serial) end
++			if (gPlayerBackPack and (not gAltenatePostLoginHandling)) then Send_Dou=
+bleClick(gPlayerBackPack.serial) end
+ 		end
+ 	-- else TODO : maybe check if backpack was removed ? must look if playeri=
+d is available so far
+ 	end
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="001780.html">[Iris-commit] [IRIS] r2981 - in /trunk/lua: lib.proxy.lua main.lua	net/net.login.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1779">[ date ]</a>
+              <a href="thread.html#1779">[ thread ]</a>
+              <a href="subject.html#1779">[ subject ]</a>
+              <a href="author.html#1779">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

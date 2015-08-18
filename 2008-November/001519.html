@@ -1,0 +1,902 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2715 - in /trunk: lua/lib.uoutils.lua lua/net/net.mobile.lua lua/net/net.text.lua lua/net/net.trade.lua lua/obj/obj.mobile.lua lua/obj/obj.player.lua lua/widgets/widget.uotooltip.lua plugins/moblist.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-November/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2715%20-%20in%20/trunk%3A%20lua/lib.uoutils.lua%0A%20lua/net/net.mobile.lua%20lua/net/net.text.lua%20lua/net/net.trade.lua%0A%20lua/obj/obj.mobile.lua%20lua/obj/obj.player.lua%0A%20lua/widgets/widget.uotooltip.lua%20plugins/moblist.lua&In-Reply-To=%3C20081111205029.E71781C1879B%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001518.html">
+   <LINK REL="Next"  HREF="001520.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2715 - in /trunk: lua/lib.uoutils.lua lua/net/net.mobile.lua lua/net/net.text.lua lua/net/net.trade.lua lua/obj/obj.mobile.lua lua/obj/obj.player.lua lua/widgets/widget.uotooltip.lua plugins/moblist.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2715%20-%20in%20/trunk%3A%20lua/lib.uoutils.lua%0A%20lua/net/net.mobile.lua%20lua/net/net.text.lua%20lua/net/net.trade.lua%0A%20lua/obj/obj.mobile.lua%20lua/obj/obj.player.lua%0A%20lua/widgets/widget.uotooltip.lua%20plugins/moblist.lua&In-Reply-To=%3C20081111205029.E71781C1879B%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2715 - in /trunk: lua/lib.uoutils.lua lua/net/net.mobile.lua lua/net/net.text.lua lua/net/net.trade.lua lua/obj/obj.mobile.lua lua/obj/obj.player.lua lua/widgets/widget.uotooltip.lua plugins/moblist.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Tue Nov 11 21:50:29 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001518.html">[Iris-commit] [IRIS] r2714 - in /trunk/lua: config_declarations.lua gui/gui.popup.lua gui/gui.trade.lua lib.macrolist.lua lib.net.lua lib.walking3.lua net/net.dynamic.lua net/net.login.lua net/net.text.lua net/net.trade.lua
+</A></li>
+        <LI>Next message: <A HREF="001520.html">[Iris-commit] [IRIS] r2716 - in /trunk: lua/lib.corpse.lua lua/widgets/widget.uotooltip.lua plugins/moblist.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1519">[ date ]</a>
+              <a href="thread.html#1519">[ thread ]</a>
+              <a href="subject.html#1519">[ subject ]</a>
+              <a href="author.html#1519">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Tue Nov 11 21:50:28 2008
+New Revision: 2715
+
+Log:
+uogamers : amount added to tiletype-name-tooltip, net.text handling unified=
+, moblist target line name : ??? fixed, exact pos used, color dark if dead/=
+out of range,  removed mobile zombie marker code, fixed shopgump crash if o=
+ut of sight
+
+Modified:
+    trunk/lua/lib.uoutils.lua
+    trunk/lua/net/net.mobile.lua
+    trunk/lua/net/net.text.lua
+    trunk/lua/net/net.trade.lua
+    trunk/lua/obj/obj.mobile.lua
+    trunk/lua/obj/obj.player.lua
+    trunk/lua/widgets/widget.uotooltip.lua
+    trunk/plugins/moblist.lua
+
+Modified: trunk/lua/lib.uoutils.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.uoutils.lua (original)
++++ trunk/lua/lib.uoutils.lua Tue Nov 11 21:50:28 2008
+@@ -51,6 +51,7 @@
+ 	else return 0 end
+ end
+ =
+
++function GetItemTooltipOrLabel (serial) return AosToolTip_GetText(serial) =
+or GetItemLabel(serial) end
+ =
+
+ -- hack to replace german umlauts by two letters (ae)
+ function UnicodeFix (text) =
+
+
+Modified: trunk/lua/net/net.mobile.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.mobile.lua (original)
++++ trunk/lua/net/net.mobile.lua Tue Nov 11 21:50:28 2008
+@@ -23,7 +23,6 @@
+ 	end
+ 	=
+
+ 	local mobile =3D CreateOrUpdateMobile(mobiledata)
+-	if (mobile) then mobile:NoZombie() end
+ end
+ =
+
+ -- Equipped_MOB packet (0x78)
+@@ -217,7 +216,7 @@
+ =
+
+ 	--printf(&quot;NET : kPacket_Mobile_Stats mobile=3D0x%08x name=3D%s\n&quot;,mobiles=
+erial,stats.name)
+ 	=
+
+-	local mobile =3D GetMobile(mobileserial) if (mobile) then mobile:NoZombie=
+() end
++	local mobile =3D GetMobile(mobileserial)
+ 	Mobile_UpdateStats(mobileserial,stats)
+ end
+ =
+
+
+Modified: trunk/lua/net/net.text.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.text.lua (original)
++++ trunk/lua/net/net.text.lua Tue Nov 11 21:50:28 2008
+@@ -1,40 +1,195 @@
++gItemLabelCache =3D {} -- gItemLabelCache[serial]=3D{t=3D?,label=3D?}
++
++function GetItemLabel (serial) =
+
++	local o =3D gItemLabelCache[serial] =
+
++	return o and o.label
++end
++
++
++-- ***** ***** ***** ***** ***** incoming text
++
++function HandleUOText (data)
++	local mobile =3D GetMobile(data.serial) =
+
++	local serial =3D data.serial
++	--~ if (data.type =3D=3D kTextType_Label) then ItemLabel(data.serial,text=
+_charname,text_message) end
++	=
+
++	local r,g,b =3D 1,1,1
++	local show_below =3D true	-- display as fadeline
++	local show_journal =3D true	-- display in journal
++	=
+
++	if data.type =3D=3D kTextType_Normal then	r,g,b =3D 1,1,1 end
++	if data.type =3D=3D kTextType_System then	r,g,b =3D 0,0,1 end
++	if data.type =3D=3D kTextType_Emote then	r,g,b =3D 0,1,0 end
++	if data.type =3D=3D kTextType_Label then =
+
++		show_journal =3D false =
+
++		if mobile then
++			show_below =3D false =
+
++			Mobile_NameHint(data.serial,data.artid,data.name,data.text)
++			r,g,b =3D 1,1,1 =
+
++		end
++	end	-- 0x06 - System/Lower Corner, label?
++	if data.type =3D=3D kTextType_Corner			 then r,g,b =3D 1,0,0 end	=
+
++	if data.type =3D=3D kTextType_Whisper			 then r,g,b =3D 1,1,1 end	=
+
++	if data.type =3D=3D kTextType_Yell				 then r,g,b =3D 1,1,1 end	=
+
++	if data.type =3D=3D kTextType_Spell				 then r,g,b =3D 0,1,1 end	=
+
++	if data.type =3D=3D kTextType_Guild				 then r,g,b =3D 0,1,0 end	 =
+
++	if data.type =3D=3D kTextType_Alliance			 then r,g,b =3D 0,1,0 end	=
+
++	if data.type =3D=3D kTextType_CommandPrompt		 then r,g,b =3D 1,0,1 end		=
+
++	=
+
++	if data.hue then r,g,b =3D Uo16Color2Rgb(data.hue) end
++	=
+
++	-- update label
++	if data.type =3D=3D kTextType_Label then
++		local label
++		if (beginswith(data.text,data.name)) then =
+
++			label =3D data.text  -- name=3Dmina plaintext=3Dmina the banker
++		else
++			label =3D data.name .. &quot; &quot; .. data.text -- name=3Dmandrake plaintext=3D=
+15  ??? =
+
++		end
++		gItemLabelCache[serial] =3D {t=3DClient_GetTicks(),label=3Dlabel}
++	else
++		-- no label yet, so use name
++		if (not gItemLabelCache[serial]) then gItemLabelCache[serial] =3D {t=3DC=
+lient_GetTicks(),label=3Ddata.name} end
++	end
++	=
+
++	--[[
++	-- brighten up the color
++	local h,s,v =3D ColorRGB2HSV(r,g,b)
++	v =3D math.min(1,v + gFontDefs[&quot;Chat&quot;].brigth)
++	s =3D math.max(0,s - gFontDefs[&quot;Chat&quot;].brigth/2)
++	r,g,b =3D ColorHSV2RGB(h,s,v)
++	]]--
++	=
+
++	=
+
++	--~ Mobile_NameHint(data.serial,data.artid,data.name,data.text)  -- name =
+alone ??
++	=
+
++	local plaintext =3D UnicodeFix(string.gsub(data.text,&quot;&lt;br&gt;&quot;,&quot;\n&quot;))
++	=
+
++	if show_below then
++		if string.len(data.name) &gt; 0 then =
+
++			GuiAddChatLine(sprintf(&quot;%s: %s&quot;,data.name,plaintext),{r,g,b,1})
++		else
++			GuiAddChatLine(plaintext,{r,g,b,1})
++		end
++	end
++	=
+
++	if show_journal then
++		JournalAddText(data.name,plaintext)
++	end
++	=
+
++	NotifyListener(&quot;Hook_Text&quot;,data.name,plaintext,data.serial)
++	=
+
++	if (mobile) then mobile:DisplayTextOverHead(plaintext,r,g,b) end
++	=
+
++	NotifyListener(&quot;Hook_MobName&quot;,data.serial,data.name)
++	=
+
++	=
+
++	=
+
++	--~ if (data.serial =3D=3D 0xffffffff and data.artid =3D=3D 0xffff) then =
+sysmessage ?? decide by type
++end
++
++-- ***** ***** ***** ***** ***** incoming text packets
+ =
+
+ -- Text (Speech) receive 0x1C
+ -- Pol use thi spacket to send names when you single click on items or NPC=
+s. OSI's method uses 0xC1
+ -- TODO : handle System messages
+ function gPacketHandler.kPacket_Text ()
+-	local input =3D GetRecvFIFO()
+-	local id =3D input:PopNetUint8()
+-	local size =3D input:PopNetUint16()
+-	local mobile_serial =3D input:PopNetUint32()
+-	local text_item_model =3D input:PopNetUint16() -- model ? artid ?
+-	local text_type =3D input:PopNetUint8()
+-	local text_color =3D input:PopNetUint16()
+-	local text_font =3D input:PopNetUint16()
+-	local text_charname =3D input:PopFilledString(30)
+-	local text_message =3D input:PopFilledString(size-44)
+-	=
+
+-	Mobile_NameHint(mobile_serial,text_item_model,text_charname,text_message)
+-
+-	-- check if System Message
+-	if (mobile_serial =3D=3D hex2num(&quot;0xffffffff&quot;) and text_item_model =3D=3D=
+ hex2num(&quot;0xffff&quot;)) then
+-		printdebug(&quot;net&quot;,sprintf(&quot;NET: System Message %s:%s\n&quot;,text_charname,tex=
+t_message) )
+-	end
+-
+-	printdebug(&quot;net&quot;,sprintf(&quot;NET: Text id: 0x%08x model id: 0x%08x Message: =
+%s\n&quot;,mobile_serial,text_item_model,text_message) )
+-	local plaintext =3D string.gsub(text_message,&quot;&lt;br&gt;&quot;,&quot;\n&quot;)
+-	plaintext =3D UnicodeFix(plaintext)
+-	GuiAddChatLine(sprintf(&quot;%s: %s&quot;,text_charname,plaintext)) -- TODO : color=
+,font,...
+-	JournalAddText(text_charname,plaintext)
+-	NotifyListener(&quot;Hook_Text&quot;,text_charname,plaintext,mobile_serial)
+-	=
+
+-	-- check if player -&gt; then show text over player head
+-	local mobilespeaker=3DGetMobile(mobile_serial)
+-	if (mobilespeaker) then mobilespeaker:NoZombie() mobilespeaker:DisplayTex=
+tOverHead(string.gsub(text_message,&quot;&lt;br&gt;&quot;,&quot;\n&quot;),Uo16Color2Rgb(text_color)) =
+end
+-	-- TODO : text_item ?!?
+-	NotifyListener(&quot;Hook_Packet_Text&quot;,mobile_serial,plaintext)
+-	NotifyListener(&quot;Hook_MobName&quot;,mobile_serial,text_charname)
+-end
++	local input		=3D GetRecvFIFO()
++	local id		=3D input:PopNetUint8()
++	local size		=3D input:PopNetUint16()
++	local data		=3D {}
++	data.serial		=3D input:PopNetUint32()
++	data.artid		=3D input:PopNetUint16()
++	data.type		=3D input:PopNetUint8() -- see &quot;Text types&quot; in lib.uoids.lua
++	data.color		=3D input:PopNetUint16()
++	data.font		=3D input:PopNetUint16()
++	data.name		=3D input:PopFilledString(30)
++	data.text		=3D input:PopFilledString(size-44)
++	HandleUOText(data)
++	NotifyListener(&quot;Hook_Packet_Text&quot;,data.serial,data.text)
++end
++
++
++-- aka Cliloc Message Affix  : see also <A HREF="http://docs.polserver.com/packets/=">http://docs.polserver.com/packets/=</A>
+index.php?Packet=3D0xCC
++-- e.g. skilltrainer npc says how much gold he wants
++function gPacketHandler.kPacket_Localized_Text_Plus_String () -- 0xCC
++	local input 	=3D GetRecvFIFO()
++	local id		=3D input:PopNetUint8()	-- 1
++	local size		=3D input:PopNetUint16()	-- 2
++	local data 		=3D {}
++	data.serial		=3D input:PopNetUint32()	-- 4
++	data.artid		=3D input:PopNetUint16()	-- 2
++	data.type		=3D input:PopNetUint8()	-- 1 -- see &quot;Text types&quot; in lib.uoids.=
+lua
++	data.hue		=3D input:PopNetUint16()	-- 2
++	data.font		=3D input:PopNetUint16()	-- 2
++	data.clilocid	=3D input:PopNetUint32()	-- 4
++	data.flags		=3D input:PopNetUint8() 	-- 1 (0x02 is unknown, 0x04 signals =
+the message doesn't move on screen) =
+
++	data.name		=3D input:PopFilledString(30)	=
+
++	=
+
++	size =3D size - 49
++	local affixlen =3D size
++	for i =3D 0,size-1 do if (input:PeekNetUint8(i) =3D=3D 0) then affixlen =
+=3D i + 1 break end end -- search zero terminator
++	=
+
++	local text_affix =3D input:PopFilledString(affixlen) --  null terminated	=
+
++	size =3D size - affixlen	=
+
++	=
+
++	--~ BYTE[?]*2] arguments; // _big-endian_ unicode string, tabs ('\t') sep=
+erate arguments, see 0xC1 for argument example
++	data.params			=3D (size &gt;=3D 2) and strsplit(&quot;\t&quot;,input:PopUnicodeString(=
+size / 2)) or {}
++	data.text 			=3D ParameterizedClilocText(data.clilocid,data.params)
++	=
+
++	if (TestBit(data.flags,0x01)) then
++		data.text =3D text_affix .. data.text  -- prepend
++	else =
+
++		data.text =3D data.text .. text_affix  -- appended
++	end
++	HandleUOText(data)
++end
++
++
++-- Predefined Message (localized Message) 0xC1
++function gPacketHandler.kPacket_Localized_Text ()
++	local input		=3D GetRecvFIFO()
++	local id		=3D input:PopNetUint8()
++	local size		=3D input:PopNetUint16()
++	local data 		=3D {}
++	data.serial		=3D input:PopNetUint32()
++	data.artid		=3D input:PopNetUint16()
++	data.type		=3D input:PopNetUint8() -- see &quot;Text types&quot; in lib.uoids.lua
++	data.hue		=3D input:PopNetUint16()
++	data.font		=3D input:PopNetUint16()
++	data.clilocid	=3D input:PopNetUint32()
++	data.name		=3D input:PopFilledString(30)
++	=
+
++	data.params		=3D strsplit(&quot;\t&quot;,input:PopUnicodeLEString((size - 48 - 2)/2=
+))	--little-endian_ unicode string, tabs ('\t') seperate the arguments. Nul=
+l Terminated 0x0000
++	local terminator =3D input:PopNetUint16() -- probably the seperator unico=
+de char for text_params, &quot;\t&quot; is hardcoded below, string.char(math.floor(te=
+rminator)/256)
++	=
+
++	data.text 		=3D ParameterizedClilocText(data.clilocid,data.params)
++	=
+
++	NotifyListener(&quot;Hook_Packet_Localized_Text&quot;,data.serial,data.text,data.cl=
+ilocid,data.type)
++end
++
++--server response packet for kPacket_Speech_Unicode (0xAD)
++function gPacketHandler.kPacket_Text_Unicode()
++	local input	=3D GetRecvFIFO()
++	local id	=3D input:PopNetUint8()
++	local size	=3D input:PopNetUint16()
++	local data 	=3D {}
++	data.serial	=3D input:PopNetUint32()
++	data.artid	=3D input:PopNetUint16()
++	data.type	=3D input:PopNetUint8()
++	data.hue	=3D input:PopNetUint16()	=
+
++	data.font	=3D input:PopNetUint16()
++	data.lang	=3D input:PopNetUint32() -- ?
++	data.name	=3D input:PopFilledString(30)
++	data.text,data.unicode =3D UniCodeDualPop(input,(size-48)/2)
++	NotifyListener(&quot;Hook_Packet_Text_Unicode&quot;,data.serial,data.text,data.type)
++	HandleUOText(data)
++end
++
++
++
++
++-- ***** ***** ***** ***** ***** text entry
+ =
+
+ =
+
+ -- server requests text entry 0xC2, e.g. rename rune
+@@ -106,190 +261,8 @@
+ 	out:SendPacket()
+ end
+ =
+
+--- aka Cliloc Message Affix  : see also <A HREF="http://docs.polserver.com/packets/=">http://docs.polserver.com/packets/=</A>
+index.php?Packet=3D0xCC
+--- e.g. skilltrainer npc says how much gold he wants
+-function gPacketHandler.kPacket_Localized_Text_Plus_String () -- 0xCC
+-	local input =3D GetRecvFIFO()
+-	local id				=3D input:PopNetUint8()	-- 1
+-	local size				=3D input:PopNetUint16()	-- 2
+-	local data =3D {}
+-	data.speaker_serial		=3D input:PopNetUint32()	-- 4 (0xffff for system mes=
+sage)
+-	data.speaker_body		=3D input:PopNetUint16()	-- 2 (0xff for system message)
+-	data.speaker_align		=3D input:PopNetUint8()	-- 1 type (6 - lower left, 7 =
+on player)
+-	data.hue				=3D input:PopNetUint16()	-- 2
+-	data.font				=3D input:PopNetUint16()	-- 2
+-	data.cliloc_id			=3D input:PopNetUint32()	-- 4
+-	data.flags				=3D input:PopNetUint8() 	-- 1
+-	data.speaker_name		=3D input:PopFilledString(30)	=
+
+-	size =3D size - 49
+-	=
+
+-	local mobile =3D GetMobile(data.speaker_serial) if (mobile) then mobile:N=
+oZombie() end
+-	-- flags : (0x02 is unknown, 0x04 signals the message doesn't move on scr=
+een) =
+
+-	=
+
+-	=
+
+-	local affixlen =3D size
+-	for i =3D 0,size-1 do if (input:PeekNetUint8(i) =3D=3D 0) then affixlen =
+=3D i + 1 break end end -- search zero terminator
+-	=
+
+-	data.affixlen		=3D affixlen	=
+
+-	data.text_affix		=3D input:PopFilledString(affixlen) --  null terminated	=
+
+-	size =3D size - affixlen
+-	data.paramlen		=3D size	=
+
+-	=
+
+-	--~ BYTE[?]*2] arguments; // _big-endian_ unicode string, tabs ('\t') sep=
+erate arguments, see 0xC1 for argument example
+-	data.text_params	=3D (size &gt;=3D 2) and input:PopUnicodeString(size / 2) o=
+r &quot;&quot;
+-	data.text_base 		=3D gClilocLoader and gClilocLoader:Get(data.cliloc_id) =
+or (&quot;unknown_cliloc_&quot;..data.cliloc_id)
+-	data.plaintext 		=3D ParameterizedClilocText(data.cliloc_id,strsplit(&quot;\t&quot;=
+,data.text_params))
+-	=
+
+-	if (TestBit(data.flags,0x01)) then
+-		data.plaintext =3D data.text_affix .. data.plaintext  -- prepend
+-	else =
+
+-		data.plaintext =3D data.plaintext .. data.text_affix  -- appended
+-	end
+-	=
+
+-	-- todo : this is a hack to get unicode somewhat readable, no real unicod=
+e support
+-	data.plaintext =3D UnicodeFix(data.plaintext)
+-	=
+
+-	-- output
+-	=
+
+-	local name =3D data.speaker_name
+-	local plaintext =3D data.plaintext
+-	=
+
+-	if string.len(name) &gt; 0 then =
+
+-		GuiAddChatLine(sprintf(&quot;%s: %s&quot;,name,plaintext)) -- TODO : color,font,...
+-	else
+-		GuiAddChatLine(plaintext) -- TODO : color,font,...
+-	end
+-	JournalAddText(name,plaintext)
+-	NotifyListener(&quot;Hook_Text&quot;,name,plaintext,data.speaker_serial)
+-	NotifyListener(&quot;Hook_MobName&quot;,data.speaker_serial,name)
+-	=
+
+-	--~ print(&quot;kPacket_Localized_Text_Plus_String&quot;)
+-	--~ for k,v in pairs(data) do print(&quot;++&quot;,k,v) end
+-end
+-
+-
+--- Predefined Message (localized Message) 0xC1
+-function gPacketHandler.kPacket_Localized_Text ()
+-	local input =3D GetRecvFIFO()
+-	local id =3D input:PopNetUint8()
+-	local size =3D input:PopNetUint16()
+-	local text_item_serial =3D input:PopNetUint32() -- (0xffffffff for system=
+ message)
+-	local text_item_model =3D input:PopNetUint16() -- (0xffff for system mess=
+age)
+-	local text_type =3D input:PopNetUint8() -- see &quot;Text types&quot; in lib.uoids.=
+lua
+-	local text_color =3D input:PopNetUint16()
+-	local text_font =3D input:PopNetUint16()
+-	local text_messagenum =3D input:PopNetUint32()
+-	local text_charname =3D input:PopFilledString(30)
+-	local text_params =3D input:PopUnicodeLEString((size - 48 - 2)/2)	--littl=
+e-endian_ unicode string, tabs ('\t') seperate the arguments. Null Terminat=
+ed 0x0000
+-	local text_terminator =3D input:PopNetUint16() -- probably the seperator =
+unicode char for text_params, &quot;\t&quot; is hardcoded below, string.char(math.flo=
+or(terminator)/256)
+-	=
+
+-	local plaintext =3D string.gsub(ParameterizedClilocText(text_messagenum,s=
+trsplit(&quot;\t&quot;,text_params)),&quot;&lt;br&gt;&quot;,&quot;\n&quot;)
+-	--~ print(&quot;kPacket_Localized_Text&quot;,plaintext)
+-	=
+
+-	-- TODO : Display as TOOLTIP !
+-	plaintext =3D UnicodeFix(plaintext)
+-	=
+
+-	local show_below =3D true	-- display as fadeline
+-	local show_journal =3D true	-- display in journal
+-	=
+
+-	local mobile =3D GetMobile(text_item_serial) if (mobile) then mobile:NoZo=
+mbie() end
+-	=
+
+-	if text_type =3D=3D kTextType_Label then	-- label
+-		show_journal =3D false
+-		if GetMobile(text_item_serial) then
+-			Mobile_SetName(text_item_serial, text_charname, plaintext)
+-			show_below =3D false
+-		end
+-	end
+-	=
+
+-	if show_below then
+-		if string.len(text_charname) &gt; 0 then =
+
+-			GuiAddChatLine(sprintf(&quot;%s: %s&quot;,text_charname,plaintext)) -- TODO : col=
+or,font,...
+-		else
+-			GuiAddChatLine(plaintext) -- TODO : color,font,...
+-		end
+-	end
+-	=
+
+-	if show_journal then
+-		JournalAddText(text_charname,plaintext)
+-	end
+-	=
+
+-	NotifyListener(&quot;Hook_Text&quot;,text_charname,plaintext,text_item_serial)
+-	NotifyListener(&quot;Hook_Packet_Localized_Text&quot;,text_item_serial,plaintext,te=
+xt_messagenum,text_type)
+-	NotifyListener(&quot;Hook_MobName&quot;,text_item_serial,plaintext,text_messagenum)
+-	=
+
+-	-- print(&quot;###&quot;,text_item_serial,text_item_model,text_type,text_color,text=
+_charname,text_params,text_terminator)
+-end
+-
+---server response packet for kPacket_Speech_Unicode (0xAD)
+-function gPacketHandler.kPacket_Text_Unicode()
+-	local input =3D GetRecvFIFO()
+-	local id =3D input:PopNetUint8()
+-	local unitext_size =3D input:PopNetUint16()
+-	local mobile_serial =3D input:PopNetUint32()
+-	local unitext_item_model =3D input:PopNetUint16()
+-	local unitext_type =3D input:PopNetUint8()
+-	local unitext_hue =3D input:PopNetUint16()	=
+
+-	local unitext_font =3D input:PopNetUint16()
+-	local unitext_lang =3D input:PopNetUint32()
+-	local unitext_name =3D input:PopFilledString(30)
+-	local unitext_message,unitext_message_unicode_charcodes =3D UniCodeDualPo=
+p(input,(unitext_size-48)/2)
+-
+-	local show_below =3D true	-- display as fadeline
+-	local show_journal =3D true	-- display in journal
+-	=
+
+-	unitext_message =3D UnicodeFix(unitext_message)
+-
+-	local r,g,b =3D 1,1,1
+-	=
+
+-	=
+
+-	if unitext_type =3D=3D kTextType_Normal then r,g,b =3D 1,1,1 end
+-	if unitext_type =3D=3D kTextType_System then r,g,b =3D 0,0,1 end
+-	if unitext_type =3D=3D kTextType_Emote then r,g,b =3D 0,1,0 end
+-	if unitext_type =3D=3D kTextType_Label then =
+
+-		show_journal =3D false =
+
+-		if GetMobile(mobile_serial) then
+-			show_below =3D false =
+
+-			Mobile_NameHint(mobile_serial,unitext_item_model,unitext_name,unitext_m=
+essage)
+-			r,g,b =3D 1,1,1 =
+
+-		end
+-	end	-- 0x06 - System/Lower Corner, label?
+-	if unitext_type =3D=3D kTextType_Corner			 	 then r,g,b =3D 1,0,0 end	=
+
+-	if unitext_type =3D=3D kTextType_Whisper			 then r,g,b =3D 1,1,1 end	=
+
+-	if unitext_type =3D=3D kTextType_Yell				 then r,g,b =3D 1,1,1 end	=
+
+-	if unitext_type =3D=3D kTextType_Spell				 then r,g,b =3D 0,1,1 end	=
+
+-	if unitext_type =3D=3D kTextType_Guild				 then r,g,b =3D 0,1,0 end	 =
+
+-	if unitext_type =3D=3D kTextType_Alliance			 then r,g,b =3D 0,1,0 end	=
+
+-	if unitext_type =3D=3D kTextType_CommandPrompt		 then r,g,b =3D 1,0,1 end=
+		=
+
+-	=
+
+-	if unitext_hue then r,g,b =3D Uo16Color2Rgb(unitext_hue) end
+-	=
+
+-	-- brighten up the color
+-	local h,s,v =3D ColorRGB2HSV(r,g,b)
+-	v =3D math.min(1,v + gFontDefs[&quot;Chat&quot;].brigth)
+-	s =3D math.max(0,s - gFontDefs[&quot;Chat&quot;].brigth/2)
+-	r,g,b =3D ColorHSV2RGB(h,s,v)
+-	=
+
+-	printdebug(&quot;net&quot;,sprintf(&quot;NET: UnicodeText speakerid: %i name: %s txtsize=
+:<i> %i msg: %s\n&quot;,mobile_serial,unitext_name,(unitext_size-48)/2,unitext_mess=
+</I>age) )
+-
+-	if show_below then =
+
+-		GuiAddChatLine(unitext_name..&quot;: &quot;..string.gsub(unitext_message,&quot;&lt;br&gt;&quot;,&quot;\=
+n&quot;),{r,g,b,1}) -- TODO : unicode
+-	end
+-	if show_journal then
+-		JournalAddText(unitext_name,unitext_message)
+-	end
+-	=
+
+-	NotifyListener(&quot;Hook_Text&quot;,unitext_name,unitext_message,mobile_serial)
+-	=
+
+-	NotifyListener(&quot;Hook_Packet_Text_Unicode&quot;,mobile_serial,unitext_message,u=
+nitext_type)
+-	NotifyListener(&quot;Hook_MobName&quot;,mobile_serial,unitext_name)
+-
+-	-- check if player -&gt; then show text over player head
+-	local mobilespeaker=3DGetMobile(mobile_serial)
+-	if (mobilespeaker) then mobilespeaker:NoZombie() end
+-	if (mobilespeaker and show_below) then mobilespeaker:DisplayTextOverHead(=
+string.gsub(unitext_message,&quot;&lt;br&gt;&quot;,&quot;\n&quot;),Uo16Color2Rgb(unitext_hue)) end
+-end
+-
++
++-- ***** ***** ***** ***** ***** char profile
+ =
+
+ -- request profile 0xB8
+ function Send_RequestCharacterProfile()
+@@ -316,6 +289,8 @@
+ 	GuiAddChatLine (&quot;Character Profile:&quot;..data.title..&quot;,&quot;..data.pstatic_plain=
+text..&quot;,&quot;..data.p_plaintext)
+ end
+ =
+
++
++-- ***** ***** ***** ***** ***** send speech
+ =
+
+ -- TODO : at first check speech.mul keywords and send them to server
+ function Send_Speech(speech)
+
+Modified: trunk/lua/net/net.trade.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.trade.lua (original)
++++ trunk/lua/net/net.trade.lua Tue Nov 11 21:50:28 2008
+@@ -105,6 +105,10 @@
+ 	local size 		=3D input:PopNetUint16()
+ 	local shop =3D {}
+ 	shop.shopContainerID 	=3D input:PopNetUint32() -- containerid ! (or vendo=
+rserial-1)
++	=
+
++	local shopContainerItem =3D GetObjectBySerial(shop.shopContainerID)
++	if (shopContainerItem and shopContainerItem.mobile) then shop.shopMobileI=
+D =3D shopContainerItem.mobile.serial end
++	=
+
+ 	local oldshop =3D gShop[shop.shopContainerID]
+ 	if (oldshop) then oldshop:Close() end -- TODO : cancel ?
+ 	gShop[shop.shopContainerID] =3D shop
+@@ -193,6 +197,7 @@
+ 	local out =3D GetSendFIFO()
+ 	local numitems =3D goods and table.getn(goods) or 0
+ 	local shopMobileID =3D GetShopMobileID(shop)
++	if (not shopMobileID) then return end
+ 	printdebug(&quot;net&quot;,sprintf(&quot;SendBuyAccept : numitems=3D%d shopContainerID=
+=3D0x%08x mobileserial=3D0x%08x\n&quot;,numitems,shop.shopContainerID,shopMobile=
+ID))
+ 	local len =3D 8 + (numitems * 7)
+ 	out:PushNetUint8(kPacket_Accept_Offer)
+@@ -218,6 +223,7 @@
+ 	local out =3D GetSendFIFO()
+ 	local numitems =3D goods and table.getn(goods) or 0
+ 	local shopMobileID =3D GetShopMobileID(shop)
++	if (not shopMobileID) then return end
+ 	printdebug(&quot;net&quot;,sprintf(&quot;SendSellAccept : numitems=3D%d mobileserial=3D0=
+x%08x\n&quot;,numitems,shopMobileID))
+ 	local len =3D 9 + (numitems * 6)
+ 	out:PushNetUint8(kPacket_Shop_Offer)
+
+Modified: trunk/lua/obj/obj.mobile.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/obj/obj.mobile.lua (original)
++++ trunk/lua/obj/obj.mobile.lua Tue Nov 11 21:50:28 2008
+@@ -114,29 +114,6 @@
+ =
+
+ function gMobilePrototype:SetNotoriety(notoriety) self.notoriety =3D notor=
+iety end -- also written by other means, don't use for notify, only used fo=
+r walk-ack
+ =
+
+--- see gUpdateRange_MobileZombie  (hide to prevent desync with server for =
+dead mobs)
+-function gMobilePrototype:NoZombie	() self:SetZombie(false) end -- mark as=
+ alive, triggered by chat/label or naked-mob/mob-move
+-function gMobilePrototype:SetZombie	(bZombie,t)
+-	--~ t =3D t or Client_GetTicks()
+-	--~ -- print(&quot;mobile:SetZombie&quot;,self.serial,bZombie,((self.iZombiePingCou=
+nt or 0) &gt;=3D 1 and bZombie) and &quot;KILLED&quot; or &quot;&quot;)
+-	--~ if (self.bZombie ~=3D bZombie) then =
+
+-		--~ self.bZombie =3D bZombie
+-		--~ if (not bZombie) then self.iZombiePingCount =3D 0 end
+-		--~ gCurrentRenderer:MobileSetVisible(self,not bZombie)
+-	--~ end
+-	--~ if (bZombie and t &gt; (self.iZombieNextPing or 0)) then
+-		--~ local oldpingc =3D self.iZombiePingCount or 0
+-		--~ if (oldpingc &gt;=3D 1) then =
+
+-			--~ self:Destroy() -- click timeout -&gt; kill
+-		--~ else
+-			--~ self.iZombiePingCount =3D oldpingc + 1
+-			--~ self.iZombieNextPing =3D t + 3000
+-			--~ Send_SingleClick(self.serial)
+-			--~ -- Send_ClientQuery(gRequest_States,self.serial)
+-		--~ end
+-	--~ end
+-end
+-
+ function gMobilePrototype:GetSqDistToPos (xloc,yloc)
+ 	local dx =3D self.xloc - xloc
+ 	local dy =3D self.yloc - yloc
+
+Modified: trunk/lua/obj/obj.player.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/obj/obj.player.lua (original)
++++ trunk/lua/obj/obj.player.lua Tue Nov 11 21:50:28 2008
+@@ -157,8 +157,6 @@
+ 	for k,mobile in pairs(GetMobileList()) do =
+
+ 		if (IsOutsideRange(mobile.xloc,mobile.yloc,player_xloc,player_yloc,range=
+_destroy)) then
+ 			DestroyObjectBySerial(mobile.serial)
+-		elseif (IsOutsideRange(mobile.xloc,mobile.yloc,player_xloc,player_yloc,r=
+ange_zombie)) then =
+
+-			mobile:SetZombie(true,t)
+ 		end =
+
+ 	end
+ end
+
+Modified: trunk/lua/widgets/widget.uotooltip.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/widgets/widget.uotooltip.lua (original)
++++ trunk/lua/widgets/widget.uotooltip.lua Tue Nov 11 21:50:28 2008
+@@ -76,7 +76,10 @@
+ 			else
+ 				local item =3D GetDynamic(serial)
+ 				local artid =3D item and item.artid
+-				if (artid) then tooltiptext =3D GetStaticTileTypeName(artid) end
++				if (artid) then =
+
++					tooltiptext =3D string.gsub(GetStaticTileTypeName(artid) or &quot;&quot;,&quot;%%s%%=
+&quot;,&quot;&quot;) =
+
++					if (item.amount &gt; 0) then tooltiptext =3D item.amount .. &quot; &quot; .. toolt=
+iptext end
++				end
+ 			end
+ 		end
+ 	end
+
+Modified: trunk/plugins/moblist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/plugins/moblist.lua (original)
++++ trunk/plugins/moblist.lua Tue Nov 11 21:50:28 2008
+@@ -172,7 +172,7 @@
+ 	if (self.maintarget_serial) then
+ 		gfx:SetVisible(true)
+ 		gfx2:SetVisible(true)
+-		name =3D name or MobListShortenName(AosToolTip_GetText(serial) or &quot;???&quot;)
++		name =3D name or MobListShortenName(GetItemTooltipOrLabel(serial) or &quot;??=
+?&quot;)
+ 		gfx:SetText(name)
+ 		MacroSetLastTarget(serial)
+ 	else
+@@ -204,7 +204,7 @@
+ 		local xloc,yloc,zloc
+ 		local bInRange =3D true
+ 		if (mobile) then =
+
+-			xloc,yloc,zloc =3D mobile.xloc,mobile.yloc,mobile.zloc
++			xloc,yloc,zloc =3D gCurrentRenderer:GetExactMobilePos(mobile)
+ 			self.maintarget_last_xloc =3D xloc
+ 			self.maintarget_last_yloc =3D yloc
+ 			self.maintarget_last_zloc =3D zloc
+@@ -229,6 +229,7 @@
+ 		local y =3D max(miny,min(maxy,(py or 0)))
+ 		local x2 =3D x*fi + f*gViewportW*0.5
+ 		local y2 =3D y*fi + f*gViewportH*0.5
++		if (bInRange) then gfx2:SetColParam(1,0,0) else gfx2:SetColParam(0.2,0,0=
+) end
+ 		gfx2:SetLineList({{x2,y2,0,x,y,0}})
+ 	end
+ end
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001518.html">[Iris-commit] [IRIS] r2714 - in /trunk/lua: config_declarations.lua gui/gui.popup.lua gui/gui.trade.lua lib.macrolist.lua lib.net.lua lib.walking3.lua net/net.dynamic.lua net/net.login.lua net/net.text.lua net/net.trade.lua
+</A></li>
+	<LI>Next message: <A HREF="001520.html">[Iris-commit] [IRIS] r2716 - in /trunk: lua/lib.corpse.lua lua/widgets/widget.uotooltip.lua plugins/moblist.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1519">[ date ]</a>
+              <a href="thread.html#1519">[ thread ]</a>
+              <a href="subject.html#1519">[ subject ]</a>
+              <a href="author.html#1519">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

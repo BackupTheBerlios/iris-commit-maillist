@@ -1,0 +1,128 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1236 - in /branches/knut/src: data.cpp	scripting.cpp
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2007-June/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1236%20-%20in%20/branches/knut/src%3A%20data.cpp%0A%09scripting.cpp&In-Reply-To=%3C20070624182536.0E899B1466D%40localhost.localdomain%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000051.html">
+   <LINK REL="Next"  HREF="000053.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1236 - in /branches/knut/src: data.cpp	scripting.cpp</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1236%20-%20in%20/branches/knut/src%3A%20data.cpp%0A%09scripting.cpp&In-Reply-To=%3C20070624182536.0E899B1466D%40localhost.localdomain%3E"
+       TITLE="[Iris-commit] [IRIS] r1236 - in /branches/knut/src: data.cpp	scripting.cpp">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sun Jun 24 20:25:34 CEST 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000051.html">[Iris-commit] [IRIS] r1235 - in /trunk/data: lua/lib.debugmenu.lua lua/lib.models.lua skippedfallbacks.lua
+</A></li>
+        <LI>Next message: <A HREF="000053.html">[Iris-commit] [IRIS] r1237 - in /branches/knut/data/lua: gui/gui.gumpmanager.lua gui/gui.main.lua gui/gui.paperdoll.lua gui/gui.status.lua gui/gui.widget.lua lib.loading.lua lib.skill.lua net/net.mobile.lua obj/obj.mobile.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#52">[ date ]</a>
+              <a href="thread.html#52">[ thread ]</a>
+              <a href="subject.html#52">[ subject ]</a>
+              <a href="author.html#52">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sun Jun 24 20:25:32 2007
+New Revision: 1236
+
+Log:
+fixed Crash function in scripting.cpp to output a stacktrace, secured unifo=
+ntloader a little bit, still needs more
+
+Modified:
+    branches/knut/src/data.cpp
+    branches/knut/src/scripting.cpp
+
+Modified: branches/knut/src/data.cpp
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- branches/knut/src/data.cpp (original)
++++ branches/knut/src/data.cpp Sun Jun 24 20:25:32 2007
+@@ -821,7 +821,9 @@
+ =
+
+ RawUniFontFileLetterHeader* cUniFontFileLoader::GetLetterHeader	(const uns=
+igned int iCode){ PROFILE
+ 	// read out offset of letter header
+-	uint32 offset =3D *((uint32 *)(mpFullFileBuffer + iCode*4));
++	int32 offset =3D ((int32 *)(mpFullFileBuffer))[iCode];
++	if (offset =3D=3D -1)return 0;
++	if (offset &lt; 0)return 0;
+ 	// valid?
+ 	if(offset + sizeof(RawUniFontFileLetterHeader) &lt; miFullFileSize)return (R=
+awUniFontFileLetterHeader *)(mpFullFileBuffer + offset);
+ 	else return 0;
+
+Modified: branches/knut/src/scripting.cpp
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- branches/knut/src/scripting.cpp (original)
++++ branches/knut/src/scripting.cpp Sun Jun 24 20:25:32 2007
+@@ -910,10 +910,12 @@
+ 	exit((lua_gettop(L) &gt;=3D 1 &amp;&amp; !lua_isnil(L,1)) ? luaL_checkint(L,1) : 0); =
+
+ 	return 0; =
+
+ }
++
++void MyCrash		(const char* szMessage); // see main.cpp
+ =
+
+ static int l_Crash		 		(lua_State *L) { PROFILE =
+
+-	DisplayErrorMessage(&quot;CRASH triggered from script, see console for info (s=
+tart with commandline option -c)&quot;);
+-	exit(88); =
+
++	MyCrash(&quot;CRASH triggered from script, see console for info (start with co=
+mmandline option -c)&quot;); // does not return...
++	exit(88);  =
+
+ 	return 0; =
+
+ }
+ =
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000051.html">[Iris-commit] [IRIS] r1235 - in /trunk/data: lua/lib.debugmenu.lua lua/lib.models.lua skippedfallbacks.lua
+</A></li>
+	<LI>Next message: <A HREF="000053.html">[Iris-commit] [IRIS] r1237 - in /branches/knut/data/lua: gui/gui.gumpmanager.lua gui/gui.main.lua gui/gui.paperdoll.lua gui/gui.status.lua gui/gui.widget.lua lib.loading.lua lib.skill.lua net/net.mobile.lua obj/obj.mobile.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#52">[ date ]</a>
+              <a href="thread.html#52">[ thread ]</a>
+              <a href="subject.html#52">[ subject ]</a>
+              <a href="author.html#52">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

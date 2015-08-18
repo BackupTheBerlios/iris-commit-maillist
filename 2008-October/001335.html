@@ -1,0 +1,538 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2530 - in /trunk: lua/ lua/gui/ lua/net/	lua/widgets/ plugins/
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-October/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2530%20-%20in%20/trunk%3A%20lua/%20lua/gui/%20lua/net/%0A%09lua/widgets/%20plugins/&In-Reply-To=%3C20081010222039.A415A1C186A4%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001334.html">
+   <LINK REL="Next"  HREF="001336.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2530 - in /trunk: lua/ lua/gui/ lua/net/	lua/widgets/ plugins/</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2530%20-%20in%20/trunk%3A%20lua/%20lua/gui/%20lua/net/%0A%09lua/widgets/%20plugins/&In-Reply-To=%3C20081010222039.A415A1C186A4%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2530 - in /trunk: lua/ lua/gui/ lua/net/	lua/widgets/ plugins/">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat Oct 11 00:20:36 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001334.html">[Iris-commit] [IRIS] r2529 - in /trunk: cb/THIS_IS_OBSOLETE lua/main.lua vc7/THIS_IS_OBSOLETE vc9/THIS_IS_OBSOLETE
+</A></li>
+        <LI>Next message: <A HREF="001336.html">[Iris-commit] [IRIS] r2531 - /trunk/lua/lib.2d.renderer.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1335">[ date ]</a>
+              <a href="thread.html#1335">[ thread ]</a>
+              <a href="subject.html#1335">[ subject ]</a>
+              <a href="author.html#1335">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sat Oct 11 00:20:34 2008
+New Revision: 2530
+
+Log:
+new tooltip widgets used for 3d as well, auto-request tooltips for objects =
+if the server hasn't sent them
+
+Modified:
+    trunk/lua/gui/gui.paperdoll.lua
+    trunk/lua/lib.2d.mousepick.lua
+    trunk/lua/lib.uotooltip.lua
+    trunk/lua/net/net.packethandlers.lua
+    trunk/lua/widgets/widget.uocontaineritem.lua
+    trunk/lua/widgets/widget.uopaperdollitem.lua
+    trunk/lua/widgets/widget.widget.uoquickcasticon.lua
+    trunk/plugins/hudenemylist.lua
+
+Modified: trunk/lua/gui/gui.paperdoll.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.paperdoll.lua (original)
++++ trunk/lua/gui/gui.paperdoll.lua Sat Oct 11 00:20:34 2008
+@@ -423,6 +423,7 @@
+ 			local k =3D gLayerTypeName[layer]
+ 			local item =3D GetMobileEquipmentItem(mobile,layer)
+ 			if (item) then =
+
++				AosToolTip_GetText(item.serial)
+ 				local gumpid =3D GetPaperdollItemGumpID(item.artid,base_id)
+ 				if (gumpid) then PreLoadGump(gumpid) end
+ 				if gLayerOrderPositionAndArtOverwrite[layer] then PreLoadArt(item.arti=
+d + 0x4000) end
+
+Modified: trunk/lua/lib.2d.mousepick.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.mousepick.lua (original)
++++ trunk/lua/lib.2d.mousepick.lua Sat Oct 11 00:20:34 2008
+@@ -15,7 +15,7 @@
+ 		if (serial =3D=3D 0) then serial =3D nil end
+ 	end
+ 	=
+
+-	SetUOToolTipAtMouse(serial)
++	StartUOToolTipAtMouse_Serial(serial)
+ end
+ =
+
+ function Renderer2D:MousePick_Scene () =
+
+
+Modified: trunk/lua/lib.uotooltip.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.uotooltip.lua (original)
++++ trunk/lua/lib.uotooltip.lua Sat Oct 11 00:20:34 2008
+@@ -1,7 +1,7 @@
+ gUOToolTipSerial =3D nil
+ gUOToolTipDialog =3D nil
+ =
+
+-function SetUOToolTipAtMouse (serial)
++function StartUOToolTipAtMouse_Serial (serial)
+ 	if (gUOToolTipSerial =3D=3D serial) then return end
+ 	CloseOldUOToolTip()
+ 	gUOToolTipSerial =3D serial
+@@ -12,10 +12,14 @@
+ 	=
+
+ 	local iMouseX,iMouseY =3D GetMousePos()
+ 	gUOToolTipDialog =3D gRootWidget.tooltip:CreateChild(&quot;UOToolTip&quot;,{serial=
+=3Dserial,x=3DiMouseX,y=3DiMouseY+32})
++	return gUOToolTipDialog
+ end
+ =
+
+ function CloseOldUOToolTip ()
+-	if (gUOToolTipDialog) then gUOToolTipDialog:Destroy() gUOToolTipDialog =
+=3D nil end
++	if (gUOToolTipDialog) then =
+
++		if (gUOToolTipDialog:IsAlive()) then gUOToolTipDialog:Destroy() end
++		gUOToolTipDialog =3D nil =
+
++	end
+ 	gUOToolTipSerial =3D nil
+ end
+ =
+
+@@ -23,4 +27,118 @@
+ 	CloseOldUOToolTip()
+ 	local iMouseX,iMouseY =3D GetMousePos()
+ 	gUOToolTipDialog =3D gRootWidget.tooltip:CreateChild(&quot;UOToolTip&quot;,{text=3D=
+text,x=3DiMouseX,y=3DiMouseY+32})
++	return gUOToolTipDialog
+ end
++
++
++
++
++
++
++
++-- if clilochash is wrong, request new megacliloc tooltip from server
++-- used in function gPacketHandler.kPacket_AOSObjProp()  &amp;  gPacketHandler=
+.kPacket_Generic_Command()
++function Send_ToolTipRequest(objserial)
++	gAosToolTipRequested[objserial] =3D true =
+
++	local out =3D GetSendFIFO()
++	out:PushNetUint8(kPacket_Generic_Command)
++	out:PushNetUint16(hex2num(&quot;0x0009&quot;))
++	out:PushNetUint16(hex2num(&quot;0x0010&quot;))
++	out:PushNetUint32(objserial)
++	out:SendPacket()
++end
++
++--Client -&gt; Server: 0xD6 (AOSToolTip), frequ: 1, len: 0x07
++--word	- Packet Size
++--loop	- Item Info; count =3D (Packet Size-3)/4
++--dword	- Serial
++--endloop	- Item Info
++function Send_AosToolTipRequest(objserial)
++	local out =3D GetSendFIFO()
++	out:PushNetUint8(kPacket_Mega_Cliloc)
++	out:PushNetUint16(hex2num(&quot;0x0007&quot;))
++	out:PushNetUint32(objserial)
++	out:SendPacket()
++end
++
++gAosToolTipHash =3D {}
++gAosToolTipText =3D {}
++gAosToolTipRequested =3D {}
++function AosToolTip_GetHash (serial) return gAosToolTipHash[serial] end
++function AosToolTip_GetText (serial) =
+
++	local tip =3D gAosToolTipText[serial]
++	if (tip) then return tip end
++	if (gAosToolTipRequested[serial]) then return end -- already requested
++	Send_ToolTipRequest(serial) -- tooltip might be available next time
++end
++function AosToolTip_SetHash (serial,hash) gAosToolTipHash[serial] =3D hash=
+ end
++function AosToolTip_SetText (serial,text) gAosToolTipText[serial] =3D text=
+ end
++
++-- Newer packet as of late 2004.
++-- Is now used on OSI to handle the Revision of Tooltips instead of the or=
+iginal 0xBF methods it appears.
++-- server sends these automatically when a new object appears, doesn't hav=
+e to be requested
++function gPacketHandler.kPacket_AOSObjProp()	--0xDC (9 bytes)
++	local input =3D GetRecvFIFO()
++	local id =3D input:PopNetUint8()
++	local objserial =3D input:PopNetUint32()			--Item/Mob-Serial
++	local objrevision_hash =3D input:PopNetUint32()
++	printdebug(&quot;net&quot;,sprintf(&quot;NET: AOSObjProp objserial=3D0x%08x objrevision_=
+hash=3D0x%08x\n&quot;,objserial,objrevision_hash))
++	if (AosToolTip_GetHash(objserial) ~=3D objrevision_hash) then
++		AosToolTip_SetHash(objserial,objrevision_hash)
++		-- print(&quot;Send_ToolTipRequest&quot;,objserial,objrevision_hash)
++		Send_ToolTipRequest(objserial)
++	end
++end
++
++-- Mega Cliloc - server sends new Clilocs - just add them to the Cliloc
++-- TODO : this cliloc additions might be local to a specific mobile, e.g. =
+vendor or container...
++function gPacketHandler.kPacket_Mega_Cliloc()	--0xD6
++	local input			=3D GetRecvFIFO()
++	local id			=3D input:PopNetUint8()
++	local size			=3D input:PopNetUint16()
++	local unknown1		=3D input:PopNetUint16()	--0x0001 or 0x4000 !?
++	local serial		=3D input:PopNetUint32()	--Serial of item/creature
++	local unknown2		=3D input:PopNetUint16()	--0x0000 !?
++	local unknown3		=3D input:PopNetUint32()	--another serial? hash? weird fl=
+ags ? position ? 0x030c0ca3
++		-- unknown3 in old iris code : obj/character-&gt;SetAOSTooltipID(listID);
++	=
+
++	local totaltext =3D &quot;&quot;
++	local bFirst =3D true
++	=
+
++	while true do =
+
++		local cliloc_id =3D input:PopNetUint32()
++		if (cliloc_id =3D=3D 0x00000000) then break end
++		local cliloctext =3D gClilocLoader and gClilocLoader:Get(cliloc_id) or &quot;&quot;
++		=
+
++		local number_of_unicode_chars =3D input:PopNetUint16() / 2
++		local text =3D &quot;&quot;
++		local totalparamtext =3D &quot;&quot;
++		local debugtxt =3D &quot;&quot;
++		local params =3D {}
++		for i =3D 1,number_of_unicode_chars do  -- read unicode text and split b=
+y 0x09 =3D tab
++			local head =3D input:PopUint8()
++			local data =3D input:PopUint8()
++			local c =3D ((head~=3D0) and string.char(head) or &quot;?&quot;)
++			if (head =3D=3D 9 and data =3D=3D 0) then -- delimiter =3D tab=3D0x09
++				table.insert(params,text)
++				text =3D &quot;&quot;
++			else
++				text =3D text..c
++			end
++			totalparamtext =3D totalparamtext..c
++			debugtxt =3D debugtxt..&quot;(&quot;..head..&quot;,&quot;..data..&quot;:&quot;..c..&quot;)&quot;
++		end
++		table.insert(params,text)
++		=
+
++		local text =3D string.gsub(ParameterizedClilocText(cliloc_id,params),&quot;&lt;b=
+r&gt;&quot;,&quot;\n&quot;)
++		=
+
++		if (bFirst) then bFirst =3D false else totaltext =3D totaltext..&quot;\n&quot; end
++		totaltext =3D totaltext..text
++		--~ printf(&quot;NET: Mega_Cliloc LINE : text=3D'%s' clilocbase=3D'%s' totalp=
+aramtext=3D'%s' debug=3D%s\n&quot;,text,cliloctext,totalparamtext,debugtxt)
++	end
++	printdebug(&quot;net&quot;, sprintf(&quot;NET: Mega_Cliloc : serial=3D%d u3=3D%d text=3D=
+'%s'\n&quot;,serial,unknown3,totaltext) )
++	AosToolTip_SetText(serial,totaltext)
++end
++
++
++
+
+Modified: trunk/lua/net/net.packethandlers.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.packethandlers.lua (original)
++++ trunk/lua/net/net.packethandlers.lua Sat Oct 11 00:20:34 2008
+@@ -32,100 +32,3 @@
+ 	NotifyWarmode(flag)
+ end
+ =
+
+--- if clilochash is wrong, request new megacliloc tooltip from server
+--- used in function gPacketHandler.kPacket_AOSObjProp()  &amp;  gPacketHandler=
+.kPacket_Generic_Command()
+-function Send_ToolTipRequest(objserial)
+-	local out =3D GetSendFIFO()
+-	out:PushNetUint8(kPacket_Generic_Command)
+-	out:PushNetUint16(hex2num(&quot;0x0009&quot;))
+-	out:PushNetUint16(hex2num(&quot;0x0010&quot;))
+-	out:PushNetUint32(objserial)
+-	out:SendPacket()
+-end
+-
+---Client -&gt; Server: 0xD6 (AOSToolTip), frequ: 1, len: 0x07
+---word	- Packet Size
+---loop	- Item Info; count =3D (Packet Size-3)/4
+---dword	- Serial
+---endloop	- Item Info
+-function Send_AosToolTipRequest(objserial)
+-	local out =3D GetSendFIFO()
+-	out:PushNetUint8(kPacket_Mega_Cliloc)
+-	out:PushNetUint16(hex2num(&quot;0x0007&quot;))
+-	out:PushNetUint32(objserial)
+-	out:SendPacket()
+-end
+-
+-gAosToolTipHash =3D {}
+-gAosToolTipText =3D {}
+-function AosToolTip_GetHash (serial) return gAosToolTipHash[serial] end
+-function AosToolTip_GetText (serial) return gAosToolTipText[serial] end
+-function AosToolTip_SetHash (serial,hash) gAosToolTipHash[serial] =3D hash=
+ end
+-function AosToolTip_SetText (serial,text) gAosToolTipText[serial] =3D text=
+ end
+-
+--- Newer packet as of late 2004.
+--- Is now used on OSI to handle the Revision of Tooltips instead of the or=
+iginal 0xBF methods it appears.
+--- server sends these automatically when a new object appears, doesn't hav=
+e to be requested
+-function gPacketHandler.kPacket_AOSObjProp()	--0xDC (9 bytes)
+-	local input =3D GetRecvFIFO()
+-	local id =3D input:PopNetUint8()
+-	local objserial =3D input:PopNetUint32()			--Item/Mob-Serial
+-	local objrevision_hash =3D input:PopNetUint32()
+-	printdebug(&quot;net&quot;,sprintf(&quot;NET: AOSObjProp objserial=3D0x%08x objrevision_=
+hash=3D0x%08x\n&quot;,objserial,objrevision_hash))
+-	if (AosToolTip_GetHash(objserial) ~=3D objrevision_hash) then
+-		AosToolTip_SetHash(objserial,objrevision_hash)
+-		-- print(&quot;Send_ToolTipRequest&quot;,objserial,objrevision_hash)
+-		Send_ToolTipRequest(objserial)
+-	end
+-end
+-
+--- Mega Cliloc - server sends new Clilocs - just add them to the Cliloc
+--- TODO : this cliloc additions might be local to a specific mobile, e.g. =
+vendor or container...
+-function gPacketHandler.kPacket_Mega_Cliloc()	--0xD6
+-	local input			=3D GetRecvFIFO()
+-	local id			=3D input:PopNetUint8()
+-	local size			=3D input:PopNetUint16()
+-	local unknown1		=3D input:PopNetUint16()	--0x0001 or 0x4000 !?
+-	local serial		=3D input:PopNetUint32()	--Serial of item/creature
+-	local unknown2		=3D input:PopNetUint16()	--0x0000 !?
+-	local unknown3		=3D input:PopNetUint32()	--another serial? hash? weird fl=
+ags ? position ? 0x030c0ca3
+-		-- unknown3 in old iris code : obj/character-&gt;SetAOSTooltipID(listID);
+-	=
+
+-	local totaltext =3D &quot;&quot;
+-	local bFirst =3D true
+-	=
+
+-	while true do =
+
+-		local cliloc_id =3D input:PopNetUint32()
+-		if (cliloc_id =3D=3D hex2num(&quot;0x00000000&quot;)) then break end
+-		local cliloctext =3D gClilocLoader and gClilocLoader:Get(cliloc_id) or &quot;&quot;
+-		=
+
+-		local number_of_unicode_chars =3D input:PopNetUint16() / 2
+-		local text =3D &quot;&quot;
+-		local totalparamtext =3D &quot;&quot;
+-		local debugtxt =3D &quot;&quot;
+-		local params =3D {}
+-		for i =3D 1,number_of_unicode_chars do  -- read unicode text and split b=
+y 0x09 =3D tab
+-			local head =3D input:PopUint8()
+-			local data =3D input:PopUint8()
+-			local c =3D ((head~=3D0) and string.char(head) or &quot;?&quot;)
+-			if (head =3D=3D 9 and data =3D=3D 0) then -- delimiter =3D tab=3D0x09
+-				table.insert(params,text)
+-				text =3D &quot;&quot;
+-			else
+-				text =3D text..c
+-			end
+-			totalparamtext =3D totalparamtext..c
+-			debugtxt =3D debugtxt..&quot;(&quot;..head..&quot;,&quot;..data..&quot;:&quot;..c..&quot;)&quot;
+-		end
+-		table.insert(params,text)
+-		=
+
+-		local text =3D string.gsub(ParameterizedClilocText(cliloc_id,params),&quot;&lt;b=
+r&gt;&quot;,&quot;\n&quot;)
+-		=
+
+-		if (bFirst) then bFirst =3D false else totaltext =3D totaltext..&quot;\n&quot; end
+-		totaltext =3D totaltext..text
+-		--~ printf(&quot;NET: Mega_Cliloc LINE : text=3D'%s' clilocbase=3D'%s' totalp=
+aramtext=3D'%s' debug=3D%s\n&quot;,text,cliloctext,totalparamtext,debugtxt)
+-	end
+-	printdebug(&quot;net&quot;, sprintf(&quot;NET: Mega_Cliloc : serial=3D%d u3=3D%d text=3D=
+'%s'\n&quot;,serial,unknown3,totaltext) )
+-	AosToolTip_SetText(serial,totaltext)
+-end
+-
+
+Modified: trunk/lua/widgets/widget.uocontaineritem.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/widgets/widget.uocontaineritem.lua (original)
++++ trunk/lua/widgets/widget.uocontaineritem.lua Sat Oct 11 00:20:34 2008
+@@ -58,8 +58,5 @@
+ function gWidgetPrototype.UOContainerItemWidget:on_mouse_left_down	() end
+ function gWidgetPrototype.UOContainerItemWidget:on_mouse_right_down	() end
+ =
+
+-function gWidgetPrototype.UOContainerItemWidget:on_simple_tooltip	()
+-	if (gCurrentRenderer.gUOToolTipOverride) then return end -- if this is tr=
+ue, then the rendererer handles tooltips
+-	local tooltiptext =3D AosToolTip_GetText(self.item.serial) or &quot;&quot;
+-	return (tooltiptext .. &quot; \n &quot;) or &quot;?&quot; -- add newline, workaround for tool=
+tip sizecalc bug
+-end
++function gWidgetPrototype.UOContainerItemWidget:on_tooltip	() return Start=
+UOToolTipAtMouse_Serial(self.item.serial) end
++
+
+Modified: trunk/lua/widgets/widget.uopaperdollitem.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/widgets/widget.uopaperdollitem.lua (original)
++++ trunk/lua/widgets/widget.uopaperdollitem.lua Sat Oct 11 00:20:34 2008
+@@ -58,8 +58,4 @@
+ function gWidgetPrototype.UOPaperdollItemWidget:on_mouse_left_down	() end
+ function gWidgetPrototype.UOPaperdollItemWidget:on_mouse_right_down	() end
+ =
+
+-function gWidgetPrototype.UOPaperdollItemWidget:on_simple_tooltip	()
+-	if (gCurrentRenderer.gUOToolTipOverride) then return end -- if this is tr=
+ue, then the rendererer handles tooltips
+-	local tooltiptext =3D AosToolTip_GetText(self.item.serial) or &quot;&quot;
+-	return (tooltiptext .. &quot; \n &quot;) or &quot;?&quot; -- add newline, workaround for tool=
+tip sizecalc bug
+-end
++function gWidgetPrototype.UOPaperdollItemWidget:on_tooltip	() return Start=
+UOToolTipAtMouse_Serial(self.item.serial) end
+
+Modified: trunk/lua/widgets/widget.widget.uoquickcasticon.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/widgets/widget.widget.uoquickcasticon.lua (original)
++++ trunk/lua/widgets/widget.widget.uoquickcasticon.lua Sat Oct 11 00:20:34=
+ 2008
+@@ -83,17 +83,11 @@
+ 	glQuickCastDialog[self] =3D nil
+ end
+ =
+
+-function gWidgetPrototype.UOQuickCastIcon:on_mouse_leave ()	CloseOldUOTool=
+Tip() end
+-function gWidgetPrototype.UOQuickCastIcon:on_mouse_enter () StartUOToolTip=
+AtMouse_Text(self.params.name) end
+-
+ function gWidgetPrototype.UOQuickCastIcon:on_mouse_left_click_double	() se=
+lf.params.fun() end
+ function gWidgetPrototype.UOQuickCastIcon:on_mouse_left_down			() self:Bri=
+ngToFront() self:StartMouseMove() end
+ function gWidgetPrototype.UOQuickCastIcon:on_mouse_right_down			() self:De=
+stroy() end
+ =
+
+-function gWidgetPrototype.UOQuickCastIcon:on_simple_tooltip	() StartUOTool=
+TipAtMouse_Text() end
+-function gWidgetPrototype.UOQuickCastIcon:on_simple_tooltip	()
+-	--~ return self.params.name or &quot;???&quot;
+-end
++function gWidgetPrototype.UOQuickCastIcon:on_tooltip	() return StartUOTool=
+TipAtMouse_Text(self.params.name) end
+ =
+
+ --[[ =
+
+ TODO : keybinding when in focus :  (port me to new gui system)
+
+Modified: trunk/plugins/hudenemylist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/plugins/hudenemylist.lua (original)
++++ trunk/plugins/hudenemylist.lua Sat Oct 11 00:20:34 2008
+@@ -102,10 +102,8 @@
+ 	bar.widget_bg.tooltip_offy =3D kUOToolTippOffY -- obj.container.lua
+ 	bar.widget_bg.stylesetname =3D gGuiDefaultStyleSet
+ 	bar.widget_bg.mobile =3D body -- for mousepick
+-	bar.widget_bg.on_simple_tooltip =3D function (widget) =
+
+-		if (gCurrentRenderer.gUOToolTipOverride) then return end -- if this is t=
+rue, then the rendererer handles tooltips
+-		return AosToolTip_GetText(body.serial) or body.name or &quot;?&quot; =
+
+-	end =
+
++	=
+
++	bar.widget_bg.on_tooltip =3D function (self) return StartUOToolTipAtMouse=
+_Serial(body.serial) end
+ 	-- Ende Tooltip Mod
+ =
+
+ 	local matname =3D GetPlainTextureMat(&quot;bar07.png&quot;,true)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001334.html">[Iris-commit] [IRIS] r2529 - in /trunk: cb/THIS_IS_OBSOLETE lua/main.lua vc7/THIS_IS_OBSOLETE vc9/THIS_IS_OBSOLETE
+</A></li>
+	<LI>Next message: <A HREF="001336.html">[Iris-commit] [IRIS] r2531 - /trunk/lua/lib.2d.renderer.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1335">[ date ]</a>
+              <a href="thread.html#1335">[ thread ]</a>
+              <a href="subject.html#1335">[ subject ]</a>
+              <a href="author.html#1335">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

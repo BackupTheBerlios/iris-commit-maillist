@@ -1,0 +1,170 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2672 - in /trunk: include/data_gump.h	src/data_gump.cpp
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-October/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2672%20-%20in%20/trunk%3A%20include/data_gump.h%0A%09src/data_gump.cpp&In-Reply-To=%3C20081030185158.0B6571C18651%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001475.html">
+   <LINK REL="Next"  HREF="001477.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2672 - in /trunk: include/data_gump.h	src/data_gump.cpp</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2672%20-%20in%20/trunk%3A%20include/data_gump.h%0A%09src/data_gump.cpp&In-Reply-To=%3C20081030185158.0B6571C18651%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2672 - in /trunk: include/data_gump.h	src/data_gump.cpp">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Thu Oct 30 19:51:13 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001475.html">[Iris-commit] [IRIS] r2671 - in /trunk: lua/lib.uoutils.lua lua/net/net.partysystem.lua plugins/moblist.lua
+</A></li>
+        <LI>Next message: <A HREF="001477.html">[Iris-commit] [IRIS] r2673 - /trunk/lua/main.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1476">[ date ]</a>
+              <a href="thread.html#1476">[ thread ]</a>
+              <a href="subject.html#1476">[ subject ]</a>
+              <a href="author.html#1476">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Thu Oct 30 19:51:05 2008
+New Revision: 2672
+
+Log:
+64 bit fix-attempt for gump crash
+
+Modified:
+    trunk/include/data_gump.h
+    trunk/src/data_gump.cpp
+
+Modified: trunk/include/data_gump.h
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/include/data_gump.h (original)
++++ trunk/include/data_gump.h Thu Oct 30 19:51:05 2008
+@@ -5,12 +5,12 @@
+ 	cGump();
+ 	int	GetWidth	();
+ 	int	GetHeight	();
+-	template &lt;class _T&gt; void Decode(short *pBuffer, const int iPitch, _T&amp; fil=
+ter, short* ColorTable) { PROFILE	//&lt; decodes the gump image into a pixelbu=
+ffer (1short/pixel), pitch=3DLength of a surface scanline in bytes
++	template &lt;class _T&gt; void Decode(int16 *pBuffer, const int iPitch, _T&amp; fil=
+ter, int16* ColorTable) { PROFILE	//&lt; decodes the gump image into a pixelbu=
+ffer (1int16/pixel), pitch=3DLength of a surface scanline in bytes
+ 		int w =3D GetWidth();
+ 		int h =3D GetHeight();
+ 		int	iBufferSize =3D iPitch*GetHeight();
+ =
+
+-		long *LookupList =3D (long *)mpRawData;
++		int32 *LookupList =3D (int32 *)mpRawData;
+ 		char *pStart =3D mpRawData;
+ 			=
+
+ 		for(int Y =3D 0; Y &lt; h; Y++) {
+@@ -22,12 +22,12 @@
+ 			}
+ =
+
+ 			int X =3D 0;
+-			short *Value	=3D (short *)(pStart + LookupList[Y]*4);
+-			short *Run		=3D (short *)(pStart + LookupList[Y]*4 + 2);
++			int16 *Value	=3D (int16 *)(pStart + LookupList[Y]*4);
++			int16 *Run		=3D (int16 *)(pStart + LookupList[Y]*4 + 2);
+ 			for(int i =3D 0; i &lt; Size; i++) {
+ 				if (*Value &gt; 0) {
+ 					for(int j =3D 0; j &lt; *Run; j++) {
+-						SecureWrite( (short *)(((char*)(pBuffer + X)) + Y*iPitch), filter( *=
+Value, ColorTable ), pBuffer, iBufferSize, &quot;cGump::Decode&quot;, miID );
++						SecureWrite( (int16 *)(((char*)(pBuffer + X)) + Y*iPitch), filter( *=
+Value, ColorTable ), pBuffer, iBufferSize, &quot;cGump::Decode&quot;, miID );
+ 						X++;
+ 					}
+ 				} else {
+
+Modified: trunk/src/data_gump.cpp
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/src/data_gump.cpp (original)
++++ trunk/src/data_gump.cpp Thu Oct 30 19:51:05 2008
+@@ -35,7 +35,7 @@
+ 	if (gump =3D=3D 0) return;
+ 	int iImgW =3D gump-&gt;GetWidth();
+ 	int iImgH =3D gump-&gt;GetHeight();
+-	short *pImgRaw =3D new short[iImgW*iImgH] ;
++	int16 *pImgRaw =3D new int16[iImgW*iImgH] ;
+ 	memset(pImgRaw,0,2*iImgW*iImgH);
+ 	cSetHighBitFilter Filter;
+ 	gump-&gt;Decode(pImgRaw,iImgW*2,Filter,0);
+@@ -58,12 +58,12 @@
+ 		while (iTexW &lt; iImgW) iTexW &lt;&lt;=3D 1;
+ 		while (iTexH &lt; iImgH) iTexH &lt;&lt;=3D 1;
+ 	}
+-	short *pImgRaw =3D new short[iTexW*iTexH] ;
++	int16 *pImgRaw =3D new int16[iTexW*iTexH] ;
+ 	memset(pImgRaw,0,2*iTexW*iTexH);
+ 	if( iHue &amp;&amp; pHueLoader ) {
+ 		bool PartialHue =3D (iHue &amp; 0x8000);
+ 		iHue =3D iHue &amp; 0x7FFF;
+-		short* ColorTable =3D pHueLoader-&gt;GetHue( iHue-1 )-&gt;GetColors();
++		int16* ColorTable =3D pHueLoader-&gt;GetHue( iHue-1 )-&gt;GetColors();
+ =
+
+ 		if (PartialHue) {
+ 			cPartialHueFilter Filter;
+@@ -103,11 +103,11 @@
+ 	if (gump =3D=3D 0) return false;
+ 	int iImgW =3D gump-&gt;GetWidth();
+ 	int iImgH =3D gump-&gt;GetHeight();
+-	short *pImgRaw =3D new short[iImgW*iImgH] ;
++	int16 *pImgRaw =3D new int16[iImgW*iImgH] ;
+ 	memset(pImgRaw,0,2*iImgW*iImgH);
+ 	if( iHue &amp;&amp; pHueLoader ) {
+ 		bool PartialHue =3D (iHue &amp; 0x8000);
+-		short* ColorTable =3D pHueLoader-&gt;GetHue( (iHue &amp; 0x7FFF)-1 )-&gt;GetColors=
+();
++		int16* ColorTable =3D pHueLoader-&gt;GetHue( (iHue &amp; 0x7FFF)-1 )-&gt;GetColors=
+();
+ =
+
+ 		if (PartialHue) {
+ 			cPartialHueFilter Filter;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001475.html">[Iris-commit] [IRIS] r2671 - in /trunk: lua/lib.uoutils.lua lua/net/net.partysystem.lua plugins/moblist.lua
+</A></li>
+	<LI>Next message: <A HREF="001477.html">[Iris-commit] [IRIS] r2673 - /trunk/lua/main.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1476">[ date ]</a>
+              <a href="thread.html#1476">[ thread ]</a>
+              <a href="subject.html#1476">[ subject ]</a>
+              <a href="author.html#1476">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

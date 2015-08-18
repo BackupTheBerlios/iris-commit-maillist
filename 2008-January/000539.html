@@ -1,0 +1,426 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1723 - in /trunk: data/config.lua.dist data/models/models/generate_all.sh data/models/models/generate_alpha_tex_atlas.php data/models/models/generate_tex_atlas.php lua/main.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-January/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1723%20-%20in%20/trunk%3A%20data/config.lua.dist%0A%20data/models/models/generate_all.sh%0A%20data/models/models/generate_alpha_tex_atlas.php%0A%20data/models/models/generate_tex_atlas.php%20lua/main.lua&In-Reply-To=%3C20080106004648.1FF5F1524004%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000538.html">
+   <LINK REL="Next"  HREF="000540.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1723 - in /trunk: data/config.lua.dist data/models/models/generate_all.sh data/models/models/generate_alpha_tex_atlas.php data/models/models/generate_tex_atlas.php lua/main.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1723%20-%20in%20/trunk%3A%20data/config.lua.dist%0A%20data/models/models/generate_all.sh%0A%20data/models/models/generate_alpha_tex_atlas.php%0A%20data/models/models/generate_tex_atlas.php%20lua/main.lua&In-Reply-To=%3C20080106004648.1FF5F1524004%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1723 - in /trunk: data/config.lua.dist data/models/models/generate_all.sh data/models/models/generate_alpha_tex_atlas.php data/models/models/generate_tex_atlas.php lua/main.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sun Jan  6 01:46:46 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000538.html">[Iris-commit] [IRIS] r1722 -	/trunk/data/terrain/materials/terrain.material
+</A></li>
+        <LI>Next message: <A HREF="000540.html">[Iris-commit] [IRIS] r1724 - in /trunk: include/terrain.h lua/lib.terrain.multitex.lua src/scripting.iris.cpp src/terrain_multitex.cpp
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#539">[ date ]</a>
+              <a href="thread.html#539">[ thread ]</a>
+              <a href="subject.html#539">[ subject ]</a>
+              <a href="author.html#539">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: hagish
+Date: Sun Jan  6 01:46:44 2008
+New Revision: 1723
+
+Log:
+improved texture generate script (removed double code, alpha channel workin=
+g, on the fly shrink or texture parts)
+
+Removed:
+    trunk/data/models/models/generate_alpha_tex_atlas.php
+Modified:
+    trunk/data/config.lua.dist
+    trunk/data/models/models/generate_all.sh
+    trunk/data/models/models/generate_tex_atlas.php
+    trunk/lua/main.lua
+
+Modified: trunk/data/config.lua.dist
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/config.lua.dist (original)
++++ trunk/data/config.lua.dist Sun Jan  6 01:46:44 2008
+@@ -413,6 +413,7 @@
+ gEnableMultiTexTerrain =3D false
+ gDisableMultiTexTerrainTransitions =3D false -- ugly, but faster
+ gFastBatchStatics =3D false -- faster, but mousepicking and blend-out-uppe=
+r-floors doesn't work yet
++gFastBatchDynamics =3D false
+ =
+
+ gModelPath_Mesh	=3D &quot;models/models/&quot; -- overrideable for texture-atlas exp=
+eriments
+ gModelPath_Tex	=3D &quot;models/textures/&quot;
+
+Modified: trunk/data/models/models/generate_all.sh
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/models/models/generate_all.sh (original)
++++ trunk/data/models/models/generate_all.sh Sun Jan  6 01:46:44 2008
+@@ -1,10 +1,14 @@
+ #!/bin/bash
+ =
+
++ATLASSIZE=3D2048
++TEXSIZE=3D256
++
+ rm -f tex_atlas*
++rm -f alpha_tex_atlas*
+ find -name \*.mesh -exec ./toxml.sh {} \;
+ find -name \*.mesh.xml | sort &gt; xml.txt
+-php generate_tex_atlas.php
+-php generate_alpha_tex_atlas.php
++php generate_tex_atlas.php xml.txt $ATLASSIZE $TEXSIZE
++php generate_tex_atlas.php xml.txt $ATLASSIZE $TEXSIZE alpha
+ find -name \*.mesh -exec ./tomesh.sh {} \;
+ find -name \*.xml -exec rm {} \;
+ rm xml.txt
+
+Modified: trunk/data/models/models/generate_tex_atlas.php
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/models/models/generate_tex_atlas.php (original)
++++ trunk/data/models/models/generate_tex_atlas.php Sun Jan  6 01:46:44 2008
+@@ -67,15 +67,37 @@
+ 	} else return null;
+ }
+ =
+
+-function BlendImageAtSlot($im, $file, $px, $py, $b, $tw, $th){
+-	echo &quot;BlendImageAtSlot($im, $file, $px, $py, $b, $tw, $th)\n&quot;;
++function ShrinkToMax($w,$h){
++	if($w &gt; TEXSIZE || $h &gt; TEXSIZE){
++		$nw =3D $w;
++		$nh =3D $h;
++		=
+
++		$r =3D $w / $h;
++		=
+
++		if($nw &gt; $nh){
++			$nw =3D TEXSIZE;
++			$nh =3D $nw / $r;
++		} else {
++			$nh =3D TEXSIZE;
++			$nw =3D $nh * $r;
++		}
++		=
+
++		return array(floor($nw),floor($nh));
++	} else {
++		return array(floor($w),floor($h));
++	}
++}
++
++function BlendImageAtSlot($im, $file, $px, $py, $b, $tw, $th, $ow, $oh){
++	echo &quot;BlendImageAtSlot($im, $file, $px, $py, $b, $tw, $th, $ow, $oh)\n&quot;;
+ 	$src =3D @imagecreatefrompng($file); /* Attempt to open */
+ 	if($src){
+ 		// target size
+ 		$w =3D imagesx($im);
+ 		$h =3D imagesy($im);
+ 		=
+
+-		imagecopy($im, $src, $px+$b, $py+$b, 0, 0, $tw, $th);
++		imagecopyresampled($im, $src, $px+$b, $py+$b, 0,0, $tw, $th, $ow, $oh);
++		//imagecopy($im, $src, $px+$b, $py+$b, 0, 0, $tw, $th);
+ 		=
+
+ 		imagedestroy($src);
+ 		=
+
+@@ -153,16 +175,52 @@
+ 	return $k[0];
+ }
+ =
+
++function CreateBlankImage($w,$h){
++	$im =3D imagecreatetruecolor($w, $h);
++	imagealphablending($im, false);
++	imagesavealpha($im, true);
++	$bg =3D imagecolorallocatealpha($im, 255, 0, 255, 127);
++	imagefilledrectangle($im, 0, 0, $w, $h, $bg);
++	return $im;
++}
++
+ // ####################################################################
+ // ####################################################################
+ =
+
++$filelist =3D $argv[1];
++$atlassize =3D $argv[2];
++$texsize =3D $argv[3];
++$doalpha =3D $argv[4];
++
++if(empty($filelist) || empty($atlassize) || empty($texsize) || !is_numeric=
+($atlassize) || !is_numeric($texsize)){
++	echo &quot;1. parameter need to be a filelist like xml.txt\n&quot;;
++	echo &quot;2. parameter need to be texture atlas size in pixel, like 1024 for =
+1024x1024\n&quot;;
++	echo &quot;3. parameter need to be texture part max size in pixel, like 128 fo=
+r 128x128&gt;\n&quot;;
++	echo &quot;4. parameter can be alpha if you want alpha mode\n&quot;;
++	exit(1);
++}
++
++define(&quot;TEXSIZE&quot;,$texsize);
++
++if($doalpha =3D=3D &quot;alpha&quot;){
++	$doalpha =3D true;
++} else {
++	$doalpha =3D false;
++}
++
++echo &quot;alpha: &quot;.($doalpha?&quot;true&quot;:&quot;false&quot;).&quot;\n&quot;;
++echo &quot;atlas size: $atlassize x $atlassize\n&quot;;
++echo &quot;tex max size: $texsize x $texsize\n&quot;;
++
++// oki lets rock
++
+ $lTex =3D array();
+ =
+
+ $lSize =3D array();
+ =
+
+ unset($argv[0]);
+ =
+
+-$argv =3D file(&quot;xml.txt&quot;);
++$argv =3D file($filelist);
+ =
+
+ foreach($argv as $f){
+ 	$f =3D trim($f);
+@@ -174,6 +232,7 @@
+ 	=
+
+ 	foreach($materials as $mat){
+ 		if(strpos($mat,&quot;uo_art_&quot;) !=3D=3D false)continue;
++		if(strpos($mat,&quot;tex_atlas_&quot;) !=3D=3D false)continue;
+ 	=
+
+ 		/*list($minu,$minv,$maxu,$maxv) =3D GetUVBorders($l,$mat);
+ 		=
+
+@@ -189,11 +248,19 @@
+ 		=
+
+ 			if(!array_key_exists($mat,$lTex)){
+ 				$file =3D &quot;../textures/$mat.png&quot;;
+-				list($x,$y) =3D GetMaterialSize($file);
+-				if($x &gt;=3D 512 || $y &gt;=3D 512 || empty($x) || empty($y))continue;
+-				if(ImageHasAlpha($file))continue;
++				// original file size
++				list($ox,$oy) =3D GetMaterialSize($file);
++				// shrinked file size
++				list($x,$y) =3D ShrinkToMax($ox,$oy);
++				if(empty($x) || empty($y))continue;
+ 				=
+
+-				$lTex[$mat] =3D array(&quot;count&quot;=3D&gt;1,&quot;file&quot;=3D&gt;&quot;$file&quot;,&quot;mat&quot;=3D&gt;&quot;$mat&quot;,&quot;=
+x&quot;=3D&gt;$x,&quot;y&quot;=3D&gt;$y,&quot;meshs&quot;=3D&gt;array($f));
++				if($doalpha){
++					if(!ImageHasAlpha($file))continue;
++				} else {
++					if(ImageHasAlpha($file))continue;
++				}
++				=
+
++				$lTex[$mat] =3D array(&quot;count&quot;=3D&gt;1,&quot;file&quot;=3D&gt;&quot;$file&quot;,&quot;mat&quot;=3D&gt;&quot;$mat&quot;,&quot;=
+x&quot;=3D&gt;$x,&quot;y&quot;=3D&gt;$y,&quot;ox&quot;=3D&gt;$ox,&quot;oy&quot;=3D&gt;$oy,&quot;meshs&quot;=3D&gt;array($f));
+ 			} else {
+ 				$lTex[$mat][&quot;count&quot;]++;
+ 				if(!in_array($f,$lTex[$mat][&quot;meshs&quot;]))$lTex[$mat][&quot;meshs&quot;][] =3D $f;
+@@ -218,14 +285,19 @@
+ =
+
+ }
+ =
+
+-$w =3D 1024;
+-$h =3D 1024;
++$w =3D $atlassize;
++$h =3D $atlassize;
+ $b =3D 2;
+ =
+
+ $number =3D 0;
+ =
+
+-$atlasname =3D &quot;tex_atlas_$number&quot;;
+-$im =3D imagecreatetruecolor($w, $h);
++if($doalpha){
++	$atlasname =3D &quot;alpha_tex_atlas_$number&quot;;
++} else {
++	$atlasname =3D &quot;tex_atlas_$number&quot;;
++}
++
++$im =3D CreateBlankImage($w, $h);
+ =
+
+ // current position
+ $px =3D 0;
+@@ -254,6 +326,9 @@
+ 	$tw =3D $tex[&quot;x&quot;];
+ 	$th =3D $tex[&quot;y&quot;];
+ 	=
+
++	$ow =3D $tex[&quot;ox&quot;];
++	$oh =3D $tex[&quot;oy&quot;];
++	=
+
+ 	if($px + $tw + 2*$b &gt; $w){
+ 		// go to next line
+ 		$px =3D 0;
+@@ -273,9 +348,13 @@
+ 		=
+
+ 		++$number;
+ =
+
+-		$atlasname =3D &quot;tex_atlas_$number&quot;;
+-		=
+
+-		$im =3D imagecreatetruecolor($w, $h);
++		if($doalpha){
++			$atlasname =3D &quot;alpha_tex_atlas_$number&quot;;
++		} else {		=
+
++			$atlasname =3D &quot;tex_atlas_$number&quot;;
++		}
++
++		$im =3D CreateBlankImage($w, $h);
+ 		=
+
+ 		echo &quot;NEXT ATLAS $i\n&quot;;
+ 		=
+
+@@ -285,7 +364,7 @@
+ 	=
+
+ 	echo &quot;key=3D$key tw=3D$tw th=3D$th px=3D$py py=3D$py ph=3D$ph P=3D&quot;.round=
+($px*100/$w).&quot;,&quot;.round($py*100/$h).&quot;\n&quot;;
+ =
+
+-	list($left,$top,$right,$bottom) =3D BlendImageAtSlot($im, $tex[&quot;file&quot;], $=
+px, $py, $b, $tw, $th);
++	list($left,$top,$right,$bottom) =3D BlendImageAtSlot($im, $tex[&quot;file&quot;], $=
+px, $py, $b, $tw, $th, $ow, $oh);
+ 	=
+
+ 	if($right &gt; 0 &amp;&amp; $bottom &gt; 0){
+ 		// remap meshes
+@@ -317,14 +396,30 @@
+ imagedestroy($im);
+ =
+
+ // generate material script
+-$f =3D fopen(&quot;tex_atlas.material&quot;,&quot;w&quot;);
+-for($i=3D0;$i&lt;=3D$number;++$i){
+-	$name =3D &quot;tex_atlas_$i&quot;;
+-	$base =3D &quot;tex_base&quot;;
+-	$img =3D &quot;tex_atlas_$i.png&quot;;
+-	=
+
+-	fwrite($f,&quot;material $name : $base \n{ \n	technique \n	{ \n		pass\n		{		\n=
+			texture_unit \n			{ \n				texture $img \n			}	\n		}\n	} \n}\n&quot;);
+-}
+-fclose($f);
++if($doalpha){
++
++	$f =3D fopen(&quot;alpha_tex_atlas.material&quot;,&quot;w&quot;);
++	for($i=3D0;$i&lt;=3D$number;++$i){
++		$name =3D &quot;alpha_tex_atlas_$i&quot;;
++		$base =3D &quot;tex_base_alpha&quot;;
++		$img =3D &quot;alpha_tex_atlas_$i.png&quot;;
++		=
+
++		fwrite($f,&quot;material $name : $base \n{ \n	technique \n	{ \n		pass\n		{		\=
+n			texture_unit \n			{ \n				texture $img \n			}	\n		}\n	} \n}\n&quot;);
++	}
++	fclose($f);
++
++} else {
++
++	$f =3D fopen(&quot;tex_atlas.material&quot;,&quot;w&quot;);
++	for($i=3D0;$i&lt;=3D$number;++$i){
++		$name =3D &quot;tex_atlas_$i&quot;;
++		$base =3D &quot;tex_base&quot;;
++		$img =3D &quot;tex_atlas_$i.png&quot;;
++		=
+
++		fwrite($f,&quot;material $name : $base \n{ \n	technique \n	{ \n		pass\n		{		\=
+n			texture_unit \n			{ \n				texture $img \n			}	\n		}\n	} \n}\n&quot;);
++	}
++	fclose($f);
++
++}
+ =
+
+ ?&gt;
+
+Modified: trunk/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/main.lua (original)
++++ trunk/lua/main.lua Sun Jan  6 01:46:44 2008
+@@ -172,6 +172,7 @@
+ 	for i=3D1,20 do OgreAddResLoc(mydatapath..gModelPath_Mesh..sprintf(&quot;to_%0=
+3d000&quot;,i)	,&quot;FileSystem&quot;,&quot;General&quot;) end
+ 	OgreAddResLoc(mydatapath..gModelPath_Tex				,&quot;FileSystem&quot;,&quot;General&quot;)
+ 	OgreAddResLoc(mydatapath..&quot;models/programs&quot;				,&quot;FileSystem&quot;,&quot;General&quot;)
++	OgreAddResLoc(mydatapath..&quot;models/models&quot;				,&quot;FileSystem&quot;,&quot;General&quot;)
+ =
+
+ 	--~ # custom models
+ 	OgreAddResLoc(mydatapath..&quot;custom/materials&quot;			,&quot;FileSystem&quot;,&quot;General&quot;)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000538.html">[Iris-commit] [IRIS] r1722 -	/trunk/data/terrain/materials/terrain.material
+</A></li>
+	<LI>Next message: <A HREF="000540.html">[Iris-commit] [IRIS] r1724 - in /trunk: include/terrain.h lua/lib.terrain.multitex.lua src/scripting.iris.cpp src/terrain_multitex.cpp
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#539">[ date ]</a>
+              <a href="thread.html#539">[ thread ]</a>
+              <a href="subject.html#539">[ subject ]</a>
+              <a href="author.html#539">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

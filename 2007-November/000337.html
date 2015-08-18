@@ -1,0 +1,161 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1523 - /trunk/generate_lua_api.php
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2007-November/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1523%20-%20/trunk/generate_lua_api.php&In-Reply-To=%3C20071123215056.ED6F71C182C6%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000336.html">
+   <LINK REL="Next"  HREF="000343.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1523 - /trunk/generate_lua_api.php</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1523%20-%20/trunk/generate_lua_api.php&In-Reply-To=%3C20071123215056.ED6F71C182C6%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1523 - /trunk/generate_lua_api.php">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Fri Nov 23 22:50:56 CET 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000336.html">[Iris-commit] [IRIS] r1522 - in /trunk: generate_lua_api.php	lua_api_pseudo_code.cpp
+</A></li>
+        <LI>Next message: <A HREF="000343.html">[Iris-commit] [IRIS] r1524 - /trunk/lua_api_pseudo_code.cpp
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#337">[ date ]</a>
+              <a href="thread.html#337">[ thread ]</a>
+              <a href="subject.html#337">[ subject ]</a>
+              <a href="author.html#337">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Fri Nov 23 22:50:55 2007
+New Revision: 1523
+
+Log:
+lua-doc-gen : static constructor methods for c++-lua bindings recognized an=
+d added as static methods
+
+Modified:
+    trunk/generate_lua_api.php
+
+Modified: trunk/generate_lua_api.php
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/generate_lua_api.php (original)
++++ trunk/generate_lua_api.php Fri Nov 23 22:50:55 2007
+@@ -13,9 +13,11 @@
+ 	$files_cpp =3D array_merge($files_cpp,ExecGetLines('find '.$basepath.'src=
+/		-name &quot;*script*.cpp&quot; ! -type d ! -wholename &quot;*/.svn*&quot;'));
+ 	$files_cpp =3D array_merge($files_cpp,ExecGetLines('find '.$basepath.'lug=
+re/src/	-name &quot;*script*.cpp&quot; ! -type d ! -wholename &quot;*/.svn*&quot;'));
+ 	=
+
++	$files_lua =3D array();
++	$files_cpp =3D array();
+ 	//~ $files_lua =3D array(&quot;data/lua/obj/obj.mobile.lua&quot;);
+ 	//~ $files_cpp =3D array(&quot;lugre/src/lugre_net_L.cpp&quot;);
+-	//~ $files_cpp =3D array(&quot;src/data_L.cpp&quot;);
++	$files_cpp =3D array(&quot;src/data_L.cpp&quot;);
+ 	=
+
+ 	$methods_global =3D array();
+ 	$methods_byclass =3D array();
+@@ -36,6 +38,7 @@
+ 			=
+
+ 			if (eregi('^function ([^:\)]+[:.])?([^ (]+)[ ]*\(([^\)]+)',$line,$r)) {
+ 				$classprefix =3D $r[1];
++				$p =3D ($classprefix =3D=3D &quot;&quot;) ? &quot;&quot; : &quot;	&quot;; // indention
+ 				$funname =3D $r[2];
+ 				$params2 =3D split(&quot;[ ]*,[ ]*&quot;,$r[3]);
+ 				$params =3D array();
+@@ -43,14 +46,15 @@
+ 				//~ echo &quot;fun #&quot;.$r[1].&quot;###&quot;.$r[2].&quot;##&quot;.$r[3].&quot;#   :  &quot;.rtrim($line,&quot;\=
+n&quot;).&quot;\n&quot;;
+ 				=
+
+ 				$infotext =3D &quot;&quot;;
+-				foreach ($description as $dline) $infotext .=3D &quot;/// &quot;.$dline.&quot;\n&quot;;
++				foreach ($description as $dline) $infotext .=3D $p.&quot;/// &quot;.$dline.&quot;\n&quot;;
+ 				=
+
+ 				if ($classprefix =3D=3D &quot;&quot;) { // global
+-					$infotext .=3D &quot;mixed	&quot;.$funname.&quot;	(&quot;.implode(&quot;,&quot;,$params).&quot;) {}\n&quot;;
++					$infotext .=3D $p.&quot;mixed	&quot;.$funname.&quot;	(&quot;.implode(&quot;,&quot;,$params).&quot;) {}\n=
+&quot;;
+ 					$methods_global[] =3D $infotext;
+ 				} else {
+ 					$classname =3D substr($classprefix,0,-1);
+ 					=
+
++					$infotext .=3D $p;
+ 					if (substr($classprefix,-1) =3D=3D &quot;.&quot;) $infotext .=3D &quot;static &quot;; // =
+static method
+ 					$infotext .=3D &quot;mixed	&quot;.$funname.&quot;	(&quot;.implode(&quot;,&quot;,$params).&quot;) {}\n&quot;;
+ 					=
+
+@@ -112,18 +116,20 @@
+ 			// static int				CreateGroundBlockLoader		(lua_State *L) { PROFILE
+ 			if (eregi('int ([^ \(]+)[ ]*\(.*lua_State',$line,$r)) {
+ 				$methodname =3D trim($r[1]);
+-				$methodbinds[$methodname] =3D true;
++				$bIsGlobal =3D false;
++				$bIsStatic =3D !isset($methodbinds[$methodname]);
++				$p =3D ($classname =3D=3D &quot;&quot; || $bIsGlobal) ? &quot;&quot; : &quot;	&quot;; // indention
+ 				=
+
+ 				$infotext =3D &quot;&quot;;
+-				foreach ($description as $dline) $infotext .=3D &quot;	/// &quot;.$dline.&quot;\n&quot;;
++				foreach ($description as $dline) $infotext .=3D $p.&quot;/// &quot;.$dline.&quot;\n&quot;;
+ 				=
+
+ 				//~ if ($luasyntax) {
+ 					//~ echo $luasyntax.&quot;\n&quot;; // TODO : transform to c++ syntax ?
+ 				//~ } else {
+-				$infotext .=3D &quot;	mixed $methodname (...) {}\n&quot;;
++				$infotext .=3D $p.($bIsStatic?&quot;static &quot;:&quot;&quot;).&quot;mixed $methodname (...) {=
+}\n&quot;;
+ 				//~ }
+ 				=
+
+-				if ($classname =3D=3D &quot;&quot;) { // global
++				if ($classname =3D=3D &quot;&quot; || $bIsGlobal) { // global
+ 					$methods_global[] =3D $infotext;
+ 				} else {
+ 					if (!isset($methods_byclass[$classname])) $methods_byclass[$classname=
+] =3D array();
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000336.html">[Iris-commit] [IRIS] r1522 - in /trunk: generate_lua_api.php	lua_api_pseudo_code.cpp
+</A></li>
+	<LI>Next message: <A HREF="000343.html">[Iris-commit] [IRIS] r1524 - /trunk/lua_api_pseudo_code.cpp
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#337">[ date ]</a>
+              <a href="thread.html#337">[ thread ]</a>
+              <a href="subject.html#337">[ subject ]</a>
+              <a href="author.html#337">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

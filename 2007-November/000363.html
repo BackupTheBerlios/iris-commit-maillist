@@ -1,0 +1,331 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1547 - in /trunk/data: lua/lib.macrolist.lua lua/net/net.skill.lua mymacros.lua.dist
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2007-November/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1547%20-%20in%20/trunk/data%3A%20lua/lib.macrolist.lua%0A%20lua/net/net.skill.lua%20mymacros.lua.dist&In-Reply-To=%3C20071126221953.5856D1C18279%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000362.html">
+   <LINK REL="Next"  HREF="000364.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1547 - in /trunk/data: lua/lib.macrolist.lua lua/net/net.skill.lua mymacros.lua.dist</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1547%20-%20in%20/trunk/data%3A%20lua/lib.macrolist.lua%0A%20lua/net/net.skill.lua%20mymacros.lua.dist&In-Reply-To=%3C20071126221953.5856D1C18279%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1547 - in /trunk/data: lua/lib.macrolist.lua lua/net/net.skill.lua mymacros.lua.dist">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Mon Nov 26 23:19:53 CET 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000362.html">[Iris-commit] [IRIS] r1546 - in /trunk/data: compositors/EdgeDetection.compositor compositors/EdgeDetection.material compositors/edgesFP.source compositors/edgesVP.source config.lua.dist lua/lib.keybinds.lua lua/lib.spellbooks.lua lua/obj/obj.container.lua
+</A></li>
+        <LI>Next message: <A HREF="000364.html">[Iris-commit] [IRIS] r1548 - in /trunk/data: lua/lib.compass.lua lua/lib.fallback.lua lua/lib.gui.iris.lua lua/lib.keybinds.lua lua/lib.macrolist.lua mymacros.lua.dist
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#363">[ date ]</a>
+              <a href="thread.html#363">[ thread ]</a>
+              <a href="subject.html#363">[ subject ]</a>
+              <a href="author.html#363">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Mon Nov 26 23:19:52 2007
+New Revision: 1547
+
+Log:
+added MacroCmd_Skill and MacroCmd_Spell , moved infos from data/mymacros.lu=
+a.dist to a wiki page
+
+Modified:
+    trunk/data/lua/lib.macrolist.lua
+    trunk/data/lua/net/net.skill.lua
+    trunk/data/mymacros.lua.dist
+
+Modified: trunk/data/lua/lib.macrolist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.macrolist.lua (original)
++++ trunk/data/lua/lib.macrolist.lua Mon Nov 26 23:19:52 2007
+@@ -23,6 +23,8 @@
+ gMacroReadMobileStats.maxMana		=3D true
+ gMacroReadMobileStats.curStamina	=3D true
+ gMacroReadMobileStats.maxStamina	=3D true
++
++gMacroSpellsByName =3D nil
+ =
+
+ -- GetPlayerMobile
+ function MacroRead_PlayerStat			(statname) return MacroReadAux_MobileStat(=
+GetPlayerMobile(),statname,&quot;MacroRead_PlayerStat&quot;) end
+@@ -40,31 +42,76 @@
+ function MacroCmd_Open					(dialogtype)
+ 	if (not gInGameStarted) then return end
+ 	local f =3D gMacroOpenCommands[dialogtype] =
+
+-	if (f) then =
+
+-		f() =
+
+-	else =
+
+-		local infotext =3D &quot;MacroCmd_Open : unknown dialogtype &quot;..tostring(dialo=
+gtype)..&quot; available types:\n&quot;
+-		for k,v in pairs(gMacroOpenCommands) do infotext =3D infotext..k..&quot;\n&quot; e=
+nd
+-		print(infotext)
+-		PlainMessageBox(infotext)
++	if (not f) then return MacroErrorNameMismatch(&quot;MacroCmd_Open&quot;,dialogtype,=
+gMacroOpenCommands) end
++	f() =
+
++end
++
++
++function MacroCmd_Skill					(skillname)
++	local skillid =3D gCharCreateSkillIDs[skillname] -- zero based
++	if (not skillid) then return MacroErrorNameMismatch(&quot;MacroCmd_Skill&quot;,skil=
+lname,gCharCreateSkillIDs) end
++	skillid =3D skillid + 1 -- one based needed below
++	if (glSkillActive[skillid] ~=3D 1) then return MacroError(&quot;MacroCmd_Skill=
+ : skill is passive : &quot;..tostring(skillname)) end
++	Send_Request_SkillUse(skillid)
++end
++
++function MacroCmd_Spell					(spellname)
++	if (not gMacroSpellsByName) then
++		gMacroSpellsByName =3D {}
++		for spellbookid,spellbookdata in pairs(gSpellBooks) do
++			local startindex =3D spellbookdata.startindex
++			for circle,spelllist in pairs(spellbookdata.spells) do
++				local spellnumber =3D table.getn(spelllist)
++				for spellindex,myspellname in pairs(spelllist) do =
+
++					gMacroSpellsByName[myspellname] =3D spellindex+(circle-1)*spellnumber=
+ + startindex
++				end
++			end
++		end
+ 	end
++	local spellid =3D gMacroSpellsByName[spellname]
++	if (not spellid) then return MacroErrorNameMismatch(&quot;MacroCmd_Spell&quot;,spel=
+lname,gMacroSpellsByName) end
++	Send_Spell(spellid)
++	-- gSpellBooks
++	-- Send_Spell(spellbutton.spell+gSpellBooks[spellbook.itemid].startindex)
++	-- spellbutton.spell=3Dspell+(circle-1)*spellnumber
++	--[[
++		local spellnumber=3Dtable.getn(gSpellBooks[spellbook.itemid].spells[circ=
+le])
++		...
++		for spell=3D1, spellnumber do
++			if (TestBit(spellbook.matrix[circle], BitwiseSHL(1,spell-1))) then
++				-- increase number of available spells
++				spellcounter=3Dspellcounter+1
++				local spellbutton =3D MakeBorderGumpPart(curparent, hex2num(&quot;0x837&quot;), =
+60 + rightspacer, 20+((spellcounter+1)*15) - top_align)
++				spellbutton.spell=3Dspell+(circle-1)*spellnumber
++				spellbutton.mbIgnoreMouseOver =3D false
++				spellbutton.onLeftClick =3D function (widget)
++											Send_Spell(spellbutton.spell+gSpellBooks[spellbook.itemid].star=
+tindex,gSpellbookExpansion[&quot;AOS&quot;])
++										end
++			end
++		end
++]]--
+ end
+ =
+
+ =
+
+ function MacroReadAux_MobileStat			(mobile,statname,errormsg_funname)
+ 	if (not gInGameStarted) then return 0 end
+-	if (not gMacroReadMobileStats[statname]) then
+-		local infotext =3D &quot;MacroRead_PlayerStat : unknown statname &quot;..tostring(=
+statname)..&quot; available statnames:\n&quot;
+-		for k,v in pairs(gMacroReadMobileStats) do infotext =3D infotext..k..&quot;\n=
+&quot; end
+-		print(infotext)
+-		PlainMessageBox(infotext)
+-		return
++	if (not gMacroReadMobileStats[statname]) then =
+
++		return MacroErrorNameMismatch(&quot;MacroRead_PlayerStat&quot;,statname,gMacroRead=
+MobileStats) =
+
+ 	end
+ 	local mobile =3D GetPlayerMobile()
+ 	return mobile and mobile.stats and mobile.stats[statname] or 0
+ end
+ =
+
+-
++function MacroErrorNameMismatch (cmd,name,list_by_key) =
+
++	local infotext =3D cmd..&quot; : unknown name &quot;..tostring(name)..&quot; available n=
+ames:\n&quot;
++	for k,v in pairs(list_by_key) do infotext =3D infotext..k..&quot;\n&quot; end
++	MacroError(infotext)
++end
++
++function MacroError (infotext) =
+
++	print(infotext)
++	PlainMessageBox(infotext)
++end
+ =
+
+ =
+
+ function GetMacroKeyComboName (keycode,bCtrl,bAlt,bShift) =
+
+
+Modified: trunk/data/lua/net/net.skill.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/net/net.skill.lua (original)
++++ trunk/data/lua/net/net.skill.lua Mon Nov 26 23:19:52 2007
+@@ -3,7 +3,7 @@
+ =
+
+ -- Request SkillUse
+ function Send_Request_SkillUse(skillid)
+-	local s =3D tostring(skillid-1)..&quot; 0&quot;	-- i dont know why we must -1 her :)
++	local s =3D tostring(skillid-1)..&quot; 0&quot;	-- i dont know why we must -1 here =
+:<i>)
+</I> 	local size =3D 4+string.len(s)+1
+ 	=
+
+ 	local out =3D GetSendFIFO()
+
+Modified: trunk/data/mymacros.lua.dist
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/mymacros.lua.dist (original)
++++ trunk/data/mymacros.lua.dist Mon Nov 26 23:19:52 2007
+@@ -3,51 +3,8 @@
+ -- DO NOT EDIT THIS FILE DIRECTLY, you can override individual settings th=
+ere.
+ --[[
+ Here you can define macros, =
+
+-which can be triggered by keycombos like ctrl-shift-a or similar,
+-much like the uo macrolist dialog, =
+
+-without a nice ingame edit-dialog, but with full scripting support, =
+
+-e.g. you can add conditions or similar.
+-
+-you don't need to, but if you like you can do complex scripting here.
+-a guide to the lua scripting language is here : <A HREF="http://www.lua.org/pil/">http://www.lua.org/pil/</A>
+-and a languag-reference is here : <A HREF="http://www.lua.org/manual/5.0/">http://www.lua.org/manual/5.0/</A>
+-
+-you can specify modifyers, but currently they have to be in that order : s=
+hift+alt+ctrl+f
+-
+-list of all keynames : =
+
+-a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z,
+-0,1,2,3,4,5,6,7,8,9,
+-f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,f13,f14,f15,
+-mouse1,mouse2,mouse3,mouse4,mouse5,wheelup,wheeldown,
+-backspace,tab,stopclear,return,np_enter,pause,capslock,escape,space,
+-pgup,pgdn,end,home,left,up,right,down,screen,ins,del,
+-lwin,rwin,menu,
+-np0,np1,np2,np3,np4,np5,np6,np7,np8,np9,npmult,npadd,npsub,npkomma,npdiv,
+-numlock,scroll,ue,plus,komma,minus,point,grid,oe,bslash,console,accent,ae,=
+greater,
+-NOT RECOMMENDED, but might work too: lshift,lcontrol,lalt,rshift,rcontrol,=
+ralt
+-
+-available commands : =
+
+-
+-MacroCmd_Say					(text)	-- chat-text, example : MacroCmd_Say(&quot;hi all&quot;)
+-MacroCmd_Quit					()		-- quits the game
+-MacroCmd_NextCamMode			()		-- change cam mode
+-MacroCmd_RepeatLastChat			()		-- repeat last chat-text
+-MacroCmd_RepeatLastDoubleClick	()		-- repeat double click on last object
+-MacroCmd_SelectNearestMobile	()		-- =
+
+-MacroCmd_SelectNextMobile		()		-- cycle through mobiles
+-MacroCmd_AttackSelectedMobile	()		-- (26.11.2007 : currently broken, only =
+runs to target, but doesn't attack)
+-MacroCmd_ToggleWarmode			()		-- switch between war and peace mode
+-MacroCmd_Open					(dialogtype) -- open dialog, =
+
+-	-- dialogtype can be one of Status,Skill,Journal,Backpack,Paperdoll,Compa=
+ss
+-	-- example : MacroCmd_Open(&quot;Journal&quot;)
+-
+-you can also make conditional macros like
+-	if (MacroRead_PlayerStat(&quot;curHits&quot;) &lt; 0.5*MacroRead_PlayerStat(&quot;maxHits&quot;)=
+) then MacroCmd_Say(&quot;i'm half-dead !&quot;) end
+-	will trigger if the player health is below 50%
+-
+-currently available read functions for that :
+-	MacroRead_PlayerStat(statname)	-- read player stats, statname can be one =
+of curHits,maxHits,curMana,maxMana,curStamina,maxStamina
+-	MacroRead_TargetStat(statname)	-- read stats of selected target, statname=
+ can be one of curHits,maxHits
++which can be triggered by keycombos like ctrl-shift-a or similar.
++See <A HREF="http://www.iris2.de/index.php/Macros">http://www.iris2.de/index.php/Macros</A> for more infos.
+ ]]--
+ =
+
+ -- uncomment this line to print the current keyname on each keypress :
+@@ -63,7 +20,6 @@
+ SetMacro(&quot;alt+b&quot;,function() MacroCmd_Say(&quot;*bow*&quot;) end)	-- Bow
+ SetMacro(&quot;alt+s&quot;,function() MacroCmd_Say(&quot;*salute*&quot;) end)	-- Salute
+ =
+
+-
+ SetMacro(&quot;j&quot;,function() MacroCmd_Open(&quot;Journal&quot;) end)	-- Open Journal
+ SetMacro(&quot;b&quot;,function() MacroCmd_Open(&quot;Backpack&quot;) end)	-- Open Backpack
+ SetMacro(&quot;p&quot;,function() MacroCmd_Open(&quot;Paperdoll&quot;) end)	-- Open Character =
+Window
+@@ -71,4 +27,5 @@
+ SetMacro(&quot;k&quot;,function() MacroCmd_Open(&quot;Skill&quot;) end)	-- Open Skills
+ SetMacro(&quot;c&quot;,function() MacroCmd_NextCamMode() end)	-- change cam mode
+ =
+
+-
++-- SetMacro(&quot;ctrl+h&quot;,function() MacroCmd_Spell(&quot;Heal&quot;) end)
++-- SetMacro(&quot;ctrl+a&quot;,function() MacroCmd_Skill(&quot;Anatomy&quot;) end)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000362.html">[Iris-commit] [IRIS] r1546 - in /trunk/data: compositors/EdgeDetection.compositor compositors/EdgeDetection.material compositors/edgesFP.source compositors/edgesVP.source config.lua.dist lua/lib.keybinds.lua lua/lib.spellbooks.lua lua/obj/obj.container.lua
+</A></li>
+	<LI>Next message: <A HREF="000364.html">[Iris-commit] [IRIS] r1548 - in /trunk/data: lua/lib.compass.lua lua/lib.fallback.lua lua/lib.gui.iris.lua lua/lib.keybinds.lua lua/lib.macrolist.lua mymacros.lua.dist
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#363">[ date ]</a>
+              <a href="thread.html#363">[ thread ]</a>
+              <a href="subject.html#363">[ subject ]</a>
+              <a href="author.html#363">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,384 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r3141 - in /trunk: ./ lua/ lua/filter/
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2009-November/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3141%20-%20in%20/trunk%3A%20./%20lua/%20lua/filter/&In-Reply-To=%3C20091116082016.8F3527A98142%40simon%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001901.html">
+   <LINK REL="Next"  HREF="001903.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r3141 - in /trunk: ./ lua/ lua/filter/</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3141%20-%20in%20/trunk%3A%20./%20lua/%20lua/filter/&In-Reply-To=%3C20091116082016.8F3527A98142%40simon%3E"
+       TITLE="[Iris-commit] [IRIS] r3141 - in /trunk: ./ lua/ lua/filter/">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Mon Nov 16 09:20:16 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001901.html">[Iris-commit] [IRIS] r3140 - /trunk/installdeps.ubuntu.sh
+</A></li>
+        <LI>Next message: <A HREF="001903.html">[Iris-commit] [IRIS] r3142 - /trunk/bin/iris2.exe
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1902">[ date ]</a>
+              <a href="thread.html#1902">[ thread ]</a>
+              <a href="subject.html#1902">[ subject ]</a>
+              <a href="author.html#1902">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Mon Nov 16 09:20:16 2009
+New Revision: 3141
+
+Log:
+main : directx download url updated to aug2009, old was nov2008.  mount ske=
+leton override fix (beetle horse anim), started a bit on particle system an=
+d granny code
+
+Added:
+    trunk/lua/lib.debugmode.lua
+    trunk/lua/lib.granny.debug.lua
+    trunk/lua/lib.particle.debug.lua
+    trunk/lua/lib.particle.effects.lua
+    trunk/lua/lib.particle.lua
+Modified:
+    trunk/lib.premake.lua
+    trunk/lua/filter/filter.granny.lua
+    trunk/lua/lib.granny.loader.lua
+    trunk/lua/lib.granny.lua
+    trunk/lua/lib.mainmenu.lua
+    trunk/lua/main.lua
+
+Modified: trunk/lib.premake.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lib.premake.lua (original)
++++ trunk/lib.premake.lua Mon Nov 16 09:20:16 2009
+@@ -66,6 +66,11 @@
+ 		end
+ 	end
+ 	=
+
++	-- TODO : extra-brute-force for fmod... default install has filenames lik=
+e this
++	--~ /usr/local/lib/libfmodex-4.27.06.so
++	--~ /usr/local/lib/libfmodexp-4.27.06.so
++
++	=
+
+     if path then
+ 		tinsert (package.libpaths,path)
+ 		tinsert (package.links, libname)
+
+Modified: trunk/lua/filter/filter.granny.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/filter/filter.granny.lua (original)
++++ trunk/lua/filter/filter.granny.lua Mon Nov 16 09:20:16 2009
+@@ -5,21 +5,15 @@
+ =
+
+ -- FILTER: Grannys
+ function GrannyOverride(bodyid)
+-	if (gGrannyFilter[bodyid]) then
+-		local grannyid =3D gGrannyFilter[bodyid].grannyid
+-		if (grannyid) then
+-			printdebug(&quot;granny&quot;,&quot;Override: GrannyID to new GrannyID &quot;,bodyid,&quot; -&gt; &quot;=
+,grannyid)
+-			return grannyid
+-		end
+-	end
+-	return bodyid
++	local o =3D gGrannyFilter[bodyid]
++	return (o and o.grannyid) or gMountGrannyOverride[bodyid] or bodyid
+ end
+ =
+
+ function GrannyMeshOverride(bodyid)
+ 	if (gGrannyFilter[bodyid]) then
+ 		local meshname =3D gGrannyFilter[bodyid].meshname
+ 		if (meshname) then
+-			printdebug(&quot;granny&quot;,&quot;OverrideMesh: GrannyID to Mesh &quot;,bodyid,&quot; -&gt; &quot;,mes=
+hname)
++			--~ printdebug(&quot;granny&quot;,&quot;OverrideMesh: GrannyID to Mesh &quot;,bodyid,&quot; -&gt; &quot;=
+,meshname) -- might be executed very often here -&gt; disabled for now
+ 			return meshname
+ 		end
+ 	end
+
+Modified: trunk/lua/lib.granny.loader.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.granny.loader.lua (original)
++++ trunk/lua/lib.granny.loader.lua Mon Nov 16 09:20:16 2009
+@@ -20,7 +20,7 @@
+ include/grannyparser.h
+ ]]--
+ =
+
+-cGrannyFile =3D cGrannyFile or {}
++cGrannyFile =3D cGrannyFile or CreateClass()
+ =
+
+ dofile(libpath .. &quot;lib.granny.types.lua&quot;)
+ =
+
+@@ -41,6 +41,8 @@
+ end
+ =
+
+ =
+
++function cGrannyFile:New (...) return CreateClassInstance(self,...) end
++
+ function cGrannyFile:LoadFile (filepath) =
+
+ 	print(&quot;cGrannyFile:LoadFile&quot;,filepath)
+ 	self.filepath =3D filepath
+@@ -48,9 +50,9 @@
+ 	fifo:Clear()
+ 	fifo:ReadFromFile(filepath)
+ 	self:Parse(fifo)
+-	self:XMLDump(&quot;../mygranny.xml&quot;) =
+
++	--~ self:XMLDump(&quot;../mygranny.xml&quot;) =
+
+ 	fifo:Destroy()
+-	os.exit(0)
++	self.fifo =3D nil
+ end
+ =
+
+ =
+
+@@ -97,27 +99,29 @@
+ 		pQuaternion		=3DMyDumpObjList, =
+
+ 		pScale			=3DMyDumpObjList, =
+
+ 	}
+-	local quickfifo =3D self.fifo:GetQuickHandle()
++	local quickfifo =3D self.fifo and self.fifo:GetQuickHandle()
+ 	function MyHexDumpNode (offset,len) =
+
+ 		local node =3D {name=3D&quot;hexdump&quot;,attr=3D{offset=3Doffset,len=3Dlen}}
+ 		local pos =3D 0
+-		while (len &gt; 0) do =
+
+-			local partlen =3D min(len,16)
+-			local hex	=3D &quot;&quot;
+-			local asci	=3D &quot;&quot;
+-			for i=3D1,16 do =
+
+-				if (i &lt;=3D partlen) then =
+
+-					local c =3D FIFO_PeekUint8(quickfifo,offset+pos+i)
+-					hex =3D hex .. sprintf(&quot;%02x &quot;,c)
+-					asci =3D asci .. ((c &gt;=3D 32 and c &lt; 128) and sprintf(&quot;%c&quot;,c) or &quot;?&quot;)
+-				else =
+
+-					hex =3D hex .. &quot;   &quot;
++		if (quickfifo) then =
+
++			while (len &gt; 0) do =
+
++				local partlen =3D min(len,16)
++				local hex	=3D &quot;&quot;
++				local asci	=3D &quot;&quot;
++				for i=3D1,16 do =
+
++					if (i &lt;=3D partlen) then =
+
++						local c =3D FIFO_PeekUint8(quickfifo,offset+pos+i)
++						hex =3D hex .. sprintf(&quot;%02x &quot;,c)
++						asci =3D asci .. ((c &gt;=3D 32 and c &lt; 128) and sprintf(&quot;%c&quot;,c) or &quot;?&quot;)
++					else =
+
++						hex =3D hex .. &quot;   &quot;
++					end
++					if (i =3D=3D 8) then hex =3D hex .. &quot; &quot; end
+ 				end
+-				if (i =3D=3D 8) then hex =3D hex .. &quot; &quot; end
++				XMLNodeAddChild(node,{name=3D&quot;hexline&quot;,attr=3D{pos=3Dsprintf(&quot;0x%04x&quot;,=
+pos)},n=3D1,[1]=3Dhex..asci})
++				len =3D len - partlen
++				pos =3D pos + partlen
+ 			end
+-			XMLNodeAddChild(node,{name=3D&quot;hexline&quot;,attr=3D{pos=3Dsprintf(&quot;0x%04x&quot;,p=
+os)},n=3D1,[1]=3Dhex..asci})
+-			len =3D len - partlen
+-			pos =3D pos + partlen
+ 		end
+ 		return node
+ 	end
+
+Modified: trunk/lua/lib.granny.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.granny.lua (original)
++++ trunk/lua/lib.granny.lua Mon Nov 16 09:20:16 2009
+@@ -84,6 +84,7 @@
+     -- Models.txt : 234 2   0   FFFFFFFF    0   1.3 1.3 1.3 deer_stag
+     --if (bodyid =3D=3D 400) then bodyid =3D 401 end
+     --if (bodyid =3D=3D 401) then bodyid =3D 400 end
++	bodyid =3D GrannyOverride(bodyid)
+     local modelinfo =3D GetGrannyModelInfo(bodyid)
+ =
+
+     assert(modelinfo,&quot;ERROR bodyinfo for skeleton not found &quot;..tostring(bo=
+dyid))
+@@ -426,7 +427,7 @@
+     return grannymodelinfo
+ end
+ =
+
+-function GetGrannyModelInfo (modelid) =
+
++function GetGrannyModelInfo (modelid,bAllowBroken) =
+
+     if (not gGrannyModelInfo) then =
+
+         gGrannyModelInfo =3D LoadGrannyModelInfo( CorrectGrannyPath(gGrann=
+yConfigFile) ) =
+
+         --~ local kmax =3D 0
+@@ -434,8 +435,14 @@
+         --~ print(&quot;GetGrannyModelInfo : maxmodelid =3D &quot;,kmax,sprintf(&quot;0x%=
+04x&quot;,kmax))
+     end
+     =
+
+-    if (gBrokenGrannyModelIdList[modelid]) then return nil end
++    if (gBrokenGrannyModelIdList[modelid] and (not bAllowBroken)) then ret=
+urn nil end
+     return gGrannyModelInfo[modelid]
++end
++
++gGrannyFilePathCache =3D MakeCache(function (modelinfo) return CorrectGran=
+nyPath(gGrannyTypeDirs[modelinfo.typeid] .. modelinfo.modelname .. &quot;_LOD2.g=
+rn&quot;) end)
++function GetGrannyFilePath (modelid,bAllowBroken) =
+
++	local modelinfo =3D GetGrannyModelInfo(modelid,bAllowBroken)
++	return modelinfo and gGrannyFilePathCache[modelinfo]
+ end
+ =
+
+ function TestGranny (modelid)
+
+Modified: trunk/lua/lib.mainmenu.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mainmenu.lua (original)
++++ trunk/lua/lib.mainmenu.lua Mon Nov 16 09:20:16 2009
+@@ -46,6 +46,7 @@
+     if (gCommandLineSwitches[&quot;-mt&quot;]) then ToggleMacroList() return true en=
+d -- macrolist-test
+     if (gCommandLineSwitches[&quot;-so&quot;]) then StartOfflineMode(gCommandLineArg=
+uments[gCommandLineSwitches[&quot;-so&quot;]+1]) return true end -- start in offline =
+mode
+     if (gCommandLineSwitches[&quot;-sd&quot;]) then StartDebugMenu() return true end=
+ -- start in debug mode
++    if (gCommandLineSwitches[&quot;-sdg&quot;]) then StartDebugGrannyMenu() return t=
+rue end -- start in debug mode
+     if (gCommandLineSwitches[&quot;-grannytest&quot;]) then StartGrannyTest() return=
+ true end
+     if (gCommandLineSwitches[&quot;-co&quot;]) then =
+
+         local name =3D gCommandLineArguments[gCommandLineSwitches[&quot;-co&quot;]+1]
+
+Modified: trunk/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/main.lua (original)
++++ trunk/lua/main.lua Mon Nov 16 09:20:16 2009
+@@ -65,8 +65,13 @@
+ dofile(libpath .. &quot;lib.spellbooks.lua&quot;)
+ dofile(libpath .. &quot;lib.spellinfo.lua&quot;)
+ dofile(libpath .. &quot;lib.speech.lua&quot;)
++dofile(libpath .. &quot;lib.debugmode.lua&quot;)
++dofile(libpath .. &quot;lib.particle.lua&quot;)
++dofile(libpath .. &quot;lib.particle.effects.lua&quot;)
++dofile(libpath .. &quot;lib.particle.debug.lua&quot;)
+ dofile(libpath .. &quot;lib.granny.lua&quot;)
+ dofile(libpath .. &quot;lib.granny.loader.lua&quot;)
++dofile(libpath .. &quot;lib.granny.debug.lua&quot;)
+ dofile(libpath .. &quot;lib.bodygfx.lua&quot;)
+ dofile(libpath .. &quot;lib.stitchin.lua&quot;)
+ dofile(libpath .. &quot;lib.test.lua&quot;)
+@@ -365,7 +370,8 @@
+     print(descr)
+     print(&quot;#################&quot;)
+     if (StringContains(descr,&quot;Could not load dynamic library&quot;) and StringC=
+ontains(descr,&quot;Direct3D9&quot;)) then =
+
+-        local url =3D &quot;<A HREF="http://www.microsoft.com/downloads/details.aspx?Fam=">http://www.microsoft.com/downloads/details.aspx?Fam=</A>
+ilyID=3D886acb56-c91a-4a8e-8bb8-9f20f1244a8e&amp;DisplayLang=3Den&quot; -- nov2008
++        local url =3D &quot;<A HREF="http://www.microsoft.com/downloads/details.aspx?fam=">http://www.microsoft.com/downloads/details.aspx?fam=</A>
+ilyid=3D04AC064B-00D1-474E-B7B1-442D8712D553&amp;displaylang=3Den&quot; -- aug2009
++        --~ local url =3D &quot;<A HREF="http://www.microsoft.com/downloads/details.aspx=">http://www.microsoft.com/downloads/details.aspx=</A>
+?FamilyID=3D886acb56-c91a-4a8e-8bb8-9f20f1244a8e&amp;DisplayLang=3Den&quot; -- nov20=
+08
+         -- old : &quot;<A HREF="http://download.microsoft.com/download/5/c/8/5c8b7216-bb=">http://download.microsoft.com/download/5/c/8/5c8b7216-bb=</A>
+c2-4215-8aa5-9dfef9cdb3df/directx_aug2008_redist.exe&quot; -- aug2008
+         -- generic : <A HREF="http://www.microsoft.com/downloads/details.aspx?famil=">http://www.microsoft.com/downloads/details.aspx?famil=</A>
+yid=3D2DA43D38-DB71-4C1B-BC6A-9B6652CD92A3&amp;displaylang=3Dde (todo:displayla=
+ng=3Den?) (link to newest, but requires windows validation procedure)
+         local tipp =3D    &quot;Your DirectX9 version is too old to run Iris.\n=
+&quot;..
+@@ -449,6 +455,8 @@
+     -- if (false) then TestMultiLoader() end
+     -- if (false) then TestZLib() end
+     -- if (false) then TestUniFontLoader() end
++    if (gCommandLineSwitches[&quot;-sdg&quot;]) then StartDebugGrannyMenu() end
++    if (gCommandLineSwitches[&quot;-sdp&quot;]) then StartDebugParticleMenu() end
+     if (gCommandLineSwitches[&quot;-guitest&quot;]) then GUITest() end
+     if (gCommandLineSwitches[&quot;-gumptest&quot;]) then GumpParserTest() end
+     ----------------------------------------------------------------------=
+------------------------------------
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001901.html">[Iris-commit] [IRIS] r3140 - /trunk/installdeps.ubuntu.sh
+</A></li>
+	<LI>Next message: <A HREF="001903.html">[Iris-commit] [IRIS] r3142 - /trunk/bin/iris2.exe
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1902">[ date ]</a>
+              <a href="thread.html#1902">[ thread ]</a>
+              <a href="subject.html#1902">[ subject ]</a>
+              <a href="author.html#1902">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

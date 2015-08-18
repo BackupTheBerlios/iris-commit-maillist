@@ -1,0 +1,510 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1412 - /trunk/data/lua/lib.tilefreewalk.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2007-September/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1412%20-%20/trunk/data/lua/lib.tilefreewalk.lua&In-Reply-To=%3C20070927210216.491951C1817F%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000226.html">
+   <LINK REL="Next"  HREF="000228.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1412 - /trunk/data/lua/lib.tilefreewalk.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1412%20-%20/trunk/data/lua/lib.tilefreewalk.lua&In-Reply-To=%3C20070927210216.491951C1817F%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1412 - /trunk/data/lua/lib.tilefreewalk.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Thu Sep 27 23:02:15 CEST 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000226.html">[Iris-commit] [IRIS] r1411 - /trunk/data/lua/lib.3d.map.lua
+</A></li>
+        <LI>Next message: <A HREF="000228.html">[Iris-commit] [IRIS] r1413 - /trunk/data/lua/lib.tilefreewalk.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#227">[ date ]</a>
+              <a href="thread.html#227">[ thread ]</a>
+              <a href="subject.html#227">[ subject ]</a>
+              <a href="author.html#227">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Thu Sep 27 23:02:15 2007
+New Revision: 1412
+
+Log:
+removed  line-debug stuff and capsuled uo specific stuff in tilefreewalk
+
+Modified:
+    trunk/data/lua/lib.tilefreewalk.lua
+
+Modified: trunk/data/lua/lib.tilefreewalk.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.tilefreewalk.lua (original)
++++ trunk/data/lua/lib.tilefreewalk.lua Thu Sep 27 23:02:15 2007
+@@ -13,10 +13,10 @@
+ 	=
+
+ 	todo : later : autowalk : follow mobile etc, see old WalkStep() in net.wa=
+lk.lua
+ 	=
+
+-	-- TODO : disappearing marker.... LINECULLING ??? height ?
+ 	=
+
++	-- TODO : capsule all uo specific stuff so that this lib is usable in oth=
+er projects
+ 	-- TODO : 3 debugmarkers : a) clienside pos, b) last-walk-request pos c) =
+last position confirmed by server
+-	-- TODO : check walk-key stack and handling of blocked/teleport events
++	-- TODO : uo-specific(capsule me) check walk-key stack and handling of bl=
+ocked/teleport events
+ 	-- TODO : smooth clientside speed, even if server lags a bit and then sen=
+ds multiple confirmations at once
+ 	-- TODO : util to get heightfieldpos ? (terrain only ? statics ? startz+t=
+racedown ? generic raytrace util ? ...)
+ 	-- TODO : util to cache current pos and the 8 surrounding heights (lib.wa=
+lking2.lua)
+@@ -30,21 +30,19 @@
+ =
+
+ function gTileFreeWalk:Init ()
+ 	if (not gEnableTileFreeWalk) then return end -- set in config.lua : gEnab=
+leTileFreeWalk =3D true
+-	if (gCurrentRenderer ~=3D Renderer3D) then gEnableTileFreeWalk =3D false =
+return end -- todo ?
++	if (gCurrentRenderer ~=3D Renderer3D) then return end
+ 	self.iLastWalkRequestSendTime =3D 0
+ 	=
+
+ 	if (true) then
+-		local meshgengfx =3D CreateGfx3D()
+-		local r =3D 0.3
+-		GfxSetSphere(meshgengfx,r,r,r,3,2)
+-		meshgengfx:SetMaterial(GetPlainColourMat(0,1,0))
+-		self.sDebugMarkerMeshName =3D meshgengfx:RenderableConvertToMesh()
+-		meshgengfx:Destroy()
++		self.sDebugMarkerMeshName_Big	=3D MakeSphereMesh(11,11,0.3,0.3,0.1)
++		self.sDebugMarkerMeshName_Dir	=3D MakeSphereMesh(11,11,0.1,0.1,0.1)
+ 	end
+ 	=
+
++	self:SetPos_All(0,0,0)
++	=
+
+ 	if (gStartGameWithoutNetwork) then -- from StartOfflineMode .. InitPlainG=
+UI() StartInGame()
+-		--Renderer3D:ChangeCamMode(Renderer3D.kCamMode_Third) -- centers cam aro=
+und TileFreeWalk_GetExactLocalPos()
+-		--self:SetGlobalUOPos(self:MousePickUOPos())
++		--Renderer3D:ChangeCamMode(Renderer3D.kCamMode_Third)
++		--self:SetGlobalUOPos(self:MousePickPos())
+ 	end
+ =
+
+ 	RegisterStepper(function () gTileFreeWalk:Step() end) =
+
+@@ -56,35 +54,20 @@
+ =
+
+ =
+
+ function gTileFreeWalk:Step	()
++	if (gCurrentRenderer ~=3D Renderer3D) then return end
+ 	local bWalkInMouseDir	=3D gKeyPressed[key_mouse2]
+ 	local bWalkForward		=3D gKeyPressed[key_up]		-- WalkForward() end
+ 	local bWalkBackwards	=3D gKeyPressed[key_down]		-- WalkTurn( 4) end
+ 	local bTurnLeft			=3D gKeyPressed[key_left]		-- WalkTurn(-1) end
+ 	local bTurnRight		=3D gKeyPressed[key_right]	-- WalkTurn( 1) end
+ 	=
+
+-	=
+
+-	if (gKeyPressed[key_j]) then
+-		local cx,cy,cz =3D GetMainCam():GetPos()
+-		cx =3D math.floor(cx)
+-		cy =3D math.floor(cy)
+-		cz =3D math.floor(cz)
+-		GetMainCam():SetPos(cx,cy,cz)
+-		local qw,qx,qy,qz =3D GetMainCam():GetRot()
+-		print(&quot;campos&quot;,cx,cy,cz,qw,qx,qy,qz)
++	local dx,dy =3D self:GetCurrentMouseDir()
++	if (bWalkInMouseDir) then =
+
++		local x,y,z =3D self:MousePickPos()
++		self.lastmarkerpos =3D {x,y,z}
+ 	end
+-	if (gKeyPressed[key_x]) then GetMainCam():SetPos(-19,32,11) GetMainCam():=
+SetRot(0.05512560531497,0.047931000590324,0.65439212322235,0.75261861085892=
+) end
+-	if (gKeyPressed[key_c]) then GetMainCam():SetPos(-21,28,10) GetMainCam():=
+SetRot(0.00030659991898574,0.00019714831432793,0.54085141420364,0.841118037=
+70065) end
+-		=
+
+-	=
+
+-	self:SetGlobalUOPos(0,0,0)
+-	self:SetGlobalUOPos_Server(0,0,0)
+-	=
+
+-	if (bWalkInMouseDir) then =
+
+-		local dx,dy =3D self:GetCurrentMouseDir_UO()
+-		local xloc,yloc,zloc =3D self:MousePickUOPos()
+-		print(&quot;walk to&quot;,sprintf(&quot;%4.0f,%4.0f,%4.0f&quot;,xloc,yloc,zloc),&quot;dir&quot;,sprint=
+f(&quot;%+0.1f,%+0.1f&quot;,dx,dy))
+-		self:SetDebugMarker(&quot;rightclickwalk&quot;, xloc,yloc,zloc, dx,dy,0, 0,0,0.989=
+8)
+-	end
++	local x,y,z =3D unpack(self.lastmarkerpos or {0,0,0})
++	self:SetDebugMarker(&quot;rightclickwalk&quot;, x,y,z, dx,dy,0, 1,1,0)
+ 	=
+
+ 	=
+
+ 	-- todo : only check for send if we want to send walk requests
+@@ -92,145 +75,124 @@
+ 	local iTimeSinceLastWalkRequest =3D gMyTicks - self.iLastWalkRequestSendT=
+ime
+ 	local iWalkRequestInterval =3D self:GetWalkRequestInterval()
+ 	if (iTimeSinceLastWalkRequest &gt;=3D iWalkRequestInterval) then
+-		self.iLastWalkRequestSendTime =3D (iTimeSinceLastWalkRequest &gt; 2*iWalkRe=
+questInterval) and gMyTicks or =
+
++		self.iLastWalkRequestSendTime =3D (iTimeSinceLastWalkRequest   &gt; 2*iWalk=
+RequestInterval) and gMyTicks or =
+
+ 										(self.iLastWalkRequestSendTime + iWalkRequestInterval)
+ 		=
+
+ 		-- todo : send request
+ 		=
+
+-	end =
+
+-	=
+
+-	=
+
+---~ 	self:UpdateAllDebugMarkers()
++	end
+ end
+ =
+
+ =
+
+ -- ##### ##### ##### ##### ##### gathering information, external walk para=
+meters
+ =
+
+ =
+
+--- todo : in tiles per second ? depends on conditions(stamina,spells,buffs=
+,debuffs...) and on mount/horse ?
+-function gTileFreeWalk:GetAllowedMaxSpeed		() return 1 end -- TODO !
++function gTileFreeWalk:GetMaxAllowedSpeed		() return self:Impl_GetMaxAllow=
+edSpeed() end
++function gTileFreeWalk:GetMaxAllowedTurnRate	() return self:Impl_GetMaxAll=
+owedTurnRate() end =
+
+ =
+
+ function gTileFreeWalk:GetWalkRequestInterval	() return 1/self:GetClientSi=
+deSpeed() end
+ =
+
+-function gTileFreeWalk:GetClientSideTurnSpeed	() return 45*gfDeg2Rad*self:=
+GetClientSideSpeed() end =
+
++function gTileFreeWalk:GetClientSideTurnRate	() return self:GetMaxAllowedT=
+urnRate() end =
+
+ =
+
+ function gTileFreeWalk:GetClientSideSpeed		() =
+
+-	local maxspeed			=3D self:GetAllowedMaxSpeed()
+-	local dist				=3D self:GetDistanceToServerPos()
++	local maxspeed			=3D self:GetMaxAllowedSpeed()
++	local dist				=3D self:GetDistanceToLastConfirmedPos()
+ 	local tolerated_dist	=3D 1
+ 	local minspeed_dist		=3D 4 + tolerated_dist -- todo : currently slowdown =
+is linear, make smoother spline here ?
+ 	return maxspeed * (1.0 - math.min(0.9,math.max(0,dist-tolerated_dist)/min=
+speed_dist))
+ end
+ =
+
+ -- returns dx,dy in uo coordinate system, vector2d(dx,dy).length =3D 1
+-function gTileFreeWalk:GetCurrentMouseDir_UO	()
++function gTileFreeWalk:GetCurrentMouseDir	()
+ 	local mx, my =3D GetMousePos()
+ 	local vw, vh =3D GetViewportSize()
+ 	local ax,ay,az =3D GetMainCam():GetEulerAng()
+-	local mouseang =3D -math.atan2( my-vh/2.0, mx-vw/2.0 ) + 1.0*math.pi - ax=
+ -- in radians
+---~ 	print(&quot;TODO : bugged gTileFreeWalk:GetCurrentMouseDir_UO&quot;)
+-	return -math.cos(mouseang),-math.sin(mouseang)
++	local mouseang =3D -math.atan2( my-vh/2.0, mx-vw/2.0 ) + ax -- in radians
++	return math.cos(mouseang),math.sin(mouseang)
+ end
+ =
+
++
++-- ##### ##### ##### ##### ##### implementation (currently uo specific, wi=
+ll later be inserted from extern)
++
++
++-- returns x,y,z
++function gTileFreeWalk:Impl_MousePickPos ()
++	gMousePickFoundHit =3D false
++	Renderer3D:MousePick_3D()
++	local x =3D Renderer3D.gMousePickFoundHit_ExactX
++	local y =3D Renderer3D.gMousePickFoundHit_ExactY
++	local z =3D Renderer3D.gMousePickFoundHit_ExactZ
++	return x,y,z
++end
++
++-- world-units (tiles for uo) per second
++-- todo : depends on conditions(stamina,spells,buffs,debuffs...) and on mo=
+unt/horse ?
++function gTileFreeWalk:Impl_GetMaxAllowedSpeed		() return 1 end
++function gTileFreeWalk:Impl_GetMaxAllowedTurnRate	() return 45*gfDeg2Rad e=
+nd
++
++
++
++-- 27.09.2007 : the code that triggers this event has been deactivated, so=
+ this should no longer be neccessary
++RegisterListener(&quot;Hook_RecenterWorld&quot;,function (difx,dify)
++	if (not gEnableTileFreeWalk) then return end
++	print(&quot;ERROR, TileFreeWalk : Hook_RecenterWorld not yet implemented&quot;)
++	-- todo : move all positons...
++	Crash()
++end)
+ =
+
+ -- ##### ##### ##### ##### ##### position and coordinate system conversions
+ =
+
+ =
+
+--- todo : slow down clientside movement depending on this
+-function gTileFreeWalk:GetDistanceToServerPos () =
+
+-	local xloc,yloc,zloc =3D self:GetGlobalUOPos()
+-	return Vector.len(Vector.sub(xloc,yloc,zloc,self:GetGlobalUOPos_Server()))
++function gTileFreeWalk:GetDistanceToLastConfirmedPos () =
+
++	local x,y,z =3D self:GetPos_LastConfirmed()
++	return Vector.len(Vector.sub(x,y,z,self:GetPos_ClientSide()))
+ end
+ =
+
+--- returns xloc,yloc,zloc
+-function gTileFreeWalk:MousePickUOPos ()
+-	gMousePickFoundHit =3D false
+-	=
+
+-	local rx,ry,rz,rvx,rvy,rvz =3D GetMouseRay()
+-	local d =3D 10
+-	local x,y,z =3D rx+d*rvx,ry+d*rvy,rz+d*rvz
+---~ 	Renderer3D:MousePick_3D()
+---~ 	local x =3D Renderer3D.gMousePickFoundHit_ExactX
+---~ 	local y =3D Renderer3D.gMousePickFoundHit_ExactY
+---~ 	local z =3D Renderer3D.gMousePickFoundHit_ExactZ
+-	return Renderer3D:LocalToUOPos(x,y,z)
++-- returns x,y,z
++function gTileFreeWalk:MousePickPos 		() 			return self:Impl_MousePickPos(=
+) end
++
++function gTileFreeWalk:GetPos_ClientSide	()			return unpack(self.pos_clien=
+tside) end
++function gTileFreeWalk:SetPos_ClientSide	(x,y,z)		self.pos_clientside =3D =
+{x,y,z} end
++
++function gTileFreeWalk:GetPos_LastConfirmed ()			return unpack(self.pos_la=
+stconfirmed) end
++function gTileFreeWalk:SetPos_LastConfirmed (x,y,z)		self.pos_lastconfirme=
+d =3D {x,y,z} end
++
++function gTileFreeWalk:GetPos_LastRequested ()			return unpack(self.pos_la=
+strequested) end
++function gTileFreeWalk:SetPos_LastRequested (x,y,z)		self.pos_lastrequeste=
+d =3D {x,y,z} end
++
++-- used for teleport and init
++function gTileFreeWalk:SetPos_All (x,y,z)		=
+
++	self:SetPos_ClientSide(		x,y,z)
++	self:SetPos_LastConfirmed(	x,y,z)
++	self:SetPos_LastRequested(	x,y,z)
+ end
+ =
+
+--- returns xloc,yloc,zloc  in global UO Coordinates (warning, floats, not =
+rounded)
+-function gTileFreeWalk:GetGlobalUOPos () return self.xloc,self.yloc,self.z=
+loc end
+-function gTileFreeWalk:SetGlobalUOPos (xloc,yloc,zloc) self.xloc,self.yloc=
+,self.zloc =3D xloc,yloc,zloc end
+ =
+
+--- returns the &quot;server-position&quot;, e.g. the lowlevel uo interface position,=
+ this will probably be rounded to tiles
+-function gTileFreeWalk:GetGlobalUOPos_Server () return self.xloc_server,se=
+lf.yloc_server,self.zloc_server end
+-function gTileFreeWalk:SetGlobalUOPos_Server (xloc,yloc,zloc) self.xloc_se=
+rver,self.yloc_server,self.zloc_server =3D xloc,yloc,zloc end
+-
+--- returns x,y,z in local scene coordinates (e.g. can be passed to gfx:Set=
+Position())
+-function gTileFreeWalk:GetExactLocalPos () =
+
+-	local xloc,yloc,zloc =3D self:GetGlobalUOPos()
+-	return Renderer3D:UOPosToLocal(xloc+0.5,yloc+0.5,zloc*0.1) =
+
+-end
+ =
+
+ -- ##### ##### ##### ##### ##### debug markers
+ =
+
+ =
+
+-function gTileFreeWalk:SetDebugMarker (markername, xloc,yloc,zloc, dx,dy,d=
+z, r,g,b)
++function gTileFreeWalk:SetDebugMarker (markername, x,y,z, dx,dy,dz, r,g,b)
+ 	self.debugmarkers =3D self.debugmarkers or {}
+ 	local mymarker =3D self.debugmarkers[markername]
+-	if (not mymarker) then =
+
+-		mymarker =3D CreateRootGfx3D() =
+
+-		mymarker:SetSimpleRenderable()
+-		self.debugmarkers[markername] =3D mymarker =
+
+-		=
+
+-		mymarker.gfx_marker2 =3D CreateRootGfx3D()
+-		mymarker.gfx_marker2:SetMesh(self.sDebugMarkerMeshName)	=
+
+-	end
+-	mymarker.xloc =3D xloc
+-	mymarker.yloc =3D yloc
+-	mymarker.zloc =3D zloc
+-	mymarker.dx =3D dx
+-	mymarker.dy =3D dy
+-	mymarker.dz =3D dz
++	if (not mymarker) then mymarker =3D {} self.debugmarkers[markername] =3D =
+mymarker end
++	mymarker.data =3D {x,y,z, dx,dy,dz, r,g,b}
+ 	self:UpdateDebugMarker(mymarker)
+---~ 	mymarker:SetMaterial(GetPlainColourMat(r or 1,g or 1,b or 0))
+-	mymarker:SetMaterial(&quot;tilefreewalk_markerbase&quot;)
+---~ 	mymarker:SetMaterial(GetHuedMat(&quot;tilefreewalk_markerbase&quot;,r or 1,g or=
+ 1,b or 0))
+-end
+-	=
+
+-function gTileFreeWalk:UpdateAllDebugMarkers () =
+
+-	for k,mymarker in pairs(self.debugmarkers or {}) do self:UpdateDebugMarke=
+r(mymarker) end
+ end
+ =
+
+-function gTileFreeWalk:UpdateDebugMarker (mymarker)
+-	local x,y,z =3D Renderer3D:UOPosToLocal(mymarker.xloc+0.5,mymarker.yloc+0=
+.5,mymarker.zloc + 1) =
+
+---~ 	print(&quot;UpdateDebugMarker&quot;,sprintf(&quot;%0.1f,%0.1f,%0.1f&quot;,x,y,z),Renderer=
+3D.giMapOriginX,Renderer3D.giMapOriginY)
+-	local e =3D 0.5
+-	local gfx =3D mymarker
+-	local bDynamic =3D false
+-	x =3D math.floor(x)
+-	y =3D math.floor(y)
+-	z =3D math.floor(z)
+---~ 	x,y,z =3D -20,18,7
+-	mymarker.gfx_marker2:SetPosition(x,y,z)
+-	gfx:RenderableBegin(2*4,8,bDynamic or false,false,OT_LINE_LIST)
+-	gfx:RenderableVertex(x-e,y,z)
+-	gfx:RenderableVertex(x+e,y,z)
+-	gfx:RenderableVertex(x,y-e,z)
+-	gfx:RenderableVertex(x,y+e,z)
+-	gfx:RenderableVertex(x,y,z-e)
+-	gfx:RenderableVertex(x,y,z+e)
+-	gfx:RenderableVertex(x,y,z)
+-	gfx:RenderableVertex(x+1,y+1,z+1)
+-	gfx:RenderableIndex(0)
+-	gfx:RenderableIndex(1)
+-	gfx:RenderableIndex(2)
+-	gfx:RenderableIndex(3)
+-	gfx:RenderableIndex(4)
+-	gfx:RenderableIndex(5)
+-	gfx:RenderableIndex(6)
+-	gfx:RenderableIndex(7)
+-	print(&quot;debugdata&quot;,x,y,z)
+---~ 	gfx:RenderableVertex(x+mymarker.dx,y+mymarker.dy,z+mymarker.dz)
+---~ 	print(x+mymarker.dx,y+mymarker.dy,z+mymarker.dz)
+-	gfx:RenderableEnd()
++function gTileFreeWalk:UpdateDebugMarker (mymarker,matname)
++	local x,y,z, dx,dy,dz, r,g,b =3D unpack(mymarker.data)
++	if (not mymarker.gfx_big) then
++		mymarker.gfx_big	=3D CreateRootGfx3D()
++		mymarker.gfx_dir	=3D CreateRootGfx3D()
++		mymarker.gfx_big:SetMesh(self.sDebugMarkerMeshName_Big)	=
+
++		mymarker.gfx_dir:SetMesh(self.sDebugMarkerMeshName_Dir)	=
+
++		mymarker.gfx_big:SetMeshSubEntityMaterial(0,GetPlainColourMat(r or 1,g o=
+r 1,b or 0))	=
+
++		mymarker.gfx_dir:SetMeshSubEntityMaterial(0,GetPlainColourMat(r or 1,g o=
+r 1,b or 0))	=
+
++		-- GetHuedMat(&quot;tilefreewalk_markerbase&quot;,r or 1,g or 1,b or 0)
++	end
++	dx,dy,dz =3D Vector.normalise_to_len(dx,dy,dz,0.6)
++	mymarker.gfx_big:SetPosition(x,y,z)
++	mymarker.gfx_dir:SetPosition(x+dx,y+dy,z+dz)
+ end
+ =
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000226.html">[Iris-commit] [IRIS] r1411 - /trunk/data/lua/lib.3d.map.lua
+</A></li>
+	<LI>Next message: <A HREF="000228.html">[Iris-commit] [IRIS] r1413 - /trunk/data/lua/lib.tilefreewalk.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#227">[ date ]</a>
+              <a href="thread.html#227">[ thread ]</a>
+              <a href="subject.html#227">[ subject ]</a>
+              <a href="author.html#227">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

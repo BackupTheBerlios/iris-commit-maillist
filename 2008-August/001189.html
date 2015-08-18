@@ -1,0 +1,741 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2379 - in /trunk/lua: ./ net/
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-August/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2379%20-%20in%20/trunk/lua%3A%20./%20net/&In-Reply-To=%3C20080815124158.EE08C1C18608%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001187.html">
+   <LINK REL="Next"  HREF="001186.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2379 - in /trunk/lua: ./ net/</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2379%20-%20in%20/trunk/lua%3A%20./%20net/&In-Reply-To=%3C20080815124158.EE08C1C18608%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2379 - in /trunk/lua: ./ net/">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Fri Aug 15 14:41:58 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001187.html">[Iris-commit] [IRIS] r2378 - /trunk/lua/lib.debugmenu.lua
+</A></li>
+        <LI>Next message: <A HREF="001186.html">[Iris-commit] [IRIS] r2380 - /trunk/data/config.lua.dist
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1189">[ date ]</a>
+              <a href="thread.html#1189">[ thread ]</a>
+              <a href="subject.html#1189">[ subject ]</a>
+              <a href="author.html#1189">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: hagish
+Date: Fri Aug 15 14:41:58 2008
+New Revision: 2379
+
+Log:
+*adjust ambient light depending on light packets
+*its possible to display ground tiles as static tiles (patch)
+*replaced gGroundBlockLoader:GetTile by cached MapGetGround
+
+Modified:
+    trunk/lua/lib.2d.renderer.lua
+    trunk/lua/lib.3d.dynamic.lua
+    trunk/lua/lib.3d.renderer.lua
+    trunk/lua/lib.3d.tilebatch.lua
+    trunk/lua/lib.compass.lua
+    trunk/lua/lib.mapblock.3d.statics.lua
+    trunk/lua/lib.mapblock.3d.terrain.lua
+    trunk/lua/lib.mapblock.3d.water.lua
+    trunk/lua/lib.mapblock.scheduler.lua
+    trunk/lua/lib.uoutils.lua
+    trunk/lua/lib.walking2.lua
+    trunk/lua/main.lua
+    trunk/lua/net/net.world.lua
+
+Modified: trunk/lua/lib.2d.renderer.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.renderer.lua (original)
++++ trunk/lua/lib.2d.renderer.lua Fri Aug 15 14:41:58 2008
+@@ -62,7 +62,6 @@
+ -- called from mainstep while ingame
+ function Renderer2D:MainStep ()
+ 	self:CamStep()
+-	self:MapStep()
+ 	self:MobileAnimStep()
+ 	-- TODO : self:CombatGuiStep() ?
+ 	-- TODO : self:MousePickStep() ?
+@@ -96,6 +95,8 @@
+ 		local dy =3D move * ((gKeyPressed[key_up] and -1 or 0) + (gKeyPressed[ke=
+y_down] and 1 or 0))
+ 		if (dx ~=3D 0 or dy ~=3D 0) then self:SetCamPos(xloc+dx,yloc+dy) end
+ 	end
++
++	self:MapStep()
+ end
+ =
+
+  =
+
+@@ -158,5 +159,7 @@
+ function Renderer2D:TerrainRayIntersect_Hit		(...) end -- ??? might not be=
+ needed
+ =
+
+ =
+
+-
+-
++-- sets the global sunlight level, intensity=3D0 -&gt; dark, intensity=3D1 -&gt;=
+ bright
++function Renderer2D:SetSunLight		(intensity) end
++-- sets the personal light level, intensity=3D0 -&gt; dark, intensity=3D1 -&gt; =
+bright
++function Renderer2D:SetPersonalLight		(mobile, intensity) end
+
+Modified: trunk/lua/lib.3d.dynamic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.dynamic.lua (original)
++++ trunk/lua/lib.3d.dynamic.lua Fri Aug 15 14:41:58 2008
+@@ -358,6 +358,21 @@
+ 	]]
+ end
+ =
+
++function Renderer3D:Multi_AddPartHelper	(multi, iTileTypeID,iX,iY,iZ,iHue)
++	table.insert(multi.lparts, {iTileTypeID,iX,iY,iZ,iHue})
++	=
+
++	-- calc aabb
++	multi.minx =3D math.min(multi.minx or iX, iX)
++	multi.maxx =3D math.max(multi.maxx or iX, iX)
++	multi.miny =3D math.min(multi.miny or iY, iY)
++	multi.maxy =3D math.max(multi.maxy or iY, iY)
++	=
+
++	-- setup fast access cache for walking
++	if (not multi.cache) then multi.cache =3D {} end
++	local myarr =3D multi.cache[iX..&quot;,&quot;..iY]
++	if (not myarr) then myarr =3D {} multi.cache[iX..&quot;,&quot;..iY] =3D myarr end
++	table.insert(myarr,{iZ=3DiZ,iTileTypeID=3DiTileTypeID,iHue=3DiHue})
++end
+ =
+
+ -- TODO: Multis &amp; Serversidemultis don't recognize kTileDataFlag_LightSour=
+ce yet
+ function Renderer3D:CreateDynamicGfx( item )
+@@ -427,10 +442,9 @@
+ 				iX =3D item.xloc + v.x + item.xadd
+ 				iY =3D item.yloc + v.y + item.yadd
+ 				iZ =3D item.zloc + v.z + item.zadd
+-
++				=
+
+ 				-- add part
+-				table.insert(multi.lparts, {iTileTypeID,iX,iY,iZ,iHue})
+-				-- Renderer3D:RebuildChunkAtUOPos(iX,iY)
++				self:Multi_AddPartHelper(multi, iTileTypeID,iX,iY,iZ,iHue)
+ 			end
+ =
+
+ 			item.multi =3D multi
+@@ -468,12 +482,9 @@
+ 				-- skip invisible parts
+ 				if iFlags =3D=3D 1 then
+ 					-- add part
+-					table.insert(multi.lparts, {iTileTypeID,iX,iY,iZ,iHue})
+-					-- Renderer3D:RebuildChunkAtUOPos(iX,iY)
++					self:Multi_AddPartHelper(multi, iTileTypeID,iX,iY,iZ,iHue)
+ 				end
+ 			end
+-			=
+
+-			--print(&quot;DEBUG&quot;,&quot;minmax&quot;,multi.minx,multi.maxx,multi.miny,multi.maxy)
+ 			=
+
+ 			item.multi =3D multi
+ 			item.gfx =3D nil
+
+Modified: trunk/lua/lib.3d.renderer.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.renderer.lua (original)
++++ trunk/lua/lib.3d.renderer.lua Fri Aug 15 14:41:58 2008
+@@ -95,7 +95,6 @@
+ 	self:MobileAnimStep()
+ 	self:CamStep()
+ 	--~ self:UpdateMap()
+-	self:MapStep()
+ 	self:MousePickStep()
+ 	=
+
+ 	-- b&amp;w effect on death
+@@ -116,6 +115,8 @@
+ 			end
+ 		end
+ 	end
++
++	self:MapStep()
+ end
+ =
+
+ function Renderer3D:SetLastConfirmedUOPos(xloc,yloc,zloc) gTileFreeWalk:Im=
+pl_SetLastConfirmedUOPos(xloc,yloc,zloc) end -- walk
+@@ -716,3 +717,21 @@
+ 		entity.gfx:SetNormaliseNormals(true)
+ 	end
+ end
++
++
++-- sets the global sunlight level, intensity=3D0 -&gt; dark, intensity=3D1 -&gt;=
+ bright
++function Renderer3D:SetSunLight		(intensity) =
+
++	self.mfSunLight =3D intensity
++	self:UpdateLight()
++end
++
++-- sets the personal light level, intensity=3D0 -&gt; dark, intensity=3D1 -&gt; =
+bright
++function Renderer3D:SetPersonalLight		(mobile, intensity) =
+
++	self.mfPersonalLight =3D intensity
++	self:UpdateLight()
++end
++
++function Renderer3D:UpdateLight	()
++	local f =3D math.max(self.mfSunLight or 0, self.mfPersonalLight or 0)
++	Client_SetAmbientLight(f, f, f, 1)
++end
+
+Modified: trunk/lua/lib.3d.tilebatch.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.tilebatch.lua (original)
++++ trunk/lua/lib.3d.tilebatch.lua Fri Aug 15 14:41:58 2008
+@@ -124,7 +124,11 @@
+ =
+
+ 	gfx:FastBatch_Build()
+ 	gfx:SetCastShadows(gStaticsCastShadows)
+-	gfx:FastBatch_SetDisplayRange(self.fmin or -100000, self.fmax or 100000)
++	=
+
++	-- update display range
++	if self.fmin and self.fmax then
++		gfx:FastBatch_SetDisplayRange(self.fmin, self.fmax)
++	end
+ end
+ =
+
+ -- handles the entity precalc
+
+Modified: trunk/lua/lib.compass.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.compass.lua (original)
++++ trunk/lua/lib.compass.lua Fri Aug 15 14:41:58 2008
+@@ -189,7 +189,7 @@
+ 		gDetailMapCacheImage =3D CreateImage()
+ 	end
+ 	=
+
+-	print(&quot;UpdateDetailMapCacheIfNeeded : updating....&quot;)
++	--~ print(&quot;UpdateDetailMapCacheIfNeeded : updating....&quot;)
+ 	=
+
+ 	-- update image
+ 	local bx0,dbx =3D math.floor((xloc-kDetailMapCacheSize/2)/8),kDetailMapCa=
+cheSize/8
+@@ -357,7 +357,7 @@
+ 			})
+ 	=
+
+ 	=
+
+-	gMapImagePath_Small	=3D datapath..&quot;tmp/compass_&quot;..md5..&quot;_small_s.tga&quot;
++	gMapImagePath_Small	=3D datapath..&quot;tmp/compass_&quot;..md5..&quot;_small_s.png&quot;
+ =
+
+ 	local mapfile_exists =3D file_exists(gMapImagePath_Small)
+ 	if (mapfile_exists) then
+
+Modified: trunk/lua/lib.mapblock.3d.statics.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mapblock.3d.statics.lua (original)
++++ trunk/lua/lib.mapblock.3d.statics.lua Fri Aug 15 14:41:58 2008
+@@ -1,4 +1,17 @@
+--- todo
++
++--[[
++	This table contains mappings from map tile types to
++	static tile types. This is used for floor tiles on the
++	map that have a uniform height.
++]]
++gMapToStaticTable =3D {
++	-- maps ground tile id to static tile id
++	[0x406] =3D 0x4a9, -- Wooden floor
++	[0x407] =3D 0x4aa, -- Wooden floor
++	[0x408] =3D 0x4ab, -- Wooden floor
++	[0x409] =3D 0x4ac, -- Wooden floor
++}
++
+ =
+
+ cMapBlock_3D_Statics	=3D CreateClass(cMapBlockGrid)
+ cMapBlock_3D_Statics.iBlockSize		=3D 8*2 -- in tiles
+@@ -42,6 +55,7 @@
+ 		for y =3D 0,blocks-1 do
+ 			local l =3D MapGetBlockStatics(iBlockUO_X+x,iBlockUO_Y+y)
+ =
+
++			-- static tiles
+ 			for k,s in pairs(l) do =
+
+ 				iTileTypeID,iX,iY,iZ,iHue =3D s.artid, s.tx, s.ty, s.zloc, s.hue
+ 				=
+
+@@ -59,6 +73,23 @@
+ 					end
+ 				end
+ 			end =
+
++			=
+
++			-- ground tiles
++			for lx =3D 0, 7 do
++				for ly =3D 0, 7 do
++					local bx,by =3D iBlockUO_X+x, iBlockUO_Y+y
++					local xloc =3D bx * 8 + lx
++					local yloc =3D by * 8 + ly
++					local o =3D MapGetGround(xloc,yloc)
++					local staticType =3D gMapToStaticTable[o.iTileType]
++
++					if staticType then
++						--~ print(&quot;Creating static tile @ &quot;,xloc,yloc,o.zloc)
++						self.mTileBatch:AddTile(staticType,xloc,yloc,o.zloc,0)
++						self:YieldIfOverTime()
++					end
++				end =
+
++			end
+ 	end end
+ 	=
+
+ 	self:Yield()
+
+Modified: trunk/lua/lib.mapblock.3d.terrain.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mapblock.3d.terrain.lua (original)
++++ trunk/lua/lib.mapblock.3d.terrain.lua Fri Aug 15 14:41:58 2008
+@@ -1,8 +1,8 @@
+ cMapBlock_3D_Terrain	=3D CreateClass(cMapBlockGrid)
+ cMapBlock_3D_Terrain.iBlockSize		=3D 8*2 -- in tiles
+-cMapBlock_3D_Terrain.iLoadRadius	=3D 8 -- in iBlockSize-blocks
+-cMapBlock_3D_Terrain.kMaxDist_Visible		=3D cMapBlock_3D_Terrain.iBlockSize=
+*4 -- camdist in tiles  see mapblock.base for default
+-cMapBlock_3D_Terrain.kMaxDist_Detail		=3D cMapBlock_3D_Terrain.iBlockSize*=
+2 -- camdist in tiles
++cMapBlock_3D_Terrain.iLoadRadius	=3D 2*8 -- in iBlockSize-blocks
++cMapBlock_3D_Terrain.kMaxDist_Visible		=3D 2*cMapBlock_3D_Terrain.iBlockSi=
+ze*4 -- camdist in tiles  see mapblock.base for default
++cMapBlock_3D_Terrain.kMaxDist_Detail		=3D 2*cMapBlock_3D_Terrain.iBlockSiz=
+e*2 -- camdist in tiles
+ =
+
+ function cMapBlock_3D_Terrain:ClearDetail ()
+ 	--~ print(&quot;cMapBlock_3D_Terrain:ClearDetail&quot;)
+
+Modified: trunk/lua/lib.mapblock.3d.water.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mapblock.3d.water.lua (original)
++++ trunk/lua/lib.mapblock.3d.water.lua Fri Aug 15 14:41:58 2008
+@@ -3,9 +3,9 @@
+ cMapBlock_3D_Water	=3D CreateClass(cMapBlockGrid)
+ =
+
+ cMapBlock_3D_Water.iBlockSize		=3D 8*2 -- in tiles
+-cMapBlock_3D_Water.iLoadRadius		=3D 4 -- in iBlockSize-blocks
+-cMapBlock_3D_Water.kMaxDist_Visible		=3D cMapBlock_3D_Water.iBlockSize * 4=
+ -- camdist in tiles  see mapblock.base for default
+-cMapBlock_3D_Water.kMaxDist_Detail		=3D cMapBlock_3D_Water.iBlockSize * 2 =
+-- camdist in tiles
++cMapBlock_3D_Water.iLoadRadius		=3D 2*4 -- in iBlockSize-blocks
++cMapBlock_3D_Water.kMaxDist_Visible		=3D 2*cMapBlock_3D_Water.iBlockSize *=
+ 4 -- camdist in tiles  see mapblock.base for default
++cMapBlock_3D_Water.kMaxDist_Detail		=3D 2*cMapBlock_3D_Water.iBlockSize * =
+2 -- camdist in tiles
+ =
+
+ -- forall entities fun(entity)
+ function cMapBlock_3D_Water:ForAllEntities (fun)
+@@ -87,11 +87,11 @@
+ 			-- check ground block
+ 			for lx =3D 0,7 do
+ 				for ly =3D 0,7 do
+-					local tiletype,z =3D gGroundBlockLoader:GetTile(iBlockUO_X+x,iBlockUO=
+_Y+y,lx,ly)
+ 					local xloc,yloc =3D (iBlockUO_X+x)*8+lx,(iBlockUO_Y+y)*8+ly
++					local o =3D MapGetGround(xloc,yloc)
+ 					=
+
+-					if tiletype and FilterIsMapWater(tiletype) then
+-						self:SetWaterZ(xloc-basex,yloc-basey,z)					=
+
++					if o.iTileType and FilterIsMapWater(o.iTileType) then
++						self:SetWaterZ(xloc-basex,yloc-basey,o.zloc)					=
+
+ 						self:YieldIfOverTime()
+ 					end
+ 				end
+
+Modified: trunk/lua/lib.mapblock.scheduler.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mapblock.scheduler.lua (original)
++++ trunk/lua/lib.mapblock.scheduler.lua Fri Aug 15 14:41:58 2008
+@@ -48,10 +48,6 @@
+ 		--~ if (Client_GetTicks() &gt;=3D t_end) then break end
+ 		if (t2 + t2 - t1 &gt;=3D t_end) then break end
+ 	end
+-	=
+
+-	--~ if gfScheduler_WorkCount &gt; 0 then
+-		--~ print(&quot;avg work time&quot;,gfScheduler_WorkTime/gfScheduler_WorkCount)
+-	--~ end
+ end
+ =
+
+ -- true when the first is less than the second       (NOT less-equal)
+
+Modified: trunk/lua/lib.uoutils.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.uoutils.lua (original)
++++ trunk/lua/lib.uoutils.lua Fri Aug 15 14:41:58 2008
+@@ -12,7 +12,9 @@
+ =
+
+ -- returns tiletype,zloc
+ function GetAbsTile (xloc,yloc) =
+
+-	return gGroundBlockLoader:GetTile2(xloc,yloc)
++	--~ return gGroundBlockLoader:GetTile2(xloc,yloc)
++	local o =3D MapGetGround(xloc,yloc)
++	return o.iTileType, o.zloc
+ end
+ =
+
+ function ApplyDir (dir,posx,posy) =
+
+
+Modified: trunk/lua/lib.walking2.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.walking2.lua (original)
++++ trunk/lua/lib.walking2.lua Fri Aug 15 14:41:58 2008
+@@ -7,18 +7,17 @@
+ =
+
+ 		=
+
+ function GetMultiPartsAtPos(multi,xloc,yloc) =
+
+-	local mycache =3D multi.cache
+-	if (not mycache) then
+-		mycache =3D {}
+-		multi.cache =3D mycache
+-		for k,v in pairs(multi.lparts or {}) do
+-			local iTileTypeID,iX,iY,iZ,iHue =3D unpack(v)
+-			local myarr =3D mycache[iX..&quot;,&quot;..iY]
+-			if (not myarr) then myarr =3D {}   mycache[iX..&quot;,&quot;..iY] =3D myarr end
+-			table.insert(myarr,{iZ=3DiZ,iTileTypeID=3DiTileTypeID,iHue=3DiHue})
+-		end
+-	end
+-	return mycache[xloc..&quot;,&quot;..yloc] or {}
++	-- multi aabb box check
++	if =
+
++		(multi.minx and xloc &lt; multi.minx) or
++		(multi.miny and yloc &lt; multi.miny) or
++		(multi.maxx and xloc &gt; multi.maxx) or
++		(multi.maxy and yloc &gt; multi.maxy)
++	then =
+
++		return {} =
+
++	end
++
++	return multi.cache and multi.cache[xloc..&quot;,&quot;..yloc] or {}
+ end
+ 		=
+
+ 		=
+
+@@ -121,8 +120,7 @@
+ 	=
+
+ 	-- map
+ 	--~ printwalkdebug(&quot;---Map&quot;)
+-	=
+
+-	local iMapTileType =3D gGroundBlockLoader:GetTile(bx,by,tx,ty)
++	local iMapTileType =3D MapGetGround(bx*8+tx,by*8,ty).iTileType	-- gGround=
+BlockLoader:GetTile(bx,by,tx,ty)
+ 	local iMapTileZ =3D tonumber(AverageGroundHeight( bx, by, tx, ty))
+ =
+
+ 	--Seasonal Translation
+@@ -144,55 +142,11 @@
+ =
+
+ 	local iTileTypeID,iX,iY,iZ,iHue
+ 	=
+
+-	local iStaticCount
+-	if (gStaticBlockLoader and (bx ~=3D gStaticCacheBlockX or by ~=3D gStatic=
+CacheBlockY) ) then
+-		gStaticBlockLoader:Load(bx,by)
+-		iStaticCount =3D gStaticBlockLoader:Count() -- operates on the block tha=
+t was last loaded using :Load()
+-
+-		gStaticCache =3D {}
+-		gStaticCacheBlockX =3D bx
+-		gStaticCacheBlockY =3D by
+-
+-		gStaticCacheHits =3D 0
+-
+-		-- optimize block
+-		for i =3D 0,iStaticCount-1 do
+-			iTileTypeID,iX,iY,iZ,iHue =3D gStaticBlockLoader:GetStatic(i)
+-			local l =3D Array2DGet(gStaticCache, iX,iY)
+-			if not l then l =3D {} end
+-			table.insert(l, {iTileTypeID,iX,iY,iZ,iHue})
+-			Array2DSet(gStaticCache, iX,iY, l)
+-		end
+-	else
+-		iStaticCount =3D 0
+-	end
+-	-- TODO : maybe include Seasonal translation for Statics also here!?
+-	=
+
+-	-- TODO very very very slow
+-
+-	if gStaticCache then
+-		--print(&quot;OPTIMIZED STATIC START&quot;)
+-		local l =3D Array2DGet(gStaticCache, tx,ty)
+-		if l then
+-			for k,v in pairs(l) do
+-				iTileTypeID,iX,iY,iZ,iHue =3D unpack(v)
+-				--print(&quot;X&quot;,iX,&quot;Y&quot;,iY,&quot;Z&quot;,iZ)
+-				GetWalkingBlockFlagsHelper(iZ,iTileTypeID,flaglist)
+-			end
+-		end
+-		gStaticCacheHits =3D gStaticCacheHits + 1
+-		--print(&quot;OPTIMIZED STATIC END&quot;,gStaticCacheHits)
+-	else
+-		--print(&quot;STATIC START&quot;)
+-		for i =3D 0,iStaticCount-1 do
+-			iTileTypeID,iX,iY,iZ,iHue =3D gStaticBlockLoader:GetStatic(i)
+-			--print(&quot;X&quot;,iX,&quot;Y&quot;,iY,&quot;Z&quot;,iZ)
+-			if (iX =3D=3D tx and iY =3D=3D ty) then
+-				--~ printwalkdebug(&quot;----new Static ID=3D&quot; .. iTileTypeID)
+-				GetWalkingBlockFlagsHelper(iZ,iTileTypeID,flaglist)
+-			end
+-		end
+-		--print(&quot;STATIC END&quot;)
++	local l =3D MapGetBlockStatics(bx,by)
++	for k,s in pairs(l) do =
+
++		if s.tx =3D=3D tx and s.ty =3D=3D ty then
++			GetWalkingBlockFlagsHelper(s.zloc,s.artid,flaglist)
++		end
+ 	end
+ =
+
+ 	local xloc=3Dbx*8+tx
+
+Modified: trunk/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/main.lua (original)
++++ trunk/lua/main.lua Fri Aug 15 14:41:58 2008
+@@ -394,13 +394,21 @@
+ 	NotifyListener(&quot;Hook_MainStep&quot;) -- should called before physstep, so obje=
+ct position changes affect the gfx correctly
+ 	=
+
+ 	NetStep()
++	SoundStep()
++
++	InputStep() -- generate mouse_left_drag_* and mouse_left_click_single eve=
+nts =
+
++	GUIStep() -- generate mouse_enter, mouse_leave events (might adjust curso=
+r -&gt; before CursorStep)
++	ToolTipStep() -- needs mouse_enter, should be after GUIStep
++	CursorStep()
++
++	StepDebugMenu()
+ =
+
+ 	if (gInGameStarted) then
+-		gCurrentRenderer:MainStep()
+ 		StepUODragDrop()
+ 		UpdateCompass()
+ 		DisplayMemoryUsage(OgreMemoryUsage(&quot;all&quot;))
+ 		PingStep()
++		gCurrentRenderer:MainStep()
+ 	else
+ 		StepMainMenu()
+ 	end
+@@ -408,21 +416,13 @@
+ 	local gObjectUnderMouse =3D nil -- todo : mousepick every frame ?
+ 	SetToolTipSubject(GetWidgetUnderMouse() or gObjectUnderMouse)
+ 	=
+
+-
+-	StepDebugMenu()
+-	=
+
+ 	NotifyListener(&quot;Hook_HUDStep&quot;) -- updates special hud elements dependant =
+on object positions that don't have auto-tracking
+ 	=
+
+-	InputStep() -- generate mouse_left_drag_* and mouse_left_click_single eve=
+nts =
+
+-	GUIStep() -- generate mouse_enter, mouse_leave events (might adjust curso=
+r -&gt; before CursorStep)
+-	ToolTipStep() -- needs mouse_enter, should be after GUIStep
+-	CursorStep()
+-
+ 	NotifyListener(&quot;EveryFrame&quot;)
+ 	=
+
+ 	NotifyListener(&quot;Hook_PreRenderOneFrame&quot;)
++
+ 	Client_RenderOneFrame()
+-	SoundStep()
+ 	Client_USleep(1) -- just 1 millisecond, but gives other processes a chanc=
+e to do something
+ end
+ =
+
+
+Modified: trunk/lua/net/net.world.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.world.lua (original)
++++ trunk/lua/net/net.world.lua Fri Aug 15 14:41:58 2008
+@@ -17,6 +17,7 @@
+ 	end
+ end
+ =
+
++
+ -- Personal light level
+ function gPacketHandler.kPacket_Light_Change()
+ 	local input =3D GetRecvFIFO()
+@@ -24,14 +25,32 @@
+ 	local creature_id =3D input:PopNetUint32()
+ 	local creature_light =3D input:PopNetUint8()
+ 	printdebug(&quot;net&quot;,sprintf(&quot;NET (todo): Light_Change id: %i creature_id: %i=
+ creature_light: %i\n&quot;,id,creature_id,creature_light))
++	=
+
++	local f =3D gIgnoreGlobalLightLevel and 1 or (creature_light/0x1F)
++	=
+
++	local mobile =3D GetMobile(creature_id)
++	if mobile and gCurrentRenderer then
++		gCurrentRenderer:SetPersonalLight(mobile, f)
++	end
+ end
+ =
+
++
+ -- Overall light level  - 0 is brightest (day), 9 is OSI night, max is 31 =
+(black)
++--~ 0x00 - day
++--~ 0x09 - OSI night
++--~ 0x1F - Black
++--~ Max normal val =3D 0x1F
+ function gPacketHandler.kPacket_Sunlight() -- ProtocolRecv_Globallight
+ 	local input =3D GetRecvFIFO()
+ 	local id =3D input:PopNetUint8()
+ 	local sunlight =3D input:PopNetUint8()
+ 	printdebug(&quot;net&quot;,sprintf(&quot;NET (todo): Sunlight id: %i sunlight: %i\n&quot;,id,=
+sunlight))
++
++	local f =3D gIgnoreGlobalLightLevel and 1 or (1 - (sunlight/0x1F))
++
++	if gCurrentRenderer then
++		gCurrentRenderer:SetSunLight(f)
++	end
+ end
+ =
+
+ -- Submits Server GameTime to Client (4 bytes)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001187.html">[Iris-commit] [IRIS] r2378 - /trunk/lua/lib.debugmenu.lua
+</A></li>
+	<LI>Next message: <A HREF="001186.html">[Iris-commit] [IRIS] r2380 - /trunk/data/config.lua.dist
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1189">[ date ]</a>
+              <a href="thread.html#1189">[ thread ]</a>
+              <a href="subject.html#1189">[ subject ]</a>
+              <a href="author.html#1189">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

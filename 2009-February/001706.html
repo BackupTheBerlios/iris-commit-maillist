@@ -1,0 +1,271 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2904 - in /trunk/lua: lib.shardlist.lua	net/net.login.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2009-February/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2904%20-%20in%20/trunk/lua%3A%20lib.shardlist.lua%0A%09net/net.login.lua&In-Reply-To=%3C20090208184621.BCDEE1C18861%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001705.html">
+   <LINK REL="Next"  HREF="001707.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2904 - in /trunk/lua: lib.shardlist.lua	net/net.login.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2904%20-%20in%20/trunk/lua%3A%20lib.shardlist.lua%0A%09net/net.login.lua&In-Reply-To=%3C20090208184621.BCDEE1C18861%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2904 - in /trunk/lua: lib.shardlist.lua	net/net.login.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sun Feb  8 19:46:21 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001705.html">[Iris-commit] [IRIS] r2903 - in /trunk: config/ config/chars/ lua/lib.macrolist.lua lua/lib.net.lua lua/lib.protocol.lua lua/lib.shardlist.lua lua/main.lua lua/net/net.login.lua lua/net/net.mobile.lua lua/net/net.skill.lua plugins/moblist.lua
+</A></li>
+        <LI>Next message: <A HREF="001707.html">[Iris-commit] [IRIS] r2905 - in /trunk: bin/ lua/ vc8/ vc9/
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1706">[ date ]</a>
+              <a href="thread.html#1706">[ thread ]</a>
+              <a href="subject.html#1706">[ subject ]</a>
+              <a href="author.html#1706">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sun Feb  8 19:46:21 2009
+New Revision: 2904
+
+Log:
+login:charselect : flags updated to match original client version 6.0.9.2
+
+Modified:
+    trunk/lua/lib.shardlist.lua
+    trunk/lua/net/net.login.lua
+
+Modified: trunk/lua/lib.shardlist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.shardlist.lua (original)
++++ trunk/lua/lib.shardlist.lua Sun Feb  8 19:46:21 2009
+@@ -4,9 +4,10 @@
+ function GetConfigDirPath				() return gMainWorkingDir..&quot;config/&quot; end
+ function GetShardListDirPath			() return GetConfigDirPath()..&quot;shards/&quot; end
+ function GetShardMemoryFilePath			() return GetConfigDirPath()..&quot;shardmemo=
+ry.xml&quot; end
+-function GetCharFilePath				() return GetConfigDirPath()..&quot;chars/&quot;..gLogin=
+ServerIP..&quot;.&quot;..gLoginServerPort..&quot;.&quot;..gLoginname..&quot;.&quot;..gCharID..&quot;.xml&quot; end
+-function GetShardConfigFilePath 		(shardname) return GetShardListDirPath()=
+..string.gsub(shardname,&quot;[^0-9a-zA-Z_%-%(%) ]&quot;,&quot;.&quot;)..&quot;.xml&quot; end
++function GetCharFilePath				() return GetConfigDirPath()..&quot;chars/&quot;..table.=
+concat({gLoginServerIP,gLoginServerPort,ShardListFileNamePartEncode(gLoginn=
+ame),giGameServerID,gCharID},&quot;.&quot;)..&quot;.xml&quot; end
++function GetShardConfigFilePath 		(shardname) return GetShardListDirPath()=
+..ShardListFileNamePartEncode(shardname)..&quot;.xml&quot; end
+ =
+
++function ShardListFileNamePartEncode	(x) return string.gsub(x,&quot;[^0-9a-zA-Z=
+_%-%(%) ]&quot;,&quot;.&quot;) end
+ =
+
+ -- notes
+ =
+
+@@ -29,6 +30,7 @@
+ =
+
+ =
+
+ function InitShardList () =
+
++	LoadStoredPasswords()
+ 	LoadShardMemory()
+ 	LoadShardList()
+ 	--~ for shardname,shard in pairs(gShardList) do
+@@ -47,10 +49,9 @@
+ =
+
+ =
+
+ RegisterListener(&quot;Hook_Packet_Character_List&quot;,function (charlist) =
+
+-	-- gLoginname,gPassword,gLoginServerIP,gLoginServerPort
+-	local plaincharlist =3D {}
++	local plaincharlist =3D {serverid=3DgiGameServerID}
+ 	for k,v in pairs(charlist.chars) do plaincharlist[k] =3D v.name end
+-	ShardMemorySet(&quot;charlist&quot;,gLoginServerIP..&quot;:&quot;..gLoginServerPort..&quot;:&quot;..gLo=
+ginname,plaincharlist)
++	ShardMemorySet(&quot;charlist&quot;,table.concat({gLoginServerIP,gLoginServerPort,S=
+hardListFileNamePartEncode(gLoginname),giGameServerID},&quot;:&quot;),plaincharlist)
+ end)
+ =
+
+ RegisterListener(&quot;Hook_Player_Full_equip&quot;,function (mobiledata,equipmentda=
+ta) =
+
+@@ -133,6 +134,11 @@
+ =
+
+ -- ***** ***** ***** ***** ***** stored passwords
+ =
+
++-- store password when login succeeds
++RegisterListener(&quot;Hook_Packet_Server_List&quot;,function ()
++	if (not gRememberPassword) then return end
++	SetStoredPassword(gLoginServerIP,gLoginServerPort,gLoginname,gPassword)
++end)
+ gStoredPasswords =3D {}
+ function GetStoredPasswordsFilePath () return GetConfigDirPath()..&quot;passwor=
+ds.xml&quot; end
+ function SaveStoredPasswords () 					SimpleXMLSave(GetStoredPasswordsFileP=
+ath(),gStoredPasswords) end
+
+Modified: trunk/lua/net/net.login.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.login.lua (original)
++++ trunk/lua/net/net.login.lua Sun Feb  8 19:46:21 2009
+@@ -39,6 +39,7 @@
+ 		printdebug(&quot;login&quot;,sprintf(&quot;NET: [%i] '%s' full=3D%i tz=3D%i ip=3D%x\n&quot;,=
+server.index,server.name,server.full,server.tz,server.ip))
+ 	end
+ 	MainMenuShowServerList(serverlist)
++	NotifyListener(&quot;Hook_Packet_Server_List&quot;,serverlist)
+ end
+ =
+
+ -- len: 0x10C
+@@ -350,6 +351,8 @@
+ -- send login server request 0x80
+ -- answered by 0xA8 kPacket_Server_List which calls MainMenuShowServerList
+ function Send_Account_Login_Request	(sName,sPassword,iSeed) -- 0x80
++	if (sPassword =3D=3D &quot;&quot;) then sPassword =3D GetStoredPassword(gLoginServe=
+rIP,gLoginServerPort,gLoginname) or sPassword end
++	gLoginname,gPassword =3D sName,sPassword
+ 	LoginDebug2(&quot;s:0x80 Send_Account_Login_Request&quot;)
+ 	printdebug(&quot;login&quot;,sprintf(&quot;NET: Account_Login_Request: Name: %s Password=
+:<i> %s\n&quot;,gPWReplace or sName,gPWReplace or sPassword))
+</I> 	local out =3D GetSendFIFO()
+@@ -366,6 +369,7 @@
+ function Send_GameServer_Select(iGameServerID) -- 0xA0
+ 	LoginDebug2(&quot;s:0xA0 Send_GameServer_Select&quot;)
+ 	printdebug(&quot;login&quot;,sprintf(&quot;NET: GameServer_Select: %i\n&quot;,iGameServerID))
++	giGameServerID =3D iGameServerID
+ 	local out =3D GetSendFIFO()
+ 	out:PushNetUint8(kPacket_Server_Select) -- 0xA0
+ 	out:PushNetUint16(iGameServerID)
+@@ -433,6 +437,14 @@
+ end
+ =
+
+ -- send characterselect to gameserver  0x5D
++--[[
++       -- -- -- -- -- -- -- --  -- -- -- -- -- -- -- --
++0000   5D ED ED ED ED 47 68 6F  6E 67 6F 6C 61 73 00 00   ]....Ghongolas..
++0010   00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00   ................
++0020   00 00 00 00 00 00 00 00  3F 00 00 00 00 00 00 00   ........?.......
++0030   30 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00   0...............
++0040   00 00 00 00 02 0A 00 02  0F                        .........
++]]--
+ function Send_Character_Select(iCharacterID,iAccount)
+ 	LoginDebug2(&quot;s:0x5D Send_Character_Select&quot;)
+ 	printdebug(&quot;login&quot;,sprintf(&quot;NET: Character_Select: %i Name: %s Password: =
+%s AccountNr.:%x\n&quot;,
+@@ -442,21 +454,33 @@
+ 	gCharID =3D iCharacterID
+ 	=
+
+ 	local out =3D GetSendFIFO()
+-	out:PushNetUint8(kPacket_Pre_Login) -- 0x5D
+-	out:PushNetUint32(hex2num(&quot;0xedededed&quot;))
+-	out:PushFilledString(gCharName,30)
+-
++	out:PushNetUint8(kPacket_Pre_Login) -- 0x5D		--  1 :  1
++	out:PushNetUint32(hex2num(&quot;0xedededed&quot;))		--  4 :  5
++	out:PushFilledString(gCharName,30)				-- 30 : 35
++
++	=
+
++
++			=
+
++			=
+
+ 	--	out:PushFilledString(gCharacterList[iCharacterID].pw,30)
+ =
+
+-	out:PushNetUint16(0)
+-	out:PushNetUint32(hex2num(&quot;0x0000001F&quot;))	-- RunUO uses this unknown flags=
+ (maybe for map 3,4 support)
+-
+-	out:PushFilledString(&quot;&quot;,6)					-- obsolete for RunUO
+-	out:PushNetUint16(hex2num(&quot;0x004B&quot;))		-- obsolete for RunUO - 0x4A (2D_V.=
+5.0.8.2_ML) 0x4B (2D_V.5.0.9.1_ML)
+-	out:PushFilledString(&quot;&quot;,16)					-- obsolete for RunUO
+-
+-	out:PushNetUint32(iCharacterID)
+-	out:PushNetUint32(hex2num(&quot;0xC0A83016&quot;))	--TODO: check: iAccount or GameS=
+erverIP
++	out:PushNetUint16(0)							--  2 : 37
++	=
+
++			=
+
++													--  4 : 41
++	--~ out:PushNetUint32(hex2num(&quot;0x0000001F&quot;))	-- RunUO uses this unknown f=
+lags (maybe for map 3,4 support) (pre.08.02.2008)
++	out:PushNetUint32(hex2num(&quot;0x0000003F&quot;))		-- 6.0.9.2 RunUO uses this unkn=
+own flags (maybe for map 3,4 support) (08.02.2008:ghoul:packetlog from razo=
+r login has 0x3f here)
++	-- razor : int flags =3D pvSrc.ReadInt32();
++	=
+
++	out:PushFilledString(&quot;&quot;,6)					--  6 : 47 -- obsolete for RunUO
++	--~ out:PushNetUint16(hex2num(&quot;0x004B&quot;))		--  2 : 49 -- obsolete for RunU=
+O - 0x4A (2D_V.5.0.8.2_ML) 0x4B (2D_V.5.0.9.1_ML) (pre.08.02.2008)
++	out:PushNetUint16(hex2num(&quot;0x0030&quot;))		--  2 : 49 -- obsolete for RunUO - =
+6.0.9.2 (08.02.2008:ghoul:packetlog from razor login has 0x30 here)
++	out:PushFilledString(&quot;&quot;,16)					-- 16 : 65 -- obsolete for RunUO
++
++	out:PushNetUint32(iCharacterID)				--  4 : 69
++	--~ int charSlot =3D pvSrc.ReadInt32();
++	=
+
++	out:PushNetUint32(hex2num(&quot;0xC0A83016&quot;))	--  4 : 73 --TODO: check: iAccou=
+nt or GameServerIP
+ 	out:SendPacket()
+ end
+ =
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001705.html">[Iris-commit] [IRIS] r2903 - in /trunk: config/ config/chars/ lua/lib.macrolist.lua lua/lib.net.lua lua/lib.protocol.lua lua/lib.shardlist.lua lua/main.lua lua/net/net.login.lua lua/net/net.mobile.lua lua/net/net.skill.lua plugins/moblist.lua
+</A></li>
+	<LI>Next message: <A HREF="001707.html">[Iris-commit] [IRIS] r2905 - in /trunk: bin/ lua/ vc8/ vc9/
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1706">[ date ]</a>
+              <a href="thread.html#1706">[ thread ]</a>
+              <a href="subject.html#1706">[ subject ]</a>
+              <a href="author.html#1706">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

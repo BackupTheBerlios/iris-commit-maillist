@@ -1,0 +1,319 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1653 - in /trunk/data: customchars/charoverride.lua lua/filter/filter.granny.lua lua/lib.3d.dynamic.lua lua/lib.3d.map.lua lua/lib.bodygfx.lua lua/lib.debugmenu.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2007-December/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1653%20-%20in%20/trunk/data%3A%0A%20customchars/charoverride.lua%20lua/filter/filter.granny.lua%0A%20lua/lib.3d.dynamic.lua%20lua/lib.3d.map.lua%20lua/lib.bodygfx.lua%0A%20lua/lib.debugmenu.lua&In-Reply-To=%3C20071219173428.E56131C186BC%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000468.html">
+   <LINK REL="Next"  HREF="000470.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1653 - in /trunk/data: customchars/charoverride.lua lua/filter/filter.granny.lua lua/lib.3d.dynamic.lua lua/lib.3d.map.lua lua/lib.bodygfx.lua lua/lib.debugmenu.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1653%20-%20in%20/trunk/data%3A%0A%20customchars/charoverride.lua%20lua/filter/filter.granny.lua%0A%20lua/lib.3d.dynamic.lua%20lua/lib.3d.map.lua%20lua/lib.bodygfx.lua%0A%20lua/lib.debugmenu.lua&In-Reply-To=%3C20071219173428.E56131C186BC%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1653 - in /trunk/data: customchars/charoverride.lua lua/filter/filter.granny.lua lua/lib.3d.dynamic.lua lua/lib.3d.map.lua lua/lib.bodygfx.lua lua/lib.debugmenu.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Wed Dec 19 18:34:28 CET 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000468.html">[Iris-commit] [IRIS] r1652 - in /trunk/data/lua: lib.3d.dynamic.lua lib.3d.map.lua lib.3d.mousepick.lua lib.walking2.lua
+</A></li>
+        <LI>Next message: <A HREF="000470.html">[Iris-commit] [IRIS] r1654 - /trunk/COPYING
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#469">[ date ]</a>
+              <a href="thread.html#469">[ thread ]</a>
+              <a href="subject.html#469">[ subject ]</a>
+              <a href="author.html#469">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: sience
+Date: Wed Dec 19 18:34:27 2007
+New Revision: 1653
+
+Log:
+-charoverride reorganisation -&gt; now in filter.granny.lua
+-some optimizations to multis and statics
+
+Removed:
+    trunk/data/customchars/charoverride.lua
+Modified:
+    trunk/data/lua/filter/filter.granny.lua
+    trunk/data/lua/lib.3d.dynamic.lua
+    trunk/data/lua/lib.3d.map.lua
+    trunk/data/lua/lib.bodygfx.lua
+    trunk/data/lua/lib.debugmenu.lua
+
+Modified: trunk/data/lua/filter/filter.granny.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/filter/filter.granny.lua (original)
++++ trunk/data/lua/filter/filter.granny.lua Wed Dec 19 18:34:27 2007
+@@ -2,12 +2,24 @@
+ gGrannyFilter =3D {}
+ =
+
+ -- FILTER: Grannys
+-function GrannyOverride(mobileartid)
+-	if (gGrannyFilter[mobileartid]) then
+-		--printdebug(&quot;granny&quot;,&quot;Mapping: ArtID to GrannyID &quot;,mobileartid,&quot; -&gt; &quot;,g=
+GrannyFilter[mobileartid].grannyid)
+-		return gGrannyFilter[mobileartid].grannyid
++function GrannyOverride(bodyid)
++	if (gGrannyFilter[bodyid]) then
++		if (gGrannyFilter[bodyid].grannyid) then
++			printdebug(&quot;granny&quot;,&quot;Override: GrannyID to new GrannyID &quot;,bodyid,&quot; -&gt; &quot;=
+,gGrannyFilter[bodyid].grannyid)
++			return gGrannyFilter[bodyid].grannyid
++		end
+ 	end
+-	return mobileartid
++	return bodyid
++end
++
++function GrannyMeshOverride(bodyid)
++	if (gGrannyFilter[bodyid]) then
++		if (gGrannyFilter[bodyid].meshname) then
++			printdebug(&quot;granny&quot;,&quot;OverrideMesh: GrannyID to Mesh &quot;,bodyid,&quot; -&gt; &quot;,gGr=
+annyFilter[bodyid].meshname)
++			return gGrannyFilter[bodyid].meshname
++		end
++	end
++	return nil
+ end
+ =
+
+ gGrannyFilter[987]	=3D{grannyid=3D400}
+@@ -15,3 +27,7 @@
+ gGrannyFilter[778]	=3D{grannyid=3D16}
+ gGrannyFilter[292]	=3D{grannyid=3D220}
+ gGrannyFilter[970]	=3D{grannyid=3D402}
++--gGrannyFilter[220]	=3D{meshname=3D&quot;Lich.mesh&quot;}
++--gGrannyFilter[5]	=3D{grannyid=3D220}				--birds_eagle
++--gGrannyFilter[39]	=3D{grannyid=3D220}				--mongbats_mongbat
++--gGrannyFilter[105]	=3D{grannyid=3D220}				--dragons_wyrm_ancient
+
+Modified: trunk/data/lua/lib.3d.dynamic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.3d.dynamic.lua (original)
++++ trunk/data/lua/lib.3d.dynamic.lua Wed Dec 19 18:34:27 2007
+@@ -42,7 +42,7 @@
+ 	-- Detect Multis
+ 	if item.artid &gt;=3D gMulti_ID then
+ 		printdebug(&quot;multi&quot;,&quot;-----------------------------&quot;)
+-		printdebug(&quot;multi&quot;, sprintf(&quot;ARTID&quot;,item.artid,vardump(item)) )
++		printdebug(&quot;create multi&quot;, sprintf(&quot;ARTID&quot;,item.artid,vardump(item)) )
+ =
+
+ 		-- Serverside Multi Check (Custom Multi)
+ 		if (item.lTile) then
+@@ -200,7 +200,17 @@
+ =
+
+ -- handle child destroy of Multis
+ function Renderer3D:DestroyDynamicGfx (dynamic)
+-	-- print(&quot;DEBUG&quot;,&quot;destroy&quot;,vardump(dynamic))
++	-- remove multi entry
++	if (dynamic.multi) then
++		printdebug(&quot;destroy multi&quot;, sprintf(&quot;ARTID&quot;,dynamic.artid,vardump(dynami=
+c)) )
++		Renderer3D:RebuildChunkAtUOPos(dynamic.xloc,dynamic.yloc)
++		gMultis[dynamic.multi] =3D nil =
+
++	end
++	=
+
++	-- remove lightsource from dynamic
++	if (dynamic.lightname) then Client_RemoveLight(dynamic.lightname) dynamic=
+.lightname =3D nil end
++
++	-- remove dynamic entry
+ 	if (dynamic.gfx) then
+ --		if (dynamic.lMultiChildGfx) then
+ --			for k,child in pairs(dynamic.lMultiChildGfx) do child:Destroy() end
+@@ -209,12 +219,5 @@
+ 		dynamic.gfx:Destroy()
+ 		dynamic.gfx =3D nil
+ 	end
+-	-- if gfx has an assigned lightsource, delete it
+-	if (dynamic.lightname) then Client_RemoveLight(dynamic.lightname) dynamic=
+.lightname =3D nil end
+-	-- remove multi entry
+-	if (dynamic.multi) then =
+
+---		local multi =3D dynamic.multi			--obsolete
+-		Renderer3D:RebuildChunkAtUOPos(dynamic.xloc,dynamic.yloc)
+-		gMultis[dynamic.multi] =3D nil =
+
+-	end
+-end
++
++end
+
+Modified: trunk/data/lua/lib.3d.map.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.3d.map.lua (original)
++++ trunk/data/lua/lib.3d.map.lua Wed Dec 19 18:34:27 2007
+@@ -197,6 +197,7 @@
+ --------------------------------------------------------------------------=
+---------------------------------------------------
+ ]]--
+ 	-- if no *.mesh is available, a fallback billboard with original uo_art i=
+s generated
++	-- What about cahing here ??
+ 	elseif (gEnableFallBackBillboards_Statics) then
+ 		local iTranslatedTileTypeID =3D SeasonalStaticTranslation(iTileTypeID, g=
+SeasonSetting)
+ 		if (not IsArtBillboardFallBackSkipped(iTileTypeID)) then
+@@ -207,7 +208,7 @@
+ 			-- we have to add 16384 for fallbacks
+ 			self:CreateArtBillBoard(entity.gfx.billboard,iTranslatedTileTypeID + 16=
+384,iHue)
+ 			table.insert(chunk.lStaticEntities,entity)
+-			printdebug(&quot;missing&quot;,sprintf(&quot;Fallback: generated : iTranslatedTileType=
+ID=3D%i\n&quot;, iTranslatedTileTypeID))
++			printdebug(&quot;missing&quot;,sprintf(&quot;Fallback: Billboard created : iTranslated=
+TileTypeID=3D%i\n&quot;, iTranslatedTileTypeID))
+ 		end
+ 	end
+ =
+
+@@ -314,7 +315,7 @@
+ 				end
+ 			end
+ 		end
+-		=
+
++--[[
+ 		local iStaticCount
+ 		local xloc, yloc
+ =
+
+@@ -336,6 +337,7 @@
+ 					self:CreateMapChunkEntity(chunk,iTileTypeID,xloc,yloc,iZ,iHue)
+ 				end =
+
+ 		end end
++]]--
+ 	end
+ =
+
+ 	-- TODO : fish in water ? other gimiks ?
+@@ -467,7 +469,6 @@
+ 			if (v.gfx and v.gfx.billboard) then v.gfx.billboard:Destroy() v.gfx.bil=
+lboard =3D nil end
+ 			if (v.gfx) then v.gfx:Destroy() v.gfx =3D nil end
+ 		end =
+
+-		chunk.lStaticEntities =3D {}
+ 		for k,v in pairs(chunk.pStaticGeometryLayers) do v:Destroy() end chunk.p=
+StaticGeometryLayers =3D {}
+ 		if (chunk.sTerrainMeshName) then UnloadMeshName(chunk.sTerrainMeshName) =
+chunk.sTerrainMeshName =3D nil end -- unload terrain mesh
+ 	end
+
+Modified: trunk/data/lua/lib.bodygfx.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.bodygfx.lua (original)
++++ trunk/data/lua/lib.bodygfx.lua Wed Dec 19 18:34:27 2007
+@@ -5,10 +5,6 @@
+ -- see also lib.3d.walksmooth.lua
+ -- interesting mobile artid : 400 401 (admin robe ? or base human ?)
+ =
+
+-
+-gCharacterModelOverride =3D {}
+-kCharacterModelOverrideFilePath =3D datapath..&quot;customchars/charoverride.lu=
+a&quot;
+-if (file_exists(kCharacterModelOverrideFilePath)) then dofile(kCharacterMo=
+delOverrideFilePath) end
+ =
+
+ gBodyGfxPrototype =3D {}
+ =
+
+@@ -291,7 +287,7 @@
+ -- creates childnodes of parentgfx and adds inserts them into the partsarr=
+ table
+ function CreateBodyGfxPartsFromModelIDArray (bodyid,parentgfx,partsarr,mod=
+elidarr,iPrimaryHandItem,iSecondaryHandItem)
+ 	if (not gGrannyLoaderType) then return end
+-	local override_meshname =3D gCharacterModelOverride[bodyid]
++	local override_meshname =3D GrannyMeshOverride(bodyid)
+ 	local skeleton_name
+ 	if (override_meshname) then =
+
+ 		skeleton_name =3D &quot;character_override_skeleton&quot; -- should not be used, o=
+verride models don't support equipment yet
+
+Modified: trunk/data/lua/lib.debugmenu.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.debugmenu.lua (original)
++++ trunk/data/lua/lib.debugmenu.lua Wed Dec 19 18:34:27 2007
+@@ -29,9 +29,13 @@
+ 	{artid=3D401, content=3D({{artid=3D5899,animid=3D477},{artid=3D5422,animi=
+d=3D430},{artid=3D5399,animid=3D434},{artid=3D5435,animid=3D466},{artid=3D8=
+251,animid=3D700},{artid=3D3701,animid=3D422},})},
+ 	--female
+ 	{artid=3D400, content=3D({{artid=3D5905,animid=3D476},{artid=3D5422,animi=
+d=3D430},{artid=3D7933,animid=3D435},{artid=3D5909,animid=3D406},{artid=3D5=
+441,animid=3D490},{artid=3D3701,animid=3D422},{artid=3D8251,animid=3D700},}=
+)},
++
++	{artid=3D hex2num(&quot;5&quot;) , content=3D{}},		--birds_eagle
++	{artid=3D hex2num(&quot;39&quot;) , content=3D{}},	--mongbats_mongbat
++	{artid=3D hex2num(&quot;105&quot;) , content=3D{}},	--dragons_wyrm_ancient
++
+ 	-- llamas_llama_pack - broken (crash) -&gt; mapped to id: 220 (grannyfilter)
+ 	{artid=3D 292 , content=3D{}},
+-
+ 	-- k=C3=A4fer - broken animation
+ 	{artid=3D hex2num(&quot;0xA9&quot;) , content=3D{}},
+ 	--791 broken horse
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000468.html">[Iris-commit] [IRIS] r1652 - in /trunk/data/lua: lib.3d.dynamic.lua lib.3d.map.lua lib.3d.mousepick.lua lib.walking2.lua
+</A></li>
+	<LI>Next message: <A HREF="000470.html">[Iris-commit] [IRIS] r1654 - /trunk/COPYING
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#469">[ date ]</a>
+              <a href="thread.html#469">[ thread ]</a>
+              <a href="subject.html#469">[ subject ]</a>
+              <a href="author.html#469">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

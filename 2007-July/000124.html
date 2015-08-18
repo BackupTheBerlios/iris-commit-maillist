@@ -1,0 +1,289 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1308 - in /trunk/data/lua: lib.3d.renderer.lua lib.input.lua net.objects.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2007-July/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1308%20-%20in%20/trunk/data/lua%3A%0A%20lib.3d.renderer.lua%20lib.input.lua%20net.objects.lua&In-Reply-To=%3C20070728213452.92307B140B3%40localhost.localdomain%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000123.html">
+   <LINK REL="Next"  HREF="000125.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1308 - in /trunk/data/lua: lib.3d.renderer.lua lib.input.lua net.objects.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1308%20-%20in%20/trunk/data/lua%3A%0A%20lib.3d.renderer.lua%20lib.input.lua%20net.objects.lua&In-Reply-To=%3C20070728213452.92307B140B3%40localhost.localdomain%3E"
+       TITLE="[Iris-commit] [IRIS] r1308 - in /trunk/data/lua: lib.3d.renderer.lua lib.input.lua net.objects.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat Jul 28 23:34:52 CEST 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000123.html">[Iris-commit] [IRIS] r1307 - /trunk/data/config.lua.dist
+</A></li>
+        <LI>Next message: <A HREF="000125.html">[Iris-commit] [IRIS] r1309 - /trunk/data/lua/lib.3d.renderer.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#124">[ date ]</a>
+              <a href="thread.html#124">[ thread ]</a>
+              <a href="subject.html#124">[ subject ]</a>
+              <a href="author.html#124">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: hagish
+Date: Sat Jul 28 23:34:51 2007
+New Revision: 1308
+
+Log:
+added basic support for moving effects (UNTESTED)
+
+Modified:
+    trunk/data/lua/lib.3d.renderer.lua
+    trunk/data/lua/lib.input.lua
+    trunk/data/lua/net.objects.lua
+
+Modified: trunk/data/lua/lib.3d.renderer.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.3d.renderer.lua (original)
++++ trunk/data/lua/lib.3d.renderer.lua Sat Jul 28 23:34:51 2007
+@@ -124,8 +124,9 @@
+ ConsecrateWeapon2=3D 9501	--???
+ --Fizzels		=3D hex2num(&quot;0x3735&quot;)
+ =
+
+--- effects can have a ttl (time-to-live, effect.ttl in milliseconds, defau=
+lt is gParticleEffectDefualtTTL in ms)
+-gParticleEffectDefualtTTL =3D 10 * 1000
++-- effects can have a ttl (time-to-live, effect.ttl in milliseconds, defau=
+lt is gParticleEffectDefaultTTL in ms)
++gParticleEffectDefaultTTL =3D 10 * 1000
++gParticleEffectDefaultSpeed =3D 0.1
+ gParticleEffects =3D {}
+ gParticleEffects[StandardEffect]=3D { etype=3D0, name=3D&quot;bluering&quot;, relx=
+=3D0.5, rely=3D0.5, relz=3D0.1, scalex=3D1, scaley=3D1, scalez=3D1 }
+ gParticleEffects[Fireball]		=3D { etype=3D0, name=3D&quot;Large Fireball&quot;, relx=
+=3D0.5, rely=3D0.5, relz=3D1, scalex=3D0.2, scaley=3D0.2, scalez=3D0.2}
+@@ -176,7 +177,7 @@
+ 		effect.gfx =3D CreateRootGfx3D()
+ 		effect.gfx:SetMesh(meshname)
+ 		effect.gfx:SetRenderingDistance(self.gDynamicMaxRenderDist)
+-		effect.gfx:SetPosition(self:UOPosToLocal(effect.source_locx + relx,effec=
+t.source_locy + rely,effect.source_locz * 0.1 + relz))
++		effect.gfx:SetPosition(self:UOPosToLocal(effect.current_locx + relx,effe=
+ct.current_locy + rely,effect.current_locz * 0.1 + relz))
+ 	else
+ 		printf(&quot;Hued Paricle effect failed Mesh=3D0x%04x not found.\n&quot;,effect.it=
+emid)
+ 	end
+@@ -194,17 +195,68 @@
+ 	printdebug(&quot;effect&quot;,&quot;AddParticleEffect&quot;)
+ 	effect.gfx=3DCreateRootGfx3D()
+ 	effect.gfx:SetParticleSystem(particlename)
+-	effect.gfx:SetPosition(self:UOPosToLocal(effect.source_locx + relx,effect=
+.source_locy + rely,effect.source_locz * 0.1 + relz))
++	effect.gfx:SetPosition(self:UOPosToLocal(effect.current_locx + relx,effec=
+t.current_locy + rely,effect.current_locz * 0.1 + relz))
+ 	effect.gfx:SetScale( scalex or 1, scaley or 1, scalez or 1)
+ --	effect.gfx:SetNormaliseNormals(true)
+ =
+
+ 	--RegisterListener(&quot;Hook_MainStep&quot;,function(ticks) =
+
+-	InvokeLater(effect.ttl or gParticleEffectDefualtTTL, function ()
+-		-- destroy effect
++	InvokeLater(effect.ttl or gParticleEffectDefaultTTL, function ()
++		-- destroy effect after timeout
+ 		printdebug(&quot;effect&quot;,&quot;destroy effect&quot;)
+-		effect.gfx:Destroy()
+-		effect =3D nil
++		if effect and effect.gfx:IsAlive() then
++			effect.gfx:Destroy()
++			effect =3D nil
++		end
+ 	end)
++	=
+
++	-- effect.speed =3D input:PopNetUint8()
++	-- effect.duration =3D input:PopNetUint8()
++	=
+
++	print(&quot;DEBUG&quot;,effect.speed,effect.duration)
++	print(&quot;##################################&quot;)
++	print(vardump(effect))
++	print(&quot;##################################&quot;)
++
++	if =
+
++		effect.current_locx ~=3D effect.target_locx or
++		effect.current_locy ~=3D effect.target_locy or
++		effect.current_locz ~=3D effect.target_locz
++	then
++		-- add stepper to handle effect movement
++		RegisterStepper(function()
++			if not effect or not effect.gfx:IsAlive() then
++				-- i am dead so stop this
++				return true
++			end
++			=
+
++			if =
+
++				-- distance from current position to target lower then 0.1
++				math.abs(effect.current_locx - effect.target_locx) &lt; 0.1 and
++				math.abs(effect.current_locy - effect.target_locy) &lt; 0.1 and
++				math.abs(effect.current_locz - effect.target_locz) &lt; 0.1
++			then
++				-- stop moving
++				return true
++			else
++				-- move
++				local dx =3D effect.current_locx - effect.target_locx
++				local dy =3D effect.current_locy - effect.target_locy
++				local dz =3D effect.current_locz - effect.target_locz
++				=
+
++				local len =3D math.sqrt(dx*dx + dy*dy + dz*dz)
++				=
+
++				local speed =3D effect.speed or gParticleEffectDefaultSpeed
++				=
+
++				local fps_factor =3D 1 / OgreAvgFPS()
++				=
+
++				effect.current_locx =3D effect.current_locx + dx / len * speed * fps_f=
+actor
++				effect.current_locy =3D effect.current_locy + dy / len * speed * fps_f=
+actor
++				effect.current_locz =3D effect.current_locz + dz / len * speed * fps_f=
+actor
++
++				effect.gfx:SetPosition(self:UOPosToLocal(effect.current_locx + relx,ef=
+fect.current_locy + rely,effect.current_locz * 0.1 + relz))
++			end
++		end)
++	end
+ end
+ =
+
+ --###############################
+
+Modified: trunk/data/lua/lib.input.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.input.lua (original)
++++ trunk/data/lua/lib.input.lua Sat Jul 28 23:34:51 2007
+@@ -197,6 +197,30 @@
+ 	end)
+ 	Bind(&quot;v&quot;,		function (state) if (not gActiveEditText) then if (state &gt; 0) =
+then Client_TakeScreenshot() end end end)
+ 	Bind(&quot;f12&quot;,		function (state) if (not gActiveEditText) then if (state &gt; 0=
+) then Client_TakeGridScreenshot() end end end)
++	=
+
++	Bind(&quot;f2&quot;,		function (state) if (not gActiveEditText) then if (state &gt; 0)=
+ then =
+
++		local mobile =3D GetPlayerMobile()
++		if mobile then
++			local effect =3D {}
++			effect.source_locx =3D mobile.xloc
++			effect.source_locy =3D mobile.yloc
++			effect.source_locz =3D mobile.zloc
++
++			effect.current_locx =3D mobile.xloc
++			effect.current_locy =3D mobile.yloc
++			effect.current_locz =3D mobile.zloc
++
++			effect.target_locx =3D mobile.xloc + 10
++			effect.target_locy =3D mobile.yloc + 1
++			effect.target_locz =3D mobile.zloc + 2
++			=
+
++			effect.speed =3D 5
++			effect.duration =3D 0
++			=
+
++			effect.itemid =3D hex2num(&quot;0x376A&quot;)
++			gCurrentRenderer:AddEffect(effect)
++		end
++	end end end)
+ 	=
+
+ 	-- additional movement key handling in WalkStep() (for pressed keys)
+ 	Bind(&quot;right&quot;,   function (state) if (not gActiveEditText) then if (state =
+&gt;<i> 0) then CancelAutoWalk() end end end) =
+</I>
+@@ -291,4 +315,4 @@
+ 		--Bind(&quot;f10&quot;,		function (state) if (not gActiveEditText) then if (state =
+&gt;<i> 0) then Send_Speech(commandchar..&quot;props&quot;) end end end)
+</I> 		--Bind(&quot;f11&quot;,		function (state) if (not gActiveEditText) then if (state =
+&gt;<i> 0) then Send_Speech(commandchar..&quot;add&quot;) end end end)
+</I> 	end
+-end
++end
+
+Modified: trunk/data/lua/net.objects.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/net.objects.lua (original)
++++ trunk/data/lua/net.objects.lua Sat Jul 28 23:34:51 2007
+@@ -193,12 +193,18 @@
+ 	effect.sourceserial =3D input:PopNetUint32()
+ 	effect.targetserial =3D input:PopNetUint32()
+ 	effect.itemid =3D input:PopNetUint16()
++	=
+
+ 	effect.source_locx =3D input:PopNetUint16()
+ 	effect.source_locy =3D input:PopNetUint16()
+ 	effect.source_locz =3D input:PopNetUint8()
++	=
+
+ 	effect.target_locx =3D input:PopNetUint16()
+ 	effect.target_locy =3D input:PopNetUint16()
+ 	effect.target_locz =3D input:PopNetUint8()
++
++	effect.current_locx =3D effect.source_locx
++	effect.current_locy =3D effect.source_locy
++	effect.current_locz =3D effect.source_locz
+ =
+
+ 	effect.speed =3D input:PopNetUint8()
+ 	effect.duration =3D input:PopNetUint8()
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000123.html">[Iris-commit] [IRIS] r1307 - /trunk/data/config.lua.dist
+</A></li>
+	<LI>Next message: <A HREF="000125.html">[Iris-commit] [IRIS] r1309 - /trunk/data/lua/lib.3d.renderer.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#124">[ date ]</a>
+              <a href="thread.html#124">[ thread ]</a>
+              <a href="subject.html#124">[ subject ]</a>
+              <a href="author.html#124">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

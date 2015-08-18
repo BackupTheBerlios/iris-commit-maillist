@@ -1,0 +1,5081 @@
+From no-reply at zwischenwelt.org  Sat Dec  5 22:05:48 2009
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Sat, 05 Dec 2009 21:05:48 -0000
+Subject: [Iris-commit] [IRIS] r3179 - in /trunk: config/shards/ lua/
+	lua/gui/ lua/net/ lua/obj/
+Message-ID: <20091205210548.AB12254D0039@simon>
+
+Author: ghoulsblade
+Date: Sat Dec  5 22:05:48 2009
+New Revision: 3179
+
+Log:
+razor-packetvid : several bugfixes and improvements, chattabs: better detec=
+tion of local chat and uoam+partchat
+
+Modified:
+    trunk/config/shards/localhost.xml
+    trunk/lua/gui/gui.chat.lua
+    trunk/lua/lib.granny.debug.lua
+    trunk/lua/lib.packetvideo.lua
+    trunk/lua/lib.razorpacketvideo.lua
+    trunk/lua/net/net.mobile.lua
+    trunk/lua/net/net.multi.lua
+    trunk/lua/net/net.partysystem.lua
+    trunk/lua/net/net.text.lua
+    trunk/lua/net/net.uoam.lua
+    trunk/lua/obj/obj.mobile.lua
+
+Modified: trunk/config/shards/localhost.xml
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/config/shards/localhost.xml (original)
++++ trunk/config/shards/localhost.xml Sat Dec  5 22:05:48 2009
+@@ -1,8 +1,6 @@
+ <table>
+-    <string key=3D"gLoginname">admin</string>
+-    <boolean key=3D"gPolServer">false</boolean>
+-    <number key=3D"gServerSeed">4294967295</number>
+     <number key=3D"gLoginServerPort">2593</number>
+-    <string key=3D"gPassword">admin</string>
++    <string key=3D"gLoginname"></string>
++    <string key=3D"gPassword"></string>
+     <string key=3D"gLoginServerIP">localhost</string>
+ </table>
+
+Modified: trunk/lua/gui/gui.chat.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.chat.lua (original)
++++ trunk/lua/gui/gui.chat.lua Sat Dec  5 22:05:48 2009
+@@ -6,17 +6,17 @@
+ cChatTabs.scroll			=3D 0
+ =
+
+ cChatTabs.channels =3D {
+-	{name=3D"General",	filter=3Dfalse,						},
+-	{name=3D"Chat",		filter=3D{"<.+>"},					},
+-	{name=3D"Party",		filter=3D{"<Party>"},					},
+-	{name=3D"Ally",		filter=3D{"<Alliance>","<Guild>"},	},
+-	{name=3D"Trades",		filter=3D{"<Trades>"},				},
++	{name=3D"General",	filter=3Dfalse,														},
++	{name=3D"Chat",		filter=3D{"<.+>"}, class_ok=3D{"uoam","party","guild","a=
+lly"}, bNormalChat=3Dtrue	},
++	{name=3D"Party",		filter=3D{"<Party>"}, class_ok=3D{"uoam","party"}						=
+},
++	{name=3D"Ally",		filter=3D{"<Alliance>","<Guild>"}, class_ok=3D{"guild","=
+ally"}			},
++	{name=3D"Trades",		filter=3D{"<Trades>"},												},
+ }
+ --~ <Public>,<Trades>,<Guild>,<Alliance>,<Newbies>,<PvP>
+ --~ system =3D "System:",
+ =
+
+ =
+
+-function GuiAddChatLine	(line, color)	cChatTabs:AddLine(line,color) end
++function GuiAddChatLine	(...) cChatTabs:AddLine(...) end
+ function GuiInitChat	()				cChatTabs:Init() end
+ function TestChatTabs () =
+
+     Load_Font() -- iris specific
+@@ -101,12 +101,15 @@
+ 	self:UpdateTextArea()
+ end
+ =
+
+-function cChatTabs:AddLine (line, color)
++function cChatTabs:AddLine (line,color,src,name,serial,clilocid) -- src:uo=
+am,party,normal,system,emote,spell,guild,ally,prompt
++	--~ print("######AddLine",line,color,src,name,serial,clilocid)
+ 	local line2 =3D string.gsub(line,"^System: ","")
+ 	for k2,channel in pairs(self.channels) do =
+
+ 		local bMatch =3D false
+ 		if (not channel.filter) then bMatch =3D true end
++		if (channel.class_ok) then for k,v in pairs(channel.class_ok) do if (src=
+ =3D=3D v) then bMatch =3D true break end end end
+ 		if (channel.filter) then for k,v in pairs(channel.filter) do if (string.=
+find(line2 ,"^"..v)) then bMatch =3D true break end end end
++		if (channel.bNormalChat and src =3D=3D "normal" and serial ~=3D 0xFFFFFF=
+FF and clilocid =3D=3D nil) then bMatch =3D true end
+ 		if (bMatch) then self:AddLineToChannel(channel,line2,color) end
+ 	end
+ 	--~ print("cChatTabs:AddLine",SmartDump(color)) --~ cChatTabs:AddLine    =
+   {[1]=3D0.774194,[2]=3D0.774194,[3]=3D0.774194,[4]=3D1,}
+
+Modified: trunk/lua/lib.granny.debug.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.granny.debug.lua (original)
++++ trunk/lua/lib.granny.debug.lua Sat Dec  5 22:05:48 2009
+@@ -151,7 +151,7 @@
+ =
+
+ function cDebugGrannyMenu:MakeNewGranny (artid)
+ 	artid =3D 791 -- beetle
+-	artid =3D 200 -- horse
++	--~ artid =3D 200 -- horse
+ 	=
+
+ 	gDebugCategories.granny 	=3D true
+ 	local folder =3D "/cavern/uoml_freshinstall.4.x/Models/Animals/"
+@@ -353,28 +353,110 @@
+ 		-- todo : mousepick
+ 		=
+
+ 		--[[
+-		function LoadGrannyAsOgreMesh (...)
+-			local meshname =3D "bla"
++		function LoadGrannyAsOgreMesh (meshname,skeletonname,bHasBoneWeights,...)
+ 			local mesh =3D MeshManager_createManual(meshname)
+ 			mesh:_setBounds({0,0,0,0,0,0}, true)
+ 			mesh:_setBoundingSphereRadius(0)
+ 			=
+
+ 			if (bHasBoneWeights) then =
+
+-				local skeletonname =3D "blub"
+ 				local skeleton =3D SkeletonManager_load(skeletonname)
+-				mesh:setSkeletonName(skeleton:getName())
++				mesh:setSkeletonName(skeletonname) assert(skeletonname =3D=3D skeleton=
+:getName()
+ 			end
+ 			-- for ... cSubMeshConstructor
+ 			mesh:load()
+ 			return meshname
+ 		end
+ 		=
+
++		function cSubMeshConstructor ()
++			bool bUseSkeleton =3D (!mpSkeleton.isNull()) && pLoaderSubMesh.mWeights=
+.second > 0;
++			bool bUseColors =3D false && pLoaderSubMesh.mColors.first; // not yet s=
+upported (see below)
++			bool bUseTexCoords =3D pLoaderSubMesh.mTexCoords.first;
++			typedef std::vector< std::pair<int,float> >		tMyBoneWeightList;
++			std::vector<tMyBoneWeightList*>	myBoneWeights;
++			=
+
++			// create submesh
++			Ogre::SubMesh* sub =3D mpMesh->createSubMesh();
++			sub->setMaterialName(msMatName);
++			sub->useSharedVertices =3D false;
++			// sub->operationType =3D OT_POINT_LIST;
++			=
+
++			// prepare bone-weight data
++			if (bUseSkeleton) {
++				sub->clearBoneAssignments();
++				myBoneWeights.reserve(pLoaderSubMesh.mWeights.second);
++				=
+
++				// WARNING ! buffersize not checked, but as long as the granny files a=
+re intakt thats ok
++				// foreach point : bonenum, index,weight, index,weight,... =
+
++				const ::uint32* p =3D (::uint32*)pLoaderSubMesh.mWeights.first;
++				for (int i=3D0;i<pLoaderSubMesh.mWeights.second;++i) {
++					::uint32 iNumBones =3D *(p++);
++					=
+
++					tMyBoneWeightList* pBoneList =3D new tMyBoneWeightList();
++					myBoneWeights.push_back(pBoneList);
++					pBoneList->reserve(iNumBones);
++					=
+
++					for (int k=3D0;k<iNumBones;++k) {
++						::uint32	iWeightBoneIndex =3D *(p++);
++						float		fWeight =3D *(float*)(p++);
++						pBoneList->push_back(std::make_pair(iWeightBoneIndex,fWeight));
++					}
++				}
++			}
++			=
+
++			// iterate over all polygon-vertices
++			for (i=3D0;i<pLoaderSubMesh.mPolygons.second;++i) for (j=3D0;j<3;++j) {
++				int iP =3D pLoaderSubMesh.mPolygons.first[i].iVertex[j];
++				int iN =3D pLoaderSubMesh.mPolygons.first[i].iNormal[j];
++				int iC =3D mpGrannyLoader->GetColorIndex(i,j); /// todo : for multiple=
+ submeshes add startoffset to i
++				int iT =3D mpGrannyLoader->GetTexIndex(i,j); /// todo : for multiple s=
+ubmeshes add startoffset to i
++				cMultiIndex idx(iP,iN,iC,iT);
++				if (myCombos.find(idx) =3D=3D myCombos.end()) {
++					// combo not found, create new
++					int iCurComboVertex =3D iComboVertexCount++;
++					myIndices.PushUint16((unsigned short)iCurComboVertex);
++					myCombos[idx] =3D iCurComboVertex;
++					=
+
++					// don't use scaling here, that would confuse the skeletal anim
++					Ogre::Vector3 p =3D GrannyToOgreV(pLoaderSubMesh.mPoints.first[iP]);
++					Ogre::Vector3 n =3D GrannyToOgreV(pLoaderSubMesh.mNormals.first[iN]);
++					=
+
++					if (bUseSkeleton) {
++						// iterate over boneweights
++						tMyBoneWeightList* myBoneWeightList =3D (iP >=3D 0 && iP < myBoneWei=
+ghts.size()) ? myBoneWeights[iP] : 0;
++						if (myBoneWeightList) {
++							for (int i=3D0;i<myBoneWeightList->size();++i) {
++								int		iWeightBoneIndex 	=3D (*myBoneWeightList)[i].first;
++								float	w 					=3D (*myBoneWeightList)[i].second;
++								int 	iGrannyBoneID 		=3D WeightBoneIndex2GrannyBoneID(iWeightBoneI=
+ndex);
++								int		iOgreBoneHandle 	=3D WeightBoneIndex2OgreBoneHandle(iWeightBo=
+neIndex);
++								=
+
++								// assign vertices to skeleton bones
++								if (iOgreBoneHandle >=3D 0) {
++									VertexBoneAssignment assign;
++									assign.boneIndex 	=3D iOgreBoneHandle; // NOTE ! this might refer=
+ to the animtrack handle instead of the bone handle, so best keep both equal
++									assign.weight 		=3D w;
++									assign.vertexIndex 	=3D iCurComboVertex;
++									sub->addBoneAssignment(assign);
++									=
+
++								}
++							}
++						}
++					}
++					... push vertexcombo
++				}
++				... push index
++			}
++			=
+
++			mpMesh->_setBounds(AxisAlignedBox(vMin.x,vMin.y,vMin.z,vMax.x,vMax.y,vM=
+ax.z), true);
++			mpMesh->_setBoundingSphereRadius(mymax(Vector3(vMin.x,vMin.y,vMin.z).le=
+ngth(),Vector3(vMax.x,vMax.y,vMax.z).length()));
++		end
++		=
+
+ 		function LoadGrannyAsOgreAnim (...)
+ 				local skeletonname =3D "blub"
+ 				local skeleton =3D SkeletonManager_load(skeletonname)
+ 				-- fTotalTime =3D cAnimationTotalTimeConstructor
+ 				local anim =3D skeleton:createAnimation(szAnimName,fTotalTime) // in s=
+econds	=
+
+-				-- cAnimationConstructor anim
++				-- cAnimationConstructor anim lBodySamples:GetSampleBone      ... todo=
+:bones indirekt verbunden =C3=BCber boneties ? =
+
+ 		end
+ 		=
+
+ 		=
+
+
+Modified: trunk/lua/lib.packetvideo.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.packetvideo.lua (original)
++++ trunk/lua/lib.packetvideo.lua Sat Dec  5 22:05:48 2009
+@@ -27,6 +27,7 @@
+ gPacketVideoNoPlaybackPackets[kPacket_Block_Movement] =3D true
+ gPacketVideoNoPlaybackPackets[kPacket_Target] =3D true
+ gPacketVideoNoPlaybackPackets[kPacket_Open_Container] =3D true
++gPacketVideoNoPlaybackPackets[kPacket_Logout] =3D true -- logout
+ =
+
+ gPacketVideoFileName_folderpath	=3D "../videos/"
+ gPacketVideoFileName_prefix		=3D gPacketVideoFileName_folderpath.."myvid."
+@@ -56,6 +57,7 @@
+ 		local oldpos =3D {gPlayerXLoc,gPlayerYLoc,gPlayerZLoc,gPlayerDir}
+ 		local oldserial =3D GetPlayerSerial()
+ 		local oldfacet =3D MapGetMapIndex()
++		gPlayerBodySerial =3D nil
+ 		=
+
+ 		local lastframet
+ 		local lastrealt
+@@ -67,23 +69,38 @@
+ 		local forcedwaitinterval =3D 250 -- to ensure that something is visible,=
+ even if the processor is totally busy
+ 		local nextforcedwaitt =3D Client_GetTicks() + forcedwaitinterval
+ 		local minwait =3D 5
++		local kMax =3D #gPacketVideoData
++		local bPlayerMobileStarted =3D false
+ 		for k,chunk in pairs(gPacketVideoData) do
+ 			local realt =3D Client_GetTicks()
+ 			--~ local framet =3D chunk.t - record_start_t + playback_start_t
+ 			--~ if (framet > t) then job.wait(framet-t) end
+ 			local framet =3D chunk.t
+-			--~ print("### packetvideo playback step, wait=3D",framet,chunk.chunkty=
+pe)
++			local playermobile =3D GetPlayerMobile()
++			if (playermobile) then bPlayerMobileStarted =3D true end
++			--~ if (k > 200) then os.exit(0) end
++			local debugname =3D "unknown"
++			if (chunk.chunktype =3D=3D kPacketVideoChunkType_Player) then debugname=
+ =3D "player" end
++			if (chunk.chunktype =3D=3D kPacketVideoChunkType_Map) then debugname =
+=3D "map" end
++			if (chunk.chunktype =3D=3D kPacketVideoChunkType_Pos) then debugname =
+=3D "pos" end
++			if (chunk.chunktype =3D=3D kPacketVideoChunkType_Send) then debugname =
+=3D "send" end
++			if (chunk.chunktype =3D=3D kPacketVideoChunkType_Recv) then debugname =
+=3D "recv:"..(gPacketTypeId2Name[chunk.data:PeekNetUint8(1+4+4)] or "???") =
+end
++			print("### packetvideo playback step, frame=3D",k.."/"..kMax,"wait=3D",=
+framet,chunk.chunktype,debugname,"gPlayerBodySerial=3D",gPlayerBodySerial,"=
+playermobile=3D",playermobile)
++			=
+
++			if (bPlayerMobileStarted) then  assert(playermobile) end
++			local maxwait =3D 5*1000
+ 			if (lastframet) then =
+
+ 				local wait1 =3D (framet - lastframet)
+ 				local wait2 =3D floor(wait1 / gPacketVideoSpeedFactor)
+ 				if (lastrealt) then wait2 =3D wait2 - (realt - lastrealt) end
+ 				if (wait2 > minwait or realt > nextforcedwaitt) then
+-					job.wait(max(1,wait2)) =
+
++					job.wait(max(1,min(maxwait,wait2))) =
+
+ 					nextforcedwaitt =3D realt + forcedwaitinterval =
+
+ 				end
+ 			end
+ 			lastframet =3D framet
+ 			lastrealt =3D realt
++			=
+
+ 			=
+
+ 			if (chunk.chunktype =3D=3D kPacketVideoChunkType_Recv) then
+ 				local headlen =3D 1+4+4
+@@ -214,6 +231,53 @@
+ 	return true
+ end
+ =
+
++function Generate_kPacket_Naked_MOB	(fifo,serial,artid,xloc,yloc,zloc,dir,=
+hue,flag,notoriety)
++	fifo:PushNetUint8(	kPacket_Naked_MOB		) =
+
++	fifo:PushNetUint32(	serial		)
++	fifo:PushNetUint16(	artid		)
++	fifo:PushNetUint16(	xloc		)
++	fifo:PushNetUint16(	yloc		)
++	fifo:PushInt8(		zloc		)
++	fifo:PushNetUint8(	dir			)
++	fifo:PushNetUint16(	hue			) -- hue/skin color
++	fifo:PushNetUint8(	flag		)
++	fifo:PushNetUint8(	notoriety	)
++end
++
++-- table.insert(rpv.worlddata_items,item)
++function Generate_kPacket_Equipped_MOB	(fifo_out,serial,artid,xloc,yloc,zl=
+oc,dir,hue,flag,notoriety,equipitems)
++	local fifo =3D CreateFIFO()
++	fifo:PushNetUint32(	serial		)
++	fifo:PushNetUint16(	artid		)
++	=
+
++	fifo:PushNetUint16(	xloc		)
++	fifo:PushNetUint16(	yloc		)
++	=
+
++	-- the usage of this and on which servers it occurs on is unknown
++	if (TestBit(xloc,0x8000)) then fifo:PushNetUint16(-1) end -- dir2 ?
++
++	fifo:PushInt8(		zloc		)
++	fifo:PushNetUint8(	dir			)
++	fifo:PushNetUint16(	hue			) -- hue/skin color
++	fifo:PushNetUint8(	flag		)
++	fifo:PushNetUint8(	notoriety	)
++	=
+
++	for k,item in pairs(equipitems) do =
+
++		fifo:PushNetUint32(item.serial)
++		fifo:PushNetUint16(item.artid)
++		fifo:PushNetUint8(item.layer)
++		if (TestBit(item.artid,0x8000)) then fifo:PushNetUint16(item.hue) end
++	end
++	fifo:PushNetUint32(0)
++	=
+
++	-- finish packet header for dynamic size
++	fifo_out:PushNetUint8(	kPacket_Equipped_MOB		) =
+
++	fifo_out:PushNetUint16(fifo:Size()+3)
++	fifo_out:PushFIFOPartRaw(fifo,0,fifo:Size())
++	=
+
++	fifo:Destroy()
++end
++
+ function PacketVideo_LoadRarzorPV	(filename)
+ 	if (not filename) then return false end
+ 	print("PacketVideo_LoadRarzorPV",filename)
+@@ -222,6 +286,36 @@
+ 	print("PacketVideo_LoadRarzorPV:first part ok")
+ 	PacketVideo_ClearData()
+ 	local t =3D 0
++	=
+
++	local worlditems =3D {}
++	for k,item in pairs(rpv.worlddata_items) do worlditems[item.serial] =3D i=
+tem end
++	=
+
++	function AddMobile (mobile,debugfrom)
++		local fifo =3D CreateFIFO()
++		local len =3D 17
++		fifo:PushUint8(kPacketVideoChunkType_Recv)
++		fifo:PushUint32(t)
++		fifo:PushUint32(len)
++		--~ mobile.Name			=3D RPV_ReadString(fifo)
++		--~ mobile.HitsMax		=3D fifo:PopUint16()
++		--~ mobile.Hits			=3D fifo:PopUint16()
++		--~ mobile.Map			=3D fifo:PopUint8()
++		--~ Generate_kPacket_Naked_MOB(fifo,mobile.serial,mobile.Body,mobile.xlo=
+c,mobile.yloc,mobile.zloc,mobile.Direction,mobile.hue,mobile.flags,mobile.N=
+otoriety)
++		=
+
++		local equipitems =3D {}
++		for k,serial in ipairs(mobile.items) do =
+
++			local razoritem =3D worlditems[serial]
++			local item =3D {serial=3Dserial,artid=3Drazoritem.ItemID,hue=3Drazorite=
+m.hue,layer=3Drazoritem.Layer}
++			table.insert(equipitems,item)
++		end
++		Generate_kPacket_Equipped_MOB(fifo,mobile.serial,mobile.Body,mobile.xloc=
+,mobile.yloc,mobile.zloc,mobile.Direction,mobile.hue,mobile.flags,mobile.No=
+toriety,equipitems)
++		=
+
++		=
+
++		table.insert(gPacketVideoData,{chunktype=3DkPacketVideoChunkType_Recv,t=
+=3Dt,data=3Dfifo})
++		print("PacketVideo_LoadRarzorPV: worlddata_mobiles",debugfrom,mobile.ser=
+ial,mobile.Name)
++	end
++	for k,mobile in pairs(rpv.worlddata_mobiles) do AddMobile(mobile,k) end
++	AddMobile(rpv.playerdata,"player")
+ 	table.insert(gPacketVideoData,{chunktype=3DkPacketVideoChunkType_Player,t=
+=3Dt,data=3D{1,rpv.playerdata.serial}})
+ 	table.insert(gPacketVideoData,{chunktype=3DkPacketVideoChunkType_Map,t=3D=
+t,data=3D{rpv.playerdata.Map}})
+ 	table.insert(gPacketVideoData,{chunktype=3DkPacketVideoChunkType_Pos,t=3D=
+t,data=3D{rpv.playerdata.xloc,rpv.playerdata.yloc,rpv.playerdata.zloc,rpv.p=
+layerdata.Direction}})
+
+Modified: trunk/lua/lib.razorpacketvideo.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.razorpacketvideo.lua (original)
++++ trunk/lua/lib.razorpacketvideo.lua Sat Dec  5 22:05:48 2009
+@@ -1,7 +1,8 @@
+ -- infos http://iris2.de/index.php/Razor_packetvideo_fileformat
+ -- todo : 6.0.1.7 protocol changes ? probably no problem as they are only =
+in one client-server fixedsize packet and dynamic packets
+ =
+
+-gRazorPacketSizeOverride6017 =3D {[0x25]=3D21} -- kPacket_Object_to_Object=
+ packetsize changed for 6.0.1.7 and later =
+
++--~ gRazorPacketSizeOverride6017 =3D {[0x25]=3D21} -- kPacket_Object_to_Ob=
+ject packetsize changed for 6.0.1.7 and later =
+
++gRazorPacketSizeOverride6017 =3D gPacketSizeOverride6017  -- 0x25 and 0x08
+ gRazorPacketSizeOverride6017Active =3D true
+ =
+
+ =
+
+@@ -63,7 +64,9 @@
+ 		end
+ 		fifo:PopRaw(len_comp)
+ 	end
++	print("LoadRazorPacketVideo fifo decompressed, parsing chunks...")
+ 	LoadRazorPacketVideoChunks(rpv,chunkfifo) =
+
++	print("LoadRazorPacketVideo parsing chunks finished")
+ 	chunkfifo:Destroy()
+ 	=
+
+ 	fifo:Destroy()
+@@ -115,11 +118,11 @@
+ 		local iWorldDataEntryType =3D fifo:PopUint8() =
+
+ 		if (iWorldDataEntryType =3D=3D 1) then
+ 			local mobile =3D RPV_ReadMobile(fifo,rpvversion)
+-			print("worlddata_mobile:",RPV_ShortDumpMobile(mobile))
++			--~ print("worlddata_mobile:",RPV_ShortDumpMobile(mobile))
+ 			table.insert(rpv.worlddata_mobiles,mobile)
+ 		elseif (iWorldDataEntryType =3D=3D 0) then
+ 			local item =3D RPV_ReadItem(fifo,rpvversion)
+-			print("worlddata_item:",item.ItemID,item.Amount,item.Name)
++			--~ print("worlddata_item:",item.ItemID,item.Amount,item.Name)
+ 			table.insert(rpv.worlddata_items,item)
+ 		else =
+
+ 			print("world data end? unknown type",iWorldDataEntryType)
+@@ -143,37 +146,270 @@
+ 	rpv.packets =3D {}
+ 	=
+
+ 	local myPacketSizeOverride =3D gRazorPacketSizeOverride6017Active and gRa=
+zorPacketSizeOverride6017 or {}
++	=
+
++	local bPacketIDNotOk =3D {}
++	bPacketIDNotOk[0] =3D true
++	bPacketIDNotOk[kPacket_Update_Terrain		] =3D true
++	bPacketIDNotOk[kPacket_Game_Central_Monitor	] =3D true
++	bPacketIDNotOk[kPacket_God_Mode				] =3D true               =
+
++	bPacketIDNotOk[kPacket_Login_Confirm		] =3D true               =
+
++	bPacketIDNotOk[kPacket_Logout				] =3D true               =
+
++	bPacketIDNotOk[kPacket_Update_Art			] =3D true     =
+
++	bPacketIDNotOk[kPacket_Update_Regions		] =3D true  =
+
++	function MyPacketIDTxt (a) return a and sprintf("0x%02x:%40s:%d",a,gPacke=
+tTypeId2Name[a] or "???",myPacketSizeOverride[a] or gPacketSizeByID[a] or 0=
+) end
++	function MyPacketIDOk (a) return a and (not bPacketIDNotOk[a]) end
++		=
+
++	function PrintNext3 (i,bForce,bNoPrint)
++		local iPacketID2 =3D fifo:PeekNetUint8(i)
++		local iPacketSize2 =3D iPacketID2 and (myPacketSizeOverride[iPacketID2] =
+or gPacketSizeByID[iPacketID2])
++		if (iPacketSize2 =3D=3D 0) then iPacketSize2 =3D fifo:PeekNetUint16(i+1)=
+ end
++		=
+
++		local iPacketID3 =3D iPacketSize2 and fifo:PeekNetUint8(i+iPacketSize2+4)
++		local iPacketSize3 =3D iPacketID3 and (myPacketSizeOverride[iPacketID3] =
+or gPacketSizeByID[iPacketID3])
++		if (iPacketSize3 =3D=3D 0) then iPacketSize3 =3D fifo:PeekNetUint16(i+iP=
+acketSize2+4+1) end
++		=
+
++		local iPacketID4 =3D iPacketSize3 and fifo:PeekNetUint8(i+iPacketSize2+4=
++iPacketSize3+4)
++		if (bForce or (MyPacketIDOk(iPacketID2) and MyPacketIDOk(iPacketID3) and=
+ MyPacketIDOk(iPacketID4))) then =
+
++			if (not bNoPrint) then print("..",i,MyPacketIDTxt(iPacketID2),MyPacketI=
+DTxt(iPacketID3),MyPacketIDTxt(iPacketID4)) end
++			return iPacketID2,iPacketID3,iPacketID4
++		end
++	end
++	=
+
++	=
+
++	function SkipToNexTrippleMove ()
++		local fifosize =3D fifo:Size()
++		for i=3D1,fifosize-(4+2)*2 do =
+
++			local a,b,c =3D PrintNext3(i,false,true) =
+
++			if (a =3D=3D kPacket_Move_Player and b =3D=3D a) then =
+
++				print("rpv:packet : lost track, skipped to next dual move...",i)
++				if (i < 35) then =
+
++					--~ print(FIFOHexDump(fifo,0,(i-4)+6*2))
++					--~ os.exit(0)
++					--[[         =
+
++					f3 00 01 00 40 XXxxxxxxxxxxx
++					   -nexttime-- -nextpacket..?
++					=
+
++					./start.sh -co vetus-mundus Ghongolas -rpv /home/ghoul/Desktop/snuff_=
+im_rennen_heilen_von_mennet_BlackLotus_12-1_21.37.rpv
++						=
+
++					rpv:packet : lost track, skipped to next dual move...   144
++					f3 00 01 00 40 c7 8f 0f 0b 98 00 00 01 00 01 07   |.... at ...........|
++					4f 09 2a 07 00 00 00 00 00 00 00 00 dc 40 c7 8f   |O.*.......... at ..|
++					0f 40 0f 9b f8 00 00 00 00#f3 00 01 00 40 c7 8f   |. at ...........@..|
++					11 0b d2 00 00 01 00 01 07 4f 09 2a 07 00 00 00   |.........O.*....|
++					20 00 00 00 00 dc 40 c7 8f 11 42 b2 c5 a3 00 00   | ..... at ...B.....|
++					00 00#f3 00 01 00 40 f0 c6 bc 12 28 00 00 01 00   |...... at ....(....|
++					01 07 51 09 2a 02 00 00 00 00 00 00 00 00 dc 40   |..Q.*..........@|
++					f0 c6 bc 40 cc 5c bf 3e 00 00 00 77 00 04 7a d5   |... at .\.>...w..z.|
++					01 91 07 55 09 11 07 82 83 ea 02 06 00 00 00 00   |...U............|
++					97 05 4e 00 00 00 97 05                           |..N.....|
++							=
+
++					rpv:packet : lost track, skipped to next dual move...   131
++					f3 00 01 00 40 0b 28 21 20 06 00 01 91 01 91 07   |.... at .(! .......| =
+0x0b=3DkPacket_Damage,size=3D7  0x09=3DkPacket_Single_Click,size=3D5
++					0b 09 39 00 85 84 05 00 00 00 00 00 dc 40 0b 28   |..9.......... at .(| =
+0x0b=3DkPacket_Damage,size=3D7  0xdc=3DkPacket_AOSObjProp,size=3D9
++					21 42 d1 36 d8 00 00 00 00 3c 00 2b 00 02 40 0c   |!B.6.....<.+.. at .|
++					ea 00 20 3d 00 00 01 00 1e 00 83 40 0b 28 21 04   |.. =3D....... at .(!.|
++					96 40 23 cd da 17 0d 00 00 01 00 43 00 76 40 0b   |.@#........C.v at .|
++					28 21 00 00 00 00 00 00 89 00 12 40 0b 28 21 0c   |(!......... at .(!.|
++					40 0c ea 00 04 40 23 cd da 00 6d 00 00 00 77 00   |@....@#...m...w.|
++					04 7a d5 01 91 07 18 09 45 00 82 83 ea 02 06 00   |.z......E.......|
++					00 00 00 97 00 4e 00 00 00 97 00                  |.....N.....|
++
++					rpv:packet : lost track, skipped to next dual move...   109
++					f3 00 01 00 40 0b 4b 66 20 06 00 00 dc 00 dc 07   |.... at .Kf .......|
++					0f 09 38 00 82 00 25 00 00 00 00 00 dc 40 0b 4b   |..8...%...... at .K|
++					66 40 0e f7 f5 00 00 00 00 3c 00 05 00 00 00 00   |f at .......<......|
++					00 00 89 00 08 40 0b 4b 66 00 4e 00 00 00 97 06   |..... at .Kf.N.....|
++					00 00 00 00#f3 00 01 00 40 0b 4a 99 0f 3f 00 00   |........ at .J..?..| =
+0x0b=3DkPacket_Damage,size=3D7 kPacket_Edit_Template_Data=3D0x0E,dynsize			=
+					=3D { id=3D0x0E, size=3D0 }
++					01 00 01 07 0e 09 38 00 00 00 00 20 00 00 00 00   |......8.... ....|
++					dc 40 0b 4a 99 42 33 76 83 6d 00 00 00 97 06 4e   |. at .J.B3v.m.....N|
++					00 00 00 97 06                                    |.....|
++
++									   =
+
++					rpv:packet : lost track, skipped to next dual move...   41
++					f3 00 01 00 40 0b 25 76 0e ca 00 01 90 01 90 07   |.... at .%v........| =
+ 0x0b=3DkPacket_Damage,size=3D7
++					07 09 42 00 00 00 00 00 00 00 00 00 dc 40 0b 25   |..B.......... at .%|
++					76 43 66 4c c9 7d 00 00 00 97 06 4e 00 00 00 97   |vCfL.}.....N....|
++					05                                                |.|
++								  =
+
++					rpv:packet : lost track, skipped to next dual move...   35
++					f3 00 01 00 40 fe 36 c3 06 a5 00 00 01 00 01 07   |.... at .6.........| =
+ 0xa5=3DkPacket_Web_Browser
++					1c 09 1a 07 00 00 00 00 00 00 00 00 dc 40 fe 36   |............. at .6|
++					c3 40 0f 97 05 5d 00 00 00 97 00                  |. at ...].....|
++
++					=
+
++					]]--
++				end
++				=
+
++				fifo:PopRaw(i-4)
++				return
++			end
++		end
++		=
+
++		print("failed to find dual move",fifosize)
++		fifo:PopRaw(fifo:Size())
++		--~ os.exit(0)
++	end
++	=
+
++	=
+
++	local loopi =3D 0
++	local doom =3D nil
+ 	while (fifo:Size() >=3D 5) do
++		loopi =3D loopi + 1
++		--~ if (math.mod(loopi,100) =3D=3D 0) then print("... loopi=3D",loopi) e=
+nd
++		=
+
++		if (doom) then
++			doom =3D doom - 1
++			if (doom =3D=3D 0) then os.exit(0) end
++		end
++		=
+
++		--~ print(FIFOHexDump(fifo,0,128))
++		=
+
+ 		local packet =3D {}
+ 		packet.iTimeSinceLastPacket	=3D fifo:PopUint32()
+ 		=
+
++		--~ PrintNext3(0,true)
++		--~ for i=3D1,32 do PrintNext3(i) end
++		=
+
++		local bSkip =3D false
++		=
+
+ 		packet.iPacketID		=3D fifo:PeekNetUint8(0)
+ 		if (packet.iPacketID =3D=3D 0xff) then fifo:PopRaw(1) break end
+-		packet.iPacketSize		=3D myPacketSizeOverride[packet.iPacketID] or gPacke=
+tSizeByID[packet.iPacketID]
+-		=
+
+-		if (not packet.iPacketSize) then 	=
+
+-			print("rpv : warning, unknown packettype-size",sprintf("0x%02x",packet.=
+iPacketID))
+-			packet.iPacketSize =3D 0 -- assume dynamic
+-		end
+-		=
+
+-		if (packet.iPacketSize =3D=3D 0 and fifo:Size() >=3D 3) then packet.iPac=
+ketSize =3D fifo:PeekNetUint16(1) end
+-		print("rpv:packet id,size,name fifoleft time",packet.iPacketID,packet.iP=
+acketSize,gPacketTypeId2Name[packet.iPacketID],fifo:Size(),packet.iTimeSinc=
+eLastPacket)
+-		--~ print(sprintf(" PacketVideo -> Client 0x%02X (Length: %d)",packet.iP=
+acketID,packet.iPacketSize))
+-		=
+
+-		=
+
+-		if (fifo:Size() < packet.iPacketSize) then
+-			print("rpv : packet incomplete",packet.iPacketID,fifo:Size(),packet.iPa=
+cketSize)
+-			break
+-		end
+-		packet.fifo =3D  CreateFIFO() -- TODO : destroy when not needed anymore =
+! otherwise memleak
+-		=
+
+-		packet.fifo:PushFIFOPartRaw(fifo,0,packet.iPacketSize)
+-		fifo:PopRaw(packet.iPacketSize)
+-		table.insert(rpv.packets,packet)
+-	end
+-
+-	print("rpv:end. sizeleft",fifo:Size(),FIFOHexDump(fifo))
+-end
++		if (packet.iPacketID =3D=3D 0xf3) then SkipToNexTrippleMove() bSkip =3D =
+true end       -- unknown... f3 00 01 00 40 96 2b
++		--~ if (packet.iPacketID =3D=3D 0xf3) then doom =3D 10 end       -- unkn=
+own... f3 00 01 00 40 96 2b
++		--~ if (packet.iPacketID =3D=3D 0xf3) then print("rpv:packet special:0xf=
+3, skipping") print(FIFOHexDump(fifo,0,32)) fifo:PopRaw(400-4) bSkip =3D tr=
+ue end       -- unknown... f3 00 01 00 40 96 2b
++		=
+
++		--~ gPacketType.kPacket_Move_Player										=3D { id=3D0x97, size=3D2 }
++		--[[
++		rpv : warning, unknown packettype-size  0xf3                            =
+                                                     =
+
++		=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D hexdump nearby (after timestamp, unkno=
+wn size : guessed)                                                         =
+
++		f3 00 01 00 40 96 2b 54 0a c8 00 00 01 00 01 07   |.... at .+T........|    =
+                                                     =
+
++		5a 09 08 2f 00 00 00 00 00 00 00 00 dc 40 96 2b   |Z../......... at .+|    =
+                                                     =
+
++		54 40 0f 9b 28 00 00 00 00 f3 00 01 00 40 22 1c   |T at ..(........@".|    =
+                                                     =
+
++		20 0a c8 00 00 01 00 01 07 5a 09 09 07 00 00 00   | ........Z......|    =
+                                                     =
+
++		00 00 00 00 00 dc 40 22 1c 20 40 0f 9b 28 00 00   |......@". @..(..|   =
+
++
++		..      32      0x54:                           kPacket_Sound   0x20:   =
+                     kPacket_Teleport   0x22:  kPacket_Accept_Movement_Resy=
+nc_Request
++		..      335     0x1f:                         kPacket_Explode   0x07:   =
+                  kPacket_Take_Object   0x22:  kPacket_Accept_Movement_Resy=
+nc_Request
++		..      400     0x1c:                            kPacket_Text   0x77:   =
+                    kPacket_Naked_MOB   0xdc:                      kPacket_=
+AOSObjProp     =
+
++		  =
+
++		..      527     0x78:                    kPacket_Equipped_MOB:0 0x0f:   =
+                kPacket_Paperdoll_Old:61        0x16:            kPacket_Re=
+quest_Script_Names:1        =
+
++		..      568     0x78:                    kPacket_Equipped_MOB:0 0x77:   =
+                    kPacket_Naked_MOB:17        0x77:                      =
+ kPacket_Naked_MOB:17      =
+
++					  =
+
++		..      1031    0x1c:                            kPacket_Text:0 0xdc:   =
+                   kPacket_AOSObjProp:9 0xf3:                              =
+       ???:0          =
+
++																													 =
+
++		..      4036    0x97:                     kPacket_Move_Player:2 0x97:   =
+                  kPacket_Move_Player:2 0xf3:                              =
+       ???:0
++
++						 =
+
++		rpv:packet id,size,name fifoleft time   0xd6    111                kPack=
+et_Mega_Cliloc  1984013 0x00000000      0       false
++
++					 =
+
++		--~ rpv:packet id,size,name fifoleft time   0x97    2                  k=
+Packet_Move_Player  1978193 0x00000000      0       nil     false
++		--~ rpv:packet : lost track, skipped to next dual move...   144
++		--~ rpv:packet id,size,name fifoleft time   0x97    2                  k=
+Packet_Move_Player  1978043 0x00000000      0       nil     false
++		--~ rpv:packet id,size,name fifoleft time   0x97    2                  k=
+Packet_Move_Player  1978037 0x00000000      0       nil     false
++
++		]]--
++		=
+
++		if (not bSkip) then =
+
++			packet.iPacketSize		=3D myPacketSizeOverride[packet.iPacketID] or gPack=
+etSizeByID[packet.iPacketID]
++			=
+
++			local bOverrideActive =3D packet.iPacketSize ~=3D gPacketSizeByID[packe=
+t.iPacketID]
++			=
+
++			if ((not packet.iPacketSize) or packet.iPacketID =3D=3D 0) then 	=
+
++				print("rpv : warning, unknown packettype-size for packed id",sprintf("=
+0x%02x",packet.iPacketID))
++				--~ print("=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D hexdump nearby (after tim=
+estamp, unknown size : guessed)")
++				--~ print(FIFOHexDump(fifo,0,512))
++				--~ print("=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D")
++				=
+
++				local iPacketID
++				for i=3D1,512*8 do =
+
++					iPacketID =3D PrintNext3(i) =
+
++					--~ if (iPacketID =3D=3D kPacket_Move_Player) then break end
++				end
++				os.exit(0)
++				packet.iPacketSize =3D 0 -- assume dynamic
++			end
++			=
+
++			if (packet.iPacketSize =3D=3D 0 and fifo:Size() >=3D 3) then packet.iPa=
+cketSize =3D fifo:PeekNetUint16(1) end
++			=
+
++			local myDebug
++			--~ if (packet.iPacketID =3D=3D kPacket_Mega_Cliloc) then =
+
++				--~ local input =3D  CreateFIFO()
++				--~ input:PushFIFOPartRaw(fifo,0,packet.iPacketSize)
++				--~ myDebug =3D My_kPacket_Mega_Cliloc(input)
++				--~ if myDebug then myDebug =3D string.gsub(myDebug,"\n"," ") end
++				--~ input:Destroy()
++			--~ end
++			=
+
++			--~ print("rpv:packet id,size,name fifoleft time",sprintf("0x%02x",pack=
+et.iPacketID),packet.iPacketSize,sprintf("%30s",gPacketTypeId2Name[packet.i=
+PacketID] or ""),fifo:Size(),sprintf("0x%08x",packet.iTimeSinceLastPacket),=
+packet.iTimeSinceLastPacket,myDebug,bOverrideActive and "OVERRIDE !!!!!!!")
++			--~ print(sprintf(" PacketVideo -> Client 0x%02X (Length: %d)",packet.i=
+PacketID,packet.iPacketSize))
++			=
+
++			if (fifo:Size() < packet.iPacketSize) then
++				print("rpv : packet incomplete",packet.iPacketID,fifo:Size(),packet.iP=
+acketSize)
++				break
++			end
++			=
+
++			packet.fifo =3D  CreateFIFO() -- TODO : destroy when not needed anymore=
+ ! otherwise memleak
++			=
+
++			packet.fifo:PushFIFOPartRaw(fifo,0,packet.iPacketSize)
++			fifo:PopRaw(packet.iPacketSize)
++			table.insert(rpv.packets,packet)
++		end
++	end
++
++	print("rpv:end. sizeleft",fifo:Size()) -- FIFOHexDump(fifo)
++end
++
++
++-- Mega Cliloc - server sends new Clilocs - just add them to the Cliloc
++-- TODO : this cliloc additions might be local to a specific mobile, e.g. =
+vendor or container...
++function My_kPacket_Mega_Cliloc(input)	--0xD6
++	local id				=3D input:PopNetUint8()
++	local size				=3D input:PopNetUint16()
++	local data =3D {}
++	data.unknown1			=3D input:PopNetUint16()	--0x0001 or 0x4000 !?
++	local serial			=3D input:PopNetUint32()	--Serial of item/creature
++	data.unknown2			=3D input:PopNetUint16()	--0x0000 !?
++	data.objrevision_hash	=3D input:PopNetUint32()	--another serial? hash? we=
+ird flags ? position ? 0x030c0ca3
++	local hash =3D BitwiseAND(data.objrevision_hash,kToolTipHashMask) =
+
++		-- objrevision_hash in old iris code : obj/character->SetAOSTooltipID(li=
+stID);
++	=
+
++	local totaltext =3D ""
++	local bFirst =3D true
++	=
+
++	while true do =
+
++		local cliloc_id =3D input:PopNetUint32()
++		if (cliloc_id =3D=3D 0x00000000) then break end
++		local cliloctext =3D gClilocLoader and gClilocLoader:Get(cliloc_id) or ""
++		=
+
++		local number_of_unicode_chars =3D input:PopNetUint16() / 2
++		local text =3D ""
++		local totalparamtext =3D ""
++		local debugtxt =3D ""
++		local params =3D {}
++		for i =3D 1,number_of_unicode_chars do  -- read unicode text and split b=
+y 0x09 =3D tab
++			local head =3D input:PopUint8()
++			local data =3D input:PopUint8()
++			local c =3D ((head~=3D0) and string.char(head) or "?")
++			if (head =3D=3D 9 and data =3D=3D 0) then -- delimiter =3D tab=3D0x09
++				table.insert(params,text)
++				text =3D ""
++			else
++				text =3D text..c
++			end
++			totalparamtext =3D totalparamtext..c
++			debugtxt =3D debugtxt.."("..head..","..data..":"..c..")"
++		end
++		table.insert(params,text)
++		=
+
++		local text =3D string.gsub(ParameterizedClilocText(cliloc_id,params),"<b=
+r>","\n")
++		=
+
++		if (bFirst) then bFirst =3D false else totaltext =3D totaltext.."\n" end
++		totaltext =3D totaltext..text
++	end
++	return totaltext
++end
++
+ =
+
+ =
+
+ function DestroyRazorPacketVideo (rpv)
+
+Modified: trunk/lua/net/net.mobile.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.mobile.lua (original)
++++ trunk/lua/net/net.mobile.lua Sat Dec  5 22:05:48 2009
+@@ -14,7 +14,7 @@
+ 	mobiledata.flag			=3D input:PopNetUint8()
+ 	mobiledata.notoriety	=3D input:PopNetUint8()
+ 	=
+
+-	if (mobiledata.serial =3D=3D GetPlayerSerial()) then =
+
++	if (mobiledata.serial =3D=3D GetPlayerSerial() and (not gPacketVideoPlayb=
+ackRunning)) then =
+
+ 		local x,y,z =3D GetPlayerPos()
+ 		if (x) then
+ 			mobiledata.xloc =3D x
+
+Modified: trunk/lua/net/net.multi.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.multi.lua (original)
++++ trunk/lua/net/net.multi.lua Sat Dec  5 22:05:48 2009
+@@ -54,11 +54,15 @@
+ 	local iPacketSize =3D input:PopNetUint16()
+ 	local compresstype =3D input:PopNetUint8()	-- (0=3Dnothing, 3=3Dzlib)
+ 	local unknown1 =3D input:PopNetUint8()	--Enable Response (0x01 =3D yes, 0=
+x00 =3D no)
+-	local customhouseserial =3D input:PopNetUint32()
+-	local customhouserevision =3D input:PopNetUint32()
++	local customhouseserial =3D input:PopNetUint32()   -- =3D item.serial ? =
+
++	local customhouserevision =3D input:PopNetUint32() =
+
+ 	local tilecount =3D input:PopNetUint16()	--components.size()
+ 	local bufferlen =3D input:PopNetUint16()	--components.size() * 5		(item l=
+ist, compressed?)
+ 	local planecount =3D input:PopNetUint8()
++	=
+
++	=
+
++	-- customhouseserial =3D item.serial ?
++	-- foundationstyle =3D item.artid !!!!  two different houses with the sam=
+e size can have the same here
+ 	=
+
+ 	printdebug("net",sprintf("NET: Custom_House: iPacketSize=3D%d compresstyp=
+e=3D0x%02x unknown1=3D0x%02x customhouseserial=3D%d customhouserevision=3D0=
+x%08x tilecount=3D%d bufferlen=3D%d planecount=3D%d\n",
+ 			iPacketSize, compresstype, unknown1, customhouseserial, customhouserevi=
+sion, tilecount, bufferlen, planecount))
+
+Modified: trunk/lua/net/net.partysystem.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.partysystem.lua (original)
++++ trunk/lua/net/net.partysystem.lua Sat Dec  5 22:05:48 2009
+@@ -194,7 +194,7 @@
+ 	name =3D UOShortenName(name)
+ 	print("partysystem:test message",speakerID,name, input, size)
+ 	local plaintext,unicodebytearr,size =3D FIFO_PopZeroTerminatedUnicode(inp=
+ut,size)
+-	GuiAddChatLine("<Party> "..name..": "..plaintext,gPartyChatColor)
++	GuiAddChatLine("<Party> "..name..": "..plaintext,gPartyChatColor,"party",=
+name)
+ 	NotifyListener("Hook_Party_Chat",name,plaintext)
+ end =
+
+ =
+
+
+Modified: trunk/lua/net/net.text.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.text.lua (original)
++++ trunk/lua/net/net.text.lua Sat Dec  5 22:05:48 2009
+@@ -159,24 +159,25 @@
+ 	local r,g,b =3D 1,1,1
+ 	local bIsLabel =3D false
+ 	=
+
+-	if data.type =3D=3D kTextType_Normal then	r,g,b =3D 1,1,1 end
+-	if data.type =3D=3D kTextType_System then	r,g,b =3D 0,0,1 end
+-	if data.type =3D=3D kTextType_Emote then	r,g,b =3D 0,1,0 end
++	local textclass
++	if data.type =3D=3D kTextType_Normal then	r,g,b =3D 1,1,1 textclass =3D "=
+normal" end
++	if data.type =3D=3D kTextType_System then	r,g,b =3D 0,0,1 textclass =3D "=
+system" end
++	if data.type =3D=3D kTextType_Emote then	r,g,b =3D 0,1,0 textclass =3D "e=
+mote" end
+ 	if data.type =3D=3D kTextType_Label then =
+
+ 		data.text =3D PreAOSAttributeAddHints(data.text)
+ 		bIsLabel =3D true
+ 		gProfiler_Text:Section("Mobile_NameHint")
+ 		if mobile then Mobile_NameHint(data.serial,data.artid,data.name,data.tex=
+t) end
+ 		gProfiler_Text:Section("PreCalc2")
+-		r,g,b =3D 1,1,1 =
+
++		r,g,b =3D 1,1,1 textclass =3D "label"
+ 	end	-- 0x06 - System/Lower Corner, label?
+-	if data.type =3D=3D kTextType_Corner			 then r,g,b =3D 1,0,0 end	=
+
+-	if data.type =3D=3D kTextType_Whisper			 then r,g,b =3D 1,1,1 end	=
+
+-	if data.type =3D=3D kTextType_Yell				 then r,g,b =3D 1,1,1 end	=
+
+-	if data.type =3D=3D kTextType_Spell				 then r,g,b =3D 0,1,1 end	=
+
+-	if data.type =3D=3D kTextType_Guild				 then r,g,b =3D 0,1,0 end	 =
+
+-	if data.type =3D=3D kTextType_Alliance			 then r,g,b =3D 0,1,0 end	=
+
+-	if data.type =3D=3D kTextType_CommandPrompt		 then r,g,b =3D 1,0,1 end		=
+
++	if data.type =3D=3D kTextType_Corner			 then r,g,b =3D 1,0,0 textclass =
+=3D "normal" end	=
+
++	if data.type =3D=3D kTextType_Whisper			 then r,g,b =3D 1,1,1 textclass =
+=3D "normal" end	=
+
++	if data.type =3D=3D kTextType_Yell				 then r,g,b =3D 1,1,1 textclass =3D=
+ "normal" end	=
+
++	if data.type =3D=3D kTextType_Spell				 then r,g,b =3D 0,1,1 textclass =
+=3D "spell" end	=
+
++	if data.type =3D=3D kTextType_Guild				 then r,g,b =3D 0,1,0 textclass =
+=3D "guild" end	 =
+
++	if data.type =3D=3D kTextType_Alliance			 then r,g,b =3D 0,1,0 textclass =
+=3D "ally" end	=
+
++	if data.type =3D=3D kTextType_CommandPrompt		 then r,g,b =3D 1,0,1 textcl=
+ass =3D "prompt" end		=
+
+ 	=
+
+ 	gProfiler_Text:Section("GetHueColor")
+ 	if data.hue then r,g,b =3D GetHueColor(data.hue-1) end
+@@ -234,15 +235,15 @@
+ 	gProfiler_Text:Section("GuiAddChatLine")
+ 	if show_below then
+ 		if string.len(data.name) > 0 then =
+
+-			GuiAddChatLine(sprintf("%s: %s",data.name,plaintext),{r,g,b,1})
++			GuiAddChatLine(sprintf("%s: %s",data.name,plaintext),{r,g,b,1},textclas=
+s,data.name,serial,data.clilocid)
+ 		else
+-			GuiAddChatLine(plaintext,{r,g,b,1})
++			GuiAddChatLine(plaintext,{r,g,b,1},textclass,data.name,serial,data.clil=
+ocid)
+ 		end
+ 	end
+ 	=
+
+ 	gProfiler_Text:Section("JournalAddText")
+ 	-- disabled, because it didn't work with chinses text (unicode), produces=
+ beeps in console
+-	if gShowChatInConsole and (show_journal or show_below) then print("Handle=
+UOText",plaintext,data.clilocid,data.type) end
++	if gShowChatInConsole and (show_journal or show_below) then print("Handle=
+UOText",data.name,plaintext,data.clilocid,data.type) end
+ 	if show_journal then
+ 		JournalAddText(data.name,plaintext)
+ 	end
+
+Modified: trunk/lua/net/net.uoam.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.uoam.lua (original)
++++ trunk/lua/net/net.uoam.lua Sat Dec  5 22:05:48 2009
+@@ -243,7 +243,7 @@
+ 		local text =3D fifo:PopFilledString(fifo:Size())
+ 		--~ print("text",textlen,text)
+ 		print("uoam:chat",name,text)
+-		GuiAddChatLine("["..name.."]: "..text,gUOAMChatColor)
++		GuiAddChatLine("["..name.."]: "..text,gUOAMChatColor,"uoam",name)
+ 	else
+ 		print("UOAM:unknown message type",msgtype)
+ 	end
+
+Modified: trunk/lua/obj/obj.mobile.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/obj/obj.mobile.lua (original)
++++ trunk/lua/obj/obj.mobile.lua Sat Dec  5 22:05:48 2009
+@@ -147,7 +147,9 @@
+ 	-- request basic stats info
+ 	if (not self.stat_request_sent) then  =
+
+ 			self.stat_request_sent =3D true
+-		Send_ClientQuery(gRequest_States,self.serial)
++		if (not gPacketVideoPlaybackRunning) then =
+
++			Send_ClientQuery(gRequest_States,self.serial)
++		end
+ 	end
+ 	=
+
+ 	-- update life stats in gui elements
+
+
+
+From no-reply at zwischenwelt.org  Sun Dec  6 21:45:21 2009
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Sun, 06 Dec 2009 20:45:21 -0000
+Subject: [Iris-commit] [IRIS] r3180 - in /trunk: lua/lib.granny.debug.lua
+	scripts/luabindheader.lua
+Message-ID: <20091206204521.61CAF7A98162@simon>
+
+Author: ghoulsblade
+Date: Sun Dec  6 21:45:21 2009
+New Revision: 3180
+
+Log:
+grannydebug : adjusted a few luabinds
+
+Modified:
+    trunk/lua/lib.granny.debug.lua
+    trunk/scripts/luabindheader.lua
+
+Modified: trunk/lua/lib.granny.debug.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.granny.debug.lua (original)
++++ trunk/lua/lib.granny.debug.lua Sun Dec  6 21:45:21 2009
+@@ -250,7 +250,7 @@
+ 	end
+ 	MyGrannyDump(objlist,"obj")
+ 	=
+
+-	function MyMakeGrannyGfx (mesh,texture_poly) =
+
++	function MyMakeGrannyGfx (mesh,texture_poly,pOgreMesh) =
+
+ 		local bSkeletalAnimation =3D true
+ 		local bVertexAnimation =3D false
+ 		local vdecl =3D cVertexDecl:New()
+@@ -279,6 +279,7 @@
+ 		local combo_next_i =3D 0
+ 		local combos =3D {}
+ 		=
+
++		-- assembling vertex-buffer, this block doesn't need ogre
+ 		for k,poly in pairs(polygons) do =
+
+ 			local texpoly =3D texpolys and texpolys[k] =
+
+ 			for i=3D0,2 do =
+
+@@ -314,6 +315,59 @@
+ 		--~ print("ib.ic",ib.ic)
+ 		=
+
+ 		=
+
++		--[[
++		=
+
++		=
+
++		local msMatName =3D matname -- TODO!
++		=
+
++		-- create submesh
++		local sub =3D pOgreMesh:createSubMesh();
++		sub:setMaterialName(msMatName);
++		sub:setUseSharedVertices(false)
++		--~ sub->operationType =3D OT_POINT_LIST;
++		=
+
++		=
+
++		-- prepare vertex buffer
++		sub:setVertexData(CreateVertexData())
++		sub:getVertexData():setVertexCount(iComboVertexCount)
++		sub:getVertexData():setVertexDecl(vdecl:GetOgreVertexDecl())
++		=
+
++		VertexDeclaration* decl =3D sub->vertexData->vertexDeclaration;
++		VertexBufferBinding* bind =3D sub->vertexData->vertexBufferBinding;
++		int offset =3D 0;
++		offset +=3D decl->addElement(0, offset, VET_FLOAT3, VES_POSITION).getSiz=
+e();
++		offset +=3D decl->addElement(0, offset, VET_FLOAT3, VES_NORMAL).getSize(=
+);
++		if (bUseColors)		offset +=3D decl->addElement(0, offset, VET_COLOUR, VES=
+_DIFFUSE).getSize();
++		if (bUseTexCoords)	offset +=3D decl->addElement(0, offset, VET_FLOAT2, V=
+ES_TEXTURE_COORDINATES, 0).getSize();
++		HardwareVertexBufferSharedPtr vbuf =3D HardwareBufferManager::getSinglet=
+on().createVertexBuffer(
++			offset,iComboVertexCount,HardwareBuffer::HBU_STATIC_WRITE_ONLY);
++		bind->setBinding(0, vbuf);
++					=
+
++		// write vertices
++		assert(myVertices.size() =3D=3D vbuf->getSizeInBytes());
++		vbuf->writeData(0,myVertices.size(),myVertices.HackGetRawReader(), true);
++		=
+
++
++		// prepare index buffer
++		int iIndexCount =3D pLoaderSubMesh.mPolygons.second * 3;
++		HardwareIndexBufferSharedPtr ibuf =3D HardwareBufferManager::getSingleto=
+n().
++			createIndexBuffer(HardwareIndexBuffer::IT_16BIT,iIndexCount,HardwareBuf=
+fer::HBU_STATIC_WRITE_ONLY);
++		sub->indexData->indexBuffer =3D ibuf;
++		sub->indexData->indexCount =3D iIndexCount;
++		sub->indexData->indexStart =3D 0;
++		=
+
++		--~ write indices
++		assert(myIndices.size() =3D=3D ibuf->getSizeInBytes());
++		ibuf->writeData(0, myIndices.size(),myIndices.HackGetRawReader(), true);
++		=
+
++		// todo : calc for whole mesh, not only for this submesh
++		// calculate bounds
++		mpMesh->_setBounds(AxisAlignedBox(vMin.x,vMin.y,vMin.z,vMax.x,vMax.y,vMa=
+x.z), true);
++		mpMesh->_setBoundingSphereRadius(mymax(Vector3(vMin.x,vMin.y,vMin.z).len=
+gth(),Vector3(vMax.x,vMax.y,vMax.z).length()));
++		]]--
++		=
+
++		=
+
++		=
+
+ 		--~ now ogre stuff : vertexbuffer,renderop,renderable,movable
+ 		=
+
+ 		local robmovable =3D CreateRobMovable()
+@@ -330,21 +384,24 @@
+ 		-- Ogre::Renderable::getRenderOperation(RenderOperation &op) ? hard to l=
+uabind, also we'd get only a copy...
+ 		local renderop =3D robrenderable:GetRenderOperationPtr() -- Ogre::Render=
+Operation
+ 		renderop:setOperationType(OT_TRIANGLE_LIST)
+-		renderop:setVertexDecl(vdecl:GetOgreVertexDecl())
++		local vertexData =3D renderop:getVertexData()
++		local indexData =3D renderop:getIndexData()
++		=
+
++		vertexData:setVertexDecl(vdecl:GetOgreVertexDecl())
+ 		--~ print("vb0:GetVertexSize()",vb0:GetVertexSize(),vb0:GetVertexNum())
+ 		--~ print("vb1:GetVertexSize()",vb1:GetVertexSize(),vb1:GetVertexNum())
+-		renderop:createAndBindVertexBuffer(vb0:GetVertexSize(),vb0:GetVertexNum(=
+),HBU_DYNAMIC_WRITE_ONLY,false,0) -- (iVertexSize,iNumVerts,iUsage,bUseShad=
+owBuffer=3Dfalse,iBindIndex=3D0)
+-		renderop:createAndBindVertexBuffer(vb1:GetVertexSize(),vb1:GetVertexNum(=
+),HBU_DYNAMIC_WRITE_ONLY,false,1) -- (iVertexSize,iNumVerts,iUsage,bUseShad=
+owBuffer=3Dfalse,iBindIndex=3D0)
+-		renderop:createAndBindIndexBuffer(IT_32BIT,ib:GetIndexNum(),HBU_STATIC_W=
+RITE_ONLY) -- (iIndexType,iNumIndexes,iUsage,bUseShadowBuffer=3Dfalse)
+-		=
+
+-		renderop:setVertexStart(0)
+-		renderop:setIndexStart(0)
+-		renderop:setVertexCount(vb0:GetVertexNum())
+-		renderop:setIndexCount(ib:GetIndexNum())
+-		=
+
+-		renderop:writeToVertexBuffer(vb0:GetFIFO(),0)
+-		renderop:writeToVertexBuffer(vb1:GetFIFO(),1)
+-		renderop:writeToIndexBuffer(ib:GetFIFO()) =
+
++		vertexData:createAndBindVertexBuffer(vb0:GetVertexSize(),vb0:GetVertexNu=
+m(),HBU_DYNAMIC_WRITE_ONLY,false,0) -- (iVertexSize,iNumVerts,iUsage,bUseSh=
+adowBuffer=3Dfalse,iBindIndex=3D0)
++		vertexData:createAndBindVertexBuffer(vb1:GetVertexSize(),vb1:GetVertexNu=
+m(),HBU_DYNAMIC_WRITE_ONLY,false,1) -- (iVertexSize,iNumVerts,iUsage,bUseSh=
+adowBuffer=3Dfalse,iBindIndex=3D0)
++		indexData:createAndBindIndexBuffer(IT_32BIT,ib:GetIndexNum(),HBU_STATIC_=
+WRITE_ONLY) -- (iIndexType,iNumIndexes,iUsage,bUseShadowBuffer=3Dfalse)
++		=
+
++		vertexData:setVertexStart(0)
++		indexData:setIndexStart(0)
++		vertexData:setVertexCount(vb0:GetVertexNum())
++		indexData:setIndexCount(ib:GetIndexNum())
++		=
+
++		vertexData:writeToVertexBuffer(vb0:GetFIFO(),0)
++		vertexData:writeToVertexBuffer(vb1:GetFIFO(),1)
++		indexData:writeToIndexBuffer(ib:GetFIFO()) =
+
+ 		=
+
+ 		local gfx =3D CreateRootGfx3D()
+ 		local scenenode =3D gfx:GetSceneNode()
+@@ -353,104 +410,6 @@
+ 		-- todo : mousepick
+ 		=
+
+ 		--[[
+-		function LoadGrannyAsOgreMesh (meshname,skeletonname,bHasBoneWeights,...)
+-			local mesh =3D MeshManager_createManual(meshname)
+-			mesh:_setBounds({0,0,0,0,0,0}, true)
+-			mesh:_setBoundingSphereRadius(0)
+-			=
+
+-			if (bHasBoneWeights) then =
+
+-				local skeleton =3D SkeletonManager_load(skeletonname)
+-				mesh:setSkeletonName(skeletonname) assert(skeletonname =3D=3D skeleton=
+:getName()
+-			end
+-			-- for ... cSubMeshConstructor
+-			mesh:load()
+-			return meshname
+-		end
+-		=
+
+-		function cSubMeshConstructor ()
+-			bool bUseSkeleton =3D (!mpSkeleton.isNull()) && pLoaderSubMesh.mWeights=
+.second > 0;
+-			bool bUseColors =3D false && pLoaderSubMesh.mColors.first; // not yet s=
+upported (see below)
+-			bool bUseTexCoords =3D pLoaderSubMesh.mTexCoords.first;
+-			typedef std::vector< std::pair<int,float> >		tMyBoneWeightList;
+-			std::vector<tMyBoneWeightList*>	myBoneWeights;
+-			=
+
+-			// create submesh
+-			Ogre::SubMesh* sub =3D mpMesh->createSubMesh();
+-			sub->setMaterialName(msMatName);
+-			sub->useSharedVertices =3D false;
+-			// sub->operationType =3D OT_POINT_LIST;
+-			=
+
+-			// prepare bone-weight data
+-			if (bUseSkeleton) {
+-				sub->clearBoneAssignments();
+-				myBoneWeights.reserve(pLoaderSubMesh.mWeights.second);
+-				=
+
+-				// WARNING ! buffersize not checked, but as long as the granny files a=
+re intakt thats ok
+-				// foreach point : bonenum, index,weight, index,weight,... =
+
+-				const ::uint32* p =3D (::uint32*)pLoaderSubMesh.mWeights.first;
+-				for (int i=3D0;i<pLoaderSubMesh.mWeights.second;++i) {
+-					::uint32 iNumBones =3D *(p++);
+-					=
+
+-					tMyBoneWeightList* pBoneList =3D new tMyBoneWeightList();
+-					myBoneWeights.push_back(pBoneList);
+-					pBoneList->reserve(iNumBones);
+-					=
+
+-					for (int k=3D0;k<iNumBones;++k) {
+-						::uint32	iWeightBoneIndex =3D *(p++);
+-						float		fWeight =3D *(float*)(p++);
+-						pBoneList->push_back(std::make_pair(iWeightBoneIndex,fWeight));
+-					}
+-				}
+-			}
+-			=
+
+-			// iterate over all polygon-vertices
+-			for (i=3D0;i<pLoaderSubMesh.mPolygons.second;++i) for (j=3D0;j<3;++j) {
+-				int iP =3D pLoaderSubMesh.mPolygons.first[i].iVertex[j];
+-				int iN =3D pLoaderSubMesh.mPolygons.first[i].iNormal[j];
+-				int iC =3D mpGrannyLoader->GetColorIndex(i,j); /// todo : for multiple=
+ submeshes add startoffset to i
+-				int iT =3D mpGrannyLoader->GetTexIndex(i,j); /// todo : for multiple s=
+ubmeshes add startoffset to i
+-				cMultiIndex idx(iP,iN,iC,iT);
+-				if (myCombos.find(idx) =3D=3D myCombos.end()) {
+-					// combo not found, create new
+-					int iCurComboVertex =3D iComboVertexCount++;
+-					myIndices.PushUint16((unsigned short)iCurComboVertex);
+-					myCombos[idx] =3D iCurComboVertex;
+-					=
+
+-					// don't use scaling here, that would confuse the skeletal anim
+-					Ogre::Vector3 p =3D GrannyToOgreV(pLoaderSubMesh.mPoints.first[iP]);
+-					Ogre::Vector3 n =3D GrannyToOgreV(pLoaderSubMesh.mNormals.first[iN]);
+-					=
+
+-					if (bUseSkeleton) {
+-						// iterate over boneweights
+-						tMyBoneWeightList* myBoneWeightList =3D (iP >=3D 0 && iP < myBoneWei=
+ghts.size()) ? myBoneWeights[iP] : 0;
+-						if (myBoneWeightList) {
+-							for (int i=3D0;i<myBoneWeightList->size();++i) {
+-								int		iWeightBoneIndex 	=3D (*myBoneWeightList)[i].first;
+-								float	w 					=3D (*myBoneWeightList)[i].second;
+-								int 	iGrannyBoneID 		=3D WeightBoneIndex2GrannyBoneID(iWeightBoneI=
+ndex);
+-								int		iOgreBoneHandle 	=3D WeightBoneIndex2OgreBoneHandle(iWeightBo=
+neIndex);
+-								=
+
+-								// assign vertices to skeleton bones
+-								if (iOgreBoneHandle >=3D 0) {
+-									VertexBoneAssignment assign;
+-									assign.boneIndex 	=3D iOgreBoneHandle; // NOTE ! this might refer=
+ to the animtrack handle instead of the bone handle, so best keep both equal
+-									assign.weight 		=3D w;
+-									assign.vertexIndex 	=3D iCurComboVertex;
+-									sub->addBoneAssignment(assign);
+-									=
+
+-								}
+-							}
+-						}
+-					}
+-					... push vertexcombo
+-				}
+-				... push index
+-			}
+-			=
+
+-			mpMesh->_setBounds(AxisAlignedBox(vMin.x,vMin.y,vMin.z,vMax.x,vMax.y,vM=
+ax.z), true);
+-			mpMesh->_setBoundingSphereRadius(mymax(Vector3(vMin.x,vMin.y,vMin.z).le=
+ngth(),Vector3(vMax.x,vMax.y,vMax.z).length()));
+-		end
+-		=
+
+ 		function LoadGrannyAsOgreAnim (...)
+ 				local skeletonname =3D "blub"
+ 				local skeleton =3D SkeletonManager_load(skeletonname)
+@@ -458,26 +417,70 @@
+ 				local anim =3D skeleton:createAnimation(szAnimName,fTotalTime) // in s=
+econds	=
+
+ 				-- cAnimationConstructor anim lBodySamples:GetSampleBone      ... todo=
+:bones indirekt verbunden =C3=BCber boneties ? =
+
+ 		end
+-		=
+
+-		=
+
+ 		]]--
+ 		=
+
+ 		=
+
+ 	end
+ 	=
+
++	local szMeshName =3D GetUniqueName() or "MyGrannyMeshName01"
++	--~ local pOgreMesh =3D MeshManager_createManual(szMeshName)
++	--~ pOgreMesh:_setBounds({0,0,0,0,0,0}, true)
++	--~ pOgreMesh:_setBoundingSphereRadius(0)
+ 	=
+
+ 	--~ local mesh			=3D Object.mesh_list.childs[1] -- .mesh*26
+ 	--~ local texture_poly	=3D Object.texture_list.texture.texture_sublist.ch=
+ilds[1] -- .texture_poly -- *26
+ 	for k,mesh in ipairs(Object.mesh_list.childs) do
+ 		local texture_poly =3D Object.texture_list.texture.texture_sublist.child=
+s[k]
+-		MyMakeGrannyGfx (mesh,texture_poly) =
+
+-	end
++		MyMakeGrannyGfx(mesh,texture_poly,pOgreMesh) =
+
++	end
++	=
+
++	--~ pOgreMesh:load()
+ 	=
+
+ 	--~ os.exit(0)
+ end
+ =
+
+ =
+
+---[[                                                                      =
+                                                                           =
+      =
+
++
++function GannyLoader2_LoadGrannyAsOgreMesh (pGrannyLoader,szMatName,szMesh=
+Name,szSkeletonName) -- pGrannyLoader:cGrannyLoader_i2*
++	local bIsEmptyMesh =3D true
++	local bHasBoneWeights =3D false
++	for k,submesh in ipairs(pGrannyLoader.mSubMeshes) do =
+
++		if (submesh.mWeights.second > 0) then bHasBoneWeights =3D true end
++		if (submesh.mPolygons.second > 0) then bIsEmptyMesh =3D false end
++	end
++	if (bIsEmptyMesh) then return false end
++
++	local pMesh =3D MeshManager_createManual(szMeshName)
++	pMesh:_setBounds({0,0,0,0,0,0}, true)
++	pMesh:_setBoundingSphereRadius(0)
++	=
+
++	local pSkeleton
++	if (bHasBoneWeights) then =
+
++		local pSkeleton =3D SkeletonManager_load(szSkeletonName)
++		if (pSkeleton) then pMesh:setSkeletonName(pSkeleton:getName()) assert(sz=
+SkeletonName =3D=3D pSkeleton:getName()) end  -- getname !=3D name i think,=
+ there was something weird here
++	end
++	=
+
++	local mpGrannyLoader	=3D pGrannyLoader
++	local mpMesh			=3D pMesh
++	local mpSkeleton		=3D pSkeleton
++	local msMatName			=3D szMatName
++	local miCurrentSubMesh	=3D 0
++	local miTargetSubMesh	=3D 0
++	for k,submesh in ipairs(pGrannyLoader.mSubMeshes) do
++		-- bla
++	end
++	pMesh:load()
++	return true
++end
++
++
++--[[
++	=
+
++	mpMesh->_setBounds(AxisAlignedBox(vMin.x,vMin.y,vMin.z,vMax.x,vMax.y,vMax=
+.z), true);
++	mpMesh->_setBoundingSphereRadius(mymax(Vector3(vMin.x,vMin.y,vMin.z).leng=
+th(),Vector3(vMax.x,vMax.y,vMax.z).length()));
++end
++
++                                                                          =
+                                                                           =
+
+ 	point   				1/557   {y=3D-0.710749,x=3D-0.767177,z=3D1.416132,}          =
+                                                                           =
+                                                                   =
+
+ 	normal 					1/553   {y=3D0,x=3D0,z=3D0,}                                 =
+                                                                           =
+                                     =
+
+ 	texcoord   				1/2286  {y=3D0.082323,x=3D0.089491,z=3D0.418126,}         =
+    2286/6/3 =3D 127                                                       =
+                                         =
+
+
+Modified: trunk/scripts/luabindheader.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/scripts/luabindheader.lua (original)
++++ trunk/scripts/luabindheader.lua Sun Dec  6 21:45:21 2009
+@@ -21,6 +21,8 @@
+ 							{basepath.."OgreAnimation.h"			,"Animation"},
+ 							{basepath.."OgreMesh.h"					,"Mesh"},
+ 							{basepath.."OgreSubMesh.h"				,"SubMesh"},
++							{basepath.."OgreVertexIndexData.h"		,"VertexData"},
++							{basepath.."OgreVertexIndexData.h"		,"IndexData"},
+ 							=
+
+ 							=
+
+ 							--~ {basepath.."OgreRenderOperation.h"		,"RenderOperation"},	-- cus=
+tom binding made, not good for auto-bind
+@@ -48,6 +50,8 @@
+ 	GenerateBinding(Node,{Renderable})
+ 	GenerateBinding(MovableObject	)
+ 	GenerateBinding(Renderable)
++	GenerateBinding(VertexData)
++	GenerateBinding(IndexData)
+ 	=
+
+ 	GenerateBinding(Resource)
+ 	GenerateBinding(Skeleton,{Resource})
+
+
+
+From no-reply at zwischenwelt.org  Sun Dec  6 22:57:56 2009
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Sun, 06 Dec 2009 21:57:56 -0000
+Subject: [Iris-commit] [IRIS] r3181 - /trunk/lua/gui/gui.paperdoll.lua
+Message-ID: <20091206215756.24FBB7A98162@simon>
+
+Author: sience
+Date: Sun Dec  6 22:57:55 2009
+New Revision: 3181
+
+Log:
+-small fix
+
+Modified:
+    trunk/lua/gui/gui.paperdoll.lua
+
+Modified: trunk/lua/gui/gui.paperdoll.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.paperdoll.lua (original)
++++ trunk/lua/gui/gui.paperdoll.lua Sun Dec  6 22:57:55 2009
+@@ -378,9 +378,8 @@
+ 	--~ dialog.controls["paperdollname"].gfx:SetColour( {r,g,b,1.0} )
+ 	--~ dialog.controls["paperdollname"].gfx:SetFont(gFontDefs["Gump"].name)
+ 	--~ dialog.controls["paperdollname"].gfx:SetText(paperdoll.name)
+-	local name =3D paperdoll.name
+-	=
+
+-	local name =3D paperdoll.name
++	=
+
++	local name =3D paperdoll.name or "Unknown"
+ 	local sname =3D string.gsub(name, ",", ",<BR>")
+ 	dialog.controls["paperdollname"]:SetUOHtml("<BASEFONT COLOR=3D#000000>"..=
+sname.."</BASEFONT>", true)
+ --	dialog.controls["paperdollname"]:SetText(name)
+
+
+
+From no-reply at zwischenwelt.org  Sun Dec  6 23:19:58 2009
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Sun, 06 Dec 2009 22:19:58 -0000
+Subject: [Iris-commit] [IRIS] r3182 - /trunk/lua/lib.protocol.lua
+Message-ID: <20091206221958.63CDA7A98162@simon>
+
+Author: sience
+Date: Sun Dec  6 23:19:57 2009
+New Revision: 3182
+
+Log:
+-fix server client direction was wrong
+
+Modified:
+    trunk/lua/lib.protocol.lua
+
+Modified: trunk/lua/lib.protocol.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.protocol.lua (original)
++++ trunk/lua/lib.protocol.lua Sun Dec  6 23:19:57 2009
+@@ -137,7 +137,7 @@
+ function HexDumpUOPacket (fifo,len,bIsFromClient,traceback) =
+
+ 	local cmd =3D fifo:PeekNetUint8(0)
+ 	local direction =3D bIsFromClient and "Client" or "Server"
+-	local dirother =3D (not bIsFromClient) and "Server" or "Client"
++	local dirother =3D (not bIsFromClient) and "Client" or "Server"
+ 	local subtime =3D Client_GetTicks()
+ 	local name =3D gPacketTypeId2Name[cmd] or "???"
+ 	=
+
+@@ -148,7 +148,7 @@
+ 	if (gLastPacketLogTime) then info =3D info.."timediff	"..(t-gLastPacketLo=
+gTime).."\n" end
+ 	gLastPacketLogTime =3D t
+ 		=
+
+-	info =3D info..sprintf("%s.%d: %s -> %s 0x%02X (Length: %d) (name=3D%s%s)=
+\n",os.date("%H:%M:%S"),subtime,direction,dirother,cmd,len,name,traceback)
++	info =3D info..sprintf("%s.%d: %s -> %s: 0x%02X (Length: %d) (name=3D%s%s=
+)\n",os.date("%H:%M:%S"),subtime,direction,dirother,cmd,len,name,traceback)
+ 	-- 17:55:14.5486: Client -> Server 0x80 (Length: 62)
+ 	info =3D info.."        0  1  2  3  4  5  6  7   8  9  A  B  C  D  E  F\n"
+ 	info =3D info.."       -- -- -- -- -- -- -- --  -- -- -- -- -- -- -- --\n"
+
+
+
+From no-reply at zwischenwelt.org  Thu Dec 10 21:32:24 2009
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Thu, 10 Dec 2009 20:32:24 -0000
+Subject: [Iris-commit] [IRIS] r3183 - /trunk/cleanall.sh
+Message-ID: <20091210203224.3D5AA7A9812A@simon>
+
+Author: ghoulsblade
+Date: Thu Dec 10 21:32:23 2009
+New Revision: 3183
+
+Log:
+removed obsolete clean scripte, from automake
+
+Removed:
+    trunk/cleanall.sh
+
+
+
+From no-reply at zwischenwelt.org  Thu Dec 10 22:31:17 2009
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Thu, 10 Dec 2009 21:31:17 -0000
+Subject: [Iris-commit] [IRIS] r3184 - /trunk/lib.premake.lua
+Message-ID: <20091210213117.F39A37A9812A@simon>
+
+Author: ghoulsblade
+Date: Thu Dec 10 22:31:17 2009
+New Revision: 3184
+
+Log:
+premake buildsystem : addcustomconfiglib : added package.libpaths
+
+Modified:
+    trunk/lib.premake.lua
+
+Modified: trunk/lib.premake.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lib.premake.lua (original)
++++ trunk/lib.premake.lua Thu Dec 10 22:31:17 2009
+@@ -30,6 +30,7 @@
+     if options.target =3D=3D "gnu" and os.execute(configcommand.." --versi=
+on") =3D=3D 0 then
+       tinsert (package.buildoptions, "`"..configcommand.." --cflags`")
+       tinsert (package.linkoptions, "`"..configcommand.." --libs`")
++      tinsert (package.libpaths, "`"..configcommand.." --libs`")
+     else
+       -- TODO tinsert (package.linkoptions, findlib (libname))
+     end
+
+
+
+From no-reply at zwischenwelt.org  Thu Dec 10 22:49:58 2009
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Thu, 10 Dec 2009 21:49:58 -0000
+Subject: [Iris-commit] [IRIS] r3185 - /trunk/lib.premake.lua
+Message-ID: <20091210214958.47E397A9812A@simon>
+
+Author: ghoulsblade
+Date: Thu Dec 10 22:49:58 2009
+New Revision: 3185
+
+Log:
+premake : addcustomconfiglib : added /usr/lib to package.libpaths
+
+Modified:
+    trunk/lib.premake.lua
+
+Modified: trunk/lib.premake.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lib.premake.lua (original)
++++ trunk/lib.premake.lua Thu Dec 10 22:49:58 2009
+@@ -30,7 +30,8 @@
+     if options.target =3D=3D "gnu" and os.execute(configcommand.." --versi=
+on") =3D=3D 0 then
+       tinsert (package.buildoptions, "`"..configcommand.." --cflags`")
+       tinsert (package.linkoptions, "`"..configcommand.." --libs`")
+-      tinsert (package.libpaths, "`"..configcommand.." --libs`")
++      --~ tinsert (package.libpaths, "`"..configcommand.." --libs`") -- wx=
+-config --prefix ? only returns user dir...
++      tinsert (package.libpaths,"/usr/lib")
+     else
+       -- TODO tinsert (package.linkoptions, findlib (libname))
+     end
+
+
+
+From no-reply at zwischenwelt.org  Thu Dec 10 23:09:35 2009
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Thu, 10 Dec 2009 22:09:35 -0000
+Subject: [Iris-commit] [IRIS] r3186 - /trunk/scripts/luabindheader.lua
+Message-ID: <20091210220935.BA2507A9812A@simon>
+
+Author: ghoulsblade
+Date: Thu Dec 10 23:09:35 2009
+New Revision: 3186
+
+Log:
+enhanced luabind generator, added ogre::entity
+
+Modified:
+    trunk/scripts/luabindheader.lua
+
+Modified: trunk/scripts/luabindheader.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/scripts/luabindheader.lua (original)
++++ trunk/scripts/luabindheader.lua Thu Dec 10 23:09:35 2009
+@@ -3,36 +3,43 @@
+ -- TODO: ,(ParamLight::LightTypes(L,2),ParamInt(L,3))  Light::LightTypes  =
+ ParamLightTypes
+ -- TODO:LUABIND_PrefixConstant(Ogre::SceneManager,SCRQM_INCLUD)  -- E fehl=
+t  SCRQM_INCLUDE,
+ =
+
++gBoundPointerClasses =3D {}
+ function Main ()
+ 	local basepath =3D "/usr/local/include/OGRE/"
+-	for k,arr in pairs({	{basepath.."OgreLight.h"				,"Light"},	=
+
+-							{basepath.."OgreSceneManager.h"			,"SceneManager"},
+-							{basepath.."OgreFrustum.h"				,"Frustum"},
+-							{basepath.."OgreCamera.h"				,"Camera"},
+-							{basepath.."OgreSceneNode.h"			,"SceneNode"},
+-							{basepath.."OgreNode.h"					,"Node"},
+-							{basepath.."OgreMovableObject.h"		,"MovableObject"},
+-							{basepath.."OgreRenderable.h"			,"Renderable"},
++	=
+
++	local classes =3D {		{basepath.."OgreLight.h"				,"Light"			,{"MovableObj=
+ect"}},	=
+
++							{basepath.."OgreSceneManager.h"			,"SceneManager"		},
++							{basepath.."OgreFrustum.h"				,"Frustum"			},
++							{basepath.."OgreCamera.h"				,"Camera"			,{"Frustum"}}, -- Renderab=
+le,MovableObject}
++							{basepath.."OgreSceneNode.h"			,"SceneNode"		,{"Node","Renderable"}=
+},
++							{basepath.."OgreNode.h"					,"Node"				,{"Renderable"}},
++							{basepath.."OgreMovableObject.h"		,"MovableObject"	},
++							{basepath.."OgreRenderable.h"			,"Renderable"		},
++							{basepath.."OgreVertexIndexData.h"		,"VertexData"		},
++							{basepath.."OgreVertexIndexData.h"		,"IndexData"		},
+ 							=
+
+-							{basepath.."OgreResource.h"				,"Resource"},
+-							=
+
+-							{basepath.."OgreSkeleton.h"				,"Skeleton"},
+-							{basepath.."OgreBone.h"					,"Bone"},
+-							{basepath.."OgreAnimation.h"			,"Animation"},
+-							{basepath.."OgreMesh.h"					,"Mesh"},
+-							{basepath.."OgreSubMesh.h"				,"SubMesh"},
+-							{basepath.."OgreVertexIndexData.h"		,"VertexData"},
+-							{basepath.."OgreVertexIndexData.h"		,"IndexData"},
++							{basepath.."OgreResource.h"				,"Resource"			},
++							{basepath.."OgreSkeleton.h"				,"Skeleton"			,{"Resource"}},
++							{basepath.."OgreBone.h"					,"Bone"				,{"Node","Renderable"}},
++							{basepath.."OgreAnimation.h"			,"Animation"		},
++							{basepath.."OgreMesh.h"					,"Mesh"				,{"Resource"}},
++							{basepath.."OgreSubMesh.h"				,"SubMesh"			},
++									=
+
++							{basepath.."OgreEntity.h"				,"Entity"			,{"MovableObject"}},
+ 							=
+
+ 							=
+
+ 							--~ {basepath.."OgreRenderOperation.h"		,"RenderOperation"},	-- cus=
+tom binding made, not good for auto-bind
+ 							--~ {basepath.."OgreHardwareVertexBuffer.h"	,"VertexDeclaration"},	=
+-- custom binding made, not good for auto-bind
++							--~ GenerateBinding(RobMovable,{MovableObject})
++							--~ GenerateBinding(RobRenderable,{Renderable})
+ 							=
+
+-						}) do
+-		local filepath,classname =3D unpack(arr)
++						}
++	for k,arr in pairs(classes) do
++		local filepath,classname,parentclassnames =3D unpack(arr)
+ 		local c =3D {}
+ 		c.code =3D LoadHeader(filepath,classname)
+ 		c.classname =3D classname
++		gBoundPointerClasses[classname] =3D true
+ 		_G[classname] =3D c
+ 	end
+ 	=
+
+@@ -42,28 +49,13 @@
+ 	gOutLines =3D {}
+ =
+
+ 	RegisterVarTypes()
+-	GenerateBinding(Light,{MovableObject})
+-	GenerateBinding(SceneManager)
+-	GenerateBinding(Frustum)
+-	GenerateBinding(Camera,{Frustum}) -- Renderable,MovableObject}
+-	GenerateBinding(SceneNode,{Node,Renderable})
+-	GenerateBinding(Node,{Renderable})
+-	GenerateBinding(MovableObject	)
+-	GenerateBinding(Renderable)
+-	GenerateBinding(VertexData)
+-	GenerateBinding(IndexData)
+-	=
+
+-	GenerateBinding(Resource)
+-	GenerateBinding(Skeleton,{Resource})
+-	GenerateBinding(Bone,{Node,Renderable})
+-	GenerateBinding(Animation)
+-	GenerateBinding(Mesh,{Resource})
+-	GenerateBinding(SubMesh)
+-	--~ GenerateBinding(RenderOperation)
+-	--~ GenerateBinding(VertexDeclaration)
+-	=
+
+-	--~ GenerateBinding(RobMovable,{MovableObject})
+-	--~ GenerateBinding(RobRenderable,{Renderable})
++	=
+
++	for k,arr in pairs(classes) do
++		local filepath,classname,parentclassnames =3D unpack(arr)
++		local parentclasses =3D {}
++		for k,parentclassname in ipairs(parentclassnames or {}) do table.insert(=
+parentclasses,_G[parentclassname]) end
++		GenerateBinding(_G[classname],parentclasses)
++	end
+ 	=
+
+ 	-- output to file
+ 	local outlines =3D gOutLines
+@@ -124,22 +116,10 @@
+ 		gReader[k] =3D "Param"..k
+ 	end
+ =
+
+-	gBoundPointerClasses =3D {}
+-	gBoundPointerClasses.SceneNode			=3D true
+-	gBoundPointerClasses.Node				=3D true
+-	gBoundPointerClasses.MovableObject		=3D true
+-	gBoundPointerClasses.Renderable			=3D true
++	-- gBoundPointerClasses
+ 	gBoundPointerClasses.RenderQueue		=3D true
+-	gBoundPointerClasses.RenderOperation		=3D true
+-	gBoundPointerClasses.SceneManager		=3D true
++	gBoundPointerClasses.RenderOperation	=3D true
+ 	gBoundPointerClasses.Viewport			=3D true
+-	gBoundPointerClasses.Camera				=3D true
+-	gBoundPointerClasses.Light				=3D true
+-	gBoundPointerClasses.Skeleton			=3D true
+-	gBoundPointerClasses.Bone				=3D true
+-	gBoundPointerClasses.Animation			=3D true
+-	gBoundPointerClasses.SubMesh			=3D true
+-	gBoundPointerClasses.Mesh				=3D true
+ 	for k,v in pairs(gBoundPointerClasses) do =
+
+ 		gPusher[k.."*"] =3D "Push"..k
+ 		gReader[k.."*"] =3D "Param"..k
+
+
+
+From no-reply at zwischenwelt.org  Thu Dec 10 23:18:13 2009
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Thu, 10 Dec 2009 22:18:13 -0000
+Subject: [Iris-commit] [IRIS] r3187 - /trunk/lua/lib.granny.debug.lua
+Message-ID: <20091210221813.D55497A9812A@simon>
+
+Author: ghoulsblade
+Date: Thu Dec 10 23:18:13 2009
+New Revision: 3187
+
+Log:
+grannydebug : new ogrebinding to create mesh entity works
+
+Modified:
+    trunk/lua/lib.granny.debug.lua
+
+Modified: trunk/lua/lib.granny.debug.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.granny.debug.lua (original)
++++ trunk/lua/lib.granny.debug.lua Thu Dec 10 23:18:13 2009
+@@ -280,6 +280,8 @@
+ 		local combos =3D {}
+ 		=
+
+ 		-- assembling vertex-buffer, this block doesn't need ogre
++		=
+
++		local rr =3D 0
+ 		for k,poly in pairs(polygons) do =
+
+ 			local texpoly =3D texpolys and texpolys[k] =
+
+ 			for i=3D0,2 do =
+
+@@ -291,15 +293,17 @@
+ 				if (not comboi) then =
+
+ 					comboi =3D combo_next_i
+ 					combo_next_i =3D combo_next_i + 1
+-					vb0:Vertex(	positions[pi].x,
+-								positions[pi].y,
+-								positions[pi].z,
+-								normals[ni].x,
+-								normals[ni].y,
+-								normals[ni].z)
+-					if (texcoords) then =
+
+-						vb1:Vertex(	texcoords[ti].x,
+-									texcoords[ti].y)
++					local p =3D positions[pi]
++					local n =3D normals[ni]
++					local x =3D p.x
++					local y =3D p.y
++					local z =3D p.z
++					local dd =3D x*x + y*y + z*z
++					if (dd > rr) then rr =3D dd end
++					vb0:Vertex(	x,y,z, n.x,n.y,n.z)
++					if (texcoords) then
++						local t =3D texcoords[ti]
++						vb1:Vertex(t.x,t.y)
+ 					else
+ 						vb1:Vertex(math.random(),math.random())
+ 					end
+@@ -310,12 +314,12 @@
+ 		end
+ 		vb0:CheckSize()
+ 		vb1:CheckSize()
++		local fSquareRadius =3D rr
+ 		--~ print("vb0.vc",vb0.vc,vb0.iFirstSize)
+ 		--~ print("vb1.vc",vb1.vc,vb1.iFirstSize)
+ 		--~ print("ib.ic",ib.ic)
+ 		=
+
+ 		=
+
+-		--[[
+ 		=
+
+ 		=
+
+ 		local msMatName =3D matname -- TODO!
+@@ -324,13 +328,22 @@
+ 		local sub =3D pOgreMesh:createSubMesh();
+ 		sub:setMaterialName(msMatName);
+ 		sub:setUseSharedVertices(false)
+-		--~ sub->operationType =3D OT_POINT_LIST;
+-		=
+
++		=
+
++		sub:setOperationType(OT_TRIANGLE_LIST)
++		--~ sub:setOperationType(OT_POINT_LIST)
++		=
+
++		local vertexData =3D CreateVertexData()
++		local indexData =3D CreateIndexData()
++		sub:setVertexData(vertexData)
++		sub:setIndexData(indexData)
++		=
+
++		--[[
+ 		=
+
+ 		-- prepare vertex buffer
+-		sub:setVertexData(CreateVertexData())
+-		sub:getVertexData():setVertexCount(iComboVertexCount)
+-		sub:getVertexData():setVertexDecl(vdecl:GetOgreVertexDecl())
++		local vd =3D CreateVertexData()
++		sub:setVertexData(vd)
++		vd:setVertexCount(iComboVertexCount)
++		vd:setVertexDecl(vdecl:GetOgreVertexDecl())
+ 		=
+
+ 		VertexDeclaration* decl =3D sub->vertexData->vertexDeclaration;
+ 		VertexBufferBinding* bind =3D sub->vertexData->vertexBufferBinding;
+@@ -360,32 +373,29 @@
+ 		assert(myIndices.size() =3D=3D ibuf->getSizeInBytes());
+ 		ibuf->writeData(0, myIndices.size(),myIndices.HackGetRawReader(), true);
+ 		=
+
+-		// todo : calc for whole mesh, not only for this submesh
+-		// calculate bounds
+-		mpMesh->_setBounds(AxisAlignedBox(vMin.x,vMin.y,vMin.z,vMax.x,vMax.y,vMa=
+x.z), true);
+-		mpMesh->_setBoundingSphereRadius(mymax(Vector3(vMin.x,vMin.y,vMin.z).len=
+gth(),Vector3(vMax.x,vMax.y,vMax.z).length()));
+ 		]]--
+ 		=
+
+ 		=
+
+ 		=
+
+ 		--~ now ogre stuff : vertexbuffer,renderop,renderable,movable
+ 		=
+
+-		local robmovable =3D CreateRobMovable()
+-		=
+
+-		local robrenderable =3D CreateRobRenderable(robmovable)
+-		robmovable:AddRenderable(robrenderable)
+-		=
+
+-		local e =3D 10
+-		robmovable:SetBounds({-e,-e,-e},{e,e,e})
+-		robmovable:ParentNeedsUpdate()
+-		robrenderable:SetMaterial(matname)
++		=
+
++		--~ local robmovable =3D CreateRobMovable()
++		=
+
++		--~ local robrenderable =3D CreateRobRenderable(robmovable)
++		--~ robmovable:AddRenderable(robrenderable)
++		=
+
++		--~ local e =3D 10
++		--~ robmovable:SetBounds({-e,-e,-e},{e,e,e})
++		--~ robmovable:ParentNeedsUpdate()
++		--~ robrenderable:SetMaterial(matname)
+ 		--~ robrenderable:SetMaterial("BaseWhiteNoLighting")
+ 		=
+
+ 		-- Ogre::Renderable::getRenderOperation(RenderOperation &op) ? hard to l=
+uabind, also we'd get only a copy...
+-		local renderop =3D robrenderable:GetRenderOperationPtr() -- Ogre::Render=
+Operation
+-		renderop:setOperationType(OT_TRIANGLE_LIST)
+-		local vertexData =3D renderop:getVertexData()
+-		local indexData =3D renderop:getIndexData()
++		--~ local renderop =3D robrenderable:GetRenderOperationPtr() -- Ogre::Re=
+nderOperation
++		--~ renderop:setOperationType(OT_TRIANGLE_LIST)
++		--~ local vertexData =3D renderop:getVertexData()
++		--~ local indexData =3D renderop:getIndexData()
+ 		=
+
+ 		vertexData:setVertexDecl(vdecl:GetOgreVertexDecl())
+ 		--~ print("vb0:GetVertexSize()",vb0:GetVertexSize(),vb0:GetVertexNum())
+@@ -403,9 +413,9 @@
+ 		vertexData:writeToVertexBuffer(vb1:GetFIFO(),1)
+ 		indexData:writeToIndexBuffer(ib:GetFIFO()) =
+
+ 		=
+
+-		local gfx =3D CreateRootGfx3D()
+-		local scenenode =3D gfx:GetSceneNode()
+-		scenenode:attachObject(robmovable)
++		--~ local gfx =3D CreateRootGfx3D()
++		--~ local scenenode =3D gfx:GetSceneNode()
++		--~ scenenode:attachObject(robmovable)
+ 		=
+
+ 		-- todo : mousepick
+ 		=
+
+@@ -419,13 +429,19 @@
+ 		end
+ 		]]--
+ 		=
+
+-		=
+
+-	end
+-	=
+
+-	local szMeshName =3D GetUniqueName() or "MyGrannyMeshName01"
+-	--~ local pOgreMesh =3D MeshManager_createManual(szMeshName)
+-	--~ pOgreMesh:_setBounds({0,0,0,0,0,0}, true)
+-	--~ pOgreMesh:_setBoundingSphereRadius(0)
++		--~ // todo : calc for whole mesh, not only for this submesh
++		--~ // calculate bounds
++		--~ pOgreMesh:_setBounds(AxisAlignedBox(vMin.x,vMin.y,vMin.z,vMax.x,vMax=
+.y,vMax.z), true);
++		--~ pOgreMesh:_setBoundingSphereRadius(mymax(Vector3(vMin.x,vMin.y,vMin.=
+z).length(),Vector3(vMax.x,vMax.y,vMax.z).length()));
++		local r =3D math.sqrt(fSquareRadius)
++		pOgreMesh:_setBounds({-r,-r,-r,r,r,r},false)
++		pOgreMesh:_setBoundingSphereRadius(r)
++	end
++	=
+
++	local sMeshName =3D GetUniqueName() or "MyGrannyMeshName01"
++	local pOgreMesh =3D MeshManager_createManual(sMeshName)
++	pOgreMesh:_setBounds({0,0,0,0,0,0}, true)
++	pOgreMesh:_setBoundingSphereRadius(0)
+ 	=
+
+ 	--~ local mesh			=3D Object.mesh_list.childs[1] -- .mesh*26
+ 	--~ local texture_poly	=3D Object.texture_list.texture.texture_sublist.ch=
+ilds[1] -- .texture_poly -- *26
+@@ -434,7 +450,16 @@
+ 		MyMakeGrannyGfx(mesh,texture_poly,pOgreMesh) =
+
+ 	end
+ 	=
+
+-	--~ pOgreMesh:load()
++	pOgreMesh:load(false)
++	=
+
++	local sceneManager =3D GetSceneManager()
++	local sEntityName =3D GetUniqueName()
++	local entity =3D sceneManager:createEntity(sEntityName,sMeshName)
++		--~ //~ LUABIND_DIRECTWRAP_RETURN_ONE_NAMEADD(			PushEntity*,									cr=
+eateEntity,										,(ParamString(L,2),ParamString(L,3))	);
++		=
+
++	local gfx =3D CreateRootGfx3D()
++	local scenenode =3D gfx:GetSceneNode()
++	scenenode:attachObject(entity)
+ 	=
+
+ 	--~ os.exit(0)
+ end
+
+
+
+From no-reply at zwischenwelt.org  Fri Dec 11 00:08:07 2009
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Thu, 10 Dec 2009 23:08:07 -0000
+Subject: [Iris-commit] [IRIS] r3188 - /trunk/premake.lua
+Message-ID: <20091210230807.61B527A9812A@simon>
+
+Author: ghoulsblade
+Date: Fri Dec 11 00:08:07 2009
+New Revision: 3188
+
+Log:
+gentoo fix attempt : linking to wx last
+
+Modified:
+    trunk/premake.lua
+
+Modified: trunk/premake.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/premake.lua (original)
++++ trunk/premake.lua Fri Dec 11 00:08:07 2009
+@@ -127,8 +127,6 @@
+ 		addcustomlib(package, "fmodex")
+ 	end
+ 		=
+
+-	addcustomconfiglib(package, "wx-config")
+-
+ 	--~ addcustomlib(package,"boost_thread")
+ 	addcustomlib(package,"boost_thread-mt")	=
+
+ =
+
+@@ -141,6 +139,8 @@
+ 		table.insert(package.links, v.."lib")
+ 		table.insert(package.includepaths, gLugreDir.."/lib/"..v.."/include/") =
+
+ 	end
++	=
+
++	addcustomconfiglib(package, "wx-config")
+ end
+ =
+
+ function AddLugreLibDeps(package)
+
+
+
+From no-reply at zwischenwelt.org  Fri Dec 18 00:10:28 2009
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Thu, 17 Dec 2009 23:10:28 -0000
+Subject: [Iris-commit] [IRIS] r3189 - in /trunk: lua/lib.granny.debug.lua
+ lua/lib.uodragdrop.lua lua/main.lua lua/widgets/widget.uotext.lua
+ scripts/luabindheader.lua
+Message-ID: <20091217231028.DD9277A9816B@simon>
+
+Author: ghoulsblade
+Date: Fri Dec 18 00:10:28 2009
+New Revision: 3189
+
+Log:
+fadelines using new guisys and uofont now, chattabs is infront now,  uodrag=
+drop : hold alt to avoid stacking, useful for vendor restocking/decoration
+
+Modified:
+    trunk/lua/lib.granny.debug.lua
+    trunk/lua/lib.uodragdrop.lua
+    trunk/lua/main.lua
+    trunk/lua/widgets/widget.uotext.lua
+    trunk/scripts/luabindheader.lua
+
+Modified: trunk/lua/lib.granny.debug.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.granny.debug.lua (original)
++++ trunk/lua/lib.granny.debug.lua Fri Dec 18 00:10:28 2009
+@@ -150,8 +150,8 @@
+ 									}
+ =
+
+ function cDebugGrannyMenu:MakeNewGranny (artid)
+-	artid =3D 791 -- beetle
+-	--~ artid =3D 200 -- horse
++	--~ artid =3D 791 -- beetle
++	artid =3D 200 -- horse
+ 	=
+
+ 	gDebugCategories.granny 	=3D true
+ 	local folder =3D "/cavern/uoml_freshinstall.4.x/Models/Animals/"
+@@ -160,7 +160,9 @@
+ 	print("=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D MakeNewGranny")
+ 	local filepath =3D GetGrannyFilePath(artid)
+ 	--~ filepath =3D folder.."Giant_Beetle_Walk.grn"
+-	--~ filepath =3D folder.."Equines_Horse_Dappled_Brown_Walk.grn"
++	--~ filepath =3D folder.."Equines_Horse_Dappled_Brown_Walk.grn"    =
+
++
++
+ 	print("granny path for artid",artid,filepath)
+ 	local grn =3D cGrannyFile:New()
+ 	grn:LoadFile(filepath)
+@@ -205,32 +207,51 @@
+ 	=
+
+ 	--~ MyDump(Object.mesh_list.mesh)
+ 	local mesh =3D Object.mesh_list.mesh
+-	local point_container =3D mesh.point_block.point_container
+-	MyGrannyDump(point_container.points.list_points,"point")
+-	MyGrannyDump(point_container.normals.list_normals,"normal")
+-	if (point_container.texture_container.texcoords) then
+-		print("texcoords:unknown:",	point_container.texture_container.texcoords.=
+unknown)
+-		MyGrannyDump(point_container.texture_container.texcoords.list_texcoords,=
+"texcoord")
+-	end
+-	=
+
+-	print("weights:",SmartDump(MyFilterFields(mesh.weights)))
+-	MyGrannyDump(mesh.weights.list_weightchunks,"weight",nil,3)
+-	MyGrannyDump(mesh.polygons.list_polygons,"polygon")
+-	MyGrannyDump(Object.boneTies1.childs,"boneTies1:boneobject")
++	local point_container =3D mesh and mesh.point_block.point_container
++	=
+
++	if (point_container) then
++		MyGrannyDump(point_container.points.list_points,"point")
++		MyGrannyDump(point_container.normals.list_normals,"normal")
++		if (point_container.texture_container.texcoords) then
++			print("texcoords:unknown:",	point_container.texture_container.texcoords=
+.unknown)
++			MyGrannyDump(point_container.texture_container.texcoords.list_texcoords=
+,"texcoord")
++		end
++	end
++	=
+
++	if (mesh) then =
+
++		print("weights:",SmartDump(MyFilterFields(mesh.weights)))
++		MyGrannyDump(mesh.weights.list_weightchunks,"weight",nil,3)
++		MyGrannyDump(mesh.polygons.list_polygons,"polygon")
++	end
++	=
+
++	MyGrannyDump(Object.boneTies1.childs,"boneTies1:boneobject",nil,3)
+ 	MyGrannyDump(Object.bones.skeleton.bonelist.childs,"bone","bone")
+ 	local btcont =3D Object.boneTies2.boneties_container
+-	local a =3D btcont.bone_objptrs_container.bone_objptr
+-	local b =3D btcont.bonetie_container.bonetie_group.bonetie_list
++	local a =3D	btcont.bone_objptrs_container.bone_objptr
++	local b =3D	btcont.bonetie_container and =
+
++				btcont.bonetie_container.bonetie_group and =
+
++				btcont.bonetie_container.bonetie_group.bonetie_list
++	--[[
++        <boneTies2>
++            <boneties_container>
++                <bone_objptrs_container>
++                    <bone_objptr iBoneTie2ID=3D"1">
++                        <bone_objptrs iNum=3D"36">
++                            <BoneTies2 35=3D"9" 29=3D"7" 1=3D"24" 3=3D"22"=
+ 2=3D"23" 5=3D"26" 4=3D"27" =
+
++	]]--
+ 	print("iBoneTie2ID=3D",a.iBoneTie2ID,"bone_objptrs.iNum=3D",a.bone_objptr=
+s.iNum)
+-	MyGrannyDump(a.bone_objptrs.BoneTies2,"bt2:bone_objptr")
+-	MyGrannyDump(b.childs,"bt2:bonetie","bonetie")
++	MyGrannyDump(a and a.bone_objptrs.BoneTies2,"bt2:bone_objptr")
++	MyGrannyDump(b and b.childs,"bt2:bonetie","bonetie")
+ 	function MyPrintField (obj,fieldname) print(fieldname,obj[fieldname]) end
+-	MyPrintField(Object.texture_list.texture,"iTextureID")
+-	MyPrintField(Object.texture_list.texture.texture_sublist.texture_poly.tex=
+ture_poly_list,"iElementSize")
+-	MyPrintField(Object.texture_list.texture.texture_sublist.texture_poly.tex=
+ture_poly_list,"iNum")
+-	MyGrannyDump(Object.texture_list.texture.texture_sublist.texture_poly.tex=
+ture_poly_list.list_texpoly_normal,"list_texpoly_normal")
+-	--~ for k,entry in pairs(Object.texture_list.texture.texture_sublist.text=
+ure_poly.texture_poly_list.list_texpoly_normal) do assert(k-1 =3D=3D entry.=
+iUnknown) end -- todo : add as sanity check
+-	=
+
++	if (Object and Object.texture_list and Object.texture_list.texture) then
++		MyPrintField(Object.texture_list.texture,"iTextureID")
++		if (Object.texture_list.texture.texture_sublist) then
++			MyPrintField(Object.texture_list.texture.texture_sublist.texture_poly.t=
+exture_poly_list,"iElementSize")
++			MyPrintField(Object.texture_list.texture.texture_sublist.texture_poly.t=
+exture_poly_list,"iNum")
++			MyGrannyDump(Object.texture_list.texture.texture_sublist.texture_poly.t=
+exture_poly_list.list_texpoly_normal,"list_texpoly_normal")
++			--~ for k,entry in pairs(Object.texture_list.texture.texture_sublist.te=
+xture_poly.texture_poly_list.list_texpoly_normal) do assert(k-1 =3D=3D entr=
+y.iUnknown) end -- todo : add as sanity check
++		end
++	end
+ 	=
+
+ 	=
+
+ 	-- TODO : testrun for asserts on all granny files
+@@ -337,51 +358,8 @@
+ 		sub:setVertexData(vertexData)
+ 		sub:setIndexData(indexData)
+ 		=
+
+-		--[[
+-		=
+
+-		-- prepare vertex buffer
+-		local vd =3D CreateVertexData()
+-		sub:setVertexData(vd)
+-		vd:setVertexCount(iComboVertexCount)
+-		vd:setVertexDecl(vdecl:GetOgreVertexDecl())
+-		=
+
+-		VertexDeclaration* decl =3D sub->vertexData->vertexDeclaration;
+-		VertexBufferBinding* bind =3D sub->vertexData->vertexBufferBinding;
+-		int offset =3D 0;
+-		offset +=3D decl->addElement(0, offset, VET_FLOAT3, VES_POSITION).getSiz=
+e();
+-		offset +=3D decl->addElement(0, offset, VET_FLOAT3, VES_NORMAL).getSize(=
+);
+-		if (bUseColors)		offset +=3D decl->addElement(0, offset, VET_COLOUR, VES=
+_DIFFUSE).getSize();
+-		if (bUseTexCoords)	offset +=3D decl->addElement(0, offset, VET_FLOAT2, V=
+ES_TEXTURE_COORDINATES, 0).getSize();
+-		HardwareVertexBufferSharedPtr vbuf =3D HardwareBufferManager::getSinglet=
+on().createVertexBuffer(
+-			offset,iComboVertexCount,HardwareBuffer::HBU_STATIC_WRITE_ONLY);
+-		bind->setBinding(0, vbuf);
+-					=
+
+-		// write vertices
+-		assert(myVertices.size() =3D=3D vbuf->getSizeInBytes());
+-		vbuf->writeData(0,myVertices.size(),myVertices.HackGetRawReader(), true);
+-		=
+
+-
+-		// prepare index buffer
+-		int iIndexCount =3D pLoaderSubMesh.mPolygons.second * 3;
+-		HardwareIndexBufferSharedPtr ibuf =3D HardwareBufferManager::getSingleto=
+n().
+-			createIndexBuffer(HardwareIndexBuffer::IT_16BIT,iIndexCount,HardwareBuf=
+fer::HBU_STATIC_WRITE_ONLY);
+-		sub->indexData->indexBuffer =3D ibuf;
+-		sub->indexData->indexCount =3D iIndexCount;
+-		sub->indexData->indexStart =3D 0;
+-		=
+
+-		--~ write indices
+-		assert(myIndices.size() =3D=3D ibuf->getSizeInBytes());
+-		ibuf->writeData(0, myIndices.size(),myIndices.HackGetRawReader(), true);
+-		=
+
+-		]]--
+-		=
+
+-		=
+
+-		=
+
+ 		--~ now ogre stuff : vertexbuffer,renderop,renderable,movable
+-		=
+
+-		=
+
+ 		--~ local robmovable =3D CreateRobMovable()
+-		=
+
+ 		--~ local robrenderable =3D CreateRobRenderable(robmovable)
+ 		--~ robmovable:AddRenderable(robrenderable)
+ 		=
+
+@@ -429,14 +407,30 @@
+ 		end
+ 		]]--
+ 		=
+
+-		--~ // todo : calc for whole mesh, not only for this submesh
+-		--~ // calculate bounds
+-		--~ pOgreMesh:_setBounds(AxisAlignedBox(vMin.x,vMin.y,vMin.z,vMax.x,vMax=
+.y,vMax.z), true);
+-		--~ pOgreMesh:_setBoundingSphereRadius(mymax(Vector3(vMin.x,vMin.y,vMin.=
+z).length(),Vector3(vMax.x,vMax.y,vMax.z).length()));
++		--~ calculate bounds,  todo : calc for whole mesh, not only for this sub=
+mesh
+ 		local r =3D math.sqrt(fSquareRadius)
+ 		pOgreMesh:_setBounds({-r,-r,-r,r,r,r},false)
+ 		pOgreMesh:_setBoundingSphereRadius(r)
+ 	end
++	=
+
++	=
+
++	local bIsEmptyMesh =3D true
++	local bHasBoneWeights =3D false
++	for k,submesh in ipairs(Object.mesh_list.childs or {}) do
++		if (submesh.weights and submesh.weights.list_weightchunks and #submesh.w=
+eights.list_weightchunks > 0) then bHasBoneWeights =3D true end
++		if (submesh.polygons and submesh.polygons.list_polygons and #submesh.pol=
+ygons.list_polygons > 0) then bIsEmptyMesh =3D false end
++	end
++	if (bIsEmptyMesh) then return false end
++	=
+
++	local pSkeleton
++	if (bHasBoneWeights) then =
+
++		--~ local szSkeletonName =3D GetUniqueName()
++		--~ CreateSkeleton : pSkeleton =3D SkeletonManager_create(szSkeletonName=
+,Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME,true);
++		--~ local pSkeleton =3D SkeletonManager_load(szSkeletonName)
++		--~ if (pSkeleton) then pMesh:setSkeletonName(pSkeleton:getName()) asser=
+t(szSkeletonName =3D=3D pSkeleton:getName()) end  -- getname !=3D name i th=
+ink, there was something weird here
++	end
++	=
+
++	=
+
+ 	=
+
+ 	local sMeshName =3D GetUniqueName() or "MyGrannyMeshName01"
+ 	local pOgreMesh =3D MeshManager_createManual(sMeshName)
+@@ -445,9 +439,11 @@
+ 	=
+
+ 	--~ local mesh			=3D Object.mesh_list.childs[1] -- .mesh*26
+ 	--~ local texture_poly	=3D Object.texture_list.texture.texture_sublist.ch=
+ilds[1] -- .texture_poly -- *26
+-	for k,mesh in ipairs(Object.mesh_list.childs) do
+-		local texture_poly =3D Object.texture_list.texture.texture_sublist.child=
+s[k]
+-		MyMakeGrannyGfx(mesh,texture_poly,pOgreMesh) =
+
++	if (Object.mesh_list) then =
+
++		for k,submesh in ipairs(Object.mesh_list.childs or {}) do
++			local texture_poly =3D Object.texture_list.texture.texture_sublist.chil=
+ds[k]
++			MyMakeGrannyGfx(submesh,texture_poly,pOgreMesh) =
+
++		end
+ 	end
+ 	=
+
+ 	pOgreMesh:load(false)
+@@ -455,8 +451,7 @@
+ 	local sceneManager =3D GetSceneManager()
+ 	local sEntityName =3D GetUniqueName()
+ 	local entity =3D sceneManager:createEntity(sEntityName,sMeshName)
+-		--~ //~ LUABIND_DIRECTWRAP_RETURN_ONE_NAMEADD(			PushEntity*,									cr=
+eateEntity,										,(ParamString(L,2),ParamString(L,3))	);
+-		=
+
++	=
+
+ 	local gfx =3D CreateRootGfx3D()
+ 	local scenenode =3D gfx:GetSceneNode()
+ 	scenenode:attachObject(entity)
+@@ -466,46 +461,197 @@
+ =
+
+ =
+
+ =
+
+-function GannyLoader2_LoadGrannyAsOgreMesh (pGrannyLoader,szMatName,szMesh=
+Name,szSkeletonName) -- pGrannyLoader:cGrannyLoader_i2*
+-	local bIsEmptyMesh =3D true
+-	local bHasBoneWeights =3D false
+-	for k,submesh in ipairs(pGrannyLoader.mSubMeshes) do =
+
+-		if (submesh.mWeights.second > 0) then bHasBoneWeights =3D true end
+-		if (submesh.mPolygons.second > 0) then bIsEmptyMesh =3D false end
+-	end
+-	if (bIsEmptyMesh) then return false end
+-
+-	local pMesh =3D MeshManager_createManual(szMeshName)
+-	pMesh:_setBounds({0,0,0,0,0,0}, true)
+-	pMesh:_setBoundingSphereRadius(0)
+-	=
+
+-	local pSkeleton
+-	if (bHasBoneWeights) then =
+
+-		local pSkeleton =3D SkeletonManager_load(szSkeletonName)
+-		if (pSkeleton) then pMesh:setSkeletonName(pSkeleton:getName()) assert(sz=
+SkeletonName =3D=3D pSkeleton:getName()) end  -- getname !=3D name i think,=
+ there was something weird here
+-	end
+-	=
+
+-	local mpGrannyLoader	=3D pGrannyLoader
+-	local mpMesh			=3D pMesh
+-	local mpSkeleton		=3D pSkeleton
+-	local msMatName			=3D szMatName
+-	local miCurrentSubMesh	=3D 0
+-	local miTargetSubMesh	=3D 0
+-	for k,submesh in ipairs(pGrannyLoader.mSubMeshes) do
+-		-- bla
+-	end
+-	pMesh:load()
+-	return true
+-end
+-
+-
+ --[[
+-	=
+
+-	mpMesh->_setBounds(AxisAlignedBox(vMin.x,vMin.y,vMin.z,vMax.x,vMax.y,vMax=
+.z), true);
+-	mpMesh->_setBoundingSphereRadius(mymax(Vector3(vMin.x,vMin.y,vMin.z).leng=
+th(),Vector3(vMax.x,vMax.y,vMax.z).length()));
+-end
+-
+-                                                                          =
+                                                                           =
+
++  cGrannyFile:LoadFile    /cavern/uoml_freshinstall.4.x/Models/Animals/Equ=
+ines_Horse_Dappled_Brown_Walk.grn                          =
+
++text    1/42    "__Standard"                                              =
+                                                         =
+
++text    2/42    "__FileName"                                              =
+                                                         =
+
++text    3/42    "R:\content\Game\Fauna\Creatures\Equines\Max\Anim\equines_=
+horse_dappled_brown_walk.max"                            =
+
++text    4/42    "__ObjectName"                                            =
+                                                         =
+
++text    5/42    "Bip01 L Finger0"                                         =
+                                                         =
+
++text    6/42    "__Description"                                           =
+                                                         =
+
++text    7/42    "Bip01 L Hand"                                            =
+                                                         =
+
++text    8/42    "Bip01 R Clavicle"                                        =
+                                                         =
+
++text    9/42    "Bip01 Tail"                                              =
+                                                         =
+
++text    10/42   "Bip01 R UpperArm"                                        =
+                                                         =
+
++text    11/42   "Bip01 R Calf"                                            =
+                                                         =
+
++boneTies1:boneobject    1/36    {childs=3D{[1]=3D{iID=3D3				},},}        =
+                                                                           =
+                            =
+
++boneTies1:boneobject    2/36    {childs=3D{[1]=3D{iID=3D1				},},}        =
+                                                                           =
+                            =
+
++boneTies1:boneobject    3/36    {childs=3D{[1]=3D{iID=3D2				},},}        =
+                                                                           =
+                            =
+
++boneTies1:boneobject    4/36    {childs=3D{[1]=3D{iID=3D9=3D0x09		},},}   =
+                                                                           =
+                            =
+
++boneTies1:boneobject    5/36    {childs=3D{[1]=3D{iID=3D21=3D0x15		},},}  =
+                                                                           =
+                            =
+
++boneTies1:boneobject    6/36    {childs=3D{[1]=3D{iID=3D16=3D0x10		},},}  =
+                                                                           =
+                            =
+
++boneTies1:boneobject    7/36    {childs=3D{[1]=3D{iID=3D6				},},}        =
+                                                                           =
+                            =
+
++boneTies1:boneobject    8/36    {childs=3D{[1]=3D{iID=3D19=3D0x13		},},}  =
+                                                                           =
+                            =
+
++boneTies1:boneobject    9/36    {childs=3D{[1]=3D{iID=3D8				},},}        =
+                                                                           =
+                            =
+
++boneTies1:boneobject    10/36   {childs=3D{[1]=3D{iID=3D12=3D0x0c		},},}  =
+                                                                           =
+                            =
+
++boneTies1:boneobject    11/36   {childs=3D{[1]=3D{iID=3D13=3D0x0d		},},}  =
+                                                                           =
+       =
+
++bone    1/36    {fTranslate=3D{[1]=3D0,[2]=3D0,[0]=3D0,},iParent=3D0,fMatr=
+ix=3D{[1]=3D0,[2]=3D0,[3]=3D0,[4]=3D1,[5]=3D0,[6]=3D0,[7]=3D0,[8]=3D1,[0]=
+=3D1,},fQuaternion=3D{[1]=3D0,[2]=3D0,[3]=3D1,[0]=3D0,},}                  =
+                                                                           =
+                                                           =
+
++bone    2/36    {fTranslate=3D{[1]=3D-0.000461,[2]=3D0,[0]=3D0,},iParent=
+=3D0,fMatrix=3D{[1]=3D0,[2]=3D0,[3]=3D0,[4]=3D1,[5]=3D0,[6]=3D0,[7]=3D0,[8]=
+=3D1,[0]=3D1,},fQuaternion=3D{[1]=3D0,[2]=3D0,[3]=3D1,[0]=3D0,},}          =
+                                                                           =
+                                                           =
+
++bone    3/36    {fTranslate=3D{[1]=3D0.473461,[2]=3D1.085400,[0]=3D-0.0089=
+64,},iParent=3D1,fMatrix=3D{[1]=3D0.000000,[2]=3D-0.000000,[3]=3D0.000000,[=
+4]=3D1,[5]=3D0.000000,[6]=3D0.000000,[7]=3D0.000000,[8]=3D1,[0]=3D1,},fQuat=
+ernion=3D{[1]=3D0.003099,[2]=3D-0.710178,[3]=3D0.704009,[0]=3D0.003072,},} =
+                                                         =
+
++bone    4/36    {fTranslate=3D{[1]=3D-0.000033,[2]=3D-0.003174,[0]=3D-0.00=
+3688,},iParent=3D2,fMatrix=3D{[1]=3D-0.000000,[2]=3D0.000000,[3]=3D-0.00000=
+0,[4]=3D1,[5]=3D-0.000000,[6]=3D-0.000000,[7]=3D-0.000000,[8]=3D1,[0]=3D1,}=
+,fQuaternion=3D{[1]=3D0.517145,[2]=3D0.482246,[3]=3D-0.482246,[0]=3D0.51714=
+4,},}                                                    =
+
++bone    5/36    {fTranslate=3D{[1]=3D0.146758,[2]=3D-0.011366,[0]=3D0.1625=
+39,},iParent=3D3,fMatrix=3D{[1]=3D-0.000000,[2]=3D-0.000000,[3]=3D0.000000,=
+[4]=3D1.000000,[5]=3D-0.000000,[6]=3D-0.000000,[7]=3D-0.000000,[8]=3D1.0000=
+00,[0]=3D1,},fQuaternion=3D{[1]=3D0.002761,[2]=3D0.789323,[3]=3D0.611798,[0=
+]=3D0.051632,},}                                         =
+
++bone    6/36    {fTranslate=3D{[1]=3D-0.000356,[2]=3D0.000014,[0]=3D0.3835=
+26,},iParent=3D4,fMatrix=3D{[1]=3D0.000000,[2]=3D0.000000,[3]=3D0.000000,[4=
+]=3D1,[5]=3D-0.000000,[6]=3D0.000000,[7]=3D0.000000,[8]=3D1,[0]=3D1,},fQuat=
+ernion=3D{[1]=3D0.045910,[2]=3D-0.092244,[3]=3D0.994571,[0]=3D-0.014532,},}=
+                                                         =
+
++bone    7/36    {fTranslate=3D{[1]=3D-0.000114,[2]=3D-0.000003,[0]=3D0.455=
+237,},iParent=3D5,fMatrix=3D{[1]=3D-0.000000,[2]=3D0.000000,[3]=3D-0.000000=
+,[4]=3D1.000000,[5]=3D0.000000,[6]=3D-0.000000,[7]=3D0.000000,[8]=3D1.00000=
+0,[0]=3D1.000000,},fQuaternion=3D{[1]=3D-0.024543,[2]=3D-0.170306,[3]=3D0.9=
+85055,[0]=3D0.007792,},}                                 =
+
++bone    8/36    {fTranslate=3D{[1]=3D-0.000084,[2]=3D0.000000,[0]=3D0.1522=
+19,},iParent=3D6,fMatrix=3D{[1]=3D0.000000,[2]=3D0.000000,[3]=3D0.000000,[4=
+]=3D1,[5]=3D-0.000000,[6]=3D0.000000,[7]=3D-0.000000,[8]=3D1.000000,[0]=3D1=
+.000000,},fQuaternion=3D{[1]=3D0.001701,[2]=3D-0.513025,[3]=3D0.858372,[0]=
+=3D0.000739,},}
++bone    9/36    {fTranslate=3D{[1]=3D-0.000251,[2]=3D0.000001,[0]=3D0.2238=
+47,},iParent=3D7,fMatrix=3D{[1]=3D-0.000000,[2]=3D0.000000,[3]=3D-0.000000,=
+[4]=3D1,[5]=3D-0.000000,[6]=3D-0.000000,[7]=3D-0.000000,[8]=3D1.000000,[0]=
+=3D1.000000,},fQuaternion=3D{[1]=3D0.004809,[2]=3D0.141923,[3]=3D0.989864,[=
+0]=3D-0.001989,},}
++bone    10/36   {fTranslate=3D{[1]=3D0.000000,[2]=3D-0.000000,[0]=3D0.3291=
+82,},iParent=3D8,fMatrix=3D{[1]=3D0.000000,[2]=3D0.000000,[3]=3D0.000000,[4=
+]=3D1,[5]=3D-0.000000,[6]=3D0.000000,[7]=3D-0.000000,[8]=3D1.000000,[0]=3D1=
+.000000,},fQuaternion=3D{[1]=3D-0.015708,[2]=3D-0.107925,[3]=3D0.993487,[0]=
+=3D-0.032989,},}
++bone    11/36   {fTranslate=3D{[1]=3D0.007118,[2]=3D-0.078183,[0]=3D0.0431=
+31,},iParent=3D9=3D0x09,fMatrix=3D{[1]=3D0.000000,[2]=3D-0.000000,[3]=3D-0.=
+000000,[4]=3D1,[5]=3D-0.000000,[6]=3D-0.000000,[7]=3D-0.000000,[8]=3D1.0000=
+00,[0]=3D1,},fQuaternion=3D{[1]=3D-0.004665,[2]=3D-0.190827,[3]=3D0.981608,=
+[0]=3D-0.003001,},}
++iBoneTie2ID=3D    1       bone_objptrs.iNum=3D      36
++bt2:bone_objptr 1/36    24=3D0x18
++bt2:bone_objptr 2/36    23=3D0x17
++bt2:bone_objptr 3/36    22=3D0x16
++bt2:bone_objptr 4/36    27=3D0x1b
++bt2:bone_objptr 5/36    26=3D0x1a
++bt2:bone_objptr 6/36    25=3D0x19
++bt2:bone_objptr 7/36    30=3D0x1e
++bt2:bone_objptr 8/36    29=3D0x1d
++bt2:bone_objptr 9/36    28=3D0x1c
++bt2:bone_objptr 10/36   33=3D0x21
++bt2:bone_objptr 11/36   32=3D0x20
++bt2:bonetie     !!NIL!!
++iTextureID      1
++obj     1/36    {[2]=3D3,[4]=3D5,[6]=3D0,}	-- 3=3D4/42 "__ObjectName"    	=
+5=3D6/42    "__Description" =
+
++obj     2/36    {[2]=3D3,[4]=3D7,[6]=3D0,}    =
+
++obj     3/36    {[2]=3D3,[4]=3D8,[6]=3D0,}
++obj     4/36    {[2]=3D3,[4]=3D9=3D0x09,[6]=3D0,}
++obj     5/36    {[2]=3D3,[4]=3D10=3D0x0a,[6]=3D0,}
++obj     6/36    {[2]=3D3,[4]=3D11=3D0x0b,[6]=3D0,}
++obj     7/36    {[2]=3D3,[4]=3D12=3D0x0c,[6]=3D0,}
++obj     8/36    {[2]=3D3,[4]=3D13=3D0x0d,[6]=3D0,}
++obj     9/36    {[2]=3D3,[4]=3D14=3D0x0e,[6]=3D0,}
++obj     10/36   {[2]=3D3,[4]=3D15=3D0x0f,[6]=3D0,}
++obj     11/36   {[2]=3D3,[4]=3D16=3D0x10,[6]=3D0,}
++]]--
++
++--[[
++cGrannyFile:LoadFile    /home/ghoul/Desktop/cavern/uoml/Models/Animals/Equ=
+ines_Horse_Dappled_Brown_Lod2.grn                                          =
+         =
+
++text    1/46    "__Standard"                                              =
+                                                                           =
+         =
+
++text    2/46    "__FileName"                                              =
+                                                                           =
+         =
+
++text    3/46    "r:\content\game\fauna\creatures\equines\max\equines_horse=
+_dappled_brown_lod2.max"                                                   =
+         =
+
++text    4/46    "__ObjectName"                                            =
+                                                                           =
+         =
+
++text    5/46    "Equines_Horse_Dappled_Brown"                             =
+                                                                           =
+         =
+
++text    6/46    "__Description"                                           =
+                                                                           =
+         =
+
++text    7/46    "Bip01 Spine1"                                            =
+                                                                           =
+         =
+
++text    8/46    "master_equines_horse_dappled_brown"                      =
+                                                                           =
+         =
+
++text    9/46    "__Root"                                                  =
+                                                                           =
+         =
+
++text    10/46   "Bip01 Pelvis"                                            =
+                                                                           =
+         =
+
++text    11/46   "Bip01"                                                   =
+                                                                           =
+         =
+
++point   1/223   {y=3D0.547549,x=3D-0.281395,z=3D1.035676,}                =
+                                                                           =
+               =
+
++point   2/223   {y=3D0.341187,x=3D-0.279739,z=3D0.754919,}                =
+                                                                           =
+               =
+
++point   3/223   {y=3D-0.344653,x=3D-0.253881,z=3D1.039981,}               =
+                                                                           =
+               =
+
++point   4/223   {y=3D0.520265,x=3D-0.246531,z=3D1.201591,}                =
+                                                                           =
+               =
+
++point   5/223   {y=3D0.243041,x=3D-0.243713,z=3D1.043599,}                =
+                                                                           =
+               =
+
++point   6/223   {y=3D-0.604263,x=3D-0.233141,z=3D0.808763,}               =
+                                                                           =
+               =
+
++point   7/223   {y=3D-0.345181,x=3D-0.222155,z=3D0.888647,}               =
+                                                                           =
+               =
+
++point   8/223   {y=3D-0.638878,x=3D-0.220125,z=3D0.967547,}               =
+                                                                           =
+               =
+
++point   9/223   {y=3D0.309630,x=3D-0.214871,z=3D1.149054,}                =
+                                                                           =
+               =
+
++point   10/223  {y=3D-0.460259,x=3D-0.212234,z=3D0.739967,}               =
+                                                                           =
+               =
+
++point   11/223  {y=3D0.311111,x=3D-0.222721,z=3D0.150869,}                =
+                                                                           =
+                                 =
+
++weights:        {unknown_b=3D2,wnum=3D223=3D0xdf,unknown_a=3D32=3D0x20,lis=
+t_weightchunks=3Dtable: 0x952e858,}                                        =
+                     =
+
++weight  1/223   {iNumBones=3D1,list_pairs=3D{[1]=3D{iWeightBoneIndex=3D0,f=
+Weight=3D1,},},}                                                           =
+                   =
+
++weight  2/223   {iNumBones=3D1,list_pairs=3D{[1]=3D{iWeightBoneIndex=3D0,f=
+Weight=3D1,},},}                                                           =
+                   =
+
++weight  3/223   {iNumBones=3D1,list_pairs=3D{[1]=3D{iWeightBoneIndex=3D1,f=
+Weight=3D1,},},}                                                           =
+                   =
+
++weight  4/223   {iNumBones=3D1,list_pairs=3D{[1]=3D{iWeightBoneIndex=3D2,f=
+Weight=3D1,},},}                                                           =
+                   =
+
++weight  5/223   {iNumBones=3D2,list_pairs=3D{[1]=3D{iWeightBoneIndex=3D0,f=
+Weight=3D0.500000,},[2]=3D{iWeightBoneIndex=3D2,fWeight=3D0.500000,},},}   =
+                         =
+
++weight  6/223   {iNumBones=3D1,list_pairs=3D{[1]=3D{iWeightBoneIndex=3D3,f=
+Weight=3D1,},},}                                                           =
+                   =
+
++weight  7/223   {iNumBones=3D2,list_pairs=3D{[1]=3D{iWeightBoneIndex=3D3,f=
+Weight=3D0.500000,},[2]=3D{iWeightBoneIndex=3D4,fWeight=3D0.500000,},},}   =
+                         =
+
++weight  8/223   {iNumBones=3D1,list_pairs=3D{[1]=3D{iWeightBoneIndex=3D1,f=
+Weight=3D1,},},}                                                           =
+                   =
+
++weight  9/223   {iNumBones=3D1,list_pairs=3D{[1]=3D{iWeightBoneIndex=3D2,f=
+Weight=3D1,},},}                                                           =
+                   =
+
++weight  10/223  {iNumBones=3D2,list_pairs=3D{[1]=3D{iWeightBoneIndex=3D3,f=
+Weight=3D0.500000,},[2]=3D{iWeightBoneIndex=3D5,fWeight=3D0.500000,},},}   =
+                         =
+
++weight  11/223  {iNumBones=3D1,list_pairs=3D{[1]=3D{iWeightBoneIndex=3D6,f=
+Weight=3D1,},},}                                                           =
+                   =
+
++polygon 1/442   {iVertex=3D{[1]=3D83=3D0x53,[2]=3D72=3D0x48,[0]=3D82=3D0x5=
+2,},iNormal=3D{[1]=3D83=3D0x53,[2]=3D72=3D0x48,[0]=3D82=3D0x52,},}         =
+                                     =
+
++polygon 2/442   {iVertex=3D{[1]=3D134=3D0x86,[2]=3D148=3D0x94,[0]=3D140=3D=
+0x8c,},iNormal=3D{[1]=3D134=3D0x86,[2]=3D148=3D0x94,[0]=3D140=3D0x8c,},}   =
+                                     =
+
++polygon 3/442   {iVertex=3D{[1]=3D158=3D0x9e,[2]=3D139=3D0x8b,[0]=3D148=3D=
+0x94,},iNormal=3D{[1]=3D158=3D0x9e,[2]=3D139=3D0x8b,[0]=3D148=3D0x94,},}   =
+                                     =
+
++polygon 4/442   {iVertex=3D{[1]=3D82=3D0x52,[2]=3D72=3D0x48,[0]=3D87=3D0x5=
+7,},iNormal=3D{[1]=3D82=3D0x52,[2]=3D72=3D0x48,[0]=3D87=3D0x57,},}         =
+                                     =
+
++polygon 5/442   {iVertex=3D{[1]=3D87=3D0x57,[2]=3D84=3D0x54,[0]=3D121=3D0x=
+79,},iNormal=3D{[1]=3D87=3D0x57,[2]=3D84=3D0x54,[0]=3D121=3D0x79,},}       =
+                                     =
+
++polygon 6/442   {iVertex=3D{[1]=3D134=3D0x86,[2]=3D121=3D0x79,[0]=3D138=3D=
+0x8a,},iNormal=3D{[1]=3D134=3D0x86,[2]=3D121=3D0x79,[0]=3D138=3D0x8a,},}   =
+                                     =
+
++polygon 7/442   {iVertex=3D{[1]=3D84=3D0x54,[2]=3D119=3D0x77,[0]=3D121=3D0=
+x79,},iNormal=3D{[1]=3D84=3D0x54,[2]=3D119=3D0x77,[0]=3D121=3D0x79,},}     =
+                                     =
+
++polygon 8/442   {iVertex=3D{[1]=3D138=3D0x8a,[2]=3D159=3D0x9f,[0]=3D148=3D=
+0x94,},iNormal=3D{[1]=3D138=3D0x8a,[2]=3D159=3D0x9f,[0]=3D148=3D0x94,},}   =
+                                     =
+
++polygon 9/442   {iVertex=3D{[1]=3D138=3D0x8a,[2]=3D119=3D0x77,[0]=3D144=3D=
+0x90,},iNormal=3D{[1]=3D138=3D0x8a,[2]=3D119=3D0x77,[0]=3D144=3D0x90,},}   =
+                                     =
+
++polygon 10/442  {iVertex=3D{[1]=3D120=3D0x78,[2]=3D134=3D0x86,[0]=3D140=3D=
+0x8c,},iNormal=3D{[1]=3D120=3D0x78,[2]=3D134=3D0x86,[0]=3D140=3D0x8c,},}   =
+                                     =
+
++polygon 11/442  {iVertex=3D{[1]=3D148=3D0x94,[2]=3D139=3D0x8b,[0]=3D140=3D=
+0x8c,},iNormal=3D{[1]=3D148=3D0x94,[2]=3D139=3D0x8b,[0]=3D140=3D0x8c,},}   =
+                                            =
+
++boneTies1:boneobject    1/37    {childs=3D{[1]=3D{iID=3D6,		},},}         =
+                                          =
+
++boneTies1:boneobject    2/37    {childs=3D{[1]=3D{iID=3D2,		},},}         =
+                                          =
+
++boneTies1:boneobject    3/37    {childs=3D{[1]=3D{iID=3D7,		},},}         =
+                                         =
+
++boneTies1:boneobject    4/37    {childs=3D{[1]=3D{iID=3D4,		},},}         =
+                                         =
+
++boneTies1:boneobject    5/37    {childs=3D{[1]=3D{iID=3D3,		},},}         =
+                                         =
+
++boneTies1:boneobject    6/37    {childs=3D{[1]=3D{iID=3D8,		},},}         =
+                                         =
+
++boneTies1:boneobject    7/37    {childs=3D{[1]=3D{iID=3D5,		},},}         =
+                                         =
+
++boneTies1:boneobject    8/37    {childs=3D{[1]=3D{iID=3D15=3D0x0f,	},},}  =
+                                          =
+
++boneTies1:boneobject    9/37    {childs=3D{[1]=3D{iID=3D9=3D0x09,	},},}   =
+                                          =
+
++boneTies1:boneobject    10/37   {childs=3D{[1]=3D{iID=3D10=3D0x0a,	},},}  =
+                                          =
+
++boneTies1:boneobject    11/37   {childs=3D{[1]=3D{iID=3D11=3D0x0b,	},},}  =
+                                                                           =
+                    =
+
++bone    1/37    {fTranslate=3D{[1]=3D0,[2]=3D0,[0]=3D0,},iParent=3D0,fMatr=
+ix=3D{[1]=3D0,[2]=3D0,[3]=3D0,[4]=3D1,[5]=3D0,[6]=3D0,[7]=3D0,[8]=3D1,[0]=
+=3D1,},fQuaternion=3D{[1]=3D0,[2]=3D0,[3]=3D1,[0]=3D0,},}                  =
+                                                                           =
+                                                           =
+
++bone    2/37    {fTranslate=3D{[1]=3D-0.000461,[2]=3D0,[0]=3D0,},iParent=
+=3D0,fMatrix=3D{[1]=3D0,[2]=3D0,[3]=3D0,[4]=3D1,[5]=3D0,[6]=3D0,[7]=3D0,[8]=
+=3D1,[0]=3D1,},fQuaternion=3D{[1]=3D0,[2]=3D0,[3]=3D1,[0]=3D0,},}          =
+                                                                           =
+                                                           =
+
++bone    3/37    {fTranslate=3D{[1]=3D0.473461,[2]=3D1.060614,[0]=3D-0.0000=
+00,},iParent=3D1,fMatrix=3D{[1]=3D0.000000,[2]=3D0.000000,[3]=3D0.000000,[4=
+]=3D1,[5]=3D0.000000,[6]=3D-0.000000,[7]=3D0.000000,[8]=3D1,[0]=3D1.000000,=
+},fQuaternion=3D{[1]=3D0.003085,[2]=3D-0.707100,[3]=3D0.707101,[0]=3D0.0030=
+85,},}                                                   =
+
++bone    4/37    {fTranslate=3D{[1]=3D-0.000001,[2]=3D-0.003174,[0]=3D-0.00=
+3688,},iParent=3D2,fMatrix=3D{[1]=3D-0.000000,[2]=3D0.000000,[3]=3D-0.00000=
+0,[4]=3D1,[5]=3D0.000000,[6]=3D0.000000,[7]=3D-0.000000,[8]=3D1,[0]=3D1,},f=
+Quaternion=3D{[1]=3D-0.500000,[2]=3D-0.500000,[3]=3D0.500001,[0]=3D-0.49999=
+9,},}                                                    =
+
++bone    5/37    {fTranslate=3D{[1]=3D0.146738,[2]=3D-0.000000,[0]=3D0.1629=
+40,},iParent=3D3,fMatrix=3D{[1]=3D-0.000000,[2]=3D0.000000,[3]=3D0.000000,[=
+4]=3D1.000000,[5]=3D0.000000,[6]=3D0.000000,[7]=3D0.000000,[8]=3D1,[0]=3D1.=
+000000,},fQuaternion=3D{[1]=3D0.000102,[2]=3D0.769173,[3]=3D0.639041,[0]=3D=
+-0.000088,},}                                            =
+
++bone    6/37    {fTranslate=3D{[1]=3D0.187062,[2]=3D-0.188280,[0]=3D-0.114=
+344,},iParent=3D4,fMatrix=3D{[1]=3D0.000000,[2]=3D-0.000000,[3]=3D0.000000,=
+[4]=3D1,[5]=3D0.000000,[6]=3D-0.000000,[7]=3D-0.000000,[8]=3D1,[0]=3D1,},fQ=
+uaternion=3D{[1]=3D0.355465,[2]=3D-0.038615,[3]=3D-0.060378,[0]=3D0.931938,=
+},}                                                      =
+
++bone    7/37    {fTranslate=3D{[1]=3D-0.000359,[2]=3D-0.000000,[0]=3D0.383=
+541,},iParent=3D4,fMatrix=3D{[1]=3D0.000000,[2]=3D0.000000,[3]=3D-0.000000,=
+[4]=3D1,[5]=3D0.000000,[6]=3D0.000000,[7]=3D0.000000,[8]=3D1,[0]=3D1,},fQua=
+ternion=3D{[1]=3D0.000000,[2]=3D-0.069757,[3]=3D0.997564,[0]=3D-0.000000,},=
+}                                                        =
+
++bone    8/37    {fTranslate=3D{[1]=3D-0.000077,[2]=3D0.000000,[0]=3D0.4551=
+83,},iParent=3D6,fMatrix=3D{[1]=3D-0.000000,[2]=3D0.000000,[3]=3D0.000000,[=
+4]=3D1,[5]=3D0.000000,[6]=3D0.000000,[7]=3D0.000000,[8]=3D1,[0]=3D1,},fQuat=
+ernion=3D{[1]=3D-0.000001,[2]=3D-0.428783,[3]=3D0.903408,[0]=3D-0.000004,},=
+}                                                        =
+
++bone    9/37    {fTranslate=3D{[1]=3D-0.142090,[2]=3D-0.112536,[0]=3D-0.02=
+4633,},iParent=3D7,fMatrix=3D{[1]=3D0.000000,[2]=3D0.000000,[3]=3D0.000000,=
+[4]=3D1.000000,[5]=3D0.000000,[6]=3D0.000000,[7]=3D0.000000,[8]=3D1.000000,=
+[0]=3D1.000000,},fQuaternion=3D{[1]=3D0.536666,[2]=3D-0.535021,[3]=3D-0.426=
+220,[0]=3D0.494044,},}                                   =
+
++bone    10/37   {fTranslate=3D{[1]=3D-0.000000,[2]=3D0.000000,[0]=3D0.3523=
+91,},iParent=3D8,fMatrix=3D{[1]=3D0.000000,[2]=3D-0.000000,[3]=3D0.000000,[=
+4]=3D1,[5]=3D-0.000000,[6]=3D0.000000,[7]=3D-0.000000,[8]=3D1.000000,[0]=3D=
+1.000000,},fQuaternion=3D{[1]=3D-0.525638,[2]=3D0.472182,[3]=3D0.501046,[0]=
+=3D0.499702,},}                                          =
+
++bone    11/37   {fTranslate=3D{[1]=3D-0.000000,[2]=3D0.000000,[0]=3D0.2616=
+71,},iParent=3D9=3D0x09,fMatrix=3D{[1]=3D0.000000,[2]=3D0.000000,[3]=3D-0.0=
+00000,[4]=3D1.000000,[5]=3D0.000000,[6]=3D0.000000,[7]=3D0.000000,[8]=3D1,[=
+0]=3D1,},fQuaternion=3D{[1]=3D-0.000000,[2]=3D-0.498851,[3]=3D0.866688,[0]=
+=3D0.000000,},}                                             =
+
++iBoneTie2ID=3D    1       bone_objptrs.iNum=3D      37                    =
+                                                                           =
+             =
+
++bt2:bone_objptr 1/37    4                                                 =
+                                                                           =
+         =
+
++bt2:bone_objptr 2/37    5                                                 =
+                                                                           =
+         =
+
++bt2:bone_objptr 3/37    1                                                 =
+                                                                           =
+         =
+
++bt2:bone_objptr 4/37    7                                                 =
+                                                                           =
+         =
+
++bt2:bone_objptr 5/37    12=3D0x0c                                         =
+                                                                           =
+           =
+
++bt2:bone_objptr 6/37    34=3D0x22                                         =
+                                                                           =
+           =
+
++bt2:bone_objptr 7/37    2                                                 =
+                                                                           =
+         =
+
++bt2:bone_objptr 8/37    3                                                 =
+                                                                           =
+         =
+
++bt2:bone_objptr 9/37    22=3D0x16                                         =
+                                                                           =
+           =
+
++bt2:bone_objptr 10/37   20=3D0x14                                         =
+                                                                           =
+           =
+
++bt2:bone_objptr 11/37   21=3D0x15                                         =
+                                                                           =
+           =
+
++bt2:bonetie     1/33    {iBone=3D5,iUnknown=3D{[1]=3D-0.058629,[2]=3D-0.23=
+7984,[3]=3D-0.162302,[4]=3D0.358194,[5]=3D0.183488,[6]=3D0.102694,[0]=3D0.3=
+67406,},}                  =
+
++bt2:bonetie     2/33    {iBone=3D8,iUnknown=3D{[1]=3D-0.040035,[2]=3D0.008=
+894,[3]=3D-0.147809,[4]=3D0.371476,[5]=3D0.125108,[6]=3D0.136732,[0]=3D0.38=
+6154,},}                   =
+
++bt2:bonetie     3/33    {iBone=3D4,iUnknown=3D{[1]=3D-0.261872,[2]=3D-0.08=
+0894,[3]=3D-0.246581,[4]=3D0.385943,[5]=3D0.416525,[6]=3D0.246485,[0]=3D0.5=
+00515,},}                  =
+
++bt2:bonetie     4/33    {iBone=3D9=3D0x09,iUnknown=3D{[1]=3D-0.053002,[2]=
+=3D-0.150285,[3]=3D-0.092842,[4]=3D0.289619,[5]=3D0.132025,[6]=3D0.142190,[=
+0]=3D0.291440,},}             =
+
++bt2:bonetie     5/33    {iBone=3D6,iUnknown=3D{[1]=3D-0.022146,[2]=3D-0.10=
+0626,[3]=3D-0.221972,[4]=3D0.312453,[5]=3D0.468180,[6]=3D0.222517,[0]=3D0.5=
+55906,},}
++bt2:bonetie     6/33    {iBone=3D10=3D0x0a,iUnknown=3D{[1]=3D-0.013907,[2]=
+=3D-0.233039,[3]=3D-0.070689,[4]=3D0.381548,[5]=3D0.056935,[6]=3D0.074321,[=
+0]=3D0.383907,},}
++bt2:bonetie     7/33    {iBone=3D12=3D0x0c,iUnknown=3D{[1]=3D-0.027222,[2]=
+=3D-0.101896,[3]=3D-0.065225,[4]=3D0.337428,[5]=3D0.090531,[6]=3D0.068422,[=
+0]=3D0.346670,},}
++bt2:bonetie     8/33    {iBone=3D14=3D0x0e,iUnknown=3D{[1]=3D-0.090859,[2]=
+=3D-0.000313,[3]=3D-0.060973,[4]=3D-0.007980,[5]=3D-0.000094,[6]=3D0.062011=
+,[0]=3D0.091001,},}
++bt2:bonetie     9/33    {iBone=3D11=3D0x0b,iUnknown=3D{[1]=3D0.023739,[2]=
+=3D-0.177858,[3]=3D-0.053214,[4]=3D0.344609,[5]=3D0.098641,[6]=3D0.038090,[=
+0]=3D0.344661,},}
++bt2:bonetie     10/33   {iBone=3D13=3D0x0d,iUnknown=3D{[1]=3D-0.009283,[2]=
+=3D-0.102775,[3]=3D-0.044248,[4]=3D0.176347,[5]=3D0.125947,[6]=3D0.049843,[=
+0]=3D0.216987,},}
++bt2:bonetie     11/33   {iBone=3D15=3D0x0f,iUnknown=3D{[1]=3D-0.033795,[2]=
+=3D-0.111544,[3]=3D-0.066103,[4]=3D0.275743,[5]=3D0.054734,[6]=3D0.055887,[=
+0]=3D0.285613,},}
++iTextureID      1
++iElementSize    16
++iNum    442
++list_texpoly_normal     1/442   {iUnknown=3D0,iTexCoord=3D{[1]=3D45=3D0x2d=
+,[2]=3D43=3D0x2b,[0]=3D29=3D0x1d,},}
++list_texpoly_normal     2/442   {iUnknown=3D1,iTexCoord=3D{[1]=3D31=3D0x1f=
+,[2]=3D43=3D0x2b,[0]=3D29=3D0x1d,},}
++list_texpoly_normal     3/442   {iUnknown=3D2,iTexCoord=3D{[1]=3D57=3D0x39=
+,[2]=3D45=3D0x2d,[0]=3D43=3D0x2b,},}
++list_texpoly_normal     4/442   {iUnknown=3D3,iTexCoord=3D{[1]=3D29=3D0x1d=
+,[2]=3D43=3D0x2b,[0]=3D31=3D0x1f,},}
++list_texpoly_normal     5/442   {iUnknown=3D4,iTexCoord=3D{[1]=3D31=3D0x1f=
+,[2]=3D42=3D0x2a,[0]=3D33=3D0x21,},}
++list_texpoly_normal     6/442   {iUnknown=3D5,iTexCoord=3D{[1]=3D31=3D0x1f=
+,[2]=3D33=3D0x21,[0]=3D42=3D0x2a,},}
++list_texpoly_normal     7/442   {iUnknown=3D6,iTexCoord=3D{[1]=3D48=3D0x30=
+,[2]=3D69=3D0x45,[0]=3D34=3D0x22,},}
++list_texpoly_normal     8/442   {iUnknown=3D7,iTexCoord=3D{[1]=3D48=3D0x30=
+,[2]=3D53=3D0x35,[0]=3D43=3D0x2b,},}
++list_texpoly_normal     9/442   {iUnknown=3D8,iTexCoord=3D{[1]=3D48=3D0x30=
+,[2]=3D69=3D0x45,[0]=3D75=3D0x4b,},}
++list_texpoly_normal     10/442  {iUnknown=3D9=3D0x09,iTexCoord=3D{[1]=3D17=
+=3D0x11,[2]=3D31=3D0x1f,[0]=3D29=3D0x1d,},}
++list_texpoly_normal     11/442  {iUnknown=3D10=3D0x0a,iTexCoord=3D{[1]=3D4=
+3=3D0x2b,[2]=3D45=3D0x2d,[0]=3D29=3D0x1d,},}
++obj     1/40    {[2]=3D3,[4]=3D5,[6]=3D0,}
++obj     2/40    {[2]=3D3,[4]=3D7,[6]=3D0,}
++obj     3/40    {[2]=3D3,[4]=3D8,[6]=3D0,}
++obj     4/40    {	   [4]=3D9=3D0x09,}
++obj     5/40    {[2]=3D3,[4]=3D10=3D0x0a,[6]=3D0,}
++obj     6/40    {[2]=3D3,[4]=3D11=3D0x0b,[6]=3D0,}
++obj     7/40    {[2]=3D3,[4]=3D12=3D0x0c,[6]=3D0,}
++obj     8/40    {[2]=3D3,[4]=3D5,[6]=3D0,}
++obj     9/40    {[2]=3D3,[4]=3D13=3D0x0d,[6]=3D0,}
++obj     10/40   {[2]=3D3,[4]=3D14=3D0x0e,[6]=3D0,}
++obj     11/40   {[2]=3D3,[4]=3D15=3D0x0f,[6]=3D0,}
++
++]]--
++
++
++
++
++
++
++
++
++--[[
++	=
+
+ 	point   				1/557   {y=3D-0.710749,x=3D-0.767177,z=3D1.416132,}          =
+                                                                           =
+                                                                   =
+
+ 	normal 					1/553   {y=3D0,x=3D0,z=3D0,}                                 =
+                                                                           =
+                                     =
+
+ 	texcoord   				1/2286  {y=3D0.082323,x=3D0.089491,z=3D0.418126,}         =
+    2286/6/3 =3D 127                                                       =
+                                         =
+
+
+Modified: trunk/lua/lib.uodragdrop.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.uodragdrop.lua (original)
++++ trunk/lua/lib.uodragdrop.lua Fri Dec 18 00:10:28 2009
+@@ -358,9 +358,12 @@
+ 		=
+
+ 		-- default target is container
+ 		local target =3D container.serial
++		local bDropOnOtherItem =3D gMousePickFoundHit and gMousePickFoundHit.hit=
+type =3D=3D kMousePickHitType_ContainerItem
++		if (gKeyPressed[key_lalt]) then bDropOnOtherItem =3D false end
++		print("dragdrop:drop on container",container,target,bDropOnOtherItem)
+ 		=
+
+ 		-- stack this item with the same beneath?
+-		if gMousePickFoundHit and gMousePickFoundHit.hittype =3D=3D kMousePickHi=
+tType_ContainerItem then
++		if bDropOnOtherItem then
+ 			-- read out item infos
+ 			local arrtiletype =3D {}
+ 			arrtiletype =3D GetStaticTileType(item.artid)
+@@ -448,6 +451,7 @@
+ 			Send_Equip_Item_Request(item.serial,layer,paperdoll.mobileserial)
+ 		end
+ 	elseif (gMousePickFoundHit) then
++		print("dragdrop:drop on mousepickhit")
+ 		x,y,z =3D GetMouseHitTileCoords()
+ 		local iSerial =3D GetMouseHitSerial()
+ 		=
+
+
+Modified: trunk/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/main.lua (original)
++++ trunk/lua/main.lua Fri Dec 18 00:10:28 2009
+@@ -300,6 +300,20 @@
+     print("OgreInitResLocs done")
+ end
+ =
+
++
++--###############################
++--### custom fadeline styling ###
++--###############################
++
++function FadeLine_CreateDialog		() return GetDesktopWidget():CreateChild("=
+Group") end
++function FadeLine_Widget_Create		(dialog,x,y,text,h,color,font)
++	local r,g,b,a =3D unpack(color)
++	return dialog:CreateChild("UOText",{x=3Dx,y=3Dy,text=3Dtext,col=3D{r=3Dr,=
+g=3Dg,b=3Db,a=3Da},bold=3Dtrue}) =
+
++end
++function FadeLine_Widget_SetPos		(widget,x,y) widget:SetPos(x,y) end
++function FadeLine_Widget_SetColor	(widget,r,g,b,a) widget:SetCol(r,g,b,a) =
+widget:UpdateGeometry() end
++
++
+ --###############################
+ --###        FUNCTIONS        ###
+ --###############################
+
+Modified: trunk/lua/widgets/widget.uotext.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/widgets/widget.uotext.lua (original)
++++ trunk/lua/widgets/widget.uotext.lua Fri Dec 18 00:10:28 2009
+@@ -57,8 +57,8 @@
+ =
+
+ function gWidgetPrototype.UOText:SetText (text) self:SetUOHtml(text,false)=
+ end
+ =
+
+-function gWidgetPrototype.UOText:SetCol (r,g,b)
+-	self.params.col =3D {r=3Dr,g=3Dg,b=3Db}
++function gWidgetPrototype.UOText:SetCol (r,g,b,a)
++	self.params.col =3D {r=3Dr,g=3Dg,b=3Db,a=3Da}
+ end
+ =
+
+ function gWidgetPrototype.UOText:GetPlainText () =
+
+
+Modified: trunk/scripts/luabindheader.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/scripts/luabindheader.lua (original)
++++ trunk/scripts/luabindheader.lua Fri Dec 18 00:10:28 2009
+@@ -7,33 +7,45 @@
+ function Main ()
+ 	local basepath =3D "/usr/local/include/OGRE/"
+ 	=
+
+-	local classes =3D {		{basepath.."OgreLight.h"				,"Light"			,{"MovableObj=
+ect"}},	=
+
+-							{basepath.."OgreSceneManager.h"			,"SceneManager"		},
+-							{basepath.."OgreFrustum.h"				,"Frustum"			},
+-							{basepath.."OgreCamera.h"				,"Camera"			,{"Frustum"}}, -- Renderab=
+le,MovableObject}
+-							{basepath.."OgreSceneNode.h"			,"SceneNode"		,{"Node","Renderable"}=
+},
+-							{basepath.."OgreNode.h"					,"Node"				,{"Renderable"}},
+-							{basepath.."OgreMovableObject.h"		,"MovableObject"	},
+-							{basepath.."OgreRenderable.h"			,"Renderable"		},
+-							{basepath.."OgreVertexIndexData.h"		,"VertexData"		},
+-							{basepath.."OgreVertexIndexData.h"		,"IndexData"		},
++	local classes =3D {		=
+
+ 							=
+
+-							{basepath.."OgreResource.h"				,"Resource"			},
+-							{basepath.."OgreSkeleton.h"				,"Skeleton"			,{"Resource"}},
+-							{basepath.."OgreBone.h"					,"Bone"				,{"Node","Renderable"}},
+-							{basepath.."OgreAnimation.h"			,"Animation"		},
+-							{basepath.."OgreMesh.h"					,"Mesh"				,{"Resource"}},
+-							{basepath.."OgreSubMesh.h"				,"SubMesh"			},
+-									=
+
+-							{basepath.."OgreEntity.h"				,"Entity"			,{"MovableObject"}},
++							{basepath.."OgreMovableObject.h"		,"MovableObject"		,{}},
++							{basepath.."OgreRenderable.h"			,"Renderable"			,{}},
++							{basepath.."OgreResource.h"				,"Resource"				,{}},
++							{basepath.."OgreNode.h"					,"Node"					,{"Renderable"}},
+ 							=
+
++							{basepath.."OgreLight.h"				,"Light"				,{"MovableObject"}},	=
+
++							{basepath.."OgreSceneManager.h"			,"SceneManager"			,{}},
++							{basepath.."OgreFrustum.h"				,"Frustum"				,{}},
++							{basepath.."OgreCamera.h"				,"Camera"				,{"Frustum"}}, -- Rendera=
+ble,MovableObject}
++							{basepath.."OgreSceneNode.h"			,"SceneNode"			,{"Node","Renderable"=
+}},
++							{basepath.."OgreVertexIndexData.h"		,"VertexData"			,{}},
++							{basepath.."OgreVertexIndexData.h"		,"IndexData"			,{}},
++								=
+
++							{basepath.."OgreSkeleton.h"				,"Skeleton"				,{"Resource"}},
++							{basepath.."OgreBone.h"					,"Bone"					,{"Node","Renderable"}},
++							{basepath.."OgreAnimation.h"			,"Animation"			,{}},
++							{basepath.."OgreMesh.h"					,"Mesh"					,{"Resource"}},
++							{basepath.."OgreSubMesh.h"				,"SubMesh"				,{}},
++										=
+
++							{basepath.."OgreEntity.h"				,"Entity"				,{"MovableObject"}},
++							{basepath.."OgreAnimationTrack.h"		,"AnimationTrack"		,{}},
++							{basepath.."OgreAnimationTrack.h"		,"NodeAnimationTrack"	,{"Animati=
+onTrack"}},
+ 							=
+
+-							--~ {basepath.."OgreRenderOperation.h"		,"RenderOperation"},	-- cus=
+tom binding made, not good for auto-bind
+-							--~ {basepath.."OgreHardwareVertexBuffer.h"	,"VertexDeclaration"},	=
+-- custom binding made, not good for auto-bind
++							{basepath.."OgreKeyFrame.h"				,"KeyFrame"				,{}},
++							{basepath.."OgreKeyFrame.h"				,"NumericKeyFrame"		,{"KeyFrame"}},
++							{basepath.."OgreKeyFrame.h"				,"TransformKeyFrame"	,{"KeyFrame"}},
++							{basepath.."OgreKeyFrame.h"				,"VertexMorphKeyFrame"	,{"KeyFrame"}=
+},
++							{basepath.."OgreKeyFrame.h"				,"VertexPoseKeyFrame"	,{"KeyFrame"}},
++							=
+
++							{basepath.."OgreRenderOperation.h"		,"RenderOperation"},	-- custom =
+binding made, not good for auto-bind
++							{basepath.."OgreHardwareVertexBuffer.h"	,"VertexDeclaration"},	-- c=
+ustom binding made, not good for auto-bind
+ 							--~ GenerateBinding(RobMovable,{MovableObject})
+ 							--~ GenerateBinding(RobRenderable,{Renderable})
+ 							=
+
+ 						}
++						=
+
++	-- register types and prepare
+ 	for k,arr in pairs(classes) do
+ 		local filepath,classname,parentclassnames =3D unpack(arr)
+ 		local c =3D {}
+@@ -43,13 +55,11 @@
+ 		_G[classname] =3D c
+ 	end
+ 	=
+
+-	--~ RobRenderable	=3D =
+
+-	--~ RobMovable		=3D =
+
+-	=
+
+ 	gOutLines =3D {}
+ =
+
+ 	RegisterVarTypes()
+ 	=
+
++	-- generate bindings here
+ 	for k,arr in pairs(classes) do
+ 		local filepath,classname,parentclassnames =3D unpack(arr)
+ 		local parentclasses =3D {}
+@@ -58,8 +68,33 @@
+ 	end
+ 	=
+
+ 	-- output to file
+-	local outlines =3D gOutLines
+-	outlines =3D MyEqualizeTabs(outlines)
++	local outlines =3D {}
++	=
+
++	-- lugre_luabind_ogrehelper.h :  ParamX PushX
++	table.insert(outlines,"")
++	table.insert(outlines,"/// mylugre/include/lugre_luabind_ogrehelper.h :")
++	for k,arr in pairs(classes) do
++		local name =3D arr[2]
++		table.insert(outlines,"LUABIND_DIRECTWRAP_HELPER_OBJECT_PREFIX(Ogre		,".=
+.name.."			)")
++	end
++	table.insert(outlines,"")
++	table.insert(outlines,"")
++	=
+
++	-- equalize tabs from binding to make the code look nice
++	for k,line in pairs(MyEqualizeTabs(gOutLines)) do table.insert(outlines,l=
+ine) end
++	=
+
++	-- register classes in lua state
++	table.insert(outlines,"/// lua binding")
++	table.insert(outlines,"void	LuaRegister_LuaBinds_Ogre 	(lua_State *L) { P=
+ROFILE")
++	table.insert(outlines,"	// needed first as baseclasses")
++	for k,arr in pairs(classes) do
++		local name =3D arr[2]
++		table.insert(outlines,"	cLuaBindDirect<Ogre::"..name.."		>::GetSingleton=
+Ptr(new cLugreLuaBind_Ogre_"..name.."(		))->LuaRegister(L);")
++	end
++	table.insert(outlines,"	LUABIND_QUICKWRAP_STATIC(getMaximumDepthInputValu=
+e, { return PushNumber(L,Ogre::Root::getSingleton().getRenderSystem()->getM=
+aximumDepthInputValue()); });")
++	table.insert(outlines,"}")
++
++	=
+
+ 	outlines =3D table.concat(outlines,"\n")
+ 	print(outlines)
+ 	local filepath =3D "luabindheader.out"
+
+
+
+From no-reply at zwischenwelt.org  Fri Dec 18 00:16:32 2009
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Thu, 17 Dec 2009 23:16:32 -0000
+Subject: [Iris-commit] [IRIS] r3190 - /trunk/lua/main.lua
+Message-ID: <20091217231633.09E697A9816B@simon>
+
+Author: ghoulsblade
+Date: Fri Dec 18 00:16:32 2009
+New Revision: 3190
+
+Log:
+fadelines adjust to window-resize
+
+Modified:
+    trunk/lua/main.lua
+
+Modified: trunk/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/main.lua (original)
++++ trunk/lua/main.lua Fri Dec 18 00:16:32 2009
+@@ -306,6 +306,7 @@
+ --###############################
+ =
+
+ function FadeLine_CreateDialog		() return GetDesktopWidget():CreateChild("=
+Group") end
++function FadeLine_MoveDialog		(x,y) gFadeLinesDialog:SetPos(x,y) end
+ function FadeLine_Widget_Create		(dialog,x,y,text,h,color,font)
+ 	local r,g,b,a =3D unpack(color)
+ 	return dialog:CreateChild("UOText",{x=3Dx,y=3Dy,text=3Dtext,col=3D{r=3Dr,=
+g=3Dg,b=3Db,a=3Da},bold=3Dtrue}) =
+
+
+
+
+From no-reply at zwischenwelt.org  Sat Dec 19 17:44:22 2009
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Sat, 19 Dec 2009 16:44:22 -0000
+Subject: [Iris-commit] [IRIS] r3191 - in /trunk/lua: lib.mainmenu.lua
+ net/net.object.lua net/net.packethandlers.lua profiles/gfx_high.lua
+ profiles/gfx_low.lua profiles/gfx_none.lua profiles/gfx_ultrahigh.lua
+ profiles/gfx_ultralow.lua
+Message-ID: <20091219164422.D71BB7A9815F@simon>
+
+Author: sience
+Date: Sat Dec 19 17:44:22 2009
+New Revision: 3191
+
+Log:
+-1 network packet added
+-profile enhancements (not conflicting the Menu-Options anymore)
+-gLoginRequestTerminator option added (normally not needed, nil)
+
+Modified:
+    trunk/lua/lib.mainmenu.lua
+    trunk/lua/net/net.object.lua
+    trunk/lua/net/net.packethandlers.lua
+    trunk/lua/profiles/gfx_high.lua
+    trunk/lua/profiles/gfx_low.lua
+    trunk/lua/profiles/gfx_none.lua
+    trunk/lua/profiles/gfx_ultrahigh.lua
+    trunk/lua/profiles/gfx_ultralow.lua
+
+Modified: trunk/lua/lib.mainmenu.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mainmenu.lua (original)
++++ trunk/lua/lib.mainmenu.lua Sat Dec 19 17:44:22 2009
+@@ -137,7 +137,7 @@
+         return
+     end
+     =
+
+-    Send_Account_Login_Request(user,pass) -- 0x80 kPacket_Account_Login_Re=
+quest
++    Send_Account_Login_Request(user,pass,gLoginRequestTerminator) -- 0x80 =
+kPacket_Account_Login_Request
+ end
+ =
+
+ function MainMenu_SendLoginAndChar (user,pass,charid,charname)
+
+Modified: trunk/lua/net/net.object.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.object.lua (original)
++++ trunk/lua/net/net.object.lua Sat Dec 19 17:44:22 2009
+@@ -2,7 +2,8 @@
+ -- see also lib.packet.lua and lib.protocol.lua
+ =
+
+ function Send_DoubleClick (iSerial)
+-	print("Send_DoubleClick",sprintf("0x%08x",iSerial),GetOneLineBackTrace(2))
++	if (gbDisableDoubleClick) then return end
++	--print("Send_DoubleClick",sprintf("0x%08x",iSerial),GetOneLineBackTrace(=
+2))
+ 	printdebug("net",sprintf("NET: Send_DoubleClick: 0x%08x\n",iSerial))
+ 	local out =3D GetSendFIFO()
+ 	out:PushNetUint8(kPacket_Double_Click)
+@@ -20,7 +21,7 @@
+ =
+
+ gAutoGeneratedSingleClicks =3D {}
+ function Send_SingleClick (iSerial,bAutoGenerated)
+-	--~ print("Send_SingleClick",sprintf("0x%08x",iSerial))
++	if (gbDisableSingleClick) then return end
+ 	printdebug("net",sprintf("NET: Send_SingleClick: 0x%08x\n",iSerial))
+ 	local out =3D GetSendFIFO()
+ 	out:PushNetUint8(kPacket_Single_Click)
+
+Modified: trunk/lua/net/net.packethandlers.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.packethandlers.lua (original)
++++ trunk/lua/net/net.packethandlers.lua Sat Dec 19 17:44:22 2009
+@@ -42,3 +42,9 @@
+ 	NotifyWarmode(flag)
+ end
+ =
+
++function gPacketHandler.kPacket_Group()
++	local input =3D GetRecvFIFO()
++	local id =3D input:PopNetUint8()
++	local flag =3D input:PopNetUint8()
++	print("EnDisableRedraw: " .. flag)
++end
+
+Modified: trunk/lua/profiles/gfx_high.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/profiles/gfx_high.lua (original)
++++ trunk/lua/profiles/gfx_high.lua Sat Dec 19 17:44:22 2009
+@@ -6,6 +6,3 @@
+ gConfig:Set("gStaticsCastShadows",true)
+ gConfig:Set("gDynamicsCastShadows",true)
+ gConfig:Set("gMobileCastShadows",true)
+-
+-gConfig:Set("gGrannyAnimEnabled",true) =
+
+-
+
+Modified: trunk/lua/profiles/gfx_low.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/profiles/gfx_low.lua (original)
++++ trunk/lua/profiles/gfx_low.lua Sat Dec 19 17:44:22 2009
+@@ -8,5 +8,3 @@
+ gConfig:Set("gMobileCastShadows",false)
+ =
+
+ gConfig:Set("gGroundBlockLoaderType","Blockwise")
+-
+-gConfig:Set("gUseStaticFallbacks",false)
+
+Modified: trunk/lua/profiles/gfx_none.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/profiles/gfx_none.lua (original)
++++ trunk/lua/profiles/gfx_none.lua Sat Dec 19 17:44:22 2009
+@@ -1,33 +1,1 @@
+--- all disabled
+-gConfig:Set("gAtlasRes","none")
+-
+-gConfig:Set("gShadowTechnique","none")
+-gConfig:Set("gTerrainCastShadows",false)
+-gConfig:Set("gStaticsCastShadows",false)
+-gConfig:Set("gDynamicsCastShadows",false)
+-gConfig:Set("gMobileCastShadows",false)
+-
+-gConfig:Set("gLightsources",false)
+-gConfig:Set("gLightsCastShadows",false)
+-gConfig:Set("gShowLightDebug",false)
+-
+-gConfig:Set("gUseDistanceFog",false)
+-
+-gConfig:Set("gParticleEffectSystem",false)
+-
+-gConfig:Set("gUseStaticFallbacks",false)
+-gConfig:Set("gUseCaelumSkysystem",false)
+-gConfig:Set("gUseCaduneTree",false)
+-
+-gConfig:Set("gIgnoreGlobalLightLevel",true) =
+
+-
+-gConfig:Set("gGrannyAnimEnabled",false) =
+
+-gConfig:Set("gPreloadStaticMesh",false)
+-
+-gConfig:Set("gUseCaelumSkysystem",false)
+-
+-gConfig:Set("gUseWaterShader",false)
+-
+-gConfig:Set("gUseSoundSystem",false)
+-gConfig:Set("gUseEffect",false)
+-gConfig:Set("gUseMusic",false)
++-- nothing
+
+Modified: trunk/lua/profiles/gfx_ultrahigh.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/profiles/gfx_ultrahigh.lua (original)
++++ trunk/lua/profiles/gfx_ultrahigh.lua Sat Dec 19 17:44:22 2009
+@@ -7,7 +7,5 @@
+ gConfig:Set("gStaticsCastShadows",true)
+ gConfig:Set("gDynamicsCastShadows",true)
+ gConfig:Set("gMobileCastShadows",true)
+-
+-gConfig:Set("gGrannyAnimEnabled",true) =
+
+ 	=
+
+ gConfig:Set("gArtMapLoaderType","FullFile")
+
+Modified: trunk/lua/profiles/gfx_ultralow.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/profiles/gfx_ultralow.lua (original)
++++ trunk/lua/profiles/gfx_ultralow.lua Sat Dec 19 17:44:22 2009
+@@ -1,6 +1,4 @@
+ gConfig:Set("gAtlasRes","ultralow")
+-
+-gConfig:Set("gDisableWater",true)
+ =
+
+ gConfig:Set("gDisableMultiTexTerrainTransitions",true)
+ =
+
+@@ -9,12 +7,11 @@
+ gConfig:Set("gDynamicsCastShadows",false)
+ gConfig:Set("gMobileCastShadows",false)
+ =
+
++gConfig:Set("gGroundBlockLoaderType","Blockwise")
++
+ gConfig:Set("gEnableGrannyMaterials",false)
+ =
+
+ gConfig:Set("gParticleEffectSystem",false)
+ gConfig:Set("gLightsources",false)
+ =
+
+-gConfig:Set("gUseStaticFallbacks",false)
+-gConfig:Set("gEnableFallBackBillboards_Dynamics",false)
+-
+-gConfig:Set("gGroundBlockLoaderType","Blockwise")
++gConfig:Set("gDisableWater",true)
+
+
+
+From no-reply at zwischenwelt.org  Sat Dec 19 19:32:21 2009
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Sat, 19 Dec 2009 18:32:21 -0000
+Subject: [Iris-commit] [IRIS] r3192 - /trunk/config/shards/vetus-mundus.xml
+Message-ID: <20091219183221.406D67A9816A@simon>
+
+Author: ghoulsblade
+Date: Sat Dec 19 19:32:21 2009
+New Revision: 3192
+
+Log:
+vetus-mundus : clientversion 7
+
+Modified:
+    trunk/config/shards/vetus-mundus.xml
+
+Modified: trunk/config/shards/vetus-mundus.xml
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/config/shards/vetus-mundus.xml (original)
++++ trunk/config/shards/vetus-mundus.xml Sat Dec 19 19:32:21 2009
+@@ -1,5 +1,6 @@
+ <table>
+     <string key=3D"gLoginname"></string>
++    <string key=3D"gClientVersion">7.0.0.0</string>
+     <boolean key=3D"gPolServer">false</boolean>
+     <number key=3D"gServerSeed">4294967295</number>
+     <number key=3D"gLoginServerPort">2594</number>
+
+
+
+From no-reply at zwischenwelt.org  Sat Dec 19 20:12:37 2009
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Sat, 19 Dec 2009 19:12:37 -0000
+Subject: [Iris-commit] [IRIS] r3193 - /trunk/lua/lib.protocol.lua
+Message-ID: <20091219191237.52D6B7A9816A@simon>
+
+Author: ghoulsblade
+Date: Sat Dec 19 20:12:37 2009
+New Revision: 3193
+
+Log:
+experimental fix for version 7000 protocol : skipping 24 bytes for 0xf3 pac=
+ket
+
+Modified:
+    trunk/lua/lib.protocol.lua
+
+Modified: trunk/lua/lib.protocol.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.protocol.lua (original)
++++ trunk/lua/lib.protocol.lua Sat Dec 19 20:12:37 2009
+@@ -9,6 +9,7 @@
+ gNoLogPackets =3D { kPacket_Ping } -- can be used to shorten the standard =
+log for every packet
+ =
+
+ =
+
++function ClientVersionIsPost7000	() return ClientVersionIsPost(7000) end -=
+- see http://iris2.de/index.php/Clientversion_7.0.0.0_and_later
+ function ClientVersionIsPost6017	() return ClientVersionIsPost(6017) end -=
+- see http://iris2.de/index.php/Clientversion_6.0.1.7_and_later
+ function GetClientVersionAsNumber	() return tonumber((string.gsub(gClientV=
+ersion,"%D",""))) end -- gClientVersion =3D "6.0.1.6"
+ function ClientVersionIsPost		(version) return GetClientVersionAsNumber() =
+>=3D version end
+@@ -26,11 +27,18 @@
+ 	=
+
+ 	while (input:Size() >=3D 1) do
+ 		local iId =3D input:PeekNetUint8(0)
++		if (iId =3D=3D 0xf3 and ClientVersionIsPost7000()) then =
+
++			print("7000Init skipped")
++			input:PopRaw(16+8)
++			iId =3D input:PeekNetUint8(0)
++		end
+ 		local iPacketSize =3D gPacketSizeByID[iId]
+ 		--~ print("packet",gPacketTypeId2Name[iId],iPacketSize)
+ 		if (not iPacketSize) then
+-			print("Packet with unknown Packetsize received : ",iId)
++			local iSizeIfDynamic =3D (input:Size() >=3D 3) and input:PeekNetUint16(=
+1)
++			print("Packet with unknown Packetsize received : ",iId,sprintf("0x%02x"=
+,iId or 0),"remaining size:",input:Size(),"dynsize",iSizeIfDynamic)
+ 			print("WARNING : HandlePackets -> forced Crash")
++			if (gOnPacketCrash_HexDump) then print(FIFOHexDump (input)) end
+ 			Crash()	-- triggers only if nil, not for 0
+ 		end
+ 		if (iPacketSize =3D=3D 0 and input:Size() < 3) then break end -- packet =
+incomplete
+
+
+
+From no-reply at zwischenwelt.org  Sat Dec 19 20:16:34 2009
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Sat, 19 Dec 2009 19:16:34 -0000
+Subject: [Iris-commit] [IRIS] r3194 - /trunk/lua/lib.protocol.lua
+Message-ID: <20091219191634.B7B077A9816A@simon>
+
+Author: ghoulsblade
+Date: Sat Dec 19 20:16:34 2009
+New Revision: 3194
+
+Log:
+net v7000 fix
+
+Modified:
+    trunk/lua/lib.protocol.lua
+
+Modified: trunk/lua/lib.protocol.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.protocol.lua (original)
++++ trunk/lua/lib.protocol.lua Sat Dec 19 20:16:34 2009
+@@ -30,6 +30,7 @@
+ 		if (iId =3D=3D 0xf3 and ClientVersionIsPost7000()) then =
+
+ 			print("7000Init skipped")
+ 			input:PopRaw(16+8)
++			if (input:Size() =3D=3D 0) then break end
+ 			iId =3D input:PeekNetUint8(0)
+ 		end
+ 		local iPacketSize =3D gPacketSizeByID[iId]
+
+
+
+From no-reply at zwischenwelt.org  Sat Dec 19 21:01:37 2009
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Sat, 19 Dec 2009 20:01:37 -0000
+Subject: [Iris-commit] [IRIS] r3195 - in /trunk/lua: lib.2d.dynamic.lua
+ lib.3d.dynamic.lua lib.3d.mousepick.lua lib.packet.lua lib.protocol.lua
+ lib.uodragdrop.lua lib.walking3.lua net/net.dynamic.lua net/net.multi.lua
+ obj/obj.dynamic.lua
+Message-ID: <20091219200137.E2F5A54D0039@simon>
+
+Author: ghoulsblade
+Date: Sat Dec 19 21:01:37 2009
+New Revision: 3195
+
+Log:
+added new packet : kPacket_ObjectInfo 0xf3 which replaces showitem 0x1a to =
+some degree in v7000,  most multis fixed, a few still broken/invis
+
+Modified:
+    trunk/lua/lib.2d.dynamic.lua
+    trunk/lua/lib.3d.dynamic.lua
+    trunk/lua/lib.3d.mousepick.lua
+    trunk/lua/lib.packet.lua
+    trunk/lua/lib.protocol.lua
+    trunk/lua/lib.uodragdrop.lua
+    trunk/lua/lib.walking3.lua
+    trunk/lua/net/net.dynamic.lua
+    trunk/lua/net/net.multi.lua
+    trunk/lua/obj/obj.dynamic.lua
+
+Modified: trunk/lua/lib.2d.dynamic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.dynamic.lua (original)
++++ trunk/lua/lib.2d.dynamic.lua Sat Dec 19 21:01:37 2009
+@@ -6,7 +6,7 @@
+ function Renderer2D:AddDynamicItem					(item) =
+
+ 	if (Renderer2D.bMinimalGfx) then return end =
+
+ 	item.r2d_removed =3D nil
+-	if item.artid >=3D gMulti_ID then =
+
++	if ItemIsMulti(item) then =
+
+ 		-- multi
+ 		self:UpdateMultiItemGfx(item)
+ 	elseif (item.artid_base =3D=3D kCorpseDynamicArtID or (item.artid and ite=
+m.artid > 1)) then -- 1 =3D=3D nodraw =
+
+@@ -176,7 +176,7 @@
+ =
+
+ =
+
+ function Renderer2D:UpdateDynamicBlendOut			(item,iBlendOutMinZ,iBlendOutM=
+axZ) =
+
+-	if item.artid >=3D gMulti_ID then =
+
++	if ItemIsMulti(item) then =
+
+ 		-- multi
+ 		self:UpdateMultiItemGfx(item)
+ 	else
+
+Modified: trunk/lua/lib.3d.dynamic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.dynamic.lua (original)
++++ trunk/lua/lib.3d.dynamic.lua Sat Dec 19 21:01:37 2009
+@@ -336,7 +336,7 @@
+         self:AddCorpseItem(item)
+     elseif not item.artid then
+         print("ERROR: artid missing!!!!\n")
+-    elseif item.artid >=3D gMulti_ID then =
+
++    elseif ItemIsMulti(item) then =
+
+         -- multi
+         self:AddMultiItem(item)
+     else
+
+Modified: trunk/lua/lib.3d.mousepick.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.mousepick.lua (original)
++++ trunk/lua/lib.3d.mousepick.lua Sat Dec 19 21:01:37 2009
+@@ -204,7 +204,7 @@
+ 	assert(gMulti_ID)
+     for k,dynamic in pairs(GetDynamicList()) do
+         -- if Dynamic is in World (if it's not an Container) & if it's not=
+ an Multi & if it's not a skipped Fallback (multitile mesh)
+-        if (DynamicIsInWorld(dynamic) and dynamic.artid and (dynamic.artid=
+ < gMulti_ID) and not(IsArtBillboardFallBackSkipped(dynamic.artid))) then
++        if (DynamicIsInWorld(dynamic) and dynamic.artid and (not ItemIsMul=
+ti(dynamic)) and not(IsArtBillboardFallBackSkipped(dynamic.artid))) then
+             -- WARNING copy & paste code
+             if (self:IsZLayerVisible(dynamic.zloc)) then
+                 if (dynamic.corpsegfx) then
+
+Modified: trunk/lua/lib.packet.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.packet.lua (original)
++++ trunk/lua/lib.packet.lua Sat Dec 19 21:01:37 2009
+@@ -240,6 +240,7 @@
+ -- buff/debuff packet
+ gPacketType.kPacket_BuffDebuff_System								=3D { id=3D0xDF, size=3D0 }
+ gPacketType.kPacket_ExtBundledPacket								=3D { id=3D0xF0, size=3D0 } --=
+ party positions, used by razor positioning system
++gPacketType.kPacket_ObjectInfo										=3D { id=3D0xF3, size=3D24 }
+ =
+
+ gPacketSizeOverride6017 =3D {[0x25]=3D21,[0x08]=3D15,} -- 0x3C is changed =
+as well, but was dynamic anyway
+ =
+
+@@ -283,7 +284,7 @@
+ =
+
+ gPacketType.kPacket_								=3D { id=3D0xF1 }
+ gPacketType.kPacket_								=3D { id=3D0xF2 }
+-gPacketType.kPacket_								=3D { id=3D0xF3 }
++0xF3 .. see above
+ gPacketType.kPacket_								=3D { id=3D0xF4 }
+ gPacketType.kPacket_								=3D { id=3D0xF5 }
+ gPacketType.kPacket_								=3D { id=3D0xF6 }
+
+Modified: trunk/lua/lib.protocol.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.protocol.lua (original)
++++ trunk/lua/lib.protocol.lua Sat Dec 19 21:01:37 2009
+@@ -27,12 +27,6 @@
+ 	=
+
+ 	while (input:Size() >=3D 1) do
+ 		local iId =3D input:PeekNetUint8(0)
+-		if (iId =3D=3D 0xf3 and ClientVersionIsPost7000()) then =
+
+-			print("7000Init skipped")
+-			input:PopRaw(16+8)
+-			if (input:Size() =3D=3D 0) then break end
+-			iId =3D input:PeekNetUint8(0)
+-		end
+ 		local iPacketSize =3D gPacketSizeByID[iId]
+ 		--~ print("packet",gPacketTypeId2Name[iId],iPacketSize)
+ 		if (not iPacketSize) then
+
+Modified: trunk/lua/lib.uodragdrop.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.uodragdrop.lua (original)
++++ trunk/lua/lib.uodragdrop.lua Sat Dec 19 21:01:37 2009
+@@ -197,8 +197,8 @@
+ -- SiENcE: just skip Multis here
+ -- Todo: Multi support
+ function PrepareDragDynamic (dynamic)
+-	--~ if dynamic.artid >=3D gMulti_ID then dynamic.artid =3D 0xeef end -- v=
+m hausklau bug
+-	if dynamic.artid < gMulti_ID then
++	--~ if ItemIsMulti(dynamic) then dynamic.artid =3D 0xeef end -- vm hauskl=
+au bug
++	if (not ItemIsMulti(dynamic)) then
+ 		local iArtID =3D dynamic.artid + 0x4000
+ 		local matname =3D GetArtMat(iArtID,dynamic.hue)
+ 		local w,h =3D GetArtSize(iArtID,dynamic.hue)
+@@ -467,7 +467,7 @@
+ 				if (TestBit(flags,kTileDataFlag_Container)) then bOnContainer =3D true=
+ end
+ 				--~ if (not bOnContainer) then iSerial =3D nil end  -- might be bad fo=
+r potionkegs and similar non-container droptargets
+ 				if (TestBit(flags,kTileDataFlag_Surface)) then iSerial =3D nil end   -=
+-  or kTileDataFlag_Background ?
+-				if (dynamic.artid >=3D gMulti_ID) then iSerial =3D nil end
++				if (ItemIsMulti(dynamic)) then iSerial =3D nil end
+ 			end
+ 		end
+ 		=
+
+
+Modified: trunk/lua/lib.walking3.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.walking3.lua (original)
++++ trunk/lua/lib.walking3.lua Sat Dec 19 21:01:37 2009
+@@ -115,7 +115,7 @@
+ 	W3_ForAllMultiPartsAtPos(xloc,yloc,fun,param)
+ 	for k,static in pairs(MapGetStatics(xloc,yloc)) do fun(static,param) end
+ 	for k,dynamic in pairs(GetDynamicsAtPosition(xloc,yloc)) do
+-		if dynamic.artid and dynamic.artid < gMulti_ID then -- non-multi
++		if dynamic.artid and (not ItemIsMulti(dynamic)) then -- non-multi
+ 			fun(dynamic,param)
+ 		end
+ 	end
+
+Modified: trunk/lua/net/net.dynamic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.dynamic.lua (original)
++++ trunk/lua/net/net.dynamic.lua Sat Dec 19 21:01:37 2009
+@@ -27,12 +27,42 @@
+ --			// +1 - Flags
+ -- TODO : here Tooltip request   0x1A  (old iris:PCK_Put)
+ =
+
++-- 0xf3, replaces 0x1a:kPacket_Show_Item for client v7000 =
+
++-- see http://docs.polserver.com/packets/index.php?Packet=3D0xF3
++function gPacketHandler.kPacket_ObjectInfo() =
+
++	local dynamicdata =3D {}
++	local input =3D GetRecvFIFO()
++	local popped_start =3D input:GetTotalPopped()
++	dynamicdata.packetid	=3D input:PopNetUint8()
++	dynamicdata.unknown1	=3D input:PopNetUint16() -- polguide: always 0x1 on =
+OSI
++	dynamicdata.itemclass	=3D input:PopNetUint8() -- polguide: 0x00 =3D Item =
+, 0x02 =3D Multi , see kItemClassMulti,ItemIsMulti
++	dynamicdata.serial		=3D input:PopNetUint32()
++	dynamicdata.artid_base	=3D input:PopNetUint16()
++	dynamicdata.dir			=3D input:PopNetUint8()	-- corpses?
++	dynamicdata.amount		=3D input:PopNetUint16() -- polguide:1 for multi
++	dynamicdata.amount2		=3D input:PopNetUint16() -- polguide:1 for multi , u=
+nknown why sent 2 times
++	dynamicdata.xloc		=3D input:PopNetUint16() --only use lowest significant =
+15 bits)
++	dynamicdata.yloc		=3D input:PopNetUint16()
++	dynamicdata.zloc		=3D input:PopInt8()
++	dynamicdata.layer		=3D input:PopNetUint8() -- new    polguide:0 if multi
++	dynamicdata.hue			=3D input:PopNetUint16() -- polguide:0 if multi
++	dynamicdata.flag		=3D input:PopNetUint8() -- polguide:0x20 =3D Show Prope=
+rties , 0x80 =3D Hidden , 0x00 if Multi
++	dynamicdata.iContainerSerial =3D 0
++	dynamicdata.artid_addstack =3D 0
++	=
+
++	local dynamic =3D CreateOrUpdateDynamic(dynamicdata)
++	NotifyListener("Hook_Show_item",dynamic)
++end
++
++kItemClassMulti =3D 2
++function ItemIsMulti (item) return item.artid >=3D gMulti_ID or item.itemc=
+lass =3D=3D kItemClassMulti end
++
+ -- show item (0x1a)
+ function gPacketHandler.kPacket_Show_Item()
+ 	local dynamicdata =3D {}
+ 	local input =3D GetRecvFIFO()
+ 	local popped_start =3D input:GetTotalPopped()
+-	local id =3D input:PopNetUint8()
++	dynamicdata.packetid =3D input:PopNetUint8()
+ 	=
+
+ 	local iPacketSize =3D input:PopNetUint16()
+ 	dynamicdata.serial			=3D input:PopNetUint32() -- id =3D serial . Include =
+the flag 0x80000000 if the item's amount is greater than one.
+
+Modified: trunk/lua/net/net.multi.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.multi.lua (original)
++++ trunk/lua/net/net.multi.lua Sat Dec 19 21:01:37 2009
+@@ -326,7 +326,7 @@
+ end
+ =
+
+ function UpdateMultiData (item)
+-	if item.artid < gMulti_ID then return end
++	if (not ItemIsMulti(item)) then return end
+ 	local iHue =3D 0
+ 	local multi =3D {}
+ 	multi.lparts =3D {}
+
+Modified: trunk/lua/obj/obj.dynamic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/obj/obj.dynamic.lua (original)
++++ trunk/lua/obj/obj.dynamic.lua Sat Dec 19 21:01:37 2009
+@@ -76,7 +76,6 @@
+ 	dynamic:Update(dynamicdata,mobile)
+ 	return dynamic
+ end
+-
+ =
+
+ -- see also CreateOrUpdateDynamic
+ function gDynamicPrototype:Update (dynamicdata,mobile)
+
+
+
+From no-reply at zwischenwelt.org  Sat Dec 19 21:14:22 2009
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Sat, 19 Dec 2009 20:14:22 -0000
+Subject: [Iris-commit] [IRIS] r3196 - /trunk/lua/net/net.multi.lua
+Message-ID: <20091219201423.0227E7A9816A@simon>
+
+Author: ghoulsblade
+Date: Sat Dec 19 21:14:22 2009
+New Revision: 3196
+
+Log:
+v7000 : fixed remaining multis
+
+Modified:
+    trunk/lua/net/net.multi.lua
+
+Modified: trunk/lua/net/net.multi.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.multi.lua (original)
++++ trunk/lua/net/net.multi.lua Sat Dec 19 21:14:22 2009
+@@ -342,7 +342,7 @@
+ 		-- Clientside Multi
+ 		printdebug("multi","Clientside Multi detected")
+ 		=
+
+-		multi.id =3D item.artid - gMulti_ID
++		multi.id =3D (item.artid >=3D gMulti_ID) and (item.artid - gMulti_ID) or=
+ (item.artid)
+ 		local partnum =3D gMultiLoader:CountMultiParts(multi.id)
+ 		for p =3D 0, partnum-1 do
+ 			local iTileTypeID,iX,iY,iZ,iFlags =3D gMultiLoader:GetMultiParts(multi.=
+id,p)
+
+
+
+From no-reply at zwischenwelt.org  Sun Dec 20 23:31:21 2009
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Sun, 20 Dec 2009 22:31:21 -0000
+Subject: [Iris-commit] [IRIS] r3197 - /trunk/lua/lib.gfxconfig.lua
+Message-ID: <20091220223121.B801454D0039@simon>
+
+Author: ghoulsblade
+Date: Sun Dec 20 23:31:21 2009
+New Revision: 3197
+
+Log:
+prefer opengl by default, since directx crashes on win often
+
+Modified:
+    trunk/lua/lib.gfxconfig.lua
+
+Modified: trunk/lua/lib.gfxconfig.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.gfxconfig.lua (original)
++++ trunk/lua/lib.gfxconfig.lua Sun Dec 20 23:31:21 2009
+@@ -14,7 +14,8 @@
+ end
+ function GfxConfig_FindFromList 				(list,pattern) for k,v in ipairs(list)=
+ do if (string.find(string.lower(v),pattern)) then return v end end end
+ =
+
+-function GfxConfig_FindDefaultRenderSystem (bPreferOpenGL)
++function GfxConfig_FindDefaultRenderSystem ()
++	local bPreferOpenGL =3D true
+ 	local list =3D	GfxConfig_ListPossibleRenderSystems()
+ 	local best =3D	(bPreferOpenGL and GfxConfig_FindFromList(list,"opengl")) =
+or  -- "OpenGL Rendering Subsystem"(win)
+ 					GfxConfig_FindFromList(list,"direct") or  -- "Direct3D9 Rendering Sub=
+system"
+
+
+
+From no-reply at zwischenwelt.org  Sun Dec 20 23:52:57 2009
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Sun, 20 Dec 2009 22:52:57 -0000
+Subject: [Iris-commit] [IRIS] r3198 - /trunk/lua/lib.uoids.lua
+Message-ID: <20091220225301.EE73354D0039@simon>
+
+Author: ghoulsblade
+Date: Sun Dec 20 23:52:52 2009
+New Revision: 3198
+
+Log:
+added nodraw used in underworld dungeon
+
+Modified:
+    trunk/lua/lib.uoids.lua
+
+Modified: trunk/lua/lib.uoids.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.uoids.lua (original)
++++ trunk/lua/lib.uoids.lua Sun Dec 20 23:52:52 2009
+@@ -746,7 +746,7 @@
+ 	[11573] =3D {first=3D17,second=3D24},
+ }
+ =
+
+-gNodrawArtIDs =3D {0x21a3,0x21a4,0x2199,0x21bc}
++gNodrawArtIDs =3D {0x21a3,0x21a4,0x2199,0x21bc,0x5690}
+ gNodrawByArtID =3D {}
+ for k,artid in ipairs(gNodrawArtIDs) do gNodrawByArtID[artid] =3D true end
+ =
+
+
+
+
+From no-reply at zwischenwelt.org  Mon Dec 21 00:04:22 2009
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Sun, 20 Dec 2009 23:04:22 -0000
+Subject: [Iris-commit] [IRIS] r3199 - in /trunk/bin: D3DX9_42.dll iris2.exe
+Message-ID: <20091220230422.22D777A98005@simon>
+
+Author: sience
+Date: Mon Dec 21 00:04:22 2009
+New Revision: 3199
+
+Log:
+-directx runtime deleted
+-new win32 binary
+
+Removed:
+    trunk/bin/D3DX9_42.dll
+Modified:
+    trunk/bin/iris2.exe
+
+Modified: trunk/bin/iris2.exe
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+Binary files - no diff available.
+
+
+
+From no-reply at zwischenwelt.org  Mon Dec 21 21:06:21 2009
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Mon, 21 Dec 2009 20:06:21 -0000
+Subject: [Iris-commit] [IRIS] r3200 - in /trunk: plugins/loot.lua
+	scripts/luabindheader.lua
+Message-ID: <20091221200622.077A27A9812B@simon>
+
+Author: ghoulsblade
+Date: Mon Dec 21 21:06:19 2009
+New Revision: 3200
+
+Log:
+luabinder : copyconstructor return-push for ogre image
+
+Modified:
+    trunk/plugins/loot.lua
+    trunk/scripts/luabindheader.lua
+
+Modified: trunk/plugins/loot.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/plugins/loot.lua (original)
++++ trunk/plugins/loot.lua Mon Dec 21 21:06:19 2009
+@@ -36,6 +36,25 @@
+ 	--~ "mage weapon", -- mage armor , mage weap
+ 	--~ "slayer",
+ 	"Origami", -- paper
++	=
+
++	"truth", -- mysticism : book of truth
++	"mysticism",
++	"Animated Weapon",
++	"Bombard",
++	"Cleansing Winds",
++	"Eagle Strike",
++	"Enchant",
++	"Hail Storm",
++	"Healing Stone",
++	"Mass Sleep",
++	"Nether Bolt",
++	"Nether Cyclone",
++	"Purge Magic",
++	"Rising Colossus",
++	"Sleep",
++	"Spell Plague",
++	"Spell Trigger",
++	"Stone Form",
+ 	=
+
+ 	"skull",
+ 	"bank",
+@@ -172,6 +191,7 @@
+ 	local artid	=3D item.artid
+ 	local hue	=3D item.hue
+ 	if (artid =3D=3D 0x170b) then return true end -- kobold schuhe
++	if (artid =3D=3D 0x2da2) then return true end -- mysticism scroll
+ 	if (artid =3D=3D 5110 and hue =3D=3D 2419) then return true end -- gargy =
+knife
+ 	if (artid =3D=3D 3718 and hue =3D=3D 2419) then return true end -- gargy =
+pickaxe
+ 	if (artid =3D=3D 3909 and hue =3D=3D 2419) then return true end -- gargy =
+axe
+
+Modified: trunk/scripts/luabindheader.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/scripts/luabindheader.lua (original)
++++ trunk/scripts/luabindheader.lua Mon Dec 21 21:06:19 2009
+@@ -38,6 +38,8 @@
+ 							{basepath.."OgreKeyFrame.h"				,"VertexMorphKeyFrame"	,{"KeyFrame"}=
+},
+ 							{basepath.."OgreKeyFrame.h"				,"VertexPoseKeyFrame"	,{"KeyFrame"}},
+ 							=
+
++							{basepath.."OgreImage.h"				,"Image"				,{}},
++							=
+
+ 							{basepath.."OgreRenderOperation.h"		,"RenderOperation"},	-- custom =
+binding made, not good for auto-bind
+ 							{basepath.."OgreHardwareVertexBuffer.h"	,"VertexDeclaration"},	-- c=
+ustom binding made, not good for auto-bind
+ 							--~ GenerateBinding(RobMovable,{MovableObject})
+@@ -48,16 +50,20 @@
+ 	-- register types and prepare
+ 	for k,arr in pairs(classes) do
+ 		local filepath,classname,parentclassnames =3D unpack(arr)
++		gBoundPointerClasses[classname] =3D true
++	end
++	RegisterVarTypes()
++	=
+
++	for k,arr in pairs(classes) do
++		local filepath,classname,parentclassnames =3D unpack(arr)
+ 		local c =3D {}
+ 		c.code =3D LoadHeader(filepath,classname)
+ 		c.classname =3D classname
+-		gBoundPointerClasses[classname] =3D true
+ 		_G[classname] =3D c
+ 	end
+ 	=
+
+ 	gOutLines =3D {}
+ =
+
+-	RegisterVarTypes()
+ 	=
+
+ 	-- generate bindings here
+ 	for k,arr in pairs(classes) do
+@@ -150,6 +156,12 @@
+ 		gPusher[k] =3D "Push"..k
+ 		gReader[k] =3D "Param"..k
+ 	end
++	=
+
++	gCopyConstructed =3D {}
++	gCopyConstructed.Image =3D true
++	for k,v in pairs(gCopyConstructed) do =
+
++		gPusher[k] =3D "PushCopy"..k
++	end
+ =
+
+ 	-- gBoundPointerClasses
+ 	gBoundPointerClasses.RenderQueue		=3D true
+@@ -170,6 +182,7 @@
+ 	gIntTypes.long				=3Dtrue
+ 	gIntTypes.ulong				=3Dtrue
+ 	gIntTypes.short				=3Dtrue
++	gIntTypes.uchar				=3Dtrue
+ 	for k,v in pairs(gIntTypes) do =
+
+ 		gPusher[k] =3D "PushNumber"
+ 		gReader[k] =3D "ParamInt"
+@@ -290,6 +303,7 @@
+ 	if ((not retpush) and (not bReturnVoid)) then =
+
+ 		retpush =3D "Push"..ret
+ 		bCommentedOut =3D true
++		--~ bCommentedOut =3D NormalizeType(ret)
+ 	end
+ 	=
+
+ 	local paramtext =3D {}
+@@ -302,6 +316,7 @@
+ 				param =3D reader.."(L,"..(k+1)..")"
+ 			elseif (param ~=3D "") then
+ 				bCommentedOut =3D true
++				--~ bCommentedOut =3D NormalizeType(string.gsub(param,"^.+::",""))
+ 				param =3D "Param"..param.."(L,"..(k+1)..")"
+ 			end
+ 			table.insert(paramtext,param)
+@@ -316,6 +331,7 @@
+ 	if (namec > 1) then nameadd =3D namec end
+ 	=
+
+ 	local prefix2 =3D bCommentedOut and "//~ " or ""
++	--~ local prefix2 =3D bCommentedOut and ("//~ ("..tostring(bCommentedOut)=
+..")") or ""
+ 	=
+
+ 	if (bReturnVoid) then
+ 		return {prefix..prefix2.."LUABIND_DIRECTWRAP_RETURN_VOID_NAMEADD(",	"",	=
+				""..name..","..nameadd,		",("..paramtext..")\t);"}
+
+
+
+From no-reply at zwischenwelt.org  Mon Dec 21 21:48:56 2009
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Mon, 21 Dec 2009 20:48:56 -0000
+Subject: [Iris-commit] [IRIS] r3201 - /trunk/lua/lib.macrolist.lua
+Message-ID: <20091221204856.E977E7A9812B@simon>
+
+Author: ghoulsblade
+Date: Mon Dec 21 21:48:56 2009
+New Revision: 3201
+
+Log:
+new macro util : IsPlayerHidden
+
+Modified:
+    trunk/lua/lib.macrolist.lua
+
+Modified: trunk/lua/lib.macrolist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.macrolist.lua (original)
++++ trunk/lua/lib.macrolist.lua Mon Dec 21 21:48:56 2009
+@@ -41,7 +41,7 @@
+ function GetPlayerPetsCur() return GetMobileStat(GetPlayerMobile(),"curPet=
+") end  -- follower slots
+ function GetPlayerPetsMax() return GetMobileStat(GetPlayerMobile(),"maxPet=
+") end
+ function GetPlayerTithingPoints() return GetMobileStat(GetPlayerMobile(),"=
+tithing") end
+-
++function IsPlayerHidden() local mobile =3D GetPlayerMobile() return mobile=
+ and mobile.flag_hidden end
+ =
+
+ function MacroCmd_MobilePoisoned (mobile) return mobile and TestBit(mobile=
+.flag,kMobileFlag_Poisoned) end
+ function MacroCmd_MobileMortaled (mobile) return mobile and TestBit(mobile=
+.flag,kMobileFlag_GoldenHealth) end
+
+
+
+From no-reply at zwischenwelt.org  Mon Dec 21 23:31:26 2009
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Mon, 21 Dec 2009 22:31:26 -0000
+Subject: [Iris-commit] [IRIS] r3202 - /trunk/scripts/luabindheader.lua
+Message-ID: <20091221223127.05D617A9812B@simon>
+
+Author: ghoulsblade
+Date: Mon Dec 21 23:31:26 2009
+New Revision: 3202
+
+Log:
+improved luabinder
+
+Modified:
+    trunk/scripts/luabindheader.lua
+
+Modified: trunk/scripts/luabindheader.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/scripts/luabindheader.lua (original)
++++ trunk/scripts/luabindheader.lua Mon Dec 21 23:31:26 2009
+@@ -39,6 +39,7 @@
+ 							{basepath.."OgreKeyFrame.h"				,"VertexPoseKeyFrame"	,{"KeyFrame"}},
+ 							=
+
+ 							{basepath.."OgreImage.h"				,"Image"				,{}},
++							{basepath.."OgreTexture.h"				,"Texture"				,{"Resource"}},
+ 							=
+
+ 							{basepath.."OgreRenderOperation.h"		,"RenderOperation"},	-- custom =
+binding made, not good for auto-bind
+ 							{basepath.."OgreHardwareVertexBuffer.h"	,"VertexDeclaration"},	-- c=
+ustom binding made, not good for auto-bind
+@@ -170,6 +171,7 @@
+ 	for k,v in pairs(gBoundPointerClasses) do =
+
+ 		gPusher[k.."*"] =3D "Push"..k
+ 		gReader[k.."*"] =3D "Param"..k
++		gReader[k]		=3D "ParamByRef"..k
+ 	end
+ 	=
+
+ =
+
+@@ -183,6 +185,8 @@
+ 	gIntTypes.ulong				=3Dtrue
+ 	gIntTypes.short				=3Dtrue
+ 	gIntTypes.uchar				=3Dtrue
++	gIntTypes.uint				=3Dtrue
++	gIntTypes.ushort			=3Dtrue
+ 	for k,v in pairs(gIntTypes) do =
+
+ 		gPusher[k] =3D "PushNumber"
+ 		gReader[k] =3D "ParamInt"
+@@ -198,6 +202,7 @@
+ 	gEnumTypes.PixelFormat						=3Dtrue
+ 	gEnumTypes.LightTypes						=3Dtrue
+ 	gEnumTypes.SpecialCaseRenderQueueMode		=3Dtrue
++	gEnumTypes.TextureType						=3Dtrue
+ 	for k,v in pairs(gEnumTypes) do =
+
+ 		gPusher[k] =3D "PushNumber"
+ 		gReader[k] =3D "Param"..k
+
+
+
+From no-reply at zwischenwelt.org  Sat Dec 26 19:24:31 2009
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Sat, 26 Dec 2009 18:24:31 -0000
+Subject: [Iris-commit] [IRIS] r3203 - in /trunk: lua/net/net.mobile.lua
+ lua/net/net.other.lua lua/obj/obj.mobile.lua premake.lua premakelinux.sh
+Message-ID: <20091226182431.E33AF54D0039@simon>
+
+Author: ghoulsblade
+Date: Sat Dec 26 19:24:31 2009
+New Revision: 3203
+
+Log:
+v7000 : fixed poisoned state, added scripttree packet dummy, premakelinux.s=
+h params passed to premake, added option --nosound to disable openal and fm=
+od
+
+Modified:
+    trunk/lua/net/net.mobile.lua
+    trunk/lua/net/net.other.lua
+    trunk/lua/obj/obj.mobile.lua
+    trunk/premake.lua
+    trunk/premakelinux.sh
+
+Modified: trunk/lua/net/net.mobile.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.mobile.lua (original)
++++ trunk/lua/net/net.mobile.lua Sat Dec 26 19:24:31 2009
+@@ -165,7 +165,7 @@
+ 		if (iBytesLeft >=3D needed) then iBytesLeft =3D iBytesLeft - needed retu=
+rn end
+ 		input:PopRaw(iBytesLeft) =
+
+ 		iBytesLeft =3D 0 =
+
+-		print("underflow in kPacket_Mobile_Stats, flag,iPacketSize=3D",stats.fla=
+g,iPacketSize) =
+
++		print("underflow in kPacket_Mobile_Stats, flag,iPacketSize=3D",stats.mob=
+statversion,iPacketSize) =
+
+ 		return 0 -- return 0 -> pop is skipped
+ 	end
+ 	function MySave_PopNetUint8  () return MySave_Prepare(1) or input:PopNetU=
+int8()  end
+@@ -179,10 +179,22 @@
+ 	stats.curHits			=3D MySave_PopNetUint16()
+ 	stats.maxHits 			=3D MySave_PopNetUint16()
+ 	stats.bCanChangeName	=3D MySave_PopNetUint8() ~=3D 0	--(0x1 =3D allowed, =
+0 =3D not allowed)
+-	stats.flag 				=3D MySave_PopNetUint8()
+-
++	=
+
++	=
+
++	stats.mobstatversion	=3D MySave_PopNetUint8()
++	=
+
++	-- mobstatversion : http://docs.polserver.com/packets/index.php?Packet=3D=
+0x11
++    --~ * 0x00: no more data following (end of packet here).
++    --~ * 0x01: T2A Extended Info
++    --~ * 0x03: UOR Extended Info
++    --~ * 0x04: AOS Extended Info (4.0+)
++    --~ * 0x05: UOML Extended Info (5.0+)
++    --~ * 0x06: UOKR Extended Info (UOKR+)
++
++	=
+
++	=
+
+ 	-- more data following
+-	if (in_array( stats.flag, {1,3,4,5})) then
++	if (in_array( stats.mobstatversion, {1,3,4,5})) then
+ 		stats.sex			=3D MySave_PopNetUint8() -- * 0x00 - Male  * 0x01 - Female
+ 		=
+
+ 		stats.str			=3D MySave_PopNetUint16()
+@@ -197,7 +209,7 @@
+ 		stats.armor			=3D MySave_PopNetUint16() -- resistPhysical (old clients: =
+AC).
+ 		stats.curWeight		=3D MySave_PopNetUint16()
+ =
+
+-		if (stats.flag =3D=3D 5) then
++		if (stats.mobstatversion =3D=3D 5) then
+ 			stats.maxWeight	=3D MySave_PopNetUint16()
+ 			stats.race		=3D MySave_PopNetUint8()
+ 		elseif stats.curWeight then
+@@ -217,12 +229,12 @@
+ 			end
+ 		end
+ 		=
+
+-		if (in_array( stats.flag, {3,4,5} )) then -- Followers (pets)
++		if (in_array( stats.mobstatversion, {3,4,5} )) then -- Followers (pets)
+ 			stats.statcap	=3D MySave_PopNetUint16()		-- The character's total allow=
+able sum of Strength, Intelligence, and Dexterity
+ 			stats.curPet	=3D MySave_PopNetUint8()			=
+
+ 			stats.maxPet	=3D MySave_PopNetUint8()
+ 			=
+
+-			if (in_array( stats.flag, {4,5} )) then -- Resistances
++			if (in_array( stats.mobstatversion, {4,5} )) then -- Resistances
+ 				stats.fireresist	=3D MySave_PopNetUint16()
+ 				stats.coldresist	=3D MySave_PopNetUint16()
+ 				stats.poisonresist	=3D MySave_PopNetUint16()
+
+Modified: trunk/lua/net/net.other.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.other.lua (original)
++++ trunk/lua/net/net.other.lua Sat Dec 26 19:24:31 2009
+@@ -42,6 +42,42 @@
+ 	out:PushNetUint8(range)
+ 	out:SendPacket()
+ end
++
++-- http://docs.polserver.com/packets/index.php?Packet=3D0x17      Health b=
+ar status update (KR)
++-- new in v7000 ? used on poison state
++function gPacketHandler.kPacket_Script_Tree_Command ()	-- 0x17
++	local input =3D GetRecvFIFO()
++	local id =3D input:PopNetUint8()
++    local size =3D input:PopNetUint16()
++	print("kPacket_Script_Tree_Command")
++	print(FIFOHexDump(input,0,size-3))
++	if (size =3D=3D 1+2+4+2+2+1) then =
+
++		local serial		=3D input:PopNetUint32()
++		local unknown1		=3D input:PopNetUint16()
++		local healthbarcol	=3D input:PopNetUint16() --  (1=3Dgreen, 2=3Dyellow, =
+>2=3Dred?)
++		local action		=3D input:PopNetUint8() --  BYTE[1] Flag (0=3DRemove healt=
+h bar color, 1=3DEnable health bar color)
++		print("healthbarcol =3D ",serial,unknown1,healthbarcol,action)
++		local bEnable		=3D action =3D=3D 1
++		local mask
++		if (healthbarcol =3D=3D 1) then mask =3D kMobileFlag_Poisoned end
++		if (healthbarcol =3D=3D 2) then mask =3D kMobileFlag_GoldenHealth end
++		local mobile =3D GetMobile(serial)
++		if (mobile and mask) then
++			if (bEnable) then =
+
++				if (not TestBit(mobile.flag,mask)) then mobile.flag =3D mobile.flag + =
+mask end
++			else
++				if (TestBit(mobile.flag,mask)) then mobile.flag =3D mobile.flag - mask=
+ end
++			end
++			mobile:UpdateFlags()
++			print("healthbarcol:mobile",serial,mobile.flag)
++		end
++	else =
+
++		input:PopRaw(size-3)
++	end
++	=
+
++end
++--~ 00 0d ba 5b 00 01 00 01 01                        |...[.....|
++--~ 00 0d ba 5b 00 01 00 01 00                        |...[.....|
+ =
+
+ function gPacketHandler.kPacket_Change_Update_Range ()	-- 0xC8
+ 	local input =3D GetRecvFIFO()
+
+Modified: trunk/lua/obj/obj.mobile.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/obj/obj.mobile.lua (original)
++++ trunk/lua/obj/obj.mobile.lua Sat Dec 26 19:24:31 2009
+@@ -261,6 +261,7 @@
+ 	self.name =3D stats.name
+ 	local oldstats =3D self.stats
+ 	self.stats =3D stats
++	if (stats.flag) then self.flag =3D stats.flag end
+ 	self:NotifyListener("Mobile_UpdateStats")
+ 	-- not needed due to normal damage packet
+ 	-- TODO is this ok for every server?
+
+Modified: trunk/premake.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/premake.lua (original)
++++ trunk/premake.lua Sat Dec 26 19:24:31 2009
+@@ -35,6 +35,7 @@
+ addoption("noassert","don't use asserts")
+ addoption("openalsoft","use openal-soft instead of openal")
+ addoption("useluajit","use luajit (just in time compiler)")
++addoption("nosound","disable all sound output")
+ =
+
+ if (options["wall"]) then gbExtraWarnings =3D true print(">>> extra warnin=
+gs enabled") end
+ if (options["nooptimize"]) then gbOptimize =3D false print(">>> optimizati=
+on disabled") end
+@@ -44,6 +45,7 @@
+ if (options["noassert"]) then gbDisableAssert =3D true print(">>> disabled=
+ asserts (NDEBUG)") end
+ if (options["openalsoft"]) then gbUseSoundOpenAl =3D true gLugreUseOpenAlS=
+oft =3D true print(">>> enabled openal-soft") end
+ if (options["useluajit"]) then gbUseLuaJit =3D true print(">>> enabled lua=
+jit") end
++if (options["nosound"]) then gbUseSoundOpenAl =3D false gbUseSoundFmod =3D=
+ false print(">>> nosound") end
+ =
+
+ gLugreDir =3D "lugre"
+ if (io.open("mylugre/lua/lugre.lua")) then print(">>> using mylugre dir ov=
+erride") gLugreDir =3D "mylugre" end
+
+Modified: trunk/premakelinux.sh
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/premakelinux.sh (original)
++++ trunk/premakelinux.sh Sat Dec 26 19:24:31 2009
+@@ -6,9 +6,9 @@
+ echo ${JOBS}
+ if [ "$(uname -m)" =3D=3D "x86_64" ]; # luajit doesn't work on 64 bit
+ then
+-	./premake --noassert --target gnu
++	./premake --noassert --target gnu $@
+ else
+-	./premake --noassert --target gnu
++	./premake --noassert --target gnu $@
+ fi
+ =
+
+ #  --useluajit .. was supposed to work at least in 32 bit, but seems to ca=
+use trouble with lua popen
+
+
+
+From no-reply at zwischenwelt.org  Mon Dec 28 15:41:55 2009
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Mon, 28 Dec 2009 14:41:55 -0000
+Subject: [Iris-commit] [IRIS] r3204 - /trunk/bin/emergency_update.bat
+Message-ID: <20091228144155.5E2EA7A9816C@simon>
+
+Author: ghoulsblade
+Date: Mon Dec 28 15:41:55 2009
+New Revision: 3204
+
+Log:
+emergency update : added svn clean to resolve locks from crash during update
+
+Modified:
+    trunk/bin/emergency_update.bat
+
+Modified: trunk/bin/emergency_update.bat
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/bin/emergency_update.bat (original)
++++ trunk/bin/emergency_update.bat Mon Dec 28 15:41:55 2009
+@@ -1,6 +1,7 @@
+ @echo off
+ cd ..
+ echo updating...
++bin\svn cleanup
+ bin\svn up
+ echo update finished
+ pause
+
+
+
+From no-reply at zwischenwelt.org  Tue Dec 29 16:34:33 2009
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Tue, 29 Dec 2009 15:34:33 -0000
+Subject: [Iris-commit] [IRIS] r3205 - in /trunk: bin/iris2.exe
+	vc9/iris.vcproj
+Message-ID: <20091229153433.9F3807A98163@simon>
+
+Author: sience
+Date: Tue Dec 29 16:34:31 2009
+New Revision: 3205
+
+Log:
+-new win32 binary
+
+Modified:
+    trunk/bin/iris2.exe
+    trunk/vc9/iris.vcproj
+
+Modified: trunk/bin/iris2.exe
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+Binary files - no diff available.
+
+Modified: trunk/vc9/iris.vcproj
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/vc9/iris.vcproj (original)
++++ trunk/vc9/iris.vcproj Tue Dec 29 16:34:31 2009
+@@ -138,7 +138,7 @@
+ 				RuntimeTypeInfo=3D"true"
+ 				WarningLevel=3D"1"
+ 				Detect64BitPortabilityProblems=3D"false"
+-				DebugInformationFormat=3D"3"
++				DebugInformationFormat=3D"0"
+ 			/>
+ 			<Tool
+ 				Name=3D"VCManagedResourceCompilerTool"
+@@ -1317,26 +1317,6 @@
+ 					</File>
+ 				</Filter>
+ 			</Filter>
+-			<Filter
+-				Name=3D"sqllite"
+-				>
+-				<File
+-					RelativePath=3D"..\lugre\lib\sqlite\src\libluasqlite3.c"
+-					>
+-				</File>
+-				<File
+-					RelativePath=3D"..\lugre\lib\sqlite\src\sqlite3.c"
+-					>
+-				</File>
+-				<File
+-					RelativePath=3D"..\lugre\lib\sqlite\include\sqlite3.h"
+-					>
+-				</File>
+-				<File
+-					RelativePath=3D"..\lugre\lib\sqlite\include\sqlite3ext.h"
+-					>
+-				</File>
+-			</Filter>
+ 		</Filter>
+ 	</Files>
+ 	<Globals>
+
+
+

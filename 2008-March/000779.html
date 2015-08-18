@@ -1,0 +1,405 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1967 - in /trunk/lua: lib.unifont.lua main.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-March/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1967%20-%20in%20/trunk/lua%3A%20lib.unifont.lua%20main.lua&In-Reply-To=%3C20080317000012.98567152402A%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000778.html">
+   <LINK REL="Next"  HREF="000780.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1967 - in /trunk/lua: lib.unifont.lua main.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1967%20-%20in%20/trunk/lua%3A%20lib.unifont.lua%20main.lua&In-Reply-To=%3C20080317000012.98567152402A%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1967 - in /trunk/lua: lib.unifont.lua main.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Mon Mar 17 00:10:34 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000778.html">[Iris-commit] [IRIS] r1966 - in /trunk/lua/gui: gui.container.lua gui.main.lua gui.pagedialog.lua gui.widget.lua
+</A></li>
+        <LI>Next message: <A HREF="000780.html">[Iris-commit] [IRIS] r1968 - in /trunk/lua: lib.unifont.lua main.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#779">[ date ]</a>
+              <a href="thread.html#779">[ thread ]</a>
+              <a href="subject.html#779">[ subject ]</a>
+              <a href="author.html#779">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Mon Mar 17 00:10:32 2008
+New Revision: 1967
+
+Log:
+started transforming glyphlist to floatlayout
+
+Modified:
+    trunk/lua/lib.unifont.lua
+    trunk/lua/main.lua
+
+Modified: trunk/lua/lib.unifont.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.unifont.lua (original)
++++ trunk/lua/lib.unifont.lua Mon Mar 17 00:10:32 2008
+@@ -1,8 +1,8 @@
+ -- handles uo unicode fonts textureatlas =
+
++-- see also lugre/lib.gui.flow.lua
+ =
+
+ gUniFontTexAtlasSize =3D 512
+ gUniFontLastTextureAtlas =3D nil
+-kTabLen =3D 4
+ =
+
+ --~ gUniFontLoaderList[0] =3D unifont.mul
+ --~ gUniFontLoaderList[i] =3D unifont(1-6).mul
+@@ -84,46 +84,8 @@
+ 	return unpack(glyphdata)
+ end
+ =
+
+-kCharCode_Space				=3D string.byte(&quot; &quot;,1)
+-kCharCode_Tab				=3D string.byte(&quot;\t&quot;,1)
+-kCharCode_Nl				=3D string.byte(&quot;\n&quot;,1) -- newline
+-kCharCode_Cr				=3D string.byte(&quot;\r&quot;,1) -- carriage return
+-kCharCode_SpaceWidthChar	=3D string.byte(&quot;0&quot;,1) -- this charcode is used t=
+o determine the width of &quot;space&quot;
+ =
+
+-
+--- call after ogre init
+-function CreateFontObject_Ogre (sFontName)
+-	local sMatName,tGlyphTable =3D ExportOgreFont(sFontName)
+-	local myfont =3D {}
+-	myfont.sMatName		=3D sMatName
+-	myfont.sTexName		=3D GetTexture(myfont.sMatName)
+-	myfont.tGlyphTable	=3D tGlyphTable
+-	myfont.zeroglyph	=3D myfont.tGlyphTable[kCharCode_SpaceWidthChar]
+-	myfont.tSpaceAspect	=3D myfont.zeroglyph and myfont.zeroglyph.aspectRatio=
+ or 1
+-	=
+
+-	myfont.GetDefaultFontSize	=3D function (self) return 24 end
+-	myfont.GetSpaceWidth		=3D function (self,iFontSize) return self.tSpaceAsp=
+ect * iFontSize end
+-	myfont.GetLineHeight		=3D function (self,iFontSize) return iFontSize end
+-	myfont.GetGlyph				=3D function (self,iCharCode,iFontSize) =
+
+-		local glyph =3D self.tGlyphTable[iCharCode]
+-		if (not glyph) then return end
+-		local u0	=3D glyph.left
+-		local v0	=3D glyph.top
+-		local uvw	=3D glyph.right-u0
+-		local uvh 	=3D glyph.bottom-v0
+-		local h		=3D iFontSize
+-		local w		=3D h * glyph.aspectRatio
+-		local xoff =3D 0
+-		local yoff =3D 0
+-		local xmove =3D w
+-		local texname =3D myfont.sTexName
+-		--~ print(&quot;CreateFontObject_Ogre:GetGlyph:&quot;,self,iCharCode,iFontSize,tex=
+name, xmove, xoff,yoff,w,h, u0,v0, uvw,0, 0,uvh)
+-		return texname, xmove, xoff,yoff,w,h, u0,v0, uvw,0, 0,uvh
+-	end
+-	return myfont
+-end
+-
+-function CreateFontObject_UO (loader)
++function CreateFont_UO (loader)
+ 	local myfont =3D {}
+ 	local texname,u0,v0,u1,v1,xoff,yoff,w,h =3D GetUniFontGlyph(loader,kCharC=
+ode_SpaceWidthChar)
+ 	myfont.spacewidth =3D w
+@@ -145,183 +107,4 @@
+ 	return myfont
+ end
+ =
+
+--- flowlayout =3D glyphlist + widgets as glyphs ?
+--- glyphlist is derived from rendergroup2d
+-function CreateGlyphList (parentgroup2d)
+-	local glyphlist =3D CreateRenderGroup2D(parentgroup2d)
+-	glyphlist.spritelists	=3D {}
+-	glyphlist.glyphs		=3D {}
+-	ArrayOverwrite(glyphlist,gGlyphListPrototype)
+-	return glyphlist
+-end
+ =
+
+-
+-gGlyphListPrototype =3D {}
+-
+--- r,g,b,a defaults to white
+--- iFontSize defaults to font-default
+-function gGlyphListPrototype:AddFontText (fontobj,text,r,g,b,a,iFontSize)
+-	local textlen =3D string.len(text)
+-	for i=3D1,textlen do self:AddFontGlyph(fontobj,string.byte(text,i),r,g,b,=
+a,iFontSize) end
+-end
+-
+--- fontobj : see CreateFontObject_Ogre()
+--- r,g,b,a defaults to white
+--- iFontSize defaults to font-default
+-function gGlyphListPrototype:AddFontGlyph (fontobj,iCharCode,r,g,b,a,iFont=
+Size)
+-	iFontSize =3D iFontSize or fontobj:GetDefaultFontSize()
+-	if (iCharCode =3D=3D kCharCode_Space	) then self:AddSpace(	fontobj:GetSpa=
+ceWidth(iFontSize),fontobj:GetLineHeight(iFontSize)) return end
+-	if (iCharCode =3D=3D kCharCode_Tab		) then self:AddTab(		fontobj:GetSpace=
+Width(iFontSize),fontobj:GetLineHeight(iFontSize)) return end
+-	if (iCharCode =3D=3D kCharCode_Nl		) then self:AddNewLine(	fontobj:GetLin=
+eHeight(iFontSize)) return end
+-	if (iCharCode =3D=3D kCharCode_Cr		) then return end -- ignore
+-	local			texname, xmove, xoff,yoff,w,h, u0,v0, ux,vx, uy,vy =3D fontobj:Ge=
+tGlyph(iCharCode,iFontSize)
+-	if (not texname) then return end -- todo : placeholder glyph defined by f=
+ontobj ??
+-	self:AddGlyph(	texname, xmove, xoff,yoff,w,h, u0,v0, ux,vx, uy,vy, r,g,b,=
+a)
+-end
+-
+-function gGlyphListPrototype:Clear		() self.glyphs =3D {} end
+-function gGlyphListPrototype:AddNewLine	(lineh)			table.insert(self.glyphs=
+,{kCharCode_Nl		,lineh}) end
+-function gGlyphListPrototype:AddSpace	(spacew,lineh)	table.insert(self.gly=
+phs,{kCharCode_Space	,spacew,lineh or 0}) end
+-function gGlyphListPrototype:AddTab		(spacew,lineh)	table.insert(self.glyp=
+hs,{kCharCode_Tab		,spacew,lineh or 0}) end
+-function gGlyphListPrototype:AddGlyph	(texname, xmove, xoff,yoff,w,h, u0,v=
+0, ux,vx, uy,vy, r,g,b,a)
+-	table.insert(self.glyphs,			{texname, xmove, xoff,yoff,w,h, u0,v0, ux,vx,=
+ uy,vy, r or 1,g or 1,b or 1,a or 0.5})
+-end
+-function gGlyphListPrototype:AddIcon	(texname, w,h, yoff, u0,v0, u1,v1, r,=
+g,b,a) self:AddGlyph(texname,w,0,yoff,w,h,u0,v0, u1-u0,0, 0,v1-v0, r,g,b,a)=
+ end
+-
+-function gGlyphListPrototype:ClearSpriteLists ()
+-	for k,spritelist in pairs(self.spritelists) do spritelist:Destroy() end
+-	self.spritelists =3D {}
+-end
+-
+-function gGlyphListPrototype:UpdateGeometry	()
+-	-- release old spritelists
+-	self:ClearSpriteLists()
+-	=
+
+-	-- prepare loopvars
+-	local last_texname =3D nil
+-	local last_spritelist =3D nil
+-	local x,y =3D 0,0
+-	local z =3D 0
+-	local iSpriteIndex =3D 0
+-
+-	-- iterate over glyphs
+-	local glyphcount =3D table.getn(self.glyphs)
+-	for i=3D1,glyphcount do
+-		local glyph =3D self.glyphs[i]
+-		if (glyph[1] =3D=3D kCharCode_Space) then -- space
+-			local code,spacew,lineh =3D unpack(glyph)
+-			x =3D x + spacew
+-		elseif (glyph[1] =3D=3D kCharCode_Tab) then -- tab
+-			local code,spacew,lineh =3D unpack(glyph)
+-			local tabmaxw =3D kTabLen * spacew
+-			x =3D math.ceil((x + spacew)/tabmaxw) * tabmaxw
+-		elseif (glyph[1] =3D=3D kCharCode_Nl) then -- newline
+-			local code,lineh =3D unpack(glyph)
+-			x =3D 0
+-			y =3D y + lineh
+-		else -- printable char
+-			local texname, xmove, xoff,yoff,w,h, u0,v0, ux,vx, uy,vy, r,g,b,a =3D u=
+npack(glyph)
+-			if (last_texname ~=3D texname) then
+-				-- determine how many glyphs until texname-change
+-				local len =3D 0 =
+
+-				for j=3Di,glyphcount do =
+
+-					local glyph =3D self.glyphs[j]
+-					if (	glyph[1] =3D=3D kCharCode_Space) then =
+
+-					elseif (glyph[1] =3D=3D kCharCode_Tab) then =
+
+-					elseif (glyph[1] =3D=3D kCharCode_Nl) then =
+
+-					else
+-						if (glyph[1] ~=3D texname) then break end
+-						len =3D len + 1
+-					end
+-				end
+-				=
+
+-				-- close last spritelist
+-				if (last_spritelist) then SpriteList_Close() end
+-				=
+
+-				-- start new spritelist
+-				last_texname =3D texname
+-				local parent =3D self -- glyphlist is derived from rendergroup2d
+-				last_spritelist =3D CreateSpriteList(parent,false,true) =
+
+-				last_spritelist.asgroup =3D last_spritelist:CastToRenderGroup2D()
+-				last_spritelist:SetTexture(texname)
+-				last_spritelist:ResizeList(len)
+-				SpriteList_Open(last_spritelist)
+-				iSpriteIndex =3D 0
+-			end
+-			=
+
+-			-- add the sprite to the list
+-			SpriteList_SetSpriteEx(iSpriteIndex, xoff+x,yoff+y,w,h, u0,v0, ux,vx, u=
+y,vy, z, r,g,b,a)
+-			x =3D x + xmove
+-			iSpriteIndex =3D iSpriteIndex + 1
+-		end
+-		=
+
+-	end
+-	=
+
+-	-- close spritelist
+-	if (last_spritelist) then SpriteList_Close() end
+-end
+-
+-function UniFontTest ()
+-	ToggleLogo()
+-	ToggleLogo()
+-	--~ gTestNoIrisLogo =3D true
+-	=
+
+-	--~ if (true) then return end
+-	gRenderMan2D =3D CreateRenderManager2D()
+-	gRenderMan2D_Dialogs =3D CreateRenderGroup2D(gRenderMan2D)
+-	local glyphlist =3D CreateGlyphList(gRenderMan2D_Dialogs)
+-	=
+
+-	=
+
+-	=
+
+-	local myfont_ogre	=3D CreateFontObject_Ogre(&quot;TrebuchetMSBold&quot;) -- ogre fo=
+nt
+-	local myfont_uo0	=3D CreateFontObject_UO(gUniFontLoaderList[0]) -- 0=3Dme=
+dieval =
+
+-	local myfont_uo3	=3D CreateFontObject_UO(gUniFontLoaderList[3]) -- 3=3Dde=
+fault-chat
+-	=
+
+-	--~ local mytext =3D &quot;Hallo, test 0123\nBlablubblub\nUnicode:=C3=A4=C3=B6=
+=C3=BC=C3=9F=C3=84=C3=96=C3=9C(german)\nTab\t1\tTabtest\nt\t1\n\t1\n\t\t2\n=
+\t\t\t3\nFont1&quot;
+-	local mytext =3D &quot;Hello, test 0123\nUnicode:=C3=A4=C3=B6=C3=BC=C3=9F=C3=
+=84=C3=96=C3=9C(german)\nFont1&quot;
+-	-- glyphlist:AddFontText(fontobj,text,r,g,b,a,iFontSize)
+-	glyphlist:AddFontText(myfont_uo0,mytext)
+-	glyphlist:AddFontText(myfont_ogre,&quot;,font2&quot;)
+-	glyphlist:AddFontText(myfont_uo3,&quot;,font3\n&quot;)
+-	=
+
+-	local funchars =3D &quot;abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1=
+234567890&quot;
+-	for y=3D0,0 do
+-		for i=3D0,20 do
+-			local cpos =3D math.random(string.len(funchars))
+-			local c =3D string.sub(funchars,cpos,cpos)
+-			local r,g,b,a =3D math.random(),math.random(),math.random(),1
+-			local r =3D math.random()
+-			local font =3D myfont_uo0
+-			if (math.random() &lt; 0.5) then font =3D myfont_uo0 end
+-			--~ if (math.random() &lt; 0.3) then font =3D myfont_ogre end
+-			glyphlist:AddFontText(font,c,r,g,b,a)
+-		end
+-		glyphlist:AddFontText(myfont_uo3,&quot;\n&quot;)
+-	end
+-	glyphlist:AddFontText(myfont_uo0,&quot;Fonts &quot;)
+-	glyphlist:AddFontText(myfont_uo3,&quot;and &quot;)
+-	glyphlist:AddFontText(myfont_uo3,&quot;C&quot;, 1,0,0)
+-	glyphlist:AddFontText(myfont_uo3,&quot;o&quot;, 0,0,1)
+-	glyphlist:AddFontText(myfont_uo3,&quot;l&quot;, 0,1,1)
+-	glyphlist:AddFontText(myfont_uo3,&quot;o&quot;, 0,1,0)
+-	glyphlist:AddFontText(myfont_uo3,&quot;r&quot;, 1,0,1)
+-	glyphlist:AddFontText(myfont_uo3,&quot;s&quot;, 1,1,0)
+-	glyphlist:AddFontText(myfont_uo3,&quot; can be&quot;)
+-	glyphlist:AddFontText(myfont_uo0,&quot; mixed\n&quot;)
+-	=
+
+-	glyphlist:AddFontText(myfont_uo3,&quot;you can include images &quot;)
+-	--~ glyphlist:AddSpace(2)
+-	--~ glyphlist:AddIcon(&quot;art_fallback.png&quot;,	18,18, 0, 0,0, 1,1)
+-	local e =3D 1/8
+-	glyphlist:AddIcon(&quot;compassframe_zoomin.png&quot;, 24,24, -2, e,e, 1-e,1-e)
+-	glyphlist:AddFontText(myfont_uo0,&quot;12&quot;,0,1,0)
+-	glyphlist:AddFontText(myfont_uo3,&quot;,\nand even color them &quot;)
+-	=
+
+-	local texname, w,h, u0,v0, u1,v1, r,g,b,a =3D &quot;guibase.png&quot;, 16,16, 0,0.5=
+, 0.5,1
+-	glyphlist:AddIcon(texname, w,h, 2, u0,v0, u1,v1, 1,1,1,1) glyphlist:AddSp=
+ace(4)
+-	glyphlist:AddIcon(texname, w,h, 2, u0,v0, u1,v1, 1,0,0,1) glyphlist:AddSp=
+ace(4)
+-	glyphlist:AddIcon(texname, w,h, 2, u0,v0, u1,v1, 0,1,0,1)
+-	glyphlist:AddFontText(myfont_uo3,&quot; =3D)&quot;)
+-	glyphlist:UpdateGeometry()
+-end
+-
+
+Modified: trunk/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/main.lua (original)
++++ trunk/lua/main.lua Mon Mar 17 00:10:32 2008
+@@ -316,7 +316,7 @@
+ =
+
+ 	StartMainMenu()
+ 	=
+
+-	if (false) then UniFontTest() end
++	if (true) then UniFontTest() end
+ =
+
+ 	-- mainloop
+ 	while (Client_IsAlive()) do =
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000778.html">[Iris-commit] [IRIS] r1966 - in /trunk/lua/gui: gui.container.lua gui.main.lua gui.pagedialog.lua gui.widget.lua
+</A></li>
+	<LI>Next message: <A HREF="000780.html">[Iris-commit] [IRIS] r1968 - in /trunk/lua: lib.unifont.lua main.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#779">[ date ]</a>
+              <a href="thread.html#779">[ thread ]</a>
+              <a href="subject.html#779">[ subject ]</a>
+              <a href="author.html#779">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

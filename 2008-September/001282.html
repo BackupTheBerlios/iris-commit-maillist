@@ -1,0 +1,309 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2477 - in /trunk/lua: lib.2d.spriteblock.lua lib.artatlas.lua lib.iris_atlasgroup.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-September/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2477%20-%20in%20/trunk/lua%3A%20lib.2d.spriteblock.lua%0A%20lib.artatlas.lua%20lib.iris_atlasgroup.lua&In-Reply-To=%3C20080929000008.8CE311C186AA%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001281.html">
+   <LINK REL="Next"  HREF="001283.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2477 - in /trunk/lua: lib.2d.spriteblock.lua lib.artatlas.lua lib.iris_atlasgroup.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2477%20-%20in%20/trunk/lua%3A%20lib.2d.spriteblock.lua%0A%20lib.artatlas.lua%20lib.iris_atlasgroup.lua&In-Reply-To=%3C20080929000008.8CE311C186AA%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2477 - in /trunk/lua: lib.2d.spriteblock.lua lib.artatlas.lua lib.iris_atlasgroup.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Mon Sep 29 01:23:01 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001281.html">[Iris-commit] [IRIS] r2476 - in /trunk/lua: lib.2d.dynamic.lua lib.2d.renderer.lua lib.2d.spriteblock.lua net.walk.lua
+</A></li>
+        <LI>Next message: <A HREF="001283.html">[Iris-commit] [IRIS] r2478 - in /trunk/lua: lib.2d.mobile.lua lib.2d.spriteblock.lua lib.artatlas.lua lib.iris_atlasgroup.lua lib.uoanim.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1282">[ date ]</a>
+              <a href="thread.html#1282">[ thread ]</a>
+              <a href="subject.html#1282">[ subject ]</a>
+              <a href="author.html#1282">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Mon Sep 29 01:23:01 2008
+New Revision: 2477
+
+Log:
+artatlas code replaced by generic atlasgroup code
+
+Modified:
+    trunk/lua/lib.2d.spriteblock.lua
+    trunk/lua/lib.artatlas.lua
+    trunk/lua/lib.iris_atlasgroup.lua
+
+Modified: trunk/lua/lib.2d.spriteblock.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.spriteblock.lua (original)
++++ trunk/lua/lib.2d.spriteblock.lua Mon Sep 29 01:23:01 2008
+@@ -128,8 +128,8 @@
+ 	local atlas =3D pAtlasPiece.atlas
+ 	local group =3D self.pSpritesByAtlas[atlas]
+ 	if (not group) then group =3D {} self.pSpritesByAtlas[atlas] =3D group end
+-	local pw =3D pAtlasPiece.w
+-	local ph =3D pAtlasPiece.h
++	local pw =3D pAtlasPiece.origw
++	local ph =3D pAtlasPiece.origh
+ 	=
+
+ 	=
+
+ 	local x,y,z =3D -tx,ty,zloc * kRenderer2D_ZScale
+
+Modified: trunk/lua/lib.artatlas.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.artatlas.lua (original)
++++ trunk/lua/lib.artatlas.lua Mon Sep 29 01:23:01 2008
+@@ -1,12 +1,6 @@
+ -- loads artid graphics to one or multiple texture-atlases
+--- can also reorganizes atlases as needed with locking/unlocking system
+-
+-gArtAtlasSize =3D 512*2
+-gLastArtAtlas =3D nil
+-gArtAtlasCache =3D {}
+-kArtAtlasDebugDumpAtlas =3D false
+-gArtAtlasList =3D {}
+-
++-- TODO : can also reorganizes atlases as needed with locking/unlocking sy=
+stem ?
++-- ... now just a wrapper for a call to the generic atlasgroup implementat=
+ion
+ =
+
+ -- returns sMatName,iWidth,iHeight,iCenterX,iCenterY,u0,v0,u1,v1 =3D ArtAt=
+lasLoadAndLockDirect(iTileTypeID,iHue,pLockKeeper,basematerial)
+ -- immediately load material, useful for dynamics
+@@ -14,120 +8,17 @@
+ 	local o =3D ArtAtlasLoadAndLock(iTileTypeID,iHue,pLockKeeper)
+ 	if (not o) then return end
+ 	local sMatName =3D ArtAtlasLoadMaterial(o.atlas,basematerial)
+-	local iCenterX,iCenterY =3D o.w/2,o.h-22
+-	return sMatName,o.w,o.h,iCenterX,iCenterY,o.u0,o.v0,o.u1,o.v1
++	local iCenterX,iCenterY =3D o.origw/2,o.origh-22
++	return sMatName,o.origw,o.origh,iCenterX,iCenterY,o.u0,o.v0,o.u1,o.v1
+ end
+ =
+
+ -- material is not immediately loaded, useful for statics
+ -- returns object with fields : atlas,u0,v0,u1,v1,w,h
+-function ArtAtlasLoadAndLock (iTileTypeID,iHue,pLockKeeper)
+-	local n =3D iTileTypeID..&quot;_&quot;..iHue
+-	local o =3D gArtAtlasCache[n] =
+
+-	if (o ~=3D nil) then return o end
+-	gArtAtlasCache[n] =3D false
+-	=
+
+-	-- load image
+-	local pImage =3D CreateImage()
+-	if (not gArtMapLoader:ExportToImage(pImage,iTileTypeID,gHueLoader,iHue)) =
+then print(&quot;ArtAtlasLoadAndLock:ExportToImage fail&quot;,iTileTypeID,iHue) pImag=
+e:Destroy() return end
+-	if (not gArtMapLoader:GetSize(pImage,iTileTypeID,gHueLoader,iHue)) then p=
+rint(&quot;ArtAtlasLoadAndLock:GetSize fail&quot;,iTileTypeID,iHue) pImage:Destroy() =
+return end
+-	=
+
+-	-- load/create atlas
+-	local w =3D gArtAtlasSize
+-	if (gLastArtAtlas =3D=3D nil) then
+-		print(&quot;ArtAtlasLoadAndLock : create first atlas&quot;) =
+
+-		gLastArtAtlas =3D CreateTexAtlas(w,w) =
+
+-		table.insert(gArtAtlasList, gLastArtAtlas)
+-	end -- only first time
+-	=
+
+-	-- add to exisiting texatlas or start a new one if it doesn't fit
+-	local iBorderPixels=3D1
+-	local bWrap=3Dfalse
+-	=
+
+-	local usedAtlas =3D nil
+-	=
+
+-	local bSuccess,l,r,t,b
+-	=
+
+-	-- search fitting atlas
+-	for k,v in pairs(gArtAtlasList) do
+-		bSuccess,l,r,t,b =3D v:AddImage(pImage,iBorderPixels,bWrap)
+-		if bSuccess then =
+
+-			usedAtlas =3D v
+-			-- stop searching
+-			break
+-		end
+-	end
+-	=
+
+-	if (not bSuccess) then =
+
+-		-- not more space in the old atlas, start a new one
+-		print(&quot;ArtAtlasLoadAndLock : create new atlas&quot;) =
+
+-		gLastArtAtlas =3D CreateTexAtlas(w,w)
+-		table.insert(gArtAtlasList, gLastArtAtlas)
+-		bSuccess,l,r,t,b =3D gLastArtAtlas:AddImage(pImage,iBorderPixels,bWrap)
+-		usedAtlas =3D gLastArtAtlas
+-		if (not bSuccess) then print(&quot;warning : ArtAtlasLoadAndLock: art too big=
+ for texatlas&quot;) pImage:Destroy() return end
+-	end
+-	=
+
+-	local w =3D pImage:GetWidth()
+-	local h =3D pImage:GetHeight()
+-	pImage:Destroy()
+-	=
+
+-	-- create or update texatlas
+-	usedAtlas.bIsDirty =3D true -- only rebuild on demand, not for every add
+-	=
+
+-	-- return info about the allocated area for this glyph
+-	o =3D {}
+-	gArtAtlasCache[n] =3D o
+-	o.atlas =3D usedAtlas
+-	o.u0 =3D l
+-	o.v0 =3D t
+-	o.u1 =3D r
+-	o.v1 =3D b
+-	o.w =3D w
+-	o.h =3D h
+-	=
+
+-	return o
+-end
++function ArtAtlasLoadAndLock (iTileTypeID,iHue,pLockKeeper)  return PreLoa=
+dArt(iTileTypeID,iHue) end
+ =
+
+-function ArtAtlasReloadAll ()
+-	for k,atlas in pairs(gArtAtlasList) do atlas.bIsDirty =3D true ArtAtlasLo=
+adMaterial(atlas) end
+-end
+-
+--- param : ArtAtlasLoadAndLock(...).atlas
++-- atlas =3D ArtAtlasLoadAndLock(...).atlas
+ -- creates/updates texture/material as needed
+--- returns matname
+-function ArtAtlasLoadMaterial (atlas, basematerial) =
+
+-	if (atlas.bIsDirty) then
+-		--~ local startt =3D Client_GetTicks()
+-		atlas.bIsDirty =3D false
+-		if (atlas.texname) then =
+
+-			atlas:LoadToTexture(atlas.texname) -- update existing texture
+-		else
+-			atlas.texname =3D atlas:MakeTexture() -- generate new texture
+-		end
+-		-- dump atlas image
+-		if (kArtAtlasDebugDumpAtlas) then
+-			local img2 =3D CreateImage()
+-			gLastArtAtlas:MakeImage(img2)
+-			gArtAtlasDebugDumpAtlasCount =3D (gArtAtlasDebugDumpAtlasCount or 0) + 1
+-			img2:SaveAsFile(&quot;artatlas_&quot;..gArtAtlasDebugDumpAtlasCount..&quot;.png&quot;)
+-			img2:Destroy()
+-		end
+-		--~ local startt2 =3D Client_GetTicks()
+-		--~ print(&quot;ArtAtlasLoadMaterial t:&quot;,startt2-startt)
+-	end
+-	if (not basematerial) then return end
+-	atlas.mats =3D atlas.mats or {}
+-	local matname =3D atlas.mats[basematerial]
+-	if (not matname) then =
+
+-		matname =3D CloneMaterial(basematerial)
+-		if (not matname) then print(&quot;ArtAtlasLoadMaterial: failed to clone basem=
+at&quot;,basematerial) return end
+-		SetTexture(matname,atlas.texname)
+-		--~ SetSceneBlend(matname,0,0,0)
+-		--~ SetDepthWriteEnabled(matname,0,0,1)
+-		atlas.mats[basematerial] =3D matname
+-	end
+-	return matname
+-end
++function ArtAtlasLoadMaterial (atlas,basemat) return gAtlasGroup_Art:LoadA=
+tlasMat(atlas,basemat) end
+ =
+
+ function ArtAtlasUnLock (pLockKeeper) end
+ =
+
+
+Modified: trunk/lua/lib.iris_atlasgroup.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.iris_atlasgroup.lua (original)
++++ trunk/lua/lib.iris_atlasgroup.lua Mon Sep 29 01:23:01 2008
+@@ -8,8 +8,8 @@
+ gAtlasGroup_Gump	=3D CreateAtlasGroup(kIrisAtlasGroupSize,kIrisAtlasGroupS=
+ize)
+ gAtlasGroup_Art		=3D CreateAtlasGroup(kIrisAtlasGroupSize,kIrisAtlasGroupS=
+ize)
+ =
+
+-function PreLoadGump		(gump_id,hue)	if (gump_id) then gAtlasGroup_Gump:Pre=
+Load(gump_id,hue) end end
+-function PreLoadArt			(art_id,hue)	if (art_id) then gAtlasGroup_Art:PreLoa=
+d(art_id,hue) end end
++function PreLoadGump		(gump_id,hue)	if (gump_id) then return gAtlasGroup_G=
+ump:PreLoad(gump_id,hue) end end
++function PreLoadArt			( art_id,hue)	if ( art_id) then return gAtlasGroup_A=
+rt:PreLoad(art_id,hue) end end
+ =
+
+ function GetGumpSize	(gump_id,hue)	return gAtlasGroup_Gump:GetSize(gump_id=
+,hue) end -- loads it and returns the size
+ function GetArtSize		(art_id,hue) 	return gAtlasGroup_Art:GetSize(art_id,h=
+ue) end
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001281.html">[Iris-commit] [IRIS] r2476 - in /trunk/lua: lib.2d.dynamic.lua lib.2d.renderer.lua lib.2d.spriteblock.lua net.walk.lua
+</A></li>
+	<LI>Next message: <A HREF="001283.html">[Iris-commit] [IRIS] r2478 - in /trunk/lua: lib.2d.mobile.lua lib.2d.spriteblock.lua lib.artatlas.lua lib.iris_atlasgroup.lua lib.uoanim.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1282">[ date ]</a>
+              <a href="thread.html#1282">[ thread ]</a>
+              <a href="subject.html#1282">[ subject ]</a>
+              <a href="author.html#1282">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,164 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r3005 - /trunk/lua/lib.macrolist.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2009-May/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3005%20-%20/trunk/lua/lib.macrolist.lua&In-Reply-To=%3C20090502022435.409501C18843%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001803.html">
+   <LINK REL="Next"  HREF="001805.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r3005 - /trunk/lua/lib.macrolist.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3005%20-%20/trunk/lua/lib.macrolist.lua&In-Reply-To=%3C20090502022435.409501C18843%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r3005 - /trunk/lua/lib.macrolist.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat May  2 04:24:34 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001803.html">[Iris-commit] [IRIS] r3004 - /trunk/installdeps.ubuntu.sh
+</A></li>
+        <LI>Next message: <A HREF="001805.html">[Iris-commit] [IRIS] r3006 - in /trunk: lua/gui/gui.trade.lua lua/lib.loading.lua lua/lib.uoids.lua lua/net.walk.lua lua/net/net.dynamic.lua lua/obj/obj.dynamic.lua lua/widgets/widget.uotooltip.lua plugins/loot.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1804">[ date ]</a>
+              <a href="thread.html#1804">[ thread ]</a>
+              <a href="subject.html#1804">[ subject ]</a>
+              <a href="author.html#1804">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sat May  2 04:24:34 2009
+New Revision: 3005
+
+Log:
+new macros : MacroCmd_JobWaitForShop , MacroCmd_UseRuneBookPostAOS
+
+Modified:
+    trunk/lua/lib.macrolist.lua
+
+Modified: trunk/lua/lib.macrolist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.macrolist.lua (original)
++++ trunk/lua/lib.macrolist.lua Sat May  2 04:24:34 2009
+@@ -161,6 +161,8 @@
+ end =
+
+ =
+
+ function MacroCmd_PopupCommandByName (serial,name,timeout)
++	if (not serial) then return end
++	if (type(serial) ~=3D &quot;number&quot;) then return end
+     local timeout_endt =3D Client_GetTicks() + (timeout or 1000)
+     Send_PopupRequest(serial)
+     RegisterListener(&quot;Hook_OpenPopupMenu&quot;,function (popupmenu)
+@@ -264,6 +266,20 @@
+     gMacroGumpWaiters[{search=3Dsearch,timeout=3DClient_GetTicks()+(timeou=
+t or 1000),callback=3Dcallback}] =3D true
+ end
+ =
+
++
++gMacroJobsWaitingForShop =3D {}
++function MacroCmd_JobWaitForShop(timeout)
++    gMacroJobsWaitingForShop[job.running_id()] =3D true
++    job.wait(timeout or 30000)
++    gMacroJobsWaitingForShop[job.running_id()] =3D nil
++end
++RegisterListener(&quot;Hook_Open_Shop_Dialog&quot;, function (shop) =
+
++    for jobid,callback in pairs(gMacroJobsWaitingForShop) do =
+
++		gMacroJobsWaitingForShop[jobid] =3D nil
++		job.wakeup(jobid,true) =
+
++	end
++	end)
++	=
+
+ =
+
+ -- method:  nil=3Drecall &quot;gate&quot;=3Dgate  &quot;use&quot;=3Drunebookcharge
+ function MacroCmd_UseRuneBookPreAOS (runebookid,runeidx,method,timeout) --=
+ for pre-aos (uogamers)   runeidx:0-15      =
+
+@@ -278,6 +294,26 @@
+                     dialog:SendClick((side =3D=3D 0) and 135 or 295,70) --=
+ runebook charge
+                 else    =
+
+                     dialog:SendClick((side =3D=3D 0) and 160 or 320,160) -=
+- recall
++                end
++            end
++        end) =
+
++end
++
++-- method:  nil=3Drecall &quot;gate&quot;=3Dgate &quot;chivalry&quot;=3Dsacred-journey &quot;use&quot;=
+=3Drunebookcharge =
+
++function MacroCmd_UseRuneBookPostAOS (runebookid,runeidx,method,timeout) -=
+- for post-aos (vetus-mundus)   runeidx:0-15      =
+
++    Send_DoubleClick(runebookid)
++    MacroCmd_NextGumpContaining(&quot;Charges&quot;,timeout or 1000,function (dialog=
+) =
+
++            if (dialog) then =
+
++                dialog:ShowPage(floor(runeidx/2)+2)
++                local side =3D (runeidx%2)
++				if (method =3D=3D &quot;use&quot;) then
++                    dialog:SendClick((side =3D=3D 0) and 135 or 295,70) --=
+ runebook charge
++                elseif (method =3D=3D &quot;gate&quot;) then
++                    dialog:SendClick((side =3D=3D 0) and 140 or 300,160) -=
+- gate travel
++                elseif (method =3D=3D &quot;chivalry&quot;) then
++                    dialog:SendClick((side =3D=3D 0) and 140 or 300,180) -=
+- chivalry : sacred journey
++                else    =
+
++                    dialog:SendClick((side =3D=3D 0) and 140 or 300,145) -=
+- recall
+                 end
+             end
+         end) =
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001803.html">[Iris-commit] [IRIS] r3004 - /trunk/installdeps.ubuntu.sh
+</A></li>
+	<LI>Next message: <A HREF="001805.html">[Iris-commit] [IRIS] r3006 - in /trunk: lua/gui/gui.trade.lua lua/lib.loading.lua lua/lib.uoids.lua lua/net.walk.lua lua/net/net.dynamic.lua lua/obj/obj.dynamic.lua lua/widgets/widget.uotooltip.lua plugins/loot.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1804">[ date ]</a>
+              <a href="thread.html#1804">[ thread ]</a>
+              <a href="subject.html#1804">[ subject ]</a>
+              <a href="author.html#1804">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

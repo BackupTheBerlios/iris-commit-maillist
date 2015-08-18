@@ -1,0 +1,201 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2430 - in /trunk/lua: lib.3d.dynamic.lua	lib.3d.mousepick.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-September/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2430%20-%20in%20/trunk/lua%3A%20lib.3d.dynamic.lua%0A%09lib.3d.mousepick.lua&In-Reply-To=%3C20080901154831.0DBBA1C18695%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   <LINK REL="Next"  HREF="001236.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2430 - in /trunk/lua: lib.3d.dynamic.lua	lib.3d.mousepick.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2430%20-%20in%20/trunk/lua%3A%20lib.3d.dynamic.lua%0A%09lib.3d.mousepick.lua&In-Reply-To=%3C20080901154831.0DBBA1C18695%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2430 - in /trunk/lua: lib.3d.dynamic.lua	lib.3d.mousepick.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Mon Sep  1 17:48:31 CEST 2008</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="001236.html">[Iris-commit] [IRIS] r2431 - in /trunk/lua: lib.3d.cam.lua lib.3d.map.lua lib.3d.renderer.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1235">[ date ]</a>
+              <a href="thread.html#1235">[ thread ]</a>
+              <a href="subject.html#1235">[ subject ]</a>
+              <a href="author.html#1235">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Mon Sep  1 17:48:30 2008
+New Revision: 2430
+
+Log:
+fixed cavefloor mousepicking
+
+Modified:
+    trunk/lua/lib.3d.dynamic.lua
+    trunk/lua/lib.3d.mousepick.lua
+
+Modified: trunk/lua/lib.3d.dynamic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.dynamic.lua (original)
++++ trunk/lua/lib.3d.dynamic.lua Mon Sep  1 17:48:30 2008
+@@ -632,6 +632,11 @@
+ end
+ ]]--
+ =
+
++function AddGfxQuadListVertex (gfx,myquad, x,y,z,u,v) =
+
++	gfx:RenderableVertex(x,y,z,u,v)
++	table.insert(myquad,{x,y,z})
++end
++
+ gArtBillBoardCache =3D {}
+ function Renderer3D:CreateArtBillBoard( gfx, iArtID, iHue, bShowDebugBoxIn=
+stead )
+ 	bShowDebugBoxInstead =3D bShowDebugBoxInstead or false
+@@ -697,6 +702,7 @@
+ 		end
+ 	end
+ 	=
+
++	=
+
+ 	-- set billboard
+ 	if matname then
+ 	=
+
+@@ -713,10 +719,12 @@
+ 			local dy =3D -0.5
+ 			=
+
+ 			gfx:RenderableBegin(4,6,false,false,OT_TRIANGLE_LIST)
+-			gfx:RenderableVertex( 1+dx,0+dy,dz, tw,0)
+-			gfx:RenderableVertex( 1+dx,1+dy,dz, 0,th)
+-			gfx:RenderableVertex( 0+dx,0+dy,dz, r,th)
+-			gfx:RenderableVertex( 0+dx,1+dy,dz, tw,b)
++			local myquad =3D {}
++			gfx.customquads =3D {myquad}
++			AddGfxQuadListVertex(gfx,myquad, 1+dx,0+dy,dz, tw,0)
++			AddGfxQuadListVertex(gfx,myquad, 1+dx,1+dy,dz, 0,th)
++			AddGfxQuadListVertex(gfx,myquad, 0+dx,0+dy,dz, r,th)
++			AddGfxQuadListVertex(gfx,myquad, 0+dx,1+dy,dz, tw,b)
+ 			gfx:RenderableIndex3(0,1,2)
+ 			gfx:RenderableIndex3(1,3,2)
+ 			=
+
+
+Modified: trunk/lua/lib.3d.mousepick.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.mousepick.lua (original)
++++ trunk/lua/lib.3d.mousepick.lua Mon Sep  1 17:48:30 2008
+@@ -106,7 +106,7 @@
+ 	=
+
+ 	=
+
+ 	-- terrain
+-	if self.map3d_spawners and self.map3d_spawners.terrain then
++	if self.map3d_spawners and self.map3d_spawners.terrain and Renderer3D.gbB=
+lendOutTerrainVisible then
+ 		self.map3d_spawners.terrain:ForAllBlocks(function(block)
+ 			if block.gfx_terrain and block.gfx_terrain:IsAlive() then
+ 				local x,y,w,h =3D block:GetAABB()
+@@ -157,11 +157,15 @@
+ 	end
+ 	=
+
+ 	-- statics
++	local numgfx =3D 0
++	local numcustomquads =3D 0
+ 	if self.map3d_spawners and self.map3d_spawners.statics then
+ 		self.map3d_spawners.statics:ForAllBlocks(function(block)
+ 			block:ForAllEntities(function(entity)
+ 				if (not entity.zloc) then print(&quot;mousepick warning, static entity has =
+no zloc&quot;,entity.serial,entity.artid) end
+ 				if (Renderer3D:IsZLayerVisible(entity.zloc)) then -- zloc is in intege=
+r tilecoords from uo
++					=
+
++					if (entity.gfx) then numgfx =3D numgfx + 1 end
+ 					if (entity.gfx and entity.gfx.billboard) then
+ 						-- fallback
+ 						local x,y,z =3D entity.gfx.billboard:GetDerivedPosition()
+@@ -177,6 +181,17 @@
+ 							entity.x,entity.y,entity.z,
+ 							entity.qw,entity.qx,entity.qy,entity.qz,
+ 							entity.sx,entity.sy,entity.sz)
++					elseif (entity.gfx and entity.gfx.customquads) then
++						numcustomquads =3D numcustomquads + 1
++						--~ print(&quot;mousepick : entity.customquads&quot;,entity.x,entity.y,entity.=
+z)
++						for k,quad in pairs(entity.gfx.customquads) do =
+
++							local x1,y1,z1 =3D unpack(quad[1])
++							local x2,y2,z2 =3D unpack(quad[2])
++							local x3,y3,z3 =3D unpack(quad[3])
++							local x4,y4,z4 =3D unpack(quad[4])
++							local dist =3D RayPickFace4(x1,y1,z1, x2,y2,z2, x3,y3,z3, x4,y4,z4,=
+ entity.x,entity.y,entity.z, rx,ry,rz, rvx,rvy,rvz)
++							bHit,fHitDist =3D dist ~=3D nil,dist =
+
++						end
+ 					end
+ 					if (bHit and ((not gMousePickFoundHit) or fHitDist &lt; self.gMousePickF=
+oundDist)) then
+ 						self.gMousePickFoundDist =3D fHitDist
+@@ -189,7 +204,11 @@
+ 			end)
+ 		end)
+ 	end
+-
++	=
+
++	if ((not gCustomQuadInfoWritten) and numcustomquads &gt; 300) then
++		gCustomQuadInfoWritten =3D true
++		print(&quot;mousepick info numgfx=3D&quot;,numgfx,&quot;numcustomquads=3D&quot;,numcustomqua=
+ds,&quot; (each has its own scenenode)&quot;)
++	end
+ 	--[[
+ 	for chunky,row in pairs(self.gMapChunks) do
+ 		for chunkx,chunk in pairs(row) do
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="001236.html">[Iris-commit] [IRIS] r2431 - in /trunk/lua: lib.3d.cam.lua lib.3d.map.lua lib.3d.renderer.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1235">[ date ]</a>
+              <a href="thread.html#1235">[ thread ]</a>
+              <a href="subject.html#1235">[ subject ]</a>
+              <a href="author.html#1235">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

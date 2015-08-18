@@ -1,0 +1,135 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2630 - in /trunk/lua: lib.3d.dynamic.lua obj/obj.dynamic.lua obj/obj.main.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-October/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2630%20-%20in%20/trunk/lua%3A%20lib.3d.dynamic.lua%0A%20obj/obj.dynamic.lua%20obj/obj.main.lua&In-Reply-To=%3C20081022233326.BDA401C185FF%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001434.html">
+   <LINK REL="Next"  HREF="001436.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2630 - in /trunk/lua: lib.3d.dynamic.lua obj/obj.dynamic.lua obj/obj.main.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2630%20-%20in%20/trunk/lua%3A%20lib.3d.dynamic.lua%0A%20obj/obj.dynamic.lua%20obj/obj.main.lua&In-Reply-To=%3C20081022233326.BDA401C185FF%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2630 - in /trunk/lua: lib.3d.dynamic.lua obj/obj.dynamic.lua obj/obj.main.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Thu Oct 23 01:33:26 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001434.html">[Iris-commit] [IRIS] r2629 - /trunk/lua/lib.spellbooks.lua
+</A></li>
+        <LI>Next message: <A HREF="001436.html">[Iris-commit] [IRIS] r2631 - /trunk/lua/net.walk.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1435">[ date ]</a>
+              <a href="thread.html#1435">[ thread ]</a>
+              <a href="subject.html#1435">[ subject ]</a>
+              <a href="author.html#1435">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Thu Oct 23 01:33:26 2008
+New Revision: 2630
+
+Log:
+fixed multi cleanup in 2d (walkbug)
+
+Modified:
+    trunk/lua/lib.3d.dynamic.lua
+    trunk/lua/obj/obj.dynamic.lua
+    trunk/lua/obj/obj.main.lua
+
+Modified: trunk/lua/lib.3d.dynamic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.dynamic.lua (original)
++++ trunk/lua/lib.3d.dynamic.lua Thu Oct 23 01:33:26 2008
+@@ -578,7 +578,6 @@
+ 	if (dynamic.multi) then
+ 		printdebug(&quot;multi&quot;, sprintf(&quot;Multi destroyed with ARTID&quot;,dynamic.artid,v=
+ardump(dynamic)) )
+ 		--~ Renderer3D:RebuildChunkAtUOPos(dynamic.xloc,dynamic.yloc)
+-		gMultis[dynamic.multi] =3D nil =
+
+ 		Renderer3D:DestroyMultiGraphic(dynamic.serial)
+ 	end
+ 	=
+
+
+Modified: trunk/lua/obj/obj.dynamic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/obj/obj.dynamic.lua (original)
++++ trunk/lua/obj/obj.dynamic.lua Thu Oct 23 01:33:26 2008
+@@ -176,6 +176,11 @@
+ 	=
+
+ 	gDynamics[self.serial] =3D nil
+ 	DynamicRemoveFromPosCache(self)
++	=
+
++	-- remove multi entry
++	if (self.multi) then
++		gMultis[self.multi] =3D nil =
+
++	end
+ 	=
+
+ 	CleanupObject(self)
+ end
+
+Modified: trunk/lua/obj/obj.main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/obj/obj.main.lua (original)
++++ trunk/lua/obj/obj.main.lua Thu Oct 23 01:33:26 2008
+@@ -117,6 +117,7 @@
+ 		end
+ 		if (bDestroy) then object:Destroy() end =
+
+ 	end
++	gMultis =3D {} -- clear multi-list, used by walk, compass etc...
+ end
+ =
+
+ =
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001434.html">[Iris-commit] [IRIS] r2629 - /trunk/lua/lib.spellbooks.lua
+</A></li>
+	<LI>Next message: <A HREF="001436.html">[Iris-commit] [IRIS] r2631 - /trunk/lua/net.walk.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1435">[ date ]</a>
+              <a href="thread.html#1435">[ thread ]</a>
+              <a href="subject.html#1435">[ subject ]</a>
+              <a href="author.html#1435">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

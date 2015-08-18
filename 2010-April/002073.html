@@ -1,0 +1,288 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r3313 - in /trunk/lua: lib.granny.anim.lua lib.granny.debug.lua net/net.trade.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2010-April/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3313%20-%20in%20/trunk/lua%3A%20lib.granny.anim.lua%0A%20lib.granny.debug.lua%20net/net.trade.lua&In-Reply-To=%3C20100331222910.2AA297A980A7%40simon%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   <LINK REL="Next"  HREF="002074.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r3313 - in /trunk/lua: lib.granny.anim.lua lib.granny.debug.lua net/net.trade.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3313%20-%20in%20/trunk/lua%3A%20lib.granny.anim.lua%0A%20lib.granny.debug.lua%20net/net.trade.lua&In-Reply-To=%3C20100331222910.2AA297A980A7%40simon%3E"
+       TITLE="[Iris-commit] [IRIS] r3313 - in /trunk/lua: lib.granny.anim.lua lib.granny.debug.lua net/net.trade.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Thu Apr  1 00:29:10 CEST 2010</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="002074.html">[Iris-commit] [IRIS] r3314 - in /trunk/lua: lib.granny.debug.lua	lib.granny.loader.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2073">[ date ]</a>
+              <a href="thread.html#2073">[ thread ]</a>
+              <a href="subject.html#2073">[ subject ]</a>
+              <a href="author.html#2073">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Thu Apr  1 00:29:09 2010
+New Revision: 3313
+
+Log:
+some more grannyloader lua code for anim+skeleton
+
+Modified:
+    trunk/lua/lib.granny.anim.lua
+    trunk/lua/lib.granny.debug.lua
+    trunk/lua/net/net.trade.lua
+
+Modified: trunk/lua/lib.granny.anim.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.granny.anim.lua (original)
++++ trunk/lua/lib.granny.anim.lua Thu Apr  1 00:29:09 2010
+@@ -193,7 +193,8 @@
+ 	end
+ end
+ =
+
+-function	GrannyToOgreQ	(qRot) return {qRot.data[3],qRot.data[0],qRot.data[=
+1],qRot.data[2]} end -- ogre:w,x,y,z  granny:x,y,z,w
++function	GrannyToOgreQ	(qRot) return {qRot.w,qRot.x,qRot.y,qRot.z} end -- =
+ogre:w,x,y,z  granny:x,y,z,w
++--~ function	GrannyToOgreQ	(qRot) return {qRot.data[3],qRot.data[0],qRot.d=
+ata[1],qRot.data[2]} end -- ogre:w,x,y,z  granny:x,y,z,w
+ function	GrannyToOgreV	(vPos) return {vPos.x,vPos.y,vPos.z} end
+ =
+
+ function	GetBoneTranslate	(pGrannyBone)
+@@ -552,9 +553,7 @@
+ 	end
+ end
+ =
+
+-	-- pGrannyBone.iParent
+-			=
+
+-	--- recursive : creates parent hierarchy if needed
++--- recursive : creates parent hierarchy if needed
+ function cAnimationConstructor:GetOrCreateBone	(iBoneID) -- returns Ogre::=
+Bone*
+ 	if (iBoneID &lt; 0 or iBoneID &gt;=3D #self.mpGrannyLoader.mBones) then return =
+0 end  -- TODO:LUA SIZE WRONG ??? =
+
+ 	local sName =3D self.mpGrannyLoader:GetBoneName(iBoneID)
+@@ -568,7 +567,7 @@
+ 	if (pBone) then return pBone end
+ 	=
+
+ 	-- create bone
+-	pBone =3D self.mpSkeleton:createBone(sName)
++	pBone =3D self.mpSkeleton:createBone3(sName)
+ 	local pGrannyBone =3D self.mpGrannyLoader.mBones[iBoneID+1] -- const Gran=
+nyBone*
+ 	=
+
+ 	-- child bone : attach to parent
+@@ -721,47 +720,49 @@
+ 		-- calc rotation at fCurTime
+ 		local qo =3D Make_Ogre_Quaternion_IDENTITY() -- Ogre::Quaternion
+ 		if (pAnim.mpAnim.iNumQuaternion &gt; 0) then
+-			local i
+-			for k,fTestTime in ipairs(pAnim.mpQuaternionTime) do -- pAnim.mpAnim.iN=
+umQuaternion
+-				i =3D k
++			local i,fTestTime
++			for k,t in ipairs(pAnim.mpQuaternionTime) do -- pAnim.mpAnim.iNumQuater=
+nion
++				i =3D k =
+
++				fTestTime =3D t
+ 				if (fTestTime &gt;=3D fCurTime) then break end
+ 				fBeforeTime =3D fTestTime
+ 			end
+ 			if (bDebugHack_OnlyFirst) then i =3D 1 end
+ 			if (i &gt; pAnim.mpAnim.iNumQuaternion) then
+ 				-- after last frame
+-				qo =3D GrannyToOgreQ(pAnim.mpQuaternion[pAnim.mpAnim.iNumQuaternion-1+=
+1])
++				qo =3D GrannyToOgreQ(pAnim.mpQuaternion[pAnim.mpAnim.iNumQuaternion])
+ 			elseif (i =3D=3D 1 or fTestTime =3D=3D fCurTime) then
+ 				-- before first frame or exact time-match frame
+-				qo =3D GrannyToOgreQ(pAnim.mpQuaternion[i+1])
++				qo =3D GrannyToOgreQ(pAnim.mpQuaternion[i])
+ 				--printf(&quot; bone=3D%02d t=3D%5.3f q=3D(x=3D%f y=3D%f z=3D%f w=3D%f)\n&quot;,=
+iCurBoneNum,fCurTime,q.x,q.y,q.z,q.w)
+ 			else
+ 				-- interpolate between two frames
+ 				local t =3D (fTestTime &gt; fBeforeTime) and ((fCurTime - fBeforeTime) / =
+(fTestTime - fBeforeTime)) or 0.0
+-				qo =3D Ogre_Quaternion_Slerp(t,GrannyToOgreQ(pAnim.mpQuaternion[i-1+1]=
+),GrannyToOgreQ(pAnim.mpQuaternion[i+1]),true)
++				qo =3D Ogre_Quaternion_Slerp(t,GrannyToOgreQ(pAnim.mpQuaternion[i-1]),=
+GrannyToOgreQ(pAnim.mpQuaternion[i]),true)
+ 			end
+ 		end
+ 		=
+
+ 		-- calc translation at fCurTime
+ 		local vt0 =3D Make_Ogre_Vector3_ZERO()
+ 		if (pAnim.mpAnim.iNumTranslate &gt; 0) then
+-			local i
+-			for k,fTestTime in ipairs(pAnim.mpTranslateTime) do -- pAnim.mpAnim.iNu=
+mTranslate
++			local i,fTestTime
++			for k,t in ipairs(pAnim.mpTranslateTime) do -- pAnim.mpAnim.iNumTransla=
+te
+ 				i =3D k
++				fTestTime =3D t
+ 				if (fTestTime &gt;=3D fCurTime) then break end
+ 				fBeforeTime =3D fTestTime
+ 			end
+ 			if (bDebugHack_OnlyFirst) then i =3D 1 end
+ 			if (i &gt; pAnim.mpAnim.iNumTranslate) then
+ 				-- after last frame
+-				vt0 =3D GrannyToOgreV(pAnim.mpTranslate[pAnim.mpAnim.iNumTranslate-1+1=
+])
++				vt0 =3D GrannyToOgreV(pAnim.mpTranslate[pAnim.mpAnim.iNumTranslate])
+ 			elseif (i =3D=3D 1 or fTestTime =3D=3D fCurTime) then
+ 				-- before first frame or exact time-match frame
+-				vt0 =3D GrannyToOgreV(pAnim.mpTranslate[i+1])
++				vt0 =3D GrannyToOgreV(pAnim.mpTranslate[i])
+ 			else
+ 				-- interpolate between two frames
+ 				local t =3D (fTestTime &gt; fBeforeTime) and ((fCurTime - fBeforeTime) / =
+(fTestTime - fBeforeTime)) or 0.0
+-				vt0 =3D VectAdd( VectScale((1.0 - t) , GrannyToOgreV(pAnim.mpTranslate=
+[i-1+1])) , VectScale(t , GrannyToOgreV(pAnim.mpTranslate[i+1])) )
++				vt0 =3D VectAdd( VectScale((1.0 - t) , GrannyToOgreV(pAnim.mpTranslate=
+[i-1])) , VectScale(t , GrannyToOgreV(pAnim.mpTranslate[i])) )
+ 			end
+ 		end
+ 		=
+
+
+Modified: trunk/lua/lib.granny.debug.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.granny.debug.lua (original)
++++ trunk/lua/lib.granny.debug.lua Thu Apr  1 00:29:09 2010
+@@ -387,7 +387,10 @@
+ 				assert(ipairs(pAnim.mpTranslateTime))
+ 				assert(pAnim.mpQuaternion)
+ 				assert(pAnim.mpTranslate)
+-				     =
+
++				=
+
++				--~ print(&quot;pAnim.mpQuaternion&quot;,SmartDump(pAnim.mpQuaternion[1]))
++				--~ os.exit(0)
++				=
+
+ 				--[[
+ 				{
+ 				fTotalTime=3D0.616667
+@@ -419,12 +422,13 @@
+ 			pGrannyLoader.mBones =3D mBones
+ 			for k,grnbone in ipairs(Object.bones.skeleton.bonelist.childs) do
+ 				-- grnbone {iChildren=3D0,bone=3Dtable: 0x8fc8830,iChunkType=3D0xca5e0=
+506,iOffset=3D32020=3D0x7d14,}
+-				table.insert(mBones,grnbone.bone)    =
+
++				local bone =3D grnbone.bone
++				table.insert(mBones,bone)    =
+
+ 				--~ print(&quot;pGrannyBone&quot;,SmartDump(grnbone.bone,2)) -- {fTranslate=3Dta=
+ble: 0x9f664a0,fQuaternion=3Dtable: 0x9f66568,fMatrix=3Dtable: 0x9f65358,iP=
+arent=3D0,}
+ 			end
+ 			--~ MyIterGranny(Object,function (node,path) if (node.iChunkType =3D=3D=
+ 0XCA5E0506) then print(&quot;MyIterGranny&quot;,path,SmartDump(node)) end end)
+ 			=
+
+-			print(&quot;TODO!!!!!!!!!! lib.granny.anim.lua:196: attempt to index field '=
+data' (a nil value)&quot;)
++			--~ print(&quot;TODO!!!!!!!!!! lib.granny.anim.lua:196: attempt to index fie=
+ld 'data' (a nil value)&quot;)
+ 			--[[     =
+
+ 				error running function `Main': ../lua/lib.granny.anim.lua:196: attempt=
+ to index field 'data' (a nil value)
+ 				LuaStackTrace:
+@@ -440,7 +444,7 @@
+ 						../lua/main.lua:536: in function &lt;../lua/main.lua:467&gt;
+ 			]]--
+ 			=
+
+-			os.exit(0)
++			--~ os.exit(0)
+ 			=
+
+ 			=
+
+ 			=
+
+
+Modified: trunk/lua/net/net.trade.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.trade.lua (original)
++++ trunk/lua/net/net.trade.lua Thu Apr  1 00:29:09 2010
+@@ -249,7 +249,7 @@
+ 			local nameint =3D tonumber(good.name)
+ 			if (nameint and good.name =3D=3D &quot;&quot;..nameint) then good.name =3D GetCli=
+loc(nameint) end
+ 			=
+
+-			print(&quot;shopitem&quot;,hex(good.item.artid),hex(good.item.hue),good.price,goo=
+d.name) =
+
++			print(&quot;shopitem&quot;,hex(good.item.artid),hex(good.item.hue),good.price,&quot;am=
+t=3D&quot;..tostring(good.itemamount),good.name) =
+
+ 			--~ if (not knownartids[good.item.artid]) then print(&quot;shopitem&quot;,good.it=
+em.artid,good.name) knownartids[good.item.artid] =3D true end
+ 			local bBlendout =3D false =
+
+ 			for k,v in pairs(gShopBlendoutGroups) do =
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="002074.html">[Iris-commit] [IRIS] r3314 - in /trunk/lua: lib.granny.debug.lua	lib.granny.loader.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2073">[ date ]</a>
+              <a href="thread.html#2073">[ thread ]</a>
+              <a href="subject.html#2073">[ subject ]</a>
+              <a href="author.html#2073">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

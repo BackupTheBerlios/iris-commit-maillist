@@ -1,0 +1,249 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1867 - in /trunk/lua: lib.3d.renderer.lua	main.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-January/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1867%20-%20in%20/trunk/lua%3A%20lib.3d.renderer.lua%0A%09main.lua&In-Reply-To=%3C20080131225810.6AB131C181B7%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000679.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1867 - in /trunk/lua: lib.3d.renderer.lua	main.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1867%20-%20in%20/trunk/lua%3A%20lib.3d.renderer.lua%0A%09main.lua&In-Reply-To=%3C20080131225810.6AB131C181B7%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1867 - in /trunk/lua: lib.3d.renderer.lua	main.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Thu Jan 31 23:58:09 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000679.html">[Iris-commit] [IRIS] r1866 - in /trunk/data/profiles: gfx_high.lua	gfx_ultrahigh.lua
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#680">[ date ]</a>
+              <a href="thread.html#680">[ thread ]</a>
+              <a href="subject.html#680">[ subject ]</a>
+              <a href="author.html#680">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: sience
+Date: Thu Jan 31 23:58:09 2008
+New Revision: 1867
+
+Log:
+-setup shadowsystem is moved to Init 3DRenderer
+
+Modified:
+    trunk/lua/lib.3d.renderer.lua
+    trunk/lua/main.lua
+
+Modified: trunk/lua/lib.3d.renderer.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.renderer.lua (original)
++++ trunk/lua/lib.3d.renderer.lua Thu Jan 31 23:58:09 2008
+@@ -56,6 +56,47 @@
+ 	=
+
+ 	if (gUseDistanceFog) then
+ 		Client_SetFog(3, gFogcolorred/255, gFogcolorgreen/255, gFogcolorblue/255=
+, 1.0, 0, 10*gSightRange, 10*gSightRange+gFogValue)
++	end
++end
++
++gBuildStencilShadowEdgeList =3D false
++function Renderer3D:SetupShadows()
++	local shadowfardist=3D5*gSightRange+gFogValue
++
++	if ((gShadowTechnique =3D=3D &quot;stencil_modulative&quot;) or (gShadowTechnique =
+=3D=3D &quot;stencil_additive&quot;)) then
++		----- currently doesn't work with Fastbatch
++		--OgreShadowTechnique(gShadowTechnique)
++		--OgreSetShadowFarDistance(shadowfardist)
++		--gBuildStencilShadowEdgeList=3Dtrue
++	elseif ((gShadowTechnique =3D=3D &quot;texture_modulative&quot;) or (gShadowTechniq=
+ue =3D=3D &quot;texture_additive&quot;)) then
++		OgreSetShadowFarDistance(shadowfardist)
++		OgreSetShadowTextureFadeStart(0.6)
++		OgreSetShadowTextureFadeEnd(0.9)
++
++--		OgreSetShadowTexturePixelFormat(PF_FLOAT32_R)
++--		if ( OgreRenderSystemIsOpenGL() ) then OgreSetShadowTexturePixelFormat=
+(PF_FLOAT16_R) end
++--		OgreSetShadowTextureCasterMaterial(&quot;Ogre/DepthShadowmap/Caster/Float&quot;)
++--		OgreSetShadowTextureReceiverMaterial(&quot;Ogre/DepthShadowmap/BasicTemplat=
+eMaterial&quot;)
++
++		OgreSetShadowTextureSelfShadow(true)		-- disable this or write in materi=
+al &quot;receive_shadows off&quot;
++		OgreSetShadowCasterRenderBackFaces(false)
++		OgreSetShadowTextureSize(2048)
++		OgreSetShadowTextureCount(3)
++
++		OgreShadowTechnique(gShadowTechnique)
++	elseif ((gShadowTechnique =3D=3D &quot;texture_additive_integrated&quot;) or (gShad=
+owTechnique =3D=3D &quot;texture_modulative_integrated&quot;)) then
++		OgreSetShadowFarDistance(shadowfardist)
++		OgreSetShadowTextureFadeStart(0.5)
++		OgreSetShadowTextureFadeEnd(0.9)
++
++--		OgreSetShadowTexturePixelFormat(PF_FLOAT32_R)
++		OgreSetShadowTextureCasterMaterial(&quot;Ogre/DepthShadowmap/Caster/Float&quot;)
++		OgreSetShadowTextureSelfShadow(true)		-- disable this or write in tex_ba=
+se &quot;receive_shadows off&quot;
++		OgreSetShadowCasterRenderBackFaces(false)
++		OgreSetShadowTextureSize(2048)
++		--OgreSetShadowTextureCount(3)
++
++ 		OgreShadowTechnique(gShadowTechnique)
+ 	end
+ end
+ =
+
+@@ -110,6 +151,9 @@
+ 	self.gbCamRotChanged =3D true
+ 	for k,dynamic in pairs(GetDynamicList()) do if (DynamicIsInWorld(dynamic)=
+) then self:AddDynamicItem(dynamic) end end
+ 	for k,mobile in pairs(GetMobileList()) do self:CreateMobileGfx(mobile) end
++	=
+
++	-- Initialize Shadowsystem
++	self:SetupShadows()
+ end
+ =
+
+ function Renderer3D:DeInit()
+
+Modified: trunk/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/main.lua (original)
++++ trunk/lua/main.lua Thu Jan 31 23:58:09 2008
+@@ -272,39 +272,6 @@
+ 	end
+ end
+ =
+
+-gBuildStencilShadowEdgeList =3D false
+-function SetupShadows()
+-	if ((gShadowTechnique =3D=3D &quot;stencil_modulative&quot;) or (gShadowTechnique =
+=3D=3D &quot;stencil_additive&quot;)) then
+-		OgreShadowTechnique(gShadowTechnique)
+-		OgreSetShadowFarDistance(gSightRange*18.0)
+-		gBuildStencilShadowEdgeList=3Dtrue
+-	elseif ((gShadowTechnique =3D=3D &quot;texture_modulative&quot;) or (gShadowTechniq=
+ue =3D=3D &quot;texture_additive&quot;)) then
+-		OgreSetShadowFarDistance(gSightRange*18.0)
+-
+---		OgreSetShadowTexturePixelFormat(PF_FLOAT32_R)
+---		if ( OgreRenderSystemIsOpenGL() ) then OgreSetShadowTexturePixelFormat=
+(PF_FLOAT16_R) end
+---		OgreSetShadowTextureCasterMaterial(&quot;Ogre/DepthShadowmap/Caster/Float&quot;)
+---		OgreSetShadowTextureReceiverMaterial(&quot;Ogre/DepthShadowmap/BasicTemplat=
+eMaterial&quot;)
+-
+-		OgreSetShadowTextureSelfShadow(true)		-- disable this or write in materi=
+al &quot;receive_shadows off&quot;
+-		OgreSetShadowCasterRenderBackFaces(false)
+-		OgreSetShadowTextureSize(2048)
+-		--OgreSetShadowTextureCount(3)
+-
+-		OgreShadowTechnique(gShadowTechnique)
+-	elseif ((gShadowTechnique =3D=3D &quot;texture_additive_integrated&quot;) or (gShad=
+owTechnique =3D=3D &quot;texture_modulative_integrated&quot;)) then
+-		OgreSetShadowFarDistance(gSightRange*18.0)
+-
+---		OgreSetShadowTexturePixelFormat(PF_FLOAT32_R)
+-		OgreSetShadowTextureCasterMaterial(&quot;Ogre/DepthShadowmap/Caster/Float&quot;)
+-		OgreSetShadowTextureSelfShadow(true)		-- disable this or write in tex_ba=
+se &quot;receive_shadows off&quot;
+-		OgreSetShadowCasterRenderBackFaces(false)
+-		OgreSetShadowTextureSize(2048)
+- 		OgreShadowTechnique(gShadowTechnique)
+-		--OgreSetShadowTextureCount(3)
+-	end
+-end
+-
+ --- main function, when it returns, the program ends
+ function Main ()	=
+
+ 	local luaversion =3D string.sub(_VERSION, 5, 7)
+@@ -341,6 +308,7 @@
+ =
+
+ 	LoadBasicData()
+ 	=
+
++	-- only for 3DRenderer
+ 	LoadTexAtlas()
+ 	=
+
+ 	-- show loading screen
+@@ -353,6 +321,7 @@
+ 	InvokeExporters()
+ 	=
+
+ 	------------------------------------------ obsolete, just for testing ---=
+--------------------------------
++	--[[
+ 	if (false) then -- texture-atlas test
+ 		local w =3D 1024
+ 		local iArtMapIDList =3D {65,129,321,449,513}
+@@ -376,6 +345,7 @@
+ 		img:Destroy()
+ 		os.exit(0)
+ 	end
++	]]--
+ 	-------------------------------------------------------------------------=
+---------------------------------
+ 	=
+
+ 	gCurrentRenderer:PreInit()
+@@ -447,9 +417,6 @@
+ 	print(&quot;######      START INGAME     #####&quot;)
+ 	print(&quot;##################################&quot;)
+ =
+
+-	-- Initialize Shadowsystem
+-	SetupShadows()
+-
+ 	ExecuteMapChangeIfNeeded()
+ =
+
+ 	gCurrentRenderer:BlendOutLayersAbovePlayer()
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000679.html">[Iris-commit] [IRIS] r1866 - in /trunk/data/profiles: gfx_high.lua	gfx_ultrahigh.lua
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#680">[ date ]</a>
+              <a href="thread.html#680">[ thread ]</a>
+              <a href="subject.html#680">[ subject ]</a>
+              <a href="author.html#680">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

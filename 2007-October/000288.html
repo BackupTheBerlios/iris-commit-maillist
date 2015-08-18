@@ -1,0 +1,370 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1473 - in /trunk/data/lua: lib.3d.cam.lua lib.tilefreewalk.lua net.walk.lua obj/obj.player.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2007-October/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1473%20-%20in%20/trunk/data/lua%3A%20lib.3d.cam.lua%0A%20lib.tilefreewalk.lua%20net.walk.lua%20obj/obj.player.lua&In-Reply-To=%3C20071011201916.E42831C18177%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000287.html">
+   <LINK REL="Next"  HREF="000289.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1473 - in /trunk/data/lua: lib.3d.cam.lua lib.tilefreewalk.lua net.walk.lua obj/obj.player.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1473%20-%20in%20/trunk/data/lua%3A%20lib.3d.cam.lua%0A%20lib.tilefreewalk.lua%20net.walk.lua%20obj/obj.player.lua&In-Reply-To=%3C20071011201916.E42831C18177%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1473 - in /trunk/data/lua: lib.3d.cam.lua lib.tilefreewalk.lua net.walk.lua obj/obj.player.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Thu Oct 11 22:19:16 CEST 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000287.html">[Iris-commit] [IRIS] r1472 - in /trunk: bin/iris2.exe data/config.lua.dist data/lua/filter.granny.lua data/lua/lib.bodygfx.lua data/lua/lib.granny.lua data/lua/lib.static.lua vc8/iris.vcproj
+</A></li>
+        <LI>Next message: <A HREF="000289.html">[Iris-commit] [IRIS] r1474 - /trunk/data/lua/lib.static.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#288">[ date ]</a>
+              <a href="thread.html#288">[ thread ]</a>
+              <a href="subject.html#288">[ subject ]</a>
+              <a href="author.html#288">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Thu Oct 11 22:19:15 2007
+New Revision: 1473
+
+Log:
+improved 1st person cam for tilefreewalk
+
+Modified:
+    trunk/data/lua/lib.3d.cam.lua
+    trunk/data/lua/lib.tilefreewalk.lua
+    trunk/data/lua/net.walk.lua
+    trunk/data/lua/obj/obj.player.lua
+
+Modified: trunk/data/lua/lib.3d.cam.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.3d.cam.lua (original)
++++ trunk/data/lua/lib.3d.cam.lua Thu Oct 11 22:19:15 2007
+@@ -3,6 +3,9 @@
+ -- default mouse button binding
+ if not gInput_CamMouseButton then gInput_CamMouseButton =3D GetNamedKey(&quot;m=
+ouse3&quot;) end
+ =
+
++kFirstPersonZAdd_Mount =3D 1.8
++kFirstPersonZAdd_NoMount =3D 1.4
++	=
+
+ Renderer3D.gCamKeyCode =3D {}
+ Renderer3D.gCamKeyCode.Left	=3D GetNamedKey(&quot;a&quot;)
+ Renderer3D.gCamKeyCode.Right	=3D GetNamedKey(&quot;d&quot;)
+@@ -66,7 +69,6 @@
+ 				[Renderer3D.kCamMode_Third]=3D		1.0*Renderer3D.gStartThirdPersonDist ,=
+ }
+ Renderer3D.gCamLookAheadDist =3D Renderer3D.gCamLookAheadDistList[Renderer=
+3D.gCamMode]
+ =
+
+-Renderer3D.gCam_LastEgoDir =3D 0
+ if (Renderer3D.gCamMode =3D=3D Renderer3D.kCamMode_Ego) then Renderer3D.gf=
+CamAngV =3D 0.0    Renderer3D.gfCamAngH =3D kPi end
+ if (Renderer3D.gCamMode =3D=3D Renderer3D.kCamMode_Third) then Renderer3D.=
+gfCamAngV =3D -0.5*Renderer3D.gfMaxCamAngVDelta end
+ =
+
+@@ -98,7 +100,7 @@
+ 	self.gThirdPersonDist =3D self.gStartThirdPersonDist
+ 	self.gCamLookAheadDist =3D self.gCamLookAheadDistList[self.gCamMode]
+ 	self.gbCamRotChanged =3D true
+-	if (self.gCamMode =3D=3D self.kCamMode_Ego) then self.gfCamAngV =3D 0.0 s=
+elf.gfCamAngH =3D kPi - self.gCam_LastEgoDir * kPi/4 end
++	if (self.gCamMode =3D=3D self.kCamMode_Ego) then self.gfCamAngV =3D 0.0 s=
+elf.gfCamAngH =3D kPi - 0 end
+ 	if (self.gCamMode =3D=3D self.kCamMode_Ego) then AddFadeLines(&quot;CamMode:Eg=
+o&quot;) end
+ 	if (self.gCamMode =3D=3D self.kCamMode_Third) then AddFadeLines(&quot;CamMode:=
+ThirdPerson&quot;) end
+ 	if (self.gCamMode =3D=3D self.kCamMode_FreeMove) then AddFadeLines(&quot;CamMo=
+de:Free&quot;) end
+@@ -140,27 +142,14 @@
+ 		-- TODO : highspeed move : if (cInput::bKeys[cInput::kkey_j])	GetMainCam=
+():Move(-hispeed,0,0);
+ 		-- TODO : highspeed move : if (cInput::bKeys[cInput::kkey_i])	GetMainCam=
+():Move(0, hispeed,0);
+ 		-- TODO : highspeed move : if (cInput::bKeys[cInput::kkey_k])	GetMainCam=
+():Move(0,-hispeed,0);
+-	elseif (self.gCamMode =3D=3D self.kCamMode_Ego) then
+-		-- ego view, cam in player, turning with him
+-		local x,y,z =3D GetPlayerPos()
+-		if (x) then =
+
+-			x,y,z =3D Renderer3D:UOPosToLocal(x+0.5,y+0.5,z*0.1) =
+
+-			GetMainCam():SetPos(x,y,z + 1.5)
+-			=
+
+-			-- turn cam with player
+-			local curdir =3D GetPlayerDir()
+-			local dirdiff =3D curdir - self.gCam_LastEgoDir
+-			if (dirdiff ~=3D 0) then
+-				self.gbCamRotChanged =3D true
+-				self.gCam_LastEgoDir =3D curdir
+-				self.gfCamAngH =3D self.gfCamAngH - dirdiff * kPi / 4
+-			end
+-		end
+-	end
+-	=
+
++	end
++	=
+
++	=
+
++	local bMoveCamWithMouse =3D self.gCamMoveWithMouse or (gKeyPressed[key_mo=
+use2] and self.gCamMode =3D=3D self.kCamMode_Ego)
+ 	=
+
+ 	-- cam mouse controll
+-	if (self.gCamMoveWithMouse and (not gui.bMouseBlocked)) then
++	if (bMoveCamWithMouse and (not gui.bMouseBlocked)) then
++		if (not self.gCamMoveWithMouse_OffX) then self.gCamMoveWithMouse_OffX,se=
+lf.gCamMoveWithMouse_OffY =3D iMouseX,iMouseY end
+ 		local relx =3D ((iMouseX - self.gCamMoveWithMouse_OffX) / (vw))*2.0
+ 		local rely =3D ((iMouseY - self.gCamMoveWithMouse_OffY) / (vh))*2.0
+ 		if (self.gbInvertMouseY) then rely =3D 1 - rely end
+@@ -168,9 +157,26 @@
+ 		self.gfCamAngH =3D self.gfCamAngH - relx*self.gfMouseSensitivity*self.gf=
+SensitivityMod
+ 		self.gfCamAngV =3D self.gfCamAngV - rely*self.gfMouseSensitivity*self.gf=
+SensitivityMod
+ 		self.gbCamRotChanged =3D true
++		if (self.gCamMode =3D=3D self.kCamMode_Ego) then =
+
++			gTileFreeWalk:SetViewDir(-math.sin(self.gfCamAngH),math.cos(self.gfCamA=
+ngH))
++		end
+ 	end	=
+
+ =
+
+ 	=
+
++	if (self.gCamMode =3D=3D self.kCamMode_Ego) then
++		-- ego view, cam in player, turning with him
++		local x,y,z =3D gTileFreeWalk:GetExactLocalPos()
++		if (x) then =
+
++			GetMainCam():SetPos(x,y,z + (PlayerHasMount() and kFirstPersonZAdd_Moun=
+t or kFirstPersonZAdd_NoMount))
++			--~ local curdir =3D GetPlayerDir()
++			local dx,dy =3D gTileFreeWalk:GetViewDir()
++			--~ local qw,qx,qy,qz =3D gTileFreeWalk:GetOrientation()
++			=
+
++			-- turn cam with player
++			self.gbCamRotChanged =3D true
++			self.gfCamAngH =3D math.atan2(dy,dx) - math.pi*0.5
++		end
++	end
+ 	=
+
+ 	-- cam rotate
+ 	if (self.gbCamRotChanged) then
+@@ -191,15 +197,13 @@
+ 	-- cam movement dependant on cam rot
+ 	if (self.gCamMode =3D=3D self.kCamMode_Third) then
+ 		-- cam centered around player
+-		local x,y,z =3D Renderer3D:GetExactLocalPos() =
+
++		local x,y,z =3D gTileFreeWalk:GetExactLocalPos()
+ 		if (x) then =
+
+ 			local ax,ay,az =3D Quaternion.ApplyToVector( 0,0,self.gThirdPersonDist,=
+self.gCamRotW,self.gCamRotX,self.gCamRotY,self.gCamRotZ)
+ 			GetMainCam():SetPos(ax+x,ay+y,az+z + 1.0)
+ 		end
+ 	end
+ end
+-
+-function Renderer3D:GetExactLocalPos () return gTileFreeWalk:GetExactLocal=
+Pos() end
+ =
+
+ -- can return floating point block position
+ function Renderer3D:UpdateCompass()
+@@ -208,7 +212,7 @@
+ 	=
+
+ 	-- if in third person, center compass on player instead of on cam
+ 	if (Renderer3D.gCamMode =3D=3D Renderer3D.kCamMode_Third) then
+-		local x,y,z =3D self:GetExactLocalPos()
++		local x,y,z =3D gTileFreeWalk:GetExactLocalPos()
+ 		local xloc,yloc,zloc =3D self:LocalToUOPos(x,y,z*10)
+ 		--~ local xloc,yloc,zloc =3D GetPlayerPos()
+ 		if (xloc) then return ax, xloc/8, yloc/8, xmirror end
+
+Modified: trunk/data/lua/lib.tilefreewalk.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.tilefreewalk.lua (original)
++++ trunk/data/lua/lib.tilefreewalk.lua Thu Oct 11 22:19:15 2007
+@@ -89,15 +89,17 @@
+ 	=
+
+ 	-- read input and calculate desired movement
+ 	if (bWalkInMouseDir) then
+-		local dx,dy,pixel_dist_from_center =3D self:GetCurrentMouseDir() =
+
+-		=
+
+-		local slowarea_pixels =3D kFreeWalkMouseSlowArea
+-		bRunRequested =3D pixel_dist_from_center &gt; slowarea_pixels
+-		local slowarea_factor =3D math.min(1.0,pixel_dist_from_center / slowarea=
+_pixels) -- mouse near center : move slow
+-		self.movedirx =3D dx
+-		self.movediry =3D dy
+-		local maxspeed =3D self:GetClientSideSpeed(self.movedirx,self.movediry,0)
+-		fRequestedSpeed =3D maxspeed * slowarea_factor
++		if (Renderer3D:IsFirstPersonCam()) then
++			fRequestedSpeed =3D self:GetClientSideSpeed(self.movedirx,self.movediry=
+,0)
++		else
++			local dx,dy,pixel_dist_from_center =3D self:GetCurrentMouseDir() =
+
++			local slowarea_pixels =3D kFreeWalkMouseSlowArea
++			bRunRequested =3D pixel_dist_from_center &gt; slowarea_pixels
++			local slowarea_factor =3D math.min(1.0,pixel_dist_from_center / sloware=
+a_pixels) -- mouse near center : move slow
++			self.movedirx =3D dx
++			self.movediry =3D dy
++			fRequestedSpeed =3D self:GetClientSideSpeed(self.movedirx,self.movediry=
+,0) * slowarea_factor
++		end
+ 		x =3D x + self.movedirx * fRequestedSpeed * gSecondsSinceLastFrame
+ 		y =3D y + self.movediry * fRequestedSpeed * gSecondsSinceLastFrame
+ 		bMoved =3D true
+@@ -424,7 +426,13 @@
+ 	self:SetPos_All(lx,ly,lz)
+ 	self:UpdateClientPosMarker()
+ end
+-				=
+
++
++-- dx,dy,dz =3D gTileFreeWalk:GetViewDir() , dz is always zero
++function gTileFreeWalk:GetViewDir ()		return self.movedirx or 0,self.moved=
+iry or -1,0 end
++function gTileFreeWalk:SetViewDir (dx,dy)	self.movedirx,self.movediry =3D =
+dx,dy end
++
++-- qw,qx,qy,qz =3D gTileFreeWalk:GetOrientation()
++function gTileFreeWalk:GetOrientation ()	return Quaternion.getRotation(0,-=
+1,0,self:GetViewDir()) end
+ =
+
+ -- fRequestedSpeed is the speed requested by the mousepos/keyboard, might =
+not be reached, e.g. when walking against a wall
+ function gTileFreeWalk:Impl_StepPlayer (fRequestedSpeed,bRunRequested)
+@@ -435,7 +443,7 @@
+ 	self.bRunRequested =3D bRunRequested
+ 	=
+
+ 	local x,y,z =3D self:GetPos_ClientSide()
+-	local qw,qx,qy,qz =3D Quaternion.getRotation(0,-1,0,self.movedirx or 0,se=
+lf.movediry or -1,0)
++	local qw,qx,qy,qz =3D self:GetOrientation()
+ 	=
+
+ 	-- apply to body
+ 	if (gStartGameWithoutNetwork) then -- offline mode, show test model
+
+Modified: trunk/data/lua/net.walk.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/net.walk.lua (original)
++++ trunk/data/lua/net.walk.lua Thu Oct 11 22:19:15 2007
+@@ -143,10 +143,8 @@
+ end	=
+
+ =
+
+ function WalkGetInterval (bRunFlag)
+-	local playermobile =3D GetPlayerMobile()
+-	local bMount =3D playermobile and playermobile:GetEquipmentAtLayer(kLayer=
+_Mount)
+-	return	 bMount and	(	bRunFlag and gWalkTimeout_MountRunningSpeed	or gWalk=
+Timeout_MountMovingSpeed) or =
+
+-						(	bRunFlag and gWalkTimeout_RunningSpeed		or gWalkTimeout_MovingSpee=
+d)
++	return	 PlayerHasMount() and	(	bRunFlag and gWalkTimeout_MountRunningSpee=
+d	or gWalkTimeout_MountMovingSpeed) or =
+
++									(	bRunFlag and gWalkTimeout_RunningSpeed		or gWalkTimeout_MovingS=
+peed)
+ end
+ =
+
+ -- internal, don't call directly, no check for walkable, only checks for t=
+ime
+
+Modified: trunk/data/lua/obj/obj.player.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/obj/obj.player.lua (original)
++++ trunk/data/lua/obj/obj.player.lua Thu Oct 11 22:19:15 2007
+@@ -101,6 +101,13 @@
+ 	GuiInit()
+ end
+ =
+
++
++function PlayerGetMount ()
++	local playermobile =3D GetPlayerMobile()
++	return playermobile and playermobile:GetEquipmentAtLayer(kLayer_Mount)
++end
++function PlayerHasMount () return PlayerGetMount() ~=3D nil end
++
+ function IsObjectFarEnoughToDestroy (xloc,yloc,player_xloc,player_yloc)
+ 	local dx =3D xloc - player_xloc
+ 	local dy =3D yloc - player_yloc
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000287.html">[Iris-commit] [IRIS] r1472 - in /trunk: bin/iris2.exe data/config.lua.dist data/lua/filter.granny.lua data/lua/lib.bodygfx.lua data/lua/lib.granny.lua data/lua/lib.static.lua vc8/iris.vcproj
+</A></li>
+	<LI>Next message: <A HREF="000289.html">[Iris-commit] [IRIS] r1474 - /trunk/data/lua/lib.static.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#288">[ date ]</a>
+              <a href="thread.html#288">[ thread ]</a>
+              <a href="subject.html#288">[ subject ]</a>
+              <a href="author.html#288">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

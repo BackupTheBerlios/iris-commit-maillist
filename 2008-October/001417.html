@@ -1,0 +1,380 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2612 - in /trunk/lua: lib.uoam.lua net/net.dynamic.lua net/net.login.lua net/net.mobile.lua obj/obj.mobile.lua obj/obj.player.lua widgets/widget.uotext.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-October/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2612%20-%20in%20/trunk/lua%3A%20lib.uoam.lua%0A%20net/net.dynamic.lua%20net/net.login.lua%20net/net.mobile.lua%20obj/obj.mobile.lua%0A%20obj/obj.player.lua%20widgets/widget.uotext.lua&In-Reply-To=%3C20081019231055.A64961524030%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001416.html">
+   <LINK REL="Next"  HREF="001418.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2612 - in /trunk/lua: lib.uoam.lua net/net.dynamic.lua net/net.login.lua net/net.mobile.lua obj/obj.mobile.lua obj/obj.player.lua widgets/widget.uotext.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2612%20-%20in%20/trunk/lua%3A%20lib.uoam.lua%0A%20net/net.dynamic.lua%20net/net.login.lua%20net/net.mobile.lua%20obj/obj.mobile.lua%0A%20obj/obj.player.lua%20widgets/widget.uotext.lua&In-Reply-To=%3C20081019231055.A64961524030%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2612 - in /trunk/lua: lib.uoam.lua net/net.dynamic.lua net/net.login.lua net/net.mobile.lua obj/obj.mobile.lua obj/obj.player.lua widgets/widget.uotext.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Mon Oct 20 01:10:55 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001416.html">[Iris-commit] [IRIS] r2611 - in /trunk/lua: config_declarations.lua	net/net.object.lua
+</A></li>
+        <LI>Next message: <A HREF="001418.html">[Iris-commit] [IRIS] r2613 - in /trunk/lua: gui/gui.gumpparser.lua lib.macrolist.lua widgets/widget.gumpdialog.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1417">[ date ]</a>
+              <a href="thread.html#1417">[ thread ]</a>
+              <a href="subject.html#1417">[ subject ]</a>
+              <a href="author.html#1417">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Mon Oct 20 01:10:55 2008
+New Revision: 2612
+
+Log:
+fixed mobile update range dist calc, mobile-zombie system probably no longe=
+r needed
+
+Modified:
+    trunk/lua/lib.uoam.lua
+    trunk/lua/net/net.dynamic.lua
+    trunk/lua/net/net.login.lua
+    trunk/lua/net/net.mobile.lua
+    trunk/lua/obj/obj.mobile.lua
+    trunk/lua/obj/obj.player.lua
+    trunk/lua/widgets/widget.uotext.lua
+
+Modified: trunk/lua/lib.uoam.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.uoam.lua (original)
++++ trunk/lua/lib.uoam.lua Mon Oct 20 01:10:55 2008
+@@ -84,7 +84,7 @@
+ 	--~ print(&quot;uoam-recv&quot;,FIFOHexDump(gUOAMRecvFIFO))
+ 	UOAM_RecvPositions(gUOAMRecvFIFO)
+ 	gUOAMRecvFIFO:Clear()
+-	print(&quot;uoamstep&quot;,xloc,yloc,MapGetMapIndex(),gUOAMConnection:IsConnected())
++	if (gEnableUOAMDebug) then print(&quot;uoamstep&quot;,xloc,yloc,MapGetMapIndex(),gU=
+OAMConnection:IsConnected()) end
+ 	gUOAMToggle =3D not gUOAMToggle =
+
+ 	UOAM_SendPosUpdate(gUOAMName,gUOAMPass,gUOAMToggle and 0x02 or 0x01,facet=
+byte,xloc,yloc)
+ 	-- toggle : 0x01 for keep alive, 0x02 to poll other char positions
+@@ -156,7 +156,7 @@
+ 			local x =3D fifo:PopUint32()
+ 			local y =3D fifo:PopUint32()
+ 			local z =3D fifo:PopUint32()
+-			print(&quot;uoam:recv:&quot;,a,b,c,d,e,f,facetbyte,x,y,z,name)
++			if (gEnableUOAMDebug) then print(&quot;uoam:recv:&quot;,a,b,c,d,e,f,facetbyte,x,y=
+,z,name) end
+ 			if (name ~=3D gUOAMName) then =
+
+ 				gUOAMOtherPositions[name] =3D {xloc=3Dx,yloc=3Dy,bIsOnSameFacet=3DUOAM=
+_GetMyFacetByte() =3D=3D facetbyte}
+ 			end
+
+Modified: trunk/lua/net/net.dynamic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.dynamic.lua (original)
++++ trunk/lua/net/net.dynamic.lua Mon Oct 20 01:10:55 2008
+@@ -86,8 +86,8 @@
+ 	dynamicdata.iContainerSerial =3D 0
+ =
+
+ 	local xloc,yloc =3D GetPlayerPos()
+-	local dist =3D dist2(xloc,yloc,dynamicdata.xloc,dynamicdata.yloc)
+-	if (dist &gt; gDestroyObjectDist) then print(&quot;kPacket_Show_Item : dist &gt;=3D =
+&quot;,dist,xloc,yloc,dynamicdata.xloc,dynamicdata.yloc) end
++	local dist =3D dist2max(xloc,yloc,dynamicdata.xloc,dynamicdata.yloc)
++	if (dist &gt; gUpdateRange_DynamicDestroy) then print(&quot;kPacket_Show_Item : d=
+ist &gt;=3D &quot;,dist,xloc,yloc,dynamicdata.xloc,dynamicdata.yloc) end
+ 	=
+
+ 	CreateOrUpdateDynamic(dynamicdata)
+ end
+
+Modified: trunk/lua/net/net.login.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.login.lua (original)
++++ trunk/lua/net/net.login.lua Mon Oct 20 01:10:55 2008
+@@ -252,7 +252,7 @@
+ 	Send_ClientLanguage(gLanguage or &quot;ENU&quot;)
+ 	Send_UnknownCommand()
+ 	Send_UnknownSE()
+-	--~ Send_UpdateRangeRequest(gDestroyObjectDist)
++	--~ Send_UpdateRangeRequest(gUpdateRange_Base)
+ =
+
+ 	StartInGame()
+ 	=
+
+
+Modified: trunk/lua/net/net.mobile.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.mobile.lua (original)
++++ trunk/lua/net/net.mobile.lua Mon Oct 20 01:10:55 2008
+@@ -15,8 +15,8 @@
+ 	mobiledata.notoriety	=3D input:PopNetUint8()
+ 	=
+
+ 	local xloc,yloc =3D GetPlayerPos()
+-	local dist =3D dist2(xloc,yloc,mobiledata.xloc,mobiledata.yloc)
+-	if (dist &gt; gDestroyObjectDist) then print(&quot;kPacket_Naked_MOB : dist &gt;=3D =
+&quot;,dist) end
++	local dist =3D dist2max(xloc,yloc,mobiledata.xloc,mobiledata.yloc)
++	if (dist &gt; gUpdateRange_MobileDestroy) then print(&quot;kPacket_Naked_MOB : di=
+st &gt;=3D &quot;,dist) end
+ 	=
+
+ 	if (mobiledata.serial =3D=3D 0x001b5369) then
+ 		printdebug(&quot;corpse&quot;,&quot;CORPSECODE kPacket_Naked_MOB&quot;,mobiledata.artid,mobi=
+ledata.flag,mobiledata.notoriety)
+@@ -217,6 +217,7 @@
+ =
+
+ 	--printf(&quot;NET : kPacket_Mobile_Stats mobile=3D0x%08x name=3D%s\n&quot;,mobiles=
+erial,stats.name)
+ 	=
+
++	local mobile =3D GetMobile(mobileserial) if (mobile) then mobile:NoZombie=
+() end
+ 	Mobile_UpdateStats(mobileserial,stats)
+ end
+ =
+
+
+Modified: trunk/lua/obj/obj.mobile.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/obj/obj.mobile.lua (original)
++++ trunk/lua/obj/obj.mobile.lua Mon Oct 20 01:10:55 2008
+@@ -111,26 +111,27 @@
+ =
+
+ function gMobilePrototype:SetNotoriety(notoriety) self.notoriety =3D notor=
+iety end -- also written by other means, don't use for notify, only used fo=
+r walk-ack
+ =
+
+--- see gMobileZombieDist  (hide to prevent desync with server for dead mob=
+s)
++-- see gUpdateRange_MobileZombie  (hide to prevent desync with server for =
+dead mobs)
+ function gMobilePrototype:NoZombie	() self:SetZombie(false) end -- mark as=
+ alive, triggered by chat/label or naked-mob/mob-move
+ function gMobilePrototype:SetZombie	(bZombie,t)
+-	t =3D t or Client_GetTicks()
+-	--~ print(&quot;mobile:SetZombie&quot;,self.serial,bZombie,((self.iZombieClickCount=
+ or 0) &gt;=3D 1 and bZombie) and &quot;KILLED&quot; or &quot;&quot;)
+-	if (self.bZombie ~=3D bZombie) then =
+
+-		self.bZombie =3D bZombie
+-		if (not bZombie) then self.iZombieClickCount =3D 0 end
+-		gCurrentRenderer:MobileSetVisible(self,not bZombie)
+-	end
+-	if (bZombie and t &gt; (self.iZombieNextNameClick or 0)) then
+-		local oldclickc =3D self.iZombieClickCount or 0
+-		if (oldclickc &gt;=3D 1) then =
+
+-			self:Destroy() -- click timeout -&gt; kill
+-		else
+-			self.iZombieClickCount =3D oldclickc + 1
+-			self.iZombieNextNameClick =3D t + 3000
+-			Send_SingleClick(self.serial)
+-		end
+-	end
++	--~ t =3D t or Client_GetTicks()
++	--~ -- print(&quot;mobile:SetZombie&quot;,self.serial,bZombie,((self.iZombiePingCou=
+nt or 0) &gt;=3D 1 and bZombie) and &quot;KILLED&quot; or &quot;&quot;)
++	--~ if (self.bZombie ~=3D bZombie) then =
+
++		--~ self.bZombie =3D bZombie
++		--~ if (not bZombie) then self.iZombiePingCount =3D 0 end
++		--~ gCurrentRenderer:MobileSetVisible(self,not bZombie)
++	--~ end
++	--~ if (bZombie and t &gt; (self.iZombieNextPing or 0)) then
++		--~ local oldpingc =3D self.iZombiePingCount or 0
++		--~ if (oldpingc &gt;=3D 1) then =
+
++			--~ self:Destroy() -- click timeout -&gt; kill
++		--~ else
++			--~ self.iZombiePingCount =3D oldpingc + 1
++			--~ self.iZombieNextPing =3D t + 3000
++			--~ Send_SingleClick(self.serial)
++			--~ -- Send_ClientQuery(gRequest_States,self.serial)
++		--~ end
++	--~ end
+ end
+ =
+
+ function gMobilePrototype:GetSqDistToPos (xloc,yloc)
+
+Modified: trunk/lua/obj/obj.player.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/obj/obj.player.lua (original)
++++ trunk/lua/obj/obj.player.lua Mon Oct 20 01:10:55 2008
+@@ -1,19 +1,22 @@
+ -- stuff concerning player (body,backpack,equipment...)
+ -- see also net.mobile.lua net.paperdoll.lua net.container.lua
+ =
+
+-gMobileZombieDist =3D 17 -- if mobile is furhter away from player than thi=
+s, then the mobile might be a zombie (dead on server, but still in client c=
+ache)
+-gMobileZombieDistSquare =3D gMobileZombieDist*gMobileZombieDist
+-gDestroyObjectDist =3D 30 -- TODO : adjust when requesting a different vie=
+wdist from server
+-gDestroyObjectDistSquare =3D gDestroyObjectDist*gDestroyObjectDist
++gUpdateRange_Base =3D 18 -- runuo2 update range is hardcoded to 18, leave =
+a bit of tolerance for walking  (dist=3Dmax(dx,dy))
++gUpdateRange_Add_DynamicDestroy	=3D 17 -- multisize
++gUpdateRange_Add_MobileDestroy	=3D 0
++gUpdateRange_Add_MobileZombie	=3D 0
+ =
+
+ gPlayerBodySerial =3D 0
+ gPlayerBackPack =3D false
+ =
+
+ function SetUpDateRange (range)
+-	-- doesn't work as it should, server sends 18, but if we set it to 18, pa=
+rts of dynamic cities go missing
+-	--~ gDestroyObjectDist =3D range =
+
+-	--~ gDestroyObjectDistSquare =3D range * range
++	gUpdateRange_Base =3D range
++	-- not usually used, update range hardcoded to 18 on runuo2-svn, nothing =
+else accepted
++	gUpdateRange_DynamicDestroy	=3D range + gUpdateRange_Add_DynamicDestroy -=
+- bigger than update range : big items like multis
++	gUpdateRange_MobileDestroy	=3D range + gUpdateRange_Add_MobileDestroy	=
+
++	gUpdateRange_MobileZombie	=3D range + gUpdateRange_Add_MobileZombie -- if=
+ mobile is furhter away from player than this, then the mobile might be a z=
+ombie (dead on server, but still in client cache)
+ end
++SetUpDateRange(gUpdateRange_Base)
+ =
+
+ function IsPlayerMobile (mobile) =
+
+ 	return mobile and (mobile.serial =3D=3D gPlayerBodySerial)
+@@ -133,27 +136,27 @@
+ end
+ function PlayerHasMount () return PlayerGetMount() ~=3D nil end
+ =
+
+-function IsObjectFarEnoughToDestroy (xloc,yloc,player_xloc,player_yloc)
+-	local dx =3D xloc - player_xloc
+-	local dy =3D yloc - player_yloc
+-	return dx*dx + dy*dy &gt; gDestroyObjectDistSquare
++function IsOutsideRange (xloc,yloc,xloc2,yloc2,range)
++	return abs(xloc - xloc2) &gt; range or abs(yloc - yloc2) &gt; range
+ end
+ =
+
+ -- destroy objects outside view range
+ function DestroyObjectsFarFromPlayer (player_xloc,player_yloc)
+ 	local t =3D Client_GetTicks()
++	local range_destroy =3D gUpdateRange_DynamicDestroy
+ 	-- dynamics
+ 	for k,dynamic in pairs(GetDynamicList()) do =
+
+-		if (DynamicIsInWorld(dynamic) and IsObjectFarEnoughToDestroy(dynamic.xlo=
+c,dynamic.yloc,player_xloc,player_yloc)) then
++		if (DynamicIsInWorld(dynamic) and IsOutsideRange(dynamic.xloc,dynamic.yl=
+oc,player_xloc,player_yloc,range_destroy)) then
+ 			DestroyObjectBySerial(dynamic.serial) =
+
+ 		end =
+
+ 	end
+ 	-- mobiles
++	local range_destroy	=3D gUpdateRange_MobileDestroy
++	local range_zombie	=3D gUpdateRange_MobileZombie
+ 	for k,mobile in pairs(GetMobileList()) do =
+
+-		local dist =3D mobile:GetSqDistToPos(player_xloc,player_yloc)
+-		if (dist &gt; gDestroyObjectDistSquare) then
++		if (IsOutsideRange(mobile.xloc,mobile.yloc,player_xloc,player_yloc,range=
+_destroy)) then
+ 			DestroyObjectBySerial(mobile.serial)
+-		elseif (dist &gt; gMobileZombieDistSquare) then =
+
++		elseif (IsOutsideRange(mobile.xloc,mobile.yloc,player_xloc,player_yloc,r=
+ange_zombie)) then =
+
+ 			mobile:SetZombie(true,t)
+ 		end =
+
+ 	end
+
+Modified: trunk/lua/widgets/widget.uotext.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/widgets/widget.uotext.lua (original)
++++ trunk/lua/widgets/widget.uotext.lua Mon Oct 20 01:10:55 2008
+@@ -37,7 +37,7 @@
+ 			end
+ 		end
+ 	end
+-	=
+
++	text =3D text or &quot;&quot;
+ 	=
+
+ 	=
+
+ 	self:SetUOHtml(text,bParseHTML)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001416.html">[Iris-commit] [IRIS] r2611 - in /trunk/lua: config_declarations.lua	net/net.object.lua
+</A></li>
+	<LI>Next message: <A HREF="001418.html">[Iris-commit] [IRIS] r2613 - in /trunk/lua: gui/gui.gumpparser.lua lib.macrolist.lua widgets/widget.gumpdialog.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1417">[ date ]</a>
+              <a href="thread.html#1417">[ thread ]</a>
+              <a href="subject.html#1417">[ subject ]</a>
+              <a href="author.html#1417">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

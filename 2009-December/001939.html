@@ -1,0 +1,1255 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r3179 - in /trunk: config/shards/ lua/	lua/gui/ lua/net/ lua/obj/
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2009-December/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3179%20-%20in%20/trunk%3A%20config/shards/%20lua/%0A%09lua/gui/%20lua/net/%20lua/obj/&In-Reply-To=%3C20091205210548.AB12254D0039%40simon%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   <LINK REL="Next"  HREF="001940.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r3179 - in /trunk: config/shards/ lua/	lua/gui/ lua/net/ lua/obj/</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3179%20-%20in%20/trunk%3A%20config/shards/%20lua/%0A%09lua/gui/%20lua/net/%20lua/obj/&In-Reply-To=%3C20091205210548.AB12254D0039%40simon%3E"
+       TITLE="[Iris-commit] [IRIS] r3179 - in /trunk: config/shards/ lua/	lua/gui/ lua/net/ lua/obj/">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat Dec  5 22:05:48 CET 2009</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="001940.html">[Iris-commit] [IRIS] r3180 - in /trunk: lua/lib.granny.debug.lua	scripts/luabindheader.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1939">[ date ]</a>
+              <a href="thread.html#1939">[ thread ]</a>
+              <a href="subject.html#1939">[ subject ]</a>
+              <a href="author.html#1939">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sat Dec  5 22:05:48 2009
+New Revision: 3179
+
+Log:
+razor-packetvid : several bugfixes and improvements, chattabs: better detec=
+tion of local chat and uoam+partchat
+
+Modified:
+    trunk/config/shards/localhost.xml
+    trunk/lua/gui/gui.chat.lua
+    trunk/lua/lib.granny.debug.lua
+    trunk/lua/lib.packetvideo.lua
+    trunk/lua/lib.razorpacketvideo.lua
+    trunk/lua/net/net.mobile.lua
+    trunk/lua/net/net.multi.lua
+    trunk/lua/net/net.partysystem.lua
+    trunk/lua/net/net.text.lua
+    trunk/lua/net/net.uoam.lua
+    trunk/lua/obj/obj.mobile.lua
+
+Modified: trunk/config/shards/localhost.xml
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/config/shards/localhost.xml (original)
++++ trunk/config/shards/localhost.xml Sat Dec  5 22:05:48 2009
+@@ -1,8 +1,6 @@
+ &lt;table&gt;
+-    &lt;string key=3D&quot;gLoginname&quot;&gt;admin&lt;/string&gt;
+-    &lt;boolean key=3D&quot;gPolServer&quot;&gt;false&lt;/boolean&gt;
+-    &lt;number key=3D&quot;gServerSeed&quot;&gt;4294967295&lt;/number&gt;
+     &lt;number key=3D&quot;gLoginServerPort&quot;&gt;2593&lt;/number&gt;
+-    &lt;string key=3D&quot;gPassword&quot;&gt;admin&lt;/string&gt;
++    &lt;string key=3D&quot;gLoginname&quot;&gt;&lt;/string&gt;
++    &lt;string key=3D&quot;gPassword&quot;&gt;&lt;/string&gt;
+     &lt;string key=3D&quot;gLoginServerIP&quot;&gt;localhost&lt;/string&gt;
+ &lt;/table&gt;
+
+Modified: trunk/lua/gui/gui.chat.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.chat.lua (original)
++++ trunk/lua/gui/gui.chat.lua Sat Dec  5 22:05:48 2009
+@@ -6,17 +6,17 @@
+ cChatTabs.scroll			=3D 0
+ =
+
+ cChatTabs.channels =3D {
+-	{name=3D&quot;General&quot;,	filter=3Dfalse,						},
+-	{name=3D&quot;Chat&quot;,		filter=3D{&quot;&lt;.+&gt;&quot;},					},
+-	{name=3D&quot;Party&quot;,		filter=3D{&quot;&lt;Party&gt;&quot;},					},
+-	{name=3D&quot;Ally&quot;,		filter=3D{&quot;&lt;Alliance&gt;&quot;,&quot;&lt;Guild&gt;&quot;},	},
+-	{name=3D&quot;Trades&quot;,		filter=3D{&quot;&lt;Trades&gt;&quot;},				},
++	{name=3D&quot;General&quot;,	filter=3Dfalse,														},
++	{name=3D&quot;Chat&quot;,		filter=3D{&quot;&lt;.+&gt;&quot;}, class_ok=3D{&quot;uoam&quot;,&quot;party&quot;,&quot;guild&quot;,&quot;a=
+lly&quot;}, bNormalChat=3Dtrue	},
++	{name=3D&quot;Party&quot;,		filter=3D{&quot;&lt;Party&gt;&quot;}, class_ok=3D{&quot;uoam&quot;,&quot;party&quot;}						=
+},
++	{name=3D&quot;Ally&quot;,		filter=3D{&quot;&lt;Alliance&gt;&quot;,&quot;&lt;Guild&gt;&quot;}, class_ok=3D{&quot;guild&quot;,&quot;=
+ally&quot;}			},
++	{name=3D&quot;Trades&quot;,		filter=3D{&quot;&lt;Trades&gt;&quot;},												},
+ }
+ --~ &lt;Public&gt;,&lt;Trades&gt;,&lt;Guild&gt;,&lt;Alliance&gt;,&lt;Newbies&gt;,&lt;PvP&gt;
+ --~ system =3D &quot;System:&quot;,
+ =
+
+ =
+
+-function GuiAddChatLine	(line, color)	cChatTabs:AddLine(line,color) end
++function GuiAddChatLine	(...) cChatTabs:AddLine(...) end
+ function GuiInitChat	()				cChatTabs:Init() end
+ function TestChatTabs () =
+
+     Load_Font() -- iris specific
+@@ -101,12 +101,15 @@
+ 	self:UpdateTextArea()
+ end
+ =
+
+-function cChatTabs:AddLine (line, color)
++function cChatTabs:AddLine (line,color,src,name,serial,clilocid) -- src:uo=
+am,party,normal,system,emote,spell,guild,ally,prompt
++	--~ print(&quot;######AddLine&quot;,line,color,src,name,serial,clilocid)
+ 	local line2 =3D string.gsub(line,&quot;^System: &quot;,&quot;&quot;)
+ 	for k2,channel in pairs(self.channels) do =
+
+ 		local bMatch =3D false
+ 		if (not channel.filter) then bMatch =3D true end
++		if (channel.class_ok) then for k,v in pairs(channel.class_ok) do if (src=
+ =3D=3D v) then bMatch =3D true break end end end
+ 		if (channel.filter) then for k,v in pairs(channel.filter) do if (string.=
+find(line2 ,&quot;^&quot;..v)) then bMatch =3D true break end end end
++		if (channel.bNormalChat and src =3D=3D &quot;normal&quot; and serial ~=3D 0xFFFFFF=
+FF and clilocid =3D=3D nil) then bMatch =3D true end
+ 		if (bMatch) then self:AddLineToChannel(channel,line2,color) end
+ 	end
+ 	--~ print(&quot;cChatTabs:AddLine&quot;,SmartDump(color)) --~ cChatTabs:AddLine    =
+   {[1]=3D0.774194,[2]=3D0.774194,[3]=3D0.774194,[4]=3D1,}
+
+Modified: trunk/lua/lib.granny.debug.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.granny.debug.lua (original)
++++ trunk/lua/lib.granny.debug.lua Sat Dec  5 22:05:48 2009
+@@ -151,7 +151,7 @@
+ =
+
+ function cDebugGrannyMenu:MakeNewGranny (artid)
+ 	artid =3D 791 -- beetle
+-	artid =3D 200 -- horse
++	--~ artid =3D 200 -- horse
+ 	=
+
+ 	gDebugCategories.granny 	=3D true
+ 	local folder =3D &quot;/cavern/uoml_freshinstall.4.x/Models/Animals/&quot;
+@@ -353,28 +353,110 @@
+ 		-- todo : mousepick
+ 		=
+
+ 		--[[
+-		function LoadGrannyAsOgreMesh (...)
+-			local meshname =3D &quot;bla&quot;
++		function LoadGrannyAsOgreMesh (meshname,skeletonname,bHasBoneWeights,...)
+ 			local mesh =3D MeshManager_createManual(meshname)
+ 			mesh:_setBounds({0,0,0,0,0,0}, true)
+ 			mesh:_setBoundingSphereRadius(0)
+ 			=
+
+ 			if (bHasBoneWeights) then =
+
+-				local skeletonname =3D &quot;blub&quot;
+ 				local skeleton =3D SkeletonManager_load(skeletonname)
+-				mesh:setSkeletonName(skeleton:getName())
++				mesh:setSkeletonName(skeletonname) assert(skeletonname =3D=3D skeleton=
+:<i>getName()
+</I> 			end
+ 			-- for ... cSubMeshConstructor
+ 			mesh:load()
+ 			return meshname
+ 		end
+ 		=
+
++		function cSubMeshConstructor ()
++			bool bUseSkeleton =3D (!mpSkeleton.isNull()) &amp;&amp; pLoaderSubMesh.mWeights=
+.second &gt; 0;
++			bool bUseColors =3D false &amp;&amp; pLoaderSubMesh.mColors.first; // not yet s=
+upported (see below)
++			bool bUseTexCoords =3D pLoaderSubMesh.mTexCoords.first;
++			typedef std::vector&lt; std::pair&lt;int,float&gt; &gt;		tMyBoneWeightList;
++			std::vector&lt;tMyBoneWeightList*&gt;	myBoneWeights;
++			=
+
++			// create submesh
++			Ogre::SubMesh* sub =3D mpMesh-&gt;createSubMesh();
++			sub-&gt;setMaterialName(msMatName);
++			sub-&gt;useSharedVertices =3D false;
++			// sub-&gt;operationType =3D OT_POINT_LIST;
++			=
+
++			// prepare bone-weight data
++			if (bUseSkeleton) {
++				sub-&gt;clearBoneAssignments();
++				myBoneWeights.reserve(pLoaderSubMesh.mWeights.second);
++				=
+
++				// WARNING ! buffersize not checked, but as long as the granny files a=
+re intakt thats ok
++				// foreach point : bonenum, index,weight, index,weight,... =
+
++				const ::uint32* p =3D (::uint32*)pLoaderSubMesh.mWeights.first;
++				for (int i=3D0;i&lt;pLoaderSubMesh.mWeights.second;++i) {
++					::uint32 iNumBones =3D *(p++);
++					=
+
++					tMyBoneWeightList* pBoneList =3D new tMyBoneWeightList();
++					myBoneWeights.push_back(pBoneList);
++					pBoneList-&gt;reserve(iNumBones);
++					=
+
++					for (int k=3D0;k&lt;iNumBones;++k) {
++						::uint32	iWeightBoneIndex =3D *(p++);
++						float		fWeight =3D *(float*)(p++);
++						pBoneList-&gt;push_back(std::make_pair(iWeightBoneIndex,fWeight));
++					}
++				}
++			}
++			=
+
++			// iterate over all polygon-vertices
++			for (i=3D0;i&lt;pLoaderSubMesh.mPolygons.second;++i) for (j=3D0;j&lt;3;++j) {
++				int iP =3D pLoaderSubMesh.mPolygons.first[i].iVertex[j];
++				int iN =3D pLoaderSubMesh.mPolygons.first[i].iNormal[j];
++				int iC =3D mpGrannyLoader-&gt;GetColorIndex(i,j); /// todo : for multiple=
+ submeshes add startoffset to i
++				int iT =3D mpGrannyLoader-&gt;GetTexIndex(i,j); /// todo : for multiple s=
+ubmeshes add startoffset to i
++				cMultiIndex idx(iP,iN,iC,iT);
++				if (myCombos.find(idx) =3D=3D myCombos.end()) {
++					// combo not found, create new
++					int iCurComboVertex =3D iComboVertexCount++;
++					myIndices.PushUint16((unsigned short)iCurComboVertex);
++					myCombos[idx] =3D iCurComboVertex;
++					=
+
++					// don't use scaling here, that would confuse the skeletal anim
++					Ogre::Vector3 p =3D GrannyToOgreV(pLoaderSubMesh.mPoints.first[iP]);
++					Ogre::Vector3 n =3D GrannyToOgreV(pLoaderSubMesh.mNormals.first[iN]);
++					=
+
++					if (bUseSkeleton) {
++						// iterate over boneweights
++						tMyBoneWeightList* myBoneWeightList =3D (iP &gt;=3D 0 &amp;&amp; iP &lt; myBoneWei=
+ghts.size()) ? myBoneWeights[iP] : 0;
++						if (myBoneWeightList) {
++							for (int i=3D0;i&lt;myBoneWeightList-&gt;size();++i) {
++								int		iWeightBoneIndex 	=3D (*myBoneWeightList)[i].first;
++								float	w 					=3D (*myBoneWeightList)[i].second;
++								int 	iGrannyBoneID 		=3D WeightBoneIndex2GrannyBoneID(iWeightBoneI=
+ndex);
++								int		iOgreBoneHandle 	=3D WeightBoneIndex2OgreBoneHandle(iWeightBo=
+neIndex);
++								=
+
++								// assign vertices to skeleton bones
++								if (iOgreBoneHandle &gt;=3D 0) {
++									VertexBoneAssignment assign;
++									assign.boneIndex 	=3D iOgreBoneHandle; // NOTE ! this might refer=
+ to the animtrack handle instead of the bone handle, so best keep both equal
++									assign.weight 		=3D w;
++									assign.vertexIndex 	=3D iCurComboVertex;
++									sub-&gt;addBoneAssignment(assign);
++									=
+
++								}
++							}
++						}
++					}
++					... push vertexcombo
++				}
++				... push index
++			}
++			=
+
++			mpMesh-&gt;_setBounds(AxisAlignedBox(vMin.x,vMin.y,vMin.z,vMax.x,vMax.y,vM=
+ax.z), true);
++			mpMesh-&gt;_setBoundingSphereRadius(mymax(Vector3(vMin.x,vMin.y,vMin.z).le=
+ngth(),Vector3(vMax.x,vMax.y,vMax.z).length()));
++		end
++		=
+
+ 		function LoadGrannyAsOgreAnim (...)
+ 				local skeletonname =3D &quot;blub&quot;
+ 				local skeleton =3D SkeletonManager_load(skeletonname)
+ 				-- fTotalTime =3D cAnimationTotalTimeConstructor
+ 				local anim =3D skeleton:createAnimation(szAnimName,fTotalTime) // in s=
+econds	=
+
+-				-- cAnimationConstructor anim
++				-- cAnimationConstructor anim lBodySamples:GetSampleBone      ... todo=
+:<i>bones indirekt verbunden =C3=BCber boneties ? =
+</I>
+ 		end
+ 		=
+
+ 		=
+
+
+Modified: trunk/lua/lib.packetvideo.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.packetvideo.lua (original)
++++ trunk/lua/lib.packetvideo.lua Sat Dec  5 22:05:48 2009
+@@ -27,6 +27,7 @@
+ gPacketVideoNoPlaybackPackets[kPacket_Block_Movement] =3D true
+ gPacketVideoNoPlaybackPackets[kPacket_Target] =3D true
+ gPacketVideoNoPlaybackPackets[kPacket_Open_Container] =3D true
++gPacketVideoNoPlaybackPackets[kPacket_Logout] =3D true -- logout
+ =
+
+ gPacketVideoFileName_folderpath	=3D &quot;../videos/&quot;
+ gPacketVideoFileName_prefix		=3D gPacketVideoFileName_folderpath..&quot;myvid.&quot;
+@@ -56,6 +57,7 @@
+ 		local oldpos =3D {gPlayerXLoc,gPlayerYLoc,gPlayerZLoc,gPlayerDir}
+ 		local oldserial =3D GetPlayerSerial()
+ 		local oldfacet =3D MapGetMapIndex()
++		gPlayerBodySerial =3D nil
+ 		=
+
+ 		local lastframet
+ 		local lastrealt
+@@ -67,23 +69,38 @@
+ 		local forcedwaitinterval =3D 250 -- to ensure that something is visible,=
+ even if the processor is totally busy
+ 		local nextforcedwaitt =3D Client_GetTicks() + forcedwaitinterval
+ 		local minwait =3D 5
++		local kMax =3D #gPacketVideoData
++		local bPlayerMobileStarted =3D false
+ 		for k,chunk in pairs(gPacketVideoData) do
+ 			local realt =3D Client_GetTicks()
+ 			--~ local framet =3D chunk.t - record_start_t + playback_start_t
+ 			--~ if (framet &gt; t) then job.wait(framet-t) end
+ 			local framet =3D chunk.t
+-			--~ print(&quot;### packetvideo playback step, wait=3D&quot;,framet,chunk.chunkty=
+pe)
++			local playermobile =3D GetPlayerMobile()
++			if (playermobile) then bPlayerMobileStarted =3D true end
++			--~ if (k &gt; 200) then os.exit(0) end
++			local debugname =3D &quot;unknown&quot;
++			if (chunk.chunktype =3D=3D kPacketVideoChunkType_Player) then debugname=
+ =3D &quot;player&quot; end
++			if (chunk.chunktype =3D=3D kPacketVideoChunkType_Map) then debugname =
+=3D &quot;map&quot; end
++			if (chunk.chunktype =3D=3D kPacketVideoChunkType_Pos) then debugname =
+=3D &quot;pos&quot; end
++			if (chunk.chunktype =3D=3D kPacketVideoChunkType_Send) then debugname =
+=3D &quot;send&quot; end
++			if (chunk.chunktype =3D=3D kPacketVideoChunkType_Recv) then debugname =
+=3D &quot;recv:&quot;..(gPacketTypeId2Name[chunk.data:PeekNetUint8(1+4+4)] or &quot;???&quot;) =
+end
++			print(&quot;### packetvideo playback step, frame=3D&quot;,k..&quot;/&quot;..kMax,&quot;wait=3D&quot;,=
+framet,chunk.chunktype,debugname,&quot;gPlayerBodySerial=3D&quot;,gPlayerBodySerial,&quot;=
+playermobile=3D&quot;,playermobile)
++			=
+
++			if (bPlayerMobileStarted) then  assert(playermobile) end
++			local maxwait =3D 5*1000
+ 			if (lastframet) then =
+
+ 				local wait1 =3D (framet - lastframet)
+ 				local wait2 =3D floor(wait1 / gPacketVideoSpeedFactor)
+ 				if (lastrealt) then wait2 =3D wait2 - (realt - lastrealt) end
+ 				if (wait2 &gt; minwait or realt &gt; nextforcedwaitt) then
+-					job.wait(max(1,wait2)) =
+
++					job.wait(max(1,min(maxwait,wait2))) =
+
+ 					nextforcedwaitt =3D realt + forcedwaitinterval =
+
+ 				end
+ 			end
+ 			lastframet =3D framet
+ 			lastrealt =3D realt
++			=
+
+ 			=
+
+ 			if (chunk.chunktype =3D=3D kPacketVideoChunkType_Recv) then
+ 				local headlen =3D 1+4+4
+@@ -214,6 +231,53 @@
+ 	return true
+ end
+ =
+
++function Generate_kPacket_Naked_MOB	(fifo,serial,artid,xloc,yloc,zloc,dir,=
+hue,flag,notoriety)
++	fifo:PushNetUint8(	kPacket_Naked_MOB		) =
+
++	fifo:PushNetUint32(	serial		)
++	fifo:PushNetUint16(	artid		)
++	fifo:PushNetUint16(	xloc		)
++	fifo:PushNetUint16(	yloc		)
++	fifo:PushInt8(		zloc		)
++	fifo:PushNetUint8(	dir			)
++	fifo:PushNetUint16(	hue			) -- hue/skin color
++	fifo:PushNetUint8(	flag		)
++	fifo:PushNetUint8(	notoriety	)
++end
++
++-- table.insert(rpv.worlddata_items,item)
++function Generate_kPacket_Equipped_MOB	(fifo_out,serial,artid,xloc,yloc,zl=
+oc,dir,hue,flag,notoriety,equipitems)
++	local fifo =3D CreateFIFO()
++	fifo:PushNetUint32(	serial		)
++	fifo:PushNetUint16(	artid		)
++	=
+
++	fifo:PushNetUint16(	xloc		)
++	fifo:PushNetUint16(	yloc		)
++	=
+
++	-- the usage of this and on which servers it occurs on is unknown
++	if (TestBit(xloc,0x8000)) then fifo:PushNetUint16(-1) end -- dir2 ?
++
++	fifo:PushInt8(		zloc		)
++	fifo:PushNetUint8(	dir			)
++	fifo:PushNetUint16(	hue			) -- hue/skin color
++	fifo:PushNetUint8(	flag		)
++	fifo:PushNetUint8(	notoriety	)
++	=
+
++	for k,item in pairs(equipitems) do =
+
++		fifo:PushNetUint32(item.serial)
++		fifo:PushNetUint16(item.artid)
++		fifo:PushNetUint8(item.layer)
++		if (TestBit(item.artid,0x8000)) then fifo:PushNetUint16(item.hue) end
++	end
++	fifo:PushNetUint32(0)
++	=
+
++	-- finish packet header for dynamic size
++	fifo_out:PushNetUint8(	kPacket_Equipped_MOB		) =
+
++	fifo_out:PushNetUint16(fifo:Size()+3)
++	fifo_out:PushFIFOPartRaw(fifo,0,fifo:Size())
++	=
+
++	fifo:Destroy()
++end
++
+ function PacketVideo_LoadRarzorPV	(filename)
+ 	if (not filename) then return false end
+ 	print(&quot;PacketVideo_LoadRarzorPV&quot;,filename)
+@@ -222,6 +286,36 @@
+ 	print(&quot;PacketVideo_LoadRarzorPV:first part ok&quot;)
+ 	PacketVideo_ClearData()
+ 	local t =3D 0
++	=
+
++	local worlditems =3D {}
++	for k,item in pairs(rpv.worlddata_items) do worlditems[item.serial] =3D i=
+tem end
++	=
+
++	function AddMobile (mobile,debugfrom)
++		local fifo =3D CreateFIFO()
++		local len =3D 17
++		fifo:PushUint8(kPacketVideoChunkType_Recv)
++		fifo:PushUint32(t)
++		fifo:PushUint32(len)
++		--~ mobile.Name			=3D RPV_ReadString(fifo)
++		--~ mobile.HitsMax		=3D fifo:PopUint16()
++		--~ mobile.Hits			=3D fifo:PopUint16()
++		--~ mobile.Map			=3D fifo:PopUint8()
++		--~ Generate_kPacket_Naked_MOB(fifo,mobile.serial,mobile.Body,mobile.xlo=
+c,mobile.yloc,mobile.zloc,mobile.Direction,mobile.hue,mobile.flags,mobile.N=
+otoriety)
++		=
+
++		local equipitems =3D {}
++		for k,serial in ipairs(mobile.items) do =
+
++			local razoritem =3D worlditems[serial]
++			local item =3D {serial=3Dserial,artid=3Drazoritem.ItemID,hue=3Drazorite=
+m.hue,layer=3Drazoritem.Layer}
++			table.insert(equipitems,item)
++		end
++		Generate_kPacket_Equipped_MOB(fifo,mobile.serial,mobile.Body,mobile.xloc=
+,mobile.yloc,mobile.zloc,mobile.Direction,mobile.hue,mobile.flags,mobile.No=
+toriety,equipitems)
++		=
+
++		=
+
++		table.insert(gPacketVideoData,{chunktype=3DkPacketVideoChunkType_Recv,t=
+=3Dt,data=3Dfifo})
++		print(&quot;PacketVideo_LoadRarzorPV: worlddata_mobiles&quot;,debugfrom,mobile.ser=
+ial,mobile.Name)
++	end
++	for k,mobile in pairs(rpv.worlddata_mobiles) do AddMobile(mobile,k) end
++	AddMobile(rpv.playerdata,&quot;player&quot;)
+ 	table.insert(gPacketVideoData,{chunktype=3DkPacketVideoChunkType_Player,t=
+=3Dt,data=3D{1,rpv.playerdata.serial}})
+ 	table.insert(gPacketVideoData,{chunktype=3DkPacketVideoChunkType_Map,t=3D=
+t,data=3D{rpv.playerdata.Map}})
+ 	table.insert(gPacketVideoData,{chunktype=3DkPacketVideoChunkType_Pos,t=3D=
+t,data=3D{rpv.playerdata.xloc,rpv.playerdata.yloc,rpv.playerdata.zloc,rpv.p=
+layerdata.Direction}})
+
+Modified: trunk/lua/lib.razorpacketvideo.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.razorpacketvideo.lua (original)
++++ trunk/lua/lib.razorpacketvideo.lua Sat Dec  5 22:05:48 2009
+@@ -1,7 +1,8 @@
+ -- infos <A HREF="http://iris2.de/index.php/Razor_packetvideo_fileformat">http://iris2.de/index.php/Razor_packetvideo_fileformat</A>
+ -- todo : 6.0.1.7 protocol changes ? probably no problem as they are only =
+in one client-server fixedsize packet and dynamic packets
+ =
+
+-gRazorPacketSizeOverride6017 =3D {[0x25]=3D21} -- kPacket_Object_to_Object=
+ packetsize changed for 6.0.1.7 and later =
+
++--~ gRazorPacketSizeOverride6017 =3D {[0x25]=3D21} -- kPacket_Object_to_Ob=
+ject packetsize changed for 6.0.1.7 and later =
+
++gRazorPacketSizeOverride6017 =3D gPacketSizeOverride6017  -- 0x25 and 0x08
+ gRazorPacketSizeOverride6017Active =3D true
+ =
+
+ =
+
+@@ -63,7 +64,9 @@
+ 		end
+ 		fifo:PopRaw(len_comp)
+ 	end
++	print(&quot;LoadRazorPacketVideo fifo decompressed, parsing chunks...&quot;)
+ 	LoadRazorPacketVideoChunks(rpv,chunkfifo) =
+
++	print(&quot;LoadRazorPacketVideo parsing chunks finished&quot;)
+ 	chunkfifo:Destroy()
+ 	=
+
+ 	fifo:Destroy()
+@@ -115,11 +118,11 @@
+ 		local iWorldDataEntryType =3D fifo:PopUint8() =
+
+ 		if (iWorldDataEntryType =3D=3D 1) then
+ 			local mobile =3D RPV_ReadMobile(fifo,rpvversion)
+-			print(&quot;worlddata_mobile:&quot;,RPV_ShortDumpMobile(mobile))
++			--~ print(&quot;worlddata_mobile:&quot;,RPV_ShortDumpMobile(mobile))
+ 			table.insert(rpv.worlddata_mobiles,mobile)
+ 		elseif (iWorldDataEntryType =3D=3D 0) then
+ 			local item =3D RPV_ReadItem(fifo,rpvversion)
+-			print(&quot;worlddata_item:&quot;,item.ItemID,item.Amount,item.Name)
++			--~ print(&quot;worlddata_item:&quot;,item.ItemID,item.Amount,item.Name)
+ 			table.insert(rpv.worlddata_items,item)
+ 		else =
+
+ 			print(&quot;world data end? unknown type&quot;,iWorldDataEntryType)
+@@ -143,37 +146,270 @@
+ 	rpv.packets =3D {}
+ 	=
+
+ 	local myPacketSizeOverride =3D gRazorPacketSizeOverride6017Active and gRa=
+zorPacketSizeOverride6017 or {}
++	=
+
++	local bPacketIDNotOk =3D {}
++	bPacketIDNotOk[0] =3D true
++	bPacketIDNotOk[kPacket_Update_Terrain		] =3D true
++	bPacketIDNotOk[kPacket_Game_Central_Monitor	] =3D true
++	bPacketIDNotOk[kPacket_God_Mode				] =3D true               =
+
++	bPacketIDNotOk[kPacket_Login_Confirm		] =3D true               =
+
++	bPacketIDNotOk[kPacket_Logout				] =3D true               =
+
++	bPacketIDNotOk[kPacket_Update_Art			] =3D true     =
+
++	bPacketIDNotOk[kPacket_Update_Regions		] =3D true  =
+
++	function MyPacketIDTxt (a) return a and sprintf(&quot;0x%02x:%40s:%d&quot;,a,gPacke=
+tTypeId2Name[a] or &quot;???&quot;,myPacketSizeOverride[a] or gPacketSizeByID[a] or 0=
+) end
++	function MyPacketIDOk (a) return a and (not bPacketIDNotOk[a]) end
++		=
+
++	function PrintNext3 (i,bForce,bNoPrint)
++		local iPacketID2 =3D fifo:PeekNetUint8(i)
++		local iPacketSize2 =3D iPacketID2 and (myPacketSizeOverride[iPacketID2] =
+or gPacketSizeByID[iPacketID2])
++		if (iPacketSize2 =3D=3D 0) then iPacketSize2 =3D fifo:PeekNetUint16(i+1)=
+ end
++		=
+
++		local iPacketID3 =3D iPacketSize2 and fifo:PeekNetUint8(i+iPacketSize2+4)
++		local iPacketSize3 =3D iPacketID3 and (myPacketSizeOverride[iPacketID3] =
+or gPacketSizeByID[iPacketID3])
++		if (iPacketSize3 =3D=3D 0) then iPacketSize3 =3D fifo:PeekNetUint16(i+iP=
+acketSize2+4+1) end
++		=
+
++		local iPacketID4 =3D iPacketSize3 and fifo:PeekNetUint8(i+iPacketSize2+4=
++iPacketSize3+4)
++		if (bForce or (MyPacketIDOk(iPacketID2) and MyPacketIDOk(iPacketID3) and=
+ MyPacketIDOk(iPacketID4))) then =
+
++			if (not bNoPrint) then print(&quot;..&quot;,i,MyPacketIDTxt(iPacketID2),MyPacketI=
+DTxt(iPacketID3),MyPacketIDTxt(iPacketID4)) end
++			return iPacketID2,iPacketID3,iPacketID4
++		end
++	end
++	=
+
++	=
+
++	function SkipToNexTrippleMove ()
++		local fifosize =3D fifo:Size()
++		for i=3D1,fifosize-(4+2)*2 do =
+
++			local a,b,c =3D PrintNext3(i,false,true) =
+
++			if (a =3D=3D kPacket_Move_Player and b =3D=3D a) then =
+
++				print(&quot;rpv:packet : lost track, skipped to next dual move...&quot;,i)
++				if (i &lt; 35) then =
+
++					--~ print(FIFOHexDump(fifo,0,(i-4)+6*2))
++					--~ os.exit(0)
++					--[[         =
+
++					f3 00 01 00 40 XXxxxxxxxxxxx
++					   -nexttime-- -nextpacket..?
++					=
+
++					./start.sh -co vetus-mundus Ghongolas -rpv /home/ghoul/Desktop/snuff_=
+im_rennen_heilen_von_mennet_BlackLotus_12-1_21.37.rpv
++						=
+
++					rpv:packet : lost track, skipped to next dual move...   144
++					f3 00 01 00 40 c7 8f 0f 0b 98 00 00 01 00 01 07   |<A HREF="https://lists.berlios.de/mailman/listinfo/iris-commit">.... at ...........</A>|
++					4f 09 2a 07 00 00 00 00 00 00 00 00 dc 40 c7 8f   |O.*<A HREF="https://lists.berlios.de/mailman/listinfo/iris-commit">.......... at ..</A>|
++					0f 40 0f 9b f8 00 00 00 00#f3 00 01 00 40 c7 8f   |<A HREF="https://lists.berlios.de/mailman/listinfo/iris-commit">. at ...........</A>@..|
++					11 0b d2 00 00 01 00 01 07 4f 09 2a 07 00 00 00   |.........O.*....|
++					20 00 00 00 00 dc 40 c7 8f 11 42 b2 c5 a3 00 00   | <A HREF="https://lists.berlios.de/mailman/listinfo/iris-commit">..... at ...B.....</A>|
++					00 00#f3 00 01 00 40 f0 c6 bc 12 28 00 00 01 00   |<A HREF="https://lists.berlios.de/mailman/listinfo/iris-commit">...... at ....</A>(....|
++					01 07 51 09 2a 02 00 00 00 00 00 00 00 00 dc 40   |..Q.*..........@|
++					f0 c6 bc 40 cc 5c bf 3e 00 00 00 77 00 04 7a d5   |<A HREF="https://lists.berlios.de/mailman/listinfo/iris-commit">... at .</A>\.&gt;...w..z.|
++					01 91 07 55 09 11 07 82 83 ea 02 06 00 00 00 00   |...U............|
++					97 05 4e 00 00 00 97 05                           |..N.....|
++							=
+
++					rpv:packet : lost track, skipped to next dual move...   131
++					f3 00 01 00 40 0b 28 21 20 06 00 01 91 01 91 07   |<A HREF="https://lists.berlios.de/mailman/listinfo/iris-commit">.... at .</A>(! .......| =
+0x0b=3DkPacket_Damage,size=3D7  0x09=3DkPacket_Single_Click,size=3D5
++					0b 09 39 00 85 84 05 00 00 00 00 00 dc 40 0b 28   |<A HREF="https://lists.berlios.de/mailman/listinfo/iris-commit">..9.......... at .</A>(| =
+0x0b=3DkPacket_Damage,size=3D7  0xdc=3DkPacket_AOSObjProp,size=3D9
++					21 42 d1 36 d8 00 00 00 00 3c 00 2b 00 02 40 0c   |!B.6.....&lt;<A HREF="https://lists.berlios.de/mailman/listinfo/iris-commit">.+.. at .</A>|
++					ea 00 20 3d 00 00 01 00 1e 00 83 40 0b 28 21 04   |.. =<A HREF="https://lists.berlios.de/mailman/listinfo/iris-commit">3D....... at .</A>(!.|
++					96 40 23 cd da 17 0d 00 00 01 00 43 00 76 40 0b   |.@#<A HREF="https://lists.berlios.de/mailman/listinfo/iris-commit">........C.v at .</A>|
++					28 21 00 00 00 00 00 00 89 00 12 40 0b 28 21 0c   |(!<A HREF="https://lists.berlios.de/mailman/listinfo/iris-commit">......... at .</A>(!.|
++					40 0c ea 00 04 40 23 cd da 00 6d 00 00 00 77 00   |@....@#...m...w.|
++					04 7a d5 01 91 07 18 09 45 00 82 83 ea 02 06 00   |.z......E.......|
++					00 00 00 97 00 4e 00 00 00 97 00                  |.....N.....|
++
++					rpv:packet : lost track, skipped to next dual move...   109
++					f3 00 01 00 40 0b 4b 66 20 06 00 00 dc 00 dc 07   |<A HREF="https://lists.berlios.de/mailman/listinfo/iris-commit">.... at .Kf</A> .......|
++					0f 09 38 00 82 00 25 00 00 00 00 00 dc 40 0b 4b   |..8...%<A HREF="https://lists.berlios.de/mailman/listinfo/iris-commit">...... at .K</A>|
++					66 40 0e f7 f5 00 00 00 00 3c 00 05 00 00 00 00   |<A HREF="https://lists.berlios.de/mailman/listinfo/iris-commit">f at .......</A>&lt;......|
++					00 00 89 00 08 40 0b 4b 66 00 4e 00 00 00 97 06   |<A HREF="https://lists.berlios.de/mailman/listinfo/iris-commit">..... at .Kf.N.....</A>|
++					00 00 00 00#f3 00 01 00 40 0b 4a 99 0f 3f 00 00   |<A HREF="https://lists.berlios.de/mailman/listinfo/iris-commit">........ at .J..</A>?..| =
+0x0b=3DkPacket_Damage,size=3D7 kPacket_Edit_Template_Data=3D0x0E,dynsize			=
+					=3D { id=3D0x0E, size=3D0 }
++					01 00 01 07 0e 09 38 00 00 00 00 20 00 00 00 00   |......8.... ....|
++					dc 40 0b 4a 99 42 33 76 83 6d 00 00 00 97 06 4e   |<A HREF="https://lists.berlios.de/mailman/listinfo/iris-commit">. at .J.B3v.m.....N</A>|
++					00 00 00 97 06                                    |.....|
++
++									   =
+
++					rpv:packet : lost track, skipped to next dual move...   41
++					f3 00 01 00 40 0b 25 76 0e ca 00 01 90 01 90 07   |<A HREF="https://lists.berlios.de/mailman/listinfo/iris-commit">.... at .</A>%v........| =
+ 0x0b=3DkPacket_Damage,size=3D7
++					07 09 42 00 00 00 00 00 00 00 00 00 dc 40 0b 25   |<A HREF="https://lists.berlios.de/mailman/listinfo/iris-commit">..B.......... at .</A>%|
++					76 43 66 4c c9 7d 00 00 00 97 06 4e 00 00 00 97   |vCfL.}.....N....|
++					05                                                |.|
++								  =
+
++					rpv:packet : lost track, skipped to next dual move...   35
++					f3 00 01 00 40 fe 36 c3 06 a5 00 00 01 00 01 07   |<A HREF="https://lists.berlios.de/mailman/listinfo/iris-commit">.... at .6.........</A>| =
+ 0xa5=3DkPacket_Web_Browser
++					1c 09 1a 07 00 00 00 00 00 00 00 00 dc 40 fe 36   |<A HREF="https://lists.berlios.de/mailman/listinfo/iris-commit">............. at .6</A>|
++					c3 40 0f 97 05 5d 00 00 00 97 00                  |<A HREF="https://lists.berlios.de/mailman/listinfo/iris-commit">. at ...</A>].....|
++
++					=
+
++					]]--
++				end
++				=
+
++				fifo:PopRaw(i-4)
++				return
++			end
++		end
++		=
+
++		print(&quot;failed to find dual move&quot;,fifosize)
++		fifo:PopRaw(fifo:Size())
++		--~ os.exit(0)
++	end
++	=
+
++	=
+
++	local loopi =3D 0
++	local doom =3D nil
+ 	while (fifo:Size() &gt;=3D 5) do
++		loopi =3D loopi + 1
++		--~ if (math.mod(loopi,100) =3D=3D 0) then print(&quot;... loopi=3D&quot;,loopi) e=
+nd
++		=
+
++		if (doom) then
++			doom =3D doom - 1
++			if (doom =3D=3D 0) then os.exit(0) end
++		end
++		=
+
++		--~ print(FIFOHexDump(fifo,0,128))
++		=
+
+ 		local packet =3D {}
+ 		packet.iTimeSinceLastPacket	=3D fifo:PopUint32()
+ 		=
+
++		--~ PrintNext3(0,true)
++		--~ for i=3D1,32 do PrintNext3(i) end
++		=
+
++		local bSkip =3D false
++		=
+
+ 		packet.iPacketID		=3D fifo:PeekNetUint8(0)
+ 		if (packet.iPacketID =3D=3D 0xff) then fifo:PopRaw(1) break end
+-		packet.iPacketSize		=3D myPacketSizeOverride[packet.iPacketID] or gPacke=
+tSizeByID[packet.iPacketID]
+-		=
+
+-		if (not packet.iPacketSize) then 	=
+
+-			print(&quot;rpv : warning, unknown packettype-size&quot;,sprintf(&quot;0x%02x&quot;,packet.=
+iPacketID))
+-			packet.iPacketSize =3D 0 -- assume dynamic
+-		end
+-		=
+
+-		if (packet.iPacketSize =3D=3D 0 and fifo:Size() &gt;=3D 3) then packet.iPac=
+ketSize =3D fifo:PeekNetUint16(1) end
+-		print(&quot;rpv:packet id,size,name fifoleft time&quot;,packet.iPacketID,packet.iP=
+acketSize,gPacketTypeId2Name[packet.iPacketID],fifo:Size(),packet.iTimeSinc=
+eLastPacket)
+-		--~ print(sprintf(&quot; PacketVideo -&gt; Client 0x%02X (Length: %d)&quot;,packet.iP=
+acketID,packet.iPacketSize))
+-		=
+
+-		=
+
+-		if (fifo:Size() &lt; packet.iPacketSize) then
+-			print(&quot;rpv : packet incomplete&quot;,packet.iPacketID,fifo:Size(),packet.iPa=
+cketSize)
+-			break
+-		end
+-		packet.fifo =3D  CreateFIFO() -- TODO : destroy when not needed anymore =
+! otherwise memleak
+-		=
+
+-		packet.fifo:PushFIFOPartRaw(fifo,0,packet.iPacketSize)
+-		fifo:PopRaw(packet.iPacketSize)
+-		table.insert(rpv.packets,packet)
+-	end
+-
+-	print(&quot;rpv:end. sizeleft&quot;,fifo:Size(),FIFOHexDump(fifo))
+-end
++		if (packet.iPacketID =3D=3D 0xf3) then SkipToNexTrippleMove() bSkip =3D =
+true end       -- unknown... f3 00 01 00 40 96 2b
++		--~ if (packet.iPacketID =3D=3D 0xf3) then doom =3D 10 end       -- unkn=
+own... f3 00 01 00 40 96 2b
++		--~ if (packet.iPacketID =3D=3D 0xf3) then print(&quot;rpv:packet special:0xf=
+3, skipping&quot;) print(FIFOHexDump(fifo,0,32)) fifo:PopRaw(400-4) bSkip =3D tr=
+ue end       -- unknown... f3 00 01 00 40 96 2b
++		=
+
++		--~ gPacketType.kPacket_Move_Player										=3D { id=3D0x97, size=3D2 }
++		--[[
++		rpv : warning, unknown packettype-size  0xf3                            =
+                                                     =
+
++		=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D hexdump nearby (after timestamp, unkno=
+wn size : guessed)                                                         =
+
++		f3 00 01 00 40 96 2b 54 0a c8 00 00 01 00 01 07   |<A HREF="https://lists.berlios.de/mailman/listinfo/iris-commit">.... at .+T........</A>|    =
+                                                     =
+
++		5a 09 08 2f 00 00 00 00 00 00 00 00 dc 40 96 2b   |Z../<A HREF="https://lists.berlios.de/mailman/listinfo/iris-commit">......... at .+</A>|    =
+                                                     =
+
++		54 40 0f 9b 28 00 00 00 00 f3 00 01 00 40 22 1c   |<A HREF="https://lists.berlios.de/mailman/listinfo/iris-commit">T at ..</A>(........@&quot;.|    =
+                                                     =
+
++		20 0a c8 00 00 01 00 01 07 5a 09 09 07 00 00 00   | ........Z......|    =
+                                                     =
+
++		00 00 00 00 00 dc 40 22 1c 20 40 0f 9b 28 00 00   |......@&quot;. @..(..|   =
+
++
++		..      32      0x54:                           kPacket_Sound   0x20:   =
+                     kPacket_Teleport   0x22:  kPacket_Accept_Movement_Resy=
+nc_Request
++		..      335     0x1f:                         kPacket_Explode   0x07:   =
+                  kPacket_Take_Object   0x22:  kPacket_Accept_Movement_Resy=
+nc_Request
++		..      400     0x1c:                            kPacket_Text   0x77:   =
+                    kPacket_Naked_MOB   0xdc:                      kPacket_=
+AOSObjProp     =
+
++		  =
+
++		..      527     0x78:                    kPacket_Equipped_MOB:0 0x0f:   =
+                kPacket_Paperdoll_Old:61        0x16:            kPacket_Re=
+quest_Script_Names:1        =
+
++		..      568     0x78:                    kPacket_Equipped_MOB:0 0x77:   =
+                    kPacket_Naked_MOB:17        0x77:                      =
+ kPacket_Naked_MOB:17      =
+
++					  =
+
++		..      1031    0x1c:                            kPacket_Text:0 0xdc:   =
+                   kPacket_AOSObjProp:9 0xf3:                              =
+       ???:0          =
+
++																													 =
+
++		..      4036    0x97:                     kPacket_Move_Player:2 0x97:   =
+                  kPacket_Move_Player:2 0xf3:                              =
+       ???:0
++
++						 =
+
++		rpv:packet id,size,name fifoleft time   0xd6    111                kPack=
+et_Mega_Cliloc  1984013 0x00000000      0       false
++
++					 =
+
++		--~ rpv:packet id,size,name fifoleft time   0x97    2                  k=
+Packet_Move_Player  1978193 0x00000000      0       nil     false
++		--~ rpv:packet : lost track, skipped to next dual move...   144
++		--~ rpv:packet id,size,name fifoleft time   0x97    2                  k=
+Packet_Move_Player  1978043 0x00000000      0       nil     false
++		--~ rpv:packet id,size,name fifoleft time   0x97    2                  k=
+Packet_Move_Player  1978037 0x00000000      0       nil     false
++
++		]]--
++		=
+
++		if (not bSkip) then =
+
++			packet.iPacketSize		=3D myPacketSizeOverride[packet.iPacketID] or gPack=
+etSizeByID[packet.iPacketID]
++			=
+
++			local bOverrideActive =3D packet.iPacketSize ~=3D gPacketSizeByID[packe=
+t.iPacketID]
++			=
+
++			if ((not packet.iPacketSize) or packet.iPacketID =3D=3D 0) then 	=
+
++				print(&quot;rpv : warning, unknown packettype-size for packed id&quot;,sprintf(&quot;=
+0x%02x&quot;,packet.iPacketID))
++				--~ print(&quot;=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D hexdump nearby (after tim=
+estamp, unknown size : guessed)&quot;)
++				--~ print(FIFOHexDump(fifo,0,512))
++				--~ print(&quot;=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D&quot;)
++				=
+
++				local iPacketID
++				for i=3D1,512*8 do =
+
++					iPacketID =3D PrintNext3(i) =
+
++					--~ if (iPacketID =3D=3D kPacket_Move_Player) then break end
++				end
++				os.exit(0)
++				packet.iPacketSize =3D 0 -- assume dynamic
++			end
++			=
+
++			if (packet.iPacketSize =3D=3D 0 and fifo:Size() &gt;=3D 3) then packet.iPa=
+cketSize =3D fifo:PeekNetUint16(1) end
++			=
+
++			local myDebug
++			--~ if (packet.iPacketID =3D=3D kPacket_Mega_Cliloc) then =
+
++				--~ local input =3D  CreateFIFO()
++				--~ input:PushFIFOPartRaw(fifo,0,packet.iPacketSize)
++				--~ myDebug =3D My_kPacket_Mega_Cliloc(input)
++				--~ if myDebug then myDebug =3D string.gsub(myDebug,&quot;\n&quot;,&quot; &quot;) end
++				--~ input:Destroy()
++			--~ end
++			=
+
++			--~ print(&quot;rpv:packet id,size,name fifoleft time&quot;,sprintf(&quot;0x%02x&quot;,pack=
+et.iPacketID),packet.iPacketSize,sprintf(&quot;%30s&quot;,gPacketTypeId2Name[packet.i=
+PacketID] or &quot;&quot;),fifo:Size(),sprintf(&quot;0x%08x&quot;,packet.iTimeSinceLastPacket),=
+packet.iTimeSinceLastPacket,myDebug,bOverrideActive and &quot;OVERRIDE !!!!!!!&quot;)
++			--~ print(sprintf(&quot; PacketVideo -&gt; Client 0x%02X (Length: %d)&quot;,packet.i=
+PacketID,packet.iPacketSize))
++			=
+
++			if (fifo:Size() &lt; packet.iPacketSize) then
++				print(&quot;rpv : packet incomplete&quot;,packet.iPacketID,fifo:Size(),packet.iP=
+acketSize)
++				break
++			end
++			=
+
++			packet.fifo =3D  CreateFIFO() -- TODO : destroy when not needed anymore=
+ ! otherwise memleak
++			=
+
++			packet.fifo:PushFIFOPartRaw(fifo,0,packet.iPacketSize)
++			fifo:PopRaw(packet.iPacketSize)
++			table.insert(rpv.packets,packet)
++		end
++	end
++
++	print(&quot;rpv:end. sizeleft&quot;,fifo:Size()) -- FIFOHexDump(fifo)
++end
++
++
++-- Mega Cliloc - server sends new Clilocs - just add them to the Cliloc
++-- TODO : this cliloc additions might be local to a specific mobile, e.g. =
+vendor or container...
++function My_kPacket_Mega_Cliloc(input)	--0xD6
++	local id				=3D input:PopNetUint8()
++	local size				=3D input:PopNetUint16()
++	local data =3D {}
++	data.unknown1			=3D input:PopNetUint16()	--0x0001 or 0x4000 !?
++	local serial			=3D input:PopNetUint32()	--Serial of item/creature
++	data.unknown2			=3D input:PopNetUint16()	--0x0000 !?
++	data.objrevision_hash	=3D input:PopNetUint32()	--another serial? hash? we=
+ird flags ? position ? 0x030c0ca3
++	local hash =3D BitwiseAND(data.objrevision_hash,kToolTipHashMask) =
+
++		-- objrevision_hash in old iris code : obj/character-&gt;SetAOSTooltipID(li=
+stID);
++	=
+
++	local totaltext =3D &quot;&quot;
++	local bFirst =3D true
++	=
+
++	while true do =
+
++		local cliloc_id =3D input:PopNetUint32()
++		if (cliloc_id =3D=3D 0x00000000) then break end
++		local cliloctext =3D gClilocLoader and gClilocLoader:Get(cliloc_id) or &quot;&quot;
++		=
+
++		local number_of_unicode_chars =3D input:PopNetUint16() / 2
++		local text =3D &quot;&quot;
++		local totalparamtext =3D &quot;&quot;
++		local debugtxt =3D &quot;&quot;
++		local params =3D {}
++		for i =3D 1,number_of_unicode_chars do  -- read unicode text and split b=
+y 0x09 =3D tab
++			local head =3D input:PopUint8()
++			local data =3D input:PopUint8()
++			local c =3D ((head~=3D0) and string.char(head) or &quot;?&quot;)
++			if (head =3D=3D 9 and data =3D=3D 0) then -- delimiter =3D tab=3D0x09
++				table.insert(params,text)
++				text =3D &quot;&quot;
++			else
++				text =3D text..c
++			end
++			totalparamtext =3D totalparamtext..c
++			debugtxt =3D debugtxt..&quot;(&quot;..head..&quot;,&quot;..data..&quot;:&quot;..c..&quot;)&quot;
++		end
++		table.insert(params,text)
++		=
+
++		local text =3D string.gsub(ParameterizedClilocText(cliloc_id,params),&quot;&lt;b=
+r&gt;&quot;,&quot;\n&quot;)
++		=
+
++		if (bFirst) then bFirst =3D false else totaltext =3D totaltext..&quot;\n&quot; end
++		totaltext =3D totaltext..text
++	end
++	return totaltext
++end
++
+ =
+
+ =
+
+ function DestroyRazorPacketVideo (rpv)
+
+Modified: trunk/lua/net/net.mobile.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.mobile.lua (original)
++++ trunk/lua/net/net.mobile.lua Sat Dec  5 22:05:48 2009
+@@ -14,7 +14,7 @@
+ 	mobiledata.flag			=3D input:PopNetUint8()
+ 	mobiledata.notoriety	=3D input:PopNetUint8()
+ 	=
+
+-	if (mobiledata.serial =3D=3D GetPlayerSerial()) then =
+
++	if (mobiledata.serial =3D=3D GetPlayerSerial() and (not gPacketVideoPlayb=
+ackRunning)) then =
+
+ 		local x,y,z =3D GetPlayerPos()
+ 		if (x) then
+ 			mobiledata.xloc =3D x
+
+Modified: trunk/lua/net/net.multi.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.multi.lua (original)
++++ trunk/lua/net/net.multi.lua Sat Dec  5 22:05:48 2009
+@@ -54,11 +54,15 @@
+ 	local iPacketSize =3D input:PopNetUint16()
+ 	local compresstype =3D input:PopNetUint8()	-- (0=3Dnothing, 3=3Dzlib)
+ 	local unknown1 =3D input:PopNetUint8()	--Enable Response (0x01 =3D yes, 0=
+x00 =3D no)
+-	local customhouseserial =3D input:PopNetUint32()
+-	local customhouserevision =3D input:PopNetUint32()
++	local customhouseserial =3D input:PopNetUint32()   -- =3D item.serial ? =
+
++	local customhouserevision =3D input:PopNetUint32() =
+
+ 	local tilecount =3D input:PopNetUint16()	--components.size()
+ 	local bufferlen =3D input:PopNetUint16()	--components.size() * 5		(item l=
+ist, compressed?)
+ 	local planecount =3D input:PopNetUint8()
++	=
+
++	=
+
++	-- customhouseserial =3D item.serial ?
++	-- foundationstyle =3D item.artid !!!!  two different houses with the sam=
+e size can have the same here
+ 	=
+
+ 	printdebug(&quot;net&quot;,sprintf(&quot;NET: Custom_House: iPacketSize=3D%d compresstyp=
+e=3D0x%02x unknown1=3D0x%02x customhouseserial=3D%d customhouserevision=3D0=
+x%08x tilecount=3D%d bufferlen=3D%d planecount=3D%d\n&quot;,
+ 			iPacketSize, compresstype, unknown1, customhouseserial, customhouserevi=
+sion, tilecount, bufferlen, planecount))
+
+Modified: trunk/lua/net/net.partysystem.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.partysystem.lua (original)
++++ trunk/lua/net/net.partysystem.lua Sat Dec  5 22:05:48 2009
+@@ -194,7 +194,7 @@
+ 	name =3D UOShortenName(name)
+ 	print(&quot;partysystem:test message&quot;,speakerID,name, input, size)
+ 	local plaintext,unicodebytearr,size =3D FIFO_PopZeroTerminatedUnicode(inp=
+ut,size)
+-	GuiAddChatLine(&quot;&lt;Party&gt; &quot;..name..&quot;: &quot;..plaintext,gPartyChatColor)
++	GuiAddChatLine(&quot;&lt;Party&gt; &quot;..name..&quot;: &quot;..plaintext,gPartyChatColor,&quot;party&quot;,=
+name)
+ 	NotifyListener(&quot;Hook_Party_Chat&quot;,name,plaintext)
+ end =
+
+ =
+
+
+Modified: trunk/lua/net/net.text.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.text.lua (original)
++++ trunk/lua/net/net.text.lua Sat Dec  5 22:05:48 2009
+@@ -159,24 +159,25 @@
+ 	local r,g,b =3D 1,1,1
+ 	local bIsLabel =3D false
+ 	=
+
+-	if data.type =3D=3D kTextType_Normal then	r,g,b =3D 1,1,1 end
+-	if data.type =3D=3D kTextType_System then	r,g,b =3D 0,0,1 end
+-	if data.type =3D=3D kTextType_Emote then	r,g,b =3D 0,1,0 end
++	local textclass
++	if data.type =3D=3D kTextType_Normal then	r,g,b =3D 1,1,1 textclass =3D &quot;=
+normal&quot; end
++	if data.type =3D=3D kTextType_System then	r,g,b =3D 0,0,1 textclass =3D &quot;=
+system&quot; end
++	if data.type =3D=3D kTextType_Emote then	r,g,b =3D 0,1,0 textclass =3D &quot;e=
+mote&quot; end
+ 	if data.type =3D=3D kTextType_Label then =
+
+ 		data.text =3D PreAOSAttributeAddHints(data.text)
+ 		bIsLabel =3D true
+ 		gProfiler_Text:Section(&quot;Mobile_NameHint&quot;)
+ 		if mobile then Mobile_NameHint(data.serial,data.artid,data.name,data.tex=
+t) end
+ 		gProfiler_Text:Section(&quot;PreCalc2&quot;)
+-		r,g,b =3D 1,1,1 =
+
++		r,g,b =3D 1,1,1 textclass =3D &quot;label&quot;
+ 	end	-- 0x06 - System/Lower Corner, label?
+-	if data.type =3D=3D kTextType_Corner			 then r,g,b =3D 1,0,0 end	=
+
+-	if data.type =3D=3D kTextType_Whisper			 then r,g,b =3D 1,1,1 end	=
+
+-	if data.type =3D=3D kTextType_Yell				 then r,g,b =3D 1,1,1 end	=
+
+-	if data.type =3D=3D kTextType_Spell				 then r,g,b =3D 0,1,1 end	=
+
+-	if data.type =3D=3D kTextType_Guild				 then r,g,b =3D 0,1,0 end	 =
+
+-	if data.type =3D=3D kTextType_Alliance			 then r,g,b =3D 0,1,0 end	=
+
+-	if data.type =3D=3D kTextType_CommandPrompt		 then r,g,b =3D 1,0,1 end		=
+
++	if data.type =3D=3D kTextType_Corner			 then r,g,b =3D 1,0,0 textclass =
+=3D &quot;normal&quot; end	=
+
++	if data.type =3D=3D kTextType_Whisper			 then r,g,b =3D 1,1,1 textclass =
+=3D &quot;normal&quot; end	=
+
++	if data.type =3D=3D kTextType_Yell				 then r,g,b =3D 1,1,1 textclass =3D=
+ &quot;normal&quot; end	=
+
++	if data.type =3D=3D kTextType_Spell				 then r,g,b =3D 0,1,1 textclass =
+=3D &quot;spell&quot; end	=
+
++	if data.type =3D=3D kTextType_Guild				 then r,g,b =3D 0,1,0 textclass =
+=3D &quot;guild&quot; end	 =
+
++	if data.type =3D=3D kTextType_Alliance			 then r,g,b =3D 0,1,0 textclass =
+=3D &quot;ally&quot; end	=
+
++	if data.type =3D=3D kTextType_CommandPrompt		 then r,g,b =3D 1,0,1 textcl=
+ass =3D &quot;prompt&quot; end		=
+
+ 	=
+
+ 	gProfiler_Text:Section(&quot;GetHueColor&quot;)
+ 	if data.hue then r,g,b =3D GetHueColor(data.hue-1) end
+@@ -234,15 +235,15 @@
+ 	gProfiler_Text:Section(&quot;GuiAddChatLine&quot;)
+ 	if show_below then
+ 		if string.len(data.name) &gt; 0 then =
+
+-			GuiAddChatLine(sprintf(&quot;%s: %s&quot;,data.name,plaintext),{r,g,b,1})
++			GuiAddChatLine(sprintf(&quot;%s: %s&quot;,data.name,plaintext),{r,g,b,1},textclas=
+s,data.name,serial,data.clilocid)
+ 		else
+-			GuiAddChatLine(plaintext,{r,g,b,1})
++			GuiAddChatLine(plaintext,{r,g,b,1},textclass,data.name,serial,data.clil=
+ocid)
+ 		end
+ 	end
+ 	=
+
+ 	gProfiler_Text:Section(&quot;JournalAddText&quot;)
+ 	-- disabled, because it didn't work with chinses text (unicode), produces=
+ beeps in console
+-	if gShowChatInConsole and (show_journal or show_below) then print(&quot;Handle=
+UOText&quot;,plaintext,data.clilocid,data.type) end
++	if gShowChatInConsole and (show_journal or show_below) then print(&quot;Handle=
+UOText&quot;,data.name,plaintext,data.clilocid,data.type) end
+ 	if show_journal then
+ 		JournalAddText(data.name,plaintext)
+ 	end
+
+Modified: trunk/lua/net/net.uoam.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.uoam.lua (original)
++++ trunk/lua/net/net.uoam.lua Sat Dec  5 22:05:48 2009
+@@ -243,7 +243,7 @@
+ 		local text =3D fifo:PopFilledString(fifo:Size())
+ 		--~ print(&quot;text&quot;,textlen,text)
+ 		print(&quot;uoam:chat&quot;,name,text)
+-		GuiAddChatLine(&quot;[&quot;..name..&quot;]: &quot;..text,gUOAMChatColor)
++		GuiAddChatLine(&quot;[&quot;..name..&quot;]: &quot;..text,gUOAMChatColor,&quot;uoam&quot;,name)
+ 	else
+ 		print(&quot;UOAM:unknown message type&quot;,msgtype)
+ 	end
+
+Modified: trunk/lua/obj/obj.mobile.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/obj/obj.mobile.lua (original)
++++ trunk/lua/obj/obj.mobile.lua Sat Dec  5 22:05:48 2009
+@@ -147,7 +147,9 @@
+ 	-- request basic stats info
+ 	if (not self.stat_request_sent) then  =
+
+ 			self.stat_request_sent =3D true
+-		Send_ClientQuery(gRequest_States,self.serial)
++		if (not gPacketVideoPlaybackRunning) then =
+
++			Send_ClientQuery(gRequest_States,self.serial)
++		end
+ 	end
+ 	=
+
+ 	-- update life stats in gui elements
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="001940.html">[Iris-commit] [IRIS] r3180 - in /trunk: lua/lib.granny.debug.lua	scripts/luabindheader.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1939">[ date ]</a>
+              <a href="thread.html#1939">[ thread ]</a>
+              <a href="subject.html#1939">[ subject ]</a>
+              <a href="author.html#1939">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

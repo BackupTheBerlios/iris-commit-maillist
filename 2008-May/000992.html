@@ -1,0 +1,119 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2182 - /trunk/lua/lib.terrain.multitex.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-May/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2182%20-%20/trunk/lua/lib.terrain.multitex.lua&In-Reply-To=%3C20080512175848.AAD091524037%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000991.html">
+   <LINK REL="Next"  HREF="000993.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2182 - /trunk/lua/lib.terrain.multitex.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2182%20-%20/trunk/lua/lib.terrain.multitex.lua&In-Reply-To=%3C20080512175848.AAD091524037%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2182 - /trunk/lua/lib.terrain.multitex.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Mon May 12 19:58:48 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000991.html">[Iris-commit] [IRIS] r2181 - /trunk/lua/lib.2d.cam.lua
+</A></li>
+        <LI>Next message: <A HREF="000993.html">[Iris-commit] [IRIS] r2183 - in /trunk/lua: lib.2d.map.lua lib.2d.renderer.lua lib.3d.renderer.lua lib.mainmenu.lua main.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#992">[ date ]</a>
+              <a href="thread.html#992">[ thread ]</a>
+              <a href="subject.html#992">[ subject ]</a>
+              <a href="author.html#992">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Mon May 12 19:58:47 2008
+New Revision: 2182
+
+Log:
+workaround for multitex terrain tex load failure
+
+Modified:
+    trunk/lua/lib.terrain.multitex.lua
+
+Modified: trunk/lua/lib.terrain.multitex.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.terrain.multitex.lua (original)
++++ trunk/lua/lib.terrain.multitex.lua Mon May 12 19:58:47 2008
+@@ -124,18 +124,22 @@
+ 		local iBorderPixels =3D (aw &gt;=3D 512) and 4 or 2
+ 		local iScaledSourceW =3D tilew*iTileSpan - 2*iBorderPixels
+ 		local imgFile	=3D LoadImageFromFile(o.src)
+-		local imgScaled	=3D ImageScale(imgFile,iScaledSourceW,iScaledSourceW)
+-		local bSuccess,l,r,t,b =3D pTexAtlas:AddImage(imgScaled,iBorderPixels)
+-		imgFile:Destroy()
+-		imgScaled:Destroy()
+-		=
+
+-		-- register texture
+-		local myid =3D k1 - 1
+-		if (o.default) then gMultiTexTerrainDefaultTypeID =3D myid end
+-		local u0,v0,w,h =3D l,t,(r-l)/iTileSpan,(b-t)/iTileSpan
+-		for k2,uoid in pairs(o.uoids) do gMultiTexTerrainTypeLookup[uoid] =3D my=
+id end
+-		gMultiTexTerrainTypeTexCoords[myid] =3D {u0,v0,w/o.tilespan,h/o.tilespan}
+-		TerrainMultiTex_AddTexCoordSet(0,u0,v0,w,h,iTileSpan)
++		if (not imgFile) then
++			print(&quot;warning : multitex terrain failed to load &quot;,o.src)
++		else
++			local imgScaled	=3D ImageScale(imgFile,iScaledSourceW,iScaledSourceW)
++			local bSuccess,l,r,t,b =3D pTexAtlas:AddImage(imgScaled,iBorderPixels)
++			imgFile:Destroy()
++			imgScaled:Destroy()
++			=
+
++			-- register texture
++			local myid =3D k1 - 1
++			if (o.default) then gMultiTexTerrainDefaultTypeID =3D myid end
++			local u0,v0,w,h =3D l,t,(r-l)/iTileSpan,(b-t)/iTileSpan
++			for k2,uoid in pairs(o.uoids) do gMultiTexTerrainTypeLookup[uoid] =3D m=
+yid end
++			gMultiTexTerrainTypeTexCoords[myid] =3D {u0,v0,w/o.tilespan,h/o.tilespa=
+n}
++			TerrainMultiTex_AddTexCoordSet(0,u0,v0,w,h,iTileSpan)
++		end
+ 	end
+ 	if (true) then -- export texatlas image
+ 		local imgAtlas =3D CreateImage()
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000991.html">[Iris-commit] [IRIS] r2181 - /trunk/lua/lib.2d.cam.lua
+</A></li>
+	<LI>Next message: <A HREF="000993.html">[Iris-commit] [IRIS] r2183 - in /trunk/lua: lib.2d.map.lua lib.2d.renderer.lua lib.3d.renderer.lua lib.mainmenu.lua main.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#992">[ date ]</a>
+              <a href="thread.html#992">[ thread ]</a>
+              <a href="subject.html#992">[ subject ]</a>
+              <a href="author.html#992">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

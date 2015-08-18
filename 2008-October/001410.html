@@ -1,0 +1,147 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2605 - /trunk/lua/lib.macrolist.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-October/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2605%20-%20/trunk/lua/lib.macrolist.lua&In-Reply-To=%3C20081019180004.744841C181D5%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001409.html">
+   <LINK REL="Next"  HREF="001411.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2605 - /trunk/lua/lib.macrolist.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2605%20-%20/trunk/lua/lib.macrolist.lua&In-Reply-To=%3C20081019180004.744841C181D5%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2605 - /trunk/lua/lib.macrolist.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sun Oct 19 19:24:04 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001409.html">[Iris-commit] [IRIS] r2604 - in /trunk/lua: lib.loading.lua obj/obj.main.lua obj/obj.mobile.lua obj/obj.player.lua widgets/widget.uocontainer.lua
+</A></li>
+        <LI>Next message: <A HREF="001411.html">[Iris-commit] [IRIS] r2606 - in /trunk/lua: lib.packet.lua lib.protocol.lua net/net.other.lua net/net.partysystem.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1410">[ date ]</a>
+              <a href="thread.html#1410">[ thread ]</a>
+              <a href="subject.html#1410">[ subject ]</a>
+              <a href="author.html#1410">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sun Oct 19 19:24:04 2008
+New Revision: 2605
+
+Log:
+extended macro find command to return a list
+
+Modified:
+    trunk/lua/lib.macrolist.lua
+
+Modified: trunk/lua/lib.macrolist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.macrolist.lua (original)
++++ trunk/lua/lib.macrolist.lua Sun Oct 19 19:24:04 2008
+@@ -249,19 +249,27 @@
+ =
+
+ function MacroCmd_Item_Use	(item) if (item) then Send_DoubleClick(item.ser=
+ial) return item end end
+ =
+
+-function MacroCmd_Item_UseByName	(itemnamepart)	return MacroCmd_Item_Use(M=
+acroCmd_Item_FindByName(itemnamepart)) end
+-function MacroCmd_Item_UseByArtID	(artid,hue)		return MacroCmd_Item_Use(Ma=
+croCmd_Item_FindByArtID(artid,hue)) end
++function MacroCmd_Item_UseByName	(itemnamepart)	return MacroCmd_Item_Use(M=
+acroCmd_Item_FindFirstByName(itemnamepart)) end
++function MacroCmd_Item_UseByArtID	(artid,hue)		return MacroCmd_Item_Use(Ma=
+croCmd_Item_FindFirstByArtID(artid,hue)) end
++
++function MacroCmd_Item_FindFirstByName	(itemnamepart,container) local list=
+ =3D MacroCmd_Item_FindByName(itemnamepart,container) return list[1] end
++function MacroCmd_Item_FindFirstByArtID	(artid,hue,container) local list =
+=3D MacroCmd_Item_FindByArtID(artid,hue,container) return list[1] end
++
++-- doesn't sum stack-amount
++function MacroCmd_Item_CountByArtID	(artid,hue,container) local list =3D M=
+acroCmd_Item_FindByArtID(artid,hue,container) return list and #list or 0 end
+ =
+
+ -- container defaults to player-backpack
+ function MacroCmd_Item_FindByName	(itemnamepart,container)
+ 	container =3D container or GetPlayerBackPackContainer()
+ 	if (not container) then return end
++	local res =3D {}
+ 	for k,item in pairs(container:GetContent()) do =
+
+ 		local name =3D AosToolTip_GetText(item.serial) or GetStaticTileTypeName(=
+item.artid)
+ 		if (name and string.find(name,itemnamepart)) then
+-			return item
+-		end
+-	end
++			table.insert(res,item)
++		end
++	end
++	return res
+ end
+ =
+
+ -- container defaults to player-backpack
+@@ -269,11 +277,13 @@
+ function MacroCmd_Item_FindByArtID	(artid,hue,container) -- equals easyuo =
+type
+ 	container =3D container or GetPlayerBackPackContainer()
+ 	if (not container) then return end
++	local res =3D {}
+ 	for k,item in pairs(container:GetContent()) do =
+
+ 		if (item.artid =3D=3D artid and (hue =3D=3D nil or hue =3D=3D item.hue))=
+ then
+-			return item
+-		end
+-	end
++			table.insert(res,item)
++		end
++	end
++	return res
+ end
+ =
+
+ function MacroCmd_FindNearestMobByName (namepart)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001409.html">[Iris-commit] [IRIS] r2604 - in /trunk/lua: lib.loading.lua obj/obj.main.lua obj/obj.mobile.lua obj/obj.player.lua widgets/widget.uocontainer.lua
+</A></li>
+	<LI>Next message: <A HREF="001411.html">[Iris-commit] [IRIS] r2606 - in /trunk/lua: lib.packet.lua lib.protocol.lua net/net.other.lua net/net.partysystem.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1410">[ date ]</a>
+              <a href="thread.html#1410">[ thread ]</a>
+              <a href="subject.html#1410">[ subject ]</a>
+              <a href="author.html#1410">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,230 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2963 - in /trunk/lua: lib.mainmenu.accountlist.lua lib.shardlist.lua lib.uoids.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2009-March/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2963%20-%20in%20/trunk/lua%3A%0A%20lib.mainmenu.accountlist.lua%20lib.shardlist.lua%20lib.uoids.lua&In-Reply-To=%3C20090316145307.B3E8F1C18877%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001762.html">
+   <LINK REL="Next"  HREF="001764.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2963 - in /trunk/lua: lib.mainmenu.accountlist.lua lib.shardlist.lua lib.uoids.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2963%20-%20in%20/trunk/lua%3A%0A%20lib.mainmenu.accountlist.lua%20lib.shardlist.lua%20lib.uoids.lua&In-Reply-To=%3C20090316145307.B3E8F1C18877%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2963 - in /trunk/lua: lib.mainmenu.accountlist.lua lib.shardlist.lua lib.uoids.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Mon Mar 16 15:53:07 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001762.html">[Iris-commit] [IRIS] r2962 - in /trunk/lua: gui/gui.trade.lua lib.book.lua lib.corpse.lua lib.debugmenu.lua
+</A></li>
+        <LI>Next message: <A HREF="001764.html">[Iris-commit] [IRIS] r2964 - /trunk/lua/lib.mainmenu.accountlist.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1763">[ date ]</a>
+              <a href="thread.html#1763">[ thread ]</a>
+              <a href="subject.html#1763">[ subject ]</a>
+              <a href="author.html#1763">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Mon Mar 16 15:53:03 2009
+New Revision: 2963
+
+Log:
+mainmenu:accountlist : shows time since last login and top7 char skills
+
+Modified:
+    trunk/lua/lib.mainmenu.accountlist.lua
+    trunk/lua/lib.shardlist.lua
+    trunk/lua/lib.uoids.lua
+
+Modified: trunk/lua/lib.mainmenu.accountlist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mainmenu.accountlist.lua (original)
++++ trunk/lua/lib.mainmenu.accountlist.lua Mon Mar 16 15:53:03 2009
+@@ -55,10 +55,30 @@
+                 =
+
+                 local myrow =3D bHadFirstChar and {{&quot;&quot;},{&quot;&quot;},{&quot;&quot;}} or base=
+row
+                 bHadFirstChar =3D true
++				=
+
++				local chardata =3D SimpleXMLLoad(GetCharFilePath(user,char.id))
++				local charinfo =3D &quot;&quot;
++				if (chardata) then
++					local timediff =3D os.time() - (chardata.time or 0)
++					charinfo =3D charinfo .. floor(timediff/3600/24)..&quot;d.&quot;
++					=
+
++					-- glSkillNamesShort
++					=
+
++					local valname =3D {[1200]=3D&quot;leg&quot;,[1100]=3D&quot;elder&quot;,[1000]=3D&quot;gm&quot;}
++					local arr =3D {}
++					for k,skill in pairs(chardata.skills) do skill.id =3D k end
++					local skills2 =3D SortedArrayFromAssocTable(chardata.skills,function =
+(a,b) return a.value &gt; b.value end)
++					for k,skill in ipairs(skills2) do =
+
++						table.insert(arr,glSkillNamesShort[skill.id]..&quot;:&quot;..(valname[skill.va=
+lue] or (skill.value/10)))
++						if (k &gt;=3D 7) then break end
++					end
++					charinfo =3D charinfo .. table.concat(arr,&quot;,&quot;)
++				end
+                 =
+
+                 table.insert(myrow,{char.name,fun_char})
+                 table.insert(myrow,{&quot;3D&quot;,function () gCurrentRenderer =3D =
+Renderer3D fun_char() end})
+                 table.insert(myrow,{&quot;2D&quot;,function () gCurrentRenderer =3D =
+Renderer2D fun_char() end})
++                table.insert(myrow,{charinfo})
+                 table.insert(rows,myrow)
+             end
+         end
+
+Modified: trunk/lua/lib.shardlist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.shardlist.lua (original)
++++ trunk/lua/lib.shardlist.lua Mon Mar 16 15:53:03 2009
+@@ -4,7 +4,7 @@
+ function GetConfigDirPath               () return gMainWorkingDir..&quot;config=
+/&quot; end
+ function GetShardListDirPath            () return GetConfigDirPath()..&quot;sha=
+rds/&quot; end
+ function GetShardMemoryFilePath         () return GetConfigDirPath()..&quot;sha=
+rdmemory.xml&quot; end
+-function GetCharFilePath                () return GetConfigDirPath()..&quot;cha=
+rs/&quot;..table.concat({gLoginServerIP,gLoginServerPort,ShardListFileNamePartEn=
+code(gLoginname),giGameServerID,gCharID},&quot;.&quot;)..&quot;.xml&quot; end
++function GetCharFilePath                (loginname,charid) return GetConfi=
+gDirPath()..&quot;chars/&quot;..table.concat({gLoginServerIP,gLoginServerPort,ShardLi=
+stFileNamePartEncode(loginname or gLoginname),(giGameServerID or 0),(charid=
+ or gCharID or 0)},&quot;.&quot;)..&quot;.xml&quot; end
+ function GetShardConfigFilePath         (shardname) return GetShardListDir=
+Path()..ShardListFileNamePartEncode(shardname)..&quot;.xml&quot; end
+ =
+
+ function ShardListFileNamePartEncode    (x) return string.gsub(x,&quot;[^0-9a-z=
+A-Z_%-%(%) ]&quot;,&quot;.&quot;) end
+
+Modified: trunk/lua/lib.uoids.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.uoids.lua (original)
++++ trunk/lua/lib.uoids.lua Mon Mar 16 15:53:03 2009
+@@ -410,6 +410,68 @@
+ 	[52]	=3D &quot;Chivalry&quot;,
+ 	[53]	=3D &quot;Bushido&quot;,
+ 	[54]	=3D &quot;Ninjitsu&quot;,
++	[55]	=3D &quot;Spellweaving&quot;	-- ? correct?
++}
++
++
++-- for mainmenu.accountlist infos
++glSkillNamesShort =3D {	=
+
++	[1] 	=3D &quot;Alch&quot;,
++	[2]		=3D &quot;Ana&quot;,
++	[3]		=3D &quot;AniLore&quot;,
++	[4]		=3D &quot;ItemId&quot;, -- (Appraise)
++	[5]		=3D &quot;ArmsLore&quot;,
++	[6]		=3D &quot;Parry&quot;, -- (Battle Defense)
++	[7]		=3D &quot;Beg&quot;,
++	[8]		=3D &quot;BSmith&quot;,
++	[9]		=3D &quot;Fletch&quot;,
++	[10]	=3D &quot;Peace&quot;, -- (Calming)
++	[11]	=3D &quot;Camp&quot;,
++	[12]	=3D &quot;Carp&quot;,
++	[13]	=3D &quot;Carto&quot;,
++	[14]	=3D &quot;Cook&quot;,
++	[15]	=3D &quot;Detect&quot;,
++	[16]	=3D &quot;Disco&quot;,
++	[17]	=3D &quot;EvalInt&quot;,
++	[18]	=3D &quot;Heal&quot;,
++	[19]	=3D &quot;Fish&quot;,
++	[20]	=3D &quot;Forensic&quot;,
++	[21]	=3D &quot;Herd&quot;,
++	[22]	=3D &quot;Hide&quot;,
++	[23]	=3D &quot;Provo&quot;,
++	[24]	=3D &quot;Inscri&quot;,
++	[25]	=3D &quot;Lockpick&quot;,
++	[26]	=3D &quot;Mage&quot;,
++	[27]	=3D &quot;SpellRes&quot;, -- Magic Resistance
++	[28]	=3D &quot;Tac&quot;,
++	[29]	=3D &quot;Snoop&quot;,
++	[30]	=3D &quot;Musi&quot;,
++	[31]	=3D &quot;Pois&quot;,
++	[32]	=3D &quot;Arch&quot;,
++	[33]	=3D &quot;Spirit&quot;,
++	[34]	=3D &quot;Steal&quot;,
++	[35]	=3D &quot;Tailor&quot;,
++	[36]	=3D &quot;Taming&quot;,
++	[37]	=3D &quot;TasteId&quot;,
++	[38]	=3D &quot;Tinker&quot;,
++	[39]	=3D &quot;Track&quot;,
++	[40]	=3D &quot;Vet&quot;,
++	[41]	=3D &quot;Sword&quot;,
++	[42]	=3D &quot;Mace&quot;,
++	[43]	=3D &quot;Fence&quot;,
++	[44]	=3D &quot;Wrestl&quot;,
++	[45]	=3D &quot;Lumber&quot;,
++	[46]	=3D &quot;Mining&quot;,
++	[47]	=3D &quot;Medi&quot;,
++	[48]	=3D &quot;Stealth&quot;,
++	[49]	=3D &quot;Disarm&quot;,
++	[50]	=3D &quot;Necro&quot;,
++
++	--new since UO:SE &amp; UO:ML
++	[51]	=3D &quot;Focus&quot;,
++	[52]	=3D &quot;Chiv&quot;,
++	[53]	=3D &quot;Bush&quot;,
++	[54]	=3D &quot;Ninj&quot;,
+ 	[55]	=3D &quot;Spellweaving&quot;	-- ? correct?
+ }
+ =
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001762.html">[Iris-commit] [IRIS] r2962 - in /trunk/lua: gui/gui.trade.lua lib.book.lua lib.corpse.lua lib.debugmenu.lua
+</A></li>
+	<LI>Next message: <A HREF="001764.html">[Iris-commit] [IRIS] r2964 - /trunk/lua/lib.mainmenu.accountlist.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1763">[ date ]</a>
+              <a href="thread.html#1763">[ thread ]</a>
+              <a href="subject.html#1763">[ subject ]</a>
+              <a href="author.html#1763">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

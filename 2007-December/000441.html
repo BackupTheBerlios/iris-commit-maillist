@@ -1,0 +1,158 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1625 - /trunk/data/lua/lib.3d.renderer.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2007-December/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1625%20-%20/trunk/data/lua/lib.3d.renderer.lua&In-Reply-To=%3C20071211194801.B36931C18223%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000440.html">
+   <LINK REL="Next"  HREF="000442.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1625 - /trunk/data/lua/lib.3d.renderer.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1625%20-%20/trunk/data/lua/lib.3d.renderer.lua&In-Reply-To=%3C20071211194801.B36931C18223%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1625 - /trunk/data/lua/lib.3d.renderer.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Tue Dec 11 20:48:01 CET 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000440.html">[Iris-commit] [IRIS] r1624 - in /trunk: data/lua/main.lua include/builder.h include/data.h mapdata.php mapinfo.php src/builder.cpp src/data_L.cpp
+</A></li>
+        <LI>Next message: <A HREF="000442.html">[Iris-commit] [IRIS] r1626 - /trunk/bin/iris2.exe
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#441">[ date ]</a>
+              <a href="thread.html#441">[ thread ]</a>
+              <a href="subject.html#441">[ subject ]</a>
+              <a href="author.html#441">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: sience
+Date: Tue Dec 11 20:48:00 2007
+New Revision: 1625
+
+Log:
+-addeffect improved
+
+Modified:
+    trunk/data/lua/lib.3d.renderer.lua
+
+Modified: trunk/data/lua/lib.3d.renderer.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.3d.renderer.lua (original)
++++ trunk/data/lua/lib.3d.renderer.lua Tue Dec 11 20:48:00 2007
+@@ -156,9 +156,9 @@
+ StranglePart1		=3D hex2num(&quot;0x36CB&quot;)
+ StranglePart2		=3D hex2num(&quot;0x374A&quot;)
+ Wither				=3D hex2num(&quot;0x37CC&quot;)
+-ParalyzeField		=3D hex2num(&quot;0x0001&quot;)	-- ??
++ParalyzeField		=3D hex2num(&quot;0x0001&quot;)	-- ???
+ FireField			=3D hex2num(&quot;0x0002&quot;) -- ???
+-ConsecrateWeapon2	=3D 9501	--???
++ConsecrateWeapon2	=3D hex2num(&quot;0x251D&quot;)	-- ???
+ --Fizzels			=3D hex2num(&quot;0x3735&quot;)
+ =
+
+ -- effects can have a ttl (time-to-live, effect.ttl in milliseconds, defau=
+lt is gParticleEffectDefaultTTL in ms)
+@@ -186,16 +186,20 @@
+ =
+
+ -- Manages particle effects, esp. huedfx, decide between effecttypes
+ function Renderer3D:AddEffect( effect )
+-	local id =3D StandardEffect
+-
+-	if (gParticleEffects[effect.itemid]) then id =3D effect.itemid end
+-
+-	if (effect.iseffect~=3Dtrue) then
+-		Renderer3D:AddHuedEffect( effect, 1, 0, 0 )
+-	else
+-		Renderer3D:AddParticleEffect( effect, gParticleEffects[id].name,
+-								gParticleEffects[id].relx, gParticleEffects[id].rely, gParticleEff=
+ects[id].relz,
+-								gParticleEffects[id].scalex, gParticleEffects[id].scaley, gParticl=
+eEffects[id].scalez)
++	local workingeffect =3D nil
++
++	if (gParticleEffects[effect.itemid]) then
++		workingeffect =3D Renderer3D:AddParticleEffect( effect, gParticleEffects=
+[effect.itemid].name,
++								gParticleEffects[effect.itemid].relx, gParticleEffects[effect.item=
+id].rely, gParticleEffects[effect.itemid].relz,
++								gParticleEffects[effect.itemid].scalex, gParticleEffects[effect.it=
+emid].scaley, gParticleEffects[effect.itemid].scalez)
++	elseif (effect.iseffect~=3Dtrue) then
++		workingeffect =3D Renderer3D:AddHuedEffect( effect, 1, 0, 0 )
++	end
++
++	if (workingeffect =3D=3D nil) then
++		Renderer3D:AddParticleEffect( effect, gParticleEffects[StandardEffect].n=
+ame,
++								gParticleEffects[StandardEffect].relx, gParticleEffects[StandardEf=
+fect].rely, gParticleEffects[StandardEffect].relz,
++								gParticleEffects[StandardEffect].scalex, gParticleEffects[Standard=
+Effect].scaley, gParticleEffects[StandardEffect].scalez)
+ 	end
+ end
+ =
+
+@@ -293,9 +297,11 @@
+ 				end
+ 			end)
+ 		end
++		return true
+ 	else
+ 		printdebug(&quot;effect&quot;,sprintf(&quot;Hued Paricle effect failed MeshID=3D0x%04x =
+not found.\n&quot;,effect.itemid) )
+ 	end
++	return nil
+ end
+ =
+
+ -- Particle Effect : to display Particles as instant Effects
+@@ -391,6 +397,7 @@
+ 			end
+ 		end)
+ 	end
++	return true
+ end
+ =
+
+ =
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000440.html">[Iris-commit] [IRIS] r1624 - in /trunk: data/lua/main.lua include/builder.h include/data.h mapdata.php mapinfo.php src/builder.cpp src/data_L.cpp
+</A></li>
+	<LI>Next message: <A HREF="000442.html">[Iris-commit] [IRIS] r1626 - /trunk/bin/iris2.exe
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#441">[ date ]</a>
+              <a href="thread.html#441">[ thread ]</a>
+              <a href="subject.html#441">[ subject ]</a>
+              <a href="author.html#441">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,687 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r3324 - in /trunk: lua/lib.bodygfx.lua lua/lib.granny.debug.lua lua/lib.granny.loader.lua lua/lib.granny.types.lua lua/lib.granny.wrap.lua lua/lib.uoids.lua plugins/loot.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2010-May/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3324%20-%20in%20/trunk%3A%20lua/lib.bodygfx.lua%0A%20lua/lib.granny.debug.lua%20lua/lib.granny.loader.lua%20lua/lib.granny.types.lua%0A%20lua/lib.granny.wrap.lua%20lua/lib.uoids.lua%20plugins/loot.lua&In-Reply-To=%3C20100506210211.B83E854D0007%40simon%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="002083.html">
+   <LINK REL="Next"  HREF="002085.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r3324 - in /trunk: lua/lib.bodygfx.lua lua/lib.granny.debug.lua lua/lib.granny.loader.lua lua/lib.granny.types.lua lua/lib.granny.wrap.lua lua/lib.uoids.lua plugins/loot.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3324%20-%20in%20/trunk%3A%20lua/lib.bodygfx.lua%0A%20lua/lib.granny.debug.lua%20lua/lib.granny.loader.lua%20lua/lib.granny.types.lua%0A%20lua/lib.granny.wrap.lua%20lua/lib.uoids.lua%20plugins/loot.lua&In-Reply-To=%3C20100506210211.B83E854D0007%40simon%3E"
+       TITLE="[Iris-commit] [IRIS] r3324 - in /trunk: lua/lib.bodygfx.lua lua/lib.granny.debug.lua lua/lib.granny.loader.lua lua/lib.granny.types.lua lua/lib.granny.wrap.lua lua/lib.uoids.lua plugins/loot.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Thu May  6 23:02:11 CEST 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="002083.html">[Iris-commit] [IRIS] r3323 - in /trunk/lua: net/net.other.lua	obj/obj.mobile.lua
+</A></li>
+        <LI>Next message: <A HREF="002085.html">[Iris-commit] [IRIS] r3325 - /trunk/lua/lib.thread.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2084">[ date ]</a>
+              <a href="thread.html#2084">[ thread ]</a>
+              <a href="subject.html#2084">[ subject ]</a>
+              <a href="author.html#2084">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Thu May  6 23:02:09 2010
+New Revision: 3324
+
+Log:
+skill: imbuing and mysticism added to skilllist-dialog, granny lua optimize=
+d a bit
+
+Modified:
+    trunk/lua/lib.bodygfx.lua
+    trunk/lua/lib.granny.debug.lua
+    trunk/lua/lib.granny.loader.lua
+    trunk/lua/lib.granny.types.lua
+    trunk/lua/lib.granny.wrap.lua
+    trunk/lua/lib.uoids.lua
+    trunk/plugins/loot.lua
+
+Modified: trunk/lua/lib.bodygfx.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.bodygfx.lua (original)
++++ trunk/lua/lib.bodygfx.lua Thu May  6 23:02:09 2010
+@@ -161,8 +161,11 @@
+     self.modelparts =3D {}
+     =
+
+     local modelidarr,iPrimaryHandItem,iSecondaryHandItem =3D self:GetModel=
+PartModelIDs()
++	local t_start =3D Client_GetTicks()
+     CreateBodyGfxPartsFromModelIDArray(bodyid,self.groupgfx,self.modelpart=
+s,modelidarr,iPrimaryHandItem,iSecondaryHandItem)
+-
++	local t_end =3D Client_GetTicks()
++	print(&quot;gBodyGfxPrototype:Update createparts:&quot;,t_end-t_start)
++		=
+
+     -- create mount gfx (todo : replace by CreateBodyGfx or update bodygfx=
+ for mount)
+     local mount =3D self:GetEquipmentAtLayer(kLayer_Mount)
+     if (mount) then
+@@ -385,7 +388,7 @@
+     -- trigger update if marked
+     if (self.bDead) then return end
+ 	=
+
+-    gProfiler_BodyGfxStep:Start(gEnableProfiler_MainStep)
++    gProfiler_BodyGfxStep:Start(gEnableProfiler_BodyGfxStep)
+     gProfiler_BodyGfxStep:Section(&quot;Update&quot;)
+ 	=
+
+     if (self.bMarkedForUpdate) then self:Update() end
+
+Modified: trunk/lua/lib.granny.debug.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.granny.debug.lua (original)
++++ trunk/lua/lib.granny.debug.lua Thu May  6 23:02:09 2010
+@@ -82,7 +82,7 @@
+ 	table.sort(arr,function (a,b) return a.count &lt; b.count end)
+ 	for k,o in ipairs(arr) do print(&quot;grannyprofile&quot;,o.count,o.name) end
+ end
+---~ InvokeLater(10000,function () DumpGrannyLuaProfileInfo() os.exit(0) en=
+d)
++--~ InvokeLater(10000,function () DumpGrannyLuaProfileInfo() MyProfilerTop=
+() os.exit(0) end)
+ =
+
+ =
+
+ 	=
+
+@@ -204,7 +204,7 @@
+ 	assert(matname =3D=3D matname_old) =
+
+ 	=
+
+ 	=
+
+-	GrannyDebugCompareWithOldLoader(pGrannyLoader,old_GetGrannyModelLoader)
++	--~ GrannyDebugCompareWithOldLoader(pGrannyLoader,old_GetGrannyModelLoade=
+r)
+ 	=
+
+ 	=
+
+ 	local szMatName =3D matname
+
+Modified: trunk/lua/lib.granny.loader.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.granny.loader.lua (original)
++++ trunk/lua/lib.granny.loader.lua Thu May  6 23:02:09 2010
+@@ -56,11 +56,16 @@
+ 	if (self.fifo) then self.fifo:Destroy() self.fifo =3D nil end
+ end
+ function cGrannyFile:LoadFile (filepath) =
+
+-	print(&quot;cGrannyFile:LoadFile&quot;,filepath)
++	print(&quot;cGrannyFile:LoadFile&quot;,filepath) -- print(GetStackTrace())
+ 	self.filepath =3D filepath
++	--~ local t1 =3D Client_GetTicks()
+ 	self:_CreateAndLoadFIFO()
++	--~ local t2 =3D Client_GetTicks()
+ 	local bOK =3D self:Parse(self.fifo)
++	--~ local t3 =3D Client_GetTicks()
+ 	self:_FreeFIFO()
++	--~ local t4 =3D Client_GetTicks()
++	--~ print(&quot;cGrannyFile:LoadFile profile: total,fifo,parse,free=3D&quot;,t4-t1,=
+t2-t1,t3-t2,t4-t3,filepath)
+ 	return bOK
+ end
+ =
+
+@@ -195,20 +200,27 @@
+ 	return res
+ end
+ =
+
++gProfiler_LuaGrannyParser =3D CreateRoughProfiler(&quot;LuaGrannyParser&quot;)
+ function cGrannyFile:Parse (fifo) =
+
+ 	self.fifo =3D fifo
+ 	self.miBufSize =3D fifo:Size()
+ 	self.quickfifo =3D fifo:GetQuickHandle()
+ 	if (self.miBufSize =3D=3D 0) then return false end
++	=
+
++    gProfiler_LuaGrannyParser:Start(gEnableProfiler_LuaGrannyParser)
++    gProfiler_LuaGrannyParser:Section(&quot;read MainChunk&quot;)
++	=
+
+ 	assert(self.miBufSize &gt; 0,&quot;cGrannyFile:Parse: empty file &quot;..tostring(self=
+.filepath))
+ 	local pMainChunk =3D self:Read(0,&quot;MainChunk&quot;)
+ 	self.pMainChunk =3D pMainChunk
+ 	pMainChunk.childs =3D {}
+ 	=
+
++    gProfiler_LuaGrannyParser:Section(&quot;visit MainChunk&quot;)
+ 	--~ print(&quot;cGrannyFile:Parse:pMainChunk&quot;,SmartDump(pMainChunk))
+ 	assert(pMainChunk.iChunkType =3D=3D self.kChunkType_Main,&quot;unexpected chun=
+ktype:&quot;..hex(pMainChunk.iChunkType))
+ 	self:Visit(&quot;MainChunk&quot;,pMainChunk,0)
+ 	=
+
++    gProfiler_LuaGrannyParser:Section(&quot;visit MainChunk childs&quot;)
+ 	local p =3D self.size.MainChunk
+ 	for i=3D0,pMainChunk.miChildCount-1 do =
+
+ 		local pItemList =3D self:Read(p,&quot;ItemList&quot;)
+@@ -234,7 +246,9 @@
+ 			assert(false,&quot;ParseGranny : unknown subchunktype : &quot;..hex(pItemList.iCh=
+unkType))
+ 		end
+ 	end
++    gProfiler_LuaGrannyParser:Section(&quot;visit EOF&quot;)
+ 	self:Visit(&quot;EOF&quot;)
++    gProfiler_LuaGrannyParser:End()
+ 	return true
+ end
+ =
+
+@@ -271,6 +285,8 @@
+ 		local iChildren		=3D FIFO_PeekUint32(quickfifo,p+8)
+ 		p =3D p + iEntryHeaderSize
+ 		=
+
++		gProfiler_LuaGrannyParser:Section(self.kTypeNames[iChunkType] or (&quot;iChun=
+kType=3D?=3D&quot;..iChunkType))
++		=
+
+ 		-- determine data size of this child by checking the offset of the next =
+child, if any, and listdata-size
+ 		local iChildSize =3D miBufSize - (pItemList.miListOffset + iOffset)
+ 		if (iOffset &lt;=3D iItemListSize) then
+@@ -306,6 +322,7 @@
+ 		self:DecrementParents()
+ 		if (chunk.iChildren &gt; 0) then self:PushParent(chunk) end
+ 	end
++	gProfiler_LuaGrannyParser:Section(&quot;visit DecrementParents&quot;)
+ 	self:DecrementParents()
+ end
+ =
+
+@@ -403,10 +420,13 @@
+ end
+ =
+
+ function cGrannyFile:ReadArray (sStructName,iOffset,iArraySize) =
+
+-	gGrannyLuaLoaderProfileCountStructRead[sStructName..&quot;Arr&quot;] =3D (gGrannyLu=
+aLoaderProfileCountStructRead[sStructName..&quot;Arr&quot;] or 0) + 1
++	assert(not structname,structname)
++	local quick =3D gGrannyLuaQuickLoadStruct_Array[sStructName]
++	if (quick) then return quick(self,iOffset,iArraySize) end
+ 	local res =3D {}
+ 	local iStructSize =3D self.size[sStructName]
+ 	local num =3D floor(iArraySize/iStructSize)
++	gGrannyLuaLoaderProfileCountStructRead[sStructName..&quot;Arr&quot;] =3D (gGrannyLu=
+aLoaderProfileCountStructRead[sStructName..&quot;Arr&quot;] or 0) + num
+ 	assert(iArraySize =3D=3D num*iStructSize) -- exact size check to detect p=
+arsing errors
+ 	for i=3D0,num-1 do table.insert(res,self:Read(iOffset+i*iStructSize,sStru=
+ctName)) end
+ 	return res
+@@ -503,7 +523,10 @@
+ =
+
+ function cGrannyFile:ReadFloatArray(iOffset,num)
+ 	local res =3D {}
+-	for i=3D0,num-1 do table.insert(res,self:ReadFloat(iOffset+i*4)) end -- R=
+eadFloat has bounds-checking
++	assert(iOffset &gt;=3D 0 and iOffset+num*4 &lt;=3D self.miBufSize) -- bounds-ch=
+ecking
++	local quickfifo =3D self.quickfifo
++	local peekfun =3D FIFO_PeekFloat
++	for i=3D0,num-1 do table.insert(res,peekfun(quickfifo,iOffset+i*4)) end
+ 	return res =
+
+ end
+ =
+
+@@ -512,17 +535,22 @@
+ 	assert(self:GetRootParentType() =3D=3D 0XCA5E1205)
+ 	assert(iSize &gt;=3D self.size.Anim)
+ 	=
+
++    gProfiler_LuaGrannyParser:Section(&quot;animdata read Anim&quot;)
++	=
+
+ 	local p =3D iOffset
+ 	local pAnim =3D self:Read(iOffset,&quot;Anim&quot;)		chunk.pAnim =3D pAnim			p =3D =
+p + self.size.Anim
+ 	=
+
++    gProfiler_LuaGrannyParser:Section(&quot;animdata read floats&quot;)
+ 	local s,n =3D self.size.float			,pAnim.iNumTranslate	chunk.pTranslateTime=
+	=3D self:ReadFloatArray(p,n)					p =3D p + s * n
+ 	local s,n =3D self.size.float			,pAnim.iNumQuaternion	chunk.pQuaternionTi=
+me	=3D self:ReadFloatArray(p,n)					p =3D p + s * n
+ 	local s,n =3D self.size.float			,pAnim.iNumScale		chunk.pScaleTime		=3D s=
+elf:ReadFloatArray(p,n)					p =3D p + s * n
+ 	=
+
++    gProfiler_LuaGrannyParser:Section(&quot;animdata read vec+quat&quot;)
+ 	local s,n =3D self.size.Vector		,pAnim.iNumTranslate	chunk.pTranslate		=
+=3D self:ReadArray(&quot;Vector&quot;		,p,s * n)	p =3D p + s * n
+ 	local s,n =3D self.size.Quaternion	,pAnim.iNumQuaternion	chunk.pQuaternio=
+n		=3D self:ReadArray(&quot;Quaternion&quot;	,p,s * n)	p =3D p + s * n
+ 	local s,n =3D self.size.Vector		,pAnim.iNumScale		chunk.pScale			=3D self=
+:<i>ReadArray(&quot;Vector&quot;		,p,s * n)	p =3D p + s * n
+</I> 	=
+
++    gProfiler_LuaGrannyParser:Section(&quot;animdata rest&quot;)
+ 	local iRestSize =3D iSize - (p-iOffset)	-- assert(pRestSize =3D=3D 0,&quot;ani=
+m:iRestSize=3D&quot;..iRestSize..&quot;,iUnknownB=3D&quot;..pAnim.iUnknownB[1])
+ 	local pRest		=3D p
+ 	local iUsedSize =3D p - iOffset
+
+Modified: trunk/lua/lib.granny.types.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.granny.types.lua (original)
++++ trunk/lua/lib.granny.types.lua Thu May  6 23:02:09 2010
+@@ -122,32 +122,149 @@
+ end
+ =
+
+ gGrannyLuaQuickLoadStruct =3D {}
+-
+--- TODO ?
+--- cGrannyFile:Read and *arr ? gGrannyLuaLoaderProfileCountStructRead
+-function gGrannyLuaQuickLoadStruct:Quaternion ()
+-	--~ self.structs.Quaternion float x,y,z,w
+-	TODO()
+-	local quickfifo =3D self.quickfifo
+-	local structsize =3D self.size[structname] assert(structsize)
+-	assert(offset &gt;=3D 0,&quot;AssertSize : negative offset : &quot;..offset)
+-	local missing =3D offset+structsize - self.miBufSize assert(missing &lt;=3D =
+0,&quot;AssertSize : buffer too small, expected &quot;..missing..&quot; more bytes miBufSi=
+ze=3D&quot;..tostring(self.miBufSize)..&quot; structsize=3D&quot;..tostring(structsize))
++gGrannyLuaQuickLoadStruct_Array =3D {}
++
++-- optimized function for often used types
++function gGrannyLuaQuickLoadStruct_Array:Quaternion (offset,iArraySize)
++	--~ print(_TRACEBACK())
++	--~ os.exit(0)
++	local quickfifo =3D self.quickfifo
+ 	local res =3D {}
+-	res.x =3D peekfun(quickfifo,0)
+-	res.y =3D peekfun(quickfifo,4)
+-	res.z =3D peekfun(quickfifo,8)
+-	res.w =3D peekfun(quickfifo,12)
+-	local struct =3D self.structs[structname]
+-	for k,memberdef in ipairs(struct) do =
+
+-		local basetype,name,arraysize =3D unpack(memberdef)
+-		local basetypesize =3D basetype.size
+-		local peekfun =3D basetype.peekfunx
+-			res[name] =3D peekfun(quickfifo,offset)
+-			offset =3D offset + basetypesize =
+
++	local structsize =3D 16
++	local num =3D floor(iArraySize/structsize)
++	assert(offset &gt;=3D 0,&quot;AssertSize : negative offset : &quot;..offset)
++	assert(iArraySize =3D=3D num*structsize) -- exact size check to detect pa=
+rsing errors
++	local missing =3D offset+structsize*num - self.miBufSize assert(missing &lt;=
+=3D 0,&quot;AssertSize : buffer too small, expected &quot;..missing..&quot; more bytes miB=
+ufSize=3D&quot;..tostring(self.miBufSize)..&quot; structsize=3D&quot;..tostring(structsize=
+))
++	local peekfun =3D FIFO_PeekFloat
++	for i=3D0,num-1 do
++		table.insert(res,{
++				x =3D peekfun(quickfifo,offset+0),
++				y =3D peekfun(quickfifo,offset+4),
++				z =3D peekfun(quickfifo,offset+8),
++				w =3D peekfun(quickfifo,offset+12),
++			})
++		offset =3D offset + structsize
+ 	end
+ 	return res
+ end
+ =
+
++-- optimized function for often used types
++function gGrannyLuaQuickLoadStruct_Array:Vector (offset,iArraySize)
++	local quickfifo =3D self.quickfifo
++	local res =3D {}
++	local structsize =3D 12
++	local num =3D floor(iArraySize/structsize)
++	assert(offset &gt;=3D 0,&quot;AssertSize : negative offset : &quot;..offset)
++	assert(iArraySize =3D=3D num*structsize) -- exact size check to detect pa=
+rsing errors
++	local missing =3D offset+structsize*num - self.miBufSize assert(missing &lt;=
+=3D 0,&quot;AssertSize : buffer too small, expected &quot;..missing..&quot; more bytes miB=
+ufSize=3D&quot;..tostring(self.miBufSize)..&quot; structsize=3D&quot;..tostring(structsize=
+))
++	local peekfun =3D FIFO_PeekFloat
++	for i=3D0,num-1 do
++		table.insert(res,{
++				x =3D peekfun(quickfifo,offset+0),
++				y =3D peekfun(quickfifo,offset+4),
++				z =3D peekfun(quickfifo,offset+8),
++			})
++		offset =3D offset + structsize
++	end
++	return res
++end
++
++-- optimized function for often used types
++function gGrannyLuaQuickLoadStruct:Quaternion (offset)
++	assert(false,&quot;SHOULDNT BE USED ANYMORE, USE gGrannyLuaQuickLoadStruct_Arr=
+ay:Quaternion INSTEAD!&quot;)
++	local quickfifo =3D self.quickfifo
++	local structsize =3D 16
++	assert(offset &gt;=3D 0,&quot;AssertSize : negative offset : &quot;..offset)
++	local missing =3D offset+structsize - self.miBufSize assert(missing &lt;=3D =
+0,&quot;AssertSize : buffer too small, expected &quot;..missing..&quot; more bytes miBufSi=
+ze=3D&quot;..tostring(self.miBufSize)..&quot; structsize=3D&quot;..tostring(structsize))
++	local peekfun =3D FIFO_PeekFloat
++	return {
++		x =3D peekfun(quickfifo,offset+0),
++		y =3D peekfun(quickfifo,offset+4),
++		z =3D peekfun(quickfifo,offset+8),
++		w =3D peekfun(quickfifo,offset+12),
++	}
++end
++
++-- optimized function for often used types
++function gGrannyLuaQuickLoadStruct:Vector (offset)
++	local quickfifo =3D self.quickfifo
++	local structsize =3D 12
++	assert(offset &gt;=3D 0,&quot;AssertSize : negative offset : &quot;..offset)
++	local missing =3D offset+structsize - self.miBufSize assert(missing &lt;=3D =
+0,&quot;AssertSize : buffer too small, expected &quot;..missing..&quot; more bytes miBufSi=
+ze=3D&quot;..tostring(self.miBufSize)..&quot; structsize=3D&quot;..tostring(structsize))
++	local peekfun =3D FIFO_PeekFloat
++	return {
++		x =3D peekfun(quickfifo,offset+0),
++		y =3D peekfun(quickfifo,offset+4),
++		z =3D peekfun(quickfifo,offset+8),
++	}
++end
++
++-- optimized function for often used types
++function gGrannyLuaQuickLoadStruct:Bone (offset)
++	local peekfunF =3D FIFO_PeekFloat
++	local peekfunU =3D FIFO_PeekUint32
++	local quickfifo =3D self.quickfifo
++	local structsize =3D 68 -- =3D self.size.Bone
++	assert(offset &gt;=3D 0,&quot;AssertSize : negative offset : &quot;..offset)
++	local missing =3D offset+structsize - self.miBufSize assert(missing &lt;=3D =
+0,&quot;AssertSize : buffer too small, expected &quot;..missing..&quot; more bytes miBufSi=
+ze=3D&quot;..tostring(self.miBufSize)..&quot; structsize=3D&quot;..tostring(structsize))
++	return {
++		iParent =3D peekfunU(quickfifo,offset+4*0),
++		fTranslate =3D {
++			[0]=3DpeekfunF(quickfifo,offset+4*1),
++			[1]=3DpeekfunF(quickfifo,offset+4*2),
++			[2]=3DpeekfunF(quickfifo,offset+4*3),
++		},
++		fQuaternion =3D {
++			[0]=3DpeekfunF(quickfifo,offset+4*4),
++			[1]=3DpeekfunF(quickfifo,offset+4*5),
++			[2]=3DpeekfunF(quickfifo,offset+4*6),
++			[3]=3DpeekfunF(quickfifo,offset+4*7),
++		},
++		fMatrix =3D {
++			[0]=3DpeekfunF(quickfifo,offset+4*8),
++			[1]=3DpeekfunF(quickfifo,offset+4*9),
++			[2]=3DpeekfunF(quickfifo,offset+4*10),
++			=
+
++			[3]=3DpeekfunF(quickfifo,offset+4*11),
++			[4]=3DpeekfunF(quickfifo,offset+4*12),
++			[5]=3DpeekfunF(quickfifo,offset+4*13),
++			=
+
++			[6]=3DpeekfunF(quickfifo,offset+4*14),
++			[7]=3DpeekfunF(quickfifo,offset+4*15),
++			[8]=3DpeekfunF(quickfifo,offset+4*16),
++		},
++	}
++end
++
++-- optimized function for often used types
++function gGrannyLuaQuickLoadStruct:Anim (offset)
++	local peekfun =3D FIFO_PeekUint32
++	local quickfifo =3D self.quickfifo
++	local structsize =3D 52 -- =3D self.size.Anim
++	assert(offset &gt;=3D 0,&quot;AssertSize : negative offset : &quot;..offset)
++	local missing =3D offset+structsize - self.miBufSize assert(missing &lt;=3D =
+0,&quot;AssertSize : buffer too small, expected &quot;..missing..&quot; more bytes miBufSi=
+ze=3D&quot;..tostring(self.miBufSize)..&quot; structsize=3D&quot;..tostring(structsize))
++	return {
++		iID =3D peekfun(quickfifo,offset+4*0),
++		iUnknownA =3D {
++			[0]=3Dpeekfun(quickfifo,offset+4*1),
++			[1]=3Dpeekfun(quickfifo,offset+4*2),
++			[2]=3Dpeekfun(quickfifo,offset+4*3),
++			[3]=3Dpeekfun(quickfifo,offset+4*4),
++			[4]=3Dpeekfun(quickfifo,offset+4*5),
++		},
++		iNumTranslate	=3D peekfun(quickfifo,offset+4*6),
++		iNumQuaternion	=3D peekfun(quickfifo,offset+4*7),
++		iNumScale		=3D peekfun(quickfifo,offset+4*8),
++		iUnknownB =3D {
++			[0]=3Dpeekfun(quickfifo,offset+4*9),
++			[1]=3Dpeekfun(quickfifo,offset+4*10),
++			[2]=3Dpeekfun(quickfifo,offset+4*11),
++			[3]=3Dpeekfun(quickfifo,offset+4*12),
++		},
++	}
++end
++
++	=
+
+ function cGrannyFile:DefineTypeNames ()
+ 	self.kTypeNames =3D {}
+ 	self.kTypeNames[0xCA5E0100] =3D &quot;ML_SE_Texture&quot; -- SiENcE:  Chunk is new =
+to ML/SE Models maybe Texture: case 0xca5e0100
+
+Modified: trunk/lua/lib.granny.wrap.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.granny.wrap.lua (original)
++++ trunk/lua/lib.granny.wrap.lua Thu May  6 23:02:09 2010
+@@ -118,7 +118,14 @@
+ function assert_warn (cond,msg) if (not cond) then print(&quot;assert_warn&quot;,msg=
+) end end
+ function assert_warn (cond,msg) assert(cond,msg) end
+ =
+
++
++gProfiler_LuaGrannyWrapper =3D CreateRoughProfiler(&quot;LuaGrannyWrapper&quot;)
++
+ function WrapGrannyLoaderNew (grn)
++
++    gProfiler_LuaGrannyWrapper:Start(gEnableProfiler_LuaGrannyWrapper)
++    gProfiler_LuaGrannyWrapper:Section(&quot;submeshes&quot;)
++	=
+
+ 	local pGrannyLoader =3D {}
+ 	-- wrap grn into pGrannyLoader
+ 	local Object =3D grn.pMainChunk.Object
+@@ -168,7 +175,8 @@
+ 		=
+
+ 		if (pLoaderSubMesh.mWeights and #pLoaderSubMesh.mWeights &gt; 0) then bHasB=
+oneWeights =3D true end
+ 	end
+-		=
+
++	=
+
++    gProfiler_LuaGrannyWrapper:Section(&quot;rest1&quot;)
+ 	-- granny wide bone infos
+ 	if (true) then =
+
+ 		pGrannyLoader.mBoneNameCache =3D {}
+@@ -312,6 +320,8 @@
+ 	--~ local animbase =3D Object.animation_list.animation_sublist.animation =
+       =
+
+ 	--~ MyIterGranny    root.Object.animation_list.animation_sublist.animatio=
+n.animdata {fTotalTime=3D0.616667,pScaleTime=3Dtable: 0x9e42720,pQuaternion=
+Time=3Dtable: 0x9e42080,hexdump=3Dtable: 0x9e44af0,iOffset=3D29560=3D0x7378=
+,iChildren=3D0,pQuaternion=3Dtable: 0x9e42bf8,pAnim=3Dtable: 0x9e421a8,pRes=
+t=3Dtable: 0x9e44b18,pTranslateTime=3Dtable: 0x9e42450,pScale=3Dtable: 0x9e=
+43990,iChunkType=3D0xca5e1204,pTranslate=3Dtable: 0x9e42748,}
+ =
+
++    gProfiler_LuaGrannyWrapper:Section(&quot;animdata&quot;)
++	=
+
+ 	if (Object.animation_list.animation_sublist.animation.animdata) then -- g=
+ranny with animation tracks         =
+
+ 		--~ pGrannyLoader.mAnims =3D {} -- VisitGrannyAnim 0XCA5E1204
+ 		local mAnims =3D {}
+@@ -341,6 +351,7 @@
+ 		--~ assert(pGrannyLoader.mBones) -- GrannyBone*
+ 	end
+ 	=
+
++    gProfiler_LuaGrannyWrapper:Section(&quot;rest2&quot;)
+ 	if (Object.bones.skeleton.bonelist) then	   =
+
+ 		local mBones =3D {}
+ 		pGrannyLoader.mBones =3D mBones
+@@ -400,6 +411,7 @@
+ 		LoadGrannyAsOgreAnim(self,sSkeletonName,sAnimName,bodypartsamples)
+ 	end
+ 	=
+
++    gProfiler_LuaGrannyWrapper:End()
+ 	return pGrannyLoader
+ end
+ =
+
+
+Modified: trunk/lua/lib.uoids.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.uoids.lua (original)
++++ trunk/lua/lib.uoids.lua Thu May  6 23:02:09 2010
+@@ -334,7 +334,8 @@
+ gCharCreateSkillIDs[&quot;Bushido&quot;]					=3D 52
+ gCharCreateSkillIDs[&quot;Ninjitsu&quot;]					=3D 53
+ gCharCreateSkillIDs[&quot;Spellweaving&quot;]				=3D 54 -- not possible to set &gt; 0 a=
+t charcreate !!!!
+-
++gCharCreateSkillIDs[&quot;Mysticism&quot;]				=3D 55
++gCharCreateSkillIDs[&quot;Imbuing&quot;]					=3D 56
+ =
+
+ kNotoriety_Invalid		=3D 0 -- invalid/across server line
+ kNotoriety_Blue			=3D 1 -- innocent (blue)
+@@ -485,7 +486,9 @@
+ 	[52]	=3D &quot;Chiv&quot;,
+ 	[53]	=3D &quot;Bush&quot;,
+ 	[54]	=3D &quot;Ninj&quot;,
+-	[55]	=3D &quot;Spellweaving&quot;	-- ? correct?
++	[55]	=3D &quot;Spellweaving&quot;,	-- ? correct?
++	[56]	=3D &quot;Myst&quot;,
++	[57]	=3D &quot;Imbu&quot;,
+ }
+ =
+
+ -- the list of skill activ(1)/passiv(0) flags
+@@ -546,7 +549,10 @@
+ 	[52]	=3D 0,
+ 	[53]	=3D 0,
+ 	[54]	=3D 0,
+-	[55]	=3D 0
++	[55]	=3D 0,
++	=
+
++	[56]	=3D 0, -- mysticism
++	[57]	=3D 1, -- imbuing
+ }
+ =
+
+ =
+
+
+Modified: trunk/plugins/loot.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/plugins/loot.lua (original)
++++ trunk/plugins/loot.lua Thu May  6 23:02:09 2010
+@@ -156,6 +156,13 @@
+ 	--~ &quot;gargoyle&quot;,  =
+
+ 	--~ &quot;channeling&quot;, -- spellchannel =
+
+ 	-- todo : timer (bomberoil,shimmering effusion,paroxysm rope)
++	=
+
++	-- imbuing
++	&quot;essence of &quot;,
++	&quot;essence of balance&quot;,
++	&quot;essence of control&quot;,
++	&quot;goblin blood&quot;,
++	&quot;faery dust&quot;,
+ 	}
+ for k,v in pairs(gLootPluginWantedWords) do gLootPluginWantedWords[k] =3D =
+string.lower(v) end
+ =
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="002083.html">[Iris-commit] [IRIS] r3323 - in /trunk/lua: net/net.other.lua	obj/obj.mobile.lua
+</A></li>
+	<LI>Next message: <A HREF="002085.html">[Iris-commit] [IRIS] r3325 - /trunk/lua/lib.thread.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2084">[ date ]</a>
+              <a href="thread.html#2084">[ thread ]</a>
+              <a href="subject.html#2084">[ subject ]</a>
+              <a href="author.html#2084">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

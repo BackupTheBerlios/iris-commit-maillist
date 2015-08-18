@@ -1,0 +1,329 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2588 - in /trunk: lua/lib.2d.mobile.lua plugins/lib.spellbar.lua plugins/moblist.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-October/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2588%20-%20in%20/trunk%3A%20lua/lib.2d.mobile.lua%0A%20plugins/lib.spellbar.lua%20plugins/moblist.lua&In-Reply-To=%3C20081016010011.3067B1524030%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001392.html">
+   <LINK REL="Next"  HREF="001394.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2588 - in /trunk: lua/lib.2d.mobile.lua plugins/lib.spellbar.lua plugins/moblist.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2588%20-%20in%20/trunk%3A%20lua/lib.2d.mobile.lua%0A%20plugins/lib.spellbar.lua%20plugins/moblist.lua&In-Reply-To=%3C20081016010011.3067B1524030%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2588 - in /trunk: lua/lib.2d.mobile.lua plugins/lib.spellbar.lua plugins/moblist.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Thu Oct 16 02:07:18 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001392.html">[Iris-commit] [IRIS] r2587 - /trunk/data/mymacros.lua.dist
+</A></li>
+        <LI>Next message: <A HREF="001394.html">[Iris-commit] [IRIS] r2589 - /trunk/lua/net/net.other.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1393">[ date ]</a>
+              <a href="thread.html#1393">[ thread ]</a>
+              <a href="subject.html#1393">[ subject ]</a>
+              <a href="author.html#1393">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Thu Oct 16 02:07:18 2008
+New Revision: 2588
+
+Log:
+moblist : fixed sorting. 2d mobile gfx : fixed invisible ghost
+
+Modified:
+    trunk/lua/lib.2d.mobile.lua
+    trunk/plugins/lib.spellbar.lua
+    trunk/plugins/moblist.lua
+
+Modified: trunk/lua/lib.2d.mobile.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.mobile.lua (original)
++++ trunk/lua/lib.2d.mobile.lua Thu Oct 16 02:07:18 2008
+@@ -45,7 +45,8 @@
+ end
+ =
+
+ function Renderer2D:MobileHasVisibleEquip		(mobile_artid) =
+
+-	return 	mobile_artid =3D=3D 400 or mobile_artid =3D=3D 401 or
++	return 	mobile_artid =3D=3D 400 or mobile_artid =3D=3D 401 or -- human
++			mobile_artid =3D=3D 402 or mobile_artid =3D=3D 403 or -- ghost
+ 			mobile_artid =3D=3D 744 or mobile_artid =3D=3D 745 -- vamp form
+ end
+ =
+
+
+Modified: trunk/plugins/lib.spellbar.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/plugins/lib.spellbar.lua (original)
++++ trunk/plugins/lib.spellbar.lua Thu Oct 16 02:07:18 2008
+@@ -187,7 +187,7 @@
+ 		SpellBarRiseTextOnMob(GetPlayerSerial(),short.r,short.g,short.b,short.tx=
+t)
+ 		if (short.bInterrupt) then SpellBarInterrupt() end
+ 	end
+-	if ((not short) and serial =3D=3D 0xFFFFFFFF) then print(&quot;Hook_Packet_Loc=
+alized_Text&quot;,serial,plaintext,text_messagenum) end
++	--~ if ((not short) and serial =3D=3D 0xFFFFFFFF) then print(&quot;Hook_Packet=
+_Localized_Text&quot;,serial,plaintext,text_messagenum) end
+ end)
+ =
+
+ =
+
+
+Modified: trunk/plugins/moblist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/plugins/moblist.lua (original)
++++ trunk/plugins/moblist.lua Thu Oct 16 02:07:18 2008
+@@ -2,12 +2,16 @@
+ if (not gDisabledPlugins.moblist) then =
+
+ =
+
+ kMobList_CatW =3D 100
+-kMobList_CatItemH =3D 20
++kMobList_CatItemH =3D 16
+ kMobList_CatItemBarH =3D 5
+-kMobList_CatDist =3D 4
++kMobList_CatItemBarYOff =3D 4
++kMobList_CatDist =3D 0
+ =
+
+ kMobList_Healer_Text =3D &quot; the wandering healer&quot;
+ kMobList_Escort_Text =3D &quot; the seeker of adventure&quot;
++
++kMobNotoriety_Green =3D 2 -- friend (necro familiar,pets)
++kMobNotoriety_Red =3D 6 -- murderer (summons,evortex)
+ =
+
+ kMobListCat_Self	=3D 1
+ kMobListCat_Friends	=3D 2
+@@ -143,10 +147,11 @@
+ 	self.moblist =3D params.moblist
+ 	self.text =3D self:CreateChild(&quot;UOText&quot;,{x=3D0,y=3D0,text=3D&quot;&quot;,col=3D{r=
+=3D1,g=3D1,b=3D1},fontid=3D2,bold=3Dtrue})
+ 	self.text:SetIgnoreBBoxHit(false)
++	self.bNameUnknown =3D true
+ 	=
+
+ 	local mobile =3D params.mobile
+ 	local w,h =3D kMobList_CatW,kMobList_CatItemBarH
+-	local xoff,yoff =3D 0,kMobList_CatItemH-kMobList_CatItemBarH
++	local xoff,yoff =3D 0,kMobList_CatItemH+kMobList_CatItemBarYOff-kMobList_=
+CatItemBarH
+ 	self.fillw =3D w
+ 	self.fillh =3D h
+ 	=
+
+@@ -161,47 +166,53 @@
+ end
+ =
+
+ function gWidgetPrototype.UOMobListItem:UpdateName(name,clilocid)
+-	if (name) then self.lowname =3D name self.namecliloc =3D clilocid end
++	if (name) then self.lowname =3D name end
++	if (clilocid) then self.namecliloc =3D clilocid end
+ 	local tooltip =3D AosToolTip_GetText(self.serial)
+-	local text =3D tooltip or self.lowname or &quot;unknown&quot;
+-	if (self.old_fulltext =3D=3D text) then return end
+-	self.old_fulltext =3D text
+-	text =3D string.gsub(text,&quot;\n.*&quot;,&quot;&quot;) -- only keep first line
+-	text =3D string.gsub(text,&quot;^[ \t]+&quot;,&quot;&quot;) -- remove leading spaces
+-	text =3D string.gsub(text,&quot; %[&quot;,&quot;%[&quot;) -- move guildtag closer
+-	text =3D string.gsub(text,&quot;^Lord&quot;,&quot;&quot;)
+-	text =3D string.gsub(text,&quot;^Lady&quot;,&quot;&quot;)
+-	text =3D string.gsub(text,&quot;^an &quot;,&quot;&quot;)
+-	text =3D string.gsub(text,&quot;^a &quot;,&quot;&quot;)
+-	text =3D string.gsub(text,&quot;^[ \t]+&quot;,&quot;&quot;) -- remove leading spaces
+-	text =3D string.gsub(text,&quot;[ \t]+$&quot;,&quot;&quot;) -- remove trailing spaces
+-	=
+
+-	-- npcs friends
+-	self.bIsNPC =3D false =
+
+-	if (StringContains(text,kMobList_Healer_Text)) then self.bIsNPC =3D true =
+text =3D &quot;[HEALER]&quot;..string.gsub(text,kMobList_Healer_Text,&quot;&quot;) end
+-	if (StringContains(text,kMobList_Escort_Text)) then self.bIsNPC =3D true =
+text =3D &quot;[ESCORT]&quot;..string.gsub(text,kMobList_Escort_Text,&quot;&quot;) end
+-	=
+
+-	self.old_text =3D text
+-	=
+
+-	-- check friends
+-	self.bIsFriendlyGuild =3D false
+-	for k,guildtag in pairs(gFriendlyGuildTags) do if (StringContains(text,gu=
+ildtag)) then self.bIsFriendlyGuild =3D true break end end
+-	=
+
+-	-- check pets
+-	self.bIsPet =3D StringContains(text,&quot;(summoned)&quot;) or StringContains(text,=
+&quot;(tame)&quot;)
+-	local mobile =3D self.mobile
+-	if (mobile.artid =3D=3D 574 and mobile.hue =3D=3D 0) then self.bIsPet =3D=
+ true end -- blade spirit
+-	if (mobile.artid =3D=3D 164 and mobile.hue =3D=3D 0) then self.bIsPet =3D=
+ true end -- energy vortex
+-	=
+
+-	self:UpdateNameGfx()
++	local text =3D tooltip or self.lowname
++	self.bNameUnknown =3D false
++	if (not text) then self.bNameUnknown =3D true text =3D &quot;unknown&quot; end
++	local bNameUpdate =3D false
++	if (self.old_fulltext ~=3D text) then =
+
++		self.old_fulltext =3D text
++		bNameUpdate =3D true
++		text =3D string.gsub(text,&quot;\n.*&quot;,&quot;&quot;) -- only keep first line
++		text =3D string.gsub(text,&quot;^[ \t]+&quot;,&quot;&quot;) -- remove leading spaces
++		text =3D string.gsub(text,&quot; %[&quot;,&quot;%[&quot;) -- move guildtag closer
++		text =3D string.gsub(text,&quot;^Lord&quot;,&quot;&quot;)
++		text =3D string.gsub(text,&quot;^Lady&quot;,&quot;&quot;)
++		text =3D string.gsub(text,&quot;^an &quot;,&quot;&quot;)
++		text =3D string.gsub(text,&quot;^a &quot;,&quot;&quot;)
++		text =3D string.gsub(text,&quot;^[ \t]+&quot;,&quot;&quot;) -- remove leading spaces
++		text =3D string.gsub(text,&quot;[ \t]+$&quot;,&quot;&quot;) -- remove trailing spaces
++		=
+
++		-- npcs friends
++		self.bIsNPC =3D false =
+
++		if (StringContains(text,kMobList_Healer_Text)) then self.bIsNPC =3D true=
+ text =3D &quot;[HEALER]&quot;..string.gsub(text,kMobList_Healer_Text,&quot;&quot;) end
++		if (StringContains(text,kMobList_Escort_Text)) then self.bIsNPC =3D true=
+ text =3D &quot;[ESCORT]&quot;..string.gsub(text,kMobList_Escort_Text,&quot;&quot;) end
++		=
+
++		self.old_text =3D text
++		=
+
++		-- check friends
++		self.bIsFriendlyGuild =3D false
++		for k,guildtag in pairs(gFriendlyGuildTags) do if (StringContains(text,g=
+uildtag)) then self.bIsFriendlyGuild =3D true break end end
++		if (StringContains(text,&quot;hazk&quot;)) then print(&quot;ghaz:&quot;,self.bIsFriendlyGuil=
+d) end
++		=
+
++		-- check pets
++		self.bIsPet =3D StringContains(text,&quot;(summoned)&quot;) or StringContains(text=
+,&quot;(tame)&quot;)
++		local mobile =3D self.mobile
++		if (mobile.artid =3D=3D 574 and mobile.hue =3D=3D 0) then self.bIsPet =
+=3D true end -- blade spirit
++		if (mobile.artid =3D=3D 164 and mobile.hue =3D=3D 0) then self.bIsPet =
+=3D true end -- energy vortex
++	end
+ 	self:RecalcCat()
++	if (bNameUpdate) then self:UpdateNameGfx() end
+ end
+ =
+
+ function gWidgetPrototype.UOMobListItem:UpdateNameGfx()
+ 	local mobile =3D self.mobile
+ 	local r,g,b =3D GetNotorietyColor(mobile.notoriety)
+ 	self.text.params.col =3D {r=3Dr,g=3Dg,b=3Db}
+-	self.text:SetText(self.old_text)
++	self.text:SetText(self.old_text) -- ..&quot; &quot;..self.cat
+ end
+ =
+
+ function gWidgetPrototype.UOMobListItem:SetSelfAsMainTarget ()
+@@ -212,6 +223,7 @@
+ 	local mobile =3D self.mobile
+ 	if (self.old_notoriety ~=3D mobile.notoriety) then =
+
+ 		self.old_notoriety  =3D mobile.notoriety
++		self:RecalcCat()
+ 		self:UpdateNameGfx()
+ 		-- todo : update bar-background color ? not visible when full hp ?
+ 	end
+@@ -231,11 +243,15 @@
+ end
+ =
+
+ function gWidgetPrototype.UOMobListItem:RecalcCat ()
+-	local serial =3D self.serial
++	local serial =3D self.serial	=
+
++	if (self.bNameUnknown) then 								return self:SetCat(kMobListCat_Rest) =
+end
+ 	if (GetPlayerSerial() =3D=3D serial) then						return self:SetCat(kMobLis=
+tCat_Self) end
+ 	if (IsMobileInParty(serial) or self.bIsFriendlyGuild) then	return self:Se=
+tCat(kMobListCat_Friends) end
+-	if (self.bIsPet) then										return self:SetCat(kMobListCat_Pets) end
++	if (self.bIsPet) then										return self:SetCat(kMobListCat_Pets) end =
+
++	if (self.namecliloc and self.mobile.notoriety =3D=3D kMobNotoriety_Green)=
+ then return self:SetCat(kMobListCat_Pets) end =
+
++	if (self.namecliloc and self.mobile.notoriety =3D=3D kMobNotoriety_Red) t=
+hen return self:SetCat(kMobListCat_Pets) end =
+
+ 	if (self.namecliloc or self.bIsNPC) then 					return self:SetCat(kMobList=
+Cat_Rest) end
++	if (self.mobile.notoriety =3D=3D kMobNotoriety_Green) then 	return self:S=
+etCat(kMobListCat_Friends) end =
+
+ 	return self:SetCat(kMobListCat_Players)
+ end
+ =
+
+@@ -243,6 +259,7 @@
+ 	if (self.cat =3D=3D cat) then return end
+ 	self.cat =3D cat
+ 	self.params.moblist.bNeedsReGroup =3D true
++	self:UpdateNameGfx()
+ end
+ =
+
+ function gWidgetPrototype.UOMobListItem:ReGroup (catgrouplist)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001392.html">[Iris-commit] [IRIS] r2587 - /trunk/data/mymacros.lua.dist
+</A></li>
+	<LI>Next message: <A HREF="001394.html">[Iris-commit] [IRIS] r2589 - /trunk/lua/net/net.other.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1393">[ date ]</a>
+              <a href="thread.html#1393">[ thread ]</a>
+              <a href="subject.html#1393">[ subject ]</a>
+              <a href="author.html#1393">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

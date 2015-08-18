@@ -1,0 +1,488 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2086 - in /trunk/lua: lib.3d.combat.lua lib.3d.dynamic.lua lib.debugmenu.lua lib.macrolist.lua lib.protocol.lua net/net.mobile.lua net/net.other.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-April/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2086%20-%20in%20/trunk/lua%3A%20lib.3d.combat.lua%0A%20lib.3d.dynamic.lua%20lib.debugmenu.lua%20lib.macrolist.lua%20lib.protocol.lua%0A%20net/net.mobile.lua%20net/net.other.lua&In-Reply-To=%3C20080424110429.A81E41C18728%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000896.html">
+   <LINK REL="Next"  HREF="000898.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2086 - in /trunk/lua: lib.3d.combat.lua lib.3d.dynamic.lua lib.debugmenu.lua lib.macrolist.lua lib.protocol.lua net/net.mobile.lua net/net.other.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2086%20-%20in%20/trunk/lua%3A%20lib.3d.combat.lua%0A%20lib.3d.dynamic.lua%20lib.debugmenu.lua%20lib.macrolist.lua%20lib.protocol.lua%0A%20net/net.mobile.lua%20net/net.other.lua&In-Reply-To=%3C20080424110429.A81E41C18728%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2086 - in /trunk/lua: lib.3d.combat.lua lib.3d.dynamic.lua lib.debugmenu.lua lib.macrolist.lua lib.protocol.lua net/net.mobile.lua net/net.other.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Thu Apr 24 13:04:29 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000896.html">[Iris-commit] [IRIS] r2085 - in /trunk/lua: lib.test.lua main.lua
+</A></li>
+        <LI>Next message: <A HREF="000898.html">[Iris-commit] [IRIS] r2087 - /trunk/src/grannyparser.cpp
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#897">[ date ]</a>
+              <a href="thread.html#897">[ thread ]</a>
+              <a href="subject.html#897">[ subject ]</a>
+              <a href="author.html#897">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: hagish
+Date: Thu Apr 24 13:04:28 2008
+New Revision: 2086
+
+Log:
+more macro functions, improved damage display
+
+Modified:
+    trunk/lua/lib.3d.combat.lua
+    trunk/lua/lib.3d.dynamic.lua
+    trunk/lua/lib.debugmenu.lua
+    trunk/lua/lib.macrolist.lua
+    trunk/lua/lib.protocol.lua
+    trunk/lua/net/net.mobile.lua
+    trunk/lua/net/net.other.lua
+
+Modified: trunk/lua/lib.3d.combat.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.combat.lua (original)
++++ trunk/lua/lib.3d.combat.lua Thu Apr 24 13:04:28 2008
+@@ -38,16 +38,33 @@
+ 	table.insert(self.gCombatFadeDamageText,o)
+ end
+ =
+
+--- helper to plop hp adds and damage
++-- helper to plop damage
++function Renderer3D:NotifyDamage (serial, damage)
++	print(&quot;DAMAGE&quot;,damage)
++	local mobile =3D GetMobile(serial)
++	if mobile and damage then
++		local r,g,b,a =3D 1.0, 1.0, 0.0, 0.8
++		local size =3D 0.50
++		local speed =3D 0.1
++		local lifetime =3D 2.5
++		Renderer3D:CombatCreateDamageText(damage, mobile.xloc, mobile.yloc, mobi=
+le.zloc, r, g, b, a, size, speed, lifetime)
++	end
++end
++
++-- helper to plop hp adds
+ function Renderer3D:NotifyHPChange (serial, oldhp, newhp)
++	print(&quot;HP CHANGE&quot;,oldhp,newhp)
+ 	local mobile =3D GetMobile(serial)
+ 	if mobile and oldhp and newhp then
+-		local r,g,b =3D 0.0, 0.0, 0.0
++		local r,g,b,a =3D 0.0, 0.0, 0.0, 0.8
++		local size =3D 0.25
++		local speed =3D 0.1
++		local lifetime =3D 1.5
+ 		-- hp change, d&lt;0 means damage, d&gt;0 hp gain
+ 		local d =3D newhp - oldhp
+ 		if (d =3D=3D 0.0) then return end
+ 		if (d &lt; 0.0) then r =3D 1.0 else g =3D 1.0 end
+-		Renderer3D:CombatCreateDamageText(math.abs(d), mobile.xloc, mobile.yloc,=
+ mobile.zloc, r, g, b)
++		Renderer3D:CombatCreateDamageText(math.abs(d), mobile.xloc, mobile.yloc,=
+ mobile.zloc, r, g, b, a, size, speed, lifetime)
+ 	end
+ end
+ =
+
+
+Modified: trunk/lua/lib.3d.dynamic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.dynamic.lua (original)
++++ trunk/lua/lib.3d.dynamic.lua Thu Apr 24 13:04:28 2008
+@@ -105,9 +105,11 @@
+ end
+ =
+
+ function Renderer3D:ShowDynamicMapStats	()
++	print(&quot;#######&quot;)
+ 	Array2DForAll(Renderer3D.gFastBatchDynamicsMap, function(v,x,y)
+ 		print(&quot;BLOCK&quot;,x,y,v.miCount)
+ 	end)
++	print(&quot;#######&quot;)
+ end
+ =
+
+ function Renderer3D:AddDynamicToMap	(dynamic)
+@@ -115,7 +117,7 @@
+ 	if not Renderer3D.gFastBatchDynamicsMapDestroyListener then
+ 		Renderer3D.gFastBatchDynamicsMapDestroyListener =3D RegisterListener(&quot;Dy=
+namic_Destroy&quot;, function(dynamic)
+ 			Renderer3D:RemoveDynamicFromMap(dynamic)
+-			Renderer3D:ShowDynamicMapStats()
++			-- Renderer3D:ShowDynamicMapStats()
+ 		end)
+ 	end
+ =
+
+@@ -135,7 +137,7 @@
+ 		Renderer3D.gFastBatchDynamicsUpdateNeeded =3D true
+ 	end
+ 	=
+
+-	Renderer3D:ShowDynamicMapStats()
++	-- Renderer3D:ShowDynamicMapStats()
+ end
+ =
+
+ function Renderer3D:RemoveDynamicFromMap	(dynamic)
+
+Modified: trunk/lua/lib.debugmenu.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.debugmenu.lua (original)
++++ trunk/lua/lib.debugmenu.lua Thu Apr 24 13:04:28 2008
+@@ -825,6 +825,16 @@
+ 		end	=
+
+ 		end end end)
+ ]]--	=
+
++	Bind(&quot;f11&quot;, function (state) =
+
++		if (state &gt; 0) and gKeyPressed[key_lcontrol] then
++			local r =3D GetMainCam():GetPolygonMode()
++			if r =3D=3D kCamera_PM_POINTS then GetMainCam():SetPolygonMode(kCamera_=
+PM_WIREFRAME)
++			elseif r =3D=3D kCamera_PM_WIREFRAME then GetMainCam():SetPolygonMode(k=
+Camera_PM_SOLID)
++			elseif r =3D=3D kCamera_PM_SOLID then GetMainCam():SetPolygonMode(kCame=
+ra_PM_POINTS)
++			end
++		end
++	end)
++
+ 	Bind(&quot;b&quot;, function (state) if (not gActiveEditText) then if (state &gt; 0) t=
+hen =
+
+ 		if (gCurDebugMode =3D=3D kDebugMode_Static) then
+ 			local i =3D gDebugMenuModelIndex
+
+Modified: trunk/lua/lib.macrolist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.macrolist.lua (original)
++++ trunk/lua/lib.macrolist.lua Thu Apr 24 13:04:28 2008
+@@ -198,10 +198,11 @@
+ end
+ =
+
+ -- waits until a given text appears, list =3D {text=3Dreturnvalue, text=3D=
+returnvalue, ...}
+-function MacroJournal_WaitForText	(list)
++function MacroJournal_WaitForText	(list,timeout)
+ 	if not list then return end
+ 	=
+
+ 	local lastcheck =3D Client_GetTicks()
++	local endtime =3D timeout and lastcheck+timeout or nil
+ 	=
+
+ 	while true do
+ 		for k,v in pairs(list) do
+@@ -210,7 +211,14 @@
+ 			end
+ 		end
+ 		lastcheck =3D Client_GetTicks()
+-		job.wait(500)
++		=
+
++		-- timeout check
++		if endtime and lastcheck &gt; endtime then
++			print(&quot;TIMEOUT&quot;)
++			return nil
++		end
++
++		job.wait(100)
+ 	end
+ end
+ =
+
+@@ -416,3 +424,151 @@
+ 		print(&quot;STOP ATTACK&quot;)
+ 	end)
+ end
++
++
++
++function MacroGoto(x,y)
++	SetAutoWalkTo(x,y)
++	while gWalkPathToGo do
++		job.wait(500)
++	end
++end
++
++
++function MacroGetItemFromBackpackByName(itemnamepart)
++	local backpack_container =3D GetPlayerBackPackContainer()
++	if backpack_container then return MacroGetItemFromContainerByName(itemnam=
+epart, backpack_container.serial) end
++	return nil
++end
++
++function MacroGetItemFromContainerByArtidHue(artid, hue, container_serial)
++	MacroEnsureContainerIsOpen(container_serial)
++	=
+
++	local container =3D GetContainer(container_serial)
++	if (not container) then return nil end
++	for k,item in pairs(container:GetContent()) do =
+
++		if item.artid =3D=3D artid and (not hue or item.hue =3D=3D hue) then
++			return item
++		end
++	end
++
++	return nil
++end
++
++function MacroGetItemFromContainerByName(itemnamepart, container_serial)
++	MacroEnsureContainerIsOpen(container_serial)
++	=
+
++	local container =3D GetContainer(container_serial)
++	if (not container) then return nil end
++	for k,item in pairs(container:GetContent()) do =
+
++		local name =3D GetStaticTileTypeName(item.artid)
++		if (name and string.find(name,itemnamepart)) then
++			return item
++		end
++	end
++
++	return nil
++end
++
++function MacroDropItemIntoContainer(dropitem, container_serial, x,y)
++	x =3D x or 50
++	y =3D y or 50
++
++	MacroEnsureContainerIsOpen(container_serial)
++	=
+
++	local amount =3D dropitem.amount or 1
++	local target =3D container_serial
++	=
+
++	local container =3D GetContainer(container_serial)
++	if (not container) then return nil end
++	for k,item in pairs(container:GetContent()) do =
+
++		if item.serial ~=3D dropitem.serial and item.artid =3D=3D dropitem.artid=
+ and (not dropitem.hue or item.hue =3D=3D dropitem.hue) then
++			target =3D item.serial
++		end
++	end
++
++	Send_Take_Object(dropitem.serial,amount)
++	job.wait(400)
++	Send_Drop_Object(dropitem.serial,x,y,0,target)
++	job.wait(400)
++end
++
++function MacroDropAllIntoContainer(itemnamepart, container_serial, x,y)
++	x =3D x or 50
++	y =3D y or 50
++	local item =3D MacroGetItemFromBackpackByName(itemnamepart)
++	local lastserial =3D nil
++	while item do
++		MacroDropItemIntoContainer(item, container_serial, x,y)
++		lastserial =3D item.serial
++		item =3D MacroGetItemFromBackpackByName(itemnamepart)
++		-- something went wrong so stop
++		if item and lastserial and item.serial =3D=3D lastserial then return end
++	end
++end
++
++function MacroEnsureContainerIsOpen	(container_serial)
++	if not GetContainer(container_serial) then
++		Send_DoubleClick(container_serial)
++	end
++	while not GetContainer(container_serial) do
++		job.wait(100)
++	end
++end
++
++function MacroStackEverytingInContainer	(container_serial)
++	MacroEnsureContainerIsOpen(container_serial)
++
++	local sx =3D 20
++	local sy =3D 20
++	local dx =3D 2
++	local dy =3D 2
++	local x =3D sx
++	local y =3D sy
++	local limit =3D 150
++	=
+
++	local rowh =3D 0
++	=
+
++	local container =3D GetContainer(container_serial)
++	if (not container) then return nil end
++
++	=
+
++	local l =3D {}
++	=
+
++	-- sort content by height
++	for k,v in pairs(container:GetContent()) do table.insert(l,v) end
++	table.sort(l, function(a,b)
++		local minx,miny,maxx,maxy =3D GetArtVisibleAABB(a.artid + 0x4000)
++		local ha =3D maxy-miny
++		minx,miny,maxx,maxy =3D GetArtVisibleAABB(b.artid + 0x4000)
++		local hb =3D maxy-miny
++		return ha &lt; hb
++	end)
++	=
+
++	for k,item in ipairs(l) do =
+
++		-- print(&quot;DROP AT&quot;,x,y)
++		=
+
++		local minx,miny,maxx,maxy =3D GetArtVisibleAABB(item.artid + 0x4000)
++		-- print(&quot;AABB&quot;,minx,miny,maxx,maxy)
++		--local w,h =3D GetArtSize(item.artid + 0x4000)
++		local w,h =3D maxx-minx,maxy-miny
++		=
+
++		rowh =3D math.max(h, rowh)
++		=
+
++		-- print(&quot;w,h,rowh&quot;,w,h,rowh,x,y)
++		=
+
++		MacroDropItemIntoContainer(item, container_serial, x-minx,y-miny)
++		=
+
++		-- goto next position
++		x =3D x + w + dx
++		if x &gt; limit then
++			x =3D sx
++			y =3D y + rowh + dy
++		end
++	end
++end
++
++function MacroGetSerialUnderMouse	()
++	gCurrentRenderer:MousePick()
++	return gCurrentRenderer:GetMouseHitSerial()
++end
+
+Modified: trunk/lua/lib.protocol.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.protocol.lua (original)
++++ trunk/lua/lib.protocol.lua Thu Apr 24 13:04:28 2008
+@@ -93,7 +93,7 @@
+ function LogOutgoingPacket (fifo,len) LogPacket(fifo,len,&quot;Client&quot;) end
+ function LogIncomingPacket (fifo,len) LogPacket(fifo,len,&quot;Server&quot;) end
+ function LogPacket (fifo,len,direction) =
+
+-	if (not gLogPackets) then return end
++	if (not gLogPackets or not (len &gt; 0)) then return end
+ 	local cmd =3D fifo:PeekNetUint8(0)
+ 	local info =3D sprintf(&quot;Packet [%02x], Length: %d, Type: %s\n&quot;,cmd,len,di=
+rection or &quot;unknown&quot;)
+ 	local rowlen =3D 16
+@@ -111,7 +111,7 @@
+ 			s =3D &quot;&quot;
+ 		end
+ 	end
+-	info =3D info .. &quot;\n\n&quot;
++	info =3D info .. &quot;\t&quot;.. s ..&quot;\n\n&quot;
+ =
+
+ 	if (gPacketLogInit) then
+ 		gPacketLogInit =3D false
+
+Modified: trunk/lua/net/net.mobile.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.mobile.lua (original)
++++ trunk/lua/net/net.mobile.lua Thu Apr 24 13:04:28 2008
+@@ -290,7 +290,7 @@
+ 	local damage		=3D input:PopNetUint16()
+ 	printdebug(&quot;mobile&quot;,sprintf(&quot;NET: kPacket_Damage: mobile_serial=3D0x%08x =
+ damage=3D%i\n&quot;,mobile_serial,damage))
+ 	=
+
+-	gCurrentRenderer:NotifyHPChange( mobile_serial, damage, 0 )
++	gCurrentRenderer:NotifyDamage( mobile_serial, damage)
+ end
+ =
+
+ =
+
+
+Modified: trunk/lua/net/net.other.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.other.lua (original)
++++ trunk/lua/net/net.other.lua Thu Apr 24 13:04:28 2008
+@@ -299,7 +299,7 @@
+ 		=
+
+ 		-- show fading damage over the mobile
+ 		-- TODO totally untested
+-		gCurrentRenderer:NotifyHPChange(olddamage_serial,olddamage_amount,0)
++		gCurrentRenderer:NotifyDamage(olddamage_serial,olddamage_amount)
+ 	end
+ =
+
+ 	--Enable/Disable SE Spell Icons
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000896.html">[Iris-commit] [IRIS] r2085 - in /trunk/lua: lib.test.lua main.lua
+</A></li>
+	<LI>Next message: <A HREF="000898.html">[Iris-commit] [IRIS] r2087 - /trunk/src/grannyparser.cpp
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#897">[ date ]</a>
+              <a href="thread.html#897">[ thread ]</a>
+              <a href="subject.html#897">[ subject ]</a>
+              <a href="author.html#897">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

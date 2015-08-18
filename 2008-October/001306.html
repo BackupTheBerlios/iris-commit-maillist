@@ -1,0 +1,139 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2501 - /trunk/lua/lib.2d.dynamic.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-October/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2501%20-%20/trunk/lua/lib.2d.dynamic.lua&In-Reply-To=%3C20081003023703.78AE51C18678%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001305.html">
+   <LINK REL="Next"  HREF="001307.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2501 - /trunk/lua/lib.2d.dynamic.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2501%20-%20/trunk/lua/lib.2d.dynamic.lua&In-Reply-To=%3C20081003023703.78AE51C18678%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2501 - /trunk/lua/lib.2d.dynamic.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Fri Oct  3 04:37:03 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001305.html">[Iris-commit] [IRIS] r2500 - in /trunk/lua: lib.2d.effect.lua	net/net.effect.lua
+</A></li>
+        <LI>Next message: <A HREF="001307.html">[Iris-commit] [IRIS] r2502 - in /trunk/lua: lib.2d.effect.lua	lib.2d.renderer.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1306">[ date ]</a>
+              <a href="thread.html#1306">[ thread ]</a>
+              <a href="subject.html#1306">[ subject ]</a>
+              <a href="author.html#1306">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Fri Oct  3 04:37:03 2008
+New Revision: 2501
+
+Log:
+2d : dynamics are not yet animated, but i added a little hack to make paral=
+yze field somehwat visible : using the middle of the animation
+
+Modified:
+    trunk/lua/lib.2d.dynamic.lua
+
+Modified: trunk/lua/lib.2d.dynamic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.dynamic.lua (original)
++++ trunk/lua/lib.2d.dynamic.lua Fri Oct  3 04:37:03 2008
+@@ -111,22 +111,32 @@
+ 		-- multi
+ 		self:UpdateMultiItemGfx(item)
+ 	else
+-		local spriteblock =3D cUOSpriteBlock:New()
+-		item.gfx2d =3D spriteblock
+-		=
+
+-		local xloc =3D item.xloc
+-		local yloc =3D item.yloc
+-		local zloc =3D item.zloc
+-		local tx,ty,tz,fIndexRel =3D 0,0,0,0
+-		local sorttx =3D xloc-floor(xloc/8)*8
+-		local sortty =3D yloc-floor(yloc/8)*8
+-		local sorttz =3D zloc
+ 		local iTileTypeID	=3D item.artid
+-		local iHue			=3D item.hue
+-		spriteblock:AddArtSprite(tx,ty,tz,iTileTypeID,iHue,CalcSortBonus(iTileTy=
+peID,sorttx,sortty,sorttz,fIndexRel,1),item)
+-		spriteblock:Build(Renderer2D.kSpriteBaseMaterial,true)
+-		local x,y,z =3D gCurrentRenderer:UOPosToLocal(xloc,yloc,zloc*kRenderer2D=
+_ZScale)
+-		spriteblock:SetPosition(x,y,z)
++		if (iTileTypeID &gt; 1) then -- 1 =3D=3D nodraw =
+
++			local spriteblock =3D cUOSpriteBlock:New()
++			item.gfx2d =3D spriteblock
++			=
+
++			=
+
++			local animinfo =3D GetAnimDataInfo(iTileTypeID)
++			if (animinfo) then
++				if (animinfo.miCount &gt; 1) then
++					iTileTypeID =3D iTileTypeID + (animinfo.miFrames[floor(animinfo.miCou=
+nt/2)] or 0)
++				end
++			end
++			=
+
++			local xloc =3D item.xloc
++			local yloc =3D item.yloc
++			local zloc =3D item.zloc
++			local tx,ty,tz,fIndexRel =3D 0,0,0,0
++			local sorttx =3D xloc-floor(xloc/8)*8
++			local sortty =3D yloc-floor(yloc/8)*8
++			local sorttz =3D zloc
++			local iHue			=3D item.hue
++			spriteblock:AddArtSprite(tx,ty,tz,iTileTypeID,iHue,CalcSortBonus(iTileT=
+ypeID,sorttx,sortty,sorttz,fIndexRel,1),item)
++			spriteblock:Build(Renderer2D.kSpriteBaseMaterial,true)
++			local x,y,z =3D gCurrentRenderer:UOPosToLocal(xloc,yloc,zloc*kRenderer2=
+D_ZScale)
++			spriteblock:SetPosition(x,y,z)
++		end
+ 	end
+ end
+ =
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001305.html">[Iris-commit] [IRIS] r2500 - in /trunk/lua: lib.2d.effect.lua	net/net.effect.lua
+</A></li>
+	<LI>Next message: <A HREF="001307.html">[Iris-commit] [IRIS] r2502 - in /trunk/lua: lib.2d.effect.lua	lib.2d.renderer.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1306">[ date ]</a>
+              <a href="thread.html#1306">[ thread ]</a>
+              <a href="subject.html#1306">[ subject ]</a>
+              <a href="author.html#1306">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

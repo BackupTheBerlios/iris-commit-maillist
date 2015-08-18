@@ -1,0 +1,255 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2100 - /trunk/premake.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-April/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2100%20-%20/trunk/premake.lua&In-Reply-To=%3C20080427150002.EC67A1C187C6%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000910.html">
+   <LINK REL="Next"  HREF="000912.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2100 - /trunk/premake.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2100%20-%20/trunk/premake.lua&In-Reply-To=%3C20080427150002.EC67A1C187C6%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2100 - /trunk/premake.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sun Apr 27 16:13:07 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000910.html">[Iris-commit] [IRIS] r2099 - /trunk/data/skippedfallbacks.lua
+</A></li>
+        <LI>Next message: <A HREF="000912.html">[Iris-commit] [IRIS] r2101 - /trunk/linuxbin/
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#911">[ date ]</a>
+              <a href="thread.html#911">[ thread ]</a>
+              <a href="subject.html#911">[ subject ]</a>
+              <a href="author.html#911">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: hagish
+Date: Sun Apr 27 16:13:07 2008
+New Revision: 2100
+
+Log:
+its possible to statically link ois
+
+Modified:
+    trunk/premake.lua
+
+Modified: trunk/premake.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/premake.lua (original)
++++ trunk/premake.lua Sun Apr 27 16:13:07 2008
+@@ -6,15 +6,29 @@
+ project.name =3D gName
+ -- project.path =3D &quot;build&quot;
+ -- project.bindir =3D &quot;.&quot;
++
++-- default values
+ gbExtraWarnings =3D false
+-
++gbOptimize =3D true
++gOisPlatform =3D &quot;linux&quot;
++gbUseSystemOis =3D false
++
++-- build options
+ addoption(&quot;wall&quot;,&quot;very verbose report, most warnings enabled&quot;)
++addoption(&quot;nooptimize&quot;,&quot;don't use optmize compile flags&quot;)
++addoption(&quot;usesystemois&quot;,&quot;use the systemwide installed ois not the one inc=
+luded in lugre&quot;)
++addoption(&quot;oisplatform&quot;,&quot;select OIS platform (linux,mac,SDL,win32, default=
+:<i>linux), only valid if lugre ois is used&quot;)
+</I>+
+ if (options[&quot;wall&quot;]) then gbExtraWarnings =3D true print(&quot;extra warnings e=
+nabled&quot;) end
++if (options[&quot;nooptimize&quot;]) then gbOptimize =3D false print(&quot;optimization d=
+isabled&quot;) end
++if (options[&quot;usesystemois&quot;]) then gbUseSystemOis =3D true print(&quot;using sys=
+temwide installed ois&quot;) end
++if (options[&quot;oisplatform&quot;]) then gOisPlatform =3D options[&quot;oisplatform&quot;] p=
+rint(&quot;using oisplatform: &quot;..gOisPlatform) end
+ =
+
+ gLugreDir =3D &quot;lugre&quot;
+ if (io.open(&quot;mylugre/lua/lugre.lua&quot;)) then print(&quot;using mylugre dir overri=
+de&quot;) gLugreDir =3D &quot;mylugre&quot; end
+ =
+
+ gLugreLuaSrcDir =3D &quot;./&quot;..gLugreDir..&quot;/lib/lua-5.1.3/&quot;
++gLugreOisDir =3D &quot;./&quot;..gLugreDir..&quot;/baselib/ois/&quot;
+ =
+
+ -- list of easy libs inclusion (located in lugre/lib/NAME). this will add =
+lugre/lib/NAME/src and lugre/lib/NAME/include.
+ gLugreLibList =3D {
+@@ -27,16 +41,16 @@
+ -- lugre dependencies, ie. ogre
+ function AddLugreDeps(package)
+ 	package.defines =3D { =
+
+-	&quot;USE_OPENAL&quot;,
+-	&quot;MAIN_WORKING_DIR=3D\\\&quot;..\\\&quot;&quot;,
+-	&quot;LUA_DIR=3D\\\&quot;lua\\\&quot;&quot;,
+-	&quot;LUGRE_DIR=3D\\\&quot;&quot;..gLugreDir..&quot;\\\&quot;&quot;,
+-	&quot;DATA_DIR=3D\\\&quot;data\\\&quot;&quot;,
+-	&quot;ENABLE_THREADS&quot;,
+-}	=
+
++		&quot;USE_OPENAL&quot;,
++		&quot;MAIN_WORKING_DIR=3D\\\&quot;..\\\&quot;&quot;,
++		&quot;LUA_DIR=3D\\\&quot;lua\\\&quot;&quot;,
++		&quot;LUGRE_DIR=3D\\\&quot;&quot;..gLugreDir..&quot;\\\&quot;&quot;,
++		&quot;DATA_DIR=3D\\\&quot;data\\\&quot;&quot;,
++		&quot;ENABLE_THREADS&quot;,
++	}	=
+
+ =
+
+ 	addpkgconfiglib(package, &quot;OGRE&quot;)
+-	addpkgconfiglib(package, &quot;OIS&quot;)
++	if gbUseSystemOis then addpkgconfiglib(package, &quot;OIS&quot;) end
+ 	addpkgconfiglib(package, &quot;openal&quot;)
+ 	addpkgconfiglib(package, &quot;vorbisfile&quot;)
+ =
+
+@@ -95,7 +109,7 @@
+ package.name =3D &quot;lugrelua&quot;
+ package.kind =3D &quot;lib&quot;
+ package.language =3D &quot;c++&quot;
+-package.buildflags =3D { gbExtraWarnings and &quot;extra-warnings&quot; or nil, &quot;opt=
+imize&quot; }
++package.buildflags =3D { gbExtraWarnings and &quot;extra-warnings&quot; or nil, gbOp=
+timize and &quot;optimize&quot; or nil }
+ package.buildoptions =3D {}
+ package.includepaths =3D { gLugreLuaSrcDir..&quot;/src&quot; }
+ package.defines =3D { =
+
+@@ -106,6 +120,28 @@
+ }
+ =
+
+ -- ---------------------------------------------
++-- OIS
++-- ---------------------------------------------
++if not gbUseSystemOis then
++	print(&quot;OIS platform: &quot;..gOisPlatform)
++	gOisPlatform =3D &quot;linux&quot;
++	oisinclude =3D {gLugreOisDir..&quot;/includes&quot;, gLugreOisDir..&quot;/includes/&quot;..gO=
+isPlatform}
++	package =3D newpackage()
++	package.name =3D &quot;lugreois&quot;
++	package.kind =3D &quot;lib&quot;
++	package.language =3D &quot;c++&quot;
++	package.buildflags =3D { gbExtraWarnings and &quot;extra-warnings&quot; or nil, gbO=
+ptimize and &quot;optimize&quot; or nil }
++	package.buildoptions =3D {}
++	package.includepaths =3D { unpack(oisinclude) }
++	package.defines =3D { =
+
++		--&quot;LUA_USE_POPEN&quot;, -- execute shellcommands
++	}	=
+
++	package.files =3D {
++	  matchfiles(gLugreOisDir..&quot;/src/*.h&quot;, gLugreOisDir..&quot;/src/*.cpp&quot;),
++	  matchfiles(gLugreOisDir..&quot;/src/&quot;..gOisPlatform..&quot;/*.h&quot;, gLugreOisDir..&quot;=
+/src/&quot;..gOisPlatform..&quot;/*.cpp&quot;),
++	}
++end
++-- ---------------------------------------------
+ -- LUGRE LIBS
+ -- ---------------------------------------------
+ =
+
+@@ -115,9 +151,9 @@
+ 	package.name =3D v..&quot;lib&quot;
+ 	package.kind =3D &quot;lib&quot;
+ 	package.language =3D &quot;c++&quot;
+-	package.buildflags =3D { gbExtraWarnings and &quot;extra-warnings&quot; or nil, &quot;op=
+timize&quot; }
++	package.buildflags =3D { gbExtraWarnings and &quot;extra-warnings&quot; or nil, gbO=
+ptimize and &quot;optimize&quot; or nil }
+ 	package.buildoptions =3D {}
+-	package.includepaths =3D { gLugreDir..&quot;/include&quot;, gLugreLuaSrcDir..&quot;/src/=
+&quot;, &quot;include&quot; }
++	package.includepaths =3D { gLugreDir..&quot;/include&quot;, gLugreLuaSrcDir..&quot;/src/=
+&quot;, &quot;include&quot;, oisinclude and unpack(oisinclude) or nil }
+ 	package.files =3D {
+ 		matchfiles(gLugreLuaSrcDir..&quot;/src/*.h&quot;, gLugreLuaSrcDir..&quot;/src/*.c&quot;),
+ 	}
+@@ -136,8 +172,8 @@
+ package.name =3D &quot;lugrelib&quot;
+ package.kind =3D &quot;lib&quot;
+ package.language =3D &quot;c++&quot;
+-package.links =3D { &quot;lugrelua&quot; }
+-package.buildflags =3D { bExtraWarnings and &quot;extra-warnings&quot; or nil, &quot;opti=
+mize&quot; }
++package.links =3D {  }
++package.buildflags =3D { bExtraWarnings and &quot;extra-warnings&quot; or nil, gbOpt=
+imize and &quot;optimize&quot; or nil }
+ package.buildoptions =3D {}
+ package.includepaths =3D { gLugreLuaSrcDir..&quot;/src&quot;, gLugreDir..&quot;/include&quot; }
+ package.files =3D {
+@@ -154,7 +190,7 @@
+ package.kind =3D &quot;exe&quot;
+ package.language =3D &quot;c++&quot;
+ package.bindir =3D &quot;bin&quot;
+-package.buildflags =3D { gbExtraWarnings and &quot;extra-warnings&quot; or nil, &quot;opt=
+imize&quot; }
++package.buildflags =3D { gbExtraWarnings and &quot;extra-warnings&quot; or nil, gbOp=
+timize and &quot;optimize&quot; or nil }
+ package.buildoptions =3D {}
+ =
+
+ package.includepaths =3D { gLugreDir..&quot;/include&quot;, gLugreLuaSrcDir..&quot;/src/&quot;=
+, &quot;include&quot; }
+@@ -164,9 +200,7 @@
+ end
+ =
+
+ package.linkoptions =3D {}
+-package.links =3D { &quot;lugrelua&quot; }
+-
+-package.links =3D { &quot;lugrelib&quot; }
++package.links =3D { &quot;lugrelib&quot;, &quot;lugrelua&quot;, not gbUseSystemOis and &quot;lugreo=
+is&quot; or nil  }
+ AddLugreDeps(package)
+ =
+
+ package.files =3D {
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000910.html">[Iris-commit] [IRIS] r2099 - /trunk/data/skippedfallbacks.lua
+</A></li>
+	<LI>Next message: <A HREF="000912.html">[Iris-commit] [IRIS] r2101 - /trunk/linuxbin/
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#911">[ date ]</a>
+              <a href="thread.html#911">[ thread ]</a>
+              <a href="subject.html#911">[ subject ]</a>
+              <a href="author.html#911">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

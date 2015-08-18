@@ -1,0 +1,375 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1714 - in /trunk/lua: lib.3d.dynamic.lua lib.3d.map.lua lib.3d.mousepick.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-January/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1714%20-%20in%20/trunk/lua%3A%20lib.3d.dynamic.lua%0A%20lib.3d.map.lua%20lib.3d.mousepick.lua&In-Reply-To=%3C20080105020043.DB3701C18701%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000529.html">
+   <LINK REL="Next"  HREF="000533.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1714 - in /trunk/lua: lib.3d.dynamic.lua lib.3d.map.lua lib.3d.mousepick.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1714%20-%20in%20/trunk/lua%3A%20lib.3d.dynamic.lua%0A%20lib.3d.map.lua%20lib.3d.mousepick.lua&In-Reply-To=%3C20080105020043.DB3701C18701%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1714 - in /trunk/lua: lib.3d.dynamic.lua lib.3d.map.lua lib.3d.mousepick.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat Jan  5 03:00:43 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000529.html">[Iris-commit] [IRIS] r1713 - /trunk/lua/lib.3d.dynamic.lua
+</A></li>
+        <LI>Next message: <A HREF="000533.html">[Iris-commit] [IRIS] r1715 - in /trunk/data/models: models/generate_all.sh textures/shrink.sh
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#534">[ date ]</a>
+              <a href="thread.html#534">[ thread ]</a>
+              <a href="subject.html#534">[ subject ]</a>
+              <a href="author.html#534">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: hagish
+Date: Sat Jan  5 03:00:43 2008
+New Revision: 1714
+
+Log:
+first version of static dynamic
+
+Modified:
+    trunk/lua/lib.3d.dynamic.lua
+    trunk/lua/lib.3d.map.lua
+    trunk/lua/lib.3d.mousepick.lua
+
+Modified: trunk/lua/lib.3d.dynamic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.dynamic.lua (original)
++++ trunk/lua/lib.3d.dynamic.lua Sat Jan  5 03:00:43 2008
+@@ -2,10 +2,47 @@
+ =
+
+ -- stores a list of the current client/server side multis
+ gMultis =3D {}
++
++-- fast batch geometry gfx3d that contains the dynamics
++Renderer3D.gFastBatchDynamics =3D nil
++Renderer3D.gFastBatchDynamicsUpdateNeeded =3D true
++Renderer3D.gFastBatchDynamicsUpdateNext =3D nil
++Renderer3D.gFastBatchDynamicsUpdateNextTimout =3D 1 * 1000
+ =
+
+ -- helperfunction for CreateDynamicGfx. Please use always for function call
+ function Renderer3D:AddDynamicItem( item )
+ 	self:CreateDynamicGfx(item)
++end
++
++function Renderer3D:CheckForFastBatchDynamicsUpdate ()
++	if Renderer3D.gFastBatchDynamicsUpdateNeeded and =
+
++		(not Renderer3D.gFastBatchDynamicsUpdateNext or Renderer3D.gFastBatchDyn=
+amicsUpdateNext &lt; gMyTicks) then
++		=
+
++		Renderer3D.gFastBatchDynamicsUpdateNeeded =3D false
++		=
+
++		-- on demand create
++		if not Renderer3D.gFastBatchDynamics then
++			Renderer3D.gFastBatchDynamics =3D CreateRootGfx3D()
++		end
++		=
+
++		-- clear
++		Renderer3D.gFastBatchDynamics:SetFastBatch()
++		=
+
++		-- add dynamics
++		for k,dynamic in pairs(GetDynamicList()) do
++			if (dynamic.meshname and DynamicIsInWorld(dynamic)) then
++				if (self:IsZLayerVisible(dynamic.zloc)) then
++						local x,y,z =3D Renderer3D:UOPosToLocal (dynamic.xloc,dynamic.yloc,d=
+ynamic.zloc * 0.1) =
+
++						local qw,qx,qy,qz =3D GetStaticMeshOrientation(dynamic.artid)
++						Renderer3D.gFastBatchDynamics:FastBatch_AddMesh(dynamic.meshname, x,=
+y,z, qw,qx,qy,qz, -1,1,1)
++				end
++			end
++		end
++		=
+
++		Renderer3D.gFastBatchDynamics:FastBatch_Build()
++		=
+
++		Renderer3D.gFastBatchDynamicsUpdateNext =3D gMyTicks + Renderer3D.gFastB=
+atchDynamicsUpdateNextTimout
++	end
+ end
+ =
+
+ function Renderer3D:UpdateDynamicItemPos ( dynamic )
+@@ -109,39 +146,56 @@
+ 		end
+ 	else
+ 		-- normal 1 part object
+-		item.gfx =3D CreateRootGfx3D()
+ 		local meshname =3D (not gForceFallBackBillboards_Dynamics) and GetStatic=
+MeshName(item.artid) -- ,item.hue)
+-		if (meshname and meshname ~=3D false) then
+-			item.gfx:SetMesh(meshname)
+-			item.gfx:SetScale(-1,1,1)		-- (-1) thats because xmirror bug and wrong =
+mirrored mashes
+-			item.gfx:SetNormaliseNormals(true)
+-			item.gfx:SetCastShadows(gDynamicsCastShadows)
+-			-- primary color hueing
+-			if gHueLoader and item.hue &gt; 0 then
+-				local r,g,b =3D gHueLoader:GetColor(item.hue - 1,31) -- get first color
+-				HueMeshEntity(item.gfx,r,g,b,r,g,b)
+-			end
+-		elseif (gEnableFallBackBillboards_Dynamics) then
+-			local iTranslatedTileTypeID =3D SeasonalStaticTranslation(item.artid, g=
+SeasonSetting)
+-			-- we have to add 16384 for fallbacks, because static Art starts on 163=
+84 in Art.mul file
+-			iTranslatedTileTypeID =3D iTranslatedTileTypeID + 16384
+-
+-			-- fallback to billboard with original art
+-			if (not IsArtBillboardFallBackSkipped(item.artid)) then
+-				if gUseWhiteBoxAsFallBack then
+-					-- use just a white box as fallback
+-					SetFallBackBox(item.gfx)
+-					printdebug(&quot;missing&quot;,sprintf(&quot;Renderer3D:CreateDynamicGfx: failed loa=
+ding mesh for dynamic: artid=3D%i z_typename=3D%s -&gt; box fallback\n&quot;,item.a=
+rtid or -1,GetStaticTileTypeName(item.artid) or &quot;&quot;))
+-				else
+-					-- generate uoart billboard fallback
+-					item.gfx.billboard =3D item.gfx:CreateChild()
+-					item.xadd =3D item.xadd + 0.5
+-					item.yadd =3D item.yadd + 0.5
+-					item.zadd =3D item.zadd + 0.5
+-					self:CreateArtBillBoard(item.gfx.billboard,iTranslatedTileTypeID,item=
+.hue)
+-					printdebug(&quot;missing&quot;,sprintf(&quot;Renderer3D:CreateDynamicGfx: failed loa=
+ding mesh for dynamic: artid=3D%i z_typename=3D%s\n&quot;,item.artid or -1,GetSt=
+aticTileTypeName(item.artid) or &quot;&quot;))
+-				end
+-			end
++		item.meshname =3D meshname
++		=
+
++		if gFastBatchDynamics and meshname and meshname ~=3D false then
++			-- trigger: burn all dynamics into the dynamic fastbatch
++			item.meshbuffer =3D GetMeshBuffer(meshname) -- for mousepicking
++			Renderer3D.gFastBatchDynamicsUpdateNeeded =3D true
++		else
++			-- just add the dynamic as a scene node
++			item.gfx =3D CreateRootGfx3D()
++			if (meshname and meshname ~=3D false) then
++				item.gfx:SetMesh(meshname)
++				item.gfx:SetScale(-1,1,1)		-- (-1) thats because xmirror bug and wrong=
+ mirrored mashes
++				item.gfx:SetNormaliseNormals(true)
++				item.gfx:SetCastShadows(gDynamicsCastShadows)
++				-- primary color hueing
++				if gHueLoader and item.hue &gt; 0 then
++					local r,g,b =3D gHueLoader:GetColor(item.hue - 1,31) -- get first col=
+or
++					HueMeshEntity(item.gfx,r,g,b,r,g,b)
++				end
++			elseif (gEnableFallBackBillboards_Dynamics) then
++				local iTranslatedTileTypeID =3D SeasonalStaticTranslation(item.artid, =
+gSeasonSetting)
++				-- we have to add 16384 for fallbacks, because static Art starts on 16=
+384 in Art.mul file
++				iTranslatedTileTypeID =3D iTranslatedTileTypeID + 16384
++
++				-- fallback to billboard with original art
++				if (not IsArtBillboardFallBackSkipped(item.artid)) then
++					if gUseWhiteBoxAsFallBack then
++						-- use just a white box as fallback
++						SetFallBackBox(item.gfx)
++						printdebug(&quot;missing&quot;,sprintf(&quot;Renderer3D:CreateDynamicGfx: failed lo=
+ading mesh for dynamic: artid=3D%i z_typename=3D%s -&gt; box fallback\n&quot;,item.=
+artid or -1,GetStaticTileTypeName(item.artid) or &quot;&quot;))
++					else
++						-- generate uoart billboard fallback
++						item.gfx.billboard =3D item.gfx:CreateChild()
++						item.xadd =3D item.xadd + 0.5
++						item.yadd =3D item.yadd + 0.5
++						item.zadd =3D item.zadd + 0.5
++						self:CreateArtBillBoard(item.gfx.billboard,iTranslatedTileTypeID,ite=
+m.hue)
++						printdebug(&quot;missing&quot;,sprintf(&quot;Renderer3D:CreateDynamicGfx: failed lo=
+ading mesh for dynamic: artid=3D%i z_typename=3D%s\n&quot;,item.artid or -1,GetS=
+taticTileTypeName(item.artid) or &quot;&quot;))
++					end
++				end
++			end
++
++			item.gfx:SetRenderingDistance(self.gDynamicMaxRenderDist)
++
++			-- FILTER: correction
++			item.gfx:SetOrientation(GetStaticMeshOrientation(item.artid))
++
++			self:UpdateDynamicItemPos(item)
++
+ 		end
+ =
+
+ 		-- creates a light if lights are enabled and static is a lightsource
+@@ -154,12 +208,6 @@
+ 			end
+ 		end
+ =
+
+-		item.gfx:SetRenderingDistance(self.gDynamicMaxRenderDist)
+-
+-		-- FILTER: correction
+-		item.gfx:SetOrientation(GetStaticMeshOrientation(item.artid))
+-
+-		self:UpdateDynamicItemPos(item)
+ 	end
+ 	self:UpdateDynamicVisibility(item)
+ end
+@@ -206,4 +254,9 @@
+ 		dynamic.gfx =3D nil
+ 	end
+ =
+
+-end
++	if gFastBatchDynamics then =
+
++		-- just trigger dynamic fastbatch update
++		Renderer3D.gFastBatchDynamicsUpdateNeeded =3D true
++	end
++	=
+
++end
+
+Modified: trunk/lua/lib.3d.map.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.map.lua (original)
++++ trunk/lua/lib.3d.map.lua Sat Jan  5 03:00:43 2008
+@@ -53,6 +53,11 @@
+ 		self:UpdateMapCache(-iCamOverBlockX,iCamOverBlockY, gSightRange)
+ =
+
+ 		self.gNextMapUpdate =3D Client_GetTicks() + self.gMapUpdateInterval -- m=
+ake sure the game runs for at least 100msec AFTER this loading without bein=
+g interrupted by loading
++	end
++	=
+
++	if gFastBatchDynamics then
++		-- need to reburn dynamics?
++		gCurrentRenderer:CheckForFastBatchDynamicsUpdate()
+ 	end
+ end
+ =
+
+@@ -213,7 +218,9 @@
+ =
+
+ 		if (gFastBatchStatics) then
+ 			entity.meshbuffer =3D GetMeshBuffer(meshname) -- for mousepicking
+-			chunk.fastbatch:FastBatch_AddMesh(meshname,entity.x,entity.y,entity.z, =
+qw,qx,qy,qz, sx,sy,sz) =
+
++			if (not self.giBlendOutCurZ) or entity.zloc &lt;=3D self.giBlendOutCurZ th=
+en
++				chunk.fastbatch:FastBatch_AddMesh(meshname,entity.x,entity.y,entity.z,=
+ qw,qx,qy,qz, sx,sy,sz)
++			end
+ 			-- todo : pos,rot,scale,col_rgba : hue
+ 		else
+ 			entity.staticentity =3D CreateMeshEntity(meshname)
+@@ -467,6 +474,12 @@
+ 						self:UpdateStaticVisibility(entity) =
+
+ 					end
+ 					=
+
++					-- update fast batch
++					if gFastBatchStatics then
++						-- invalidate map chunk and trigger rebuild
++						chunk.mbRebuild =3D true
++					end
++					=
+
+ 					-- update terrain
+ 					if (chunk.pStaticGeometryTerrain) then
+ 						chunk.pStaticGeometryTerrain:SetVisible(bTerrainVisible)
+
+Modified: trunk/lua/lib.3d.mousepick.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.mousepick.lua (original)
++++ trunk/lua/lib.3d.mousepick.lua Sat Jan  5 03:00:43 2008
+@@ -192,8 +192,20 @@
+ 					bHit =3D (fHitDist ~=3D nil)
+ 				else
+ 					-- mesh mousepick
+-					bHit,fHitDist =3D dynamic.gfx:RayPick(rx,ry,rz,rvx,rvy,rvz)
++					if ( dynamic.meshbuffer) then
++						local x,y,z =3D Renderer3D:UOPosToLocal (dynamic.xloc,dynamic.yloc,d=
+ynamic.zloc * 0.1) =
+
++						local qw,qx,qy,qz =3D GetStaticMeshOrientation(dynamic.artid)
++						=
+
++						print(&quot;DEBUG&quot;,x,y,z)
++						=
+
++						bHit,fHitDist =3D dynamic.meshbuffer:RayPick(rx,ry,rz,rvx,rvy,rvz,
++							x,y,z, qw,qx,qy,qz, -1,1,1)
++					else
++						bHit,fHitDist =3D dynamic.gfx:RayPick(rx,ry,rz,rvx,rvy,rvz)
++					end
++					=
+
+ 				end
++				=
+
+ 				if (bHit and ((not gMousePickFoundHit) or fHitDist &lt; self.gMousePickFo=
+undDist)) then
+ 					self.gMousePickFoundDist =3D fHitDist
+ 					gMousePickFoundHit =3D {}
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000529.html">[Iris-commit] [IRIS] r1713 - /trunk/lua/lib.3d.dynamic.lua
+</A></li>
+	<LI>Next message: <A HREF="000533.html">[Iris-commit] [IRIS] r1715 - in /trunk/data/models: models/generate_all.sh textures/shrink.sh
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#534">[ date ]</a>
+              <a href="thread.html#534">[ thread ]</a>
+              <a href="subject.html#534">[ subject ]</a>
+              <a href="author.html#534">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

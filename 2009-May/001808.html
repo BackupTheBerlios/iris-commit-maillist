@@ -1,0 +1,244 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r3009 - in /trunk: ./ bin/iris2.exe lua/lib.2d.cam.lua lua/main.lua plugins/loot.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2009-May/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3009%20-%20in%20/trunk%3A%20./%20bin/iris2.exe%0A%20lua/lib.2d.cam.lua%20lua/main.lua%20plugins/loot.lua&In-Reply-To=%3C20090502233412.33A191C18566%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001807.html">
+   <LINK REL="Next"  HREF="001809.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r3009 - in /trunk: ./ bin/iris2.exe lua/lib.2d.cam.lua lua/main.lua plugins/loot.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3009%20-%20in%20/trunk%3A%20./%20bin/iris2.exe%0A%20lua/lib.2d.cam.lua%20lua/main.lua%20plugins/loot.lua&In-Reply-To=%3C20090502233412.33A191C18566%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r3009 - in /trunk: ./ bin/iris2.exe lua/lib.2d.cam.lua lua/main.lua plugins/loot.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sun May  3 01:34:12 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001807.html">[Iris-commit] [IRIS] r3008 - /trunk/lua/lib.bodygfx.lua
+</A></li>
+        <LI>Next message: <A HREF="001809.html">[Iris-commit] [IRIS] r3010 - in /trunk: lua/gui/gui.hudfx.lua lua/gui/gui.main.lua lua/lib.2d.hudfx.lua lua/lib.3d.hudfx.lua lua/lib.3d.renderer.lua lua/main.lua plugins/lib.spellbar.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1808">[ date ]</a>
+              <a href="thread.html#1808">[ thread ]</a>
+              <a href="subject.html#1808">[ subject ]</a>
+              <a href="author.html#1808">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sun May  3 01:34:11 2009
+New Revision: 3009
+
+Log:
+2d : fixed ogre1.6 zoom/ortho/pixelexactness issues (especially in win) , n=
+ow also resolution independent
+win : fixed mouse offset =
+
+win : avoid crash at shutdown
+
+Modified:
+    trunk/   (props changed)
+    trunk/bin/iris2.exe
+    trunk/lua/lib.2d.cam.lua
+    trunk/lua/main.lua
+    trunk/plugins/loot.lua
+
+Modified: trunk/bin/iris2.exe
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+Binary files - no diff available.
+
+Modified: trunk/lua/lib.2d.cam.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.cam.lua (original)
++++ trunk/lua/lib.2d.cam.lua Sun May  3 01:34:11 2009
+@@ -49,24 +49,53 @@
+ 	local tile_h =3D 44  -- 44x44 pixels on screen, but rotated by 45 degree =
+(diag=3D44.. but worldunit rotated as well) -&gt; 44
+ 	local visible_h =3D viewport_h / tile_h -- coordinate system so that size=
+ of 1 tile =3D 1 world unit
+ 	=
+
++	=
+
+ 	self.fNearClip =3D 0.5 * visible_h
+ 	self.fCamDist =3D self.fNearClip + self.fCamDistClipAdd
+ 	=
+
+ 	cam:SetNearClipDistance( self.fNearClip )
+ 	cam:SetFarClipDistance( self.fNearClip + 500 )
+-	cam:SetAspectRatio( yscale * viewport_w / viewport_h )
++	local aspectratio =3D yscale * viewport_w / viewport_h
++	--~ local ortho_w =3D viewport_w
++	--~ local ortho_h =3D viewport_h / yscale
++	--~ local aspectratio =3D ortho_w / ortho_h
++	local ortho_h =3D visible_h
++	local ortho_w =3D aspectratio * ortho_h
++	self.ortho_h =3D ortho_h =
+
++	self.ortho_w =3D ortho_w
++	=
+
++	cam:SetAspectRatio( aspectratio )
++	--~ cam:SetOrthoWindow(viewport_w,viewport_h)
++	local zoom =3D self.mfZoomFactor or 1
++	cam:SetOrthoWindow(ortho_w * zoom,ortho_h * zoom)
++	=
+
++	--[[
++		void Frustum::setOrthoWindow(Real w, Real h)
++			mOrthoHeight =3D h;
++			mAspect =3D w / h;
++			=
+
++		void Frustum::setOrthoWindowWidth(Real w)
++			mOrthoHeight =3D w / mAspect;
++			=
+
++		void Frustum::setAspectRatio(Real r)
++			mAspect =3D r;
++	]]--
+ 	=
+
+ 	self:SetCamPos(self:GetCamPos()) -- nearclip changed
+ end
+ =
+
+ function Renderer2D:SetZoom (f)
+ 	f =3D max(0.1,f)
+-	GetMainCam():SetOrthoWindow(f)
++	print(&quot;Renderer2D:SetZoom&quot;,f)
+ 	self.mfZoomFactor =3D f
++	self:CamUpdateParams()
+ end
+ =
+
++
+ function Renderer2D:CamChangeZoom				(f)
+-	self:SetZoom(self.mfZoomFactor + f * 10)
++	self.zoomaddsum =3D (self.zoomaddsum or 0) + f/0.3
++	--~ print(&quot;CamChangeZoom&quot;,f)
++	self:SetZoom(math.pow(2,self.zoomaddsum/2))
+ end
+ =
+
+ function Renderer2D:CamInit ()
+@@ -76,13 +105,7 @@
+ 	local cam =3D GetMainCam() =
+
+ 	--~ cam:SetFarClipDistance( 100000.0 )
+ 	cam:SetProjectionType(kCamera_PT_ORTHOGRAPHIC)
+-	cam:SetFOVy( gfDeg2Rad*90 )
+-	=
+
+-	if (WIN32) then
+-		self:SetZoom(18.2)		-- initial zoomfactor should be like osi.
+-	else
+-		self:SetZoom(25) 		-- linux seems to need a different one =3D(
+-	end
++	--~ cam:SetFOVy( gfDeg2Rad*90 )
+ 	=
+
+ 	=
+
+ 	-- cam rotation
+@@ -96,6 +119,7 @@
+ 	=
+
+ 	-- main cam setup
+ 	self:CamUpdateParams()
++	self:SetZoom(1) -- default zoom factor =3D 1, pixel-exact
+ end
+ =
+
+ -- returns xloc,yloc in uo coords
+
+Modified: trunk/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/main.lua (original)
++++ trunk/lua/main.lua Sun May  3 01:34:11 2009
+@@ -123,6 +123,11 @@
+ =
+
+ if (LugreActivateGlobalVarChecking) then LugreActivateGlobalVarChecking() =
+end
+ =
+
++if (WIN32) then
++	gMouseCorrectionX =3D 0
++	gMouseCorrectionY =3D 0
++end
++
+ --###############################
+ --###        CONFIG           ###
+ --###############################
+@@ -455,6 +460,7 @@
+     end
+     NotifyListener(&quot;Hook_Terminate&quot;)
+     gRegistry:Destroy() gRegistry =3D nil
++	os.exit(0)
+ end
+ =
+
+ =
+
+
+Modified: trunk/plugins/loot.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/plugins/loot.lua (original)
++++ trunk/plugins/loot.lua Sun May  3 01:34:11 2009
+@@ -32,6 +32,7 @@
+ 	&quot;legendary&quot;,
+ 	&quot;mythic&quot;, &quot;mystic&quot;, &quot;mystiq&quot;, -- i don't know how it is written exactly
+ 	&quot;crystal&quot;,
++	&quot;Radiant&quot;, -- radiant crystals, but can't hurt to search for this keyword=
+ also
+ 	&quot;rune&quot;,
+ 	&quot;maze&quot;, -- vm:relvinian
+ 	&quot;Ingeniously&quot;, 	-- tmap:6
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001807.html">[Iris-commit] [IRIS] r3008 - /trunk/lua/lib.bodygfx.lua
+</A></li>
+	<LI>Next message: <A HREF="001809.html">[Iris-commit] [IRIS] r3010 - in /trunk: lua/gui/gui.hudfx.lua lua/gui/gui.main.lua lua/lib.2d.hudfx.lua lua/lib.3d.hudfx.lua lua/lib.3d.renderer.lua lua/main.lua plugins/lib.spellbar.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1808">[ date ]</a>
+              <a href="thread.html#1808">[ thread ]</a>
+              <a href="subject.html#1808">[ subject ]</a>
+              <a href="author.html#1808">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

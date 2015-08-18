@@ -1,0 +1,267 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1583 - /trunk/doc/generate_lua_api.php
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2007-December/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1583%20-%20/trunk/doc/generate_lua_api.php&In-Reply-To=%3C20071202020812.154251C182B8%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000397.html">
+   <LINK REL="Next"  HREF="000400.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1583 - /trunk/doc/generate_lua_api.php</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1583%20-%20/trunk/doc/generate_lua_api.php&In-Reply-To=%3C20071202020812.154251C182B8%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1583 - /trunk/doc/generate_lua_api.php">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sun Dec  2 03:08:11 CET 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000397.html">[Iris-commit] [IRIS] r1582 - in /trunk/data: config.lua.dist lua/lib.3d.mobile.lua lua/main.lua
+</A></li>
+        <LI>Next message: <A HREF="000400.html">[Iris-commit] [IRIS] r1584 - /trunk/doc/generate_lua_api.php
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#398">[ date ]</a>
+              <a href="thread.html#398">[ thread ]</a>
+              <a href="subject.html#398">[ subject ]</a>
+              <a href="author.html#398">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sun Dec  2 03:08:11 2007
+New Revision: 1583
+
+Log:
+improved lua documentation generation : instead of one pseudo-GLOBAL class =
+there are now pseudoclasses for each lua/cpp file
+
+Modified:
+    trunk/doc/generate_lua_api.php
+
+Modified: trunk/doc/generate_lua_api.php
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/doc/generate_lua_api.php (original)
++++ trunk/doc/generate_lua_api.php Sun Dec  2 03:08:11 2007
+@@ -2,6 +2,8 @@
+ &lt;?php
+ 	include(&quot;roblib.php&quot;);
+ 	=
+
++	// returns filename without extension
++	function FileNameRemoveExt ($filename) { return ereg_replace(&quot;\\.[^\\.]+$=
+&quot;,&quot;&quot;,$filename); }
+ 	=
+
+ 	$files_lua =3D array();
+ 	$files_cpp =3D array();
+@@ -23,13 +25,22 @@
+ 	$methods_byclass =3D array();
+ 	$class_descriptions =3D array();
+ 	=
+
+-	foreach ($files_lua as $o) {
+-		$lines =3D file($o);
++	foreach ($files_lua as $filename) {
++		$lines =3D file($filename);
+ 		$numlines =3D count($lines);
+ 		=
+
++		if (1) {
++			$classname =3D FileNameRemoveExt($filename);
++			$description =3D &quot;/// file : $filename  (this is just a pseudo class us=
+ed for grouping global functions)\n&quot;;
++			if (isset($class_descriptions[$classname])) =
+
++				$description .=3D &quot;/// warning, there also exists a real class with th=
+is name\n&quot;.$class_descriptions[$classname];
++			$class_descriptions[$classname] =3D $description;
++		}
++		=
+
++		=
+
+ 		$description =3D array();
+ 		=
+
+-		echo &quot;// ##### &quot;.$o.&quot;\n&quot;;
++		echo &quot;// ##### &quot;.$filename.&quot;\n&quot;;
+ 		for ($i=3D0;$i&lt;$numlines;++$i) {
+ 			$line =3D ereg_replace(&quot;[ \t]+&quot;,&quot; &quot;,trim($lines[$i])); // trim and summ=
+arize whitespace
+ 			if ($line =3D=3D &quot;&quot;) continue;
+@@ -48,18 +59,21 @@
+ 				$infotext =3D &quot;&quot;;
+ 				foreach ($description as $dline) $infotext .=3D $p.&quot;/// &quot;.$dline.&quot;\n&quot;;
+ 				=
+
+-				if ($classprefix =3D=3D &quot;&quot;) { // global
+-					$infotext .=3D $p.&quot;mixed	&quot;.$funname.&quot;	(&quot;.implode(&quot;,&quot;,$params).&quot;) {}\n=
+&quot;;
+-					$methods_global[] =3D $infotext;
+-				} else {
+-					$classname =3D substr($classprefix,0,-1);
+-					=
+
++				$bIsStatic =3D false;
++				$classname =3D false;
++				if ($classprefix !=3D &quot;&quot;) { $classname =3D substr($classprefix,0,-1); =
+$bIsStatic =3D substr($classprefix,-1) =3D=3D &quot;.&quot;; }
++				if ($classprefix =3D=3D &quot;&quot;) { $classname =3D FileNameRemoveExt($filena=
+me); $bIsStatic =3D true; }
++				=
+
++				if ($classname) {
+ 					$infotext .=3D $p;
+-					if (substr($classprefix,-1) =3D=3D &quot;.&quot;) $infotext .=3D &quot;static &quot;; // =
+static method
++					if ($bIsStatic) $infotext .=3D &quot;static &quot;; // static method
+ 					$infotext .=3D &quot;mixed	&quot;.$funname.&quot;	(&quot;.implode(&quot;,&quot;,$params).&quot;) {}\n&quot;;
+ 					=
+
+ 					if (!isset($methods_byclass[$classname])) $methods_byclass[$classname=
+] =3D array();
+ 					$methods_byclass[$classname][] =3D $infotext;
++				} else { // global
++					$infotext .=3D $p.&quot;mixed	&quot;.$funname.&quot;	(&quot;.implode(&quot;,&quot;,$params).&quot;) {}\n=
+&quot;;
++					$methods_global[] =3D $infotext;
+ 				}
+ 			}
+ 			=
+
+@@ -69,16 +83,26 @@
+ 	}
+ 	=
+
+ 	=
+
+-	foreach ($files_cpp as $o) {
+-		$lines =3D file($o);
++	foreach ($files_cpp as $filename) {
++		$lines =3D file($filename);
+ 		$numlines =3D count($lines);
+ 		=
+
++		if (1) {
++			$classname =3D FileNameRemoveExt($filename);
++			$description =3D &quot;/// file : $filename  (this is just a pseudo class us=
+ed for grouping global functions)\n&quot;;
++			if (isset($class_descriptions[$classname])) =
+
++				$description .=3D &quot;/// warning, there also exists a real class with th=
+is name\n&quot;. $class_descriptions[$classname];
++			$class_descriptions[$classname] =3D $description;
++		}
++		=
+
++		=
+
+ 		$description =3D array();
+-		$classname =3D &quot;&quot;;
++		$parsing_classname =3D &quot;&quot;;
+ 		$methodbinds =3D array();
+ 		$luasyntax =3D &quot;&quot;;
+ 		=
+
+-		echo &quot;// ##### &quot;.$o.&quot;\n&quot;;
++		=
+
++		echo &quot;// ##### &quot;.$filename.&quot;\n&quot;;
+ 		for ($i=3D0;$i&lt;$numlines;++$i) {
+ 			$line =3D ereg_replace(&quot;[ \t]+&quot;,&quot; &quot;,trim($lines[$i])); // trim and summ=
+arize whitespace
+ 			if ($line =3D=3D &quot;&quot;) continue;
+@@ -96,12 +120,12 @@
+ 			=
+
+ 			// class cGroundBlockLoader_L : public cLuaBind&lt;cGroundBlockLoader&gt;
+ 			if (eregi('^class ([^ :]+).*cLuaBind.*',$line,$r)) {
+-				$classname =3D $r[1];
++				$parsing_classname =3D $r[1];
+ 				$methodbinds =3D array();
+ 				=
+
+ 				$class_description =3D &quot;&quot;;
+ 				foreach ($description as $dline) $class_description .=3D &quot;/// &quot;.$dline=
+.&quot;\n&quot;;
+-				$class_descriptions[$classname] =3D $class_description;
++				$class_descriptions[$parsing_classname] =3D $class_description;
+ 			}
+ 			=
+
+ 			// REGISTER_METHOD(Destroy);
+@@ -115,9 +139,11 @@
+ 			=
+
+ 			// static int				CreateGroundBlockLoader		(lua_State *L) { PROFILE
+ 			if (eregi('int ([^ \(]+)[ ]*\(.*lua_State',$line,$r)) {
++				$classname =3D $parsing_classname;
+ 				$methodname =3D trim($r[1]);
+ 				$bIsGlobal =3D false;
+ 				$bIsStatic =3D !isset($methodbinds[$methodname]);
++				if ($classname =3D=3D &quot;&quot;) { $classname =3D FileNameRemoveExt($filename=
+); $bIsStatic =3D true; }
+ 				$p =3D ($classname =3D=3D &quot;&quot; || $bIsGlobal) ? &quot;&quot; : &quot;	&quot;; // indention
+ 				=
+
+ 				$infotext =3D &quot;&quot;;
+@@ -128,6 +154,7 @@
+ 				//~ } else {
+ 				$infotext .=3D $p.($bIsStatic?&quot;static &quot;:&quot;&quot;).&quot;mixed $methodname (...) {=
+}\n&quot;;
+ 				//~ }
++				=
+
+ 				=
+
+ 				if ($classname =3D=3D &quot;&quot; || $bIsGlobal) { // global
+ 					$methods_global[] =3D $infotext;
+@@ -145,7 +172,7 @@
+ 	// output =
+
+ 	//~ foreach ($methods_global as $infotext) echo &quot;\n&quot;.$infotext;
+ 	$classname_global =3D &quot;GLOBAL&quot;;
+-	$methods_byclass[$classname_global] =3D $methods_global;
++	if (count($methods_global) &gt; 0) $methods_byclass[$classname_global] =3D $=
+methods_global;
+ 	$class_descriptions[$classname_global] =3D &quot;/// this is not really a clas=
+s, just a wrapper for making documentation for global functions more access=
+ible\n&quot;;
+ 	foreach ($methods_byclass as $classname =3D&gt; $infotext_arr) {
+ 		echo &quot;\n&quot;;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000397.html">[Iris-commit] [IRIS] r1582 - in /trunk/data: config.lua.dist lua/lib.3d.mobile.lua lua/main.lua
+</A></li>
+	<LI>Next message: <A HREF="000400.html">[Iris-commit] [IRIS] r1584 - /trunk/doc/generate_lua_api.php
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#398">[ date ]</a>
+              <a href="thread.html#398">[ thread ]</a>
+              <a href="subject.html#398">[ subject ]</a>
+              <a href="author.html#398">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

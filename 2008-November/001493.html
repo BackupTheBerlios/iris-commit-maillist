@@ -1,0 +1,144 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2689 - /trunk/lua/main.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-November/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2689%20-%20/trunk/lua/main.lua&In-Reply-To=%3C20081102145641.A433B1C187D4%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001492.html">
+   <LINK REL="Next"  HREF="001494.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2689 - /trunk/lua/main.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2689%20-%20/trunk/lua/main.lua&In-Reply-To=%3C20081102145641.A433B1C187D4%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2689 - /trunk/lua/main.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sun Nov  2 15:56:41 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001492.html">[Iris-commit] [IRIS] r2688 - /trunk/src/pathsearch.cpp
+</A></li>
+        <LI>Next message: <A HREF="001494.html">[Iris-commit] [IRIS] r2690 - in /trunk/lua: gui/gui.trade.lua lib.pathfind.lua net/net.sound.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1493">[ date ]</a>
+              <a href="thread.html#1493">[ thread ]</a>
+              <a href="subject.html#1493">[ subject ]</a>
+              <a href="author.html#1493">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sun Nov  2 15:56:40 2008
+New Revision: 2689
+
+Log:
+uodir file browser
+
+Modified:
+    trunk/lua/main.lua
+
+Modified: trunk/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/main.lua (original)
++++ trunk/lua/main.lua Sun Nov  2 15:56:40 2008
+@@ -13,6 +13,7 @@
+ gMacroPathFallback	=3D datapath..&quot;mymacros.lua.dist&quot;
+ gMainPluginDir 		=3D gMainWorkingDir..&quot;plugins/&quot;
+ gIrisWidgetDir 		=3D libpath..&quot;widgets/&quot;
++gTempPath			=3D datapath..&quot;tmp/&quot;
+ gSecondsSinceLastFrame =3D 0
+ =
+
+ gInGameStarted =3D false
+@@ -253,10 +254,21 @@
+ =
+
+ -- checks if iris has found the uo directory and displays an error box if =
+not
+ function CheckUODir ()
+-	if (not file_exists(CorrectPath( Addfilepath(gArtFile) ))) then
++	--~ gUOPath
++
++	if (not file_exists(CorrectPath(Addfilepath(gArtFile)))) then
+ 		gUOPath =3D gUOPath .. &quot;/&quot;  -- append slash and try again
+-		if (not file_exists(CorrectPath( Addfilepath(gArtFile) ))) then
+-			FatalErrorMessage(sprintf(&quot;iris2 could not find your ultima-online dire=
+ctory (searchpath : %s),\n please set gUOPath in data/config.lua&quot;,gUOPath))
++		if (not file_exists(CorrectPath(Addfilepath(gArtFile)))) then
++			gUOPath =3D gRegistry:Get(&quot;gUOPath&quot;)
++			if ((not gUOPath) or (not file_exists(CorrectPath(Addfilepath(gArtFile)=
+)))) then
++				gUOPath =3D FileOpenDialog(&quot;..&quot;,&quot;*&quot;,&quot;Select a file in the UO Folder&quot;)
++				if (gUOPath) then gUOPath =3D string.gsub(gUOPath,&quot;/[^/]+$&quot;,&quot;/&quot;) print=
+(&quot;gUOPath browsed&quot;,gUOPath) end
++				if ((not gUOPath) or (not file_exists(CorrectPath(Addfilepath(gArtFile=
+))))) then
++					FatalErrorMessage(sprintf(&quot;iris2 could not find your ultima-online di=
+rectory (searchpath : %s),\n please set gUOPath in data/config.lua&quot;,gUOPath=
+ or &quot;??&quot;))
++				else =
+
++					gRegistry:Set(&quot;gUOPath&quot;,gUOPath)
++				end
++			end
+ 		end
+ 	end
+ 	-- check for character(granny) models
+@@ -292,6 +304,8 @@
+ =
+
+ --- main function, when it returns, the program ends
+ function Main ()
++	gRegistry =3D cRegistry:New(gTempPath..&quot;global.reg&quot;)
++
+ 	-- detect UOPath
+ 	if (not gUOPath) then AutoDetectUOPath() end
+ 	if (ClientVersionIsPost6017()) then =
+
+@@ -386,6 +400,7 @@
+ 		MainStep() =
+
+ 	end
+ 	NotifyListener(&quot;Hook_Terminate&quot;)
++	gRegistry:Destroy() gRegistry =3D nil
+ end
+ =
+
+ =
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001492.html">[Iris-commit] [IRIS] r2688 - /trunk/src/pathsearch.cpp
+</A></li>
+	<LI>Next message: <A HREF="001494.html">[Iris-commit] [IRIS] r2690 - in /trunk/lua: gui/gui.trade.lua lib.pathfind.lua net/net.sound.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1493">[ date ]</a>
+              <a href="thread.html#1493">[ thread ]</a>
+              <a href="subject.html#1493">[ subject ]</a>
+              <a href="author.html#1493">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

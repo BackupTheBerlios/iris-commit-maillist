@@ -1,0 +1,186 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1421 - /trunk/data/lua/lib.tilefreewalk.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2007-September/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1421%20-%20/trunk/data/lua/lib.tilefreewalk.lua&In-Reply-To=%3C20070929022910.DA1C71C18125%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000235.html">
+   <LINK REL="Next"  HREF="000237.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1421 - /trunk/data/lua/lib.tilefreewalk.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1421%20-%20/trunk/data/lua/lib.tilefreewalk.lua&In-Reply-To=%3C20070929022910.DA1C71C18125%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1421 - /trunk/data/lua/lib.tilefreewalk.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat Sep 29 04:29:10 CEST 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000235.html">[Iris-commit] [IRIS] r1420 - /trunk/data/lua/lib.tilefreewalk.lua
+</A></li>
+        <LI>Next message: <A HREF="000237.html">[Iris-commit] [IRIS] r1422 - /trunk/data/lua/lib.tilefreewalk.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#236">[ date ]</a>
+              <a href="thread.html#236">[ thread ]</a>
+              <a href="subject.html#236">[ subject ]</a>
+              <a href="author.html#236">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sat Sep 29 04:29:10 2007
+New Revision: 1421
+
+Log:
+tilefreewalk : debug markers for nearby ground and collision
+
+Modified:
+    trunk/data/lua/lib.tilefreewalk.lua
+
+Modified: trunk/data/lua/lib.tilefreewalk.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.tilefreewalk.lua (original)
++++ trunk/data/lua/lib.tilefreewalk.lua Sat Sep 29 04:29:10 2007
+@@ -24,6 +24,7 @@
+ 	-- TODO : util to get heightfieldpos ? (terrain only ? statics ? startz+t=
+racedown ? generic raytrace util ? ...)
+ 	-- TODO : util to cache current pos and the 8 surrounding heights (lib.wa=
+lking2.lua)
+ 	=
+
++	-- TODO : flash/ngame review collision detection article : <A HREF="http://www.har=">http://www.har=</A>
+veycartel.org/metanet/tutorials.html
+ ]]--
+ =
+
+ gTileFreeWalk =3D {}
+@@ -38,6 +39,7 @@
+ 	self.iLastWalkRequestSendTime =3D 0
+ 	self.pathpoints =3D {}
+ 	self.debugmarkers =3D {}
++	self.debugmarkergroups =3D {}
+ 	=
+
+ 	if (true) then
+ 		self.sDebugMarkerMeshName_Big	=3D MakeSphereMesh(11,11,0.2,0.2,0.2)
+@@ -94,6 +96,18 @@
+ 			self:PathPoint_Push(rx,ry,rz)
+ 			-- read new surrounding height info here
+ 			self.groundcache =3D self:Impl_ScanGround(rx,ry,rz)
++			=
+
++			self:DebugMarkerGroup_Clear(&quot;nearground&quot;)
++			for x =3D -1,1 do =
+
++			for y =3D -1,1 do =
+
++				local h =3D self.groundcache[x..&quot;,&quot;..y]
++				if (h) then =
+
++					self:DebugMarkerGroup_AddSphere(&quot;nearground&quot;,rx+x,ry+y,h, 0.1, 0,1,0)
++				else	=
+
++					self:DebugMarkerGroup_AddCylinder(&quot;nearground&quot;,rx+x,ry+y,rz-1, 0.1,3,=
+ 1,0,0)
++				end
++			end
++			end
+ 		end
+ 		=
+
+ 		-- todo : block movement here
+@@ -247,10 +261,10 @@
+ 		=
+
+ 		-- one walkable dir : calc own z by &quot;walking back&quot;
+ 		if (iNewZ) then iSelfZ =3D self:Impl_CalcWalkStep(xloc,yloc,zloc,math.mo=
+d(iDir+4,8)) or iSelfZ end
+-		groundcache[ldx..&quot;,&quot;..ldy] =3D iNewZ and (iNewZ*0.1)  -- rounding avoids=
+ things like &quot;-0&quot;
++		groundcache[ldx..&quot;,&quot;..ldy] =3D iNewZ and (iNewZ*0.1 + Renderer3D.gZ_Fact=
+or)  -- rounding avoids things like &quot;-0&quot;
+ 		--print(ldx..&quot;,&quot;..ldy,iNewZ)
+ 	end
+-	groundcache[&quot;0,0&quot;] =3D iSelfZ and iSelfZ*0.1
++	groundcache[&quot;0,0&quot;] =3D iSelfZ and (iSelfZ*0.1 + Renderer3D.gZ_Factor)
+ 	--print(&quot;0,0&quot;,iSelfZ)
+ 	return groundcache
+ end
+@@ -357,6 +371,33 @@
+ =
+
+ -- ##### ##### ##### ##### ##### debug markers
+ =
+
++
++
++function gTileFreeWalk:DebugMarkerGroup_Clear (groupname)
++	local myarr =3D self.debugmarkergroups[groupname]
++	if (myarr) then for k,v in pairs(myarr) do v:Destroy() end self.debugmark=
+ergroups[groupname] =3D nil end
++end
++
++function gTileFreeWalk:DebugMarkerGroup_AddGfx (groupname,gfx)
++	local myarr =3D self.debugmarkergroups[groupname]
++	if (not myarr) then myarr =3D {} self.debugmarkergroups[groupname] =3D my=
+arr end
++	table.insert(myarr,gfx)
++end
++
++function gTileFreeWalk:DebugMarkerGroup_AddSphere (groupname,x,y,z,fRad,r,=
+g,b)
++	local gfx =3D CreateRootGfx3D()
++	gfx:SetMesh(MakeSphereMesh(11,11,fRad,fRad,fRad,r,g,b))	=
+
++	gfx:SetPosition(x,y,z)
++	self:DebugMarkerGroup_AddGfx(groupname,gfx)
++end
++
++function gTileFreeWalk:DebugMarkerGroup_AddCylinder (groupname,x,y,z,fRad,=
+fHeight,r,g,b)
++	local gfx =3D CreateRootGfx3D()
++	GfxSetCylinder(gfx,fRad,fHeight)
++	gfx:SetMaterial(GetPlainColourMat(r,g,b))
++	gfx:SetPosition(x,y,z)
++	self:DebugMarkerGroup_AddGfx(groupname,gfx)
++end
+ =
+
+ function gTileFreeWalk:DelDebugMarker (markername)
+ 	local mymarker =3D self.debugmarkers[markername]
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000235.html">[Iris-commit] [IRIS] r1420 - /trunk/data/lua/lib.tilefreewalk.lua
+</A></li>
+	<LI>Next message: <A HREF="000237.html">[Iris-commit] [IRIS] r1422 - /trunk/data/lua/lib.tilefreewalk.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#236">[ date ]</a>
+              <a href="thread.html#236">[ thread ]</a>
+              <a href="subject.html#236">[ subject ]</a>
+              <a href="author.html#236">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

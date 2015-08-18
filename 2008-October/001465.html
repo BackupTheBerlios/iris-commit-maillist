@@ -1,0 +1,130 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2661 - /trunk/lua/lib.packetvideo.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-October/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2661%20-%20/trunk/lua/lib.packetvideo.lua&In-Reply-To=%3C20081027161955.8E36D1C18424%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001464.html">
+   <LINK REL="Next"  HREF="001466.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2661 - /trunk/lua/lib.packetvideo.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2661%20-%20/trunk/lua/lib.packetvideo.lua&In-Reply-To=%3C20081027161955.8E36D1C18424%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2661 - /trunk/lua/lib.packetvideo.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Mon Oct 27 17:19:55 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001464.html">[Iris-commit] [IRIS] r2660 - in /trunk/lua: gui/gui.gumpparser.lua gui/gui.paperdoll.lua lib.gump.samples.lua lib.uoids.lua main.lua net/net.other.lua widgets/widget.uobutton.lua widgets/widget.uotooltip.lua
+</A></li>
+        <LI>Next message: <A HREF="001466.html">[Iris-commit] [IRIS] r2662 - /trunk/lua/lib.buff.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1465">[ date ]</a>
+              <a href="thread.html#1465">[ thread ]</a>
+              <a href="subject.html#1465">[ subject ]</a>
+              <a href="author.html#1465">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Mon Oct 27 17:19:55 2008
+New Revision: 2661
+
+Log:
+packetvideo playback speed config (gPacketVideoSpeedFactor)
+
+Modified:
+    trunk/lua/lib.packetvideo.lua
+
+Modified: trunk/lua/lib.packetvideo.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.packetvideo.lua (original)
++++ trunk/lua/lib.packetvideo.lua Mon Oct 27 17:19:55 2008
+@@ -5,6 +5,8 @@
+ gPacketVideoRecording =3D false
+ gPacketVideoRecording =3D false
+ gPacketVideoPlaybackRunning =3D false
++
++gPacketVideoSpeedFactor =3D 1 =
+
+ =
+
+ kPacketVideoChunkType_Recv	=3D 1
+ kPacketVideoChunkType_Send	=3D 2
+@@ -48,15 +50,29 @@
+ 	job.create(function()
+ 		local oldpos =3D {gPlayerXLoc,gPlayerYLoc,gPlayerZLoc,gPlayerDir}
+ 		local oldfacet =3D MapGetMapIndex()
+-		print(&quot;### packetvideo playback start&quot;,#gPacketVideoData)
++		local lastframet
++		local lastrealt
++		local lastwaitrealt
++		print(&quot;### packetvideo playback start&quot;,#gPacketVideoData,gPacketVideoSpe=
+edFactor)
+ 		gPacketVideoPlaybackRunning =3D true
+ 		local playback_start_t =3D Client_GetTicks()
+ 		local record_start_t =3D gPacketVideoData[1].t
++		local forcedwaitinterval =3D 500 -- to ensure that something is visible,=
+ even if the processor is totally busy
++		nextforcedwaitt =3D Client_GetTicks() + forcedwaitinterval
+ 		for k,chunk in pairs(gPacketVideoData) do
+-			local t =3D Client_GetTicks()
+-			local framet =3D chunk.t - record_start_t + playback_start_t
++			local realt =3D Client_GetTicks()
++			--~ local framet =3D chunk.t - record_start_t + playback_start_t
+ 			--~ print(&quot;### packetvideo playback step, wait=3D&quot;,framet,chunk.chunkty=
+pe)
+-			if (framet &gt; t) then job.wait(framet-t) end
++			--~ if (framet &gt; t) then job.wait(framet-t) end
++			local framet =3D chunk.t
++			if (lastframet) then =
+
++				local wait1 =3D (framet - lastframet)
++				local wait2 =3D floor(wait1 / gPacketVideoSpeedFactor)
++				if (lastrealt) then wait2 =3D wait2 - (realt - lastrealt) end
++				if (wait2 &gt; 5 or realt &gt; nextforcedwaitt) then job.wait(wait2) nextfor=
+cedwaitt =3D realt + forcedwaitinterval end
++			end
++			lastframet =3D framet
++			lastrealt =3D realt
+ 			=
+
+ 			if (chunk.chunktype =3D=3D kPacketVideoChunkType_Recv) then
+ 				local headlen =3D 1+4+4
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001464.html">[Iris-commit] [IRIS] r2660 - in /trunk/lua: gui/gui.gumpparser.lua gui/gui.paperdoll.lua lib.gump.samples.lua lib.uoids.lua main.lua net/net.other.lua widgets/widget.uobutton.lua widgets/widget.uotooltip.lua
+</A></li>
+	<LI>Next message: <A HREF="001466.html">[Iris-commit] [IRIS] r2662 - /trunk/lua/lib.buff.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1465">[ date ]</a>
+              <a href="thread.html#1465">[ thread ]</a>
+              <a href="subject.html#1465">[ subject ]</a>
+              <a href="author.html#1465">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

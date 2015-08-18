@@ -1,0 +1,173 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2424 - /trunk/lua/net/net.partysystem.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-August/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2424%20-%20/trunk/lua/net/net.partysystem.lua&In-Reply-To=%3C20080830020259.64AB21C18678%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001228.html">
+   <LINK REL="Next"  HREF="001230.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2424 - /trunk/lua/net/net.partysystem.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2424%20-%20/trunk/lua/net/net.partysystem.lua&In-Reply-To=%3C20080830020259.64AB21C18678%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2424 - /trunk/lua/net/net.partysystem.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat Aug 30 04:02:58 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001228.html">[Iris-commit] [IRIS] r2423 - /trunk/lua/lib.mainmenu.lua
+</A></li>
+        <LI>Next message: <A HREF="001230.html">[Iris-commit] [IRIS] r2425 - in /trunk/lua: gui/gui.helper.lua	net/net.other.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1229">[ date ]</a>
+              <a href="thread.html#1229">[ thread ]</a>
+              <a href="subject.html#1229">[ subject ]</a>
+              <a href="author.html#1229">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sat Aug 30 04:02:56 2008
+New Revision: 2424
+
+Log:
+completed messages for party system, thanks to surcouf =3D)
+
+Modified:
+    trunk/lua/net/net.partysystem.lua
+
+Modified: trunk/lua/net/net.partysystem.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.partysystem.lua (original)
++++ trunk/lua/net/net.partysystem.lua Sat Aug 30 04:02:56 2008
+@@ -22,7 +22,8 @@
+ 	out:PushNetUint16(6) -- packet size
+ 	out:PushNetUint16(kPacket_Generic_SubCommand_PartySystem)
+ 	out:PushNetUint8(kPartySubCmd_AcceptInvite)
+-	out:SendPacket()
++   out:SendPacket()
++   PartySendCanLootMe(true)
+ end
+ =
+
+ function	PartySendDecline () =
+
+@@ -35,19 +36,46 @@
+ end
+ =
+
+ function 	PartySendInvite(serial)
+-	print(&quot;TODO : PartySendInvite&quot;,serial)
++   print(&quot;partysystem:PartySendInvite&quot;,serial)
++   local out =3D GetSendFIFO()
++   out:PushNetUint8(kPacket_Generic_Command)--id
++   out:PushNetUint16(10) -- packet size
++   out:PushNetUint16(kPacket_Generic_SubCommand_PartySystem)
++   out:PushNetUint8(kPartySubCmd_AddMembers)
++   out:PushNetUint32(serial)
++   out:SendPacket()   =
+
+ end
+ function 	PartySendKick(serial)
+-	print(&quot;TODO : PartySendKick&quot;,serial)
++   print(&quot;partysystem:PartySendKick&quot;,serial)
++   local out =3D GetSendFIFO()
++   out:PushNetUint8(kPacket_Generic_Command)--id
++   out:PushNetUint16(10) -- packet size
++   out:PushNetUint16(kPacket_Generic_SubCommand_PartySystem)
++   out:PushNetUint8(kPartySubCmd_RemoveMembers)
++   out:PushNetUint32(serial)
++   out:SendPacket()
+ end
+ function 	PartySendDisband()
+ 	print(&quot;TODO : PartySendDisband&quot;)
++	PartySendKick(GetPlayerSerial())
+ end
+ function 	PartySendCanLootMe (bState)
+-	print(&quot;TODO : PartySendCanLootMe&quot;,bState)
++   print(&quot;partysystem:PartySendCanLootMe&quot;,bState)
++   local out =3D GetSendFIFO()
++   out:PushNetUint8(kPacket_Generic_Command)--id
++   out:PushNetUint16(7) -- packet size
++   out:PushNetUint16(kPacket_Generic_SubCommand_PartySystem)
++   out:PushNetUint8(kPartySubCmd_CanLoot)
++   if bState =3D=3D true then
++      out:PushNetUint8(1)
++   else
++      out:PushNetUint8(0)
++   end
++   out:SendPacket()   =
+
+ end
+ function 	PartySendLeave ()
+ 	print(&quot;TODO : PartySendLeave&quot;)
++	PartySendKick(GetPlayerSerial())
+ end
+ =
+
+ function	ClosePartyInvitationDialog	() =
+
+@@ -192,10 +220,16 @@
+ 		=
+
+ 		-- leave/disband
+ 		if (bIAmLeader) then
+-			table.insert(rows,{{&quot;Disband&quot;,function () PartySendDisband() end}}) =
+
++         table.insert(rows,{
++         {&quot;Disband&quot;,function () PartySendDisband() end},
++         -- need to be able to invite new member
++         {&quot;Invite&quot;,function () PartyListDialog_StartInviteMode() end},
++         })
++         =
+
+ 		else =
+
+ 			table.insert(rows,{{&quot;Leave&quot;,function () PartySendLeave() end}}) =
+
+-		end
++      end
++      =
+
+ 	end
+ 	=
+
+ 	gPartyListDialog =3D guimaker.MakeTableDlg(rows,100,100,false,true,gGuiDe=
+faultStyleSet,&quot;window&quot;)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001228.html">[Iris-commit] [IRIS] r2423 - /trunk/lua/lib.mainmenu.lua
+</A></li>
+	<LI>Next message: <A HREF="001230.html">[Iris-commit] [IRIS] r2425 - in /trunk/lua: gui/gui.helper.lua	net/net.other.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1229">[ date ]</a>
+              <a href="thread.html#1229">[ thread ]</a>
+              <a href="subject.html#1229">[ subject ]</a>
+              <a href="author.html#1229">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

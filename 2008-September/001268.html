@@ -1,0 +1,184 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2463 - in /trunk/lua: lib.2d.map.lua lib.2d.spriteblock.lua lib.mapblock.2d.terrain.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-September/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2463%20-%20in%20/trunk/lua%3A%20lib.2d.map.lua%0A%20lib.2d.spriteblock.lua%20lib.mapblock.2d.terrain.lua&In-Reply-To=%3C20080920163142.6D7B41C1866D%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001267.html">
+   <LINK REL="Next"  HREF="001269.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2463 - in /trunk/lua: lib.2d.map.lua lib.2d.spriteblock.lua lib.mapblock.2d.terrain.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2463%20-%20in%20/trunk/lua%3A%20lib.2d.map.lua%0A%20lib.2d.spriteblock.lua%20lib.mapblock.2d.terrain.lua&In-Reply-To=%3C20080920163142.6D7B41C1866D%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2463 - in /trunk/lua: lib.2d.map.lua lib.2d.spriteblock.lua lib.mapblock.2d.terrain.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat Sep 20 18:31:41 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001267.html">[Iris-commit] [IRIS] r2462 - in /trunk: data/base/ui/process-working.png lua/gui/gui.helper.lua lua/lib.mapblock.base.lua lua/main.lua
+</A></li>
+        <LI>Next message: <A HREF="001269.html">[Iris-commit] [IRIS] r2464 - in /trunk/lua: lib.2d.dynamic.lua lib.2d.mobile.lua lib.2d.renderer.lua lib.2d.spriteblock.lua lib.3d.dynamic.lua lib.artatlas.lua lib.boat.lua lib.mapblock.2d.statics.lua lib.walking3.lua net/net.multi.lua obj/obj.dynamic.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1268">[ date ]</a>
+              <a href="thread.html#1268">[ thread ]</a>
+              <a href="subject.html#1268">[ subject ]</a>
+              <a href="author.html#1268">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sat Sep 20 18:31:38 2008
+New Revision: 2463
+
+Log:
+2d terrain raypick
+
+Modified:
+    trunk/lua/lib.2d.map.lua
+    trunk/lua/lib.2d.spriteblock.lua
+    trunk/lua/lib.mapblock.2d.terrain.lua
+
+Modified: trunk/lua/lib.2d.map.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.map.lua (original)
++++ trunk/lua/lib.2d.map.lua Sat Sep 20 18:31:38 2008
+@@ -45,7 +45,21 @@
+ 	end
+ end
+ =
+
+--- returns dist,sprite   if hit, or nil if not hit.    sprite=3D{artid=3D?=
+,hue=3D?,static=3D?}
++-- returns dist,xloc,yloc   if hit, or nil otherwise
++function Renderer2D:RayPickTerrain (rx,ry,rz, rvx,rvy,rvz)
++	local founddist,foundxloc,foundyloc
++	for block,v in pairs(self.map2d_spawners.terrain.pMapBlocks) do  -- spawn=
+er:ForAllBlocks()
++		local dist,xloc,yloc =3D block:RayPick(rx,ry,rz, rvx,rvy,rvz) =
+
++		if (dist and ((not founddist) or dist &lt; founddist)) then
++			founddist =3D dist
++			foundxloc =3D xloc
++			foundyloc =3D yloc
++		end
++	end
++	return founddist,foundxloc,foundyloc
++end
++
++-- returns dist,sprite   if hit, or nil otherwise    sprite=3D{artid=3D?,h=
+ue=3D?,static=3D?}
+ function Renderer2D:RayPickStatics (rx,ry,rz, rvx,rvy,rvz)
+ 	local founddist,foundsprite
+ 	for block,v in pairs(self.map2d_spawners.statics.pMapBlocks) do  -- spawn=
+er:ForAllBlocks()
+@@ -71,7 +85,10 @@
+ 	local rx,ry,rz, rvx,rvy,rvz =3D GetMouseRay()
+ 	local dist,sprite =3D self:RayPickStatics(rx,ry,rz, rvx,rvy,rvz)
+ 	if (dist) then
+-		print(&quot;Renderer2D raypick&quot;,dist,sprite,GetStaticTileTypeName(sprite.arti=
+d))
++		--~ print(&quot;Renderer2D raypick static&quot;,sprite,GetStaticTileTypeName(sprit=
+e.artid))
++	else	=
+
++		local dist,xloc,yloc =3D self:RayPickTerrain(rx,ry,rz, rvx,rvy,rvz)
++		--~ print(&quot;Renderer2D raypick terrain&quot;,xloc,yloc)
+ 	end
+ end
+ =
+
+
+Modified: trunk/lua/lib.2d.spriteblock.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.spriteblock.lua (original)
++++ trunk/lua/lib.2d.spriteblock.lua Sat Sep 20 18:31:38 2008
+@@ -115,10 +115,10 @@
+ 		--~ prio5 =3D static.tx						in [0,7]
+ 		=
+
+ 		-- z : in [-1;1] visible
+-		local sortbonus =3D	0.01000 * (zloc + pTileType.iSortBonus2D) +	=
+
+-							0.01000 * (pTileType.miHeight/100) +
+-							0.00000 * (static.fBlockIndexRel) +
+-							0.00005 * (static.tx / 8)
++		local sortbonus =3D	0.1000 * (zloc + pTileType.iSortBonus2D) +	=
+
++							0.1000 * (pTileType.miHeight/100) +
++							0.0000 * (static.fBlockIndexRel) +
++							0.0005 * (static.tx / 8)
+ 		=
+
+ 		local x,y,z =3D -tx,ty,zloc*0.1
+ 		local sortadd =3D sortbonus
+
+Modified: trunk/lua/lib.mapblock.2d.terrain.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mapblock.2d.terrain.lua (original)
++++ trunk/lua/lib.mapblock.2d.terrain.lua Sat Sep 20 18:31:38 2008
+@@ -8,6 +8,16 @@
+ 	if (self.gfx_terrain) then self.gfx_terrain:Destroy() self.gfx_terrain =
+=3D nil end
+ end
+ =
+
++-- returns dist,xloc,yloc   if hit, or nil if not hit.    sprite=3D{artid=
+=3D?,hue=3D?,static=3D?}
++function cMapBlock_2D_Terrain:RayPick (rx,ry,rz, rvx,rvy,rvz) =
+
++	local gfx =3D self.gfx_terrain =
+
++	if (not gfx) then return end
++	local bx,by,bs =3D self.bx * 2, self.by * 2, self.iBlockSize
++	local bHit,fHitDist,tx,ty =3D TerrainMultiTex_RayPick(gGroundBlockLoader,=
+bx,by,bs,bs, rx-gfx.x,ry-gfx.y,rz-gfx.z, rvx,rvy,rvz)
++	if (not bHit) then return end
++	return fHitDist,bx * 8 + tx,by*8 + ty
++end
++
+ function cMapBlock_2D_Terrain:WorkStep_LoadDetail ()
+ 	local bs =3D kMultiTexTerrainChunkSize
+ 	self.gfx_terrain =3D MakeMultiTexTerrainGfx(self.bx * bs,self.by * bs)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001267.html">[Iris-commit] [IRIS] r2462 - in /trunk: data/base/ui/process-working.png lua/gui/gui.helper.lua lua/lib.mapblock.base.lua lua/main.lua
+</A></li>
+	<LI>Next message: <A HREF="001269.html">[Iris-commit] [IRIS] r2464 - in /trunk/lua: lib.2d.dynamic.lua lib.2d.mobile.lua lib.2d.renderer.lua lib.2d.spriteblock.lua lib.3d.dynamic.lua lib.artatlas.lua lib.boat.lua lib.mapblock.2d.statics.lua lib.walking3.lua net/net.multi.lua obj/obj.dynamic.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1268">[ date ]</a>
+              <a href="thread.html#1268">[ thread ]</a>
+              <a href="subject.html#1268">[ subject ]</a>
+              <a href="author.html#1268">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

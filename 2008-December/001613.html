@@ -1,0 +1,257 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2809 - /trunk/lua/lib.configdialog.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-December/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2809%20-%20/trunk/lua/lib.configdialog.lua&In-Reply-To=%3C20081222010505.B46071524030%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001612.html">
+   <LINK REL="Next"  HREF="001614.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2809 - /trunk/lua/lib.configdialog.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2809%20-%20/trunk/lua/lib.configdialog.lua&In-Reply-To=%3C20081222010505.B46071524030%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2809 - /trunk/lua/lib.configdialog.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Mon Dec 22 02:05:05 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001612.html">[Iris-commit] [IRIS] r2808 - /trunk/lua/lib.configdialog.lua
+</A></li>
+        <LI>Next message: <A HREF="001614.html">[Iris-commit] [IRIS] r2810 - /trunk/lua/lib.configdialog.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1613">[ date ]</a>
+              <a href="thread.html#1613">[ thread ]</a>
+              <a href="subject.html#1613">[ subject ]</a>
+              <a href="author.html#1613">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Mon Dec 22 02:05:04 2008
+New Revision: 2809
+
+Log:
+options dialog : only active skills listed, action list menu generalized
+
+Modified:
+    trunk/lua/lib.configdialog.lua
+
+Modified: trunk/lua/lib.configdialog.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.configdialog.lua (original)
++++ trunk/lua/lib.configdialog.lua Mon Dec 22 02:05:04 2008
+@@ -5,6 +5,29 @@
+ 	Load_Hue() -- iris specific
+ 	Load_Gump() -- iris specific
+ 	OpenConfigDialog()
++end
++
++
++gMobListSelector =3D {}
++function gMobListSelector.random	(moblist) return GetRandomArrayElement(mo=
+blist) end -- needs array, e.g. not serial as key
++function gMobListSelector.weakest	(moblist) return MobListSelectorUtil_Min=
+(moblist,function (mobile) return  (mobile:GetRelHP() or 1) end) end
++function gMobListSelector.strongest	(moblist) return MobListSelectorUtil_M=
+in(moblist,function (mobile) return -(mobile:GetRelHP() or 1) end) end
++function gMobListSelector.nearest	(moblist) =
+
++	return MobListSelectorUtil_Min(moblist,function (mobile) =
+
++		local xloc,yloc =3D GetPlayerPos()
++		return dist2(xloc,yloc,mobile.xloc,mobile.yloc)
++		end) =
+
++end
++function MobListSelectorUtil_Min	(moblist,evaluation) =
+
++	local foundvalue,foundmob
++	for k,mobile in pairs(moblist) do =
+
++		local value =3D evaluation(mobile)
++		if ((not foundvalue) or value &lt; foundvalue) then =
+
++			foundvalue =3D value =
+
++			foundmob =3D mobile
++		end
++	end
++	return foundmob
+ end
+ =
+
+ =
+
+@@ -59,7 +82,9 @@
+ 	=
+
+ 	-- skills
+ 	for id_onebased,skillname in ipairs(glSkillNames) do =
+
+-		MyAddHotkeyAction(&quot;skill&quot;,{name=3Dskillname,callback=3DHotkeyAction_Skil=
+l,skillid_onebased=3Did_onebased,bHasTargetOption=3Dtrue})
++		if (glSkillActive[id_onebased] =3D=3D 1) then
++			MyAddHotkeyAction(&quot;skill&quot;,{name=3Dskillname,callback=3DHotkeyAction_Ski=
+ll,skillid_onebased=3Did_onebased,bHasTargetOption=3Dtrue})
++		end
+ 	end
+ 	=
+
+ 	-- actions
+@@ -133,28 +158,11 @@
+ 	-- todo =
+
+ 	=
+
+ 	-- todo : moblist : don't add self to list.
+-	gMobListSelector =3D {}
+-	function gMobListSelector.random	(moblist) return GetRandomArrayElement(m=
+oblist) end -- needs array, e.g. not serial as key
+-	function gMobListSelector.weakest	(moblist) return gMobListSelector.min(m=
+oblist,function (mobile) return  (mobile:GetRelHP() or 1) end) end
+-	function gMobListSelector.strongest	(moblist) return gMobListSelector.min=
+(moblist,function (mobile) return -(mobile:GetRelHP() or 1) end) end
+-	function gMobListSelector.nearest	(moblist) =
+
+-		return gMobListSelector.min(moblist,function (mobile) =
+
+-			local xloc,yloc =3D GetPlayerPos()
+-			return dist2(xloc,yloc,mobile.xloc,mobile.yloc)
+-			end) =
+
+-	end
+-	function gMobListSelector.min	(moblist,evaluation) =
+
+-		local foundvalue,foundmob
+-		for k,mobile in pairs(moblist) do =
+
+-			local value =3D evaluation(mobile)
+-			if ((not foundvalue) or value &lt; foundvalue) then =
+
+-				foundvalue =3D value =
+
+-				foundmob =3D mobile
+-			end
+-		end
+-		return foundmob
+-	end
+-
++	--~ gMobListSelector.random	=
+
++	--~ gMobListSelector.weakest		=
+
++	--~ gMobListSelector.strongest		=
+
++	--~ gMobListSelector.nearest		=
+
++	=
+
+ 	=
+
+ 	--[[
+ 	todo : party/guild : treat as friend : options
+@@ -371,12 +379,13 @@
+ 	local hbox =3D page:AddChild(&quot;HBox&quot;,{spacer=3D3})
+ 	hbox:AddChild(&quot;Button&quot;,{label=3D&quot;--select action--&quot;,on_button_click=3Dfun=
+ction (widget)  =
+
+ 			local x,y 		=3D widget:GetDerivedLeftTop()
+-			local btnlist	=3D gRootWidget.tooltip:CreateChild(&quot;Window&quot;,{x=3Dx,y=3Dy=
+,bCloseOnRightClick=3Dtrue})
+-			local vbox		=3D btnlist:CreateContentChild(&quot;VBox&quot;)
+-			for k,group in pairs(gConfigDialogHotkeyActionGroups) do =
+
+-				vbox:AddChild(&quot;Button&quot;,{label=3Dgroup.name,on_button_click=3Dfunction =
+() btnlist:Destroy() ConfigDialogShowActionGroupMenu(x,y,group) end})
+-			end
+-			btnlist:AutoSize()
++			ConfigDialogShowMenu(x,y,gConfigDialogHotkeyActionGroups,
++				function (itemdata) return itemdata.name end,
++				function (group) =
+
++					ConfigDialogShowMenu(x,y,group.list,
++						function (itemdata) return itemdata.callback and itemdata.name end,
++						function (itemdata) print(&quot;action&quot;,itemdata.name) end)
++				end)
+ 			=
+
+ 			--[[
+ 			local list		=3D gRootWidget.tooltip:CreateChild(&quot;List&quot;,{x=3Dx,y=3Dy,w=
+=3D100,h=3D280})
+@@ -388,14 +397,25 @@
+ 		end})
+ end
+ =
+
+-function ConfigDialogShowActionGroupMenu(x,y,group)
++-- x,y : left-top/pos (-margin) of menu
++--~ itemconstructor(itemdata) : returns string for item label  (or nil/fal=
+se to skip)
++--~ choicecallback(itemdata) : notify after an item was selected
++function ConfigDialogShowMenu (x,y,itemlist,itemconstructor,choicecallback)
+ 	local btnlist	=3D gRootWidget.tooltip:CreateChild(&quot;Window&quot;,{x=3Dx,y=3Dy,b=
+CloseOnRightClick=3Dtrue})
+ 	local vbox		=3D btnlist:CreateContentChild(&quot;VBox&quot;)
+-	for k,actiondata in pairs(group.list) do =
+
+-		vbox:AddChild(&quot;Button&quot;,{label=3Dactiondata.name,on_button_click=3Dfuncti=
+on () btnlist:Destroy() print(&quot;action&quot;,actiondata.name) end})
+-	end
++	local bEmpty =3D true
++	for k,itemdata in pairs(itemlist) do =
+
++		local labeltext =3D itemconstructor(itemdata)
++		if (labeltext) then =
+
++			bEmpty =3D false
++			vbox:AddChild(&quot;Button&quot;,{label=3Dlabeltext,on_button_click=3Dfunction ()=
+ btnlist:Destroy() choicecallback(itemdata) end})
++		end
++	end
++	if (bEmpty) then btnlist:Destroy() return end
+ 	btnlist:AutoSize()
+ end
++
++
+ =
+
+ function ConfigDialogPage_Macro(page)
+ 	local group =3D page:AddWidget(CreateWidgetFromXMLString(nil,&quot;&lt;UOText bol=
+d=3D1 text=3D'not yet implemented'&gt;&quot;))
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001612.html">[Iris-commit] [IRIS] r2808 - /trunk/lua/lib.configdialog.lua
+</A></li>
+	<LI>Next message: <A HREF="001614.html">[Iris-commit] [IRIS] r2810 - /trunk/lua/lib.configdialog.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1613">[ date ]</a>
+              <a href="thread.html#1613">[ thread ]</a>
+              <a href="subject.html#1613">[ subject ]</a>
+              <a href="author.html#1613">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

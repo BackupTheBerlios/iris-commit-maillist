@@ -1,0 +1,299 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1974 - in /trunk/lua: lib.macrolist.lua lib.mousepick.lua lib.oldwalk.lua lib.pathfind.lua lib.tilefreewalk.lua main.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-March/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1974%20-%20in%20/trunk/lua%3A%20lib.macrolist.lua%0A%20lib.mousepick.lua%20lib.oldwalk.lua%20lib.pathfind.lua%20lib.tilefreewalk.lua%0A%20main.lua&In-Reply-To=%3C20080320180634.2B286152402A%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000785.html">
+   <LINK REL="Next"  HREF="000787.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1974 - in /trunk/lua: lib.macrolist.lua lib.mousepick.lua lib.oldwalk.lua lib.pathfind.lua lib.tilefreewalk.lua main.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1974%20-%20in%20/trunk/lua%3A%20lib.macrolist.lua%0A%20lib.mousepick.lua%20lib.oldwalk.lua%20lib.pathfind.lua%20lib.tilefreewalk.lua%0A%20main.lua&In-Reply-To=%3C20080320180634.2B286152402A%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1974 - in /trunk/lua: lib.macrolist.lua lib.mousepick.lua lib.oldwalk.lua lib.pathfind.lua lib.tilefreewalk.lua main.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Thu Mar 20 19:06:34 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000785.html">[Iris-commit] [IRIS] r1973 - /trunk/bin/iris2.exe
+</A></li>
+        <LI>Next message: <A HREF="000787.html">[Iris-commit] [IRIS] r1975 - in /trunk: data/mymacros.lua.dist lua/lib.input.iris.lua lua/lib.keybinds.lua lua/lib.macrolist.lua lua/lib.mousepick.lua lua/lib.oldwalk.lua lua/lib.renderer.lua lua/main.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#786">[ date ]</a>
+              <a href="thread.html#786">[ thread ]</a>
+              <a href="subject.html#786">[ subject ]</a>
+              <a href="author.html#786">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: hagish
+Date: Thu Mar 20 19:06:33 2008
+New Revision: 1974
+
+Log:
+first pathfinding implemented (shift+leftdoubleclick), but slow and sometim=
+es buggy
+
+Added:
+    trunk/lua/lib.pathfind.lua
+Modified:
+    trunk/lua/lib.macrolist.lua
+    trunk/lua/lib.mousepick.lua
+    trunk/lua/lib.oldwalk.lua
+    trunk/lua/lib.tilefreewalk.lua
+    trunk/lua/main.lua
+
+Modified: trunk/lua/lib.macrolist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.macrolist.lua (original)
++++ trunk/lua/lib.macrolist.lua Thu Mar 20 19:06:33 2008
+@@ -179,6 +179,18 @@
+ 	end
+ 	=
+
+ 	return nil
++end
++
++function MacroRead_GetPlayerPosition	()
++	local sx,sy,sz
++	local mobile =3D GetPlayerMobile()
++	if mobile then
++		sx,sy,sz =3D mobile.xloc,mobile.yloc,mobile.zloc * 0.1
++	else
++		sx,sy,sz =3D gTileFreeWalk:GetExactLocalPos()
++		sx =3D -sx
++	end	=
+
++	return sx,sy,sz
+ end
+ =
+
+ =
+
+
+Modified: trunk/lua/lib.mousepick.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mousepick.lua (original)
++++ trunk/lua/lib.mousepick.lua Thu Mar 20 19:06:33 2008
+@@ -26,6 +26,8 @@
+ 			-- -50,-30 to place the dialog beneath the mouse
+ 			OpenHealthbar(mobile,iMouseX - 50,iMouseY - 30)
+ 		end
++	elseif gKeyPressed[key_lshift] then
++		Pathfinding_TriggeredByMouse()
+ 	else
+ 		-- normal doubleclick handling
+ 		local pm =3D GetPlayerMobile()
+
+Modified: trunk/lua/lib.oldwalk.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.oldwalk.lua (original)
++++ trunk/lua/lib.oldwalk.lua Thu Mar 20 19:06:33 2008
+@@ -9,13 +9,14 @@
+ =
+
+ -- sets the given tile coordinates as walk target
+ -- bHaltBefore : if true, stop one field before the target
++--[[
+ function SetAutoWalkTo (x, y, bHaltBefore) =
+
+ 	OldWalkWarn(&quot;SetAutoWalkTo&quot;)
+ 	--~ gAutoWalk =3D true
+ 	--~ gAutoWalkX, gAutoWalkY =3D x, y
+ 	--~ gAutoWalkHaltBefore =3D bHaltBefore and true or false
+ end
+-
++]]--
+ =
+
+ -- sets the current mousehit as walk target
+ function SetAutoWalkTarget () =
+
+
+Modified: trunk/lua/lib.tilefreewalk.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.tilefreewalk.lua (original)
++++ trunk/lua/lib.tilefreewalk.lua Thu Mar 20 19:06:33 2008
+@@ -131,10 +131,18 @@
+ 	local fRequestedSpeed =3D 0
+ 	local bRunRequested =3D false
+ 	=
+
++	-- should the wall collision be ignored? used for pathfinding
++	local bIgnoreCollision =3D false
++	=
+
+ 	-- hold rightmouse button to walk in mouse direction (depends on center o=
+f screen, works good for 3rd person cam)
+ 	local bMoved =3D false
+ 	local x,y,z =3D self:GetPos_ClientSide()
+ 	local ox,oy =3D x,y
++	=
+
++	-- cancel autowalk if user interacts
++	if bWalkInMouseDir or bWalkForward or bWalkBackwards or bTurnLeft or bTur=
+nRight then
++		gWalkPathToGo =3D nil
++	end
+ 	=
+
+ 	-- read input and calculate desired movement
+ 	if (bWalkInMouseDir) then
+@@ -152,6 +160,41 @@
+ 		x =3D x + self.movedirx * fRequestedSpeed * gSecondsSinceLastFrame
+ 		y =3D y + self.movediry * fRequestedSpeed * gSecondsSinceLastFrame
+ 		bMoved =3D true
++	elseif gWalkPathToGo then
++		-- stores the path for pathfinding
++		-- the player runs along this path without user interaction
++		=
+
++		-- bIgnoreCollision =3D true
++		=
+
++		local onthemove =3D false
++		=
+
++		for k,v in pairs(gWalkPathToGo) do
++			local px,py =3D -v.x,v.y
++			local len =3D len2(x-px,y-py)
++			=
+
++			if len =3D=3D 0 then =
+
++				gWalkPathToGo[k] =3D nil
++			elseif not onthemove then
++				onthemove =3D true
++				=
+
++				local dx,dy =3D px-x,py-y
++				self.movedirx,self.movediry =3D norm2(dx,dy)
++		=
+
++				fRequestedSpeed =3D  self:GetClientSideSpeed(self.movedirx,self.movedi=
+ry,0)
++				local maxspeed =3D fRequestedSpeed * gSecondsSinceLastFrame
++				if (bSlowWalk) then maxspeed =3D maxspeed * 0.5 end -- TODO : bSlowWal=
+k-speed
++				bRunRequested =3D not bSlowWalk
++				bMoved =3D true
++				=
+
++				maxspeed =3D math.min(maxspeed, len)
++				=
+
++				x =3D x + self.movedirx * maxspeed
++				y =3D y + self.movediry * maxspeed
++			end
++		end
++		=
+
++		if countarr(gWalkPathToGo) =3D=3D 0 then gWalkPathToGo =3D nil end
++		=
+
+ 	else
+ 		local angadd =3D 0
+ 		if (bTurnLeft ) then  angadd =3D angadd + 240 * gfDeg2Rad * gSecondsSinc=
+eLastFrame end
+@@ -193,12 +236,16 @@
+ 			x,y =3D ox,oy
+ 			for i=3D1,steps do -- multisample movement
+ 				x,y =3D x+sx,y+sy
+-				-- 1st collision : with wall center, to avoid speed bumps while walkin=
+g along a wall
+-				x,y =3D self:CollideWithWallMid(x,y)
+-				-- 2nd collision : with wall edges, otherwise it would be possible to =
+move into an edge between 2 non-parallel walls
+-				x,y =3D self:CollideWithWallEdge(x,y)
+-				-- 3rd collision : with wall center again, to avoid the edge collision=
+s pushing the player slowly inside the walls
+-				x,y =3D self:CollideWithWallMid(x,y)
++				=
+
++				if not bIgnoreCollision then
++					-- 1st collision : with wall center, to avoid speed bumps while walki=
+ng along a wall
++					x,y =3D self:CollideWithWallMid(x,y)
++					-- 2nd collision : with wall edges, otherwise it would be possible to=
+ move into an edge between 2 non-parallel walls
++					x,y =3D self:CollideWithWallEdge(x,y)
++					-- 3rd collision : with wall center again, to avoid the edge collisio=
+ns pushing the player slowly inside the walls
++					x,y =3D self:CollideWithWallMid(x,y)
++				end
++				=
+
+ 				rx,ry,rz =3D self:RoundPos(x,y,z)
+ 				self:PathPoint_Push(rx,ry,rz)
+ 				self:ScanGroundIfNeeded(rx,ry,rz)
+@@ -756,3 +803,6 @@
+ 	mymarker.gfx_dir:SetPosition(x+dx,y+dy,z+dz)
+ end
+ =
+
++function SetAutoWalkTo (x, y)
++	gWalkPathToGo =3D {{x=3Dx,y=3Dy,z=3D0}}
++end
+
+Modified: trunk/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/main.lua (original)
++++ trunk/lua/main.lua Thu Mar 20 19:06:33 2008
+@@ -81,6 +81,7 @@
+ dofile(libpath .. &quot;lib.bugreport.lua&quot;)
+ dofile(libpath .. &quot;lib.buff.lua&quot;)
+ dofile(libpath .. &quot;lib.unifont.lua&quot;)
++dofile(libpath .. &quot;lib.pathfind.lua&quot;)
+ dofile(libpath .. &quot;lib.plugin.lua&quot;)
+ =
+
+ dofile(libpath .. &quot;gui/gui.main.lua&quot;)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000785.html">[Iris-commit] [IRIS] r1973 - /trunk/bin/iris2.exe
+</A></li>
+	<LI>Next message: <A HREF="000787.html">[Iris-commit] [IRIS] r1975 - in /trunk: data/mymacros.lua.dist lua/lib.input.iris.lua lua/lib.keybinds.lua lua/lib.macrolist.lua lua/lib.mousepick.lua lua/lib.oldwalk.lua lua/lib.renderer.lua lua/main.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#786">[ date ]</a>
+              <a href="thread.html#786">[ thread ]</a>
+              <a href="subject.html#786">[ subject ]</a>
+              <a href="author.html#786">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

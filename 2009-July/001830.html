@@ -1,0 +1,463 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r3067 - in /trunk: lua/lib.macrolist.lua lua/lib.pathfind.lua lua/net/net.mobile.lua lua/widgets/widget.uotooltip.lua plugins/lib.spellbar.lua plugins/loot.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2009-July/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3067%20-%20in%20/trunk%3A%20lua/lib.macrolist.lua%0A%20lua/lib.pathfind.lua%20lua/net/net.mobile.lua%0A%20lua/widgets/widget.uotooltip.lua%20plugins/lib.spellbar.lua%20plugins/loot.lua&In-Reply-To=%3C20090709182356.B431C7A980F2%40simon%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001829.html">
+   <LINK REL="Next"  HREF="001831.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r3067 - in /trunk: lua/lib.macrolist.lua lua/lib.pathfind.lua lua/net/net.mobile.lua lua/widgets/widget.uotooltip.lua plugins/lib.spellbar.lua plugins/loot.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3067%20-%20in%20/trunk%3A%20lua/lib.macrolist.lua%0A%20lua/lib.pathfind.lua%20lua/net/net.mobile.lua%0A%20lua/widgets/widget.uotooltip.lua%20plugins/lib.spellbar.lua%20plugins/loot.lua&In-Reply-To=%3C20090709182356.B431C7A980F2%40simon%3E"
+       TITLE="[Iris-commit] [IRIS] r3067 - in /trunk: lua/lib.macrolist.lua lua/lib.pathfind.lua lua/net/net.mobile.lua lua/widgets/widget.uotooltip.lua plugins/lib.spellbar.lua plugins/loot.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Thu Jul  9 20:23:54 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001829.html">[Iris-commit] [IRIS] r3066 - in /trunk: lua/lib.spellbooks.lua plugins/lib.spellbar.lua plugins/loot.lua
+</A></li>
+        <LI>Next message: <A HREF="001831.html">[Iris-commit] [IRIS] r3068 - in /trunk: cb/ vc7/
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1830">[ date ]</a>
+              <a href="thread.html#1830">[ thread ]</a>
+              <a href="subject.html#1830">[ subject ]</a>
+              <a href="author.html#1830">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Thu Jul  9 20:23:53 2009
+New Revision: 3067
+
+Log:
+macros : improved pathfinding and smartlasttarget a bit
+
+Modified:
+    trunk/lua/lib.macrolist.lua
+    trunk/lua/lib.pathfind.lua
+    trunk/lua/net/net.mobile.lua
+    trunk/lua/widgets/widget.uotooltip.lua
+    trunk/plugins/lib.spellbar.lua
+    trunk/plugins/loot.lua
+
+Modified: trunk/lua/lib.macrolist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.macrolist.lua (original)
++++ trunk/lua/lib.macrolist.lua Thu Jul  9 20:23:53 2009
+@@ -49,6 +49,8 @@
+ =
+
+ =
+
+ function MacroCmd_MobilePoisoned (mobile) return mobile and TestBit(mobile=
+.flag,kMobileFlag_Poisoned) end
++function MacroCmd_MobileMortaled (mobile) return mobile and TestBit(mobile=
+.flag,kMobileFlag_GoldenHealth) end
++
+ function MacroCmd_MiniHealCureSelf () =
+
+     if (not GetPlayerMobile()) then return end
+     if (MacroCmd_MobilePoisoned(GetPlayerMobile())) then
+@@ -66,12 +68,12 @@
+ function MacroCmd_GetSmartTargetForLastSpell () -- smart targets for frien=
+dly spells (heal,cure)
+     if (gSmartLastSpellID) then =
+
+         if (gSmartLastSpellID =3D=3D kSmartSpellHealSmall or gSmartLastSpe=
+llID =3D=3D kSmartSpellHealBig) then
+-            local target =3D MobileList_GetWeakestFromList(MobileList_Heal=
+ablePartyMembers())
++            local target =3D MobileList_GetWeakestFromList(MobileList_Heal=
+ablePartyMembers(true))
+             --~ print(&quot;healtarget&quot;,target)
+             return target and target.serial or GetPlayerSerial(),true
+         end
+         if (gSmartLastSpellID =3D=3D kSmartSpellCureSmall or gSmartLastSpe=
+llID =3D=3D kSmartSpellCureBig) then
+-            local target =3D MobileList_GetWeakestFromList(MobileList_Cura=
+blePartyMembers())
++            local target =3D MobileList_GetWeakestFromList(MobileList_Cura=
+blePartyMembers(true))
+             --~ print(&quot;curetarget&quot;,target)
+             return target and target.serial or GetPlayerSerial(),true
+         end
+@@ -90,27 +92,40 @@
+     end
+     return found =
+
+ end
+-function MobileList_HealablePartyMembers    () =
+
+-    local list =3D {} -- =
+
+-    for serial,v in pairs(GetPartyMemberList()) do =
+
+-        local mobile =3D GetMobile(serial)
+-        --~ print(&quot;MobileList_HealablePartyMembers:&quot;,mobile and (not TestB=
+it(mobile.flag,kMobileFlag_Poisoned)))
+-        if (mobile and (not TestBit(mobile.flag,kMobileFlag_Poisoned) and =
+(mobile.artid =3D=3D 400 or mobile.artid =3D=3D 401)) and =
+
+-            (not IsOutsideRange(mobile.xloc,mobile.yloc,gPlayerXLoc,gPlaye=
+rYLoc,gSpellCastRange))) then table.insert(list,mobile) end
+-    end
+-    return list =
+
+-end
+-function MobileList_CurablePartyMembers     () =
+
+-    local list =3D {}
+-    for serial,v in pairs(GetPartyMemberList()) do =
+
+-        local mobile =3D GetMobile(serial)
+-        if (mobile and (TestBit(mobile.flag,kMobileFlag_Poisoned)) and =
+
+-            (not IsOutsideRange(mobile.xloc,mobile.yloc,gPlayerXLoc,gPlaye=
+rYLoc,gSpellCastRange))) then table.insert(list,mobile) end
+-    end
+-    return list =
+
+-end
+-
+-    =
+
++
++-- checking if a mob has equip helps detecting humans/players
++function MobileHasEquip   (mobile) =
+
++	for index,layer in pairs(gLayerOrder) do
++		-- slime has kLayer_Backpack , dog not
++		if (layer ~=3D kLayer_Backpack and mobile:GetEquipmentAtLayer(layer)) th=
+en return false end
++	end
++	return true
++end
++function MobileIsHuman   (mobile) =
+
++	return	mobile.artid =3D=3D 400 or mobile.artid =3D=3D 401 or
++			mobile.artid =3D=3D 744 or mobile.artid =3D=3D 745 or MobileHasEquip(mo=
+bile)
++end
++
++function MobileList_GetByFilter (fun)
++	local res =3D {}
++	for k,mobile in pairs(GetMobileList()) do if (fun(mobile)) then table.ins=
+ert(res,mobile) end end
++	return res
++end
++
++
++function MobileList_HealablePartyMembers    (bFriendsAlso) =
+
++	return MobileList_GetByFilter(function (mobile) return	GetUODistToPlayer(=
+mobile.xloc,mobile.yloc) &lt;=3D gSpellCastRange and =
+
++															(not MacroCmd_MobilePoisoned(mobile)) and (not MacroCmd_Mob=
+ileMortaled(mobile)) and =
+
++															(IsMobileInParty(mobile.serial) or (bFriendsAlso and mobile=
+.notoriety =3D=3D kNotoriety_Friend and MobileIsHuman(mobile))) and
++															(mobile:GetRelHP() or 0) &lt; 1 end)
++end
++function MobileList_CurablePartyMembers    (bFriendsAlso) =
+
++	return MobileList_GetByFilter(function (mobile) return	GetUODistToPlayer(=
+mobile.xloc,mobile.yloc) &lt;=3D gSpellCastRange and =
+
++															(MacroCmd_MobilePoisoned(mobile)) and =
+
++															(IsMobileInParty(mobile.serial) or (bFriendsAlso and mobile=
+.notoriety =3D=3D kNotoriety_Friend and MobileIsHuman(mobile))) and
++															(mobile:GetRelHP() or 0) &lt; 1 end)
++end
++
+ -- GetPlayerMobile
+ function MacroRead_PlayerStat           (statname) return MacroReadAux_Mob=
+ileStat(GetPlayerMobile(),statname,&quot;MacroRead_PlayerStat&quot;) end
+ function MacroRead_TargetStat           (statname) return MacroReadAux_Mob=
+ileStat(GetMobile(giSelectedMobile),statname,&quot;MacroRead_TargetStat&quot;) end
+@@ -964,19 +979,21 @@
+ -- run from a job (uses wait) !!!! =
+
+ -- timeout : stop walking if the target wasn't reached after this time.  0=
+ to walk until target is reached
+ =
+
+-function MacroCmd_PathFindTo	(xloc,yloc,tolerance,timeout)
++function MacroCmd_PathFindTo	(xloc,yloc,tolerance,timeout,bNoLog)
+ 	tolerance =3D tolerance or 0
++	local bLog =3D not bNoLog
+ 	if (GetUODistToPlayer(xloc,yloc) &lt;=3D tolerance) then return true end -- =
+already there
+ 	timeout =3D timeout or 0
+ 	local endt =3D (timeout &gt; 0) and (Client_GetTicks() + timeout)
+ 	repeat -- repeat the pathfinding calc every few seconds in case dynamics =
+show up
+ 		local t =3D Client_GetTicks()
+-		local res =3D cPathFind2:CalcRouteFromPlayerToPos(xloc,yloc,tolerance) =
+
++		local iJobWaitInterval =3D 50
++		local res =3D cPathFind2:CalcRouteFromPlayerToPos(xloc,yloc,tolerance,iJ=
+obWaitInterval) =
+
+ 		local t2 =3D Client_GetTicks()
+ 		local nextstept =3D t2 + 1000
+ 		local dt =3D t2-t
+-		print(&quot;MacroCmd_PathFindTo: calc took &quot;,dt,&quot;ms&quot;,res and (&quot;numsteps:&quot;..#r=
+es) or &quot;failed&quot;,&quot;curpos:&quot;..table.concat({GetPlayerPos()},&quot;,&quot;))
+-		if (not res) then print(&quot;MacroCmd_PathFindTo : failed, no path&quot;) return =
+end
++		if (bLog) then print(&quot;MacroCmd_PathFindTo: calc took &quot;,dt,&quot;ms&quot;,res and (=
+&quot;numsteps:&quot;..#res) or &quot;failed&quot;,&quot;curpos:&quot;..table.concat({GetPlayerPos()},&quot;,&quot;=
+)) end
++		if (not res) then if (bLog) then print(&quot;MacroCmd_PathFindTo : failed, no=
+ path&quot;) end return end
+ 		local bRunFlag =3D true
+ 		local bTrySides =3D true
+ 		for k,pos in ipairs(res) do =
+
+@@ -984,13 +1001,17 @@
+ 			repeat
+ 				job.wait(max(10,Walk_GetTimeUntilNextStep()))
+ 				WalkStep_WalkToPosSimple(xloc,yloc,bRunFlag,bTrySides) =
+
+-				if (endt and gMyTicks &gt; endt) then print(&quot;MacroCmd_PathFindTo : failed=
+, timeout&quot;) return end
++				if (endt and gMyTicks &gt; endt) then =
+
++					if (bLog) then print(&quot;MacroCmd_PathFindTo : failed, timeout&quot;) end
++					return
++				end
+ 				if (gMyTicks &gt; nextstept) then break end
+ 			until GetUODistToPlayer(xloc,yloc) &lt;=3D 0 -- repeat (turn,walk) until t=
+his next tile reached
+ 			if (gMyTicks &gt; nextstept) then break end
+ 		end
+ 		if (gMyTicks &lt;=3D nextstept) then  =
+
+-			print(&quot;MacroCmd_PathFindTo : success, finished&quot;) return true -- final d=
+estination reached
++			if (bLog) then print(&quot;MacroCmd_PathFindTo : success, finished&quot;) end
++			return true -- final destination reached
+ 		end
+ 	until false
+ end
+
+Modified: trunk/lua/lib.pathfind.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.pathfind.lua (original)
++++ trunk/lua/lib.pathfind.lua Thu Jul  9 20:23:53 2009
+@@ -3,9 +3,9 @@
+ cPathFind2 =3D {}
+ kPathFind2_MaxSteps =3D 4000
+ =
+
+-function cPathFind2:CalcRouteFromPlayerToPos (xloc,yloc,tolerance) =
+
++function cPathFind2:CalcRouteFromPlayerToPos (xloc,yloc,tolerance,iJobWait=
+Interval) =
+
+ 	local xloc0,yloc0,zloc0 =3D GetPlayerPos()
+-	return self:CalcRouteFromPosToPos(xloc0,yloc0,zloc0,GetPlayerDir(),xloc,y=
+loc,tolerance,WalkGetInterval(true),gWalkTimeout_DirectionChange)
++	return self:CalcRouteFromPosToPos(xloc0,yloc0,zloc0,GetPlayerDir(),xloc,y=
+loc,tolerance,WalkGetInterval(true),gWalkTimeout_DirectionChange,iJobWaitIn=
+terval)
+ end
+ =
+
+ -- returns an array with {pos1,pos2,pos3,...} where each pos =3D {xloc,ylo=
+c,zloc,and,some,data,vars...}
+@@ -23,7 +23,7 @@
+ 	return res
+ end
+ =
+
+-function cPathFind2:CalcRouteFromPosToPos (xloc0,yloc0,zloc0,dir0,xloc1,yl=
+oc1,tolerance,walktime,turntime)
++function cPathFind2:CalcRouteFromPosToPos (xloc0,yloc0,zloc0,dir0,xloc1,yl=
+oc1,tolerance,walktime,turntime,iJobWaitInterval)
+ 	tolerance =3D tolerance or 0
+ 	walktime =3D walktime or WalkGetInterval(true) -- defaults to current pla=
+yer run speed
+ 	turntime =3D turntime or gWalkTimeout_DirectionChange
+@@ -31,7 +31,12 @@
+ 	self.reached_byheuristic =3D {}
+ 	self:PushPos(xloc0,yloc0,zloc0,DirWrap(dir0),0,GetUODistToPos(xloc0,yloc0=
+,xloc1,yloc1))
+ 	local isteps =3D 0
++	local next_wait_t =3D iJobWaitInterval and (Client_GetTicks() + iJobWaitI=
+nterval)
+ 	while true do
++		if (next_wait_t) then
++			local t =3D Client_GetTicks()
++			if (t &gt; next_wait_t) then next_wait_t =3D t + iJobWaitInterval job.wait=
+(1) end
++		end
+ 		local pos =3D self:PopNextPos()
+ 		if (not pos) then return end -- target not reachable
+ 		local xloc,yloc,zloc,dir,t,heuristic,oldpos =3D unpack(pos)
+@@ -48,7 +53,7 @@
+ 				local dist =3D GetUODistToPos(newxloc,newyloc,xloc1,yloc1)
+ 				if (dist &lt;=3D tolerance) then return self:CreateResult(pos,newxloc,new=
+yloc,newzloc,newdir) end -- target reached !
+ 				local t2 =3D t + walktime + ((newdir ~=3D dir) and turntime or 0)
+-				local heuristic =3D dist -- + t2/1000
++				local heuristic =3D dist + ((newdir ~=3D dir) and 0.1 or 0) -- + t2/10=
+00    -- small malus for changing dir
+ 				self:PushPos(newxloc,newyloc,newzloc,newdir,t2,heuristic,pos)
+ 			end
+ 		end
+
+Modified: trunk/lua/net/net.mobile.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.mobile.lua (original)
++++ trunk/lua/net/net.mobile.lua Thu Jul  9 20:23:53 2009
+@@ -33,6 +33,7 @@
+ 	--~ end
+ 	=
+
+ 	local mobile =3D CreateOrUpdateMobile(mobiledata)
++	NotifyListener(&quot;Hook_MobileMove&quot;,mobile)
+ end
+ =
+
+ -- Equipped_MOB packet (0x78)
+
+Modified: trunk/lua/widgets/widget.uotooltip.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/widgets/widget.uotooltip.lua (original)
++++ trunk/lua/widgets/widget.uotooltip.lua Thu Jul  9 20:23:53 2009
+@@ -8,6 +8,11 @@
+ 	[&quot;Insured&quot;]					=3D&quot;#00FF00&quot;,
+ 	[&quot;blessed&quot;]					=3D&quot;#00FF00&quot;,
+ 	[&quot;slayer&quot;]					=3D&quot;#00FF00&quot;,
++	[&quot;hit harm&quot;]				=3D&quot;#00FF00&quot;,
++	[&quot;hit magic arrow&quot;]			=3D&quot;#00FF00&quot;,
++	[&quot;hit fireball&quot;]			=3D&quot;#00FF00&quot;,
++	[&quot;hit lightning&quot;]			=3D&quot;#00FF00&quot;,
++	[&quot;hit dispell&quot;]				=3D&quot;#88FF88&quot;,
+ 	[&quot;reflect physical damage&quot;]	=3D&quot;#88FF88&quot;,
+ 	[&quot;lower[^\n]+cost&quot;]			=3D&quot;#88FF88&quot;,
+ 	[&quot;hit[^\n]+leech&quot;]			=3D&quot;#88FF88&quot;,
+
+Modified: trunk/plugins/lib.spellbar.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/plugins/lib.spellbar.lua (original)
++++ trunk/plugins/lib.spellbar.lua Thu Jul  9 20:23:53 2009
+@@ -236,10 +236,11 @@
+ gSpellbarShortMessages[1049540]	=3D {r=3D1,g=3D1,b=3D0.0,txt=3D&quot;disco:fail=
+&quot;		} -- You attempt to disrupt your target, but fail.
+ gSpellbarShortMessages[1049539]	=3D {r=3D0,g=3D1,b=3D0.0,txt=3D&quot;disco:succ=
+ess&quot;	} -- You play jarring music, suppressing your target's strength.
+ gSpellbarShortMessages[1049532]	=3D {r=3D0,g=3D1,b=3D0.0,txt=3D&quot;peace:succ=
+ess&quot;	} -- You play hypnotic music, calming your target.
+--- todo : peace fail
+-
+-
+-
++gSpellbarShortMessages[501602]	=3D {r=3D0,g=3D1,b=3D0.0,txt=3D&quot;provo:succe=
+ss&quot;	} -- Your music succeeds, as you start a fight.  =
+
++gSpellbarShortMessages[501589]	=3D {r=3D1,g=3D0,b=3D0.0,txt=3D&quot;provo:inval=
+id&quot;	} -- You can't incite that!  501589  0
++gSpellbarShortMessages[501593]	=3D {r=3D1,g=3D0,b=3D0.0,txt=3D&quot;provo:nosel=
+f&quot;		} -- You can't tell someone to attack themselves!    501593  0
++gSpellbarShortMessages[1049450]	=3D {r=3D1,g=3D0,b=3D0.0,txt=3D&quot;provo:toof=
+ar&quot;		} -- The creatures you are trying to provoke are too far away from eac=
+h other for your music to have an effect. 1049450  0
++gSpellbarShortMessages[501599]	=3D {r=3D1,g=3D1,b=3D0.0,txt=3D&quot;provo:fail&quot;=
+		} -- Your music fails to incite enough anger.        501599  0
+ =
+
+ =
+
+ =
+
+
+Modified: trunk/plugins/loot.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/plugins/loot.lua (original)
++++ trunk/plugins/loot.lua Thu Jul  9 20:23:53 2009
+@@ -36,6 +36,10 @@
+ 	--~ &quot;mage weapon&quot;, -- mage armor , mage weap
+ 	--~ &quot;slayer&quot;,
+ 	&quot;Origami&quot;, -- paper
++	=
+
++	&quot;skull&quot;,
++	&quot;bank&quot;,
++	&quot;atlas&quot;, -- travel atlas
+ 	=
+
+ 	-- witchcraft stuff
+ 	&quot;boline&quot;, =
+
+@@ -173,8 +177,8 @@
+ 	if (artid =3D=3D 0xeb1) then return false end -- music instruments
+ 	if (artid =3D=3D 0xe9d) then return false end -- music instruments
+ 	if (artid =3D=3D 0xe9c) then return false end -- music instruments
+-	if (artid =3D=3D 0x1bfb and item.amount &gt;=3D 30) then return true end -- =
+bolts
+-	if (artid =3D=3D 0x0f3f and item.amount &gt;=3D 30) then return true end -- =
+arrows
++	--~ if (artid =3D=3D 0x1bfb and item.amount &gt;=3D 30) then return true end=
+ -- bolts
++	--~ if (artid =3D=3D 0x0f3f and item.amount &gt;=3D 30) then return true end=
+ -- arrows
+ 	if (1 =3D=3D 2) then -- jewels
+ 		if (artid =3D=3D 0xf21) then return true end -- star saphire
+ 		if (artid =3D=3D 0xf26) then return true end -- star diamond
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001829.html">[Iris-commit] [IRIS] r3066 - in /trunk: lua/lib.spellbooks.lua plugins/lib.spellbar.lua plugins/loot.lua
+</A></li>
+	<LI>Next message: <A HREF="001831.html">[Iris-commit] [IRIS] r3068 - in /trunk: cb/ vc7/
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1830">[ date ]</a>
+              <a href="thread.html#1830">[ thread ]</a>
+              <a href="subject.html#1830">[ subject ]</a>
+              <a href="author.html#1830">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,616 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2478 - in /trunk/lua: lib.2d.mobile.lua lib.2d.spriteblock.lua lib.artatlas.lua lib.iris_atlasgroup.lua lib.uoanim.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-September/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2478%20-%20in%20/trunk/lua%3A%20lib.2d.mobile.lua%0A%20lib.2d.spriteblock.lua%20lib.artatlas.lua%20lib.iris_atlasgroup.lua%0A%20lib.uoanim.lua&In-Reply-To=%3C20080929020008.EAC261524030%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001282.html">
+   <LINK REL="Next"  HREF="001284.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2478 - in /trunk/lua: lib.2d.mobile.lua lib.2d.spriteblock.lua lib.artatlas.lua lib.iris_atlasgroup.lua lib.uoanim.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2478%20-%20in%20/trunk/lua%3A%20lib.2d.mobile.lua%0A%20lib.2d.spriteblock.lua%20lib.artatlas.lua%20lib.iris_atlasgroup.lua%0A%20lib.uoanim.lua&In-Reply-To=%3C20080929020008.EAC261524030%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2478 - in /trunk/lua: lib.2d.mobile.lua lib.2d.spriteblock.lua lib.artatlas.lua lib.iris_atlasgroup.lua lib.uoanim.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Mon Sep 29 03:12:31 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001282.html">[Iris-commit] [IRIS] r2477 - in /trunk/lua: lib.2d.spriteblock.lua lib.artatlas.lua lib.iris_atlasgroup.lua
+</A></li>
+        <LI>Next message: <A HREF="001284.html">[Iris-commit] [IRIS] r2479 - in /trunk: include/builder.h lua/lib.2d.map.lua lua/lib.2d.mobile.lua lua/lib.2d.spriteblock.lua lua/lib.uoanim.lua src/data_anim.cpp src/data_anim_L.cpp
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1283">[ date ]</a>
+              <a href="thread.html#1283">[ thread ]</a>
+              <a href="subject.html#1283">[ subject ]</a>
+              <a href="author.html#1283">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Mon Sep 29 03:12:31 2008
+New Revision: 2478
+
+Log:
+generalised spriteblock  and used it for drawing 2d mobiles
+
+Modified:
+    trunk/lua/lib.2d.mobile.lua
+    trunk/lua/lib.2d.spriteblock.lua
+    trunk/lua/lib.artatlas.lua
+    trunk/lua/lib.iris_atlasgroup.lua
+    trunk/lua/lib.uoanim.lua
+
+Modified: trunk/lua/lib.2d.mobile.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.mobile.lua (original)
++++ trunk/lua/lib.2d.mobile.lua Mon Sep 29 03:12:31 2008
+@@ -1,75 +1,50 @@
+ -- mobiles (animals,players,monsters,npcs..)
++-- TODO : bMirrorX !
+ =
+
+ -- main updater, create, position ...
+ function Renderer2D:UpdateMobile				(mobile) =
+
+ 	local gfx =3D mobile.gfx2d
+-	local iModelID,iAnimID =3D mobile.artid,0 -- 401,0
+-	local iHue =3D BitwiseAND(mobile.hue,0x7fff) -- 0x03F4 : human skin hue (=
+0x83F4=3D33780, but 0x8* is partial hue and turned out all gray here)
+ 	if (not gfx) then
+-		--~ print(&quot;Renderer2D:UpdateMobile artid,iHue&quot;,mobile.artid,sprintf(&quot;%04=
+x&quot;,iHue))
+-	=
+
+-		gfx =3D CreateRootGfx3D()
+-		mobile.gfx2d =3D gfx
+-		gfx:SetSimpleRenderable()
+-		=
+
+-		local iRealID =3D Anim_GetRealID(iModelID,iAnimID) =
+
+-		gfx.animinfo =3D GetAnimDataInfo(iModelID) -- o.miFrames,o.miUnknown,o.m=
+iCount,o.miFrameInterval,o.miFrameStart
+-		gfx.iAnimStartTime =3D Client_GetTicks()
+-		gfx.iFrame =3D 0
+-		=
+
+-		self:MobileGfxUpdateGeometry(gfx,iModelID,iAnimID,gfx.iFrame,iHue)
++		local spriteblock =3D cUOSpriteBlock:New()
++		mobile.gfx2d =3D spriteblock
++		local xloc,yloc,zloc =3D mobile.xloc,mobile.yloc,mobile.zloc
++		local tx,ty,tz,fIndexRel =3D 0,0,0,0
++		local sorttx =3D 0 -- xloc-floor(xloc/8)*8
++		local sortty =3D 0 -- yloc-floor(yloc/8)*8
++		local sorttz =3D zloc
++		local iTileTypeID	=3D mobile.artid
++		local iHue			=3D BitwiseAND(mobile.hue,0x7fff) -- 0x03F4 : human skin hu=
+e (0x83F4=3D33780, but 0x8* is partial hue and turned out all gray here)
++		local iModelID,iAnimID,iFrame =3D mobile.artid,0,0 -- 401,0
++		local pAtlasPiece	=3D Anim2DAtlas_LoadAtlasPiece(iModelID,iAnimID,iFrame=
+,iHue)
++		if (pAtlasPiece) then
++			spriteblock:AddSpriteEx(tx,ty,tz,iTileTypeID,iHue,CalcSortBonus(iTileTy=
+peID,sorttx,sortty,sorttz,fIndexRel)+1,item,pAtlasPiece)
++		else
++			print(&quot;warning, Renderer2D:UpdateMobile load uoanim failed&quot;,iModelID,iA=
+nimID,iFrame,iHue)
++		end
++		spriteblock:Build(Renderer2D.kSpriteBaseMaterial,true)
+ 	end
+ 	=
+
+-	local x,y,z =3D self:UOPosToLocal(mobile.xloc,mobile.yloc,mobile.zloc)
+-	gfx:SetPosition(x,y,z*0.1)
+-	self:MobileGfxUpdateGeometry(gfx,iModelID,iAnimID,gfx.iFrame,iHue)
++	local x,y,z =3D self:UOPosToLocal(mobile.xloc,mobile.yloc,mobile.zloc*kRe=
+nderer2D_ZScale)
++	mobile.gfx2d:SetPosition(x,y,z)
+ end =
+
+ =
+
+ function Renderer2D:DestroyMobileGfx			(mobile) if (mobile.gfx2d) then mob=
+ile.gfx2d:Destroy() mobile.gfx2d =3D nil end end
+ =
+
+-function Renderer2D:CreateMobileGfx				( mobile ) self:UpdateMobile(mobile=
+) end	=
+
++function Renderer2D:CreateMobileGfx				(mobile) self:UpdateMobile(mobile) =
+end	=
+
+ =
+
+ function Renderer2D:UpdateMobileModel			() end -- check equipment change e=
+tc ?? called every time when UpdateMobile() is called ..
+ =
+
+ function Renderer2D:MobileAnimStep				() end -- from mainstep
+ function Renderer2D:MobileStartServerSideAnim	(animdata) end
+ =
+
+-
+--- TODO : bMirrorX !
+-function Renderer2D:MobileGfxUpdateGeometry (gfx,iModelID,iAnimID,iFrame,i=
+Hue)
+-	local sMatName,iWidth,iHeight,iCenterX,iCenterY,iFrames,u0,v0,u1,v1 =3D A=
+nim2DAtlas_Load(iModelID,iAnimID,iFrame,iHue)
+-	if (not sMatName) then return end
+-	--~ print(&quot;MobileGfxUpdateGeometry&quot;,sMatName,iWidth,iHeight,iCenterX,iCen=
+terY,iFrames,u0,v0,u1,v1)
+-	--~ sMatName =3D &quot;BaseWhiteNoLighting&quot;
+-	--~ print(&quot;MobileGfxUpdateGeometry&quot;,iAnimID,iFrame,iWidth,iHeight,iCenter=
+X,iCenterY,iFrames)
+-	-- MobileGfxUpdateGeometry : cen=3D  12      -11
+-	local zoom =3D 1
+-	local pix2coord =3D zoom * 1 / 44
+-	local x =3D -1 + ( iCenterY +iCenterX)*pix2coord -- iCenterX&lt;0=3Dright iC=
+enterY&lt;0=3Ddown
+-	local y =3D  1 + (-iCenterY +iCenterX)*pix2coord
+-	local z =3D  0  -- x-1,y+1 : sprites are too high normally, this moves th=
+em down =
+
+-	local w =3D k2D_ScaleW05 * iWidth * zoom
+-	local h =3D k2D_ScaleH   * iHeight * zoom
+-	gfx:SetMaterial(sMatName)
+-	gfx:RenderableBegin(4,6,false,false,OT_TRIANGLE_LIST)
+-	gfx:RenderableVertex(x-w,y-w,z  , u1,v1)
+-	gfx:RenderableVertex(x+w,y+w,z  , u0,v1)
+-	gfx:RenderableVertex(x-w,y-w,z+h, u1,v0)
+-	gfx:RenderableVertex(x+w,y+w,z+h, u0,v0)
+-	gfx:RenderableIndex3(0,2,1)
+-	gfx:RenderableIndex3(1,2,3)
+-	gfx:RenderableEnd()
+-	gfx.iMaxFrames =3D iFrames
+-end
+-
+ function Renderer2D:MobileTestStep()
+ 	if true then return end
+ 	=
+
+-	=
+
+-		--~ local o =3D gfx.animinfo =
+
+-		--~ print(&quot;animinfo&quot;,o.miFrames,o.miUnknown,o.miCount,o.miFrameInterval,=
+o.miFrameStart)
+-		--animinfo        table: 0x93e5d90        -1      -1      -1      -1
+-		--~ for k,v in pairs(o.miFrames) do print(&quot;frame&quot;,k,v) end -- were all -=
+1 =
+
++	--~ local iRealID =3D Anim_GetRealID(iModelID,iAnimID) =
+
++	--~ local o =3D gfx.animinfo   =3D GetAnimDataInfo(iModelID) -- o.miFrame=
+s,o.miUnknown,o.miCount,o.miFrameInterval,o.miFrameStart
++	--~ print(&quot;animinfo&quot;,o.miFrames,o.miUnknown,o.miCount,o.miFrameInterval,o=
+.miFrameStart)
++	--animinfo        table: 0x93e5d90        -1      -1      -1      -1
++	--~ for k,v in pairs(o.miFrames) do print(&quot;frame&quot;,k,v) end -- were all -1 =
+
+ 		=
+
+ 	--~ local t =3D Client_GetTicks() - gfx.iAnimStartTime
+ 	--~ local framedt =3D 200
+
+Modified: trunk/lua/lib.2d.spriteblock.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.spriteblock.lua (original)
++++ trunk/lua/lib.2d.spriteblock.lua Mon Sep 29 03:12:31 2008
+@@ -1,7 +1,7 @@
+ -- TODO : mousepicking , staticitem =3D {xloc,yloc,zloc,z_sort,typ_handle(=
+for draw,pick)}  staticitems grouped by texatlas
+ -- TODO : blendout-upper-floors : cFastBatch::cSubBatch::SetDisplayRange()=
+ : raw access to index
+ -- TODO : generic 2d spritesystem : render, mousepick, zsort?
+--- TODO : unify : terrainload-water,static-types : MapGetBlockStatics     =
+  ArtAtlasLoadAndLock : atlasgroup
++-- TODO : unify : terrainload-water,static-types : MapGetBlockStatics
+ =
+
+ -- ***** ***** ***** ***** ***** cUOSpriteBlock
+ =
+
+@@ -87,9 +87,9 @@
+ 	--~ prio3 =3D (hue&gt;0) and 1007 or 7
+ 	--~ prio4 =3D fIndexRel						in [0,1]
+ 	--~ prio5 =3D tx								in [0,7]
+-	local pTileType =3D GetStaticTileType(artid)
+-	return		0.05*(	1.000 * (zloc + pTileType.iSortBonus2D) + -- zloc + =
+
+-						1.000 * (pTileType.miHeight/100) +
++	local pTileType =3D artid and GetStaticTileType(artid)
++	return		0.05*(	1.000 * (zloc + (pTileType and pTileType.iSortBonus2D or 0=
+)) + -- zloc + =
+
++						1.000 * ((pTileType and pTileType.miHeight or 0)/100) +
+ 						0.005 * (fIndexRel) +
+ 						0.005 * (tx / 8) )
+ end
+@@ -124,13 +124,16 @@
+ 		print(&quot;warning, cUOSpriteBlock:AddArtSprite failed&quot;,artid,hue)
+ 		return
+ 	end
+-	=
+
++	self:AddSpriteEx(tx,ty,zloc,artid,hue,sortbonus,data,pAtlasPiece)
++end
++	=
+
++-- pAtlasPiece=3D{atlas=3D?,origw=3D?,origh=3D?,u0=3D?,v0=3D?,u1=3D?,v1=3D=
+?}
++function cUOSpriteBlock:AddSpriteEx (tx,ty,zloc,artid,hue,sortbonus,data,p=
+AtlasPiece)
+ 	local atlas =3D pAtlasPiece.atlas
+ 	local group =3D self.pSpritesByAtlas[atlas]
+ 	if (not group) then group =3D {} self.pSpritesByAtlas[atlas] =3D group end
+ 	local pw =3D pAtlasPiece.origw
+ 	local ph =3D pAtlasPiece.origh
+-	=
+
+ 	=
+
+ 	local x,y,z =3D -tx,ty,zloc * kRenderer2D_ZScale
+ 	local sortadd =3D sortbonus * kRenderer2D_ZScale + 1
+@@ -140,6 +143,12 @@
+ 	z =3D z + kSq2 * sortadd
+ 	local xa =3D pw * kRenderer2D_XPixelScale
+ 	local za =3D ph * kRenderer2D_YPixelScale			=
+
++	=
+
++	-- TODO : mobs ?
++	-- local iCenterX =3D pAtlasPiece.iCenterX or half?
++	--~ local pix2coord =3D zoom * 1 / 44
++	--~ local x =3D -1 + ( iCenterY +iCenterX)*pix2coord -- iCenterX&lt;0=3Drigh=
+t iCenterY&lt;0=3Ddown
++	--~ local y =3D  1 + (-iCenterY +iCenterX)*pix2coord
+ 	=
+
+ 	local sprite =3D {
+ 		x =3D x,
+@@ -160,6 +169,10 @@
+ 	table.insert(group,sprite)
+ end
+ =
+
++function cUOSpriteBlock:LoadAtlasMat	(atlas,basemat)
++	-- works for art and uoanim (see atlasgroup system)
++	if (atlas.atlasgroup) then return atlas.atlasgroup:LoadAtlasMat(atlas,bas=
+emat) end
++end
+ =
+
+ -- bUseRootGfx : default false, can be set to true if there is only one sp=
+rite
+ function cUOSpriteBlock:Build 	(basemat,bUseRootGfx)
+@@ -171,44 +184,48 @@
+ 	-- -so 552,2088
+ 	-- -so 632,1488
+ 	for atlas,group in pairs(self.pSpritesByAtlas) do
+-		local matname =3D ArtAtlasLoadMaterial(atlas,basemat)
+-		-- TODO : sort by z for blendout upper floors
+-		local spritecount =3D #group
+-		local gfx
+-		if (bUseRootGfx) then
+-			gfx =3D self.rootgfx
+-			bUseRootGfx =3D false
++		local matname =3D self:LoadAtlasMat(atlas,basemat)
++		if (not matname) then
++			print(&quot;warning : cUOSpriteBlock:Build : atlas mat load failed&quot;,&quot;basemat=
+&quot;)
+ 		else
+-			gfx =3D self.rootgfx:CreateChild()
+-			table.insert(self.pGroupGfx,gfx)
+-		end
+-		gfx:SetSimpleRenderable()
+-		gfx:SetMaterial(matname)
+-		=
+
+-		-- generate geometry
+-		local vc =3D 4*spritecount
+-		local ic =3D 6*spritecount
+-		gfx:RenderableBegin(vc,ic,false,false,OT_TRIANGLE_LIST)
+-		vc =3D 0
+-		for k,sprite in pairs(group) do
+-			local x 		=3D sprite.x
+-			local y 		=3D sprite.y
+-			local z 		=3D sprite.z
+-			local xa 		=3D sprite.xa
+-			local za 		=3D sprite.za
+-			local u0 		=3D sprite.u0
+-			local v0 		=3D sprite.v0
+-			local u1 		=3D sprite.u1
+-			local v1 		=3D sprite.v1
+-			gfx:RenderableVertex(x-xa,y-xa,z  	, u1,v1)
+-			gfx:RenderableVertex(x+xa,y+xa,z  	, u0,v1)
+-			gfx:RenderableVertex(x-xa,y-xa,z+za	, u1,v0)
+-			gfx:RenderableVertex(x+xa,y+xa,z+za	, u0,v0)
+-			gfx:RenderableIndex3(vc+0,vc+2,vc+1)
+-			gfx:RenderableIndex3(vc+1,vc+2,vc+3)
+-			vc =3D vc + 4
+-		end
+-		gfx:RenderableEnd()
++			-- TODO : sort by z for blendout upper floors
++			local spritecount =3D #group
++			local gfx
++			if (bUseRootGfx) then
++				gfx =3D self.rootgfx
++				bUseRootGfx =3D false
++			else
++				gfx =3D self.rootgfx:CreateChild()
++				table.insert(self.pGroupGfx,gfx)
++			end
++			gfx:SetSimpleRenderable()
++			gfx:SetMaterial(matname)
++			=
+
++			-- generate geometry
++			local vc =3D 4*spritecount
++			local ic =3D 6*spritecount
++			gfx:RenderableBegin(vc,ic,false,false,OT_TRIANGLE_LIST)
++			vc =3D 0
++			for k,sprite in pairs(group) do
++				local x 		=3D sprite.x
++				local y 		=3D sprite.y
++				local z 		=3D sprite.z
++				local xa 		=3D sprite.xa
++				local za 		=3D sprite.za
++				local u0 		=3D sprite.u0
++				local v0 		=3D sprite.v0
++				local u1 		=3D sprite.u1
++				local v1 		=3D sprite.v1
++				gfx:RenderableVertex(x-xa,y-xa,z  	, u1,v1)
++				gfx:RenderableVertex(x+xa,y+xa,z  	, u0,v1)
++				gfx:RenderableVertex(x-xa,y-xa,z+za	, u1,v0)
++				gfx:RenderableVertex(x+xa,y+xa,z+za	, u0,v0)
++				gfx:RenderableIndex3(vc+0,vc+2,vc+1)
++				gfx:RenderableIndex3(vc+1,vc+2,vc+3)
++				vc =3D vc + 4
++			end
++			gfx:RenderableEnd()
++		end
+ 	end
+ end
+ =
+
+@@ -243,7 +260,7 @@
+ =
+
+ 	for atlas,group in pairs(self.pSpritesByAtlas) do
+ 		if (#group &gt; 0) then =
+
+-			local matname =3D ArtAtlasLoadMaterial(atlas,basemat)
++			local matname =3D self:LoadAtlasMat(atlas,basemat)
+ 			-- TODO : sort by z for blendout upper floors ?
+ 			local spritecount =3D #group
+ 			local gfx =3D CreateRobRenderable2D(self.rendergroup2d)
+
+Modified: trunk/lua/lib.artatlas.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.artatlas.lua (original)
++++ trunk/lua/lib.artatlas.lua Mon Sep 29 03:12:31 2008
+@@ -7,18 +7,14 @@
+ function ArtAtlasLoadAndLockDirect (iTileTypeID,iHue,pLockKeeper,basemater=
+ial)
+ 	local o =3D ArtAtlasLoadAndLock(iTileTypeID,iHue,pLockKeeper)
+ 	if (not o) then return end
+-	local sMatName =3D ArtAtlasLoadMaterial(o.atlas,basematerial)
++	local sMatName =3D gAtlasGroup_Art:LoadAtlasMat(o.atlas,basematerial)
+ 	local iCenterX,iCenterY =3D o.origw/2,o.origh-22
+ 	return sMatName,o.origw,o.origh,iCenterX,iCenterY,o.u0,o.v0,o.u1,o.v1
+ end
+ =
+
+ -- material is not immediately loaded, useful for statics
+--- returns object with fields : atlas,u0,v0,u1,v1,w,h
++-- returns pAtlasPiece =3D {atlas=3D?,u0=3D?,v0=3D?,u1=3D?,v1=3D?,origw=3D=
+?,origh=3D?}
+ function ArtAtlasLoadAndLock (iTileTypeID,iHue,pLockKeeper)  return PreLoa=
+dArt(iTileTypeID,iHue) end
+-
+--- atlas =3D ArtAtlasLoadAndLock(...).atlas
+--- creates/updates texture/material as needed
+-function ArtAtlasLoadMaterial (atlas,basemat) return gAtlasGroup_Art:LoadA=
+tlasMat(atlas,basemat) end
+ =
+
+ function ArtAtlasUnLock (pLockKeeper) end
+ =
+
+
+Modified: trunk/lua/lib.iris_atlasgroup.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.iris_atlasgroup.lua (original)
++++ trunk/lua/lib.iris_atlasgroup.lua Mon Sep 29 03:12:31 2008
+@@ -8,8 +8,8 @@
+ gAtlasGroup_Gump	=3D CreateAtlasGroup(kIrisAtlasGroupSize,kIrisAtlasGroupS=
+ize)
+ gAtlasGroup_Art		=3D CreateAtlasGroup(kIrisAtlasGroupSize,kIrisAtlasGroupS=
+ize)
+ =
+
+-function PreLoadGump		(gump_id,hue)	if (gump_id) then return gAtlasGroup_G=
+ump:PreLoad(gump_id,hue) end end
+-function PreLoadArt			( art_id,hue)	if ( art_id) then return gAtlasGroup_A=
+rt:PreLoad(art_id,hue) end end
++function PreLoadGump		(gump_id,hue)	if (gump_id) then return gAtlasGroup_G=
+ump:LoadToAtlas(gump_id,hue) end end
++function PreLoadArt			( art_id,hue)	if ( art_id) then return gAtlasGroup_A=
+rt:LoadToAtlas(art_id,hue) end end
+ =
+
+ function GetGumpSize	(gump_id,hue)	return gAtlasGroup_Gump:GetSize(gump_id=
+,hue) end -- loads it and returns the size
+ function GetArtSize		(art_id,hue) 	return gAtlasGroup_Art:GetSize(art_id,h=
+ue) end
+
+Modified: trunk/lua/lib.uoanim.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.uoanim.lua (original)
++++ trunk/lua/lib.uoanim.lua Mon Sep 29 03:12:31 2008
+@@ -11,45 +11,59 @@
+ -- todo : humans : one atlas with complete equipment, will need alpha-blit=
+ for images ?
+ -- todo : mobile : load anim only on demand, e.g. only load walk anim when=
+ the mobile actually walks
+ -- returns sMatName,iWidth,iHeight,iCenterX,iCenterY,iFrames,u0,v0,u1,v1
+-function Anim2DAtlas_Load (iModelID,iAnimID,iFrame,iHue)
+-	--~ iAnimID =3D 0 -- kAnimID_Human_Idle
+-	iFrame =3D 0
+-	--~ iHue =3D 0
++function Anim2DAtlas_Load (iModelID,iAnimID,iFrame,iHue) =
+
++	local o =3D Anim2DAtlas_LoadAtlasPiece(iModelID,iAnimID,iFrame,iHue)
++	if (o) then =
+
++		local basematerial =3D &quot;renderer2dbillboard&quot;
++		local matname =3D o.atlas.atlasgroup:LoadAtlasMat(o.atlas,basematerial)
++		return matname,o.origw,o.origh,o.iCenterX,o.iCenterY,o.iFrames,o.u0,o.v0=
+,o.u1,o.v1 =
+
++	end =
+
++end
++
++
++-- returns atlaspiece
++function Anim2DAtlas_LoadAtlasPiece (iModelID,iAnimID,iFrame,iHue)
+ 	local n =3D iModelID..&quot;,&quot;..iAnimID..&quot;,&quot;..iFrame..&quot;,&quot;..iHue
+ 	local o =3D gAnimAtlasCache[n]
+-	if (o) then return unpack(o) end
++	if (o ~=3D nil) then return o end
++	=
+
++	-- load frame image
+ 	local iRealID =3D Anim_GetRealID(iModelID,iAnimID) =
+
+-	local pImage,iWidth,iHeight,iCenterX,iCenterY,iFrames =3D ExportAnimFrame=
+ToImage(iRealID,iFrame,iHue)
+-	--~ print(&quot;Anim2DAtlas_Load&quot;,iRealID,iFrame,iHue,&quot;#&quot;,pImage,iWidth,iHeigh=
+t,iCenterX,iCenterY,iFrames)
+-	if (not pImage) then print(&quot;Anim2DAtlas_Load : dead anim &quot;,iModelID,iAnim=
+ID,iFrame,iHue) end
+-	if (not pImage) then o =3D {} gAnimAtlasCache[n] =3D o return unpack(o) e=
+nd
++	local img,iWidth,iHeight,iCenterX,iCenterY,iFrames =3D ExportAnimFrameToI=
+mage(iRealID,iFrame,iHue)
++	if (not img) then print(&quot;Anim2DAtlas_Load : dead anim &quot;,iModelID,iAnimID,=
+iFrame,iHue) end
++	if (not img) then gAnimAtlasCache[n] =3D false return end
+ 		=
+
+-	=
+
++	-- add to atlas
+ 	local w =3D 64
+-	while (w &lt; iWidth) do w =3D w * 2 end
+-	while (w &lt; iHeight) do w =3D w * 2 end
+-	local atlas =3D CreateTexAtlas(w,w)
+-	local iBorderPixels =3D 0
++	local iBorderPixels =3D 4
+ 	local bWrap =3D false
+-	local bSuccess,l,r,t,b =3D atlas:AddImage(pImage,iBorderPixels,bWrap)
+-	pImage:Destroy()
+-
+-	--~ if (2 =3D=3D 1) then
+-		--~ local img2 =3D CreateImage()
+-		--~ atlas:MakeImage(img2)
+-		--~ img2:SaveAsFile(&quot;../animtest.png&quot;)
+-		--~ img2:Destroy()
+-	--~ end
+-	=
+
+-	local tex =3D atlas:MakeTexture() -- generate new texture
+-	local sMatName =3D CloneMaterial(&quot;renderer2dbillboard&quot;)
+-	SetTexture(sMatName,tex)
+-	=
+
+-	local u0,v0,u1,v1 =3D l,t,r,b
+-	o =3D {sMatName,iWidth,iHeight,iCenterX,iCenterY,iFrames,u0,v0,u1,v1}
+-	--~ print(&quot;anim2d&quot;,sMatName,iWidth,iHeight,iCenterX,iCenterY,iFrames,u0,v=
+0,u1,v1)
+-	gAnimAtlasCache[n] =3D o
+-	return unpack(o)
++	local b =3D iBorderPixels
++	while (w &lt; b+iWidth+b) do w =3D w * 2 end
++	while (w &lt; b+iHeight+b) do w =3D w * 2 end
++	local atlasgroup =3D CreateAtlasGroup(w,w,iBorderPixels,bWrap)
++	local atlas,u0,v0,u1,v1,origw,origh =3D atlasgroup:AddImageToAtlasGroup(i=
+mg)
++	img:Destroy()
++	if (not atlas) then gAnimAtlasCache[n] =3D false return end
++	assert(iWidth =3D=3D origw)
++	assert(iHeight =3D=3D origh)
++	=
+
++	-- create and store extended atlaspiece
++	local atlaspiece =3D {
++		atlas	=3Datlas,
++		u0		=3Du0,
++		v0		=3Dv0,
++		u1		=3Du1,
++		v1		=3Dv1,
++		uvw		=3Du1-u0,
++		uvh		=3Dv1-v0,
++		origw	=3Dorigw,
++		origh	=3Dorigh,
++		iCenterX=3DiCenterX,
++		iCenterY=3DiCenterY,
++		iFrames=3DiFrames,
++		}
++	gAnimAtlasCache[n] =3D atlaspiece
++	return atlaspiece
+ end
+ =
+
+ =
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001282.html">[Iris-commit] [IRIS] r2477 - in /trunk/lua: lib.2d.spriteblock.lua lib.artatlas.lua lib.iris_atlasgroup.lua
+</A></li>
+	<LI>Next message: <A HREF="001284.html">[Iris-commit] [IRIS] r2479 - in /trunk: include/builder.h lua/lib.2d.map.lua lua/lib.2d.mobile.lua lua/lib.2d.spriteblock.lua lua/lib.uoanim.lua src/data_anim.cpp src/data_anim_L.cpp
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1283">[ date ]</a>
+              <a href="thread.html#1283">[ thread ]</a>
+              <a href="subject.html#1283">[ subject ]</a>
+              <a href="author.html#1283">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

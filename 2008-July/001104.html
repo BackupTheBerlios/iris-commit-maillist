@@ -1,0 +1,250 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2296 - in /trunk/widgets: widget.gumpdialog.lua widget.uoimage.lua widget.uotext.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-July/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2296%20-%20in%20/trunk/widgets%3A%0A%20widget.gumpdialog.lua%20widget.uoimage.lua%20widget.uotext.lua&In-Reply-To=%3C20080712175321.0DEE11C18042%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001103.html">
+   <LINK REL="Next"  HREF="001105.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2296 - in /trunk/widgets: widget.gumpdialog.lua widget.uoimage.lua widget.uotext.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2296%20-%20in%20/trunk/widgets%3A%0A%20widget.gumpdialog.lua%20widget.uoimage.lua%20widget.uotext.lua&In-Reply-To=%3C20080712175321.0DEE11C18042%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2296 - in /trunk/widgets: widget.gumpdialog.lua widget.uoimage.lua widget.uotext.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat Jul 12 19:53:20 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001103.html">[Iris-commit] [IRIS] r2295 - in /trunk: lua/lib.unifont.lua	widgets/widget.uotext.lua
+</A></li>
+        <LI>Next message: <A HREF="001105.html">[Iris-commit] [IRIS] r2297 - in /trunk: lua/ lua/gui/ lua/obj/	plugins/ widgets/
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1104">[ date ]</a>
+              <a href="thread.html#1104">[ thread ]</a>
+              <a href="subject.html#1104">[ subject ]</a>
+              <a href="author.html#1104">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sat Jul 12 19:53:20 2008
+New Revision: 2296
+
+Log:
+uotext pos fixed, uoimage widget accepts change now
+
+Modified:
+    trunk/widgets/widget.gumpdialog.lua
+    trunk/widgets/widget.uoimage.lua
+    trunk/widgets/widget.uotext.lua
+
+Modified: trunk/widgets/widget.gumpdialog.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/widgets/widget.gumpdialog.lua (original)
++++ trunk/widgets/widget.gumpdialog.lua Sat Jul 12 19:53:20 2008
+@@ -33,6 +33,8 @@
+ 		end
+ 	end
+ end
++
++function gWidgetPrototype.GumpDialog:GetCtrlByName	(name) return self.cont=
+rols[name] end -- see gumpparser
+ =
+
+ function gWidgetPrototype.GumpDialog:GetDialog	() return self end -- overr=
+ide, normaly parent:GetDialog(), so this ends recursion
+ =
+
+
+Modified: trunk/widgets/widget.uoimage.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/widgets/widget.uoimage.lua (original)
++++ trunk/widgets/widget.uoimage.lua Sat Jul 12 19:53:20 2008
+@@ -11,37 +11,46 @@
+ -- params : x,y,gump_id/art_id,width,height,hue=3D0,tiled=3Dfalse(strech),=
+checker=3Dfalse(gray-transparent-background),multipart=3Dfalse(true for res=
+izepic)
+ -- either art_id or gump_id or checker is used
+ function gWidgetPrototype.UOImage:Init 	(parentwidget, params)
++	local bVertexBufferDynamic,bVertexCol =3D false,false
++	local spritepanel =3D CreateSpritePanel(parentwidget:CastToRenderGroup2D(=
+),nil,bVertexBufferDynamic,bVertexCol)
++	self:SetRenderGroup2D(spritepanel:CastToRenderGroup2D())
++	self:AddToDestroyList(spritepanel)
++	self.spritepanel =3D spritepanel	=
+
++	self.components =3D {}
++	self:SetParams(params)
++end
++
++function gWidgetPrototype.UOImage:SetParams 	(params)
++	-- clear components if it was multipart before
++	for k,child in pairs(self.components) do child:Destroy() end self.compone=
+nts =3D {}
++	=
+
+ 	if (params.multipart) then =
+
+-		self.rendergroup2d =3D CreateRenderGroup2D(parentwidget:CastToRenderGrou=
+p2D())
+-		self:SetRenderGroup2D(self.rendergroup2d)
+-		self:AddToDestroyList(self.rendergroup2d)
+-		self:SetIgnoreHitTest(true)
++		self.spritepanel:ClearGeometry()
+ 		local gump_id_base =3D params.gump_id
+ 		=
+
+-		self.gfx_LT		=3D self:CreateChild(&quot;UOImage&quot;,{x=3D0,y=3D0,tiled=3Dfalse,g=
+ump_id=3Dgump_id_base+kBorderGumpIndexAdd.LT})
+-		self.gfx_RB		=3D self:CreateChild(&quot;UOImage&quot;,{x=3D0,y=3D0,tiled=3Dfalse,g=
+ump_id=3Dgump_id_base+kBorderGumpIndexAdd.RB})
+-		local w1,h1 =3D self.gfx_LT:GetOrigSize()
+-		local w3,h3 =3D self.gfx_RB:GetOrigSize()
++		self.components.gfx_LT		=3D self:CreateChild(&quot;UOImage&quot;,{x=3D0,y=3D0,tile=
+d=3Dfalse,gump_id=3Dgump_id_base+kBorderGumpIndexAdd.LT})
++		self.components.gfx_RB		=3D self:CreateChild(&quot;UOImage&quot;,{x=3D0,y=3D0,tile=
+d=3Dfalse,gump_id=3Dgump_id_base+kBorderGumpIndexAdd.RB})
++		=
+
++		local w1,h1 =3D self.components.gfx_LT:GetOrigSize()
++		local w3,h3 =3D self.components.gfx_RB:GetOrigSize()
+ 		local w2,h2 =3D params.width - w3 - w1,params.height - h3 - h1
+ 		local x1,y1 =3D 0,0
+ 		local x2,y2 =3D w1,h1
+ 		local x3,y3 =3D w1+w2,h1+h2
+-		self.gfx_RB:SetPos(x3,y3)
++		self.components.gfx_RB:SetPos(x3,y3)
+ 		=
+
+ 		-- multiple child widgets for bitmasks, and because of different materia=
+ls
+ 		-- skip_rows_from_top =3D 1 for middle : widget.gfx:SetUV()
+ 		=
+
+-		self.gfx_T		=3D self:CreateChild(&quot;UOImage&quot;,{x=3Dx2,y=3Dy1,width=3Dw2,hei=
+ght=3Dh1,tiled=3Dtrue,gump_id=3Dgump_id_base+kBorderGumpIndexAdd.T })
+-		self.gfx_RT		=3D self:CreateChild(&quot;UOImage&quot;,{x=3Dx3,y=3Dy1,width=3Dw3,he=
+ight=3Dh1,tiled=3Dfalse,gump_id=3Dgump_id_base+kBorderGumpIndexAdd.RT})
++		self.components.gfx_T		=3D self:CreateChild(&quot;UOImage&quot;,{x=3Dx2,y=3Dy1,wid=
+th=3Dw2,height=3Dh1,tiled=3Dtrue,gump_id=3Dgump_id_base+kBorderGumpIndexAdd=
+.T })
++		self.components.gfx_RT		=3D self:CreateChild(&quot;UOImage&quot;,{x=3Dx3,y=3Dy1,wi=
+dth=3Dw3,height=3Dh1,tiled=3Dfalse,gump_id=3Dgump_id_base+kBorderGumpIndexA=
+dd.RT})
+ 		=
+
+-		self.gfx_L		=3D self:CreateChild(&quot;UOImage&quot;,{x=3Dx1,y=3Dy2,width=3Dw1,hei=
+ght=3Dh2,tiled=3Dtrue,gump_id=3Dgump_id_base+kBorderGumpIndexAdd.L})
+-		self.gfx_M		=3D self:CreateChild(&quot;UOImage&quot;,{x=3Dx2,y=3Dy2,width=3Dw2,hei=
+ght=3Dh2,tiled=3Dtrue,gump_id=3Dgump_id_base+kBorderGumpIndexAdd.M ,skip_ro=
+ws_from_top=3D1})
+-		self.gfx_R		=3D self:CreateChild(&quot;UOImage&quot;,{x=3Dx3,y=3Dy2,width=3Dw3,hei=
+ght=3Dh2,tiled=3Dtrue,gump_id=3Dgump_id_base+kBorderGumpIndexAdd.R})
++		self.components.gfx_L		=3D self:CreateChild(&quot;UOImage&quot;,{x=3Dx1,y=3Dy2,wid=
+th=3Dw1,height=3Dh2,tiled=3Dtrue,gump_id=3Dgump_id_base+kBorderGumpIndexAdd=
+.L})
++		self.components.gfx_M		=3D self:CreateChild(&quot;UOImage&quot;,{x=3Dx2,y=3Dy2,wid=
+th=3Dw2,height=3Dh2,tiled=3Dtrue,gump_id=3Dgump_id_base+kBorderGumpIndexAdd=
+.M ,skip_rows_from_top=3D1})
++		self.components.gfx_R		=3D self:CreateChild(&quot;UOImage&quot;,{x=3Dx3,y=3Dy2,wid=
+th=3Dw3,height=3Dh2,tiled=3Dtrue,gump_id=3Dgump_id_base+kBorderGumpIndexAdd=
+.R})
+ 		                                                                =
+
+-		self.gfx_LB		=3D self:CreateChild(&quot;UOImage&quot;,{x=3Dx1,y=3Dy3,width=3Dw1,he=
+ight=3Dh3,tiled=3Dfalse,gump_id=3Dgump_id_base+kBorderGumpIndexAdd.LB})
+-		self.gfx_B		=3D self:CreateChild(&quot;UOImage&quot;,{x=3Dx2,y=3Dy3,width=3Dw2,hei=
+ght=3Dh3,tiled=3Dtrue,gump_id=3Dgump_id_base+kBorderGumpIndexAdd.B })
+-		=
+
+-	=
+
++		self.components.gfx_LB		=3D self:CreateChild(&quot;UOImage&quot;,{x=3Dx1,y=3Dy3,wi=
+dth=3Dw1,height=3Dh3,tiled=3Dfalse,gump_id=3Dgump_id_base+kBorderGumpIndexA=
+dd.LB})
++		self.components.gfx_B		=3D self:CreateChild(&quot;UOImage&quot;,{x=3Dx2,y=3Dy3,wid=
+th=3Dw2,height=3Dh3,tiled=3Dtrue,gump_id=3Dgump_id_base+kBorderGumpIndexAdd=
+.B })
+ 	else
+ 		local matname,u0,v0,uvw,uvh,origw,origh,bitmask
+ 		if (params.gump_id	) then matname,u0,v0,uvw,uvh,origw,origh,bitmask =3D =
+LoadGump(	&quot;guibasemat&quot;,params.gump_id			,params.hue) end
+@@ -64,12 +73,7 @@
+ 		local gfxparam_init	=3D matname and (	(params.tiled) and
+ 											MakeSpritePanelParam_TiledSingleSprite(	matname,w,h,0,0, u0,v0,=
+uvw,uvh, 1,1, origw,origh) or
+ 											MakeSpritePanelParam_SingleSprite(		matname,w,h,0,0, u0,v0,uvw,=
+uvh))
+-		=
+
+-		local bVertexBufferDynamic,bVertexCol =3D false,false
+-		local spritepanel =3D CreateSpritePanel(parentwidget:CastToRenderGroup2D=
+(),gfxparam_init,bVertexBufferDynamic,bVertexCol)
+-		self:SetRenderGroup2D(spritepanel:CastToRenderGroup2D())
+-		self:AddToDestroyList(spritepanel) -- don't add spritelist here, will be=
+ destroyed in spritepanel destructor
+-		self.spritepanel =3D spritepanel
++		if (gfxparam_init) then self.spritepanel:Update(gfxparam_init) end
+ 		if (bitmask) then self:SetBitMask(bitmask) end
+ 	end
+ 	self.params =3D params
+
+Modified: trunk/widgets/widget.uotext.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/widgets/widget.uotext.lua (original)
++++ trunk/widgets/widget.uotext.lua Sat Jul 12 19:53:20 2008
+@@ -27,7 +27,7 @@
+ 	self:SetUOHtml(params.textline_id and textlines[params.textline_id] or (g=
+ClilocLoader and gClilocLoader:Get(params.cliloc_id) or &quot;no_cliloc&quot;),bParse=
+HTML)
+ 	--~ self:SetPos(params.x,params.y)
+ 	local xoff,yoff =3D -1,-2
+-	self:SetLeftTop(params.x+xoff,params.y+yoff)
++	self:SetPos(params.x+xoff,params.y+yoff)
+ 	=
+
+ 	-- clip
+ 	-- { checkertrans 30 81 290 162 }
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001103.html">[Iris-commit] [IRIS] r2295 - in /trunk: lua/lib.unifont.lua	widgets/widget.uotext.lua
+</A></li>
+	<LI>Next message: <A HREF="001105.html">[Iris-commit] [IRIS] r2297 - in /trunk: lua/ lua/gui/ lua/obj/	plugins/ widgets/
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1104">[ date ]</a>
+              <a href="thread.html#1104">[ thread ]</a>
+              <a href="subject.html#1104">[ subject ]</a>
+              <a href="author.html#1104">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

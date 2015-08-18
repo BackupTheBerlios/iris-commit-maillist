@@ -1,0 +1,217 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r3162 - /trunk/lua/lib.granny.debug.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2009-November/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3162%20-%20/trunk/lua/lib.granny.debug.lua&In-Reply-To=%3C20091122131718.6E4157A9815D%40simon%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001922.html">
+   <LINK REL="Next"  HREF="001924.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r3162 - /trunk/lua/lib.granny.debug.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3162%20-%20/trunk/lua/lib.granny.debug.lua&In-Reply-To=%3C20091122131718.6E4157A9815D%40simon%3E"
+       TITLE="[Iris-commit] [IRIS] r3162 - /trunk/lua/lib.granny.debug.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sun Nov 22 14:17:15 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001922.html">[Iris-commit] [IRIS] r3161 - in /trunk/lua: lib.granny.debug.lua	lib.granny.types.lua
+</A></li>
+        <LI>Next message: <A HREF="001924.html">[Iris-commit] [IRIS] r3163 - /trunk/lua/lib.granny.debug.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1923">[ date ]</a>
+              <a href="thread.html#1923">[ thread ]</a>
+              <a href="subject.html#1923">[ subject ]</a>
+              <a href="author.html#1923">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sun Nov 22 14:17:13 2009
+New Revision: 3162
+
+Log:
+grannydebug : construction of ogre objects works ok, but it still crashes i=
+n Client_RenderOneFrame
+
+Modified:
+    trunk/lua/lib.granny.debug.lua
+
+Modified: trunk/lua/lib.granny.debug.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.granny.debug.lua (original)
++++ trunk/lua/lib.granny.debug.lua Sun Nov 22 14:17:13 2009
+@@ -150,6 +150,7 @@
+ 		if (#arr =3D=3D 0) then print(name,&quot;!!EMPTY!!&quot;,SmartDump(MyFilterFields(=
+arr))) end
+ 		for k,entry in ipairs(arr) do if (k&lt;=3D6) then print(name,k..&quot;/&quot;..#arr,S=
+martDump(MyFilterFields(subfield and entry[subfield] or entry),levels or 2)=
+) end end
+ 	end
++	function MyGrannyDump() end -- block output
+ 	=
+
+ 	local Object =3D grn.pMainChunk.Object
+ 	MyGrannyDump(Object.textChunk.texts,&quot;text&quot;)
+@@ -299,10 +300,54 @@
+ 		print(&quot;vb1.vc&quot;,vb1.vc,vb1.iFirstSize)
+ 		print(&quot;ib.ic&quot;,ib.ic)
+ 		=
+
+-		-- cRobRenderable
+-		--~ cLugreLuaBind_Ogre_RenderOperation
+-		--~ createAndBindVertexBuffer	(iVertexSize,iNumVerts,iUsage,bUseShadowBu=
+ffer=3Dfalse,iBindIndex=3D0)
+-		--~ createAndBindIndexBuffer	(iIndexType,iNumIndexes,iUsage,bUseShadowBu=
+ffer=3Dfalse)
++		=
+
++		=
+
++		--~ now ogre stuff : vertexbuffer,renderop,renderable,movable
++		=
+
++		local robmovable =3D CreateRobMovable()
++		local robrenderable =3D CreateRobRenderable(robmovable)
++		robmovable:AddRenderable(robrenderable)
++		=
+
++		local e =3D 10
++		robmovable:SetBounds({-e,-e,-e},{e,e,e})
++		robrenderable:SetMaterial(&quot;BaseWhiteNoLighting&quot;)
++		=
+
++		-- Ogre::Renderable::getRenderOperation(RenderOperation &amp;op) ? hard to l=
+uabind, also we'd get only a copy...
++		local renderop =3D robrenderable:GetRenderOperationPtr() -- Ogre::Render=
+Operation
++		=
+
++		renderop:setOperationType(OT_TRIANGLE_LIST)
++		renderop:setVertexDecl(vdecl:GetOgreVertexDecl())
++		print(&quot;vb0:GetVertexSize()&quot;,vb0:GetVertexSize(),vb0:GetVertexNum())
++		print(&quot;vb1:GetVertexSize()&quot;,vb1:GetVertexSize(),vb1:GetVertexNum())
++		renderop:createAndBindVertexBuffer(vb0:GetVertexSize(),vb0:GetVertexNum(=
+),HBU_DYNAMIC_WRITE_ONLY,false,0) -- (iVertexSize,iNumVerts,iUsage,bUseShad=
+owBuffer=3Dfalse,iBindIndex=3D0)
++		renderop:createAndBindVertexBuffer(vb1:GetVertexSize(),vb1:GetVertexNum(=
+),HBU_DYNAMIC_WRITE_ONLY,false,1) -- (iVertexSize,iNumVerts,iUsage,bUseShad=
+owBuffer=3Dfalse,iBindIndex=3D0)
++		renderop:createAndBindIndexBuffer(IT_32BIT,ib:GetIndexNum(),HBU_DYNAMIC_=
+WRITE_ONLY,false) -- (iIndexType,iNumIndexes,iUsage,bUseShadowBuffer=3Dfals=
+e)
++		=
+
++		renderop:setVertexCount(vb0:GetVertexNum())
++		renderop:setIndexCount(ib:GetIndexNum())
++		=
+
++		renderop:writeToVertexBuffer(vb0:GetFIFO(),0)
++		renderop:writeToVertexBuffer(vb1:GetFIFO(),1)
++		renderop:writeToIndexBuffer(ib:GetFIFO())
++		=
+
++		local gfx =3D CreateRootGfx3D()
++		local scenenode =3D gfx:GetSceneNode()
++		scenenode:attachObject(robmovable)
++		=
+
++		=
+
++		--[[
++		=
+
++		LUABIND_PrefixConstant(Ogre::HardwareBuffer,HBU_STATIC)
++		LUABIND_PrefixConstant(Ogre::HardwareBuffer,HBU_DYNAMIC)
++		LUABIND_PrefixConstant(Ogre::HardwareBuffer,HBU_WRITE_ONLY)
++		LUABIND_PrefixConstant(Ogre::HardwareBuffer,HBU_DISCARDABLE)
++		LUABIND_PrefixConstant(Ogre::HardwareBuffer,HBU_STATIC_WRITE_ONLY)
++		LUABIND_PrefixConstant(Ogre::HardwareBuffer,HBU_DYNAMIC_WRITE_ONLY)
++		LUABIND_PrefixConstant(Ogre::HardwareBuffer,HBU_DYNAMIC_WRITE_ONLY_DISCA=
+RDABLE)
++		=
+
++		]]--
++		=
+
++		-- todo : mousepick
+ 		=
+
+ 		--[[                                                                    =
+                                                                           =
+        =
+
+ 			point   				1/557   {y=3D-0.710749,x=3D-0.767177,z=3D1.416132,}        =
+                                                                           =
+                                                                     =
+
+@@ -314,7 +359,7 @@
+ 		]]--
+ 		=
+
+ 	end
+-	os.exit(0)
++	--~ os.exit(0)
+ end
+ =
+
+ function GrannyTest_PreOgreInit2 ()
+@@ -354,6 +399,9 @@
+ 	end
+ end
+ =
+
++function cVertexBuffer:GetFIFO() return self.fifo end
++function cVertexBuffer:GetVertexNum() return self.vc end
++function cVertexBuffer:GetVertexSize() return self.iFirstSize end
+ function cVertexBuffer:CheckSize()
+ 	local a =3D self.iFirstSize * self.vc
+ 	local b =3D self.fifo:Size()
+@@ -371,6 +419,8 @@
+ function cIndexBuffer:Destroy() =
+
+ 	self.fifo:Destroy() self.fifo =3D nil
+ end
++function cIndexBuffer:GetFIFO() return self.fifo end
++function cIndexBuffer:GetIndexNum() return self.ic end
+ function cIndexBuffer:Index(i) =
+
+ 	FIFO_PushUint32(self.quickfifo,i)
+ 	self.ic =3D self.ic + 1
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001922.html">[Iris-commit] [IRIS] r3161 - in /trunk/lua: lib.granny.debug.lua	lib.granny.types.lua
+</A></li>
+	<LI>Next message: <A HREF="001924.html">[Iris-commit] [IRIS] r3163 - /trunk/lua/lib.granny.debug.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1923">[ date ]</a>
+              <a href="thread.html#1923">[ thread ]</a>
+              <a href="subject.html#1923">[ subject ]</a>
+              <a href="author.html#1923">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

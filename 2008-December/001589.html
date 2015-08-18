@@ -1,0 +1,480 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2785 - in /trunk: lua/gui/gui.trade.lua lua/lib.2d.hudfx.lua lua/lib.charcreate.lua lua/lib.cursor.lua lua/lib.gump.samples.lua lua/lib.macrolist.lua lua/net/net.trade.lua lua/widgets/widget.uoradiobutton.lua plugins/lib.spellbar.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-December/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2785%20-%20in%20/trunk%3A%20lua/gui/gui.trade.lua%0A%20lua/lib.2d.hudfx.lua%20lua/lib.charcreate.lua%20lua/lib.cursor.lua%0A%20lua/lib.gump.samples.lua%20lua/lib.macrolist.lua%20lua/net/net.trade.lua%0A%20lua/widgets/widget.uoradiobutton.lua%20plugins/lib.spellbar.lua&In-Reply-To=%3C20081212184539.DE95D1C18822%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001588.html">
+   <LINK REL="Next"  HREF="001590.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2785 - in /trunk: lua/gui/gui.trade.lua lua/lib.2d.hudfx.lua lua/lib.charcreate.lua lua/lib.cursor.lua lua/lib.gump.samples.lua lua/lib.macrolist.lua lua/net/net.trade.lua lua/widgets/widget.uoradiobutton.lua plugins/lib.spellbar.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2785%20-%20in%20/trunk%3A%20lua/gui/gui.trade.lua%0A%20lua/lib.2d.hudfx.lua%20lua/lib.charcreate.lua%20lua/lib.cursor.lua%0A%20lua/lib.gump.samples.lua%20lua/lib.macrolist.lua%20lua/net/net.trade.lua%0A%20lua/widgets/widget.uoradiobutton.lua%20plugins/lib.spellbar.lua&In-Reply-To=%3C20081212184539.DE95D1C18822%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2785 - in /trunk: lua/gui/gui.trade.lua lua/lib.2d.hudfx.lua lua/lib.charcreate.lua lua/lib.cursor.lua lua/lib.gump.samples.lua lua/lib.macrolist.lua lua/net/net.trade.lua lua/widgets/widget.uoradiobutton.lua plugins/lib.spellbar.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Fri Dec 12 19:45:39 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001588.html">[Iris-commit] [IRIS] r2784 - /trunk/installdeps.ubuntu.sh
+</A></li>
+        <LI>Next message: <A HREF="001590.html">[Iris-commit] [IRIS] r2786 -	/trunk/lua/widgets/widget.uoradiobutton.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1589">[ date ]</a>
+              <a href="thread.html#1589">[ thread ]</a>
+              <a href="subject.html#1589">[ subject ]</a>
+              <a href="author.html#1589">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Fri Dec 12 19:45:39 2008
+New Revision: 2785
+
+Log:
+damage debug output, radio buttons made usable, shift-buy-single : buy all =
+of type,  Send_Target_Static fixed for hitobj, new macro : MacroCmd_FindNea=
+restMobByArtID,  MacroCmd_TargetLast improved : triggers directly if target=
+mode already active
+
+Modified:
+    trunk/lua/gui/gui.trade.lua
+    trunk/lua/lib.2d.hudfx.lua
+    trunk/lua/lib.charcreate.lua
+    trunk/lua/lib.cursor.lua
+    trunk/lua/lib.gump.samples.lua
+    trunk/lua/lib.macrolist.lua
+    trunk/lua/net/net.trade.lua
+    trunk/lua/widgets/widget.uoradiobutton.lua
+    trunk/plugins/lib.spellbar.lua
+
+Modified: trunk/lua/gui/gui.trade.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.trade.lua (original)
++++ trunk/lua/gui/gui.trade.lua Fri Dec 12 19:45:39 2008
+@@ -34,8 +34,21 @@
+ 	amount =3D amount or 1
+ 	if (gKeyPressed[key_lcontrol]) then amount =3D (amount &gt; 0) and 10 or -10=
+ end
+ 	local newamount =3D math.max(0,math.min(good.itemamount,good.tradeamount =
++ amount))
+-	if (gKeyPressed[key_lshift]) then newamount =3D (amount &gt; 0) and good.ite=
+mamount or 0 end
+-	if (good.tradeamount ~=3D newamount) then
++	local bRebuild =3D false
++	if (gKeyPressed[key_lshift]) then =
+
++		newamount =3D (amount &gt; 0) and good.itemamount or 0 =
+
++		=
+
++		-- shift + buying single -&gt; buy all of type   (for rebuying items that w=
+ere sold to the npc, like bod-sewing kits)
++		if (good.tradeamount =3D=3D 0 and good.itemamount =3D=3D 1) then =
+
++			for k,good2 in pairs(shop.goods) do =
+
++				if (good.artid =3D=3D good2.artid and good2.itemamount =3D=3D 1) then =
+
++					good2.tradeamount =3D 1
++					bRebuild =3D true
++				end
++			end
++		end
++	end
++	if (good.tradeamount ~=3D newamount or bRebuild) then
+ 		good.tradeamount =3D newamount
+ 		shop.dialog_bill:RebuildCurrentPage() =
+
+ 		shop.dialog_list:RebuildCurrentPage() -- adjust availcount
+
+Modified: trunk/lua/lib.2d.hudfx.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.hudfx.lua (original)
++++ trunk/lua/lib.2d.hudfx.lua Fri Dec 12 19:45:39 2008
+@@ -46,6 +46,14 @@
+ 	end
+ end
+ =
+
++gLastDamageTime =3D 0
++gLastDamageMana =3D 0
++gLastDamageMana =3D 0
++gLastDamageSeries =3D 0
++gLastDamageSeriesManaStart =3D 0
++gLastDamageSeriesDmgSum =3D 0
++gLastDamageSeriesTimeStart =3D 0
++gLastDamageSeriesTimeStart0 =3D 0
+ function Renderer2D:NotifyDamage( mobile_serial, damage) -- kPacket_Damage=
+,0x0b
+ 	local isOnSelf =3D GetPlayerSerial() =3D=3D mobile_serial
+ 	local col =3D isOnSelf and self.kDamageTextCol_Self or self.kDamageTextCo=
+l_Other
+@@ -53,6 +61,31 @@
+ 	local r,g,b =3D unpack(col)
+ 	self:HUDFX_AddRisingTextOnMob(GetMobile(mobile_serial),sprintf(&quot;%d&quot;,damag=
+e),r,g,b,offsetx)
+ 	--~ print(&quot;2D:NotifyDamage ##################&quot;,Client_GetTicks(),damage,m=
+obile_serial)
++	=
+
++	if (not isOnSelf) then
++		local t =3D Client_GetTicks()
++		local dt =3D t - gLastDamageTime =
+
++		local mana =3D GetPlayerManaCur()
++		local dmana =3D gLastDamageMana - mana
++		if (dt &gt;=3D 2000) then
++			gLastDamageSeries =3D 0
++			gLastDamageSeriesManaStart =3D gLastDamageMana
++			gLastDamageSeriesDmgSum =3D damage
++			gLastDamageSeriesTimeStart =3D gLastDamageTime
++			gLastDamageSeriesTimeStart0 =3D t
++		else
++			gLastDamageSeriesDmgSum =3D gLastDamageSeriesDmgSum + damage
++		end
++		if (damage &gt; 30) then
++			gLastDamageSeries =3D gLastDamageSeries + 1
++		end
++		gLastDamageTime =3D t
++		gLastDamageMana =3D mana
++		local seriesmana =3D mana - gLastDamageSeriesManaStart
++		local seriesdt =3D t - gLastDamageSeriesTimeStart
++		local seriesdt0 =3D t - gLastDamageSeriesTimeStart0
++		printf(&quot;### damage t=3D%d dt=3D%8d dmg=3D%3d dmana=3D%3d mana=3D%4d seri=
+es=3D%d seriesmana=3D%3d seriesdmg=3D%4d seriesdt=3D%d seriesdt0=3D%d\n&quot;,t,=
+dt,damage,dmana,mana,gLastDamageSeries,seriesmana,gLastDamageSeriesDmgSum,s=
+eriesdt,seriesdt0)
++	end
+ end
+ =
+
+ =
+
+
+Modified: trunk/lua/lib.charcreate.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.charcreate.lua (original)
++++ trunk/lua/lib.charcreate.lua Fri Dec 12 19:45:39 2008
+@@ -77,7 +77,7 @@
+ 	chardata.hairColor		=3D hex2num(&quot;0x044E&quot;) -- 0x044E(human) 0x0034(elf)
+ 	chardata.facialHair		=3D hex2num(&quot;0x0000&quot;)
+ 	chardata.facialHairColor=3D hex2num(&quot;0x0000&quot;)
+-	chardata.location		=3D hex2num(&quot;0x0000&quot;)
++	chardata.location		=3D hex2num(&quot;0x0000&quot;) -- uogamers: 0=3Dyew,1=3Dminoc,2=
+=3Dbrit,3=3Dmoonglow,4=3Dtrinsik,5=3DMagincia,6=3D
+ 	chardata.slot			=3D hex2num(&quot;0x0003&quot;)
+ 	chardata.shirtColor		=3D hex2num(&quot;0x036F&quot;) --hex2num(&quot;0x0083&quot;)
+ 	chardata.pantsColor		=3D hex2num(&quot;0x0111&quot;) --hex2num(&quot;0x01AC&quot;)
+
+Modified: trunk/lua/lib.cursor.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.cursor.lua (original)
++++ trunk/lua/lib.cursor.lua Fri Dec 12 19:45:39 2008
+@@ -169,7 +169,7 @@
+ 	if (hitobject.hittype =3D=3D kMousePickHitType_Static) then =
+
+ 		bSendPos =3D false =
+
+ 		local x,y,z =3D GetMouseHitTileCoords()
+-		Send_Target_Static(x,y,z,hitobject.entity)
++		Send_Target_Static(hitobject.hit_xloc or x,hitobject.hit_yloc or y,hitob=
+ject.hit_zloc or z,hitobject.entity)
+ 	end
+ 	=
+
+ 	-- ground hit
+@@ -182,7 +182,7 @@
+ 	if (bSendPos) then
+ 		-- target ground
+ 		local x,y,z =3D GetMouseHitTileCoords()
+-		Send_Target_Ground(x,y,z)
++		Send_Target_Ground(hitobject.hit_xloc or x,hitobject.hit_yloc or y,hitob=
+ject.hit_zloc or z)
+ 	end
+ 	=
+
+ 	CleanupTargetMode()
+
+Modified: trunk/lua/lib.gump.samples.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.gump.samples.lua (original)
++++ trunk/lua/lib.gump.samples.lua Fri Dec 12 19:45:39 2008
+@@ -1,4 +1,14 @@
+ -- a few recorded example gumps for testing
++
++
++kGumpSample_PuzzleChestRadioBtns =3D {
++	Data=3D&quot;{ nomove }{ resizepic 25 0 83 500 410 }{ gumppic 62 20 103 }{ xmf=
+htmlgump 80 36 110 70 1018309 1 0 }{ xmfhtmlgump 214 26 270 90 1018310 1 1 =
+}{ resizepic 62 130 5100 30 30 }{ tilepic 55 140 6255 }{ button 100 139 503=
+2 1209 1 0 10 }{ resizepic 62 180 5100 30 30 }{ tilepic 55 190 6250 }{ butt=
+on 100 189 5032 1209 1 0 11 }{ resizepic 62 230 5100 30 30 }{ tilepic 55 24=
+0 6251 }{ button 100 239 5032 1209 1 0 12 }{ resizepic 62 280 5100 30 30 }{=
+ tilepic 55 290 6252 }{ button 100 289 5032 1209 1 0 13 }{ resizepic 451 13=
+0 5100 30 30 }{ tilepic 444 140 6253 }{ button 425 139 5032 1209 1 0 14 }{ =
+resizepic 451 180 5100 30 30 }{ tilepic 444 190 6254 }{ button 425 189 5032=
+ 1209 1 0 15 }{ resizepic 451 230 5100 30 30 }{ tilepic 444 240 6249 }{ but=
+ton 425 239 5032 1209 1 0 16 }{ resizepic 451 280 5100 30 30 }{ tilepic 444=
+ 290 6256 }{ button 425 289 5032 1209 1 0 17 }{ tilepic 140 270 2832 }{ til=
+epic 117 282 2834 }{ tilepic 163 282 2835 }{ tilepic 140 293 2833 }{ tilepi=
+c 140 272 1313 }{ radio 147 335 2151 2154 1 0 }{ tilepic 195 270 2832 }{ ti=
+lepic 172 282 2834 }{ tilepic 218 282 2835 }{ tilepic 195 293 2833 }{ tilep=
+ic 195 272 1313 }{ radio 202 335 2151 2154 0 1 }{ tilepic 250 270 2832 }{ t=
+ilepic 227 282 2834 }{ tilepic 273 282 2835 }{ tilepic 250 293 2833 }{ tile=
+pic 250 272 1313 }{ radio 257 335 2151 2154 0 2 }{ tilepic 305 270 2832 }{ =
+tilepic 282 282 2834 }{ tilepic 328 282 2835 }{ tilepic 305 293 2833 }{ til=
+epic 305 272 1313 }{ radio 312 335 2151 2154 0 3 }{ tilepic 360 270 2832 }{=
+ tilepic 337 282 2834 }{ tilepic 383 282 2835 }{ tilepic 360 293 2833 }{ ti=
+lepic 360 272 1313 }{ radio 367 335 2151 2154 0 4 }{ button 258 370 4005 40=
+07 1 0 1 }&quot;,
++
++	textline=3D{
++	},
++	textline_unicode=3D{
++	},
++}
+ =
+
+ =
+
+ =
+
+
+Modified: trunk/lua/lib.macrolist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.macrolist.lua (original)
++++ trunk/lua/lib.macrolist.lua Fri Dec 12 19:45:39 2008
+@@ -315,13 +315,23 @@
+ function MacroCmd_WeaponAbilitySecondary	() local a,b =3D GetWeaponSpecial=
+sForMobile(GetPlayerMobile()) Send_AOSCommand_WeaponAbility(b) end
+ =
+
+ -- timeout in ms, defaults to 30 seconds
++gMacroTargetLastRunningNextIndex =3D 1
+ function MacroCmd_TargetLast	(completefun,timeout) 		-- repeat the last ta=
+rget	=
+
+ 	timeout =3D timeout or 30000
+ 	if (gMacroTargetLastRunning) then return end
+ 	if (not gMacroLastTargetMemory) then return end
+ 	=
+
+-	gMacroTargetLastRunning =3D true
+-	local listener =3D RegisterListener(&quot;Hook_TargetMode_Start&quot;,function () =
+
++	if (IsTargetModeActive()) then
++		MacroCmd_TargetLastNow()
++		if (completefun) then completefun() end
++		return =
+
++	end
++	=
+
++	local myindex =3D gMacroTargetLastRunningNextIndex
++	gMacroTargetLastRunningNextIndex =3D gMacroTargetLastRunningNextIndex + 1
++	gMacroTargetLastRunning =3D myindex
++	local listener =3D RegisterListener(&quot;Hook_TargetMode_Start&quot;,function ()
++			if (myindex ~=3D gMacroTargetLastRunning) then return true end -- timeo=
+ut was reached, or other targetlast started
+ 			MacroCmd_TargetLastNow()
+ 			gMacroTargetLastRunning =3D false
+ 			if (completefun) then completefun() end
+@@ -542,6 +552,21 @@
+ 		local dist =3D dist2(xloc,yloc,mobile.xloc,mobile.yloc)
+ 		if (((not founddist) or dist &lt; founddist) and (not IsPlayerMobile(mobile=
+))) then =
+
+ 			if ((not namepart) or StringContains(AosToolTip_GetText(mobile.serial) =
+or mobile.name or &quot;&quot;,namepart)) then
++				founddist =3D dist
++				foundmob =3D mobile
++			end
++		end
++	end
++	return foundmob
++end
++
++function MacroCmd_FindNearestMobByArtID (artid)
++	local founddist,foundmob
++	local xloc,yloc =3D GetPlayerPos()
++	for k,mobile in pairs(GetMobileList()) do =
+
++		local dist =3D dist2(xloc,yloc,mobile.xloc,mobile.yloc)
++		if (((not founddist) or dist &lt; founddist) and (not IsPlayerMobile(mobile=
+))) then =
+
++			if ((not artid) or mobile.artid =3D=3D artid) then
+ 				founddist =3D dist
+ 				foundmob =3D mobile
+ 			end
+
+Modified: trunk/lua/net/net.trade.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.trade.lua (original)
++++ trunk/lua/net/net.trade.lua Fri Dec 12 19:45:39 2008
+@@ -159,6 +159,7 @@
+ 		print(&quot;(empty sellshop)&quot;)
+ 	end
+ 	RememberShop(shop)
++	if (shop.goodcount &gt; 0) then NotifyListener(&quot;Hook_Open_Shop_Sell&quot;,shop) e=
+nd
+ end
+ =
+
+ -- This is used to send shop inventory information to the client.
+
+Modified: trunk/lua/widgets/widget.uoradiobutton.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/widgets/widget.uoradiobutton.lua (original)
++++ trunk/lua/widgets/widget.uoradiobutton.lua Fri Dec 12 19:45:39 2008
+@@ -4,6 +4,8 @@
+ -- see also widget.uobutton.lua
+ =
+
+ RegisterWidgetClass(&quot;UORadioButton&quot;)
++
++gUORadioDebugID =3D 0
+ =
+
+ -- param : x,y,gump_id_normal,gump_id_pressed,status,return_value
+ function gWidgetPrototype.UORadioButton:Init (parentwidget, params, groupn=
+umber)
+@@ -14,16 +16,22 @@
+ 	self:AddToDestroyList(self.rendergroup2d)
+ 	self:SetIgnoreBBoxHit(true)
+ 	=
+
++	self.debug_id		=3D gUORadioDebugID gUORadioDebugID =3D gUORadioDebugID + 1
+ 	self.groupnumber	=3D groupnumber
+ 	self.params			=3D params
+ 	self.gfx_normal		=3D self:CreateChild(&quot;UOImage&quot;,{x=3D0,y=3D0,gump_id=3Dpa=
+rams.gump_id_normal})
+ 	self.gfx_pressed	=3D self:CreateChild(&quot;UOImage&quot;,{x=3D0,y=3D0,gump_id=3Dpa=
+rams.gump_id_pressed})
++	print(&quot;UORadioButton:init:id,group=3D&quot;,self.debug_id,groupnumber)
+ 	=
+
+ 	local dialog =3D parentwidget:GetDialog()
+-	if (dialog) then table.insert(dialog.uo_radio,self) end
++	if (dialog) then =
+
++		table.insert(dialog.uo_radio,self) =
+
++		if (params.status ~=3D 0) then dialog.radiogroups[self.groupnumber] =3D =
+self end
++	end
+ 	=
+
+ 	self:SetPos(params.x,params.y)
+-	self:SetState(params.status)
++	self:SetState(false)
++	--~ self:SetState(params.status)
+ 	self:UpdateGfx()
+ end
+ =
+
+@@ -42,6 +50,7 @@
+ function gWidgetPrototype.UORadioButton:GetReturnVal	() return self.params=
+.return_value end
+ function gWidgetPrototype.UORadioButton:GetState		() return self.state end
+ function gWidgetPrototype.UORadioButton:SetState		(bState)
++	print(&quot;UORadioButton:SetState id,old,new=3D&quot;,self.debug_id,self.state,bSt=
+ate)
+ 	if (self.state =3D=3D bState) then return end -- no change
+ 	if (bState) then -- make sure only one of the radiobuttons in the group i=
+s selected
+ 		local dialog =3D self:GetDialog()
+
+Modified: trunk/plugins/lib.spellbar.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/plugins/lib.spellbar.lua (original)
++++ trunk/plugins/lib.spellbar.lua Fri Dec 12 19:45:39 2008
+@@ -239,7 +239,7 @@
+ 	if (data.bIsAutoGenerated) then return end
+ 	local short =3D gSpellbarShortMessages[text_messagenum]
+ 	if (short) then SpellBarRiseTextOnMob(GetPlayerSerial(),short.r,short.g,s=
+hort.b,short.txt) end
+-	if (not short) then print(&quot;Hook_Packet_Localized_Text&quot;,serial,plaintext,t=
+ext_messagenum) end
++	--~ if (not short) then print(&quot;Hook_Packet_Localized_Text&quot;,serial,plainte=
+xt,text_messagenum) end
+ 	-- and serial =3D=3D 0xFFFFFFFF
+ 	if (serial ~=3D 0xFFFFFFFF) then
+ 		local r,g,b =3D 1,1,0 -- yellow
+@@ -255,7 +255,7 @@
+ RegisterListener(&quot;Hook_Packet_Animation&quot;,	function (animdata)
+ 	local short =3D gSpellbarAnimationShortMessages[animdata.m_animation] =
+
+ 	if (short) then SpellBarRiseTextOnMob(animdata.mobileserial,short.r,short=
+.g,short.b,short.txt) end
+-	if ((not short) and gDebugSpellbarAnim) then SpellBarRiseTextOnMob(animda=
+ta.mobileserial,0.5,0.5,0.5,&quot;Anim:&quot;..animdata.m_animation) print(&quot;spellbar:=
+anim:&quot;,animdata.m_animation) end
++	--~ if ((not short) and gDebugSpellbarAnim) then SpellBarRiseTextOnMob(an=
+imdata.mobileserial,0.5,0.5,0.5,&quot;Anim:&quot;..animdata.m_animation) print(&quot;spell=
+bar:anim:&quot;,animdata.m_animation) end
+ end)
+ =
+
+ RegisterListener(&quot;Hook_Packet_Sound&quot;,	function (sounddata)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001588.html">[Iris-commit] [IRIS] r2784 - /trunk/installdeps.ubuntu.sh
+</A></li>
+	<LI>Next message: <A HREF="001590.html">[Iris-commit] [IRIS] r2786 -	/trunk/lua/widgets/widget.uoradiobutton.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1589">[ date ]</a>
+              <a href="thread.html#1589">[ thread ]</a>
+              <a href="subject.html#1589">[ subject ]</a>
+              <a href="author.html#1589">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

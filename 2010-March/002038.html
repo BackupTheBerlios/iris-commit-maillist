@@ -1,0 +1,143 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r3279 - /trunk/lua/lib.thread.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2010-March/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3279%20-%20/trunk/lua/lib.thread.lua&In-Reply-To=%3C20100320003322.5E66F7A98079%40simon%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="002039.html">
+   <LINK REL="Next"  HREF="002040.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r3279 - /trunk/lua/lib.thread.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3279%20-%20/trunk/lua/lib.thread.lua&In-Reply-To=%3C20100320003322.5E66F7A98079%40simon%3E"
+       TITLE="[Iris-commit] [IRIS] r3279 - /trunk/lua/lib.thread.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat Mar 20 01:33:22 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="002039.html">[Iris-commit] [IRIS] r3278 - /trunk/lua/lib.thread.lua
+</A></li>
+        <LI>Next message: <A HREF="002040.html">[Iris-commit] [IRIS] r3280 - in /trunk: lua/lib.configdialog.hotkeys.lua lua/lib.granny.debug.lua lua/lib.granny.loader.lua lua/lib.macrolist.lua lua/net/net.skill.lua lua/net/net.uoam.lua plugins/itemcounter.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2038">[ date ]</a>
+              <a href="thread.html#2038">[ thread ]</a>
+              <a href="subject.html#2038">[ subject ]</a>
+              <a href="author.html#2038">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sat Mar 20 01:33:22 2010
+New Revision: 3279
+
+Log:
+threadtest : child copies received data and unlocks mutex before handling m=
+essages, so that message sending from other threads isn't blocked in case o=
+f longer handling
+
+Modified:
+    trunk/lua/lib.thread.lua
+
+Modified: trunk/lua/lib.thread.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.thread.lua (original)
++++ trunk/lua/lib.thread.lua Sat Mar 20 01:33:22 2010
+@@ -69,10 +69,8 @@
+ 	=
+
+ 	function MySend (msgtype,...)
+ 		thread:LockMutex()
+-		print(&quot;main:send. before fifosize=3D&quot;,fifo_send:Size())
+ 		fifo_send:PushUint8(msgtype)
+ 		FPush(fifo_send,gNetMessageParamFormat[msgtype],...)
+-		print(&quot;main:send. after  fifosize=3D&quot;,fifo_send:Size())
+ 		thread:UnLockMutex()
+ 		thread:Interrupt()
+ 	end
+@@ -89,7 +87,7 @@
+ 	for i=3D1,10 do =
+
+ 		print(&quot;main:send&quot;)
+ 		MySend(kThreadMessage_Debug,i,42,&quot;bla!&quot;)
+-		Client_USleep(5*1000) =
+
++		Client_USleep(2*1000) =
+
+ 	end
+ 	=
+
+ 	=
+
+@@ -108,10 +106,23 @@
+ 	RunThreadTest_RegisterMessageTypes()
+ 	--~ Thread_Sleep(5*1000)
+ 	=
+
++	=
+
++	function MySend (msgtype,...)
++		thread:LockMutex()
++		this_fifo_send:PushUint8(msgtype)
++		FPush(this_fifo_send,gNetMessageParamFormat[msgtype],...)
++		thread:UnLockMutex()
++		thread:Interrupt()
++	end
++	=
+
++	=
+
++	local local_fifo_recv =3D CreateFIFO()
+ 	while (true) do =
+
+ 		this_thread:LockMutex()
+-		RecvNetMessages(this_fifo_recv,function (msgtype,...) print(&quot;child:msg&quot;,=
+msgtype,...) end)
+-		this_thread:UnLockMutex()
++		local_fifo_recv:PushFIFOPartRaw(this_fifo_recv) -- move data from this_f=
+ifo_recv to local_fifo_recv
++		this_fifo_recv:Clear()
++		this_thread:UnLockMutex() -- release so we don't block while processing =
+messages
++		RecvNetMessages(local_fifo_recv,function (msgtype,...) print(&quot;child:msg&quot;=
+,msgtype,...) end)
+ 		Thread_Sleep(999*1000)
+ 	end
+ 	=
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="002039.html">[Iris-commit] [IRIS] r3278 - /trunk/lua/lib.thread.lua
+</A></li>
+	<LI>Next message: <A HREF="002040.html">[Iris-commit] [IRIS] r3280 - in /trunk: lua/lib.configdialog.hotkeys.lua lua/lib.granny.debug.lua lua/lib.granny.loader.lua lua/lib.macrolist.lua lua/net/net.skill.lua lua/net/net.uoam.lua plugins/itemcounter.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2038">[ date ]</a>
+              <a href="thread.html#2038">[ thread ]</a>
+              <a href="subject.html#2038">[ subject ]</a>
+              <a href="author.html#2038">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

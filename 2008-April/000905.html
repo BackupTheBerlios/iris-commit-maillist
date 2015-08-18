@@ -1,0 +1,163 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2094 - /trunk/lua/lib.3d.combat.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-April/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2094%20-%20/trunk/lua/lib.3d.combat.lua&In-Reply-To=%3C20080425232059.7EDCE1C1870E%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000904.html">
+   <LINK REL="Next"  HREF="000906.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2094 - /trunk/lua/lib.3d.combat.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2094%20-%20/trunk/lua/lib.3d.combat.lua&In-Reply-To=%3C20080425232059.7EDCE1C1870E%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2094 - /trunk/lua/lib.3d.combat.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat Apr 26 01:20:59 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000904.html">[Iris-commit] [IRIS] r2093 - in /trunk/lua: gui/gui.status.lua net/net.other.lua obj/obj.mobile.lua
+</A></li>
+        <LI>Next message: <A HREF="000906.html">[Iris-commit] [IRIS] r2095 - /trunk/lua/lib.unifont.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#905">[ date ]</a>
+              <a href="thread.html#905">[ thread ]</a>
+              <a href="subject.html#905">[ subject ]</a>
+              <a href="author.html#905">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: hagish
+Date: Sat Apr 26 01:20:59 2008
+New Revision: 2094
+
+Log:
+small damage text improvements
+
+Modified:
+    trunk/lua/lib.3d.combat.lua
+
+Modified: trunk/lua/lib.3d.combat.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.combat.lua (original)
++++ trunk/lua/lib.3d.combat.lua Sat Apr 26 01:20:59 2008
+@@ -1,4 +1,7 @@
+ Renderer3D.gCombatFadeDamageText =3D {}
++Renderer3D.gCombatFadeDamageTextQueue =3D {}
++Renderer3D.gCombatFadeDamageTextQueueNextPopTime =3D nil
++Renderer3D.gCombatFadeDamageTextQueueNextPopTimeout =3D 250
+ =
+
+ -- creates a moving and disapearing damage text at the given tile position=
+ (x,y,z) (lifetime in sec, speed in ?)
+ function Renderer3D:CombatCreateDamageText (text, x, y, z, r, g, b, a, siz=
+e, speed, lifetime)
+@@ -11,8 +14,7 @@
+ 	size =3D size or 0.50
+ 	lifetime =3D lifetime or 1.5
+ 	=
+
+-	o.starttime =3D gMyTicks
+-	o.deathtime =3D o.starttime + lifetime * 1000
++	o.lifetime =3D lifetime
+ 	o.speed =3D speed
+ 	=
+
+ 	-- tile -&gt; realpos
+@@ -34,13 +36,13 @@
+ 	o.gfx:SetText(text, size, r, g, b, a)
+ 	o.gfx:SetPosition(x,y,z)
+ 	o.gfx:SetCastShadows(false)
++	o.gfx:SetVisible(false)
+ 						 =
+
+-	table.insert(self.gCombatFadeDamageText,o)
++	table.insert(self.gCombatFadeDamageTextQueue,o)
+ end
+ =
+
+ -- helper to plop damage
+ function Renderer3D:NotifyDamage (serial, damage)
+-	print(&quot;DAMAGE&quot;,damage)
+ 	local mobile =3D GetMobile(serial)
+ 	if mobile and damage then
+ 		local r,g,b,a =3D 1.0, 1.0, 0.0, 0.8
+@@ -53,7 +55,6 @@
+ =
+
+ -- helper to plop hp adds
+ function Renderer3D:NotifyHPChange (serial, oldhp, newhp)
+-	print(&quot;HP CHANGE&quot;,oldhp,newhp)
+ 	local mobile =3D GetMobile(serial)
+ 	if mobile and oldhp and newhp then
+ 		local r,g,b,a =3D 0.0, 0.0, 0.0, 0.8
+@@ -69,7 +70,24 @@
+ end
+ =
+
+ function Renderer3D:CombatGuiStep ()
+-	local f =3D Client_GetPhysStepTime()
++	-- is the delay between the last one big enough?
++	if =
+
++		countarr(Renderer3D.gCombatFadeDamageTextQueue) &gt; 0 and
++		(
++			not Renderer3D.gCombatFadeDamageTextQueueNextPopTime or =
+
++			Renderer3D.gCombatFadeDamageTextQueueNextPopTime &lt;=3D gMyTicks
++		)
++	then
++		local o =3D table.remove(Renderer3D.gCombatFadeDamageTextQueue)
++		o.starttime =3D gMyTicks
++		o.deathtime =3D o.starttime + o.lifetime * 1000
++		=
+
++		table.insert(self.gCombatFadeDamageText,o)
++		o.gfx:SetVisible(true)
++		=
+
++		Renderer3D.gCombatFadeDamageTextQueueNextPopTime =3D gMyTicks + Renderer=
+3D.gCombatFadeDamageTextQueueNextPopTimeout
++	end
++	=
+
+ 	for k,o in pairs(self.gCombatFadeDamageText) do =
+
+ 		-- move the text towards the sky :)
+ 		local p =3D (gMyTicks - o.starttime) / (o.deathtime - o.starttime)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000904.html">[Iris-commit] [IRIS] r2093 - in /trunk/lua: gui/gui.status.lua net/net.other.lua obj/obj.mobile.lua
+</A></li>
+	<LI>Next message: <A HREF="000906.html">[Iris-commit] [IRIS] r2095 - /trunk/lua/lib.unifont.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#905">[ date ]</a>
+              <a href="thread.html#905">[ thread ]</a>
+              <a href="subject.html#905">[ subject ]</a>
+              <a href="author.html#905">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

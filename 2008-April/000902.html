@@ -1,0 +1,233 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2091 - in /trunk/lua: gui/gui.healthbar.lua lib.uoids.lua main.lua obj/obj.mobile.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-April/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2091%20-%20in%20/trunk/lua%3A%20gui/gui.healthbar.lua%0A%20lib.uoids.lua%20main.lua%20obj/obj.mobile.lua&In-Reply-To=%3C20080425170940.C84871C186F1%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000901.html">
+   <LINK REL="Next"  HREF="000903.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2091 - in /trunk/lua: gui/gui.healthbar.lua lib.uoids.lua main.lua obj/obj.mobile.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2091%20-%20in%20/trunk/lua%3A%20gui/gui.healthbar.lua%0A%20lib.uoids.lua%20main.lua%20obj/obj.mobile.lua&In-Reply-To=%3C20080425170940.C84871C186F1%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2091 - in /trunk/lua: gui/gui.healthbar.lua lib.uoids.lua main.lua obj/obj.mobile.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Fri Apr 25 19:09:40 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000901.html">[Iris-commit] [IRIS] r2090 - in /trunk: data/config.lua.dist include/builder.h lua/lib.compass.lua src/builder.cpp src/scripting.iris.cpp
+</A></li>
+        <LI>Next message: <A HREF="000903.html">[Iris-commit] [IRIS] r2092 - /trunk/lua/gui/gui.quit.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#902">[ date ]</a>
+              <a href="thread.html#902">[ thread ]</a>
+              <a href="subject.html#902">[ subject ]</a>
+              <a href="author.html#902">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Fri Apr 25 19:09:39 2008
+New Revision: 2091
+
+Log:
+healthbar now supports green(poison) and golden(cannot heal,bleed), added g=
+ump-exporter -eg
+
+Modified:
+    trunk/lua/gui/gui.healthbar.lua
+    trunk/lua/lib.uoids.lua
+    trunk/lua/main.lua
+    trunk/lua/obj/obj.mobile.lua
+
+Modified: trunk/lua/gui/gui.healthbar.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.healthbar.lua (original)
++++ trunk/lua/gui/gui.healthbar.lua Fri Apr 25 19:09:39 2008
+@@ -4,6 +4,12 @@
+ healthbarGump.dialogId =3D 2000001
+ healthbarGump.x =3D 0
+ healthbarGump.y =3D 0
++
++kStatBar_BarRed		=3D 2053
++kStatBar_BarBlue	=3D 2054
++kStatBar_BarGreen	=3D 2056
++kStatBar_BarGolden	=3D 2057
++ =
+
+ healthbarGump.Data =3D
+ 	 &quot;{ page 0 }&quot; ..
+ 	 &quot;{ gumppic 0 0 2051 healthbar }&quot; ..
+@@ -13,6 +19,7 @@
+ 	 &quot;{ gumppic 35 11 2054 hitsbar }&quot; ..
+ 	 &quot;{ gumppic 35 25 2054 manabar }&quot; ..
+ 	 &quot;{ gumppic 35 39 2054 stambar }&quot;
++	 =
+
+ healthbarGump.textline =3D {
+ }
+ =
+
+@@ -53,6 +60,36 @@
+ 	end
+ end
+ =
+
++-- color healthbar for poison/golden effect, called from mobile:UpdateFlag=
+s()
++function StatBar_UpdateMobileFlags (mobile)
++	local dialog =3D gHealthbarDialogs[mobile.serial]
++	if (not dialog) then return end
++	local bPoisoned	=3D TestBit(mobile.flag,kMobileFlag_Poisoned) =
+
++	local bGolden	=3D TestBit(mobile.flag,kMobileFlag_GoldenHealth) =
+
++	local iGumpID =3D kStatBar_BarBlue
++	local hueid =3D 0
++	if (bPoisoned)	then iGumpID =3D kStatBar_BarGreen end
++	if (bGolden)	then iGumpID =3D kStatBar_BarGolden end
++	local mat =3D GetGumpMat(iGumpID,hueid)
++	local widget =3D dialog.controls[&quot;hitsbar&quot;]
++	widget.gfx:SetMaterial(mat)
++	--[[ =
+
++	gui.gumpparser.lua:148:function GumpParser(Gumpdata, Clientsidemode)
++	{ gumppic 35 38 2054 hitsbar }
++	 { gumppic 35 11 2054 hitsbar }
++	 -- MakeBorderGumpPart( curparent, bToken[4], bToken[2], bToken[3], 0, 0,=
+ 0, tonumber(huenumber) )
++	local mat =3D GetGumpMat(iGumpID,hueid)
++	function gMobilePrototype:UpdateHealth (curvalue,maxvalue)
++			gCurrentRenderer:NotifyHPChange(self.serial, old, curvalue)
++			self.stats.curHits =3D curvalue
++			self.stats.maxHits =3D maxvalue
++			self:NotifyListener(&quot;Mobile_UpdateStats&quot;)
++		mobile:UpdateFlags
++			SetHitpoints(self.stats.curHits/self.stats.maxHits)
++			SetNpcHealthbarHitpoints(self, self.stats.curHits / self.stats.maxHits)
++	]]--
++end
++
+ -- sets the current hitpoints (in %), x is between 0.0 and 1.0
+ function SetHitpoints (x)
+ 	SetStatsBar(&quot;hitsbar&quot;,x)
+
+Modified: trunk/lua/lib.uoids.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.uoids.lua (original)
++++ trunk/lua/lib.uoids.lua Fri Apr 25 19:09:39 2008
+@@ -29,11 +29,11 @@
+ kMobileFlag_Unknown1		=3D hex2num(&quot;0x01&quot;)
+ kMobileFlag_Unknown2		=3D hex2num(&quot;0x02&quot;) -- either CanAlterPaperdoll (nec=
+ro) or Female (jerrit)
+ kMobileFlag_Poisoned		=3D hex2num(&quot;0x04&quot;)
+-kMobileFlag_GoldenHealth	=3D hex2num(&quot;0x08&quot;) -- =3D YellowHits , healthbar=
+ gets yellow
++kMobileFlag_GoldenHealth	=3D hex2num(&quot;0x08&quot;) -- =3D YellowHits , healthbar=
+ gets yellow (bleed attack, caused by troglodytes for example, can't healt =
+then)
+ kMobileFlag_FactionShip		=3D hex2num(&quot;0x10&quot;) -- unsure why client needs to=
+ know
+ kMobileFlag_Movable			=3D hex2num(&quot;0x20&quot;) -- Movable if normally not
+ kMobileFlag_WarMode			=3D hex2num(&quot;0x40&quot;)
+-kMobileFlag_Hidden			=3D hex2num(&quot;0x80&quot;)
++kMobileFlag_Hidden			=3D hex2num(&quot;0x80&quot;) -- probably self while hiding/ste=
+alth-walking, displayed as gray in original client
+ =
+
+ gSkillNumber =3D 55		--RunUO-ML
+ =
+
+
+Modified: trunk/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/main.lua (original)
++++ trunk/lua/main.lua Fri Apr 25 19:09:39 2008
+@@ -457,6 +457,25 @@
+ =
+
+ -- exports data if some commandline parameters are set
+ function InvokeExporters ()
++	if (gCommandLineArguments[1] =3D=3D &quot;-eg&quot;) then -- export gumps
++		local iGumpIDMin =3D gCommandLineArguments[gCommandLineSwitches[&quot;-eg&quot;]+1]
++		local iGumpIDMax =3D gCommandLineArguments[gCommandLineSwitches[&quot;-eg&quot;]+2]
++		for iGumpID =3D iGumpIDMin,iGumpIDMax do
++			local iHue =3D 0
++			print(&quot;exporting gump : &quot;,iGumpID)
++			local mat =3D GetGumpMat(iGumpID,iHue)
++			local tex =3D GetTexture(mat)
++			if (tex) then
++				local img =3D LoadImageFromTexture(tex)
++				local sFilePath =3D sprintf(&quot;../mygumps/gump%08d.png&quot;,iGumpID)
++				img:SaveAsFile(sFilePath)
++				img:Destroy()
++			end
++		end
++		print(&quot;done&quot;)
++		os.exit(0)
++	end
++	=
+
+ 	if (gCommandLineArguments[1] =3D=3D &quot;-ea&quot;) then -- export artmaps
+ 		local count =3D hex2num(&quot;0x00004000&quot;)
+ 		print(&quot;exporting artmaps : &quot;,count)
+
+Modified: trunk/lua/obj/obj.mobile.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/obj/obj.mobile.lua (original)
++++ trunk/lua/obj/obj.mobile.lua Fri Apr 25 19:09:39 2008
+@@ -186,6 +186,7 @@
+ 	=
+
+ 	if (self.old_flag ~=3D self.flag) then -- only if a change has occurred
+ 		self.old_flag  =3D self.flag
++		StatBar_UpdateMobileFlags(self)
+ 		self:NotifyListener(&quot;Mobile_UpdateFlags&quot;)
+ 	end
+ end
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000901.html">[Iris-commit] [IRIS] r2090 - in /trunk: data/config.lua.dist include/builder.h lua/lib.compass.lua src/builder.cpp src/scripting.iris.cpp
+</A></li>
+	<LI>Next message: <A HREF="000903.html">[Iris-commit] [IRIS] r2092 - /trunk/lua/gui/gui.quit.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#902">[ date ]</a>
+              <a href="thread.html#902">[ thread ]</a>
+              <a href="subject.html#902">[ subject ]</a>
+              <a href="author.html#902">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

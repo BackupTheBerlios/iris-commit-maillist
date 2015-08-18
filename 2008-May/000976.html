@@ -1,0 +1,608 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2166 - in /trunk/lua: lib.2d.cam.lua lib.2d.map.lua lib.2d.renderer.lua lib.3d.map.lua lib.3d.renderer.lua lib.loading.lua lib.map.lua lib.walking3.lua main.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-May/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2166%20-%20in%20/trunk/lua%3A%20lib.2d.cam.lua%0A%20lib.2d.map.lua%20lib.2d.renderer.lua%20lib.3d.map.lua%20lib.3d.renderer.lua%0A%20lib.loading.lua%20lib.map.lua%20lib.walking3.lua%20main.lua&In-Reply-To=%3C20080511023917.BAD021C1833D%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000975.html">
+   <LINK REL="Next"  HREF="000978.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2166 - in /trunk/lua: lib.2d.cam.lua lib.2d.map.lua lib.2d.renderer.lua lib.3d.map.lua lib.3d.renderer.lua lib.loading.lua lib.map.lua lib.walking3.lua main.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2166%20-%20in%20/trunk/lua%3A%20lib.2d.cam.lua%0A%20lib.2d.map.lua%20lib.2d.renderer.lua%20lib.3d.map.lua%20lib.3d.renderer.lua%0A%20lib.loading.lua%20lib.map.lua%20lib.walking3.lua%20main.lua&In-Reply-To=%3C20080511023917.BAD021C1833D%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2166 - in /trunk/lua: lib.2d.cam.lua lib.2d.map.lua lib.2d.renderer.lua lib.3d.map.lua lib.3d.renderer.lua lib.loading.lua lib.map.lua lib.walking3.lua main.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sun May 11 04:39:17 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000975.html">[Iris-commit] [IRIS] r2165 - /trunk/repairmusic.sh
+</A></li>
+        <LI>Next message: <A HREF="000978.html">[Iris-commit] [IRIS] r2167 - in /trunk/lua: lib.2d.map.lua	lib.map.lua main.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#976">[ date ]</a>
+              <a href="thread.html#976">[ thread ]</a>
+              <a href="subject.html#976">[ subject ]</a>
+              <a href="author.html#976">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sun May 11 04:39:16 2008
+New Revision: 2166
+
+Log:
+lib.map.lua : unified map caching, to be used by renderers,walkcode,macros =
+etc.. , maploader for 2d renderer startet (priority based design, to be exe=
+cuted in many small steps for smoother loading)
+
+Added:
+    trunk/lua/lib.2d.map.lua
+    trunk/lua/lib.map.lua
+Modified:
+    trunk/lua/lib.2d.cam.lua
+    trunk/lua/lib.2d.renderer.lua
+    trunk/lua/lib.3d.map.lua
+    trunk/lua/lib.3d.renderer.lua
+    trunk/lua/lib.loading.lua
+    trunk/lua/lib.walking3.lua
+    trunk/lua/main.lua
+
+Modified: trunk/lua/lib.2d.cam.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.cam.lua (original)
++++ trunk/lua/lib.2d.cam.lua Sun May 11 04:39:16 2008
+@@ -1,38 +1,10 @@
+ -- ortho cam
+ =
+
+---[[
+ =
+
+-	int w =3D cOgreWrapper::GetSingleton().mViewport-&gt;getActualWidth();
+-	int h =3D cOgreWrapper::GetSingleton().mViewport-&gt;getActualHeight();
+-
+-	Ogre::Matrix4 ViewportMatrix =3D Ogre::Matrix4::getScale( 2.0/w, -2.0/h, =
+1.0 ); // pixel-coordinate system =
+
+-	ViewportMatrix.setTrans(Ogre::Vector3(-1.0, +1.0,0.0)); // 0,0 =3D left-t=
+op
+-	pRenderSys._setViewMatrix(			ViewportMatrix );
+-	pRenderSys._setProjectionMatrix(	Ogre::Matrix4::IDENTITY );
+-	pRenderSys._setWorldMatrix( 		Ogre::Matrix4::IDENTITY );
+-]]--
+-
++Renderer2D.fCamPosXLoc =3D 0
++Renderer2D.fCamPosYLoc =3D 0
++Renderer2D.fCamPosZLoc =3D 0
+ Renderer2D.fCamDistClipAdd =3D 300
+-
+-Renderer2D.pCamTestBlocks =3D {}
+-
+-function Renderer2D:CamTestBlock ()
+-	local xloc,yloc =3D self:GetCamPos()
+-	local bx,by =3D math.floor(xloc/8 - 0.5),math.floor(yloc/8 - 0.5)
+-	if (self.pCamTestBlockX =3D=3D bx and self.pCamTestBlockY =3D=3D by) then=
+ return end
+-	--~ print(&quot;CamTestBlock&quot;,bx,by)
+-	=
+
+-	-- moved, new block
+-	self.pCamTestBlockX =3D bx
+-	self.pCamTestBlockY =3D by
+-	for k,v in pairs(self.pCamTestBlocks) do v:Destroy() end
+-	self.pCamTestBlocks =3D {}
+-	for ax =3D -2,2 do
+-	for ay =3D -2,2 do
+-		table.insert(self.pCamTestBlocks,MakeMultiTexTerrainGfx(bx+ax,by+ay))
+-	end
+-	end
+-end
+ =
+
+ function Renderer2D:CamTestTile ()
+ 	-- create water
+@@ -91,7 +63,8 @@
+ 	=
+
+ 	-- cam params that don't change
+ 	local cam =3D GetMainCam() =
+
+-	cam:SetFarClipDistance( 100000.0 )
++	--~ cam:SetFarClipDistance( 100000.0 )
++	cam:SetFarClipDistance( 2000.0 )
+ 	cam:SetProjectionType(kCamera_PT_ORTHOGRAPHIC)
+ 	cam:SetFOVy( gfDeg2Rad*90 )
+ 	=
+
+@@ -105,19 +78,18 @@
+ 	cam:SetRot(w,x,y,z)
+ 	=
+
+ 	-- main cam setup
+-	self.fCamPosXLoc =3D 653*8
+-	self.fCamPosYLoc =3D 424*8
+ 	self:CamUpdateParams()
+ end
+ =
+
+ -- returns xloc,yloc in uo coords
+-function Renderer2D:GetCamPos () return self.fCamPosXLoc,self.fCamPosYLoc =
+end
++function Renderer2D:GetCamPos () return self.fCamPosXLoc,self.fCamPosYLoc,=
+self.fCamPosZLoc end
+ =
+
+-function Renderer2D:SetCamPos (xloc,yloc)
++function Renderer2D:SetCamPos (xloc,yloc,zloc)
+ 	self.fCamPosXLoc =3D xloc
+ 	self.fCamPosYLoc =3D yloc
++	self.fCamPosZLoc =3D zloc or 0
+ 	local px,py,pz =3D Quaternion.ApplyToVector(0,0,self.fCamDist,unpack(self=
+.qCamRot))
+-	local x,y,z =3D self:UOPosToLocal(xloc,yloc,0)
++	local x,y,z =3D self:UOPosToLocal(xloc,yloc,zloc or 0)
+ 	GetMainCam():SetPos(px+x,py+y,pz+z)
+ end
+ =
+
+@@ -127,26 +99,12 @@
+ 		self:CamUpdateParams()
+ 	end
+ 	=
+
++	-- keyboard move cam
+ 	local curticks =3D Client_GetTicks()
+ 	local xloc,yloc =3D self:GetCamPos()
+ 	local move =3D 16 * gSecondsSinceLastFrame  * (gKeyPressed[key_lshift] an=
+d 8*16 or 1)
+ 	local dx =3D move * ((gKeyPressed[key_left] and -1 or 0) + (gKeyPressed[k=
+ey_right] and 1 or 0))
+ 	local dy =3D move * ((gKeyPressed[key_up] and -1 or 0) + (gKeyPressed[key=
+_down] and 1 or 0))
+ 	if (dx ~=3D 0 or dy ~=3D 0) then self:SetCamPos(xloc+dx,yloc+dy) end
+-	self:CamTestBlock()
+-	--~ print(&quot;Renderer2D:CamStep&quot;,math.floor(Renderer2D.gCamAngle/gfDeg2Rad))
+-	--~ local cam =3D GetMainCam() =
+
+-	--~ Renderer2D.gCamAngle =3D Renderer2D.gCamAngle + 0.2 * gfDeg2Rad
+-	--~ local w3,x3,y3,z3 =3D Quaternion.fromAngleAxis(Renderer2D.gCamAngle,1=
+,0,0)	=
+
+-
+-	--~ cam:SetRot(w3,x3,y3,z3)
+ end
+ =
+
+-function Renderer2D:CorrectAspectRatio ()
+-	if (not self.gbNeedCorrectAspectRatio) then return end
+-	self.gbNeedCorrectAspectRatio =3D false
+-	local vp =3D GetMainViewport()
+-	--~ GetMainCam():SetAspectRatio(vp:GetActualWidth() / vp:GetActualHeight(=
+))
+-end
+-
+-
+
+Modified: trunk/lua/lib.2d.renderer.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.renderer.lua (original)
++++ trunk/lua/lib.2d.renderer.lua Sun May 11 04:39:16 2008
+@@ -8,6 +8,7 @@
+ Renderer2D =3D {}
+ =
+
+ dofile(libpath .. &quot;lib.2d.cam.lua&quot;)
++dofile(libpath .. &quot;lib.2d.map.lua&quot;)
+ =
+
+ function Renderer2D:FirstInit ()
+ 	if (self.bFirstInitDone) then return end
+@@ -35,8 +36,20 @@
+ 	self.gbActive =3D false
+ end
+ =
+
++-- called from mainstep while ingame
++function Renderer2D:MainStep	()
++	self:CamStep()
++	self:MapStep()
++	-- TODO : self:CombatGuiStep() ?
++	-- TODO : self:MobileAnimStep() ?
++	-- TODO : self:MousePickStep() ?
++end
+ =
+
+-function Renderer2D:DestroyMobileGfx				() end
++ -- 653*8
++ -- 424*8
++
++ =
+
++ function Renderer2D:DestroyMobileGfx				() end
+ function Renderer2D:DestroyMousePickItemBySerial	() end
+ function Renderer2D:RemoveDynamicItem				() end
+ function Renderer2D:AddDynamicItem					() end
+@@ -56,11 +69,9 @@
+ -- used by MacroRead_GetPlayerPosition when no playermobile found (yet)
+ function Renderer2D:GetExactLocalPos() return 0,0,0 end
+ =
+
+-function Renderer2D:UpdateMap					() end -- called from mainstep while ing=
+ame
+ function Renderer2D:MousePickStep				() end
+-function Renderer2D:CombatGuiStep				() end
+-function Renderer2D:MobileAnimStep				() end
+-function Renderer2D:SetOfflineStartPos			(x,y,z) end
++function Renderer2D:SetOfflineStartPos			(x,y,z) self:SetCamPos(-x,y,z) end
++
+ =
+
+ function Renderer2D:UpdateMobileModel			() end -- check equipment change e=
+tc
+ function Renderer2D:UpdateMobile				() end -- ???
+@@ -98,7 +109,7 @@
+ function Renderer2D:NotifyHPChange				(serial, old, curvalue) end
+ function Renderer2D:NotifyPlayerTeleported		() end
+ function Renderer2D:BlendOutLayersAbovePlayer	() end
+-function Renderer2D:ClearMapCache				() end
++function Renderer2D:ClearMapCache				() self:MapClear() end
+ =
+
+ function Renderer2D:TerrainRayIntersect_Hit		(...) end -- ??? might not be=
+ needed
+ =
+
+
+Modified: trunk/lua/lib.3d.map.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.map.lua (original)
++++ trunk/lua/lib.3d.map.lua Sun May 11 04:39:16 2008
+@@ -66,16 +66,6 @@
+ 	end
+ end
+ =
+
+--- returns tiletype,z        posx,posy in absolute tilecoords
+-function GetGroundAtAbsPos (xloc,yloc)
+-	local bx,by =3D math.floor(xloc/8),math.floor(yloc/8)
+-	return gGroundBlockLoader:GetTile(bx,by,xloc-8*bx,yloc-8*by)
+-end
+-
+--- returns an array,  {{artid=3D?,zloc=3D?,hue=3D?},{artid=3D?,zloc=3D?,hu=
+e=3D?},...}
+-function GetStaticsAtAbsPos (xloc,yloc)
+-	return W3_GetStaticTiles(xloc,yloc) -- o.artid,o.zloc,o.hue   -- todo... =
+other caching ?
+-end
+ =
+
+ -- param is the area where normal mapblocks are loaded
+ function Renderer3D:RebuildLowDetailTerrain (minx,maxx,miny,maxy)
+
+Modified: trunk/lua/lib.3d.renderer.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.renderer.lua (original)
++++ trunk/lua/lib.3d.renderer.lua Sun May 11 04:39:16 2008
+@@ -26,6 +26,13 @@
+ 	gTileFreeWalk:SetPos_All(x+0.5,y+0.5,z) -- + for both might be wrong..
+ end
+ =
+
++function Renderer3D:MainStep	()
++	self:CombatGuiStep()
++	self:MobileAnimStep()
++	self:CamStep()
++	self:UpdateMap()
++	self:MousePickStep()
++end
+ =
+
+ =
+
+ function Renderer3D:SetLastConfirmedUOPos(xloc,yloc,zloc) gTileFreeWalk:Im=
+pl_SetLastConfirmedUOPos(xloc,yloc,zloc) end -- walk
+
+Modified: trunk/lua/lib.loading.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.loading.lua (original)
++++ trunk/lua/lib.loading.lua Sun May 11 04:39:16 2008
+@@ -246,6 +246,7 @@
+ 	if (gGroundBlockLoader) then gGroundBlockLoader:Destroy() gGroundBlockLoa=
+der =3D nil end
+ 	if (gStaticBlockLoader) then gStaticBlockLoader:Destroy() gStaticBlockLoa=
+der =3D nil end
+ 	gCurrentRenderer:ClearMapCache()
++	MapClearCache()
+ end
+ =
+
+ -- Loads Maps+Statics+Diff Files (only pre 6.0.0)
+@@ -258,6 +259,7 @@
+ =
+
+ 	profile:StartSection(&quot;clearcache&quot;)
+ 	gCurrentRenderer:ClearMapCache()
++	MapClearCache()
+ 	print(&quot;gMapIndex&quot;,gMapIndex)
+ =
+
+ 	if (not gInitialMapLoaded) then LoadingProfile(&quot;load MapInfo&quot;) end
+
+Modified: trunk/lua/lib.walking3.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.walking3.lua (original)
++++ trunk/lua/lib.walking3.lua Sun May 11 04:39:16 2008
+@@ -20,9 +20,7 @@
+ kAlwaysIgnoreDoors			=3D false
+ kIgnoreMovableImpassables	=3D false
+ =
+
+-gW3CacheBlocks =3D {}
+ gW3ItemTypeFlagsCache =3D {}
+-kW3CacheBlocks_MaxSqDist =3D 8*8
+ =
+
+ -- returns bClientSidePassable,zloc
+ function GetNearestGroundLevel (xloc,yloc,iStartZ,iDir)
+@@ -52,59 +50,6 @@
+ 	return bMoveIsOk,newZ
+ end
+ =
+
+-
+-
+-
+-function W3_GetCacheBlock (xloc,yloc)
+-	local bx =3D math.floor(xloc/8) -- block
+-	local by =3D math.floor(yloc/8) -- block
+-	local n =3D bx..&quot;,&quot;..by
+-	local b =3D gW3CacheBlocks[n]
+-	if (b) then return b end
+-	=
+
+-	-- create new cacheblock
+-	b =3D { bx=3Dbx,by=3Dby }
+-	gW3CacheBlocks[n] =3D b
+-	=
+
+-	-- erase blocks outside maxdist
+-	for k,v in pairs(gW3CacheBlocks) do
+-		if (sqdist2(v.bx,v.by,bx,by) &gt; kW3CacheBlocks_MaxSqDist) then
+-			gW3CacheBlocks[k] =3D nil -- erase block from cache
+-		end
+-	end
+-	=
+
+-	-- statics
+-	b.statics =3D {}
+-	gStaticBlockLoader:Load(bx,by) -- following gStaticBlockLoader commands o=
+perate on this loaded block
+-	local iStaticCount =3D gStaticBlockLoader:Count()
+-	for i =3D 0,iStaticCount-1 do
+-		local iTileTypeID,iX,iY,iZ,iHue =3D gStaticBlockLoader:GetStatic(i)
+-		local xloc,yloc =3D bx*8 + iX,by*8 + iY
+-		local n =3D xloc..&quot;,&quot;..yloc
+-		local arr =3D b.statics[n]
+-		if (not arr) then arr =3D {} b.statics[n] =3D arr end
+-		table.insert(arr,{zloc=3DiZ,artid=3DiTileTypeID,hue=3DiHue,bIsStatic=3Dt=
+rue})
+-	end
+-	=
+
+-	-- ground
+-	b.ground =3D {}
+-	for ty =3D 0,7 do
+-	for tx =3D 0,7 do
+-		local xloc,yloc =3D bx*8+tx,by*8+ty
+-		local iTileType,zloc =3D gGroundBlockLoader:GetTile2(xloc,yloc)  -- TODO=
+ : season translation ??? iTranstile	=
+
+-		-- RunUO1.0/src/TileMatrix.cs:600: public bool Ignored
+-		local bIgnored =3D iTileType =3D=3D 2 or iTileType =3D=3D 0x1DB or ( iTi=
+leType &gt;=3D 0x1AE and iTileType &lt;=3D 0x1B5 )
+-		b.ground[xloc..&quot;,&quot;..yloc] =3D {iTileType=3DiTileType,zloc=3Dzloc,bIgnore=
+d=3DbIgnored,flags=3DGetGroundTileType(iTileType).miFlags}
+-	end
+-	end
+-	=
+
+-	return b
+-end
+-
+-function W3_GetStaticTiles		(xloc,yloc)	return W3_GetCacheBlock(xloc,yloc)=
+.statics[xloc..&quot;,&quot;..yloc] or {} end =
+
+-function W3_GetLandTile			(xloc,yloc)	return W3_GetCacheBlock(xloc,yloc).g=
+round[xloc..&quot;,&quot;..yloc] end
+-function W3_GetMapW				()			return gGroundBlockLoader:GetMapW() * 8 end
+-function W3_GetMapH				()			return gGroundBlockLoader:GetMapH() * 8 end
+ =
+
+ -- old : Movable runuo:ImplFlag.Movable , probably true for dynamic, false=
+ for static    (door?)
+ function W3_ItemIsMovable		(item)		return not item.bIsStatic end
+@@ -130,9 +75,7 @@
+ =
+
+ -- considers statics, dynamics and multis
+ function W3_ForAllItemsAtPos	(xloc,yloc,fun,param)
+-	local b =3D W3_GetCacheBlock(xloc,yloc)
+-	local n =3D xloc..&quot;,&quot;..yloc
+-	for k,static in pairs(b.statics[n] or {}) do fun(static,param) end
++	for k,static in pairs(MapGetStatics(xloc,yloc)) do fun(static,param) end
+ 	for k,dynamic in pairs(GetDynamicList()) do
+ 		if (DynamicIsInWorld(dynamic) and dynamic.artid) then
+ 			if (dynamic.artid &gt;=3D gMulti_ID) then -- multi =
+
+@@ -149,10 +92,10 @@
+ -- returns min,avg,max of 4 vertices
+ function W3_GetAverageZ			(xloc,yloc)			=
+
+ 	-- /cavern/RunUO1.0/src/Map.cs:173:        public void GetAverageZ
+-	local zTop		=3D W3_GetLandTile(xloc  ,yloc  ).zloc
+-	local zLeft		=3D W3_GetLandTile(xloc  ,yloc+1).zloc
+-	local zRight	=3D W3_GetLandTile(xloc+1,yloc  ).zloc
+-	local zBottom	=3D W3_GetLandTile(xloc+1,yloc+1).zloc
++	local zTop		=3D MapGetGround(xloc  ,yloc  ).zloc
++	local zLeft		=3D MapGetGround(xloc  ,yloc+1).zloc
++	local zRight	=3D MapGetGround(xloc+1,yloc  ).zloc
++	local zBottom	=3D MapGetGround(xloc+1,yloc+1).zloc
+ =
+
+ 	local z,top,avg =3D zTop,zTop
+ 	if ( zLeft   &lt; z ) then z =3D zLeft	end
+@@ -184,7 +127,7 @@
+ 	local xLeft		, yLeft		=3D ApplyDir( d - 1, xStart	,yStart	)
+ 	local xRight	, yRight	=3D ApplyDir( d + 1, xStart	,yStart	)
+ =
+
+-	if ( xForward &lt; 0 or yForward &lt; 0 or xForward &gt;=3D W3_GetMapW() or yForwa=
+rd &gt;=3D W3_GetMapH() ) then return false,newZ end
++	if ( xForward &lt; 0 or yForward &lt; 0 or xForward &gt;=3D MapGetWInTiles() or yF=
+orward &gt;=3D MapGetHInTiles() ) then return false,newZ end
+ 	=
+
+ 	local checkDiagonals =3D DirIsDiagonal(d) -- see lib.protocol.lua:56:
+ =
+
+@@ -262,13 +205,13 @@
+ function W3_Check(  mobile,  items,  x,  y,  startTop,  startZ,  canSwim, =
+ cantWalk )
+ 	local newZ =3D 0
+ =
+
+-	local tiles			 =3D W3_GetStaticTiles( x, y ) -- Tile[]
+-	local landTile		 =3D W3_GetLandTile( x, y ) -- Tile
++	local tiles			 =3D MapGetStatics( x, y ) -- Tile[]
++	local landTile		 =3D MapGetGround( x, y ) -- Tile
+ 	local landTileFlags  =3D landTile.flags
+ 	local landTileIsWet	 =3D TestMask(landTileFlags,kTileFlag.Wet)
+ =
+
+ 	local landBlocks =3D TestMask(landTileFlags,kTileFlag.Impassable) -- bool
+-	local considerLand =3D not landTile.bIgnored -- bool
++	local considerLand =3D not landTile.bIgnoredByWalk -- bool
+ =
+
+ 	if ( landBlocks and canSwim and landTileIsWet ) then
+ 		landBlocks =3D false
+@@ -421,7 +364,7 @@
+ 	local landZ 		=3D 0
+ 	local landCenter	=3D 0
+ 	local landTop		=3D 0
+-	local landTile 		=3D W3_GetLandTile( posx, posy ) -- Tile
++	local landTile 		=3D MapGetGround( posx, posy ) -- Tile
+ 	local landTileFlags	=3D landTile.flags
+ 	local landBlocks	=3D TestMask(landTileFlags, kTileFlag.Impassable)
+ =
+
+@@ -433,7 +376,7 @@
+ =
+
+ 	landZ,landCenter,landTop =3D W3_GetAverageZ( posx, posy)
+ =
+
+-	local considerLand =3D not landTile.bIgnored
++	local considerLand =3D not landTile.bIgnoredByWalk
+ =
+
+ 	local zCenter =3D 0
+ 	local isSet =3D false
+@@ -445,7 +388,7 @@
+ 		isSet =3D true
+ 	end
+ =
+
+-	local staticTiles =3D W3_GetStaticTiles( posx, posy ) -- Tile[]
++	local staticTiles =3D MapGetStatics( posx, posy ) -- Tile[]
+ =
+
+ 	for i,tile in pairs(staticTiles) do -- Tile
+ 		local itemtype =3D GetStaticTileType(BitwiseAND(tile.artid , 0x3FFF)) --=
+ ItemData
+
+Modified: trunk/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/main.lua (original)
++++ trunk/lua/main.lua Sun May 11 04:39:16 2008
+@@ -46,6 +46,7 @@
+ dofile(libpath .. &quot;lib.protocol.lua&quot;)
+ dofile(libpath .. &quot;lib.mousepick.lua&quot;)
+ dofile(libpath .. &quot;lib.data.lua&quot;)
++dofile(libpath .. &quot;lib.map.lua&quot;)
+ dofile(libpath .. &quot;lib.cliloc.lua&quot;)
+ dofile(libpath .. &quot;lib.macrolist.lua&quot;)
+ dofile(libpath .. &quot;lib.walking2.lua&quot;)
+@@ -381,14 +382,10 @@
+ 	NetStep()
+ =
+
+ 	if (gInGameStarted) then
+-		gCurrentRenderer:UpdateMap()
+-		gCurrentRenderer:MousePickStep()
++		gCurrentRenderer:MainStep()
+ 		StepUODragDrop()
++		GuiStep()
+ 		PingStep()
+-		gCurrentRenderer:CombatGuiStep()
+-		gCurrentRenderer:MobileAnimStep()
+-		gCurrentRenderer:CamStep()
+-		GuiStep()
+ 	else
+ 		StepMainMenu()
+ 	end
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000975.html">[Iris-commit] [IRIS] r2165 - /trunk/repairmusic.sh
+</A></li>
+	<LI>Next message: <A HREF="000978.html">[Iris-commit] [IRIS] r2167 - in /trunk/lua: lib.2d.map.lua	lib.map.lua main.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#976">[ date ]</a>
+              <a href="thread.html#976">[ thread ]</a>
+              <a href="subject.html#976">[ subject ]</a>
+              <a href="author.html#976">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

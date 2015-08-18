@@ -1,0 +1,184 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r3265 - in /trunk: include/builder.h	src/builder_L.cpp
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2010-March/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3265%20-%20in%20/trunk%3A%20include/builder.h%0A%09src/builder_L.cpp&In-Reply-To=%3C20100306171523.4B75D54D0007%40simon%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="002024.html">
+   <LINK REL="Next"  HREF="002026.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r3265 - in /trunk: include/builder.h	src/builder_L.cpp</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3265%20-%20in%20/trunk%3A%20include/builder.h%0A%09src/builder_L.cpp&In-Reply-To=%3C20100306171523.4B75D54D0007%40simon%3E"
+       TITLE="[Iris-commit] [IRIS] r3265 - in /trunk: include/builder.h	src/builder_L.cpp">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat Mar  6 18:15:23 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="002024.html">[Iris-commit] [IRIS] r3264 - in /trunk/lua:	lib.configdialog.hotkeys.lua lib.macrolist.lua
+</A></li>
+        <LI>Next message: <A HREF="002026.html">[Iris-commit] [IRIS] r3266 - in /trunk/lua:	lib.configdialog.hotkeys.lua lib.macrolist.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2025">[ date ]</a>
+              <a href="thread.html#2025">[ thread ]</a>
+              <a href="subject.html#2025">[ subject ]</a>
+              <a href="author.html#2025">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: hagish
+Date: Sat Mar  6 18:15:23 2010
+New Revision: 3265
+
+Log:
+compiles with ogre 1.7 : user object removed and some unused functions chan=
+ged the signature
+
+Modified:
+    trunk/include/builder.h
+    trunk/src/builder_L.cpp
+
+Modified: trunk/include/builder.h
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/include/builder.h (original)
++++ trunk/include/builder.h Sat Mar  6 18:15:23 2010
+@@ -10,13 +10,17 @@
+ class 	lua_State;
+ void	LuaRegisterBuilder 	(lua_State *L);
+ =
+
++#if OGRE_VERSION &lt; 0x10700
+ namespace Lugre {
+ 	class cOgreUserObjectWrapper;
+ };
++#endif
+ =
+
+ class cMeshEntity : public Lugre::cSmartPointable { public:
+ 	Ogre::Entity*			mpOgreEntity;
++#if OGRE_VERSION &lt; 0x10700
+ 	cOgreUserObjectWrapper* mpUserObject;
++#endif
+ 	=
+
+ 	cMeshEntity(const char* szMeshName);
+ 	virtual ~cMeshEntity();
+
+Modified: trunk/src/builder_L.cpp
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/src/builder_L.cpp (original)
++++ trunk/src/builder_L.cpp Sat Mar  6 18:15:23 2010
+@@ -17,11 +17,17 @@
+ using namespace Lugre;
+ =
+
+ =
+
++#if OGRE_VERSION &lt; 0x10700
+ cMeshEntity::cMeshEntity(const char* szMeshName) : mpOgreEntity(0), mpUser=
+Object(0) {
++#else
++cMeshEntity::cMeshEntity(const char* szMeshName) : mpOgreEntity(0) {
++#endif
+ 	if (szMeshName) {
+ 		mpOgreEntity =3D cOgreWrapper::GetSingleton().mSceneMgr-&gt;createEntity(cO=
+greWrapper::GetUniqueName(),szMeshName);
++#if OGRE_VERSION &lt; 0x10700
+ 		mpUserObject =3D new cOgreUserObjectWrapper();
+ 		mpOgreEntity-&gt;setUserObject(mpUserObject); // for mousepicking
++#endif
+ 	}
+ }
+ =
+
+@@ -29,7 +35,9 @@
+ 	if (mpOgreEntity) =
+
+ 		cOgreWrapper::GetSingleton().mSceneMgr-&gt;destroyEntity(mpOgreEntity);
+ 	mpOgreEntity =3D 0;
++#if OGRE_VERSION &lt; 0x10700
+ 	if (mpUserObject) delete mpUserObject; mpUserObject =3D 0;
++#endif
+ }
+ =
+
+ // mpOgreEntity-&gt;setCastShadows(false);
+@@ -75,7 +83,9 @@
+ 			=
+
+ 			#define REGISTER_METHOD(methodname) mlMethod.push_back(make_luaL_reg(#m=
+ethodname,&amp;cMeshEntity_L::methodname));
+ 			REGISTER_METHOD(Destroy);
++#if OGRE_VERSION &lt; 0x10700
+ 			REGISTER_METHOD(SetUserObject);
++#endif
+ 			REGISTER_METHOD(RayPick);
+ 			#undef REGISTER_METHOD
+ 		}
+@@ -117,7 +127,8 @@
+ 			lua_pushnumber(L,iFaceNum);
+ 			return 3;
+ 		}
+-		=
+
++
++#if OGRE_VERSION &lt; 0x10700		=
+
+ 		static int	SetUserObject	(lua_State *L) { PROFILE =
+
+ 			cMeshEntity* 			pMeshEntity =3D checkudata_alive(L);
+ 			cOgreUserObjectWrapper* pUserObject =3D pMeshEntity ? pMeshEntity-&gt;mpUs=
+erObject : 0;
+@@ -130,7 +141,7 @@
+ 			}
+ 			return 0; =
+
+ 		}
+-		=
+
++#endif		=
+
+ 		virtual const char* GetLuaTypeName () { return &quot;iris.meshentity&quot;; }
+ };
+ =
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="002024.html">[Iris-commit] [IRIS] r3264 - in /trunk/lua:	lib.configdialog.hotkeys.lua lib.macrolist.lua
+</A></li>
+	<LI>Next message: <A HREF="002026.html">[Iris-commit] [IRIS] r3266 - in /trunk/lua:	lib.configdialog.hotkeys.lua lib.macrolist.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2025">[ date ]</a>
+              <a href="thread.html#2025">[ thread ]</a>
+              <a href="subject.html#2025">[ subject ]</a>
+              <a href="author.html#2025">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

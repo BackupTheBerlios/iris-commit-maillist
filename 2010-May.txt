@@ -1,0 +1,1681 @@
+From no-reply at zwischenwelt.org  Sun May  2 15:00:44 2010
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Sun, 02 May 2010 13:00:44 -0000
+Subject: [Iris-commit] [IRIS] r3322 - in /trunk:
+ config/shards/vetus-mundus.xml lua/gui/gui.chat.lua lua/gui/gui.skill.lua
+ lua/lib.shardlist.lua lua/lib.spellbooks.lua lua/lib.spellinfo.lua
+ lua/lib.uoids.lua lua/net/net.other.lua lua/net/net.skill.lua
+Message-ID: <20100502130044.EAFD17A98179@simon>
+
+Author: ghoulsblade
+Date: Sun May  2 15:00:44 2010
+New Revision: 3322
+
+Log:
+fixed poison display bug in uo v7+, added mysticism and imbuing skillids, s=
+hardconfig:vetus-mundus: reported version set to 7.0.6.5
+
+Modified:
+    trunk/config/shards/vetus-mundus.xml
+    trunk/lua/gui/gui.chat.lua
+    trunk/lua/gui/gui.skill.lua
+    trunk/lua/lib.shardlist.lua
+    trunk/lua/lib.spellbooks.lua
+    trunk/lua/lib.spellinfo.lua
+    trunk/lua/lib.uoids.lua
+    trunk/lua/net/net.other.lua
+    trunk/lua/net/net.skill.lua
+
+Modified: trunk/config/shards/vetus-mundus.xml
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/config/shards/vetus-mundus.xml (original)
++++ trunk/config/shards/vetus-mundus.xml Sun May  2 15:00:44 2010
+@@ -1,6 +1,6 @@
+ <table>
+     <string key=3D"gLoginname"></string>
+-    <string key=3D"gClientVersion">7.0.0.0</string>
++    <string key=3D"gClientVersion">7.0.6.5</string>
+     <boolean key=3D"gPolServer">false</boolean>
+     <number key=3D"gServerSeed">4294967295</number>
+     <number key=3D"gLoginServerPort">2594</number>
+
+Modified: trunk/lua/gui/gui.chat.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.chat.lua (original)
++++ trunk/lua/gui/gui.chat.lua Sun May  2 15:00:44 2010
+@@ -125,6 +125,7 @@
+ 		--~ GuiChatDistributeLineToChannels(line)
+ 	--~ end
+ 	=
+
++	if (src =3D=3D "skillupdate") then print(line) end
+ 	-- TODO : temporary fix, replace this with a split by newline and add ind=
+ividual lines
+ 	AddSingleFadeLine(string.gsub(line, "\n", ""),color)
+ end
+
+Modified: trunk/lua/gui/gui.skill.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.skill.lua (original)
++++ trunk/lua/gui/gui.skill.lua Sun May  2 15:00:44 2010
+@@ -115,7 +115,7 @@
+ 	-- print("SKILL DEBUG",value,last_value,base_value,last_base_value)
+ 	if value and last_value and (last_value ~=3D value) then
+ 		-- display change
+-		GuiAddChatLine("Skill "..name.." is now "..sprintf("%3.1f",value / 10)..=
+" -> "..sprintf("%3.1f",(value-last_value) / 10),gStatsInfoFadeLineColor)
++		GuiAddChatLine("Skill "..name.." is now "..sprintf("%3.1f",value / 10)..=
+" -> "..sprintf("%3.1f",(value-last_value) / 10),gStatsInfoFadeLineColor,"s=
+killupdate")
+ 	end
+ 	=
+
+ 	-- update entry
+
+Modified: trunk/lua/lib.shardlist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.shardlist.lua (original)
++++ trunk/lua/lib.shardlist.lua Sun May  2 15:00:44 2010
+@@ -69,7 +69,7 @@
+ 		for k,skill in pairs(chardata.skills) do skill.id =3D k end
+ 		local skills2 =3D SortedArrayFromAssocTable(chardata.skills,function (a,=
+b) return a.value > b.value end)
+ 		for k,skill in ipairs(skills2) do  -- skill.value >=3D 50 -> 5.0 skillpo=
+ints
+-			if (skill.value >=3D 50) then table.insert(arr,glSkillNamesShort[skill.=
+id]..":"..(valname[skill.value] or sprintf("%0.1f",skill.value/10))) end
++			if (skill.value >=3D 50) then table.insert(arr,(glSkillNamesShort[skill=
+.id] or ("s"..skill.id))..":"..(valname[skill.value] or sprintf("%0.1f",ski=
+ll.value/10))) end
+ 			if (k >=3D 7) then break end
+ 		end
+ 		charinfo =3D charinfo .. table.concat(arr,",")
+
+Modified: trunk/lua/lib.spellbooks.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.spellbooks.lua (original)
++++ trunk/lua/lib.spellbooks.lua Sun May  2 15:00:44 2010
+@@ -315,6 +315,11 @@
+ =
+
+ =
+
+ gSpellIDByName =3D {}
++
++-- mysticism
++gSpellIDByName["Healing Stone"	] =3D 0x02A7 =
+
++gSpellIDByName["Enchant"		] =3D 0x02A9 =
+
++
+ gSpellNameByID =3D {}
+ gSpellCircleByID =3D {}
+ gSpellBookIDBySpellID =3D {}
+
+Modified: trunk/lua/lib.spellinfo.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.spellinfo.lua (original)
++++ trunk/lua/lib.spellinfo.lua Sun May  2 15:00:44 2010
+@@ -164,3 +164,15 @@
+ RegisterSpell_Spellweaving( "Gift of Life", "Illorae", -1)
+ RegisterSpell_Spellweaving( "Arcane Empowerment", "Aslavdra", -1) -- vm, n=
+ot in runuo?
+ =
+
++--[[
++TODO:mysticism: (see http://www.uoguide.com/Mysticism)
++nether bolt : in corp ylem  4 mana, 0skill, black perl, sulf ash
++healing stone: kal in mani  4 mana, 0skill, bone,garlic,ginseng,spidersilk
++purge magic: an ort sanct	6 mana, 8skill, fertiledirt,garlic,mandrake,sulf=
+urash
++enchant: in ort ylem		6 mana, 8skill, spidersilk,mandrake,sulfurash
++sleep: in zu				9 mana,20skill,	nightshade,spidersilk,blackperl
++eagle strike:kal por xen	9 mana,20skill, bloodmoss,bone,spidersilk,mandrake
++...
++
++]]--
++
+
+Modified: trunk/lua/lib.uoids.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.uoids.lua (original)
++++ trunk/lua/lib.uoids.lua Sun May  2 15:00:44 2010
+@@ -420,7 +420,10 @@
+ 	[52]	=3D "Chivalry",
+ 	[53]	=3D "Bushido",
+ 	[54]	=3D "Ninjitsu",
+-	[55]	=3D "Spellweaving"	-- ? correct?
++	[55]	=3D "Spellweaving",	-- ? correct?
++	=
+
++	[56]	=3D "Mysticism",
++	[57]	=3D "Imbuing",
+ }
+ =
+
+ =
+
+
+Modified: trunk/lua/net/net.other.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.other.lua (original)
++++ trunk/lua/net/net.other.lua Sun May  2 15:00:44 2010
+@@ -60,7 +60,7 @@
+ 		local healthbarcol	=3D input:PopNetUint16() --  (1=3Dgreen, 2=3Dyellow, =
+>2=3Dred?)
+ 		local action		=3D input:PopNetUint8() --  BYTE[1] Flag (0=3DRemove healt=
+h bar color, 1=3DEnable health bar color)
+ 		print("healthbarcol =3D ",serial,unknown1,healthbarcol,action)
+-		local bEnable		=3D action =3D=3D 1
++		local bEnable		=3D action ~=3D 0  -- poisonlevel ?  lesser:1 greater:3
+ 		local mask
+ 		if (healthbarcol =3D=3D 1) then mask =3D kMobileFlag_Poisoned end
+ 		if (healthbarcol =3D=3D 2) then mask =3D kMobileFlag_GoldenHealth end
+@@ -81,8 +81,9 @@
+ 	end
+ 	=
+
+ end
+---~ 00 0d ba 5b 00 01 00 01 01                        |...[.....|
++--~ 00 0d ba 5b 00 01 00 01 01                        |...[.....| -- lesse=
+r?
+ --~ 00 0d ba 5b 00 01 00 01 00                        |...[.....|
++--~ 00 0d ba 5b 00 01 00 01 03                        |...[.....| -- great=
+er poison
+ =
+
+ function gPacketHandler.kPacket_Change_Update_Range ()	-- 0xC8
+ 	local input =3D GetRecvFIFO()
+
+Modified: trunk/lua/net/net.skill.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.skill.lua (original)
++++ trunk/lua/net/net.skill.lua Sun May  2 15:00:44 2010
+@@ -50,7 +50,7 @@
+ 			local skill_value =3D input:PopNetUint16()		--skill_value*10
+ 			local skill_base_value =3D input:PopNetUint16()	--unmodified value *10
+ 			local skill_lock_state =3D input:PopNetUint8()	--(0=3Dup, 1=3Ddown, 2=
+=3Dlocked)
+-			local skill_name =3D glSkillNames[skill_id] or "unknown"
++			local skill_name =3D glSkillNames[skill_id] or ("unknown_"..skill_id)
+ 			local skill_cap
+ 			if (bHasCap) then skill_cap =3D input:PopNetUint16() end
+ 			printdebug("skill",sprintf("NET (todo): skill: %s [id=3D%i] skill_value=
+: %i skill_base_value: %i locked?: %i\n",skill_name,skill_id,skill_value,sk=
+ill_base_value,skill_lock_state))
+@@ -66,7 +66,7 @@
+ 		local skill_value =3D input:PopNetUint16()		--skill_value*10
+ 		local skill_base_value =3D input:PopNetUint16()	--unmodified value *10
+ 		local skill_lock_state =3D input:PopNetUint8()	--(0=3Dup, 1=3Ddown, 2=3D=
+locked)
+-		local skill_name =3D glSkillNames[skill_id] or "unknown"
++		local skill_name =3D glSkillNames[skill_id] or ("unknown_"..skill_id)
+ 		local skill_cap
+ 		if (bHasCap) then skill_cap =3D input:PopNetUint16() end
+ 		printdebug("skill",sprintf("NET (todo): skill: %s [id=3D%i] skill_value:=
+ %i skill_base_value: %i locked?: %i\n",skill_name,skill_id,skill_value,ski=
+ll_base_value,skill_lock_state))
+
+
+
+From no-reply at zwischenwelt.org  Sun May  2 17:38:02 2010
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Sun, 02 May 2010 15:38:02 -0000
+Subject: [Iris-commit] [IRIS] r3323 - in /trunk/lua: net/net.other.lua
+	obj/obj.mobile.lua
+Message-ID: <20100502153802.9D2B054D0007@simon>
+
+Author: ghoulsblade
+Date: Sun May  2 17:38:01 2010
+New Revision: 3323
+
+Log:
+poison state display bugfix
+
+Modified:
+    trunk/lua/net/net.other.lua
+    trunk/lua/obj/obj.mobile.lua
+
+Modified: trunk/lua/net/net.other.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.other.lua (original)
++++ trunk/lua/net/net.other.lua Sun May  2 17:38:01 2010
+@@ -73,8 +73,8 @@
+ 			--~ else
+ 				--~ if (    TestBit(mobile.flag,mask)) then mobile.flag =3D mobile.fla=
+g - mask end
+ 			--~ end
+-			mobile:UpdateFlags()
+-			print("healthbarcol:mobile",serial,mobile.flag)
++			mobile:UpdateFlags(true)
++			print("healthbarcol:mobile",serial,mobile.bHealtBarCol_Green,mobile.bHe=
+altBarCol_Yellow,mobile.flag)
+ 		end
+ 	else =
+
+ 		input:PopRaw(size-3)
+@@ -84,6 +84,7 @@
+ --~ 00 0d ba 5b 00 01 00 01 01                        |...[.....| -- lesse=
+r?
+ --~ 00 0d ba 5b 00 01 00 01 00                        |...[.....|
+ --~ 00 0d ba 5b 00 01 00 01 03                        |...[.....| -- great=
+er poison
++--~ 00 0d ba 5b 00 01 00 01 01                        |...[.....|
+ =
+
+ function gPacketHandler.kPacket_Change_Update_Range ()	-- 0xC8
+ 	local input =3D GetRecvFIFO()
+
+Modified: trunk/lua/obj/obj.mobile.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/obj/obj.mobile.lua (original)
++++ trunk/lua/obj/obj.mobile.lua Sun May  2 17:38:01 2010
+@@ -231,7 +231,7 @@
+ end
+ =
+
+ -- sets self.flag_* from self.flag
+-function gMobilePrototype:UpdateFlags	()
++function gMobilePrototype:UpdateFlags	(bForceChange)
+ 	self.flag_female			=3D TestBit( self.flag, kMobileFlag_Unknown2 )
+ 	self.flag_poisoned			=3D IsMobilePoisoned(self) -- kMobileFlag_Poisoned
+ 	self.flag_yellowhits		=3D IsMobileMortaled(self) -- kMobileFlag_GoldenHea=
+lth
+@@ -240,7 +240,7 @@
+ 	self.flag_warmode	 		=3D TestBit( self.flag, kMobileFlag_WarMode )
+ 	self.flag_hidden			=3D TestBit( self.flag, kMobileFlag_Hidden )
+ 	=
+
+-	if (self.old_flag ~=3D self.flag) then -- only if a change has occurred
++	if (self.old_flag ~=3D self.flag or bForceChange) then -- only if a chang=
+e has occurred
+ 		self.old_flag  =3D self.flag
+ 		StatBar_UpdateMobileFlags(self)
+ 		self:NotifyListener("Mobile_UpdateFlags")
+
+
+
+From no-reply at zwischenwelt.org  Thu May  6 23:02:11 2010
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Thu, 06 May 2010 21:02:11 -0000
+Subject: [Iris-commit] [IRIS] r3324 - in /trunk: lua/lib.bodygfx.lua
+ lua/lib.granny.debug.lua lua/lib.granny.loader.lua lua/lib.granny.types.lua
+ lua/lib.granny.wrap.lua lua/lib.uoids.lua plugins/loot.lua
+Message-ID: <20100506210211.B83E854D0007@simon>
+
+Author: ghoulsblade
+Date: Thu May  6 23:02:09 2010
+New Revision: 3324
+
+Log:
+skill: imbuing and mysticism added to skilllist-dialog, granny lua optimize=
+d a bit
+
+Modified:
+    trunk/lua/lib.bodygfx.lua
+    trunk/lua/lib.granny.debug.lua
+    trunk/lua/lib.granny.loader.lua
+    trunk/lua/lib.granny.types.lua
+    trunk/lua/lib.granny.wrap.lua
+    trunk/lua/lib.uoids.lua
+    trunk/plugins/loot.lua
+
+Modified: trunk/lua/lib.bodygfx.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.bodygfx.lua (original)
++++ trunk/lua/lib.bodygfx.lua Thu May  6 23:02:09 2010
+@@ -161,8 +161,11 @@
+     self.modelparts =3D {}
+     =
+
+     local modelidarr,iPrimaryHandItem,iSecondaryHandItem =3D self:GetModel=
+PartModelIDs()
++	local t_start =3D Client_GetTicks()
+     CreateBodyGfxPartsFromModelIDArray(bodyid,self.groupgfx,self.modelpart=
+s,modelidarr,iPrimaryHandItem,iSecondaryHandItem)
+-
++	local t_end =3D Client_GetTicks()
++	print("gBodyGfxPrototype:Update createparts:",t_end-t_start)
++		=
+
+     -- create mount gfx (todo : replace by CreateBodyGfx or update bodygfx=
+ for mount)
+     local mount =3D self:GetEquipmentAtLayer(kLayer_Mount)
+     if (mount) then
+@@ -385,7 +388,7 @@
+     -- trigger update if marked
+     if (self.bDead) then return end
+ 	=
+
+-    gProfiler_BodyGfxStep:Start(gEnableProfiler_MainStep)
++    gProfiler_BodyGfxStep:Start(gEnableProfiler_BodyGfxStep)
+     gProfiler_BodyGfxStep:Section("Update")
+ 	=
+
+     if (self.bMarkedForUpdate) then self:Update() end
+
+Modified: trunk/lua/lib.granny.debug.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.granny.debug.lua (original)
++++ trunk/lua/lib.granny.debug.lua Thu May  6 23:02:09 2010
+@@ -82,7 +82,7 @@
+ 	table.sort(arr,function (a,b) return a.count < b.count end)
+ 	for k,o in ipairs(arr) do print("grannyprofile",o.count,o.name) end
+ end
+---~ InvokeLater(10000,function () DumpGrannyLuaProfileInfo() os.exit(0) en=
+d)
++--~ InvokeLater(10000,function () DumpGrannyLuaProfileInfo() MyProfilerTop=
+() os.exit(0) end)
+ =
+
+ =
+
+ 	=
+
+@@ -204,7 +204,7 @@
+ 	assert(matname =3D=3D matname_old) =
+
+ 	=
+
+ 	=
+
+-	GrannyDebugCompareWithOldLoader(pGrannyLoader,old_GetGrannyModelLoader)
++	--~ GrannyDebugCompareWithOldLoader(pGrannyLoader,old_GetGrannyModelLoade=
+r)
+ 	=
+
+ 	=
+
+ 	local szMatName =3D matname
+
+Modified: trunk/lua/lib.granny.loader.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.granny.loader.lua (original)
++++ trunk/lua/lib.granny.loader.lua Thu May  6 23:02:09 2010
+@@ -56,11 +56,16 @@
+ 	if (self.fifo) then self.fifo:Destroy() self.fifo =3D nil end
+ end
+ function cGrannyFile:LoadFile (filepath) =
+
+-	print("cGrannyFile:LoadFile",filepath)
++	print("cGrannyFile:LoadFile",filepath) -- print(GetStackTrace())
+ 	self.filepath =3D filepath
++	--~ local t1 =3D Client_GetTicks()
+ 	self:_CreateAndLoadFIFO()
++	--~ local t2 =3D Client_GetTicks()
+ 	local bOK =3D self:Parse(self.fifo)
++	--~ local t3 =3D Client_GetTicks()
+ 	self:_FreeFIFO()
++	--~ local t4 =3D Client_GetTicks()
++	--~ print("cGrannyFile:LoadFile profile: total,fifo,parse,free=3D",t4-t1,=
+t2-t1,t3-t2,t4-t3,filepath)
+ 	return bOK
+ end
+ =
+
+@@ -195,20 +200,27 @@
+ 	return res
+ end
+ =
+
++gProfiler_LuaGrannyParser =3D CreateRoughProfiler("LuaGrannyParser")
+ function cGrannyFile:Parse (fifo) =
+
+ 	self.fifo =3D fifo
+ 	self.miBufSize =3D fifo:Size()
+ 	self.quickfifo =3D fifo:GetQuickHandle()
+ 	if (self.miBufSize =3D=3D 0) then return false end
++	=
+
++    gProfiler_LuaGrannyParser:Start(gEnableProfiler_LuaGrannyParser)
++    gProfiler_LuaGrannyParser:Section("read MainChunk")
++	=
+
+ 	assert(self.miBufSize > 0,"cGrannyFile:Parse: empty file "..tostring(self=
+.filepath))
+ 	local pMainChunk =3D self:Read(0,"MainChunk")
+ 	self.pMainChunk =3D pMainChunk
+ 	pMainChunk.childs =3D {}
+ 	=
+
++    gProfiler_LuaGrannyParser:Section("visit MainChunk")
+ 	--~ print("cGrannyFile:Parse:pMainChunk",SmartDump(pMainChunk))
+ 	assert(pMainChunk.iChunkType =3D=3D self.kChunkType_Main,"unexpected chun=
+ktype:"..hex(pMainChunk.iChunkType))
+ 	self:Visit("MainChunk",pMainChunk,0)
+ 	=
+
++    gProfiler_LuaGrannyParser:Section("visit MainChunk childs")
+ 	local p =3D self.size.MainChunk
+ 	for i=3D0,pMainChunk.miChildCount-1 do =
+
+ 		local pItemList =3D self:Read(p,"ItemList")
+@@ -234,7 +246,9 @@
+ 			assert(false,"ParseGranny : unknown subchunktype : "..hex(pItemList.iCh=
+unkType))
+ 		end
+ 	end
++    gProfiler_LuaGrannyParser:Section("visit EOF")
+ 	self:Visit("EOF")
++    gProfiler_LuaGrannyParser:End()
+ 	return true
+ end
+ =
+
+@@ -271,6 +285,8 @@
+ 		local iChildren		=3D FIFO_PeekUint32(quickfifo,p+8)
+ 		p =3D p + iEntryHeaderSize
+ 		=
+
++		gProfiler_LuaGrannyParser:Section(self.kTypeNames[iChunkType] or ("iChun=
+kType=3D?=3D"..iChunkType))
++		=
+
+ 		-- determine data size of this child by checking the offset of the next =
+child, if any, and listdata-size
+ 		local iChildSize =3D miBufSize - (pItemList.miListOffset + iOffset)
+ 		if (iOffset <=3D iItemListSize) then
+@@ -306,6 +322,7 @@
+ 		self:DecrementParents()
+ 		if (chunk.iChildren > 0) then self:PushParent(chunk) end
+ 	end
++	gProfiler_LuaGrannyParser:Section("visit DecrementParents")
+ 	self:DecrementParents()
+ end
+ =
+
+@@ -403,10 +420,13 @@
+ end
+ =
+
+ function cGrannyFile:ReadArray (sStructName,iOffset,iArraySize) =
+
+-	gGrannyLuaLoaderProfileCountStructRead[sStructName.."Arr"] =3D (gGrannyLu=
+aLoaderProfileCountStructRead[sStructName.."Arr"] or 0) + 1
++	assert(not structname,structname)
++	local quick =3D gGrannyLuaQuickLoadStruct_Array[sStructName]
++	if (quick) then return quick(self,iOffset,iArraySize) end
+ 	local res =3D {}
+ 	local iStructSize =3D self.size[sStructName]
+ 	local num =3D floor(iArraySize/iStructSize)
++	gGrannyLuaLoaderProfileCountStructRead[sStructName.."Arr"] =3D (gGrannyLu=
+aLoaderProfileCountStructRead[sStructName.."Arr"] or 0) + num
+ 	assert(iArraySize =3D=3D num*iStructSize) -- exact size check to detect p=
+arsing errors
+ 	for i=3D0,num-1 do table.insert(res,self:Read(iOffset+i*iStructSize,sStru=
+ctName)) end
+ 	return res
+@@ -503,7 +523,10 @@
+ =
+
+ function cGrannyFile:ReadFloatArray(iOffset,num)
+ 	local res =3D {}
+-	for i=3D0,num-1 do table.insert(res,self:ReadFloat(iOffset+i*4)) end -- R=
+eadFloat has bounds-checking
++	assert(iOffset >=3D 0 and iOffset+num*4 <=3D self.miBufSize) -- bounds-ch=
+ecking
++	local quickfifo =3D self.quickfifo
++	local peekfun =3D FIFO_PeekFloat
++	for i=3D0,num-1 do table.insert(res,peekfun(quickfifo,iOffset+i*4)) end
+ 	return res =
+
+ end
+ =
+
+@@ -512,17 +535,22 @@
+ 	assert(self:GetRootParentType() =3D=3D 0XCA5E1205)
+ 	assert(iSize >=3D self.size.Anim)
+ 	=
+
++    gProfiler_LuaGrannyParser:Section("animdata read Anim")
++	=
+
+ 	local p =3D iOffset
+ 	local pAnim =3D self:Read(iOffset,"Anim")		chunk.pAnim =3D pAnim			p =3D =
+p + self.size.Anim
+ 	=
+
++    gProfiler_LuaGrannyParser:Section("animdata read floats")
+ 	local s,n =3D self.size.float			,pAnim.iNumTranslate	chunk.pTranslateTime=
+	=3D self:ReadFloatArray(p,n)					p =3D p + s * n
+ 	local s,n =3D self.size.float			,pAnim.iNumQuaternion	chunk.pQuaternionTi=
+me	=3D self:ReadFloatArray(p,n)					p =3D p + s * n
+ 	local s,n =3D self.size.float			,pAnim.iNumScale		chunk.pScaleTime		=3D s=
+elf:ReadFloatArray(p,n)					p =3D p + s * n
+ 	=
+
++    gProfiler_LuaGrannyParser:Section("animdata read vec+quat")
+ 	local s,n =3D self.size.Vector		,pAnim.iNumTranslate	chunk.pTranslate		=
+=3D self:ReadArray("Vector"		,p,s * n)	p =3D p + s * n
+ 	local s,n =3D self.size.Quaternion	,pAnim.iNumQuaternion	chunk.pQuaternio=
+n		=3D self:ReadArray("Quaternion"	,p,s * n)	p =3D p + s * n
+ 	local s,n =3D self.size.Vector		,pAnim.iNumScale		chunk.pScale			=3D self=
+:ReadArray("Vector"		,p,s * n)	p =3D p + s * n
+ 	=
+
++    gProfiler_LuaGrannyParser:Section("animdata rest")
+ 	local iRestSize =3D iSize - (p-iOffset)	-- assert(pRestSize =3D=3D 0,"ani=
+m:iRestSize=3D"..iRestSize..",iUnknownB=3D"..pAnim.iUnknownB[1])
+ 	local pRest		=3D p
+ 	local iUsedSize =3D p - iOffset
+
+Modified: trunk/lua/lib.granny.types.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.granny.types.lua (original)
++++ trunk/lua/lib.granny.types.lua Thu May  6 23:02:09 2010
+@@ -122,32 +122,149 @@
+ end
+ =
+
+ gGrannyLuaQuickLoadStruct =3D {}
+-
+--- TODO ?
+--- cGrannyFile:Read and *arr ? gGrannyLuaLoaderProfileCountStructRead
+-function gGrannyLuaQuickLoadStruct:Quaternion ()
+-	--~ self.structs.Quaternion float x,y,z,w
+-	TODO()
+-	local quickfifo =3D self.quickfifo
+-	local structsize =3D self.size[structname] assert(structsize)
+-	assert(offset >=3D 0,"AssertSize : negative offset : "..offset)
+-	local missing =3D offset+structsize - self.miBufSize assert(missing <=3D =
+0,"AssertSize : buffer too small, expected "..missing.." more bytes miBufSi=
+ze=3D"..tostring(self.miBufSize).." structsize=3D"..tostring(structsize))
++gGrannyLuaQuickLoadStruct_Array =3D {}
++
++-- optimized function for often used types
++function gGrannyLuaQuickLoadStruct_Array:Quaternion (offset,iArraySize)
++	--~ print(_TRACEBACK())
++	--~ os.exit(0)
++	local quickfifo =3D self.quickfifo
+ 	local res =3D {}
+-	res.x =3D peekfun(quickfifo,0)
+-	res.y =3D peekfun(quickfifo,4)
+-	res.z =3D peekfun(quickfifo,8)
+-	res.w =3D peekfun(quickfifo,12)
+-	local struct =3D self.structs[structname]
+-	for k,memberdef in ipairs(struct) do =
+
+-		local basetype,name,arraysize =3D unpack(memberdef)
+-		local basetypesize =3D basetype.size
+-		local peekfun =3D basetype.peekfunx
+-			res[name] =3D peekfun(quickfifo,offset)
+-			offset =3D offset + basetypesize =
+
++	local structsize =3D 16
++	local num =3D floor(iArraySize/structsize)
++	assert(offset >=3D 0,"AssertSize : negative offset : "..offset)
++	assert(iArraySize =3D=3D num*structsize) -- exact size check to detect pa=
+rsing errors
++	local missing =3D offset+structsize*num - self.miBufSize assert(missing <=
+=3D 0,"AssertSize : buffer too small, expected "..missing.." more bytes miB=
+ufSize=3D"..tostring(self.miBufSize).." structsize=3D"..tostring(structsize=
+))
++	local peekfun =3D FIFO_PeekFloat
++	for i=3D0,num-1 do
++		table.insert(res,{
++				x =3D peekfun(quickfifo,offset+0),
++				y =3D peekfun(quickfifo,offset+4),
++				z =3D peekfun(quickfifo,offset+8),
++				w =3D peekfun(quickfifo,offset+12),
++			})
++		offset =3D offset + structsize
+ 	end
+ 	return res
+ end
+ =
+
++-- optimized function for often used types
++function gGrannyLuaQuickLoadStruct_Array:Vector (offset,iArraySize)
++	local quickfifo =3D self.quickfifo
++	local res =3D {}
++	local structsize =3D 12
++	local num =3D floor(iArraySize/structsize)
++	assert(offset >=3D 0,"AssertSize : negative offset : "..offset)
++	assert(iArraySize =3D=3D num*structsize) -- exact size check to detect pa=
+rsing errors
++	local missing =3D offset+structsize*num - self.miBufSize assert(missing <=
+=3D 0,"AssertSize : buffer too small, expected "..missing.." more bytes miB=
+ufSize=3D"..tostring(self.miBufSize).." structsize=3D"..tostring(structsize=
+))
++	local peekfun =3D FIFO_PeekFloat
++	for i=3D0,num-1 do
++		table.insert(res,{
++				x =3D peekfun(quickfifo,offset+0),
++				y =3D peekfun(quickfifo,offset+4),
++				z =3D peekfun(quickfifo,offset+8),
++			})
++		offset =3D offset + structsize
++	end
++	return res
++end
++
++-- optimized function for often used types
++function gGrannyLuaQuickLoadStruct:Quaternion (offset)
++	assert(false,"SHOULDNT BE USED ANYMORE, USE gGrannyLuaQuickLoadStruct_Arr=
+ay:Quaternion INSTEAD!")
++	local quickfifo =3D self.quickfifo
++	local structsize =3D 16
++	assert(offset >=3D 0,"AssertSize : negative offset : "..offset)
++	local missing =3D offset+structsize - self.miBufSize assert(missing <=3D =
+0,"AssertSize : buffer too small, expected "..missing.." more bytes miBufSi=
+ze=3D"..tostring(self.miBufSize).." structsize=3D"..tostring(structsize))
++	local peekfun =3D FIFO_PeekFloat
++	return {
++		x =3D peekfun(quickfifo,offset+0),
++		y =3D peekfun(quickfifo,offset+4),
++		z =3D peekfun(quickfifo,offset+8),
++		w =3D peekfun(quickfifo,offset+12),
++	}
++end
++
++-- optimized function for often used types
++function gGrannyLuaQuickLoadStruct:Vector (offset)
++	local quickfifo =3D self.quickfifo
++	local structsize =3D 12
++	assert(offset >=3D 0,"AssertSize : negative offset : "..offset)
++	local missing =3D offset+structsize - self.miBufSize assert(missing <=3D =
+0,"AssertSize : buffer too small, expected "..missing.." more bytes miBufSi=
+ze=3D"..tostring(self.miBufSize).." structsize=3D"..tostring(structsize))
++	local peekfun =3D FIFO_PeekFloat
++	return {
++		x =3D peekfun(quickfifo,offset+0),
++		y =3D peekfun(quickfifo,offset+4),
++		z =3D peekfun(quickfifo,offset+8),
++	}
++end
++
++-- optimized function for often used types
++function gGrannyLuaQuickLoadStruct:Bone (offset)
++	local peekfunF =3D FIFO_PeekFloat
++	local peekfunU =3D FIFO_PeekUint32
++	local quickfifo =3D self.quickfifo
++	local structsize =3D 68 -- =3D self.size.Bone
++	assert(offset >=3D 0,"AssertSize : negative offset : "..offset)
++	local missing =3D offset+structsize - self.miBufSize assert(missing <=3D =
+0,"AssertSize : buffer too small, expected "..missing.." more bytes miBufSi=
+ze=3D"..tostring(self.miBufSize).." structsize=3D"..tostring(structsize))
++	return {
++		iParent =3D peekfunU(quickfifo,offset+4*0),
++		fTranslate =3D {
++			[0]=3DpeekfunF(quickfifo,offset+4*1),
++			[1]=3DpeekfunF(quickfifo,offset+4*2),
++			[2]=3DpeekfunF(quickfifo,offset+4*3),
++		},
++		fQuaternion =3D {
++			[0]=3DpeekfunF(quickfifo,offset+4*4),
++			[1]=3DpeekfunF(quickfifo,offset+4*5),
++			[2]=3DpeekfunF(quickfifo,offset+4*6),
++			[3]=3DpeekfunF(quickfifo,offset+4*7),
++		},
++		fMatrix =3D {
++			[0]=3DpeekfunF(quickfifo,offset+4*8),
++			[1]=3DpeekfunF(quickfifo,offset+4*9),
++			[2]=3DpeekfunF(quickfifo,offset+4*10),
++			=
+
++			[3]=3DpeekfunF(quickfifo,offset+4*11),
++			[4]=3DpeekfunF(quickfifo,offset+4*12),
++			[5]=3DpeekfunF(quickfifo,offset+4*13),
++			=
+
++			[6]=3DpeekfunF(quickfifo,offset+4*14),
++			[7]=3DpeekfunF(quickfifo,offset+4*15),
++			[8]=3DpeekfunF(quickfifo,offset+4*16),
++		},
++	}
++end
++
++-- optimized function for often used types
++function gGrannyLuaQuickLoadStruct:Anim (offset)
++	local peekfun =3D FIFO_PeekUint32
++	local quickfifo =3D self.quickfifo
++	local structsize =3D 52 -- =3D self.size.Anim
++	assert(offset >=3D 0,"AssertSize : negative offset : "..offset)
++	local missing =3D offset+structsize - self.miBufSize assert(missing <=3D =
+0,"AssertSize : buffer too small, expected "..missing.." more bytes miBufSi=
+ze=3D"..tostring(self.miBufSize).." structsize=3D"..tostring(structsize))
++	return {
++		iID =3D peekfun(quickfifo,offset+4*0),
++		iUnknownA =3D {
++			[0]=3Dpeekfun(quickfifo,offset+4*1),
++			[1]=3Dpeekfun(quickfifo,offset+4*2),
++			[2]=3Dpeekfun(quickfifo,offset+4*3),
++			[3]=3Dpeekfun(quickfifo,offset+4*4),
++			[4]=3Dpeekfun(quickfifo,offset+4*5),
++		},
++		iNumTranslate	=3D peekfun(quickfifo,offset+4*6),
++		iNumQuaternion	=3D peekfun(quickfifo,offset+4*7),
++		iNumScale		=3D peekfun(quickfifo,offset+4*8),
++		iUnknownB =3D {
++			[0]=3Dpeekfun(quickfifo,offset+4*9),
++			[1]=3Dpeekfun(quickfifo,offset+4*10),
++			[2]=3Dpeekfun(quickfifo,offset+4*11),
++			[3]=3Dpeekfun(quickfifo,offset+4*12),
++		},
++	}
++end
++
++	=
+
+ function cGrannyFile:DefineTypeNames ()
+ 	self.kTypeNames =3D {}
+ 	self.kTypeNames[0xCA5E0100] =3D "ML_SE_Texture" -- SiENcE:  Chunk is new =
+to ML/SE Models maybe Texture: case 0xca5e0100
+
+Modified: trunk/lua/lib.granny.wrap.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.granny.wrap.lua (original)
++++ trunk/lua/lib.granny.wrap.lua Thu May  6 23:02:09 2010
+@@ -118,7 +118,14 @@
+ function assert_warn (cond,msg) if (not cond) then print("assert_warn",msg=
+) end end
+ function assert_warn (cond,msg) assert(cond,msg) end
+ =
+
++
++gProfiler_LuaGrannyWrapper =3D CreateRoughProfiler("LuaGrannyWrapper")
++
+ function WrapGrannyLoaderNew (grn)
++
++    gProfiler_LuaGrannyWrapper:Start(gEnableProfiler_LuaGrannyWrapper)
++    gProfiler_LuaGrannyWrapper:Section("submeshes")
++	=
+
+ 	local pGrannyLoader =3D {}
+ 	-- wrap grn into pGrannyLoader
+ 	local Object =3D grn.pMainChunk.Object
+@@ -168,7 +175,8 @@
+ 		=
+
+ 		if (pLoaderSubMesh.mWeights and #pLoaderSubMesh.mWeights > 0) then bHasB=
+oneWeights =3D true end
+ 	end
+-		=
+
++	=
+
++    gProfiler_LuaGrannyWrapper:Section("rest1")
+ 	-- granny wide bone infos
+ 	if (true) then =
+
+ 		pGrannyLoader.mBoneNameCache =3D {}
+@@ -312,6 +320,8 @@
+ 	--~ local animbase =3D Object.animation_list.animation_sublist.animation =
+       =
+
+ 	--~ MyIterGranny    root.Object.animation_list.animation_sublist.animatio=
+n.animdata {fTotalTime=3D0.616667,pScaleTime=3Dtable: 0x9e42720,pQuaternion=
+Time=3Dtable: 0x9e42080,hexdump=3Dtable: 0x9e44af0,iOffset=3D29560=3D0x7378=
+,iChildren=3D0,pQuaternion=3Dtable: 0x9e42bf8,pAnim=3Dtable: 0x9e421a8,pRes=
+t=3Dtable: 0x9e44b18,pTranslateTime=3Dtable: 0x9e42450,pScale=3Dtable: 0x9e=
+43990,iChunkType=3D0xca5e1204,pTranslate=3Dtable: 0x9e42748,}
+ =
+
++    gProfiler_LuaGrannyWrapper:Section("animdata")
++	=
+
+ 	if (Object.animation_list.animation_sublist.animation.animdata) then -- g=
+ranny with animation tracks         =
+
+ 		--~ pGrannyLoader.mAnims =3D {} -- VisitGrannyAnim 0XCA5E1204
+ 		local mAnims =3D {}
+@@ -341,6 +351,7 @@
+ 		--~ assert(pGrannyLoader.mBones) -- GrannyBone*
+ 	end
+ 	=
+
++    gProfiler_LuaGrannyWrapper:Section("rest2")
+ 	if (Object.bones.skeleton.bonelist) then	   =
+
+ 		local mBones =3D {}
+ 		pGrannyLoader.mBones =3D mBones
+@@ -400,6 +411,7 @@
+ 		LoadGrannyAsOgreAnim(self,sSkeletonName,sAnimName,bodypartsamples)
+ 	end
+ 	=
+
++    gProfiler_LuaGrannyWrapper:End()
+ 	return pGrannyLoader
+ end
+ =
+
+
+Modified: trunk/lua/lib.uoids.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.uoids.lua (original)
++++ trunk/lua/lib.uoids.lua Thu May  6 23:02:09 2010
+@@ -334,7 +334,8 @@
+ gCharCreateSkillIDs["Bushido"]					=3D 52
+ gCharCreateSkillIDs["Ninjitsu"]					=3D 53
+ gCharCreateSkillIDs["Spellweaving"]				=3D 54 -- not possible to set > 0 a=
+t charcreate !!!!
+-
++gCharCreateSkillIDs["Mysticism"]				=3D 55
++gCharCreateSkillIDs["Imbuing"]					=3D 56
+ =
+
+ kNotoriety_Invalid		=3D 0 -- invalid/across server line
+ kNotoriety_Blue			=3D 1 -- innocent (blue)
+@@ -485,7 +486,9 @@
+ 	[52]	=3D "Chiv",
+ 	[53]	=3D "Bush",
+ 	[54]	=3D "Ninj",
+-	[55]	=3D "Spellweaving"	-- ? correct?
++	[55]	=3D "Spellweaving",	-- ? correct?
++	[56]	=3D "Myst",
++	[57]	=3D "Imbu",
+ }
+ =
+
+ -- the list of skill activ(1)/passiv(0) flags
+@@ -546,7 +549,10 @@
+ 	[52]	=3D 0,
+ 	[53]	=3D 0,
+ 	[54]	=3D 0,
+-	[55]	=3D 0
++	[55]	=3D 0,
++	=
+
++	[56]	=3D 0, -- mysticism
++	[57]	=3D 1, -- imbuing
+ }
+ =
+
+ =
+
+
+Modified: trunk/plugins/loot.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/plugins/loot.lua (original)
++++ trunk/plugins/loot.lua Thu May  6 23:02:09 2010
+@@ -156,6 +156,13 @@
+ 	--~ "gargoyle",  =
+
+ 	--~ "channeling", -- spellchannel =
+
+ 	-- todo : timer (bomberoil,shimmering effusion,paroxysm rope)
++	=
+
++	-- imbuing
++	"essence of ",
++	"essence of balance",
++	"essence of control",
++	"goblin blood",
++	"faery dust",
+ 	}
+ for k,v in pairs(gLootPluginWantedWords) do gLootPluginWantedWords[k] =3D =
+string.lower(v) end
+ =
+
+
+
+
+From no-reply at zwischenwelt.org  Sun May  9 14:48:53 2010
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Sun, 09 May 2010 12:48:53 -0000
+Subject: [Iris-commit] [IRIS] r3325 - /trunk/lua/lib.thread.lua
+Message-ID: <20100509124853.DCE577A9805B@simon>
+
+Author: ghoulsblade
+Date: Sun May  9 14:48:53 2010
+New Revision: 3325
+
+Log:
+disabled testcode
+
+Modified:
+    trunk/lua/lib.thread.lua
+
+Modified: trunk/lua/lib.thread.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.thread.lua (original)
++++ trunk/lua/lib.thread.lua Sun May  9 14:48:53 2010
+@@ -105,6 +105,7 @@
+ =
+
+ ]]
+ function CreateExtendedLuaThread(file)
++	if (not CreateLuaThread) then return end
+ 	local thread =3D CreateLuaThread(file)
+ 	=
+
+ 	thread.fifo_send		=3D thread:CreateFifoParent2ChildHandle()
+
+
+
+From no-reply at zwischenwelt.org  Sun May  9 14:50:06 2010
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Sun, 09 May 2010 12:50:06 -0000
+Subject: [Iris-commit] [IRIS] r3326 - /trunk/lua/main.lua
+Message-ID: <20100509125006.26D9E7A9805B@simon>
+
+Author: ghoulsblade
+Date: Sun May  9 14:50:06 2010
+New Revision: 3326
+
+Log:
+disabled testcode
+
+Modified:
+    trunk/lua/main.lua
+
+Modified: trunk/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/main.lua (original)
++++ trunk/lua/main.lua Sun May  9 14:50:06 2010
+@@ -642,7 +642,7 @@
+     LugreStep()
+     =
+
+     if (WIN32=3D=3Dfalse) then
+-		gWorkerThread:checkForResults()
++		if (gWorkerThread) then gWorkerThread:checkForResults() end
+ 	end
+     =
+
+     gProfiler_MainStep:Section("Hook_MainStep")
+
+
+
+From no-reply at zwischenwelt.org  Sun May  9 20:04:27 2010
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Sun, 09 May 2010 18:04:27 -0000
+Subject: [Iris-commit] [IRIS] r3327 - /trunk/lua/lib.cliloc.lua
+Message-ID: <20100509180427.DF89A54D0007@simon>
+
+Author: ghoulsblade
+Date: Sun May  9 20:04:26 2010
+New Revision: 3327
+
+Log:
+crashfix for irc bot
+
+Modified:
+    trunk/lua/lib.cliloc.lua
+
+Modified: trunk/lua/lib.cliloc.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.cliloc.lua (original)
++++ trunk/lua/lib.cliloc.lua Sun May  9 20:04:26 2010
+@@ -102,7 +102,7 @@
+ 	if not gClilocLoader then return "???", false end
+ 	=
+
+ 	if not gClilocCache[id] then
+-		local text =3D gClilocLoader:Get(id)
++		local text =3D gClilocLoader:Get(id) or ("unknown_cliloc_"..id)
+ 		local hasParams =3D ClilocTextContainsParameters(text)
+ 		gClilocCache[id] =3D {text, hasParams}
+ 		return text, hasParams
+
+
+
+From no-reply at zwischenwelt.org  Sun May  9 20:58:19 2010
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Sun, 09 May 2010 18:58:19 -0000
+Subject: [Iris-commit] [IRIS] r3328 - in /trunk: ./ config/ config/shards/
+ data/ogreSampleMedia/models/ plugins/loot.lua tmp/ videos/
+Message-ID: <20100509185819.6522C7A9805B@simon>
+
+Author: ghoulsblade
+Date: Sun May  9 20:58:18 2010
+New Revision: 3328
+
+Log:
+ignores
+
+Modified:
+    trunk/   (props changed)
+    trunk/config/   (props changed)
+    trunk/config/shards/   (props changed)
+    trunk/data/ogreSampleMedia/models/   (props changed)
+    trunk/plugins/loot.lua
+    trunk/tmp/   (props changed)
+    trunk/videos/   (props changed)
+
+Modified: trunk/plugins/loot.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/plugins/loot.lua (original)
++++ trunk/plugins/loot.lua Sun May  9 20:58:18 2010
+@@ -163,7 +163,26 @@
+ 	"essence of control",
+ 	"goblin blood",
+ 	"faery dust",
+-	}
++	"raptor", -- imbue:raptorteeth
++	"arcanic", -- imbue:arcanicrunestone
++	"delicate", -- imbue:delicate.scales
++	"luminescent", -- imbue:luminescent fungi (lumber:rare)
++	"abyssal", -- imbue:abyssal cloth
++	"renewal", -- imbue:seedofrenewal
++	"crushed", -- imbue:crushedglass
++	"elven fletching", -- imbue:elven fletching
++	"shards", -- imbue:crystalshards
++	"tongue", -- imbue:slithtongue
++	"void", -- imbue:voidorb
++	"snake", -- imbue:silversnakeskin
++	"reflective", -- imbue:reflectivewolfeye
++	"chaga", -- imbue:chagamushroom
++	"boura", -- imbue:bourapelt
++	"ichor", -- imbue:bottleofichor
++	=
+
++	"unidentified",
++	"Uniden",
++}
+ for k,v in pairs(gLootPluginWantedWords) do gLootPluginWantedWords[k] =3D =
+string.lower(v) end
+ =
+
+ gLootPluginWantedProps =3D {}
+@@ -337,7 +356,7 @@
+ 		Send_Take_Object(item.serial,item.amount)
+ 		job.wait(math.random(200,300))
+ 		MyLootLog("Send_Drop_Object_AutoStack",item.serial)
+-		Send_Drop_Object_AutoStack(item.serial,GetPlayerBackPackSerial())
++		Send_Drop_Object_AutoStack(item.serial,MyLootGetLootBag and MyLootGetLoo=
+tBag(item) or GetPlayerBackPackSerial())
+ 		=
+
+ 		local corpse =3D GetDynamic(iContainerSerial)
+ 		--~ if (corpse) then LootPlugin_HideCorpse(corpse) end
+
+
+
+From no-reply at zwischenwelt.org  Tue May 18 21:40:18 2010
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Tue, 18 May 2010 19:40:18 -0000
+Subject: [Iris-commit] [IRIS] r3333 - in /trunk/lua: lib.packet.lua
+ net/net.effect.lua net/net.login.lua net/net.mobile.lua net/net.other.lua
+ net/net.sound.lua net/net.walk.lua
+Message-ID: <20100518194018.EE1877A9818E@simon>
+
+Author: ghoulsblade
+Date: Tue May 18 21:40:05 2010
+New Revision: 3333
+
+Log:
+added option gUse16BitZ for 16 bit z network messages : needs custom server=
+ modifications
+
+Modified:
+    trunk/lua/lib.packet.lua
+    trunk/lua/net/net.effect.lua
+    trunk/lua/net/net.login.lua
+    trunk/lua/net/net.mobile.lua
+    trunk/lua/net/net.other.lua
+    trunk/lua/net/net.sound.lua
+    trunk/lua/net/net.walk.lua
+
+Modified: trunk/lua/lib.packet.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.packet.lua (original)
++++ trunk/lua/lib.packet.lua Tue May 18 21:40:05 2010
+@@ -36,7 +36,7 @@
+ gPacketType.kPacket_Teleport										=3D { id=3D0x20, size=3D19 }
+ gPacketType.kPacket_Block_Movement									=3D { id=3D0x21, size=3D8 }
+ gPacketType.kPacket_Accept_Movement_Resync_Request					=3D { id=3D0x22, si=
+ze=3D3 }
+-gPacketType.kPacket_Drag_Item										=3D { id=3D0x23, size=3D26 }
++gPacketType.kPacket_Drag_Item										=3D { id=3D0x23, size=3D26 } -- tod=
+o : DragEffect?
+ gPacketType.kPacket_Open_Container									=3D { id=3D0x24, size=3D7 }
+ gPacketType.kPacket_Object_to_Object								=3D { id=3D0x25, size=3D20 }
+ gPacketType.kPacket_Old_Client										=3D { id=3D0x26, size=3D5 }
+@@ -58,7 +58,7 @@
+ gPacketType.kPacket_Resource_Type									=3D { id=3D0x35, size=3D653 }
+ gPacketType.kPacket_Resource_Tile_Data								=3D { id=3D0x36, size=3D0 }
+ gPacketType.kPacket_Move_Object										=3D { id=3D0x37, size=3D8 }
+-gPacketType.kPacket_Follow_Move										=3D { id=3D0x38, size=3D7 }
++gPacketType.kPacket_Follow_Move										=3D { id=3D0x38, size=3D7 } -- ru=
+nuo:PathfindMessage
+ gPacketType.kPacket_Groups											=3D { id=3D0x39, size=3D9 }
+ gPacketType.kPacket_Skills											=3D { id=3D0x3A, size=3D0 }
+ gPacketType.kPacket_Accept_Offer									=3D { id=3D0x3B, size=3D0 }
+
+Modified: trunk/lua/net/net.effect.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.effect.lua (original)
++++ trunk/lua/net/net.effect.lua Tue May 18 21:40:05 2010
+@@ -21,11 +21,11 @@
+ 	=
+
+ 	effect.current_locx =3D input:PopNetUint16()
+ 	effect.current_locy =3D input:PopNetUint16()
+-	effect.current_locz =3D input:PopNetInt8()
++	effect.current_locz =3D gUse16BitZ and input:PopNetInt16() or input:PopNe=
+tInt8()
+ 	=
+
+ 	effect.target_locx =3D input:PopNetUint16()
+ 	effect.target_locy =3D input:PopNetUint16()
+-	effect.target_locz =3D input:PopNetInt8()
++	effect.target_locz =3D gUse16BitZ and input:PopNetInt16() or input:PopNet=
+Int8()
+ 	=
+
+ 	effect.speed 			=3D input:PopNetUint8()	-- animation speed?
+ 	effect.duration 		=3D input:PopNetUint8()
+@@ -64,11 +64,11 @@
+ 	=
+
+ 	effect.current_locx =3D input:PopNetUint16()
+ 	effect.current_locy =3D input:PopNetUint16()
+-	effect.current_locz =3D input:PopNetInt8()
++	effect.current_locz =3D gUse16BitZ and input:PopNetInt16() or input:PopNe=
+tInt8()
+ 	=
+
+ 	effect.target_locx =3D input:PopNetUint16()
+ 	effect.target_locy =3D input:PopNetUint16()
+-	effect.target_locz =3D input:PopNetInt8()
++	effect.target_locz =3D gUse16BitZ and input:PopNetInt16() or input:PopNet=
+Int8()
+ =
+
+ 	effect.speed =3D input:PopNetUint8()	-- animation speed?
+ 	effect.duration =3D input:PopNetUint8()
+
+Modified: trunk/lua/net/net.login.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.login.lua (original)
++++ trunk/lua/net/net.login.lua Tue May 18 21:40:05 2010
+@@ -267,7 +267,8 @@
+ 	mobiledata.artid	=3D input:PopNetUint16()
+ 	mobiledata.xloc	=3D input:PopNetUint16()
+ 	mobiledata.yloc	=3D input:PopNetUint16()
+-	mobiledata.zloc	=3D input:PopInt16()
++	mobiledata.zloc	=3D gUse16BitZ and input:PopNetInt16() or input:PopNetInt=
+8()
++	mobiledata.zoldhigh	=3D input:PopInt8()
+ 	mobiledata.dir	=3D input:PopNetUint8()
+ =
+
+ 	mobiledata.unknown2 =3D input:PopNetUint16()
+
+Modified: trunk/lua/net/net.mobile.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.mobile.lua (original)
++++ trunk/lua/net/net.mobile.lua Tue May 18 21:40:05 2010
+@@ -61,7 +61,7 @@
+ 			mobiledata.dir2 =3D input:PopNetUint16()
+ 	else 	mobiledata.dir2 =3D -1 end
+ =
+
+-	mobiledata.zloc			=3D input:PopInt8()
++	mobiledata.zloc			=3D gUse16BitZ and input:PopNetInt16() or input:PopNetI=
+nt8()
+ 	mobiledata.dir			=3D input:PopNetUint8()
+ 	mobiledata.hue			=3D input:PopNetUint16()  -- dye/skin color
+ 	mobiledata.flag			=3D input:PopNetUint8()
+
+Modified: trunk/lua/net/net.other.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.other.lua (original)
++++ trunk/lua/net/net.other.lua Tue May 18 21:40:05 2010
+@@ -195,7 +195,8 @@
+ 	local serverchange =3D {}
+ 	serverchange.xLoc 		=3D input:PopNetUint16()
+ 	serverchange.yLoc 		=3D input:PopNetUint16()
+-	serverchange.zLoc 		=3D input:PopNetUint16()
++	serverchange.zLoc 		=3D gUse16BitZ and input:PopNetInt16() or input:PopNe=
+tInt8()
++	serverchange.unknown_zhigh	=3D input:PopNetUint8()
+ 	serverchange.unknown1 	=3D input:PopNetUint8()
+ 	serverchange.boundx 	=3D input:PopNetUint16()
+ 	serverchange.boundy 	=3D input:PopNetUint16()
+
+Modified: trunk/lua/net/net.sound.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.sound.lua (original)
++++ trunk/lua/net/net.sound.lua Tue May 18 21:40:05 2010
+@@ -9,7 +9,8 @@
+ 	sounddata.volume		=3D input:PopNetInt16() -- runuo:always 0
+ 	sounddata.xloc			=3D input:PopNetInt16()
+ 	sounddata.yloc			=3D input:PopNetInt16()
+-	sounddata.zloc			=3D input:PopNetInt16()
++	sounddata.zloc			=3D gUse16BitZ and input:PopNetInt16() or input:PopNetIn=
+t8()
++	sounddata.unknown_zhigh	=3D input:PopNetInt8()
+ 	=
+
+ 	printdebug("sound","NET: kPacket_Sound:"..SmartDump(sounddata))
+ 	=
+
+
+Modified: trunk/lua/net/net.walk.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.walk.lua (original)
++++ trunk/lua/net/net.walk.lua Tue May 18 21:40:05 2010
+@@ -343,7 +343,7 @@
+ 	local xloc			=3D input:PopNetUint16()
+ 	local yloc			=3D input:PopNetUint16()
+ 	local dir			=3D input:PopNetUint8()
+-	local zloc			=3D input:PopInt8()
++	local zloc			=3D gUse16BitZ and input:PopNetInt16() or input:PopNetInt8()
+ =
+
+ 	-- usecase(idea) : player has sent  north,north,west,west  , the first tw=
+o are blocked(private house), but the latter two are accepted
+ 	-- usecase :  request0a,request1a,block0a,request0b,request1b,block1a!!!!=
+(deletes 1b)  (this is now prevented via doom list -> it's known which are =
+old)
+
+
+
+From no-reply at zwischenwelt.org  Tue May 18 22:16:05 2010
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Tue, 18 May 2010 20:16:05 -0000
+Subject: [Iris-commit] [IRIS] r3334 - /trunk/premakelinux.sh
+Message-ID: <20100518201605.B83FE7A9818E@simon>
+
+Author: ghoulsblade
+Date: Tue May 18 22:16:05 2010
+New Revision: 3334
+
+Log:
+gentoo compile tipp
+
+Modified:
+    trunk/premakelinux.sh
+
+Modified: trunk/premakelinux.sh
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/premakelinux.sh (original)
++++ trunk/premakelinux.sh Tue May 18 22:16:05 2010
+@@ -18,3 +18,4 @@
+ =
+
+ make -j${JOBS} CONFIG=3DRelease
+ =
+
++echo "if you're on gentoo and have a link error (undefined reference to wx=
+App::wxApp()) see http://iris.schattenkind.net/index.php/Gentoo_compile\n"
+
+
+
+From no-reply at zwischenwelt.org  Mon May 24 20:41:19 2010
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Mon, 24 May 2010 18:41:19 -0000
+Subject: [Iris-commit] [IRIS] r3335 - in /trunk/lua: lib.packet.lua
+	net/net.mobile.lua
+Message-ID: <20100524184119.C151B54D0007@simon>
+
+Author: ghoulsblade
+Date: Mon May 24 20:41:19 2010
+New Revision: 3335
+
+Log:
+fix for gUse16BitZ
+
+Modified:
+    trunk/lua/lib.packet.lua
+    trunk/lua/net/net.mobile.lua
+
+Modified: trunk/lua/lib.packet.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.packet.lua (original)
++++ trunk/lua/lib.packet.lua Mon May 24 20:41:19 2010
+@@ -265,6 +265,17 @@
+ 		print("initializing packets for 6.0.14.2 or later")
+ 		for id,newsize in pairs(gPacketSizeOverride60142) do gPacketSizeByID[id]=
+ =3D newsize end
+ 	end
++	if (gUse16BitZ) then =
+
++		for name,add in pairs({
++			kPacket_Server_Change		=3D 2, =
+
++			kPacket_Particle_Effect		=3D 4,
++			kPacket_Hued_FX				=3D 4,
++			kPacket_Login_Confirm		=3D 2, =
+
++			kPacket_Equipped_MOB		=3D 2,
++			kPacket_Block_Movement		=3D 2,
++			kPacket_Sound				=3D 2,
++		}) do _G[name] =3D _G[name] + add end
++	end
+ end
+ 	=
+
+ -- changed NecroPacketData - (0x0B oldsize=3D"0x010A" , damage packet)
+
+Modified: trunk/lua/net/net.mobile.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.mobile.lua (original)
++++ trunk/lua/net/net.mobile.lua Mon May 24 20:41:19 2010
+@@ -8,7 +8,7 @@
+ 	mobiledata.artid 		=3D input:PopNetUint16()
+ 	mobiledata.xloc	 		=3D input:PopNetUint16()
+ 	mobiledata.yloc	 		=3D input:PopNetUint16()
+-	mobiledata.zloc	 		=3D input:PopInt8()
++	mobiledata.zloc	 		=3D gUse16BitZ and input:PopNetInt16() or input:PopNet=
+Int8()
+ 	mobiledata.dir			=3D input:PopNetUint8()
+ 	mobiledata.hue			=3D input:PopNetUint16() -- hue/skin color
+ 	mobiledata.flag			=3D input:PopNetUint8()
+
+
+
+From no-reply at zwischenwelt.org  Mon May 24 20:45:36 2010
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Mon, 24 May 2010 18:45:36 -0000
+Subject: [Iris-commit] [IRIS] r3336 - /trunk/lua/lib.packet.lua
+Message-ID: <20100524184536.646B054D0007@simon>
+
+Author: ghoulsblade
+Date: Mon May 24 20:45:36 2010
+New Revision: 3336
+
+Log:
+fix for gUse16BitZ
+
+Modified:
+    trunk/lua/lib.packet.lua
+
+Modified: trunk/lua/lib.packet.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.packet.lua (original)
++++ trunk/lua/lib.packet.lua Mon May 24 20:45:36 2010
+@@ -266,15 +266,15 @@
+ 		for id,newsize in pairs(gPacketSizeOverride60142) do gPacketSizeByID[id]=
+ =3D newsize end
+ 	end
+ 	if (gUse16BitZ) then =
+
+-		for name,add in pairs({
+-			kPacket_Server_Change		=3D 2, =
+
+-			kPacket_Particle_Effect		=3D 4,
+-			kPacket_Hued_FX				=3D 4,
+-			kPacket_Login_Confirm		=3D 2, =
+
+-			kPacket_Equipped_MOB		=3D 2,
+-			kPacket_Block_Movement		=3D 2,
+-			kPacket_Sound				=3D 2,
+-		}) do _G[name] =3D _G[name] + add end
++		for id,add in pairs({
++			[kPacket_Server_Change]		=3D 2, =
+
++			[kPacket_Particle_Effect]	=3D 4,
++			[kPacket_Hued_FX]			=3D 4,
++			[kPacket_Login_Confirm]		=3D 2, =
+
++			[kPacket_Equipped_MOB]		=3D 2,
++			[kPacket_Block_Movement]	=3D 2,
++			[kPacket_Sound]				=3D 2,
++		}) do gPacketSizeByID[id] =3D gPacketSizeByID[id] + add end
+ 	end
+ end
+ 	=
+
+
+
+
+From no-reply at zwischenwelt.org  Mon May 24 21:52:11 2010
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Mon, 24 May 2010 19:52:11 -0000
+Subject: [Iris-commit] [IRIS] r3337 - in /trunk/lua: lib.packet.lua
+	net/net.mobile.lua
+Message-ID: <20100524195217.89E3F54D0007@simon>
+
+Author: ghoulsblade
+Date: Mon May 24 21:52:04 2010
+New Revision: 3337
+
+Log:
+16bit zloc fix
+
+Modified:
+    trunk/lua/lib.packet.lua
+    trunk/lua/net/net.mobile.lua
+
+Modified: trunk/lua/lib.packet.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.packet.lua (original)
++++ trunk/lua/lib.packet.lua Mon May 24 21:52:04 2010
+@@ -266,15 +266,16 @@
+ 		for id,newsize in pairs(gPacketSizeOverride60142) do gPacketSizeByID[id]=
+ =3D newsize end
+ 	end
+ 	if (gUse16BitZ) then =
+
++		print("InitPackets : gUse16BitZ active")
+ 		for id,add in pairs({
+-			[kPacket_Server_Change]		=3D 2, =
+
+-			[kPacket_Particle_Effect]	=3D 4,
+-			[kPacket_Hued_FX]			=3D 4,
+-			[kPacket_Login_Confirm]		=3D 2, =
+
+-			[kPacket_Equipped_MOB]		=3D 2,
+-			[kPacket_Block_Movement]	=3D 2,
+-			[kPacket_Sound]				=3D 2,
+-		}) do gPacketSizeByID[id] =3D gPacketSizeByID[id] + add end
++			[kPacket_Server_Change]		=3D 1, =
+
++			[kPacket_Particle_Effect]	=3D 2,
++			[kPacket_Hued_FX]			=3D 2,
++			[kPacket_Login_Confirm]		=3D 1, =
+
++			--~ [kPacket_Equipped_MOB]		=3D 1, -- dynamic size!
++			[kPacket_Block_Movement]	=3D 1,
++			[kPacket_Sound]				=3D 1,
++		}) do gPacketSizeByID[id] =3D gPacketSizeByID[id] + add print(" 16bit:",=
+hex(id).."=3D"..gPacketSizeByID[id],gPacketTypeId2Name[id]) end
+ 	end
+ end
+ 	=
+
+
+Modified: trunk/lua/net/net.mobile.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.mobile.lua (original)
++++ trunk/lua/net/net.mobile.lua Mon May 24 21:52:04 2010
+@@ -8,7 +8,7 @@
+ 	mobiledata.artid 		=3D input:PopNetUint16()
+ 	mobiledata.xloc	 		=3D input:PopNetUint16()
+ 	mobiledata.yloc	 		=3D input:PopNetUint16()
+-	mobiledata.zloc	 		=3D gUse16BitZ and input:PopNetInt16() or input:PopNet=
+Int8()
++	mobiledata.zloc	 		=3D gUse16BitZ_MobMove and input:PopNetInt16() or inpu=
+t:PopNetInt8()
+ 	mobiledata.dir			=3D input:PopNetUint8()
+ 	mobiledata.hue			=3D input:PopNetUint16() -- hue/skin color
+ 	mobiledata.flag			=3D input:PopNetUint8()
+
+
+
+From no-reply at zwischenwelt.org  Mon May 24 21:55:55 2010
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Mon, 24 May 2010 19:55:55 -0000
+Subject: [Iris-commit] [IRIS] r3338 - /trunk/lua/lib.packet.lua
+Message-ID: <20100524195555.90EC754D0007@simon>
+
+Author: ghoulsblade
+Date: Mon May 24 21:55:54 2010
+New Revision: 3338
+
+Log:
+16bit zloc fix
+
+Modified:
+    trunk/lua/lib.packet.lua
+
+Modified: trunk/lua/lib.packet.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.packet.lua (original)
++++ trunk/lua/lib.packet.lua Mon May 24 21:55:54 2010
+@@ -267,7 +267,7 @@
+ 	end
+ 	if (gUse16BitZ) then =
+
+ 		print("InitPackets : gUse16BitZ active")
+-		for id,add in pairs({
++		local addarr =3D {
+ 			[kPacket_Server_Change]		=3D 1, =
+
+ 			[kPacket_Particle_Effect]	=3D 2,
+ 			[kPacket_Hued_FX]			=3D 2,
+@@ -275,7 +275,9 @@
+ 			--~ [kPacket_Equipped_MOB]		=3D 1, -- dynamic size!
+ 			[kPacket_Block_Movement]	=3D 1,
+ 			[kPacket_Sound]				=3D 1,
+-		}) do gPacketSizeByID[id] =3D gPacketSizeByID[id] + add print(" 16bit:",=
+hex(id).."=3D"..gPacketSizeByID[id],gPacketTypeId2Name[id]) end
++		}
++		if (gUse16BitZ_MobMove) then addarr[kPacket_Naked_MOB] =3D 1 end
++		for id,add in pairs(addarr) do gPacketSizeByID[id] =3D gPacketSizeByID[i=
+d] + add print(" 16bit:",hex(id).."=3D"..gPacketSizeByID[id],gPacketTypeId2=
+Name[id]) end
+ 	end
+ end
+ 	=
+
+
+
+
+From no-reply at zwischenwelt.org  Mon May 24 21:56:37 2010
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Mon, 24 May 2010 19:56:37 -0000
+Subject: [Iris-commit] [IRIS] r3339 - /trunk/lua/lib.packet.lua
+Message-ID: <20100524195637.8129454D0007@simon>
+
+Author: ghoulsblade
+Date: Mon May 24 21:56:37 2010
+New Revision: 3339
+
+Log:
+16bit zloc fix
+
+Modified:
+    trunk/lua/lib.packet.lua
+
+Modified: trunk/lua/lib.packet.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.packet.lua (original)
++++ trunk/lua/lib.packet.lua Mon May 24 21:56:37 2010
+@@ -275,6 +275,7 @@
+ 			--~ [kPacket_Equipped_MOB]		=3D 1, -- dynamic size!
+ 			[kPacket_Block_Movement]	=3D 1,
+ 			[kPacket_Sound]				=3D 1,
++			[kPacket_Naked_MOB]			=3D 0,
+ 		}
+ 		if (gUse16BitZ_MobMove) then addarr[kPacket_Naked_MOB] =3D 1 end
+ 		for id,add in pairs(addarr) do gPacketSizeByID[id] =3D gPacketSizeByID[i=
+d] + add print(" 16bit:",hex(id).."=3D"..gPacketSizeByID[id],gPacketTypeId2=
+Name[id]) end
+
+
+

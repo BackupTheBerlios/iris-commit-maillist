@@ -1,0 +1,380 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2984 - in /trunk/lua: lib.net.lua lib.proxy.lua net/net.login.lua net/net.main.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2009-April/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2984%20-%20in%20/trunk/lua%3A%20lib.net.lua%0A%20lib.proxy.lua%20net/net.login.lua%20net/net.main.lua&In-Reply-To=%3C20090405155454.67AB41C18659%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001782.html">
+   <LINK REL="Next"  HREF="001784.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2984 - in /trunk/lua: lib.net.lua lib.proxy.lua net/net.login.lua net/net.main.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2984%20-%20in%20/trunk/lua%3A%20lib.net.lua%0A%20lib.proxy.lua%20net/net.login.lua%20net/net.main.lua&In-Reply-To=%3C20090405155454.67AB41C18659%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2984 - in /trunk/lua: lib.net.lua lib.proxy.lua net/net.login.lua net/net.main.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sun Apr  5 17:54:53 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001782.html">[Iris-commit] [IRIS] r2983 - /trunk/lib.premake.lua
+</A></li>
+        <LI>Next message: <A HREF="001784.html">[Iris-commit] [IRIS] r2985 - /trunk/lua/lib.proxy.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1783">[ date ]</a>
+              <a href="thread.html#1783">[ thread ]</a>
+              <a href="subject.html#1783">[ subject ]</a>
+              <a href="author.html#1783">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sun Apr  5 17:54:46 2009
+New Revision: 2984
+
+Log:
+enabled server-redirect reconnect during login for alternate option, proxy =
+:<i> some experiments with changing login packet unknown data
+</I>
+Modified:
+    trunk/lua/lib.net.lua
+    trunk/lua/lib.proxy.lua
+    trunk/lua/net/net.login.lua
+    trunk/lua/net/net.main.lua
+
+Modified: trunk/lua/lib.net.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.net.lua (original)
++++ trunk/lua/lib.net.lua Sun Apr  5 17:54:46 2009
+@@ -48,7 +48,11 @@
+ 		out:PushNetUint8(0xef)
+ 		out:SendPacket(true)
+ 		-- gPacketType.kPacket_Edit =3D { id=3D0x0A, size=3D11 }
+-		for k,v in ipairs({0x0a,0x00,0x02,0x0f,0x00,0x00,0x00,0x06,0x00,0x00,0x0=
+0,0x00,0x00,0x00,0x00,0x09,0x00,0x00,0x00,0x02}) do =
+
++		=
+
++							=
+
++		=
+
++		for k,v in ipairs({0x7f,0x0c,0x22,0x38,0x00,0x00,0x00,0x06,0x00,0x00,0x0=
+0,0x00,0x00,0x00,0x00,0x09,0x00,0x00,0x00,0x02}) do =
+
++		--~ for k,v in ipairs({0x0a,0x00,0x02,0x0f,0x00,0x00,0x00,0x06,0x00,0x00=
+,0x00,0x00,0x00,0x00,0x00,0x09,0x00,0x00,0x00,0x02}) do =
+
+ 			out:PushNetUint8(v)
+ 		end
+ 		out:SendPacket(true)
+@@ -59,13 +63,36 @@
+ 	return true
+ end
+ =
+
++function NetConnectWithKey2 (host,port,key) =
+
++	--~ NetDisconnect()							-- close old connection
++	=
+
++	if (gMainConnection) then
++		gMainConnection:Destroy()
++		gMainConnection =3D nil
++	end
++		gSendFifo:Clear()
++		gRecvFifo:Clear()
++		gCompressedRecvFifo:Clear()
++		=
+
++		=
+
++	gMainConnection =3D NetConnect(host,port)
++	print(&quot;NetConnectWithKey2 recon done:&quot;,host,port,gMainConnection,gMainCon=
+nection and gMainConnection:IsConnected())
++	if (not gMainConnection) then return false end
++	=
+
++	local out =3D GetSendFIFO()
++	out:PushNetUint32(key)
++	out:SendPacket(true)
++	return true
++end
++
+ -- close old connection if any
+ function NetDisconnect  () =
+
++	print(&quot;disconnect&quot;)
+ 	-- gHuffmanDecode =3D false -- TODO ? : might be wrong to reset here if j=
+ust changing area server
+ 	if (gMainConnection) then
+ 		printdebug(&quot;login&quot;,&quot;NetDisconnect&quot;,gMainConnection)
+ 		-- write/read last bits of data, should be empty ( TODO : drain if not ?=
+ warning if not ?)
+-		NetTrafficStep()
++		NetTrafficStep(true)
+ 		-- close connection
+ 		gMainConnection:Destroy()
+ 		gMainConnection =3D nil
+@@ -83,11 +110,11 @@
+ function IsNetConnected () return gMainConnection and gMainConnection:IsCo=
+nnected() end
+ =
+
+ -- only sending, receiving and decoding, no packet handling triggered
+-function NetTrafficStep ()
++function NetTrafficStep (bIgnoreDisconnect)
+ 	if (not gMainConnection) then return end
+-	if gMainConnection and not gMainConnection:IsConnected() then
++	if gMainConnection and (not gMainConnection:IsConnected()) and (not bIgno=
+reDisconnect) then
+ 		-- TODO handle me
+-		FatalErrorMessage(&quot;FATAL ! NetTrafficStep (not connected anymore) -&gt; for=
+ced Crash&quot;)
++		FatalErrorMessage(&quot;FATAL ! NetTrafficStep (not connected anymore) -&gt; for=
+ced Crash : &quot;..GetOneLineBackTrace(2))
+ 	end
+ 	-- EncodeOut
+ 	-- TODO : later : encryption for osi here ?
+
+Modified: trunk/lua/lib.proxy.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.proxy.lua (original)
++++ trunk/lua/lib.proxy.lua Sun Apr  5 17:54:46 2009
+@@ -55,7 +55,81 @@
+ 	=
+
+ 	local bInterpret =3D true
+ 	if (bIsFromServer and gProxyServerHuffmanStarted) then bInterpret =3D fal=
+se end
+-	if (bIsFromClient and gProxyServerHuffmanStarted) then bInterpret =3D fal=
+se end -- not really needed but something seems bugged
++	--~ if (bIsFromClient and gProxyServerHuffmanStarted) then bInterpret =3D=
+ false end -- not really needed but something seems bugged
++	=
+
++	local bScrambleTest =3D true
++	local bClientBlockTest =3D false
++	=
+
++	if (bIsFromClient and gProxyServerHuffmanStarted and (not gProxySecondPar=
+tHeaderStarted)) then
++		gProxySecondPartHeaderStarted =3D true
++		local iPacketSize =3D 4
++		print(&quot;recv:&quot;,fromname,&quot;4byte header before protocol start&quot;) =
+
++		print(FIFOHexDump(fifo_in,0,iPacketSize))
++		fifo_out:PushFIFOPartRaw(fifo_in,0,iPacketSize) =
+
++		fifo_in:PopRaw(iPacketSize)
++		return true
++	end
++	=
+
++	-- scramble kPacket_Generic_SubCommand_Screensize (0xBF subcmd 0x05)  las=
+t 5 bytes (unknown)
++	--~ bf 00 0d 00 05 00 00 03 20 3f d0 11 00            |........ ?...|
++	if (bScrambleTest and bIsFromClient and fifo_in:Size() &gt;=3D 13) then =
+
++		if (fifo_in:PeekNetUint8(0) =3D=3D 0xBF and
++			fifo_in:PeekNetUint8(1) =3D=3D 0x00 and
++			fifo_in:PeekNetUint8(2) =3D=3D 0x0d and
++			fifo_in:PeekNetUint8(3) =3D=3D 0x00 and
++			fifo_in:PeekNetUint8(4) =3D=3D 0x05) then
++			fifo_in:PokeNetUint8(9,0xff)
++			fifo_in:PokeNetUint8(10,0xff)
++			fifo_in:PokeNetUint8(11,0xff)
++			fifo_in:PokeNetUint8(12,0xff)
++			print(&quot;SCRAMBLED kPacket_Generic_SubCommand_Screensize&quot;)
++		end
++	end
++	=
+
++	=
+
++	if (bIsFromClient and gProxyBlockingClient) then
++		fifo_in:Clear()
++		fifo_in:PushNetUint8(0xBF) =
+
++		fifo_in:PushNetUint8(0x00) =
+
++		fifo_in:PushNetUint8(0x06) =
+
++		fifo_in:PushNetUint8(0x00) =
+
++		fifo_in:PushNetUint8(0x24) =
+
++		fifo_in:PushNetUint8(0x16) =
+
++		print(&quot;client:blocked&quot;)
++	end
++	=
+
++	-- modify the unknown se packets
++	if (bIsFromClient and fifo_in:Size() &gt;=3D 6) then
++		--~ bf 00 06 00 24 5e
++		if (fifo_in:PeekNetUint8(0) =3D=3D 0xBF and
++			fifo_in:PeekNetUint8(1) =3D=3D 0x00 and
++			fifo_in:PeekNetUint8(2) =3D=3D 0x06 and
++			fifo_in:PeekNetUint8(3) =3D=3D 0x00 and
++			fifo_in:PeekNetUint8(4) =3D=3D 0x24) then
++			--~ fifo_in:PokeNetUint8(5,math.random(0,255))
++			print(&quot;detected unknownSE&quot;)
++			if (bScrambleTest) then =
+
++				fifo_in:PokeNetUint8(5,16)
++				print(&quot;SCRAMBLED unknownSE&quot;)
++			end
++			if (bClientBlockTest) then gProxyBlockingClient =3D true end
++		end
++	end
++	=
+
++	=
+
++	-- modify kPacket_Pre_Login 0x5D packet data
++	if (bScrambleTest and bIsFromClient and fifo_in:Size() &gt;=3D 49) then
++		if (fifo_in:PeekNetUint8(0) =3D=3D 0x5D and
++			fifo_in:PeekNetUint8(1) =3D=3D 0xED and
++			fifo_in:PeekNetUint8(2) =3D=3D 0xED and
++			fifo_in:PeekNetUint8(3) =3D=3D 0xED and
++			fifo_in:PeekNetUint8(4) =3D=3D 0xED) then
++			--~ fifo_in:PokeNetUint8(5,math.random(0,255))
++			fifo_in:PokeNetUint8(48,0x11)
++			print(&quot;SCRAMBLED kPacket_Pre_Login&quot;)
++		end
++	end
++	=
+
+ 	if (bInterpret) then =
+
+ 		local iId =3D fifo_in:PeekNetUint8(0)
+ 		local iPacketSize =3D gPacketSizeByID[iId]
+
+Modified: trunk/lua/net/net.login.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.login.lua (original)
++++ trunk/lua/net/net.login.lua Sun Apr  5 17:54:46 2009
+@@ -111,24 +111,34 @@
+ 			id,gameserverip,gameserverport,gameserveraccount))
+ 	printdebug(&quot;login&quot;,sprintf(&quot;DEBUG IP STRINGS %s &lt;&gt; %s\n&quot;,gameserverip,Get=
+HostByName(gLoginServerIP)))
+ =
+
+-	-- login &amp; gameserver are not the same: redirect is received
+-	if ((gServerType[gServerEmulator] =3D=3D &quot;SpherePolUox3&quot;) or (gameserveri=
+p ~=3D GetHostByName(gLoginServerIP)) or (gameserverport ~=3D gLoginServerP=
+ort)) then
+-		--disconnect from Loginserver
+-		printdebug(&quot;login&quot;,&quot;NET: disconnect from loginserver&quot;)
+-		NetDisconnect()
+-		print(&quot;##########!!!!!!!!!!!!!  kPacket_Server_Redirect NetDisconnect&quot;)
+-		--connect to gameserver
+-		printdebug(&quot;login&quot;,&quot;NET: connect to gameserver&quot;)
+-		local res =3D NetConnectWithKey(gameserverip,gameserverport,gameserverac=
+count)
++	if (gAltenatePostLoginHandling) then
++		print(&quot;#######!!!!!!!!! REDIRECT : reconnect with NetConnectWithKey2&quot;)
++		local res =3D NetConnectWithKey2(gameserverip,gameserverport,gameservera=
+ccount)
+ 		if (not res) then
+ 			FatalErrorMessage(&quot;kPacket_Server_Redirect : login server redirect fail=
+ed&quot;)
+ 		end
+-	end
+-
+-	--if Server support Huffman compress NetworkPackages turn it on (nearly a=
+ll Emus should support this)
+-	if (gHuffmanCompression) then
+-		NetStartHuffman()
+-	end
++		if (gHuffmanCompression) then NetStartHuffman() end
++	else =
+
++		-- login &amp; gameserver are not the same: redirect is received
++		if ((gServerType[gServerEmulator] =3D=3D &quot;SpherePolUox3&quot;) or (gameserver=
+ip ~=3D GetHostByName(gLoginServerIP)) or (gameserverport ~=3D gLoginServer=
+Port)) then
++			--disconnect from Loginserver
++			printdebug(&quot;login&quot;,&quot;NET: disconnect from loginserver&quot;)
++			NetDisconnect()
++			print(&quot;##########!!!!!!!!!!!!!  kPacket_Server_Redirect NetDisconnect&quot;)
++			--connect to gameserver
++			printdebug(&quot;login&quot;,&quot;NET: connect to gameserver&quot;)
++			local res =3D NetConnectWithKey(gameserverip,gameserverport,gameservera=
+ccount)
++			if (not res) then
++				FatalErrorMessage(&quot;kPacket_Server_Redirect : login server redirect fai=
+led&quot;)
++			end
++		end
++
++		--if Server support Huffman compress NetworkPackages turn it on (nearly =
+all Emus should support this)
++		if (gHuffmanCompression) then NetStartHuffman() end
++	end
++	=
+
++	=
+
++	=
+
+ 	Send_GameServer_PostLogin(gLoginname,gPassword,gameserveraccount)
+ end
+ =
+
+
+Modified: trunk/lua/net/net.main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.main.lua (original)
++++ trunk/lua/net/net.main.lua Sun Apr  5 17:54:46 2009
+@@ -27,3 +27,4 @@
+ dofile(libpath .. &quot;net.walk.lua&quot;)
+ =
+
+ gLastDoubleClickSerial =3D 0
++
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001782.html">[Iris-commit] [IRIS] r2983 - /trunk/lib.premake.lua
+</A></li>
+	<LI>Next message: <A HREF="001784.html">[Iris-commit] [IRIS] r2985 - /trunk/lua/lib.proxy.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1783">[ date ]</a>
+              <a href="thread.html#1783">[ thread ]</a>
+              <a href="subject.html#1783">[ subject ]</a>
+              <a href="author.html#1783">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

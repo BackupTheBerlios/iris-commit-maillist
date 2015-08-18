@@ -1,0 +1,256 @@
+From no-reply at zwischenwelt.org  Wed Feb  2 11:32:31 2011
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Wed, 02 Feb 2011 10:32:31 -0000
+Subject: [Iris-commit] [IRIS] r3368 - in /trunk/lua/net: net.generic.lua
+	net.other.lua
+Message-ID: <20110202103231.8ECE27A9855F@simon>
+
+Author: ghoulsblade
+Date: Wed Feb  2 11:32:30 2011
+New Revision: 3368
+
+Log:
+added guards
+
+Modified:
+    trunk/lua/net/net.generic.lua
+    trunk/lua/net/net.other.lua
+
+Modified: trunk/lua/net/net.generic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.generic.lua (original)
++++ trunk/lua/net/net.generic.lua Wed Feb  2 11:32:30 2011
+@@ -185,13 +185,13 @@
+ 			entry.textid	=3D input:PopNetUint16() -- ID is the file number for intl=
+oc#.language e.g intloc6.enu and the index into that
+ 			entry.text 		=3D GetPopupEntryText(entry.textid) or "unknown"
+ 			=
+
+-			local rest =3D packetsize - (input:GetTotalPopped() - popped_start)
++			local rest =3D size - (input:GetTotalPopped() - popped_start)
+ 			if (rest < 2) then print("WARNING: kPacket_Generic_SubCommand_DisplayPo=
+pup underrun2",rest) break end
+ 			=
+
+ 			entry.flags		=3D input:PopNetUint16() -- 0x01 =3D locked, 0x02 =3D arro=
+w, 0x20 =3D color
+ 			if (TestBit(entry.flags,kPopupEntryFlag_Color)) then
+ 			=
+
+-				local rest =3D packetsize - (input:GetTotalPopped() - popped_start)
++				local rest =3D size - (input:GetTotalPopped() - popped_start)
+ 				if (rest < 2) then print("WARNING: kPacket_Generic_SubCommand_DisplayP=
+opup underrun3",rest) break end
+ 				=
+
+ 				entry.color	=3D input:PopNetUint16() =
+
+
+Modified: trunk/lua/net/net.other.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.other.lua (original)
++++ trunk/lua/net/net.other.lua Wed Feb  2 11:32:30 2011
+@@ -123,7 +123,8 @@
+     local input =3D GetRecvFIFO()
+     local id =3D input:PopNetUint8()
+     local size =3D input:PopNetUint16()
+-    local url =3D FIFO_PopZeroTerminatedString(input, size)
++    local url,size2 =3D FIFO_PopZeroTerminatedString(input, size-3)
++	print("kPacket_Web_Browser remaining size",size2)
+ 	--[[
+     local file =3D io.open("tmp.url", "w")
+     file:write("[InternetShortcut]\n")
+
+
+
+From no-reply at zwischenwelt.org  Wed Feb  2 19:12:21 2011
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Wed, 02 Feb 2011 18:12:21 -0000
+Subject: [Iris-commit] [IRIS] r3369 - /trunk/lua/lib.2d.dynamic.lua
+Message-ID: <20110202181222.19FF97A9855F@simon>
+
+Author: ghoulsblade
+Date: Wed Feb  2 19:12:21 2011
+New Revision: 3369
+
+Log:
+pergon shard corpse problems test
+
+Modified:
+    trunk/lua/lib.2d.dynamic.lua
+
+Modified: trunk/lua/lib.2d.dynamic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.dynamic.lua (original)
++++ trunk/lua/lib.2d.dynamic.lua Wed Feb  2 19:12:21 2011
+@@ -102,6 +102,7 @@
+ 		if (bVisible) then
+ 			-- corpse
+ 			if (item.artid_base =3D=3D kCorpseDynamicArtID) then
++				if (item.hue =3D=3D 1309) then item.hue =3D 1002 end -- pergon shard e=
+lf-corpse problems test
+ 				local parts =3D {}
+ 				item.corpsedir =3D item.corpsedir or math.random(0,7)
+ 				local iDirAdd,bMirrorX =3D GetAnimDirAdd(DirWrap(item.corpsedir))  -- =
+some param ? last known dir ?
+
+
+
+From no-reply at zwischenwelt.org  Wed Feb  2 19:24:20 2011
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Wed, 02 Feb 2011 18:24:20 -0000
+Subject: [Iris-commit] [IRIS] r3370 - /trunk/lua/net/net.generic.lua
+Message-ID: <20110202182420.C04087A9855F@simon>
+
+Author: ghoulsblade
+Date: Wed Feb  2 19:24:20 2011
+New Revision: 3370
+
+Log:
+popup debug
+
+Modified:
+    trunk/lua/net/net.generic.lua
+
+Modified: trunk/lua/net/net.generic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.generic.lua (original)
++++ trunk/lua/net/net.generic.lua Wed Feb  2 19:24:20 2011
+@@ -1,4 +1,5 @@
+ -- kPacket_Generic_Command 0xBF =
+
++-- http://docs.polserver.com/packets/index.php?Packet=3D0xBF
+ =
+
+ gGenericSubCommands =3D {}
+ gGenericSubCommands.kPacket_Generic_SubCommand_FastWalkInit			=3D 0x01
+@@ -174,10 +175,13 @@
+ 	-- TODO : check if PopUp is already opened - use a popuplist with serials=
+ !?
+ 	if (subcmd =3D=3D kPacket_Generic_SubCommand_DisplayPopup) then -- 0x14
+ 		local popupmenu =3D {}
+-		popupmenu.unknown		=3D input:PopNetUint16() -- always 0x0001
++		popupmenu.unknown1		=3D input:PopNetUint8() -- always 0x00
++		popupmenu.unknown2		=3D input:PopNetUint8() -- always (0x01 for 2D, 0x02=
+ for KR)
+ 		popupmenu.serial		=3D input:PopNetUint32()
+ 		popupmenu.numentries	=3D input:PopNetUint8() -- Number of entries in the=
+ popup
+ 		popupmenu.entries		=3D {}
++		local rest =3D size - (input:GetTotalPopped() - popped_start)
++		print("kPacket_Generic_SubCommand_DisplayPopup unknown,nument,rest,rest_=
+per_ent=3D",popupmenu.unknown1,popupmenu.unknown2,popupmenu.numentries,rest=
+,rest/popupmenu.numentries)
+ 		for i =3D 1, popupmenu.numentries do =
+
+ 			local entry =3D {}
+ 			entry.popupmenu =3D popupmenu
+
+
+
+From no-reply at zwischenwelt.org  Wed Feb  2 21:29:03 2011
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Wed, 02 Feb 2011 20:29:03 -0000
+Subject: [Iris-commit] [IRIS] r3371 - /trunk/lua/net/net.generic.lua
+Message-ID: <20110202202904.BB9937A9855F@simon>
+
+Author: ghoulsblade
+Date: Wed Feb  2 21:29:03 2011
+New Revision: 3371
+
+Log:
+popup entry short
+
+Modified:
+    trunk/lua/net/net.generic.lua
+
+Modified: trunk/lua/net/net.generic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.generic.lua (original)
++++ trunk/lua/net/net.generic.lua Wed Feb  2 21:29:03 2011
+@@ -184,10 +184,12 @@
+ 		print("kPacket_Generic_SubCommand_DisplayPopup unknown,nument,rest,rest_=
+per_ent=3D",popupmenu.unknown1,popupmenu.unknown2,popupmenu.numentries,rest=
+,rest/popupmenu.numentries)
+ 		for i =3D 1, popupmenu.numentries do =
+
+ 			local entry =3D {}
++			popupmenu.entries[i] =3D entry
+ 			entry.popupmenu =3D popupmenu
+ 			entry.tag		=3D input:PopNetUint16() -- Entry Tag (this will be returned=
+ by the client on selection)
+ 			entry.textid	=3D input:PopNetUint16() -- ID is the file number for intl=
+oc#.language e.g intloc6.enu and the index into that
+ 			entry.text 		=3D GetPopupEntryText(entry.textid) or "unknown"
++			entry.color	=3D 0
+ 			=
+
+ 			local rest =3D size - (input:GetTotalPopped() - popped_start)
+ 			if (rest < 2) then print("WARNING: kPacket_Generic_SubCommand_DisplayPo=
+pup underrun2",rest) break end
+@@ -200,10 +202,7 @@
+ 				=
+
+ 				entry.color	=3D input:PopNetUint16() =
+
+ 				-- rgb 1555 color (ex, 0 =3D transparent, 0x8000 =3D solid black, 0x1F=
+ =3D blue, 0x3E0 =3D green, 0x7C00 =3D red)
+-			else
+-				entry.color	=3D 0
+ 			end
+-			popupmenu.entries[i] =3D entry
+ 		end
+ 		=
+
+ 		DisplayPopupMenu(popupmenu) -- see net.popup.lua
+
+
+
+From no-reply at zwischenwelt.org  Wed Feb  2 21:39:51 2011
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Wed, 02 Feb 2011 20:39:51 -0000
+Subject: [Iris-commit] [IRIS] r3372 - /trunk/config/shards/welt-pergon.de.xml
+Message-ID: <20110202203951.B942E7A9855F@simon>
+
+Author: ghoulsblade
+Date: Wed Feb  2 21:39:46 2011
+New Revision: 3372
+
+Log:
+fixed cliloc for welt-pergon.de.xml shard config
+
+Modified:
+    trunk/config/shards/welt-pergon.de.xml
+
+Modified: trunk/config/shards/welt-pergon.de.xml
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/config/shards/welt-pergon.de.xml (original)
++++ trunk/config/shards/welt-pergon.de.xml Wed Feb  2 21:39:46 2011
+@@ -1,5 +1,6 @@
+ <table>
+ <string key=3D"gLoginname"></string>
++<string key=3D"gLanguage">DEU</string>
+ <boolean key=3D"gPolServer">false</boolean>
+ <string key=3D"gServerSeed">1</string>
+ <number key=3D"gLoginServerPort">3000</number>
+
+
+

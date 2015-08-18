@@ -1,0 +1,358 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1415 - /trunk/data/lua/lib.tilefreewalk.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2007-September/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1415%20-%20/trunk/data/lua/lib.tilefreewalk.lua&In-Reply-To=%3C20070927233449.3546D1C1817E%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000229.html">
+   <LINK REL="Next"  HREF="000231.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1415 - /trunk/data/lua/lib.tilefreewalk.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1415%20-%20/trunk/data/lua/lib.tilefreewalk.lua&In-Reply-To=%3C20070927233449.3546D1C1817E%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1415 - /trunk/data/lua/lib.tilefreewalk.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Fri Sep 28 01:34:49 CEST 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000229.html">[Iris-commit] [IRIS] r1414 - /trunk/bin/iris2.exe
+</A></li>
+        <LI>Next message: <A HREF="000231.html">[Iris-commit] [IRIS] r1416 - /trunk/data/lua/lib.tilefreewalk.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#230">[ date ]</a>
+              <a href="thread.html#230">[ thread ]</a>
+              <a href="subject.html#230">[ subject ]</a>
+              <a href="author.html#230">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Fri Sep 28 01:34:48 2007
+New Revision: 1415
+
+Log:
+working on tilefree movement...
+
+Modified:
+    trunk/data/lua/lib.tilefreewalk.lua
+
+Modified: trunk/data/lua/lib.tilefreewalk.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.tilefreewalk.lua (original)
++++ trunk/data/lua/lib.tilefreewalk.lua Fri Sep 28 01:34:48 2007
+@@ -32,6 +32,8 @@
+ 	if (not gEnableTileFreeWalk) then return end -- set in config.lua : gEnab=
+leTileFreeWalk =3D true
+ 	if (gCurrentRenderer ~=3D Renderer3D) then return end
+ 	self.iLastWalkRequestSendTime =3D 0
++	self.pathpoints =3D {}
++	self.debugmarkers =3D {}
+ 	=
+
+ 	if (true) then
+ 		self.sDebugMarkerMeshName_Big	=3D MakeSphereMesh(11,11,0.3,0.3,0.1)
+@@ -39,6 +41,10 @@
+ 	end
+ 	=
+
+ 	self:SetPos_All(0,0,0)
++	if (gStartGameWithoutNetwork) then
++		Renderer3D:ChangeCamMode(Renderer3D.kCamMode_Third)
++		self:SetPos_All(-1675.5,284.5,5.0)
++	end
+ =
+
+ 	RegisterStepper(function () gTileFreeWalk:Step() end) =
+
+ end
+@@ -58,20 +64,16 @@
+ 	=
+
+ 	-- rightclick+hold : walk in mouse direction
+ 	if (bWalkInMouseDir) then
+-		local dx,dy =3D self:GetCurrentMouseDir() =
+
+-		=
+
+-		if ((not self.init) and gStartGameWithoutNetwork) then
+-			self.init =3D true
+-			Renderer3D:ChangeCamMode(Renderer3D.kCamMode_Third)
+-			local x,y,z =3D self:MousePickPos()
+-			self:SetPos_All(x,y,z)
+-		end
++		local dx,dy,pixel_dist_from_center =3D self:GetCurrentMouseDir() =
+
++		--local x,y,z =3D self:MousePickPos()
+ 		=
+
+ 		local x,y,z =3D self:GetPos_ClientSide()
+-		local speed =3D self:GetClientSideSpeed() * gSecondsSinceLastFrame
++		local slowarea_pixels =3D 50
++		local speed =3D self:GetClientSideSpeed(dx,dy,0) * gSecondsSinceLastFram=
+e * math.min(1.0,pixel_dist_from_center / slowarea_pixels)
+ 		x =3D x + dx * speed
+ 		y =3D y + dy * speed
+ 		self:SetPos_ClientSide(x,y,z)
++		self:PathPoint_SetCur()
+ 		self:SetDebugMarker(&quot;GetPos_ClientSide&quot;, x,y,z, dx,dy,0, 1,1,0)
+ 	end
+ 	=
+
+@@ -81,16 +83,28 @@
+ 	self:SetDebugMarker(&quot;GetPos_LastRequested&quot;, x,y,z, 0,0,0, 0,0,1)
+ 	=
+
+ 	=
+
+-	-- todo : only check for send if we want to send walk requests
++
+ 	-- send walk requests to server
+ 	local iTimeSinceLastWalkRequest =3D gMyTicks - self.iLastWalkRequestSendT=
+ime
+ 	local iWalkRequestInterval =3D self:GetWalkRequestInterval()
++	-- iWalkRequestInterval =3D 200 -- debug
+ 	if (iTimeSinceLastWalkRequest &gt;=3D iWalkRequestInterval) then
+-		self.iLastWalkRequestSendTime =3D (iTimeSinceLastWalkRequest   &gt; 2*iWalk=
+RequestInterval) and gMyTicks or =
+
+-										(self.iLastWalkRequestSendTime + iWalkRequestInterval)
++		if (self:PathPoint_HasNext()) then -- only check for send if we want to =
+send walk requests =
+
++			self.iLastWalkRequestSendTime =3D (iTimeSinceLastWalkRequest   &gt; 2*iWal=
+kRequestInterval) and gMyTicks or =
+
++											(self.iLastWalkRequestSendTime + iWalkRequestInterval)
++			=
+
++			-- todo : send request
++			local x,y,z =3D self:PathPoint_GetNth(1)
++			self:PathPoint_Pop()
++			self:SetPos_LastRequested(x,y,z)
++			=
+
++			print(&quot;walk request to &quot;,x,y,z,iTimeSinceLastWalkRequest,iWalkRequestIn=
+terval)
+ 		=
+
+-		-- todo : send request
+-		=
+
++			local bSelfConfirmAll =3D gStartGameWithoutNetwork
++			if (bSelfConfirmAll) then self:SetPos_LastConfirmed(x,y,z) end -- debug=
+/offline mode only
++		else
++			print(&quot;no walk request pending&quot;)
++		end
+ 	end
+ end
+ =
+
+@@ -101,25 +115,39 @@
+ function gTileFreeWalk:GetMaxAllowedSpeed		() return self:Impl_GetMaxAllow=
+edSpeed() end
+ function gTileFreeWalk:GetMaxAllowedTurnRate	() return self:Impl_GetMaxAll=
+owedTurnRate() end =
+
+ =
+
+-function gTileFreeWalk:GetWalkRequestInterval	() return 1/self:GetClientSi=
+deSpeed() end
++function gTileFreeWalk:GetWalkRequestInterval	() return 1000/self:GetMaxAl=
+lowedSpeed() end
+ =
+
+ function gTileFreeWalk:GetClientSideTurnRate	() return self:GetMaxAllowedT=
+urnRate() end =
+
+ =
+
+-function gTileFreeWalk:GetClientSideSpeed		() =
+
++-- returns the movement speed, dx,dy,dz is the direction of the movement
++-- the speed is dependant on the distance of the current pos to the last c=
+onfirmed pos
++-- and on the direction of the movement
++function gTileFreeWalk:GetClientSideSpeed		(dx,dy,dz)
+ 	local maxspeed			=3D self:GetMaxAllowedSpeed()
++	=
+
++	dx,dy,dz =3D Vector.normalise(dx,dy,dz)
++	local x,y,z =3D self:GetPos_ClientSide()
++	local cx,cy,cz =3D self:GetPos_LastConfirmed()
++	local vx,vy,vz =3D Vector.normalise(Vector.sub(cx,cy,cz, x,y,z)) -- vecto=
+r from cur pos to last confirmed pos
++	local dot =3D Vector.dot(dx,dy,dz, vx,vy,vz) -- +1.0 if walking back, -1.=
+0 if walking away
++	local slow_dir =3D math.max(0,math.min(1,1.0-dot))-- 0 =3D no slowdown =
+=3D&gt; max speed : no slowdown when dot =3D 1
++	=
+
+ 	local dist				=3D self:GetDistanceToLastConfirmedPos()
+ 	local tolerated_dist	=3D 1
+ 	local minspeed_dist		=3D 4 + tolerated_dist -- todo : currently slowdown =
+is linear, make smoother spline here ?
+-	return maxspeed * (1.0 - math.min(0.9,math.max(0,dist-tolerated_dist)/min=
+speed_dist))
+-end
+-
+--- returns dx,dy in uo coordinate system, vector2d(dx,dy).length =3D 1
++	local slow_dist			=3D math.min(0.9,math.max(0,dist-tolerated_dist)/minspe=
+ed_dist) -- 0 =3D no slowdown =3D&gt; max speed
++	=
+
++	return maxspeed * (1.0 - slow_dist * slow_dir)
++end
++
++-- returns dx,dy,pixel_dist_from_center in uo coordinate system, vector2d(=
+dx,dy).length =3D 1
+ function gTileFreeWalk:GetCurrentMouseDir	()
+ 	local mx, my =3D GetMousePos()
+ 	local vw, vh =3D GetViewportSize()
+ 	local ax,ay,az =3D GetMainCam():GetEulerAng()
+ 	local mouseang =3D -math.atan2( my-vh/2.0, mx-vw/2.0 ) + ax -- in radians
+-	return math.cos(mouseang),math.sin(mouseang)
++	local pixel_dist_from_center =3D Vector.len( my-vh/2.0, mx-vw/2.0 , 0)
++	return math.cos(mouseang),math.sin(mouseang),pixel_dist_from_center
+ end
+ =
+
+ =
+
+@@ -154,6 +182,38 @@
+ 	Crash()
+ end)
+ =
+
++-- ##### ##### ##### ##### ##### pathpoints
++
++-- the system remembers which path was walked clientside, and approximates=
+ it for sending to the walk requests
++
++function gTileFreeWalk:PathPoint_SetLast	(x,y,z)		self.lastMarkedWalkPos =
+=3D {x,y,z} end
++function gTileFreeWalk:PathPoint_GetLast	()			return unpack(self.lastMarke=
+dWalkPos) end
++function gTileFreeWalk:PathPoint_GetNext	() return self:PathPoint_GetNth(1=
+) end
++function gTileFreeWalk:PathPoint_GetNth		(n) -- n=3D1 for first =3D next
++	if (not self.pathpoints[n]) then return end
++	return unpack(self.pathpoints[n])
++end
++function gTileFreeWalk:PathPoint_HasNext	() return self:PathPoint_Has(1) e=
+nd
++function gTileFreeWalk:PathPoint_Has		(n) return table.getn(self.pathpoint=
+s) &gt;=3D n end
++function gTileFreeWalk:PathPoint_Pop		() =
+
++	if (self:PathPoint_HasNext()) then =
+
++		local x,y,z =3D self:PathPoint_GetNext()
++		self:DelDebugMarker(&quot;path&quot;..x..&quot;,&quot;..y..&quot;,&quot;..z)
++		table.remove(self.pathpoints,1) =
+
++	end =
+
++end
++function gTileFreeWalk:PathPoint_Push		(x,y,z)
++	table.insert(self.pathpoints,{x,y,z})
++	self:PathPoint_SetLast(x,y,z)
++	self:SetDebugMarker(&quot;path&quot;..x..&quot;,&quot;..y..&quot;,&quot;..z, x,y,z, 0,0,0, 0.5,0.5,0.5)
++end
++function gTileFreeWalk:PathPoint_SetCur		()
++	local x,y,z =3D self:GetPos_ClientSide_Rounded()
++	local lx,ly,lz =3D self:PathPoint_GetLast()
++	if (lx =3D=3D x and ly =3D=3D y and lz =3D=3D z) then return end
++	self:PathPoint_Push(x,y,z)
++end
++
+ -- ##### ##### ##### ##### ##### position and coordinate system conversions
+ =
+
+ =
+
+@@ -165,6 +225,12 @@
+ -- returns x,y,z
+ function gTileFreeWalk:MousePickPos 		() 			return self:Impl_MousePickPos(=
+) end
+ =
+
++
++function gTileFreeWalk:GetPos_ClientSide_Rounded	()
++	local x,y,z =3D self:GetPos_ClientSide()
++	local e,f =3D 0,0.5
++	return math.floor(x+e)+f,math.floor(y+e)+f,math.floor(z+e)+f
++end
+ function gTileFreeWalk:GetPos_ClientSide	()			return unpack(self.pos_clien=
+tside) end
+ function gTileFreeWalk:SetPos_ClientSide	(x,y,z)		self.pos_clientside =3D =
+{x,y,z} end
+ =
+
+@@ -179,6 +245,7 @@
+ 	self:SetPos_ClientSide(		x,y,z)
+ 	self:SetPos_LastConfirmed(	x,y,z)
+ 	self:SetPos_LastRequested(	x,y,z)
++	self:PathPoint_SetLast(		x,y,z)
+ end
+ =
+
+ =
+
+@@ -186,8 +253,15 @@
+ -- ##### ##### ##### ##### ##### debug markers
+ =
+
+ =
+
++function gTileFreeWalk:DelDebugMarker (markername)
++	local mymarker =3D self.debugmarkers[markername]
++	if (not mymarker) then return end
++	self.debugmarkers[markername] =3D nil
++	mymarker.gfx_big:Destroy()
++	mymarker.gfx_dir:Destroy()
++end
++
+ function gTileFreeWalk:SetDebugMarker (markername, x,y,z, dx,dy,dz, r,g,b)
+-	self.debugmarkers =3D self.debugmarkers or {}
+ 	local mymarker =3D self.debugmarkers[markername]
+ 	if (not mymarker) then mymarker =3D {} self.debugmarkers[markername] =3D =
+mymarker end
+ 	mymarker.data =3D {x,y,z, dx,dy,dz, r,g,b}
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000229.html">[Iris-commit] [IRIS] r1414 - /trunk/bin/iris2.exe
+</A></li>
+	<LI>Next message: <A HREF="000231.html">[Iris-commit] [IRIS] r1416 - /trunk/data/lua/lib.tilefreewalk.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#230">[ date ]</a>
+              <a href="thread.html#230">[ thread ]</a>
+              <a href="subject.html#230">[ subject ]</a>
+              <a href="author.html#230">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,808 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2800 - in /trunk/lua: lib.net.lua net/net.extended.lua net/net.generic.lua net/net.gump.lua net/net.multi.lua net/net.trade.lua net/net.world.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-December/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2800%20-%20in%20/trunk/lua%3A%20lib.net.lua%0A%20net/net.extended.lua%20net/net.generic.lua%20net/net.gump.lua%20net/net.multi.lua%0A%20net/net.trade.lua%20net/net.world.lua&In-Reply-To=%3C20081215235521.A654D1C187F1%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001603.html">
+   <LINK REL="Next"  HREF="001605.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2800 - in /trunk/lua: lib.net.lua net/net.extended.lua net/net.generic.lua net/net.gump.lua net/net.multi.lua net/net.trade.lua net/net.world.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2800%20-%20in%20/trunk/lua%3A%20lib.net.lua%0A%20net/net.extended.lua%20net/net.generic.lua%20net/net.gump.lua%20net/net.multi.lua%0A%20net/net.trade.lua%20net/net.world.lua&In-Reply-To=%3C20081215235521.A654D1C187F1%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2800 - in /trunk/lua: lib.net.lua net/net.extended.lua net/net.generic.lua net/net.gump.lua net/net.multi.lua net/net.trade.lua net/net.world.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Tue Dec 16 00:55:21 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001603.html">[Iris-commit] [IRIS] r2799 - in /trunk: lua/lib.3d.light.lua lua/lib.3d.renderer.lua lua/lib.mapblock.3d.dynamics.lua premake.lua premakelinux_noclean.sh
+</A></li>
+        <LI>Next message: <A HREF="001605.html">[Iris-commit] [IRIS] r2801 - /trunk/lua/lib.configdialog.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1604">[ date ]</a>
+              <a href="thread.html#1604">[ thread ]</a>
+              <a href="subject.html#1604">[ subject ]</a>
+              <a href="author.html#1604">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: hagish
+Date: Tue Dec 16 00:55:20 2008
+New Revision: 2800
+
+Log:
+*cache custom house structure
+*special network crash function that dumps the current unparsed network str=
+eam
+
+Modified:
+    trunk/lua/lib.net.lua
+    trunk/lua/net/net.extended.lua
+    trunk/lua/net/net.generic.lua
+    trunk/lua/net/net.gump.lua
+    trunk/lua/net/net.multi.lua
+    trunk/lua/net/net.trade.lua
+    trunk/lua/net/net.world.lua
+
+Modified: trunk/lua/lib.net.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.net.lua (original)
++++ trunk/lua/lib.net.lua Tue Dec 16 00:55:20 2008
+@@ -7,6 +7,15 @@
+ gRecvFifo =3D nil -- uncompressed data
+ gCompressedRecvFifo =3D nil -- raw data from socket, still huffman compres=
+sed
+ gHuffmanDecode =3D false
++
++function NetCrash	()
++	print(GetStackTrace())
++	local input =3D GetRecvFIFO()
++	print(&quot;#####################################&quot;)
++	print(FIFOHexDump(input))
++	print(&quot;#####################################&quot;)
++	Crash()
++end
+ =
+
+ function InitNet ()
+ 	gSendFifo =3D CreateFIFO()
+
+Modified: trunk/lua/net/net.extended.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.extended.lua (original)
++++ trunk/lua/net/net.extended.lua Tue Dec 16 00:55:20 2008
+@@ -49,7 +49,7 @@
+ 	if (rest &lt; 0) then
+ 		printf(&quot;FATAL ! kPacket_ExtBundledPacket : subcmd 0x%02x (used=3D%d size=
+=3D%d) popped too much\n&quot;,subcmd,used,size)
+ 		print(&quot;FATAL ! kPacket_ExtBundledPacket -&gt; forced Crash&quot;)
+-		Crash()
++		NetCrash()
+ 	end
+ 	if (rest &gt; 0) then
+ 		printf(&quot;WARNING ! kPacket_ExtBundledPacket : subcmd 0x%02x (used=3D%d si=
+ze=3D%d) popped to few\n&quot;,subcmd,used,size)
+
+Modified: trunk/lua/net/net.generic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.generic.lua (original)
++++ trunk/lua/net/net.generic.lua Tue Dec 16 00:55:20 2008
+@@ -359,7 +359,7 @@
+ 	if (rest &lt; 0) then
+ 		printf(&quot;FATAL ! kPacket_Generic_Command : subcmd 0x%02x (used=3D%d size=
+=3D%d) popped too much\n&quot;,subcmd,used,size)
+ 		print(&quot;FATAL ! kPacket_Generic_Command -&gt; forced Crash&quot;)
+-		Crash()
++		NetCrash()
+ 	end
+ 	if (rest &gt; 0) then
+ 		printf(&quot;WARNING ! kPacket_Generic_Command : subcmd 0x%02x (used=3D%d siz=
+e=3D%d) popped to few\n&quot;,subcmd,used,size)
+
+Modified: trunk/lua/net/net.gump.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.gump.lua (original)
++++ trunk/lua/net/net.gump.lua Tue Dec 16 00:55:20 2008
+@@ -96,7 +96,7 @@
+ 	if (1 + 2 + 4*4 + 2 + newgump.Length_Data &gt; size) then =
+
+ 		printf(&quot;NET: broken kPacket_Generic_Gump packet, gumplen =3D 0x%08x\n&quot;,n=
+ewgump.Length_Data)
+ 		print(&quot;FATAL ! kPacket_Generic_Gump -&gt; forced Crash&quot;)
+-		Crash()
++		NetCrash()
+ 	end
+ 	=
+
+ 	newgump.Data =3D input:PopFilledString(newgump.Length_Data) -- includes z=
+ero terminator
+@@ -143,7 +143,7 @@
+ 		printf(&quot;NET: BROKEN - kPacket_Compressed_Gump packet, compressed gumplen=
+ =3D 0x%08x\n&quot;,newgump.Length_CompressedData)
+ 		print(&quot;Error: Server Sends bad Compressed Gumpdata ! Please report.&quot;)
+ 		print(&quot;FATAL ! kPacket_Compressed_Gump -&gt; forced Crash&quot;)
+-		Crash()
++		NetCrash()
+ 	end
+ =
+
+ 	--- Data Part ---
+
+Modified: trunk/lua/net/net.multi.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.multi.lua (original)
++++ trunk/lua/net/net.multi.lua Tue Dec 16 00:55:20 2008
+@@ -43,8 +43,10 @@
+ --X/Y of this packet is probably wrong. May be 2 Byte portions instead of =
+1. Information was submitted and as of yet untested.
+ -- TODO : this packet handling is so stupid... ea/osi please think before =
+you are writing sourcecode !!
+ -- this code is based on the packet format runuo uses
++gCustomHouseMultiTileCache =3D {}
+ function gPacketHandler.kPacket_Custom_House()	--0xD8
+ 	local input =3D GetRecvFIFO()
++	local startsize =3D input:Size()
+ 	local id =3D input:PopNetUint8()
+ 	local iPacketSize =3D input:PopNetUint16()
+ 	local compresstype =3D input:PopNetUint8()	-- (0=3Dnothing, 3=3Dzlib)
+@@ -54,218 +56,237 @@
+ 	local tilecount =3D input:PopNetUint16()	--components.size()
+ 	local bufferlen =3D input:PopNetUint16()	--components.size() * 5		(item l=
+ist, compressed?)
+ 	local planecount =3D input:PopNetUint8()
+-
+ 	=
+
+ 	printdebug(&quot;net&quot;,sprintf(&quot;NET: Custom_House: iPacketSize=3D%d compresstyp=
+e=3D0x%02x unknown1=3D0x%02x customhouseserial=3D%d customhouserevision=3D0=
+x%08x tilecount=3D%d bufferlen=3D%d planecount=3D%d\n&quot;,
+ 			iPacketSize, compresstype, unknown1, customhouseserial, customhouserevi=
+sion, tilecount, bufferlen, planecount))
+ =
+
++	local dyn =3D GetDynamic(customhouseserial)
++
++	-- if dynamic-customhouse-multi alreay exists
++	if (dyn) then
++		-- check if customhousemulti already exists
++		if (dyn.customhouserevision and customhouserevision =3D=3D dyn.customhou=
+serevision) then
++			-- skip the rest of the packet
++			local left =3D iPacketSize - (startsize - input:Size())
++			input:PopRaw(left)
++			print(&quot;SKIP DUPLICATE HANDLING&quot;)
++			return
++		end
++	end
++
+ 	local s0,s1
+ 	=
+
+-	local lTile =3D {}
+-	=
+
+-	--------------- if compressed ----------------------
+-	if (compresstype =3D=3D hex2num(&quot;0x03&quot;)) then
+-		local lPlaneLayer =3D {}
+-		=
+
+-		for i =3D 0, planecount - 1 do
+-			local planeid =3D input:PopNetUint8()
+-			local planetype =3D BitwiseAND(planeid,hex2num(&quot;0x20&quot;))
+-			=
+
+-			-- calculate planeid
+-			if planetype =3D=3D hex2num(&quot;0x20&quot;) then planeid =3D BitwiseXOR(planeid=
+,hex2num(&quot;0x20&quot;)) =
+
+-			else planeid =3D planeid - 9 end
+-						=
+
+-			local uncompressedsize =3D input:PopNetUint8()
+-
+-			local compressedsize =3D input:PopNetUint8()
+-			local bothsizes =3D input:PopNetUint8()		--? Write( (byte)(((size &gt;&gt; 4)=
+ &amp; 0xF0) | ((deflatedLength &gt;&gt; 8) &amp; 0xF)) );
+-			=
+
+-			uncompressedsize =3D uncompressedsize + BitwiseSHL(BitwiseAND(bothsizes=
+,hex2num(&quot;0xF0&quot;)),4)
+-			compressedsize =3D compressedsize + BitwiseSHL(BitwiseAND(bothsizes,hex=
+2num(&quot;0xF&quot;)),8)
+-		=
+
+-			printdebug(&quot;net&quot;,sprintf(&quot;NET: Custom_House2: planeid=3D%d planetype=3D=
+0x%02x uncompressedsize=3D0x%02x compressedsize=3D0x%02x bothsizes=3D0x%02x=
+\n&quot;,
+-					planeid,planetype,uncompressedsize,compressedsize,bothsizes))
+-		=
+
+-			-- switch between stair and plane buffers
+-			if planetype =3D=3D hex2num(&quot;0x20&quot;) then
+-				-- -------------------------------------------------------------------=
+-------
+-				-- planelayers
+-				-- -------------------------------------------------------------------=
+-------
++	local lTile
++	=
+
++	if gCustomHouseMultiTileCache[customhouserevision] then
++		local left =3D iPacketSize - (startsize - input:Size())
++		input:PopRaw(left)
++		lTile =3D gCustomHouseMultiTileCache[customhouserevision]
++	else
++		lTile =3D {}
++		--------------- if compressed ----------------------
++		if (compresstype =3D=3D hex2num(&quot;0x03&quot;)) then
++			local lPlaneLayer =3D {}
++			=
+
++			for i =3D 0, planecount - 1 do
++				local planeid =3D input:PopNetUint8()
++				local planetype =3D BitwiseAND(planeid,hex2num(&quot;0x20&quot;))
+ 				=
+
+-				-- store first 2 sizes to calculate w,h
+-				if ( i =3D=3D 0 ) then s0 =3D uncompressedsize / 2 end
+-				if ( i =3D=3D 1 ) then s1 =3D uncompressedsize / 2 end
++				-- calculate planeid
++				if planetype =3D=3D hex2num(&quot;0x20&quot;) then planeid =3D BitwiseXOR(planei=
+d,hex2num(&quot;0x20&quot;)) =
+
++				else planeid =3D planeid - 9 end
++							=
+
++				local uncompressedsize =3D input:PopNetUint8()
++
++				local compressedsize =3D input:PopNetUint8()
++				local bothsizes =3D input:PopNetUint8()		--? Write( (byte)(((size &gt;&gt; 4=
+) &amp; 0xF0) | ((deflatedLength &gt;&gt; 8) &amp; 0xF)) );
+ 				=
+
+-				-- decompress for later parsing
+-				lPlaneLayer[planeid] =3D CreateFIFO()
+-				input:PeekDecompressIntoFifo(compressedsize,uncompressedsize,lPlaneLay=
+er[planeid])
+-			else
+-				local lStairLayer =3D CreateFIFO()
+-				input:PeekDecompressIntoFifo(compressedsize,uncompressedsize,lStairLay=
+er)
+-
+-				-- -------------------------------------------------------------------=
+-------
+-				-- stairlayer
+-				-- -------------------------------------------------------------------=
+-------
+-
+-				-- Stairplane Tilenumber - save for later use
+-				local tilenum =3D uncompressedsize / 5
+-				=
+
+-				--print(&quot;tilenum for stairlayer=3D&quot;..tilenum)
+-
+-				-- layer position correction
+-				local staircorr =3D 0	--0.5
+-
+-				for i =3D 1, tilenum do
+-					local tile =3D {}
+-					tile.artid =3D lStairLayer:PopNetUint16()
+-					tile.x =3D lStairLayer:PopNetInt8() - staircorr
+-					tile.y =3D lStairLayer:PopNetInt8()
+-					tile.z =3D lStairLayer:PopNetInt8()
+-	=
+
+-					if (tile.artid &gt; 0) then
+-						printdebug(&quot;net&quot;,sprintf(&quot;NET: Custom_House Stairs: artid=3D0x%04x x=
+=3D%i y=3D%i z=3D%i\n&quot;,
+-								tile.artid, tile.x, tile.y, tile.z))
+-						table.insert(lTile,tile)
++				uncompressedsize =3D uncompressedsize + BitwiseSHL(BitwiseAND(bothsize=
+s,hex2num(&quot;0xF0&quot;)),4)
++				compressedsize =3D compressedsize + BitwiseSHL(BitwiseAND(bothsizes,he=
+x2num(&quot;0xF&quot;)),8)
++			=
+
++				printdebug(&quot;net&quot;,sprintf(&quot;NET: Custom_House2: planeid=3D%d planetype=
+=3D0x%02x uncompressedsize=3D0x%02x compressedsize=3D0x%02x bothsizes=3D0x%=
+02x\n&quot;,
++						planeid,planetype,uncompressedsize,compressedsize,bothsizes))
++			=
+
++				-- switch between stair and plane buffers
++				if planetype =3D=3D hex2num(&quot;0x20&quot;) then
++					-- ------------------------------------------------------------------=
+--------
++					-- planelayers
++					-- ------------------------------------------------------------------=
+--------
++					=
+
++					-- store first 2 sizes to calculate w,h
++					if ( i =3D=3D 0 ) then s0 =3D uncompressedsize / 2 end
++					if ( i =3D=3D 1 ) then s1 =3D uncompressedsize / 2 end
++					=
+
++					-- decompress for later parsing
++					lPlaneLayer[planeid] =3D CreateFIFO()
++					input:PeekDecompressIntoFifo(compressedsize,uncompressedsize,lPlaneLa=
+yer[planeid])
++				else
++					local lStairLayer =3D CreateFIFO()
++					input:PeekDecompressIntoFifo(compressedsize,uncompressedsize,lStairLa=
+yer)
++
++					-- ------------------------------------------------------------------=
+--------
++					-- stairlayer
++					-- ------------------------------------------------------------------=
+--------
++
++					-- Stairplane Tilenumber - save for later use
++					local tilenum =3D uncompressedsize / 5
++					=
+
++					--print(&quot;tilenum for stairlayer=3D&quot;..tilenum)
++
++					-- layer position correction
++					local staircorr =3D 0	--0.5
++
++					for i =3D 1, tilenum do
++						local tile =3D {}
++						tile.artid =3D lStairLayer:PopNetUint16()
++						tile.x =3D lStairLayer:PopNetInt8() - staircorr
++						tile.y =3D lStairLayer:PopNetInt8()
++						tile.z =3D lStairLayer:PopNetInt8()
++		=
+
++						if (tile.artid &gt; 0) then
++							printdebug(&quot;net&quot;,sprintf(&quot;NET: Custom_House Stairs: artid=3D0x%04x =
+x=3D%i y=3D%i z=3D%i\n&quot;,
++									tile.artid, tile.x, tile.y, tile.z))
++							table.insert(lTile,tile)
++						end
+ 					end
+-				end
+-
+-				lStairLayer:Destroy()
+-			end
+-			=
+
+-			input:PopRaw(compressedsize)
+-		end
+-
+-		-- calculate w,h from sizes
+-		local a =3D -1
+-		local b =3D s0 + 2 - (s1 or 0)
+-		local c =3D -2 * (s0 or 0)
+-		=
+
+-		local h1 =3D (-b+math.sqrt(b*b-4*a*c))/(2*a)
+-		local h2 =3D (-b-math.sqrt(b*b-4*a*c))/(2*a)
+-		=
+
+-		local w1 =3D s0 / h1
+-		local w2 =3D s0 / h2
+-
+-		-- printf(&quot;w1=3D%.1f h1=3D%.1f  |  w2=3D%.1f h2=3D%.1f\n&quot;,w1,h1,w2,h2)
+-
+-		local width =3D 0
+-		local height =3D 0
+-		=
+
+-		if CustomHouseCheckSizeValidity(w1,h1) then width =3D w1 height =3D h1
+-		elseif CustomHouseCheckSizeValidity(w2,h2) then width =3D w2 height =3D =
+h2
+-		else =
+
+-			printf(&quot;ERROR custom house with invalid size candidates:\n&quot;)
+-			printf(&quot;w1=3D%.1f h1=3D%.1f  |  w2=3D%.1f h2=3D%.1f\n&quot;,w1,h1,w2,h2)
+-		end
+-
+-		printdebug(&quot;net&quot;,sprintf(&quot;NET: Custom_House Width&amp;Height: w=3D%d h=3D%d\=
+n&quot;,
+-				width,height))
+-
+-		-- ---------------------------------------------------------------------=
+-----
+-		-- Parse remaining unparsed planelayers -----------------
+-		-- ---------------------------------------------------------------------=
+-----
+-		for i =3D 0, 9 - 1 do
+-			local fifo =3D lPlaneLayer[i]
+-			-- is valid plane layer?
+-			if fifo then
+-				-- parse decompressed buffer
+-
+-				local x =3D 0
+-				local y =3D 0
+-				local z =3D 0
+-
+-				local xcorrection =3D 0
+-				local ycorrection =3D 0
+-				if (math.mod(width,2) =3D=3D 0) then xcorrection=3D1 else xcorrection=
+=3D0.5 end
+-				if (math.mod(height,2) =3D=3D 0) then ycorrection=3D1 else ycorrection=
+=3D1.5 end
+-
+-				-- layer position correction
+-				local dx =3D -width/2	+xcorrection
+-				local dy =3D -height/2 +ycorrection
+-				local dz =3D 0
+-				=
+
+-				-- layersize
+-				local w =3D 0
+-				local h =3D 0
+-
+-				if (i =3D=3D 0) then
+-					w =3D width + 1
+-					h =3D height
+-				elseif (i &lt; 5) then
+-					w =3D width - 1
+-					h =3D height - 2
+-					dx =3D dx + 1
+-					dy =3D dy + 1
+-				else
+-					w =3D width
+-					h =3D height -1
++
++					lStairLayer:Destroy()
+ 				end
+ 				=
+
+-				printdebug(&quot;net&quot;,sprintf(&quot;NET: Custom_House LAYER: %d w=3D%d h=3D%d\n&quot;,
+-						i,w,h))
+-
+-				if (i &gt; 0) then z =3D math.mod(i-1,4) * 20 + 7 end
+-				=
+
+-				while fifo:Size() &gt; 0 do
+-					local tile =3D {}
+-					=
+
+-					tile.artid =3D fifo:PopNetUint16()
+-					tile.x =3D x + dx
+-					tile.y =3D y + dy
+-					tile.z =3D z + dz
+-
+-					--fix to remove space between housesocket and the rest/don't look goo=
+d with dynamics inside
+-					--if (i&gt;0) then tile.z=3Dtile.z-2 end
+-
+-					if (tile.artid &gt; 0) then =
+
+-						printdebug(&quot;net&quot;,sprintf(&quot;NET: Custom_House Plane: artid=3D0x%04x x=
+=3D%i y=3D%i z=3D%i\n&quot;,
+-								tile.artid, tile.x, tile.y, tile.z))
+-						table.insert(lTile,tile)
+-					end	=
+
+-					=
+
+-					y =3D y + 1
+-					if (math.mod(y, h) =3D=3D 0) then y =3D 0 x =3D x + 1 end
+-				end			=
+
+-				fifo:Destroy()
++				input:PopRaw(compressedsize)
+ 			end
+-		end
+-	--------------- if uncompressed ----------------------
+-	elseif (compresstype =3D=3D hex2num(&quot;0x00&quot;)) then
+-		for i=3D1, i &lt;=3D tilecount do
+-			local tile =3D {}
+-			tile.artid =3D decompressed:PopNetUint16()
+-			tile.x =3D decompressed:PopNetInt8()
+-			tile.y =3D decompressed:PopNetInt8()
+-			tile.z =3D decompressed:PopNetInt8()
+-
+-			if (tile.artid &gt; 0) then =
+
+-				if (tile.x &lt; 0) then
+-					tile.x =3D hex2num(&quot;0xFF&quot;) + (tile.x + 1);
++
++			-- calculate w,h from sizes
++			local a =3D -1
++			local b =3D s0 + 2 - (s1 or 0)
++			local c =3D -2 * (s0 or 0)
++			=
+
++			local h1 =3D (-b+math.sqrt(b*b-4*a*c))/(2*a)
++			local h2 =3D (-b-math.sqrt(b*b-4*a*c))/(2*a)
++			=
+
++			local w1 =3D s0 / h1
++			local w2 =3D s0 / h2
++
++			-- printf(&quot;w1=3D%.1f h1=3D%.1f  |  w2=3D%.1f h2=3D%.1f\n&quot;,w1,h1,w2,h2)
++
++			local width =3D 0
++			local height =3D 0
++			=
+
++			if CustomHouseCheckSizeValidity(w1,h1) then width =3D w1 height =3D h1
++			elseif CustomHouseCheckSizeValidity(w2,h2) then width =3D w2 height =3D=
+ h2
++			else =
+
++				printf(&quot;ERROR custom house with invalid size candidates:\n&quot;)
++				printf(&quot;w1=3D%.1f h1=3D%.1f  |  w2=3D%.1f h2=3D%.1f\n&quot;,w1,h1,w2,h2)
++			end
++
++			printdebug(&quot;net&quot;,sprintf(&quot;NET: Custom_House Width&amp;Height: w=3D%d h=3D%d=
+\n&quot;,
++					width,height))
++
++			-- --------------------------------------------------------------------=
+------
++			-- Parse remaining unparsed planelayers -----------------
++			-- --------------------------------------------------------------------=
+------
++			for i =3D 0, 9 - 1 do
++				local fifo =3D lPlaneLayer[i]
++				-- is valid plane layer?
++				if fifo then
++					-- parse decompressed buffer
++
++					local x =3D 0
++					local y =3D 0
++					local z =3D 0
++
++					local xcorrection =3D 0
++					local ycorrection =3D 0
++					if (math.mod(width,2) =3D=3D 0) then xcorrection=3D1 else xcorrection=
+=3D0.5 end
++					if (math.mod(height,2) =3D=3D 0) then ycorrection=3D1 else ycorrectio=
+n=3D1.5 end
++
++					-- layer position correction
++					local dx =3D -width/2	+xcorrection
++					local dy =3D -height/2 +ycorrection
++					local dz =3D 0
++					=
+
++					-- layersize
++					local w =3D 0
++					local h =3D 0
++
++					if (i =3D=3D 0) then
++						w =3D width + 1
++						h =3D height
++					elseif (i &lt; 5) then
++						w =3D width - 1
++						h =3D height - 2
++						dx =3D dx + 1
++						dy =3D dy + 1
++					else
++						w =3D width
++						h =3D height -1
++					end
++					=
+
++					printdebug(&quot;net&quot;,sprintf(&quot;NET: Custom_House LAYER: %d w=3D%d h=3D%d\n=
+&quot;,
++							i,w,h))
++
++					if (i &gt; 0) then z =3D math.mod(i-1,4) * 20 + 7 end
++					=
+
++					while fifo:Size() &gt; 0 do
++						local tile =3D {}
++						=
+
++						tile.artid =3D fifo:PopNetUint16()
++						tile.x =3D x + dx
++						tile.y =3D y + dy
++						tile.z =3D z + dz
++
++						--fix to remove space between housesocket and the rest/don't look go=
+od with dynamics inside
++						--if (i&gt;0) then tile.z=3Dtile.z-2 end
++
++						if (tile.artid &gt; 0) then =
+
++							printdebug(&quot;net&quot;,sprintf(&quot;NET: Custom_House Plane: artid=3D0x%04x x=
+=3D%i y=3D%i z=3D%i\n&quot;,
++									tile.artid, tile.x, tile.y, tile.z))
++							table.insert(lTile,tile)
++						end	=
+
++						=
+
++						y =3D y + 1
++						if (math.mod(y, h) =3D=3D 0) then y =3D 0 x =3D x + 1 end
++					end			=
+
++					fifo:Destroy()
+ 				end
+-				if(tile.y &lt; 0) then
+-					tile.y =3D hex2num(&quot;0xFF&quot;) + (tile.y + 1);
++			end
++		--------------- if uncompressed ----------------------
++		elseif (compresstype =3D=3D hex2num(&quot;0x00&quot;)) then
++			for i=3D1, i &lt;=3D tilecount do
++				local tile =3D {}
++				tile.artid =3D decompressed:PopNetUint16()
++				tile.x =3D decompressed:PopNetInt8()
++				tile.y =3D decompressed:PopNetInt8()
++				tile.z =3D decompressed:PopNetInt8()
++
++				if (tile.artid &gt; 0) then =
+
++					if (tile.x &lt; 0) then
++						tile.x =3D hex2num(&quot;0xFF&quot;) + (tile.x + 1);
++					end
++					if(tile.y &lt; 0) then
++						tile.y =3D hex2num(&quot;0xFF&quot;) + (tile.y + 1);
++					end
++					if(tile.z &lt; 0) then
++						tile.z =3D hex2num(&quot;0xFF&quot;) + (tile.z + 1);
++					end
++
++					printdebug(&quot;net&quot;,sprintf(&quot;NET: Custom_House Plane: artid=3D0x%04x x=
+=3D%i y=3D%i z=3D%i\n&quot;,
++							tile.artid, tile.x, tile.y, tile.z))
++					table.insert(lTile,tile)
++				else
++					printf(&quot;NET: TileID too low -&gt; Custom_House Plane: artid=3D0x%04x x=
+=3D%i y=3D%i z=3D%i\n&quot;, tile.artid, tile.x, tile.y, tile.z)
+ 				end
+-				if(tile.z &lt; 0) then
+-					tile.z =3D hex2num(&quot;0xFF&quot;) + (tile.z + 1);
+-				end
+-
+-				printdebug(&quot;net&quot;,sprintf(&quot;NET: Custom_House Plane: artid=3D0x%04x x=3D=
+%i y=3D%i z=3D%i\n&quot;,
+-						tile.artid, tile.x, tile.y, tile.z))
+-				table.insert(lTile,tile)
+-			else
+-				printf(&quot;NET: TileID too low -&gt; Custom_House Plane: artid=3D0x%04x x=3D=
+%i y=3D%i z=3D%i\n&quot;, tile.artid, tile.x, tile.y, tile.z)
+ 			end
+-		end
+-	else
+-		-- skip an other compession method CustomHouse packets
+-		input:PopRaw(bufferlen-1)
+-	end
+-
+-	-- print(&quot;Custom House Tiles&quot;,vardump(lTile))
+-
+-	local dyn =3D GetDynamic(customhouseserial)
+-	local update_or_create_house =3D false
+-
++		else
++			-- skip an other compession method CustomHouse packets
++			input:PopRaw(bufferlen-1)
++		end
++
++		-- print(&quot;Custom House Tiles&quot;,vardump(lTile))
++		=
+
++		gCustomHouseMultiTileCache[customhouserevision] =3D lTile
++	end
++	=
+
+ 	-- if dynamic-customhouse-multi alreay exists
+ 	if (dyn) then
+ 		--print(&quot;CH: Old custom house found&quot;)
+
+Modified: trunk/lua/net/net.trade.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.trade.lua (original)
++++ trunk/lua/net/net.trade.lua Tue Dec 16 00:55:20 2008
+@@ -103,12 +103,12 @@
+ 		if (not playerBackpackContainer)	then
+ 			print(&quot;FATAL : kPacket_Shop_Sell : playerBackpackContainer not found&quot;)
+ 			print(&quot;FATAL ! kPacket_Shop_Sell -&gt; forced Crash&quot;)
+-			Crash()
++			NetCrash()
+ 		end
+ 		if (not playerMobile) then
+ 			print(&quot;FATAL : kPacket_Shop_Sell : playerMobile not found&quot;)
+ 			print(&quot;FATAL ! kPacket_Shop_Sell -&gt; forced Crash&quot;)
+-			Crash()
++			NetCrash()
+ 		end
+ =
+
+ 		if (false) then -- debug
+@@ -139,12 +139,12 @@
+ 				if (good.itemartid ~=3D good.item.artid)	then
+ 					printf(&quot;FATAL : kPacket_Shop_Sell : artid mismatch 0x%04x !=3D 0x%04x=
+\n&quot;,good.itemartid,good.item.artid)
+ 					print(&quot;FATAL ! kPacket_Shop_Sell -&gt; forced Crash&quot;)
+-					Crash()
++					NetCrash()
+ 				end
+ 				if (good.itemamount ~=3D good.item.amount) then
+ 					printf(&quot;FATAL : kPacket_Shop_Sell : amount mismatch 0x%04x !=3D 0x%04=
+x\n&quot;,good.itemamount,good.item.amount)
+ 					print(&quot;FATAL ! kPacket_Shop_Sell -&gt; forced Crash&quot;)
+-					Crash()
++					NetCrash()
+ 				end
+ 			end
+ 			=
+
+@@ -198,7 +198,7 @@
+ 		if (not container) then
+ 			print(&quot;FATAL ! shop container not found&quot;,vardump(shop.shopContainerID))
+ 			print(&quot;FATAL ! kPacket_Shop_Data -&gt; forced Crash&quot;)
+-			Crash()
++			NetCrash()
+ 		end
+ =
+
+ 		-- goods are associate with items in container sorted by serial, ascendi=
+ng or descending, depending on server Emu
+
+Modified: trunk/lua/net/net.world.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.world.lua (original)
++++ trunk/lua/net/net.world.lua Tue Dec 16 00:55:20 2008
+@@ -72,7 +72,7 @@
+ 	local id =3D input:PopNetUint8()
+ 	print(&quot;Serverside Logout because of inactivity.&quot;)
+ 	print(&quot;FATAL ! kPacket_Logout -&gt; forced Crash&quot;)
+-	Crash()
++	NetCrash()
+ end
+ =
+
+ --[[
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001603.html">[Iris-commit] [IRIS] r2799 - in /trunk: lua/lib.3d.light.lua lua/lib.3d.renderer.lua lua/lib.mapblock.3d.dynamics.lua premake.lua premakelinux_noclean.sh
+</A></li>
+	<LI>Next message: <A HREF="001605.html">[Iris-commit] [IRIS] r2801 - /trunk/lua/lib.configdialog.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1604">[ date ]</a>
+              <a href="thread.html#1604">[ thread ]</a>
+              <a href="subject.html#1604">[ subject ]</a>
+              <a href="author.html#1604">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

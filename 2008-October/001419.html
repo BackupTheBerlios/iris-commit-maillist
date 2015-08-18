@@ -1,0 +1,136 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2614 - in /trunk/lua: lib.macrolist.lua	net/net.other.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-October/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2614%20-%20in%20/trunk/lua%3A%20lib.macrolist.lua%0A%09net/net.other.lua&In-Reply-To=%3C20081020003132.7B4571524030%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001418.html">
+   <LINK REL="Next"  HREF="001420.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2614 - in /trunk/lua: lib.macrolist.lua	net/net.other.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2614%20-%20in%20/trunk/lua%3A%20lib.macrolist.lua%0A%09net/net.other.lua&In-Reply-To=%3C20081020003132.7B4571524030%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2614 - in /trunk/lua: lib.macrolist.lua	net/net.other.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Mon Oct 20 02:31:32 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001418.html">[Iris-commit] [IRIS] r2613 - in /trunk/lua: gui/gui.gumpparser.lua lib.macrolist.lua widgets/widget.gumpdialog.lua
+</A></li>
+        <LI>Next message: <A HREF="001420.html">[Iris-commit] [IRIS] r2615 - in /trunk/lua: lib.compass.lua	lib.macrolist.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1419">[ date ]</a>
+              <a href="thread.html#1419">[ thread ]</a>
+              <a href="subject.html#1419">[ subject ]</a>
+              <a href="author.html#1419">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Mon Oct 20 02:31:32 2008
+New Revision: 2614
+
+Log:
+added support for bandageself macro 0xBF 0x2C
+
+Modified:
+    trunk/lua/lib.macrolist.lua
+    trunk/lua/net/net.other.lua
+
+Modified: trunk/lua/lib.macrolist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.macrolist.lua (original)
++++ trunk/lua/lib.macrolist.lua Mon Oct 20 02:31:32 2008
+@@ -53,6 +53,7 @@
+ =
+
+ function MacroCmd_Say					(text)	if (gInGameStarted) then SendChat(text) e=
+nd end
+ function MacroCmd_NextCamMode			()		gCurrentRenderer:ChangeCamMode() end
++function MacroCmd_BandageSelf			()		SendBandageSelf() end
+ function MacroCmd_Quit					()		Terminate() end
+ function MacroCmd_RepeatLastChat		()		if (gInGameStarted) then ChatLine_Re=
+peatLast() end end
+ function MacroCmd_RepeatLastDoubleClick	()		if (gInGameStarted) then Repea=
+tLastDoubleClick() end end
+
+Modified: trunk/lua/net/net.other.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.other.lua (original)
++++ trunk/lua/net/net.other.lua Mon Oct 20 02:31:32 2008
+@@ -51,6 +51,26 @@
+ ]]--
+ gGenericSubCommands.kPacket_Generic_SubCommand_BandageTarget		=3D hex2num(=
+&quot;0x2C&quot;)	-- Client -&gt; Server packet,For use with the new Bandage Self client=
+ macro. Introduced in 5.0.4x
+ =
+
++function SendBandageSelf (bandageid) return SendBandageCommand(bandageid,G=
+etPlayerSerial()) end
++function SendBandageCommand (bandageid,targetid) =
+
++	if (not bandageid) then
++		local bandage =3D MacroCmd_Item_FindFirstByArtID(3617,0) -- find bandage=
+ in backpack
++		if (not bandage) then return end
++		bandageid =3D bandage.serial
++	end
++	local out =3D GetSendFIFO()
++	out:PushNetUint8(kPacket_Generic_Command)
++	out:PushNetUint16(0x0D) -- packet size
++	out:PushNetUint16(kPacket_Generic_SubCommand_BandageTarget) -- 2C
++	out:PushNetUint32(bandageid)
++	out:PushNetUint32(targetid)
++	out:SendPacket()
++	-- 0000   BF 00 0D 00 2C 41 3D BC  CD 00 0D BA 5B            ....,A=3D...=
+..[
++	-- kPacket_Generic_SubCommand_BandageTarget=3D0x2D : bandages=3D0x413dbcc=
+d targetid=3D0x000dba5b
++	return true
++end
++
++
+ --[[
+ --new sincec KR
+ gGenericSubCommands.kPacket_Generic_SubCommand_KR_HouseGumpResponse =3D he=
+x2num(&quot;0x2F&quot;)	-- BF.2F - KR House Menu Gump Response
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001418.html">[Iris-commit] [IRIS] r2613 - in /trunk/lua: gui/gui.gumpparser.lua lib.macrolist.lua widgets/widget.gumpdialog.lua
+</A></li>
+	<LI>Next message: <A HREF="001420.html">[Iris-commit] [IRIS] r2615 - in /trunk/lua: lib.compass.lua	lib.macrolist.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1419">[ date ]</a>
+              <a href="thread.html#1419">[ thread ]</a>
+              <a href="subject.html#1419">[ subject ]</a>
+              <a href="author.html#1419">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

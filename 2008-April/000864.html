@@ -1,0 +1,203 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2053 - in /trunk: include/data.h src/data.cpp	src/data_L.cpp
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-April/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2053%20-%20in%20/trunk%3A%20include/data.h%20src/data.cpp%0A%09src/data_L.cpp&In-Reply-To=%3C20080417155900.B02691524032%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000863.html">
+   <LINK REL="Next"  HREF="000865.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2053 - in /trunk: include/data.h src/data.cpp	src/data_L.cpp</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2053%20-%20in%20/trunk%3A%20include/data.h%20src/data.cpp%0A%09src/data_L.cpp&In-Reply-To=%3C20080417155900.B02691524032%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2053 - in /trunk: include/data.h src/data.cpp	src/data_L.cpp">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Thu Apr 17 17:58:57 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000863.html">[Iris-commit] [IRIS] r2052 - /trunk/lua/lib.protocol.lua
+</A></li>
+        <LI>Next message: <A HREF="000865.html">[Iris-commit] [IRIS] r2054 - in /trunk/lua: ./ gui/ net/ obj/
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#864">[ date ]</a>
+              <a href="thread.html#864">[ thread ]</a>
+              <a href="subject.html#864">[ subject ]</a>
+              <a href="author.html#864">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: hagish
+Date: Thu Apr 17 17:58:54 2008
+New Revision: 2053
+
+Log:
+bugfix memleak
+
+Modified:
+    trunk/include/data.h
+    trunk/src/data.cpp
+    trunk/src/data_L.cpp
+
+Modified: trunk/include/data.h
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/include/data.h (original)
++++ trunk/include/data.h Thu Apr 17 17:58:54 2008
+@@ -620,6 +620,7 @@
+ 		cArtMap();
+ 		int	GetWidth	();
+ 		int	GetHeight	();
++		void	CalcVisibleAABB(int&amp; minx, int&amp; miny, int&amp; maxx, int&amp; maxy);
+ 		void	SearchCursorHotspot		(int&amp; iX,int&amp; iY); ///&lt; returns hotspot coords=
+ in iX,iY. search using different pixel on image border
+ 		template &lt;class _T&gt; void Decode( short *pBuffer, const int iPitch, _T&amp; f=
+ilter, short* ColorTable ) { PROFILE	///&lt; decodes the art image into a pixe=
+lbuffer (1short/pixel), pitch=3DLength of a surface scanline in bytes
+ 			int		iBufferSize =3D iPitch*GetHeight();
+
+Modified: trunk/src/data.cpp
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/src/data.cpp (original)
++++ trunk/src/data.cpp Thu Apr 17 17:58:54 2008
+@@ -653,6 +653,40 @@
+ 	else return ((short *)mpRawData)[3];
+ }
+ =
+
++void	cArtMap::CalcVisibleAABB(int&amp; minx, int&amp; miny, int&amp; maxx, int&amp; maxy) {
++	// read the size
++	int w =3D GetWidth();
++	int h =3D GetHeight();
++	short *pBuffer =3D new short[w*h];
++	cIdentityFilter Filter;
++	Decode(pBuffer,w*sizeof(short),Filter,0);
++	=
+
++	bool found =3D false;
++	=
+
++	int offset;
++	for(int x=3D0;x&lt;w;++x){
++		for(int y=3D0;y&lt;h;++y){
++			offset =3D y*w+x;
++			if(pBuffer[offset] !=3D 0){
++				if(!found){
++					minx =3D x;
++					maxx =3D x;
++					miny =3D y;
++					maxy =3D y;
++					found =3D true;
++				} else {
++					minx =3D mymin(x,minx);
++					maxx =3D mymax(x,maxx);
++					miny =3D mymin(y,miny);
++					maxy =3D mymax(y,maxy);
++				}
++			}
++		}
++	}
++
++	delete [] pBuffer;
++}
++
+ void	cArtMap::SearchCursorHotspot		(int&amp; iX,int&amp; iY) { PROFILE
+ 	// read the size
+ 	int w =3D GetWidth();
+@@ -694,7 +728,7 @@
+ 			break;
+ 		}
+ 	}
+-	delete pBuffer;
++	delete[] pBuffer;
+ }
+ =
+
+ // ***** ***** ***** ***** ***** cSound
+
+Modified: trunk/src/data_L.cpp
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/src/data_L.cpp (original)
++++ trunk/src/data_L.cpp Thu Apr 17 17:58:54 2008
+@@ -597,6 +597,7 @@
+ 			REGISTER_METHOD(CreateBitMask);
+ 			REGISTER_METHOD(Load);
+ 			REGISTER_METHOD(GetSize);
++			REGISTER_METHOD(CalcVisibleAABB);
+ 			REGISTER_METHOD(SearchCursorHotspot);
+ 			REGISTER_METHOD(GetCount);
+ 			REGISTER_METHOD(ExportToFile);
+@@ -702,6 +703,19 @@
+ 			lua_pushnumber(L,iX); =
+
+ 			lua_pushnumber(L,iY); =
+
+ 			return 2; =
+
++		}
++		=
+
++		/// minx,miny,maxx,maxy =3D gArtMapLoader:CalcVisibleAABB() for last chu=
+nk loaded by Load() for lua
++		static int	CalcVisibleAABB			(lua_State *L) { PROFILE =
+
++			cArtMap* pLastChunk =3D mLastChunk[checkudata_alive(L)];
++			int minx,miny,maxx,maxy;
++			=
+
++			if (pLastChunk) pLastChunk-&gt;CalcVisibleAABB(minx,miny,maxx,maxy);
++			lua_pushnumber(L,minx); =
+
++			lua_pushnumber(L,miny); =
+
++			lua_pushnumber(L,maxx); =
+
++			lua_pushnumber(L,maxy); =
+
++			return 4; =
+
+ 		}
+ 		=
+
+ 		virtual const char* GetLuaTypeName () { return &quot;iris.artmaploader&quot;; }
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000863.html">[Iris-commit] [IRIS] r2052 - /trunk/lua/lib.protocol.lua
+</A></li>
+	<LI>Next message: <A HREF="000865.html">[Iris-commit] [IRIS] r2054 - in /trunk/lua: ./ gui/ net/ obj/
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#864">[ date ]</a>
+              <a href="thread.html#864">[ thread ]</a>
+              <a href="subject.html#864">[ subject ]</a>
+              <a href="author.html#864">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

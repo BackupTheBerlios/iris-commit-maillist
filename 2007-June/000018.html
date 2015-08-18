@@ -1,0 +1,508 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1202 - in /trunk/include: data.h	spritemanager.h
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2007-June/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1202%20-%20in%20/trunk/include%3A%20data.h%0A%09spritemanager.h&In-Reply-To=%3C20070616113456.0AEC8B1466D%40localhost.localdomain%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000017.html">
+   <LINK REL="Next"  HREF="000019.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1202 - in /trunk/include: data.h	spritemanager.h</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1202%20-%20in%20/trunk/include%3A%20data.h%0A%09spritemanager.h&In-Reply-To=%3C20070616113456.0AEC8B1466D%40localhost.localdomain%3E"
+       TITLE="[Iris-commit] [IRIS] r1202 - in /trunk/include: data.h	spritemanager.h">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat Jun 16 13:34:55 CEST 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000017.html">[Iris-commit] [IRIS] r1201 - in /trunk: data/lua/main.lua src/ogrewrapper.cpp src/scripting.cpp
+</A></li>
+        <LI>Next message: <A HREF="000019.html">[Iris-commit] [IRIS] r1203 - in /trunk: bin/iris2.exe	src/ogrewrapper.cpp
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#18">[ date ]</a>
+              <a href="thread.html#18">[ thread ]</a>
+              <a href="subject.html#18">[ subject ]</a>
+              <a href="author.html#18">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sat Jun 16 13:34:54 2007
+New Revision: 1202
+
+Log:
+ported secure-memory-write for dataloaders from knut branch
+
+Modified:
+    trunk/include/data.h
+    trunk/include/spritemanager.h
+
+Modified: trunk/include/data.h
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/include/data.h (original)
++++ trunk/include/data.h Sat Jun 16 13:34:54 2007
+@@ -34,10 +34,23 @@
+ #define STRUCT_PACKED	__attribute__ ((packed))
+ #endif
+ =
+
+- =
+
+ class FileNotFoundException : public std::runtime_error { public:
+ 	FileNotFoundException(const std::string&amp; sFilePath) : std::runtime_error(=
+&quot;FileNotFoundException : &quot;+sFilePath) { }
+ };
++
++
++/// use this to prevent access violations during decoding
++/// destbuf_size is in bytes
++inline	bool	SecureWrite	(short* destpos,short value,const short* destbuf_s=
+tart,const int destbuf_size,const char* szErrorMsg,const int iErrorID) {
++	static int iLastErrorID =3D -1;
++	if (destpos &lt; destbuf_start || destpos &gt;=3D (short*)(((char*)destbuf_star=
+t) + destbuf_size)) {
++		if (iLastErrorID !=3D iErrorID) printf(&quot;Warning ! access violation %s fo=
+r id %d\n&quot;,szErrorMsg,iErrorID);
++		iLastErrorID =3D iErrorID; // only print one error per id
++		return false;
++	}
++	*destpos =3D value;
++	return true;
++}
+  =
+
+ class TiXmlHandle;
+ =
+
+@@ -546,7 +559,7 @@
+ 		if ((value &gt;&gt; 10) &amp; 0x1F =3D=3D (value &gt;&gt; 5) &amp; 0x1F &amp;&amp; (value &gt;&gt; 10) &amp; 0=
+x1F =3D=3D value &amp; 0x1F) {
+ 			return ColorTable[(value &gt;&gt; 10) &amp; 0x1F] | 0x8000;
+ 		} else {
+-			return value;
++			return value | 0x8000;
+ 		}
+ 	} };
+ =
+
+@@ -598,6 +611,8 @@
+ 		int	GetHeight	();
+ 		void	SearchCursorHotspot		(int&amp; iX,int&amp; iY); ///&lt; returns hotspot coords=
+ in iX,iY. search using different pixel on image border
+ 		template &lt;class _T&gt; void Decode( short *pBuffer, const int iPitch, _T&amp; f=
+ilter, short* ColorTable ) { PROFILE	///&lt; decodes the art image into a pixe=
+lbuffer (1short/pixel), pitch=3DLength of a surface scanline in bytes
++			int		iBufferSize =3D iPitch*GetHeight();
++			=
+
+ 			if( miID &lt; 0x4000 ){
+ 				//map tile format, 44x44 pixel
+ 				short *dst =3D pBuffer;
+@@ -609,7 +624,7 @@
+ 				for(int pixelsInHalfRow =3D 1;pixelsInHalfRow &lt;=3D 22;++pixelsInHalfRo=
+w){
+ 					dst +=3D 22-pixelsInHalfRow;
+ 					for( int i=3D0; i &lt; pixelsInHalfRow*2; i++ ) {
+-						*dst =3D filter( *src, ColorTable );
++						SecureWrite(dst,filter( *src, ColorTable ),pBuffer,iBufferSize,&quot;cArt=
+Map::Decode_A&quot;,miID);
+ 						dst++;
+ 						src++;
+ 					}
+@@ -620,7 +635,7 @@
+ 				for(int pixelsInHalfRow =3D 22;pixelsInHalfRow &gt;=3D 1;--pixelsInHalfRo=
+w){
+ 					dst +=3D 22-pixelsInHalfRow;
+ 					for( int i=3D0; i &lt; pixelsInHalfRow*2; i++ ) {
+-						*dst =3D filter( *src, ColorTable );
++						SecureWrite(dst,filter( *src, ColorTable ),pBuffer,iBufferSize,&quot;cArt=
+Map::Decode_B&quot;,miID);
+ 						dst++;
+ 						src++;
+ 					}
+@@ -660,7 +675,7 @@
+ 								++index;
+ 								short *pixel =3D (short *) (((char *)(pBuffer + X)) + (Y*iPitch));
+ 								if ( runColor !=3D 0 ) //is this check really necessary?
+-									*pixel =3D filter( runColor, ColorTable );
++									SecureWrite(pixel,filter( runColor, ColorTable ),pBuffer,iBufferS=
+ize,&quot;cArtMap::Decode_C&quot;,miID);
+ 								++X;
+ 							}
+ 						}
+@@ -716,29 +731,34 @@
+ 		template &lt;class _T&gt; void Decode(short *pBuffer, const int iPitch, _T&amp; fi=
+lter, short* ColorTable) { PROFILE	//&lt; decodes the gump image into a pixelb=
+uffer (1short/pixel), pitch=3DLength of a surface scanline in bytes
+ 			int w =3D GetWidth();
+ 			int h =3D GetHeight();
+-
+-			// run length encoded: COL RUN COL RUN ...
++			int	iBufferSize =3D iPitch*GetHeight();
++
++			long *LookupList =3D (long *)mpRawData;
++			char *pStart =3D mpRawData;
+ 				=
+
+-			int len =3D mpRawIndex-&gt;miLength/2;
+-			short *pstart =3D (short *)mpRawData;
+-			short col,run;
+-			short *rowStart =3D pBuffer;
+-			short *rowPos =3D pBuffer;
+-			for(short *p =3D pstart; p-pstart &lt; len; p+=3D2){
+-				col =3D *p;
+-				run =3D *(p+1);
+-				if(run &gt; w-(rowPos-rowStart))run =3D w-(rowPos-rowStart);
+-
+-				for(int i=3D0;i&lt;run;++i){
+-					if( col &gt; 0 )
+-						*rowPos =3D filter( col, ColorTable );
+-					++rowPos;
++			for(int Y =3D 0; Y &lt; h; Y++) {
++				int Size;
++				if (Y &lt; h-1) {
++					Size =3D LookupList[Y+1] - LookupList[Y];
++				} else {
++					Size =3D mpRawIndex-&gt;miLength / 4 - LookupList[Y];
+ 				}
+ 	=
+
+-				// buffer line end? need to pitch?
+-				if( (w-(rowPos-rowStart)) =3D=3D 0){
+-					rowStart =3D (short *)(((char *)rowStart)+iPitch);
+-					rowPos =3D rowStart;
++				int X =3D 0;
++				short *Value	=3D (short *)(pStart + LookupList[Y]*4);
++				short *Run		=3D (short *)(pStart + LookupList[Y]*4 + 2);
++				for(int i =3D 0; i &lt; Size; i++) {
++					if (*Value &gt; 0) {
++						for(int j =3D 0; j &lt; *Run; j++) {
++							SecureWrite( (short *)(((char*)(pBuffer + X)) + Y*iPitch), filter( =
+*Value, ColorTable ), pBuffer, iBufferSize, &quot;cGump::Decode&quot;, miID );
++							X++;
++						}
++					} else {
++						X +=3D *Run;
++					}
++
++					Value +=3D 2;
++					Run +=3D 2;
+ 				}
+ 			}
+ 		}
+@@ -822,28 +842,29 @@
+ 			=
+
+ 			/// allocates and returns a buffer in the pBuffer param
+ 			template &lt;class _T&gt; bool Decode(short* &amp;pBuffer, const int iFrame, _T&amp; =
+filter, short* ColorTable) { PROFILE
+-				uint16* Palette =3D (uint16 *)mpRawData;
+-				mpRawData +=3D 512;
+-
+-				mFrames =3D *(uint32 *)mpRawData;
+-				mpRawData +=3D 4;
+-
+-				uint32* LookupList =3D (uint32 *)mpRawData;
++				const char*	pMyRawData =3D mpRawData;
++				uint16* Palette =3D (uint16 *)pMyRawData;
++				pMyRawData +=3D 512;
++
++				mFrames =3D *(uint32 *)pMyRawData;
++				pMyRawData +=3D 4;
++
++				uint32* LookupList =3D (uint32 *)pMyRawData;
+ 				=
+
+ 				if (iFrame &gt;=3D mFrames) {
+ 					return false;
+ 				}
+ =
+
+-				mpRawData +=3D LookupList[ iFrame ] - 4;
+-
+-				mCenterX =3D *(int16 *)mpRawData;
+-				mpRawData +=3D 2;
+-				mCenterY =3D *(int16 *)mpRawData;
+-				mpRawData +=3D 2;
+-				mWidth =3D *(uint16 *)mpRawData;
+-				mpRawData +=3D 2;
+-				mHeight =3D *(uint16 *)mpRawData;
+-				mpRawData +=3D 2;
++				pMyRawData +=3D LookupList[ iFrame ] - 4;
++
++				mCenterX =3D *(int16 *)pMyRawData;
++				pMyRawData +=3D 2;
++				mCenterY =3D *(int16 *)pMyRawData;
++				pMyRawData +=3D 2;
++				mWidth =3D *(uint16 *)pMyRawData;
++				pMyRawData +=3D 2;
++				mHeight =3D *(uint16 *)pMyRawData;
++				pMyRawData +=3D 2;
+ 				=
+
+ 				mTexWidth =3D 1;
+ 				while (mTexWidth &lt; mWidth) {
+@@ -855,15 +876,16 @@
+ 				}
+ =
+
+ 				pBuffer =3D new short[mTexWidth*mTexHeight];
+-				memset( pBuffer, 0, mTexWidth*mTexHeight*2 );
+-
+-				uint32 Header =3D *(uint32 *)mpRawData;
+-				mpRawData +=3D 4;
++				int		iBufferSize =3D 2*mTexWidth*mTexHeight;
++				memset( pBuffer, 0, iBufferSize );
++
++				uint32 Header =3D *(uint32 *)pMyRawData;
++				pMyRawData +=3D 4;
+ =
+
+ 				while (Header !=3D 0x7FFF7FFF) {
+ 					uint16 xRun =3D Header &amp; 0xFFF;
+-					uint32 xOffset =3D ( Header &gt;&gt; 22 ) &amp; 1023;
+-					uint32 yOffset =3D ( Header &gt;&gt; 12 ) &amp; 1023;
++					int32 xOffset =3D ( Header &gt;&gt; 22 ) &amp; 1023;
++					int32 yOffset =3D ( Header &gt;&gt; 12 ) &amp; 1023;
+ =
+
+ 					if (xOffset &amp; 0x200) {
+ 						xOffset =3D xOffset | ( 0xFFFFFFFF - 511 );
+@@ -873,20 +895,21 @@
+ 						yOffset =3D yOffset | ( 0xFFFFFFFF - 511 );
+ 					}
+ =
+
+-					uint16 PX =3D xOffset + mCenterX;
+-					uint16 PY =3D yOffset + mCenterY + mHeight;
+-
+-					char* RunPixels =3D (char*)mpRawData;
+-					mpRawData +=3D xRun;
++					int16 PX =3D xOffset + mCenterX;
++					int16 PY =3D yOffset + mCenterY + mHeight;
++
++					unsigned char* RunPixels =3D (unsigned char*)pMyRawData;
++					pMyRawData +=3D xRun;
+ =
+
+ 					for ( int k=3D0; k &lt; xRun; k++ ) {
+ 						if ( ((PX+k) &gt;=3D 0) &amp;&amp; (PY &gt;=3D 0) &amp;&amp; ((PX+k) &lt; mTexWidth) &amp;&amp; (PY &lt;=
+ mTexHeight) ) {
+-							pBuffer[ PY*mTexWidth + PX + k ] =3D filter( Palette[ RunPixels[k] =
+], ColorTable );
++							SecureWrite(&amp;pBuffer[ PY*mTexWidth + PX + k ],filter( Palette[ RunP=
+ixels[k] ], ColorTable ),pBuffer,iBufferSize,&quot;cAnim::Decode&quot;,miID);
++							//SecureWrite(&amp;pBuffer[ PY*mTexWidth + PX + k ],0x1F,pBuffer,iBuffe=
+rSize,&quot;cAnim::Decode&quot;,miID);
+ 						}
+ 					}
+ =
+
+-					Header =3D *(uint32 *)mpRawData;
+-					mpRawData +=3D 4;
++					Header =3D *(uint32 *)pMyRawData;
++					pMyRawData +=3D 4;
+ 				}
+ 				=
+
+ 				return true;
+
+Modified: trunk/include/spritemanager.h
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/include/spritemanager.h (original)
++++ trunk/include/spritemanager.h Sat Jun 16 13:34:54 2007
+@@ -4,38 +4,38 @@
+ #include &quot;smartptr.h&quot;
+ #include &quot;robrenderable.h&quot;
+ =
+
+-#include &lt;Ogre.h&gt;
++#include &lt;Ogre.h&gt;
+ #include &lt;OgreRenderQueueListener.h&gt;
+ #include &lt;OgreFontManager.h&gt;
+ =
+
+-#include &lt;string&gt;
+-#include &lt;list&gt;
+-
+-class cSpriteManager;
+-class cSpriteQueue;
+-class lua_State;
+-
+-struct Normal {
+-	double x, y, z;
+-};
+-
+-class cBaseSprite : public cSmartPointable {
++#include &lt;string&gt;
++#include &lt;list&gt;
++
++class cSpriteManager;
++class cSpriteQueue;
++class lua_State;
++
++struct Normal {
++	double x, y, z;
++};
++
++class cBaseSprite : public cSmartPointable {
+ 	protected :
+-		cSpriteQueue* mSpriteQueue;
++		cSpriteQueue* mSpriteQueue;
+ 		int mPrio[6];
+-		int mPos;
+-	public :
+-		cBaseSprite( cSpriteQueue* SpriteQueue ) {
+-			mSpriteQueue =3D SpriteQueue;
+-
++		int mPos;
++	public :
++		cBaseSprite( cSpriteQueue* SpriteQueue ) {
++			mSpriteQueue =3D SpriteQueue;
++
+ 			for (int i=3D0; i &lt; 6; i++)
+ 				mPrio[i] =3D 0;
+-			mPos =3D 0;
+-		}
+-		virtual ~cBaseSprite() {};
+-
+-		void SetPrio( int i, int Prio );
+-
++			mPos =3D 0;
++		}
++		virtual ~cBaseSprite() {};
++
++		void SetPrio( int i, int Prio );
++
+ 		inline int GetPrio( int i ) {
+ 			return i &lt; 6 ? mPrio[i] : 0;
+ 		}
+@@ -46,12 +46,12 @@
+ =
+
+ 		inline void SetPosition( int Pos ) {
+ 			mPos =3D Pos;
+-		}
+-
+-		inline int GetQueueId();
+-
+-		virtual void Execute( double ViewPortWidthHalf, double ViewPortHeightHal=
+f, double xOffset, double yOffset );
+-};
++		}
++
++		inline int GetQueueId();
++
++		virtual void Execute( double ViewPortWidthHalf, double ViewPortHeightHal=
+f, double xOffset, double yOffset );
++};
+ =
+
+ class cSprite : public cBaseSprite {
+ 	private :		=
+
+@@ -308,8 +308,8 @@
+ 		cSpriteQueue( cSpriteManager* SpriteManager, int QueueId );
+ 		virtual ~cSpriteQueue();
+ =
+
+-		inline void SetSortList() {
+-			mListSorted =3D false;
++		inline void SetSortList() {
++			mListSorted =3D false;
+ 		}
+ =
+
+ 		inline bool GetResorted() {
+@@ -344,11 +344,11 @@
+ 		bool mUseWorldCam;
+ =
+
+ 		void prepareForRender();
+-		void renderBuffer();		=
+
++		void renderBuffer();		=
+
+ =
+
+ 		Ogre::SceneManager* mSceneMan;
+ 		Ogre::Camera* mCam;
+-		Ogre::uint8 mTargetQueue;
++		Ogre::uint8 mTargetQueue;
+ 		bool mAfterQueue;
+ 		bool mLightningEnabled;
+ =
+
+@@ -362,6 +362,9 @@
+ 		void RemoveSprite( cBaseSprite* Sprite );
+ =
+
+ 		inline bool GetResorted( int iQueueId ) {
++			if (mSpriteQueues.find(iQueueId) =3D=3D mSpriteQueues.end()) {
++				return false;
++			}
+ 			cSpriteQueue* SpriteQueue =3D mSpriteQueues[ iQueueId ];
+ 			if (SpriteQueue) {
+ 				return SpriteQueue-&gt;GetResorted();
+@@ -385,10 +388,10 @@
+ 			return mCam;
+ 		}
+ =
+
+-		/// Called by Ogre, for being a render queue listener
+-		virtual void renderQueueStarted( =
+
+-			Ogre::uint8 queueGroupId, const Ogre::String &amp;invocation, bool &amp;skipThi=
+sInvocation);
+-		/// Called by Ogre, for being a render queue listener
++		/// Called by Ogre, for being a render queue listener
++		virtual void renderQueueStarted( =
+
++			Ogre::uint8 queueGroupId, const Ogre::String &amp;invocation, bool &amp;skipThi=
+sInvocation);
++		/// Called by Ogre, for being a render queue listener
+ 		virtual void renderQueueEnded(
+ 			Ogre::uint8 queueGroupId, const Ogre::String &amp;invocation, bool &amp;repeatT=
+hisInvocation);
+ =
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000017.html">[Iris-commit] [IRIS] r1201 - in /trunk: data/lua/main.lua src/ogrewrapper.cpp src/scripting.cpp
+</A></li>
+	<LI>Next message: <A HREF="000019.html">[Iris-commit] [IRIS] r1203 - in /trunk: bin/iris2.exe	src/ogrewrapper.cpp
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#18">[ date ]</a>
+              <a href="thread.html#18">[ thread ]</a>
+              <a href="subject.html#18">[ subject ]</a>
+              <a href="author.html#18">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

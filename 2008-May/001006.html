@@ -1,0 +1,609 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2197 - in /trunk: data/desktop/ lua/ lua/gui/	lua/obj/
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-May/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2197%20-%20in%20/trunk%3A%20data/desktop/%20lua/%20lua/gui/%0A%09lua/obj/&In-Reply-To=%3C20080526164906.A6F241524037%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001005.html">
+   <LINK REL="Next"  HREF="001007.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2197 - in /trunk: data/desktop/ lua/ lua/gui/	lua/obj/</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2197%20-%20in%20/trunk%3A%20data/desktop/%20lua/%20lua/gui/%0A%09lua/obj/&In-Reply-To=%3C20080526164906.A6F241524037%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2197 - in /trunk: data/desktop/ lua/ lua/gui/	lua/obj/">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Mon May 26 18:49:06 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001005.html">[Iris-commit] [IRIS] r2196 - /trunk/doc/cpp.doxygen
+</A></li>
+        <LI>Next message: <A HREF="001007.html">[Iris-commit] [IRIS] r2198 - in /trunk: data/mymacros.lua.dist lua/lib.3d.renderer.lua lua/lib.desktop.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1006">[ date ]</a>
+              <a href="thread.html#1006">[ thread ]</a>
+              <a href="subject.html#1006">[ subject ]</a>
+              <a href="author.html#1006">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: hagish
+Date: Mon May 26 18:49:05 2008
+New Revision: 2197
+
+Log:
+first hud session save support: quick cast (spell,skill), container and hea=
+lthbars save positions and status
+
+Added:
+    trunk/data/desktop/
+    trunk/lua/lib.desktop.lua
+Modified:
+    trunk/lua/gui/gui.healthbar.lua
+    trunk/lua/gui/gui.helper.lua
+    trunk/lua/gui/gui.paperdoll.lua
+    trunk/lua/gui/gui.skill.lua
+    trunk/lua/gui/gui.spellbook.lua
+    trunk/lua/lib.macrolist.lua
+    trunk/lua/lib.mainmenu.lua
+    trunk/lua/main.lua
+    trunk/lua/net.walk.lua
+    trunk/lua/obj/obj.container.lua
+
+Modified: trunk/lua/gui/gui.healthbar.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.healthbar.lua (original)
++++ trunk/lua/gui/gui.healthbar.lua Mon May 26 18:49:05 2008
+@@ -148,6 +148,7 @@
+ function RemoveAllHealthbars ()
+ 	-- close all open stats windows
+ 	for k,dialog in pairs(gHealthbarDialogs) do
++		NotifyListener(&quot;Hook_CloseHealthbar&quot;,dialog, k)	-- k=3Dserial
+ 		dialog:Destroy()
+ 		gHealthbarDialogs[k] =3D nil
+ 	end
+@@ -157,6 +158,7 @@
+ function CloseHealthbar (mobile) =
+
+ 	local dialog =3D gHealthbarDialogs[mobile.serial]
+ 	if (not dialog) then return end
++	NotifyListener(&quot;Hook_CloseHealthbar&quot;,dialog, mobile.serial)
+ 	dialog:Destroy()
+ 	gHealthbarDialogs[mobile.serial] =3D nil
+ end
+@@ -168,6 +170,7 @@
+ 	-- -50,-30 to place the dialog beneath the mouse
+ 	OpenHealthbar(mobile,iMouseX - 50,iMouseY - 30)
+ end
++
+ =
+
+ --[[
+ =
+
+@@ -193,7 +196,21 @@
+ -- Open Healthbar Gump
+ function OpenHealthbar (mobile,x,y)
+ 	if mobile =3D=3D nil then return end
+-	if (gHealthbarDialogs[mobile.serial]) then return end -- already open =
+
++	=
+
++	-- try to read position from desktop infos
++	if x =3D=3D nil or y =3D=3D nil then
++		x,y =3D GetDesktopElementPosition(&quot;healthbar&quot;,mobile.serial)
++		if x =3D=3D nil or y =3D=3D nil then x =3D 0 y =3D 0 end
++	end
++	=
+
++	if (gHealthbarDialogs[mobile.serial]) then =
+
++		-- only update position
++		local d =3D gHealthbarDialogs[mobile.serial]
++		if d and d.rootwidget and d.rootwidget.gfx then
++			d.rootwidget.gfx:SetPos(x, y)
++		end
++		return
++	end -- already open =
+
+ 	=
+
+ 	local dialog =3D GumpParser( IsPlayerMobile(mobile) and healthbarGump or =
+npchealthGump, true )
+ =
+
+@@ -210,7 +227,8 @@
+ 		if IsTargetModeActive() then =
+
+ 			CompleteTargetModeWithTargetMobile(mobile) =
+
+ 		else =
+
+-			gui.StartMoveDialog(dialog.rootwidget) =
+
++			-- not needed because it get called already
++			-- gui.StartMoveDialog(dialog.rootwidget) =
+
+ 		end =
+
+ 	end
+ 	dialog.on_mouse_right_down =3D function ()
+@@ -244,6 +262,8 @@
+ 	=
+
+ 	-- if this was the player status bar, also show warmode
+ 	if IsPlayerMobile(mobile) then SetWarmode(gActWarmode) end	=
+
++	=
+
++	NotifyListener(&quot;Hook_OpenHealthbar&quot;,dialog, mobile.serial)
+ end
+ =
+
+ -- create player Healthbar dialog and stuff like this
+@@ -251,6 +271,6 @@
+ 	-- create player Healthbar
+ 	if GetPlayerMobile() then
+ 		printdebug(&quot;gump&quot;,&quot;########## UpdatePlayerBodySerial (serial) was called=
+ -&gt; Open Healthbar&quot;)
+-		OpenHealthbar(GetPlayerMobile(),0,0) =
+
+-	end
+-end
++		OpenHealthbar(GetPlayerMobile()) =
+
++	end
++end
+
+Modified: trunk/lua/gui/gui.helper.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.helper.lua (original)
++++ trunk/lua/gui/gui.helper.lua Mon May 26 18:49:05 2008
+@@ -48,6 +48,7 @@
+ =
+
+ -- function is called by Lugre (lib.chatline.lua) from ChatLine_RepeatLast=
+ and ChatLine_Init
+ function SendChat (curtext) =
+
++	CharLine_SetLast(curtext)
+ 	if string.sub(curtext, 1, 4) =3D=3D &quot;/lua&quot; then
+ 		local cmd =3D string.sub(curtext, 5)
+ 		-- interpret this a lua command
+
+Modified: trunk/lua/gui/gui.paperdoll.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.paperdoll.lua (original)
++++ trunk/lua/gui/gui.paperdoll.lua Mon May 26 18:49:05 2008
+@@ -275,6 +275,7 @@
+ -- close dialog and destroys all widgets
+ local function ClosePaperdoll (paperdoll)
+ 	if (paperdoll and paperdoll.dialog) then =
+
++		NotifyListener(&quot;Hook_ClosePaperdoll&quot;,paperdoll)
+ 		DestroyPaperdollItemWidgets(paperdoll)
+ 		paperdoll.dialog:Destroy()
+ 		paperdoll.dialog =3D nil
+@@ -374,6 +375,8 @@
+ 		mobile.name =3D paperdoll.name =
+
+ 		mobile:Update()
+ 	end
++	=
+
++	NotifyListener(&quot;Hook_RebuildPaperdoll&quot;,paperdoll)
+ end
+ =
+
+ -- triggered by mobile destruction
+@@ -420,6 +423,28 @@
+ 	end
+ end
+ =
+
++-- open/reposition the requested paperdoll
++function OpenPaperdoll(x,y,serial)
++	local p =3D gPaperdolls[serial]
++			=
+
++	if p then
++		RebuildPaperdoll(p)
++	else
++		local paperdoll =3D {}
++		local m =3D GetMobile(serial)
++		paperdoll.serial	=3D serial
++		paperdoll.name		=3D m and m.name or serial
++		paperdoll.flag		=3D 0
++		=
+
++		HandleOpenPaperdoll(paperdoll)
++	end
++	=
+
++	local p =3D gPaperdolls[serial]
++	if p.dialog and p.dialog.rootwidget and p.dialog.rootwidget.gfx then
++		p.dialog.rootwidget.gfx:SetPos(x, y)
++	end
++end
++
+ -- called from kPacket_Open_Paperdoll
+ function HandleOpenPaperdoll	(paperdoll)
+ 	paperdoll.mobileserial	=3D paperdoll.serial
+
+Modified: trunk/lua/gui/gui.skill.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.skill.lua (original)
++++ trunk/lua/gui/gui.skill.lua Mon May 26 18:49:05 2008
+@@ -105,7 +105,8 @@
+ 	=
+
+ 	-- overrride dialog close function from gumpparser
+ 	dialog.Close =3D function (dialog)
+-		table.foreach (table, function (k,v) if v =3D=3D dialog then table.remov=
+e(glQuickCastDialog,k) end end)
++		NotifyListener(&quot;Hook_CloseQuickCastButton&quot;,dialog)
++		glQuickCastDialog[dialog] =3D nil
+ 		dialog:Destroy()
+ 	end
+ 	-- overwrite the onMouseDown function from gumpparser
+@@ -128,6 +129,25 @@
+ 	button.onLeftClick =3D function (widget) fun() end
+ =
+
+ 	table.insert(glQuickCastDialog,dialog)
++	=
+
++	return dialog
++end
++
++function CreateQuickCastButtonSkill(x,y,skillid)
++	for k,v in pairs(glQuickCastDialog) do
++		if v and v.skillid and v.skillid =3D=3D skillid then
++			v.rootwidget.gfx:SetPos(x,y)
++			return
++		end
++	end
++
++	local d =3D CreateQuickCastButton(x,y,glSkillNames[skillid],function () =
+
++		-- quick cast function
++		Send_Request_SkillUse(skillid)
++	end)
++	d.skillid =3D skillid
++	NotifyListener(&quot;Hook_CreateQuickCastSkill&quot;,d,x,y,skillid)
++	return d
+ end
+ =
+
+ gSkillDialog_LastPositionX =3D nil
+@@ -336,10 +356,8 @@
+ 						-- reset button to source and create quick use/cast button
+ 						-- current position
+ 						local x,y =3D GetMousePos()
+-						CreateQuickCastButton(x,y,glSkillNames[skill.skillid],function () =
+
+-							-- quick cast function
+-							Send_Request_SkillUse(skill.skillid)
+-						end)
++						CreateQuickCastButtonSkill(x,y,skill.skillid)
++						=
+
+ 						skill.button_use_drag.gfx:SetPos(skill.button_use_drag.mStartX,skill=
+.button_use_drag.mStartY)
+ 					end
+ 				end
+
+Modified: trunk/lua/gui/gui.spellbook.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.spellbook.lua (original)
++++ trunk/lua/gui/gui.spellbook.lua Mon May 26 18:49:05 2008
+@@ -1,4 +1,40 @@
+ gAvailSpellbooks =3D {}
++
++function GetSpellname(spellid)
++	for kbook,vbook in pairs(gSpellBooks) do
++		-- number of spells per circle
++		local spellnumber =3D countarr(vbook.spells[1])
++		=
+
++		for kcircle,vcircle in pairs(vbook.spells) do
++			for kspell,vspell in pairs(vcircle) do
++				local id =3D vbook.startindex + kspell + (kcircle - 1) * spellnumber
++				if id =3D=3D spellid then
++					return vspell
++				end
++			end
++		end
++	end
++end
++
++function CreateQuickCastButtonSpell(x,y,spellid)
++	for k,v in pairs(glQuickCastDialog) do
++		if v and v.spellid and v.spellid =3D=3D spellid then
++			v.rootwidget.gfx:SetPos(x,y)
++			return
++		end
++	end
++							=
+
++	local spellname =3D GetSpellname(spellid)
++	local d =3D CreateQuickCastButton(x,y,spellname,function () =
+
++		-- quick cast function
++		-- print(&quot;CAST SPELL&quot;,spellname)
++		Send_Spell(spellid,gSpellbookExpansion[&quot;AOS&quot;])
++	end)
++
++	d.spellid =3D spellid
++	NotifyListener(&quot;Hook_CreateQuickCastSpell&quot;,d,x,y,spellid)
++	return d
++end
+ =
+
+ function Open_Spellbook(spellbook)
+ 	local dialog =3D gAvailSpellbooks[spellbook.serial]
+@@ -173,11 +209,7 @@
+ 							-- reset button to source and create quick use/cast button
+ 							-- current position
+ 							local x,y =3D GetMousePos()
+-							CreateQuickCastButton(x,y,spellname,function () =
+
+-								-- quick cast function
+-								-- print(&quot;CAST SPELL&quot;,spellname)
+-								Send_Spell(spellbutton.spell+gSpellBooks[spellbook.itemid].startin=
+dex,gSpellbookExpansion[&quot;AOS&quot;])
+-							end)
++							CreateQuickCastButtonSpell(x,y,spellbutton.spell+gSpellBooks[spellb=
+ook.itemid].startindex)
+ 							spellbutton.gfx:SetPos(spellbutton.mStartX,spellbutton.mStartY)
+ 						end
+ 						=
+
+
+Modified: trunk/lua/lib.macrolist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.macrolist.lua (original)
++++ trunk/lua/lib.macrolist.lua Mon May 26 18:49:05 2008
+@@ -35,7 +35,7 @@
+ function MacroRead_PlayerStat			(statname) return MacroReadAux_MobileStat(=
+GetPlayerMobile(),statname,&quot;MacroRead_PlayerStat&quot;) end
+ function MacroRead_TargetStat			(statname) return MacroReadAux_MobileStat(=
+GetMobile(giSelectedMobile),statname,&quot;MacroRead_TargetStat&quot;) end
+ =
+
+-function MacroCmd_Say					(text)	if (gInGameStarted) then Send_UnicodeSpee=
+ch(text) end end
++function MacroCmd_Say					(text)	if (gInGameStarted) then SendChat(text) e=
+nd end
+ function MacroCmd_NextCamMode			()		gCurrentRenderer:ChangeCamMode() end
+ function MacroCmd_Quit					()		Terminate() end
+ function MacroCmd_RepeatLastChat		()		if (gInGameStarted) then ChatLine_Re=
+peatLast() end end
+@@ -497,6 +497,8 @@
+ end
+ =
+
+ function MacroDropAllIntoContainer(itemnamepart, container_serial, x,y)
++	MacroEnsureContainerIsOpen(container_serial)
++	=
+
+ 	x =3D x or 50
+ 	y =3D y or 50
+ 	local item =3D MacroGetItemFromBackpackByName(itemnamepart)
+@@ -511,10 +513,10 @@
+ end
+ =
+
+ function MacroEnsureContainerIsOpen	(container_serial)
+-	if not GetContainer(container_serial) then
++	if not IsContainerAlreadyOpen(container_serial) then
+ 		Send_DoubleClick(container_serial)
+ 	end
+-	while not GetContainer(container_serial) do
++	while not IsContainerAlreadyOpen(container_serial) do
+ 		job.wait(100)
+ 	end
+ end
+
+Modified: trunk/lua/lib.mainmenu.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mainmenu.lua (original)
++++ trunk/lua/lib.mainmenu.lua Mon May 26 18:49:05 2008
+@@ -227,7 +227,7 @@
+ 	for k,v in pairs(serverlist.servers) do
+ 		local label =3D sprintf(&quot;Choose server [%d]%s full=3D%d tz=3D%d ip=3D%s&quot;=
+,v.index,v.name,v.full,v.tz,NtoA(v.ip))
+ 		table.insert(rows,{
+-			{type=3D&quot;Button&quot;,onLeftClick=3DMySelectServerWidgetFunc,server=3Dv,text=
+=3Dlabel}
++			{type=3D&quot;Button&quot;,onLeftClick=3Dfunction(widget) MySelectServerWidgetFun=
+c(widget) gSelectedShardName =3D v.name end,server=3Dv,text=3Dlabel}
+ 		})
+ 		-- TODO : server.ip unused ? might not be needed when server sends redir=
+ect packet
+ 	end
+@@ -270,7 +270,7 @@
+ 	for k,v in pairs(charlist.chars) do if (v.name ~=3D &quot;&quot;) then
+ 		gNextFreeCharSlot =3D gNextFreeCharSlot + 1
+ 		table.insert(rows,{
+-			{type=3D&quot;Button&quot;,onLeftClick=3DMySelectChar,iCharNum=3Dk,text=3D&quot;Login =
+as &quot;..v.name}
++			{type=3D&quot;Button&quot;,onLeftClick=3Dfunction(widget) MySelectChar(widget) gS=
+electedCharName =3D v.name end ,iCharNum=3Dk,text=3D&quot;Login as &quot;..v.name}
+ 		})
+ 	end end
+ 	-- char creation (TODO)
+@@ -324,6 +324,7 @@
+ 		if name and gShardList[name] and =
+
+ 			gShardList[name].gLoginname and gShardList[name].gPassword then
+ 				local shard =3D gShardList[name]
++				gSelectedShardName =3D name
+ 				MainMenuConnectToShard(shard,name,shard.gLoginname,shard.gPassword)
+ 				return
+ 		end
+
+Modified: trunk/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/main.lua (original)
++++ trunk/lua/main.lua Mon May 26 18:49:05 2008
+@@ -80,6 +80,7 @@
+ dofile(libpath .. &quot;lib.pathfind.lua&quot;)
+ dofile(libpath .. &quot;lib.plugin.lua&quot;)
+ dofile(libpath .. &quot;lib.uoutils.lua&quot;)
++dofile(libpath .. &quot;lib.desktop.lua&quot;)
+ dofile(libpath .. &quot;lib.uoanim.lua&quot;)
+ =
+
+ dofile(libpath .. &quot;gui/gui.main.lua&quot;)
+@@ -365,7 +366,7 @@
+ 	print(&quot;Welcome to Iris&quot;)
+ =
+
+ 	-- create player healthbar dialog
+-	OpenPlayerHealthbar()
++	-- OpenPlayerHealthbar()
+ =
+
+ 	-- stop menu music
+ 	SoundStopMusic()
+
+Modified: trunk/lua/net.walk.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net.walk.lua (original)
++++ trunk/lua/net.walk.lua Mon May 26 18:49:05 2008
+@@ -317,5 +317,7 @@
+ 	gCurrentRenderer:NotifyPlayerTeleported()
+ 	MultiTexTerrain_NotifyTeleport()
+ 	WalkLog(&quot;NotifyTeleport end&quot;)
+-end
+-
++	=
+
++	OpenHealthbar(GetPlayerMobile())
++end
++
+
+Modified: trunk/lua/obj/obj.container.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/obj/obj.container.lua (original)
++++ trunk/lua/obj/obj.container.lua Mon May 26 18:49:05 2008
+@@ -168,13 +168,20 @@
+ 		local dialog =3D guimaker.MakeSortedDialog()
+ 		container.dialog =3D dialog
+ 		dialog.uoContainer =3D container
+-		dialog.rootwidget.gfx:SetPos(200,100) -- TODO : choose position
++		=
+
++		local x,y =3D GetDesktopElementPosition(&quot;container&quot;,containerdata.serial)
++		if x and y then =
+
++			dialog.rootwidget.gfx:SetPos(x,y) -- TODO : choose position
++		else
++			dialog.rootwidget.gfx:SetPos(200,100) -- TODO : choose position
++		end
++		=
+
+ 		dialog.backpane =3D MakeBorderGumpPart(dialog.rootwidget,container.gumpi=
+d,0,0)
+ 		dialog.backpane.mbIgnoreMouseOver =3D false
+ 		dialog.backpane.on_mouse_right_down	=3D function (widget) CloseContainer=
+(widget.dialog.uoContainer.serial) end
+ 		dialog.backpane.on_mouse_left_down	=3D function (widget) widget.dialog:B=
+ringToFront() gui.StartMoveDialog(widget.dialog.rootwidget) end
+ 		=
+
+-		NotifyListener(&quot;Hook_Open_Container&quot;, dialog, container)
++		NotifyListener(&quot;Hook_OpenContainer&quot;, dialog, container.serial)
+ 	end
+ 	gLastDebugContainer =3D container
+ 	RefreshContainerItemWidgets(container)
+@@ -195,6 +202,7 @@
+ function CloseContainer (serial) =
+
+ 	local container =3D GetContainer(serial)
+ 	if (container and container.dialog) then
++		NotifyListener(&quot;Hook_CloseContainer&quot;,container.dialog,serial)
+ 		DestroyContainerItemWidgets(container)
+ 		container.dialog:Destroy()
+ 		container.dialog =3D nil
+@@ -212,6 +220,14 @@
+ 		container =3D CreateOrUpdateDynamic(dynamicdata)
+ 	end
+ 	return container
++end
++
++function OpenContainer	(serial, x,y)
++	Send_DoubleClick(serial)
++	local container =3D GetOrCreateContainer(serial) =
+
++	if container.dialog and container.dialog.rootwidget then
++		container.dialog.rootwidget.gfx:SetPos(x,y)
++	end
+ end
+ =
+
+ --[[
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001005.html">[Iris-commit] [IRIS] r2196 - /trunk/doc/cpp.doxygen
+</A></li>
+	<LI>Next message: <A HREF="001007.html">[Iris-commit] [IRIS] r2198 - in /trunk: data/mymacros.lua.dist lua/lib.3d.renderer.lua lua/lib.desktop.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1006">[ date ]</a>
+              <a href="thread.html#1006">[ thread ]</a>
+              <a href="subject.html#1006">[ subject ]</a>
+              <a href="author.html#1006">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,144 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2845 - in /trunk/lua: lib.2d.renderer.lua	lib.3d.renderer.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2009-January/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2845%20-%20in%20/trunk/lua%3A%20lib.2d.renderer.lua%0A%09lib.3d.renderer.lua&In-Reply-To=%3C20090108021228.3B3461C187FD%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001647.html">
+   <LINK REL="Next"  HREF="001648.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2845 - in /trunk/lua: lib.2d.renderer.lua	lib.3d.renderer.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2845%20-%20in%20/trunk/lua%3A%20lib.2d.renderer.lua%0A%09lib.3d.renderer.lua&In-Reply-To=%3C20090108021228.3B3461C187FD%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2845 - in /trunk/lua: lib.2d.renderer.lua	lib.3d.renderer.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Thu Jan  8 03:12:28 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001647.html">[Iris-commit] [IRIS] r2844 - in /trunk/lua: gui/gui.helper.lua	main.lua
+</A></li>
+        <LI>Next message: <A HREF="001648.html">[Iris-commit] [IRIS] r2846 - in /trunk/lua: lib.3d.mousepick.lua	main.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1646">[ date ]</a>
+              <a href="thread.html#1646">[ thread ]</a>
+              <a href="subject.html#1646">[ subject ]</a>
+              <a href="author.html#1646">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Thu Jan  8 03:12:27 2009
+New Revision: 2845
+
+Log:
+added 3d renderer profiler sections, not for map subjobs yet
+
+Modified:
+    trunk/lua/lib.2d.renderer.lua
+    trunk/lua/lib.3d.renderer.lua
+
+Modified: trunk/lua/lib.2d.renderer.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.renderer.lua (original)
++++ trunk/lua/lib.2d.renderer.lua Thu Jan  8 03:12:27 2009
+@@ -84,7 +84,7 @@
+ 	return DirWrap( floor(1.5+math.atan2(my-cy,mx-cx) * 8 / (2*kPi)) ),dist2(=
+mx,my,cx,cy)
+ end
+ =
+
+-gProfiler_R2D_MainStep =3D CreateRoughProfiler(&quot;MainStep&quot;)
++gProfiler_R2D_MainStep =3D CreateRoughProfiler(&quot;2D:MainStep&quot;)
+ =
+
+ -- called from mainstep while ingame
+ function Renderer2D:MainStep ()
+
+Modified: trunk/lua/lib.3d.renderer.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.renderer.lua (original)
++++ trunk/lua/lib.3d.renderer.lua Thu Jan  8 03:12:27 2009
+@@ -116,12 +116,16 @@
+ 	gTileFreeWalk:SetPos_All(self:LocalToUOPos(x+0.5,y+0.5,z)) -- + for both =
+might be wrong..
+ end
+ =
+
++gProfiler_R3D_MainStep =3D CreateRoughProfiler(&quot;3D:MainStep&quot;)
++
+ function Renderer3D:MainStep	()
+-	self:CombatGuiStep()
+-	self:MobileAnimStep()
+-	self:CamStep()
++	gProfiler_R3D_MainStep:Start(gEnableProfiler_R3D_MainStep)
++	=
+
++	gProfiler_R3D_MainStep:Section(&quot;CombatGuiStep&quot;)		self:CombatGuiStep()
++	gProfiler_R3D_MainStep:Section(&quot;MobileAnimStep&quot;)	self:MobileAnimStep()
++	gProfiler_R3D_MainStep:Section(&quot;CamStep&quot;)			self:CamStep()
+ 	--~ self:UpdateMap()
+-	self:MousePickStep()
++	gProfiler_R3D_MainStep:Section(&quot;MousePickStep&quot;)		self:MousePickStep()
+ 	=
+
+ 	-- b&amp;w effect on death
+ 	local playermobile =3D GetPlayerMobile()
+@@ -143,8 +147,11 @@
+ 		end
+ 	end
+ =
+
+-	self:MapStep()
+-	self:UpdateLight()
++	=
+
++		=
+
++	gProfiler_R3D_MainStep:Section(&quot;MapStep&quot;)		self:MapStep()
++	gProfiler_R3D_MainStep:Section(&quot;UpdateLight&quot;)	self:UpdateLight()
++	gProfiler_R3D_MainStep:End()
+ end
+ =
+
+ function Renderer3D:SetLastConfirmedUOPos(xloc,yloc,zloc) gTileFreeWalk:Im=
+pl_SetLastConfirmedUOPos(xloc,yloc,zloc) end -- walk
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001647.html">[Iris-commit] [IRIS] r2844 - in /trunk/lua: gui/gui.helper.lua	main.lua
+</A></li>
+	<LI>Next message: <A HREF="001648.html">[Iris-commit] [IRIS] r2846 - in /trunk/lua: lib.3d.mousepick.lua	main.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1646">[ date ]</a>
+              <a href="thread.html#1646">[ thread ]</a>
+              <a href="subject.html#1646">[ subject ]</a>
+              <a href="author.html#1646">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

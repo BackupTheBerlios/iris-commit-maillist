@@ -1,0 +1,254 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r3149 - in /trunk/lua: lib.granny.debug.lua lib.granny.loader.lua lib.granny.types.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2009-November/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3149%20-%20in%20/trunk/lua%3A%20lib.granny.debug.lua%0A%20lib.granny.loader.lua%20lib.granny.types.lua&In-Reply-To=%3C20091117230323.68A347A98130%40simon%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001909.html">
+   <LINK REL="Next"  HREF="001911.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r3149 - in /trunk/lua: lib.granny.debug.lua lib.granny.loader.lua lib.granny.types.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3149%20-%20in%20/trunk/lua%3A%20lib.granny.debug.lua%0A%20lib.granny.loader.lua%20lib.granny.types.lua&In-Reply-To=%3C20091117230323.68A347A98130%40simon%3E"
+       TITLE="[Iris-commit] [IRIS] r3149 - in /trunk/lua: lib.granny.debug.lua lib.granny.loader.lua lib.granny.types.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Wed Nov 18 00:03:23 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001909.html">[Iris-commit] [IRIS] r3148 - in /trunk/lua: lib.granny.debug.lua lib.granny.loader.lua lib.granny.types.lua
+</A></li>
+        <LI>Next message: <A HREF="001911.html">[Iris-commit] [IRIS] r3150 - /trunk/lua/lib.granny.debug.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1910">[ date ]</a>
+              <a href="thread.html#1910">[ thread ]</a>
+              <a href="subject.html#1910">[ subject ]</a>
+              <a href="author.html#1910">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Wed Nov 18 00:03:23 2009
+New Revision: 3149
+
+Log:
+grannyloader : metatable to allow comfortable path-like data access, granny=
+ types,structs and enums defined statically instead of copying for every ob=
+ject
+
+Modified:
+    trunk/lua/lib.granny.debug.lua
+    trunk/lua/lib.granny.loader.lua
+    trunk/lua/lib.granny.types.lua
+
+Modified: trunk/lua/lib.granny.debug.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.granny.debug.lua (original)
++++ trunk/lua/lib.granny.debug.lua Wed Nov 18 00:03:23 2009
+@@ -129,28 +129,18 @@
+ 	print(&quot;granny path for artid&quot;,artid,filepath)
+ 	local grn =3D cGrannyFile:New()
+ 	grn:LoadFile(filepath)
+-	grn:XMLDump(&quot;../mygranny.xml&quot;) =
+
++	--~ grn:XMLDump(&quot;../mygranny.xml&quot;) =
+
+ 	=
+
+ 	function MyGetChunkT (iChunkType) return iChunkType and grn.kTypeNames[iC=
+hunkType] or nil end
+ 	function MyDump (obj) =
+
+-		print(&quot;dump:&quot;,obj,MyGetChunkT(obj.iChunkType))
++		print(&quot;dump:&quot;,obj,MyGetChunkT(obj and obj.iChunkType))
+ 		for k,v in pairs(obj) do print(&quot; &quot;,k,v,MyGetChunkT(v and type(v) =3D=3D =
+&quot;table&quot; and v.iChunkType)) end
+ 	end
+-	function GetByField (arr,fieldname,search) for k,obj in pairs(arr) do if =
+(obj[fieldname] =3D=3D search) then return obj end end end
+ 	=
+
+-	=
+
+-		=
+
+-	=
+
+-	-- MainChunk/Object=3D2/mesh_list/mesh=3D1/point_block/point_container=3D=
+1/points/list_points
+-	--~ local points =3D GetByField(GetByField(	GetByField(grn.pMainChunk.chi=
+lds[2].childs
+-									--~ ,&quot;iChunkType&quot;,grn.kTypeByName.mesh_list).childs[1].childs
+-									--~ ,&quot;iChunkType&quot;,grn.kTypeByName.point_block).childs[1].childs
+-									--~ ,&quot;iChunkType&quot;,grn.kTypeByName.points)
+-	local points =3D grn:GetData(&quot;Object/mesh_list/mesh/point_block/point_con=
+tainer/points&quot;)
+-	--~ local points =3D grn:Data().Object.mesh_list.mesh.point_block.point_c=
+ontainer.points -- metatable,selfmod? metatables for all subobj?
+-	MyDump(points) -- .list_points
+-	=
+
+-	=
+
++	--~ MyDump(grn.pMainChunk.Object.mesh_list.mesh)
++	local list_points =3D grn.pMainChunk.Object.mesh_list.mesh.point_block.po=
+int_container.points.list_points
++	print(&quot;#points:&quot;,#list_points)
++	for k,entry in ipairs(list_points) do print(k,entry.x,entry.y,entry.z) if=
+ (k&gt;10) then print(&quot;...&quot;) break end end
+ 	=
+
+ 	os.exit(0)
+ end
+
+Modified: trunk/lua/lib.granny.loader.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.granny.loader.lua (original)
++++ trunk/lua/lib.granny.loader.lua Wed Nov 18 00:03:23 2009
+@@ -52,19 +52,13 @@
+ 	self.fifo =3D nil
+ end
+ =
+
+---~ local points =3D grn:GetData(&quot;Object/mesh_list/mesh/point_block/point_=
+container/points&quot;).list_points
+-function cGrannyFile:GetData (path,pStart) =
+
+-	pStart =3D pStart or self.pMainChunk
+-	for typename in string.gmatch(path, &quot;[^/]+&quot;) do
+-		local typeid =3D self.kTypeByName[typename]
+-		print(typeid,typename)
+-		local found
+-		for k,obj in pairs(pStart.childs) do if (obj.iChunkType =3D=3D typeid) t=
+hen found =3D obj break end end
+-		if (not found) then return nil end
+-		pStart =3D found
+-	end
+-	return pStart
+-end
++-- allow access like grn.pMainChunk.Object.mesh_list.mesh.point_block.poin=
+t_container.points.list_points  =
+
++function cGrannyFile:MetaIndex (typename) =
+
++	local typeid =3D cGrannyFile.kTypeByName[typename]
++	--~ print(&quot;cGrannyFile:MetaIndex&quot;,self,typename,typeid) =
+
++	if (typeid) then for k,obj in ipairs(self.childs) do if (obj.iChunkType =
+=3D=3D typeid) then return obj end end end -- self is not a cGrannyFile here
++end
++cGrannyFile.pItemMetaTable =3D { __index =3D cGrannyFile.MetaIndex }
+ =
+
+ function cGrannyFile:XMLDump (filepath) =
+
+ 	local ignoredkeys =3D { childs=3Dtrue,hexdump=3Dtrue,iChunkType=3Dtrue,ch=
+ildsleft=3Dtrue,iChildren=3Dtrue,iOffset=3Dtrue }
+@@ -165,7 +159,7 @@
+ 	local structsize =3D self.size[structname] assert(structsize)
+ 	assert(offset &gt;=3D 0,&quot;AssertSize : negative offset : &quot;..offset)
+ 	local missing =3D offset+structsize - self.miBufSize assert(missing &lt;=3D =
+0,&quot;AssertSize : buffer too small, expected &quot;..missing..&quot; more bytes&quot;)
+-	local res =3D {}
++	local res =3D setmetatable({},cGrannyFile.pItemMetaTable)
+ 	local struct =3D self.structs[structname]
+ 	for k,memberdef in ipairs(struct) do =
+
+ 		local basetype,name,arraysize =3D unpack(memberdef)
+@@ -187,7 +181,6 @@
+ 	self.fifo =3D fifo
+ 	self.miBufSize =3D fifo:Size()
+ 	self.quickfifo =3D fifo:GetQuickHandle()
+-	self:DefineTypes()
+ 	local pMainChunk =3D self:Read(0,&quot;MainChunk&quot;)
+ 	self.pMainChunk =3D pMainChunk
+ 	pMainChunk.childs =3D {}
+@@ -277,7 +270,7 @@
+ 		local myoffset =3D pItemList.miListOffset+iOffset
+ 		assert(myoffset &lt;=3D miBufSize)
+ 		=
+
+-		local chunk =3D {iChunkType=3DiChunkType,iOffset=3DiOffset,iChildren=3Di=
+Children} -- ,iChildSize=3DiChildSize
++		local chunk =3D setmetatable({iChunkType=3DiChunkType,iOffset=3DiOffset,=
+iChildren=3DiChildren},cGrannyFile.pItemMetaTable) -- ,iChildSize=3DiChildS=
+ize
+ 		local handler =3D self.chunkHandlers[iChunkType]
+ 		if (handler) then =
+
+ 			handler(self,myoffset,iChildSize,chunk) =
+
+
+Modified: trunk/lua/lib.granny.types.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.granny.types.lua (original)
++++ trunk/lua/lib.granny.types.lua Wed Nov 18 00:03:23 2009
+@@ -1,10 +1,9 @@
+ =
+
+ =
+
+-function cGrannyFile:DefineTypes () =
+
+-	if (self.structs) then return end
+-	self.kChunkType_Main =3D 0xCA5E0000
+-	self:DefineStructs()
+-	self:DefineTypeNames()
++function GrannyFile_Global_DefineTypes () =
+
++	cGrannyFile.kChunkType_Main =3D 0xCA5E0000
++	cGrannyFile:DefineStructs()
++	cGrannyFile:DefineTypeNames()
+ end
+ =
+
+ function cGrannyFile:DefineStructs ()
+@@ -191,3 +190,5 @@
+ 	self.kTypeNames[0xCA5Effff] =3D &quot;end&quot; =
+
+ 	self.kTypeByName =3D FlipTable(self.kTypeNames)
+ end
++
++GrannyFile_Global_DefineTypes()
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001909.html">[Iris-commit] [IRIS] r3148 - in /trunk/lua: lib.granny.debug.lua lib.granny.loader.lua lib.granny.types.lua
+</A></li>
+	<LI>Next message: <A HREF="001911.html">[Iris-commit] [IRIS] r3150 - /trunk/lua/lib.granny.debug.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1910">[ date ]</a>
+              <a href="thread.html#1910">[ thread ]</a>
+              <a href="subject.html#1910">[ subject ]</a>
+              <a href="author.html#1910">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

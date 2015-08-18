@@ -1,0 +1,231 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1462 - /trunk/data/lua/lib.tilefreewalk.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2007-October/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1462%20-%20/trunk/data/lua/lib.tilefreewalk.lua&In-Reply-To=%3C20071010131656.39FA71C18165%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000276.html">
+   <LINK REL="Next"  HREF="000278.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1462 - /trunk/data/lua/lib.tilefreewalk.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1462%20-%20/trunk/data/lua/lib.tilefreewalk.lua&In-Reply-To=%3C20071010131656.39FA71C18165%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1462 - /trunk/data/lua/lib.tilefreewalk.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Wed Oct 10 15:16:56 CEST 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000276.html">[Iris-commit] [IRIS] r1461 - in /trunk: bin/iris2.exe	linuxbin/test.txt linuxbin/test2.txt
+</A></li>
+        <LI>Next message: <A HREF="000278.html">[Iris-commit] [IRIS] r1463 - in /trunk/data/lua:	lib.tilefreewalk.lua net.walk.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#277">[ date ]</a>
+              <a href="thread.html#277">[ thread ]</a>
+              <a href="subject.html#277">[ subject ]</a>
+              <a href="author.html#277">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Wed Oct 10 15:16:55 2007
+New Revision: 1462
+
+Log:
+tilefreewalk : added multisampling for collision, so you cannot get into wa=
+lls etc even at high speeds or low framerates
+
+Modified:
+    trunk/data/lua/lib.tilefreewalk.lua
+
+Modified: trunk/data/lua/lib.tilefreewalk.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.tilefreewalk.lua (original)
++++ trunk/data/lua/lib.tilefreewalk.lua Wed Oct 10 15:16:55 2007
+@@ -14,6 +14,8 @@
+ 		[17]=3D{artid=3D8059,hue=3D1652,animid=3D913},[11]=3D{artid=3D8252,hue=
+=3D1147,animid=3D701},
+ 		[21]=3D{artid=3D3701,hue=3D0,animid=3D422},}} =
+
+ 		=
+
++gTileFreePlayerRad =3D 0.2 -- radius of player/human
++gTileFreeDebugWallH =3D 0.7
+ =
+
+ -- ##### ##### ##### ##### ##### init
+ =
+
+@@ -63,6 +65,42 @@
+ assert(InterpolateSquare(z00,z10,z01,z11, 0,1) =3D=3D z01)
+ assert(InterpolateSquare(z00,z10,z01,z11, 1,1) =3D=3D z11)
+ =
+
++
++function gTileFreeWalk:CollideWithWallMid (x,y)
++	for k,wallarr in pairs(self.walls) do -- block straight
++		local x1,y1,x2,y2,dx,dy,nx,ny,invsqlen =3D unpack(wallarr)
++		local vx,vy =3D sub2(x,y,x1,y1)
++		local pos =3D dot2(vx,vy,dx,dy) * invsqlen
++		if (pos &gt;=3D 0 and pos &lt;=3D 1) then -- collide with wall itself
++			local dist =3D dot2(vx,vy,nx,ny)
++			local pushoutdist =3D gTileFreePlayerRad - dist
++			if (dist &gt; -gTileFreePlayerRad and pushoutdist &gt; 0) then
++				--self:DebugMarkerGroup_AddWall(&quot;touchwalls&quot;, 	x1,y1,z,   x2,y2,z, gTi=
+leFreeDebugWallH,	1,1,0)
++				x,y =3D add2(x,y,nx*pushoutdist,ny*pushoutdist)
++			end
++		end
++	end
++	return x,y
++end
++
++function gTileFreeWalk:CollideWithWallEdge (x,y)
++	for k,wallarr in pairs(self.walls) do -- block edge
++		local x1,y1,x2,y2,dx,dy,nx,ny,invsqlen =3D unpack(wallarr)
++		local vx,vy =3D sub2(x,y,x1,y1)
++		local pos =3D dot2(vx,vy,dx,dy) * invsqlen
++		if (pos &lt;=3D 0) then -- collide with edge : x1,y1
++			local pushoutdist =3D gTileFreePlayerRad - len2(vx,vy)
++			if (pushoutdist &gt; 0) then x,y =3D add2(x,y,tolen2(vx,vy,pushoutdist)) e=
+nd
++		elseif (pos &gt;=3D 1) then -- collide with edge : x2,y2
++			vx,vy =3D sub2(x,y,x2,y2)
++			local pushoutdist =3D gTileFreePlayerRad - len2(vx,vy)
++			if (pushoutdist &gt; 0) then x,y =3D add2(x,y,tolen2(vx,vy,pushoutdist)) e=
+nd
++		end
++	end
++	return x,y
++end
++
++
+ function gTileFreeWalk:Step	()
+ 	if (gCurrentRenderer ~=3D Renderer3D) then return end
+ 	local bWalkInMouseDir	=3D gKeyPressed[key_mouse2]
+@@ -77,6 +115,7 @@
+ 	-- hold rightmouse button to walk in mouse direction (depends on center o=
+f screen, works good for 3rd person cam)
+ 	local bMoved =3D false
+ 	local x,y,z =3D self:GetPos_ClientSide()
++	local ox,oy =3D x,y
+ 	=
+
+ 	-- read input and calculate desired movement
+ 	if (bWalkInMouseDir) then
+@@ -124,52 +163,23 @@
+ 	-- execute movement (and collision/block handling)
+ 	if (bMoved) then
+ 		-- block movement here
+-		local r =3D 0.2 -- radius of player/human
+-		local h =3D 0.7
+ 		--self:DebugMarkerGroup_Clear(&quot;touchwalls&quot;)
+-		-- 1st collision : with wall center, to avoid speed bumps while walking =
+along a wall
+-		for k,wallarr in pairs(self.walls) do -- block straight
+-			local x1,y1,x2,y2,dx,dy,nx,ny,invsqlen =3D unpack(wallarr)
+-			local vx,vy =3D sub2(x,y,x1,y1)
+-			local pos =3D dot2(vx,vy,dx,dy) * invsqlen
+-			if (pos &gt;=3D 0 and pos &lt;=3D 1) then -- collide with wall itself
+-				local dist =3D dot2(vx,vy,nx,ny)
+-				local pushoutdist =3D r - dist
+-				if (dist &gt; -r and pushoutdist &gt; 0) then
+-					--self:DebugMarkerGroup_AddWall(&quot;touchwalls&quot;, 	x1,y1,z,   x2,y2,z, h,=
+	1,1,0)
+-					x,y =3D add2(x,y,nx*pushoutdist,ny*pushoutdist)
+-				end
++		local vx,vy =3D sub2(x,y,ox,oy)
++		local movedist =3D len2(vx,vy)
++		local steps =3D math.ceil(movedist/(0.7*gTileFreePlayerRad)) =
+
++		if (steps &gt; 0) then
++			local sx,sy =3D vx/steps,vy/steps
++			x,y =3D ox,oy
++			for i=3D1,steps do -- multisample movement
++				x,y =3D x+sx,y+sy
++				-- 1st collision : with wall center, to avoid speed bumps while walkin=
+g along a wall
++				x,y =3D self:CollideWithWallMid(x,y)
++				-- 2nd collision : with wall edges, otherwise it would be possible to =
+move into an edge between 2 non-parallel walls
++				x,y =3D self:CollideWithWallEdge(x,y)
++				-- 3rd collision : with wall center again, to avoid the edge collision=
+s pushing the player slowly inside the walls
++				x,y =3D self:CollideWithWallMid(x,y)
+ 			end
+ 		end
+-		-- 2nd collision : with wall edges, otherwise it would be possible to mo=
+ve into an edge between 2 non-parallel walls
+-		for k,wallarr in pairs(self.walls) do -- block edge
+-			local x1,y1,x2,y2,dx,dy,nx,ny,invsqlen =3D unpack(wallarr)
+-			local vx,vy =3D sub2(x,y,x1,y1)
+-			local pos =3D dot2(vx,vy,dx,dy) * invsqlen
+-			if (pos &lt;=3D 0) then -- collide with edge : x1,y1
+-				local pushoutdist =3D r - len2(vx,vy)
+-				if (pushoutdist &gt; 0) then x,y =3D add2(x,y,tolen2(vx,vy,pushoutdist)) =
+end
+-			elseif (pos &gt;=3D 1) then -- collide with edge : x2,y2
+-				vx,vy =3D sub2(x,y,x2,y2)
+-				local pushoutdist =3D r - len2(vx,vy)
+-				if (pushoutdist &gt; 0) then x,y =3D add2(x,y,tolen2(vx,vy,pushoutdist)) =
+end
+-			end
+-		end
+-		-- 3rd collision : with wall center again, to avoid the edge collisions =
+pushing the player slowly inside the walls
+-		for k,wallarr in pairs(self.walls) do -- block straight
+-			local x1,y1,x2,y2,dx,dy,nx,ny,invsqlen =3D unpack(wallarr)
+-			local vx,vy =3D sub2(x,y,x1,y1)
+-			local pos =3D dot2(vx,vy,dx,dy) * invsqlen
+-			if (pos &gt;=3D 0 and pos &lt;=3D 1) then -- collide with wall itself
+-				local dist =3D dot2(vx,vy,nx,ny)
+-				local pushoutdist =3D r - dist
+-				if (dist &gt; -r and pushoutdist &gt; 0) then
+-					--self:DebugMarkerGroup_AddWall(&quot;touchwalls&quot;, 	x1,y1,z,   x2,y2,z, h,=
+	1,1,0)
+-					x,y =3D add2(x,y,nx*pushoutdist,ny*pushoutdist)
+-				end
+-			end
+-		end
+-		=
+
+ 		=
+
+ 		-- get new rounded position
+ 		local rx,ry,rz =3D self:RoundPos(x,y,z)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000276.html">[Iris-commit] [IRIS] r1461 - in /trunk: bin/iris2.exe	linuxbin/test.txt linuxbin/test2.txt
+</A></li>
+	<LI>Next message: <A HREF="000278.html">[Iris-commit] [IRIS] r1463 - in /trunk/data/lua:	lib.tilefreewalk.lua net.walk.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#277">[ date ]</a>
+              <a href="thread.html#277">[ thread ]</a>
+              <a href="subject.html#277">[ subject ]</a>
+              <a href="author.html#277">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

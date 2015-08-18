@@ -1,0 +1,2168 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2367 - /trunk/lua/
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-August/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2367%20-%20/trunk/lua/&In-Reply-To=%3C20080814135404.C580A1C18259%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001172.html">
+   <LINK REL="Next"  HREF="001175.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2367 - /trunk/lua/</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2367%20-%20/trunk/lua/&In-Reply-To=%3C20080814135404.C580A1C18259%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2367 - /trunk/lua/">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Thu Aug 14 15:54:03 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001172.html">[Iris-commit] [IRIS] r2365 - /branches/stable_release/
+</A></li>
+        <LI>Next message: <A HREF="001175.html">[Iris-commit] [IRIS] r2368 - in /trunk/lua: lib.2d.map.lua lib.2d.renderer.lua lib.3d.map.lua lib.3d.renderer.lua lib.artatlas.lua lib.mapblock.3d.statics.lua lib.mapblock.3d.terrain.lua lib.mapblock.base.lua lib.mapblock.scheduler.lua lib.static.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1174">[ date ]</a>
+              <a href="thread.html#1174">[ thread ]</a>
+              <a href="subject.html#1174">[ subject ]</a>
+              <a href="author.html#1174">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: hagish
+Date: Thu Aug 14 15:54:03 2008
+New Revision: 2367
+
+Log:
+first quite untested version of the new 3d renderer
+
+Added:
+    trunk/lua/lib.3d.dynamicspawner.lua
+    trunk/lua/lib.3d.tilebatch.lua
+Modified:
+    trunk/lua/lib.2d.map.lua
+    trunk/lua/lib.3d.dynamic.lua
+    trunk/lua/lib.3d.map.lua
+    trunk/lua/lib.3d.mousepick.lua
+    trunk/lua/lib.3d.renderer.lua
+    trunk/lua/lib.loading.lua
+    trunk/lua/lib.mapblock.2d.statics.lua
+    trunk/lua/lib.mapblock.2d.terrain.lua
+    trunk/lua/lib.mapblock.3d.dynamics.lua
+    trunk/lua/lib.mapblock.3d.multis.lua
+    trunk/lua/lib.mapblock.3d.statics.lua
+    trunk/lua/lib.mapblock.3d.terrain.lua
+    trunk/lua/lib.mapblock.base.lua
+    trunk/lua/lib.mapblock.scheduler.lua
+    trunk/lua/lib.mapblock.spawner.lua
+    trunk/lua/lib.static.lua
+
+Modified: trunk/lua/lib.2d.map.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.map.lua (original)
++++ trunk/lua/lib.2d.map.lua Thu Aug 14 15:54:03 2008
+@@ -22,10 +22,11 @@
+ dofile(libpath .. &quot;lib.mapblock.scheduler.lua&quot;)
+ dofile(libpath .. &quot;lib.mapblock.spawner.lua&quot;)
+ dofile(libpath .. &quot;lib.mapblock.base.lua&quot;)
++dofile(libpath .. &quot;lib.mapblock.grid.lua&quot;)
+ dofile(libpath .. &quot;lib.mapblock.2d.statics.lua&quot;)
+ dofile(libpath .. &quot;lib.mapblock.2d.terrain.lua&quot;)
+ --~ dofile(libpath .. &quot;lib.mapblock.2d.water.lua&quot;)
+-cMapBlock_2D_Water		=3D CreateClass(cMapBlock)
++cMapBlock_2D_Water		=3D CreateClass(cMapBlockGrid)
+ =
+
+ cMapBlock_2D_Terrain.kLOD_Detail		=3D kMapLoad_2D_Terrain_Detail
+ cMapBlock_2D_Terrain.kLOD_Rough			=3D kMapLoad_2D_Terrain_Rough
+
+Modified: trunk/lua/lib.3d.dynamic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.dynamic.lua (original)
++++ trunk/lua/lib.3d.dynamic.lua Thu Aug 14 15:54:03 2008
+@@ -133,7 +133,7 @@
+ 		if randomRotation then
+ 			local x,y,z =3D dynamic.gfx:GetPosition()
+ 			local r =3D math.mod(math.floor(math.abs(x)+math.abs(y)+math.abs(z)) * =
+10,360)
+-			print(&quot;####&quot;,x,y,z,r)
++			--~ print(&quot;####&quot;,x,y,z,r)
+ 			dynamic.gfx:SetOrientation( QuaternionFromString(&quot;x:0,y:0,z:&quot;..r) )
+ 		end
+ 		=
+
+@@ -176,48 +176,57 @@
+ 		end)
+ 	end
+ =
+
+-	Renderer3D:RemoveDynamicFromMap(dynamic)
+-
+-	-- block position
+-	local bx =3D math.floor(dynamic.xloc / Renderer3D.gFastBatchDynamicsBlock=
+Size)
+-	local by =3D math.floor(dynamic.yloc / Renderer3D.gFastBatchDynamicsBlock=
+Size)
+-	=
+
+-	-- block empty? create a new entry
+-	if not Array2DGet(Renderer3D.gFastBatchDynamicsMap, bx,by) then
+-		Array2DSet(Renderer3D.gFastBatchDynamicsMap, bx,by, {mbUpdateNeeded=3Dtr=
+ue, miCount=3D0,mlDynamic=3D{}})
+-	end
+-	=
+
+-	local e =3D Array2DGet(Renderer3D.gFastBatchDynamicsMap, bx,by)
+-	-- add dynamic if not available
+-	if not e.mlDynamic[dynamic.serial] then
+-		-- print(&quot;ADD&quot;,bx,by,dynamic.serial)
+-		e.miCount =3D e.miCount + 1
+-		e.mlDynamic[dynamic.serial] =3D dynamic
+-	end
+-
+-	e.mbUpdateNeeded =3D true
+-	Renderer3D.gFastBatchDynamicsUpdateNeeded =3D true
+-	=
+
+-	-- Renderer3D:ShowDynamicMapStats()
++	self:RemoveDynamicFromMap(dynamic)
++
++	-- add dynamic items to render blocks or queue for delayed add
++	if self.map3d_spawners and self.map3d_spawners.dynamics then =
+
++		self.map3d_spawners.dynamics:AddDynamic(dynamic)
++	end
++
++	--~ -- block position
++	--~ local bx =3D math.floor(dynamic.xloc / Renderer3D.gFastBatchDynamicsB=
+lockSize)
++	--~ local by =3D math.floor(dynamic.yloc / Renderer3D.gFastBatchDynamicsB=
+lockSize)
++	--~ =
+
++	--~ -- block empty? create a new entry
++	--~ if not Array2DGet(Renderer3D.gFastBatchDynamicsMap, bx,by) then
++		--~ Array2DSet(Renderer3D.gFastBatchDynamicsMap, bx,by, {mbUpdateNeeded=
+=3Dtrue, miCount=3D0,mlDynamic=3D{}})
++	--~ end
++	--~ =
+
++	--~ local e =3D Array2DGet(Renderer3D.gFastBatchDynamicsMap, bx,by)
++	--~ -- add dynamic if not available
++	--~ if not e.mlDynamic[dynamic.serial] then
++		--~ -- print(&quot;ADD&quot;,bx,by,dynamic.serial)
++		--~ e.miCount =3D e.miCount + 1
++		--~ e.mlDynamic[dynamic.serial] =3D dynamic
++	--~ end
++--~ =
+
++	--~ e.mbUpdateNeeded =3D true
++	--~ Renderer3D.gFastBatchDynamicsUpdateNeeded =3D true
++	--~ =
+
++	--~ -- Renderer3D:ShowDynamicMapStats()
+ end
+ =
+
+ function Renderer3D:RemoveDynamicFromMap	(dynamic)
+-	Array2DForAll(Renderer3D.gFastBatchDynamicsMap, function(e,bx,by)
+-		-- remove dynamic if available
+-		if e.mlDynamic[dynamic.serial] then
+-			-- print(&quot;REMOVE&quot;,bx,by,dynamic.serial)
+-			e.mbUpdateNeeded =3D true
+-			e.miCount =3D e.miCount - 1
+-			e.mlDynamic[dynamic.serial] =3D nil
+-			Renderer3D.gFastBatchDynamicsUpdateNeeded =3D true
+-		end
+-		=
+
+-		-- remove block entry
+-		if e.miCount =3D=3D 0 then
+-			if e.mFastBatch then e.mFastBatch:Destroy() end
+-			Array2DSet(Renderer3D.gFastBatchDynamicsMap, bx,by, nil)
+-		end
+-	end)
++	if self.map3d_spawners and self.map3d_spawners.dynamics then =
+
++		self.map3d_spawners.dynamics:RemoveDynamic(dynamic)
++	end
++	=
+
++	--~ Array2DForAll(Renderer3D.gFastBatchDynamicsMap, function(e,bx,by)
++		--~ -- remove dynamic if available
++		--~ if e.mlDynamic[dynamic.serial] then
++			--~ -- print(&quot;REMOVE&quot;,bx,by,dynamic.serial)
++			--~ e.mbUpdateNeeded =3D true
++			--~ e.miCount =3D e.miCount - 1
++			--~ e.mlDynamic[dynamic.serial] =3D nil
++			--~ Renderer3D.gFastBatchDynamicsUpdateNeeded =3D true
++		--~ end
++		--~ =
+
++		--~ -- remove block entry
++		--~ if e.miCount =3D=3D 0 then
++			--~ if e.mFastBatch then e.mFastBatch:Destroy() end
++			--~ Array2DSet(Renderer3D.gFastBatchDynamicsMap, bx,by, nil)
++		--~ end
++	--~ end)
+ end
+ =
+
+ -- rebuilds the graphic of the dynamics
+@@ -245,7 +254,13 @@
+ =
+
+ =
+
+ -- creates the geometry of the given multi and stores the gfx object in th=
+is multi
+-function Renderer3D:CreateMultiGraphic	(multi)
++function Renderer3D:CreateMultiGraphic	(serial, multi)
++	-- add dynamic items to render blocks or queue for delayed add
++	if self.map3d_spawners and self.map3d_spawners.multis then =
+
++		self.map3d_spawners.multis:AddMulti(serial, multi)
++	end
++	=
+
++	--[[
+ 	-- only run one build process per multi
+ 	if multi.mbBuildRunning then return end
+ 	multi.mbBuildRunning =3D true
+@@ -324,16 +339,23 @@
+ 		-- terminate?
+ 		if multi.mbCancelBuildAndDestroy then multi.staticGeometry:Destroy() ret=
+urn end
+ 	end, nil, 1)
++	]]
+ end
+ =
+
+ -- destroys the multi gfx static geometry
+ function Renderer3D:DestroyMultiGraphic	(multi)
++	if self.map3d_spawners and self.map3d_spawners.multis then =
+
++		self.map3d_spawners.multis:RemoveMulti(multi)
++	end
++
++	--[[
+ 	if multi.mbBuildRunning then
+ 		multi.mbCancelBuildAndDestroy =3D true
+ 	elseif multi.staticGeometry then =
+
+ 		multi.staticGeometry:Destroy() =
+
+ 		multi.staticGeometry =3D nil
+ 	end
++	]]
+ end
+ =
+
+ =
+
+@@ -415,7 +437,7 @@
+ 			item.gfx =3D nil
+ 			gMultis[multi] =3D true
+ 			=
+
+-			Renderer3D:CreateMultiGraphic(multi)
++			Renderer3D:CreateMultiGraphic(item.serial, multi)
+ 			=
+
+ 		-- Clientside Multi Check
+ 		elseif gMultiLoader then
+@@ -457,7 +479,7 @@
+ 			item.gfx =3D nil
+ 			gMultis[multi] =3D true
+ =
+
+-			Renderer3D:CreateMultiGraphic(multi)
++			Renderer3D:CreateMultiGraphic(item.serial, multi)
+ 		else =
+
+ 			printdebug(&quot;missing&quot;,sprintf(&quot;Renderer3D:CreateDynamicGfx: failed loadi=
+ng mesh for dynamic (multi): artid=3D%i z_typename=3D%s\n&quot;,item.artid or -1=
+,GetStaticTileTypeName(item.artid) or &quot;&quot;))
+ 		end
+@@ -703,9 +725,9 @@
+ 	-- remove multi entry
+ 	if (dynamic.multi) then
+ 		printdebug(&quot;multi&quot;, sprintf(&quot;Multi destroyed with ARTID&quot;,dynamic.artid,v=
+ardump(dynamic)) )
+-		Renderer3D:RebuildChunkAtUOPos(dynamic.xloc,dynamic.yloc)
++		--~ Renderer3D:RebuildChunkAtUOPos(dynamic.xloc,dynamic.yloc)
+ 		gMultis[dynamic.multi] =3D nil =
+
+-		Renderer3D:DestroyMultiGraphic(dynamic.multi)
++		Renderer3D:DestroyMultiGraphic(dynamic.serial)
+ 	end
+ 	=
+
+ 	-- remove lightsource from dynamic
+
+Modified: trunk/lua/lib.3d.map.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.map.lua (original)
++++ trunk/lua/lib.3d.map.lua Thu Aug 14 15:54:03 2008
+@@ -1,617 +1,83 @@
+-Renderer3D.gNextMapUpdate =3D 0
+-Renderer3D.gMapChunks =3D {}
++-- handles maploading and similar
++
++Renderer3D.pMapBlocks =3D {}
++Renderer3D.iNextMapStep =3D 0
++
+ Renderer3D.giMapOriginX =3D 0
+ Renderer3D.giMapOriginY =3D 0
+-Renderer3D.ROBMAP_CHUNK_SIZE =3D 2  -- size of one chunk, should be 2^n
+-Renderer3D.ROBMAP_RECENTER_DIST =3D 200   -- if cur position is off by mor=
+e than ROBMAP_RECENTER_DIST blocks, clear cache and recenter
++Renderer3D.ROBMAP_CHUNK_SIZE =3D 2
+ Renderer3D.giBlendOutPlayerHeight =3D 18	--eriminator: es galt grob, alles=
+ was 18z =C3=AF=C2=BF=C2=BDberm char war wurd ausgebledent
+ Renderer3D.giBlendOutCurZ =3D nil
+-Renderer3D.gbBlendOutTerrainVisible =3D true
+-Renderer3D.gMapUpdateInterval =3D 500 -- update the map not every frame, d=
+ecrease for fly-videos
+-Renderer3D.gMaxMapBlocksLoadedPerUpdate =3D 1 -- increase for fly-videos
+-Renderer3D.gLowDetailTerrainNeedsRebuild =3D true
+-
+--- the whole map cache consists of (ROBMAP_RECENTER_DIST*2)*(ROBMAP_RECENT=
+ER_DIST*2)  chunks
+--- every chunk consists of ROBMAP_CHUNK_SIZE*ROBMAP_CHUNK_SIZE blocks
+--- every block is equivalent to one MapBlock3D
+-
+-function Renderer3D:ZToLayer(zloc)
+-	--~ return math.floor(zloc / Renderer3D.giBlendOutPlayerHeight)
+-	return math.floor(zloc)
+-end
+-
+-function Renderer3D:LayerToZ(zlayer)
+-	--~ return zlayer * Renderer3D.giBlendOutPlayerHeight
+-	return zlayer
+-end
+-
+-function Renderer3D:UpdateMap ()
+-	if (not self.gbActive) then return end
+-	=
+
+-	if (gMyTicks &gt; self.gNextMapUpdate) then
+-		-- get cam position + a little distance ahead of it (focal point?)
+-		local camx,camy,camz =3D self:GetLookAheadCamPos()
+-		local iCamOverBlockX =3D self.giMapOriginX*self.ROBMAP_CHUNK_SIZE + camx=
+/8
+-		local iCamOverBlockY =3D self.giMapOriginY*self.ROBMAP_CHUNK_SIZE + camy=
+/8
+-
+-		-- recenter world if too far away, to avoid float-rounding-errors
+-		local fCamOriginDist =3D math.sqrt(camx*camx + camy*camy)
+-		if (false and fCamOriginDist / 8 &gt; self.ROBMAP_RECENTER_DIST) then -- de=
+activated for now, so coordinates are consistent
+-			printf(&quot;RecenterMap (%d,%d)\n&quot;,iCamOverBlockX,iCamOverBlockY)
+-
+-			-- calc new origin
+-			local ox =3D math.floor(iCamOverBlockX / self.ROBMAP_CHUNK_SIZE)
+-			local oy =3D math.floor(iCamOverBlockY / self.ROBMAP_CHUNK_SIZE)
+-			local difx =3D (self.giMapOriginX - ox) * 8 * self.ROBMAP_CHUNK_SIZE
+-			local dify =3D (self.giMapOriginY - oy) * 8 * self.ROBMAP_CHUNK_SIZE =
+
+-			self.giMapOriginX =3D ox
+-			self.giMapOriginY =3D oy
+-
+-			-- update cam,map,dynamics,mobiles,...
+-			GetMainCam():Move(difx,dify,0)
+-			self:ClearMapCache()
+-			gCurrentRenderer:CheckForUpdateMapOrigin()
+-			NotifyListener(&quot;Hook_RecenterWorld&quot;,difx,dify)
+-		end
+-
+-		-- mapblocks are loaded and unloaded here  (also iCamOverBlockX will alw=
+ays be negative  while over the map)
+-		self:UpdateMapCache(-iCamOverBlockX,iCamOverBlockY, gSightRange)
+-
+-		self.gNextMapUpdate =3D Client_GetTicks() + self.gMapUpdateInterval -- m=
+ake sure the game runs for at least 100msec AFTER this loading without bein=
+g interrupted by loading
+-	end
+-	=
+
+-	if gFastBatchDynamics then
+-		-- need to reburn dynamics?
+-		gCurrentRenderer:CheckForFastBatchDynamicsUpdate()
+-	end
+-end
+-
+-
+--- param is the area where normal mapblocks are loaded
+-function Renderer3D:RebuildLowDetailTerrain (minx,maxx,miny,maxy)
+-
+-	-- currently doesn't work, temp. disabled (no textures) !!!!!!!!!!!!!!!
+-	if (true) then return end
+-
+-	if (not gEnableLowDetailTerrainFarSight) then return end
+-	if (not Renderer3D.gLowDetailTerrainNeedsRebuild) then return end
+-	self.gLowDetailTerrainNeedsRebuild =3D false
+-	--~ if (gLowDetailTerrain) then gLowDetailTerrain:Destroy() gLowDetailTer=
+rain =3D nil end
+-	if (not gGroundBlockLoader) then return end
+-	--~ if (gKeyPressed[key_lshift]) then return end
+-	--~ if (true) then return end
+-	=
+
+-	-- the border around the input area in which lowlevel chunks should be
+-	local b =3D gEnableLowDetailTerrainFarSightRangeAdd
+-	=
+
+-	-- count chunks that need lowlevel display (for allocating renderable)
+-	local lowlist =3D {}
+-	for y=3Dminy-b,maxy+b do
+-	for x=3Dminx-b,maxx+b do
+-		if (not self:IsMapChunkLoaded(x,y)) then table.insert(lowlist,{x=3Dx,y=
+=3Dy}) end
+-	end
+-	end
+-	=
+
+-	-- allocate renderable from lowcount
+-	local bGfxInit =3D false
+-	if (not gLowDetailTerrain) then
+-		gLowDetailTerrain =3D CreateRootGfx3D()
+-		gLowDetailTerrain:SetSimpleRenderable()
+-		bGfxInit =3D true
+-	end
+-	local gfx =3D gLowDetailTerrain
+-	local cs =3D self.ROBMAP_CHUNK_SIZE
+-	local polycount =3D (2*2) * (cs * cs) * table.getn(lowlist) -- each lowli=
+st entry is one chunk, each chunk is cx*cx mapblocks, we use 2*2 polys for =
+each
+-	local vc =3D 4 * polycount
+-	local ic =3D 6 * polycount
+-	gfx:RenderableBegin(vc,ic,false,false,OT_TRIANGLE_LIST)
+-	=
+
+-	-- generate geometry
+-	local vertexnum =3D 0
+-	local bx0,by0
+-	local x,y
+-	local tiletype00,z00
+-	local tiletype01,z01
+-	local tiletype10,z10
+-	local tiletype11,z11
+-	local e =3D 4/512
+-	local u1,v1 =3D 0,0
+-
+-	for k,low in pairs(lowlist) do
+-		bx0 =3D low.x * cs
+-		by0 =3D low.y * cs
+-		for bx =3D bx0,bx0 + cs-1 do -- iBlockUO_X
+-		for by =3D by0,by0 + cs-1 do
+-			for px=3D0,1 do
+-			for py=3D0,1 do
+-				x =3D 8*bx+4*px
+-				y =3D 8*by+4*py
+-				tiletype00,z00 =3D GetGroundAtAbsPos(x+0,y+0)
+-				tiletype01,z01 =3D GetGroundAtAbsPos(x+0,y+4)
+-				tiletype10,z10 =3D GetGroundAtAbsPos(x+4,y+0)
+-				tiletype11,z11 =3D GetGroundAtAbsPos(x+4,y+4)
+-				=
+
+-				local u0,v0,w,h =3D MultiTexGetTexCoordsForTiletype(tiletype00)
+-
+-				if (not u0) then u0,v0,w,h =3D e,e,1/16-e,1/16-e end
+-				u1,v1 =3D u0+w*4,v0+h*4
+-				gfx:RenderableVertex(-x  ,y  ,(z00 or 0)*0.1, 0,0,1, u0,v0)
+-				gfx:RenderableVertex(-x-4,y  ,(z10 or 0)*0.1, 0,0,1, u1,v0)
+-				gfx:RenderableVertex(-x  ,y+4,(z01 or 0)*0.1, 0,0,1, u0,v1)
+-				gfx:RenderableVertex(-x-4,y+4,(z11 or 0)*0.1, 0,0,1, u1,v1)
+-				=
+
+-				gfx:RenderableIndex3(vertexnum+0, vertexnum+2, vertexnum+1)
+-				gfx:RenderableIndex3(vertexnum+1, vertexnum+2, vertexnum+3)
+-				=
+
+-				vertexnum =3D vertexnum + 4
+-			end
+-			end
+-		end
+-		end
+-	end
+-	=
+
+-	-- finish renderable
+-	gfx:RenderableEnd()
+-	gfx:SetMaterial(&quot;terrain_multitex_far&quot;)
+-	gfx:SetCastShadows(false)
+-	local x,y,z =3D self:UOPosToLocal(0,0,0)
+-	gfx:SetPosition(x, y, z)
+-end
+-
+-
+--- these coordinates are in absolute map-blocks, all others are in chunks
+-function Renderer3D:UpdateMapCache (iMidX,iMidY,iRad)
+-		local minx =3D math.floor((iMidX-iRad) / self.ROBMAP_CHUNK_SIZE)
+-		local miny =3D math.floor((iMidY-iRad) / self.ROBMAP_CHUNK_SIZE)
+-		local maxx =3D math.floor((iMidX+iRad) / self.ROBMAP_CHUNK_SIZE)
+-		local maxy =3D math.floor((iMidY+iRad) / self.ROBMAP_CHUNK_SIZE)
+-		=
+
+-		-- transform coordinates from map-blocks to chunks
+-		iMidX =3D math.floor(iMidX / self.ROBMAP_CHUNK_SIZE)
+-		iMidY =3D math.floor(iMidY / self.ROBMAP_CHUNK_SIZE)
+-		=
+
+-		-- release invisible chunks
+-		for y,row in pairs(self.gMapChunks) do
+-			for x,chunk in pairs(row) do
+-				if (chunk.miX &lt; minx or chunk.miY &lt; miny or chunk.miX &gt; maxx or chunk.=
+miY &gt; maxy) then
+-					self:DestroyMapChunk(x,y,chunk)
+-				end
+-			end
+-		end
+-
+-		local rebuilds_per_run =3D 1
+-		-- rebuild chunks if needed
+-		for y,row in pairs(self.gMapChunks) do
+-			for x,chunk in pairs(row) do
+-				if (chunk.mbRebuild) and rebuilds_per_run &gt; 0 then
+-					self:DestroyMapChunk(x,y,chunk)
+-					self:LoadMapChunk(x,y)
+-					rebuilds_per_run =3D rebuilds_per_run - 1
+-				end
+-			end
+-		end
+-
+-		-- load visible chunks into cache if not already there
+-		local iLoadedCount =3D 0 -- make sure only a limited number of blocks is=
+ created during update, otherwise the game would hang
+-		for y=3Dminy,maxy do
+-			for x=3Dminx,maxx do
+-				if (iLoadedCount &lt; self.gMaxMapBlocksLoadedPerUpdate) then
+-					if (self:LoadMapChunk(x,y)) then
+-						iLoadedCount =3D iLoadedCount + 1
+-					end
+-				end
+-			end
+-		end
+-		=
+
+-		self:RebuildLowDetailTerrain(minx,maxx,miny,maxy)
+-end
+-
+--- rebuild chunk at uo pos
+-function Renderer3D:RebuildChunkAtUOPos (x,y)
+-	local chunkx =3D math.floor(x / self.ROBMAP_CHUNK_SIZE / 8)
+-	local chunky =3D math.floor(y / self.ROBMAP_CHUNK_SIZE / 8)
+-	=
+
+-	--print(&quot;DEBUG&quot;,&quot;rebuild&quot;,x,y,chunkx,chunky,self.ROBMAP_CHUNK_SIZE)
+-	=
+
+-	for y,row in pairs(self.gMapChunks) do
+-		for x,chunk in pairs(row) do
+-			if (chunk.miX =3D=3D chunkx and chunk.miY =3D=3D chunky)  then
+-				chunk.mbRebuild =3D true
+-			end
+-		end
+-	end
+-end
+-
+--- coords in chunks
+-function Renderer3D:LoadMapChunk (x,y)
+-	local bDidLoad =3D false
+-	if (not self.gMapChunks[y]) then self.gMapChunks[y] =3D {} end
+-	if ((not self.gMapChunks[y][x]) or self.gMapChunks[y][x].bIsDead) then
+-		--~ print(&quot;LoadMapChunk &quot;..x..&quot;,&quot;..y)
+-		self.gMapChunks[y][x] =3D self:CreateMapChunk(x,y)
+-		bDidLoad =3D true
+-	end
+-	return bDidLoad
+-end
+-
+-function Renderer3D:IsMapChunkLoaded (x,y)
+-	if (not self.gMapChunks[y]) then return false end
+-	local chunk =3D self.gMapChunks[y][x]
+-	if ((not chunk) or chunk.bIsDead) then return false end
+-	return true
+-end
+-
+--- rebuilds the map. this is slow!!!! so dont do this during normal gamepl=
+ay
+-function Renderer3D:RebuildMap ()
+-	-- Renderer3D:ClearMapCache()
+-	-- Renderer3D:UpdateMap()
+-
+-	for y,row in pairs(self.gMapChunks) do
+-		for x,chunk in pairs(row) do
+-			chunk.mbRebuild =3D true
+-		end
+-	end
+-end
+-
+-function Renderer3D:ClearMapCache ()
+-	--print(&quot;ClearMapCache&quot;)
+-	local y,row,x,chunk
+-	for y,row in pairs(self.gMapChunks) do
+-		for x,chunk in pairs(row) do
+-			self:DestroyMapChunk(x,y,chunk)
+-	end end
+-	self.gMapChunks =3D {}
+-end
+-
+--- handles the entity creation for CreateMapChunk and adds it to chunk.lSt=
+aticEntities
+-function Renderer3D:CreateMapChunkEntity (chunk,iTileTypeID,iXLoc,iYLoc,iZ=
+Loc,iHue,visible)
+-	visible =3D visible or true
+-	local entity =3D {}
+-
+-	-- FILTER: correction
+-	entity.xadd,entity.yadd,entity.zadd =3D FilterPositionXYZ(iTileTypeID)
+-
+-	entity.xloc =3D iXLoc + entity.xadd
+-	entity.yloc =3D iYLoc + entity.yadd
+-	entity.zloc =3D iZLoc + entity.zadd -- in tilecoords from uo
+-
+-	entity.x,entity.y,entity.z =3D self:UOPosToLocal(entity.xloc,entity.yloc,=
+iZLoc * 0.1 + entity.zadd)
+-	=
+
+-	entity.iBlockX =3D math.floor(entity.xloc / 8)
+-	entity.iBlockY =3D math.floor(entity.yloc / 8)
+-
+-	entity.iTileTypeID =3D iTileTypeID
+-	entity.iHue =3D iHue
+-	=
+
+-	local staticwatertile =3D true -- true if not water ?
+-	-- add level
+-	if gEnableMultiTexTerrain and (not gDisableMultiTexWater) and FilterIsSta=
+ticWater(iTileTypeID) then
+-		local z =3D entity.zloc
+-		local bx =3D chunk.miX * self.ROBMAP_CHUNK_SIZE * 8
+-		local by =3D chunk.miY * self.ROBMAP_CHUNK_SIZE * 8
+-		local tx,ty =3D entity.xloc - bx, entity.yloc - by
+-		=
+
+-		chunk:SetWaterZ(tx,ty,z)
+-		=
+
+-		staticwatertile =3D not gEnableMultiTexTerrain		--on multitexturing filt=
+er static water
+-	end
+-
+-	local meshname =3D (not gForceFallBackBillboards_Statics) and staticwater=
+tile and GetMeshName(iTileTypeID)
+-
+-	-- create Mesh
+-	if (meshname and meshname ~=3D false) then
+-		local qw,qx,qy,qz =3D GetStaticMeshOrientation(iTileTypeID)
+-		local sx,sy,sz =3D -1,1,1 -- scale
+-		entity.qw =3D qw
+-		entity.qx =3D qx
+-		entity.qy =3D qy
+-		entity.qz =3D qz
+-		entity.sx =3D sx
+-		entity.sy =3D sy
+-		entity.sz =3D sz
+-
+-		if (gFastBatchStatics) then
+-			local r,g,b,a =3D 1,1,1,1
+-			if (gHueLoader and entity.iHue &gt; 0) then
+-				r,g,b =3D gHueLoader:GetColor(entity.iHue - 1,31) -- get first color
+-			end
+-
+-			entity.meshbuffer =3D GetMeshBuffer(meshname) -- for mousepicking
+-			local orderval =3D entity.zloc -- used for blendout later (fastbatch fe=
+ature)
+-			if visible then chunk.fastbatch:FastBatch_AddMeshBuffer(entity.meshbuff=
+er, orderval ,entity.x,entity.y,entity.z, qw,qx,qy,qz, sx,sy,sz, r,g,b,a) e=
+nd
+-		else
+-			entity.staticentity =3D CreateMeshEntity(meshname)
+-			local myLayer =3D Renderer3D:ZToLayer(entity.zloc)
+-			local myLayerStaticGeom =3D chunk.pStaticGeometryLayers[myLayer]
+-			if (not myLayerStaticGeom) then
+-				myLayerStaticGeom =3D CreateStaticGeometry()
+-				chunk.pStaticGeometryLayers[myLayer] =3D myLayerStaticGeom
+-			end
+-			if visible then myLayerStaticGeom:AddEntity(entity.staticentity,entity.=
+x,entity.y,entity.z,qw,qx,qy,qz,sx,sy,sz) end
+-		end
+-
+-		table.insert(chunk.lStaticEntities,entity)
+-
+-	-- if no *.mesh is available, a fallback billboard with original uo_art i=
+s generated
+-	-- What about caching here ??
+-	else
+-		local iTranslatedTileTypeID =3D SeasonalStaticTranslation(iTileTypeID, g=
+SeasonSetting)
+-		if (
+-			(gEnableFallBackBillboards_Statics or =
+
+-			(gEnableFallBackGroundPlates and IsGroundPlate(iTranslatedTileTypeID))
+-			) and not IsArtBillboardFallBackSkipped(iTranslatedTileTypeID)) =
+
+-		then
+-			entity.x,entity.y,entity.z =3D self:UOPosToLocal(entity.xloc+0.5,entity=
+.yloc+0.5,entity.zloc*0.1 + 0.5)
+-			entity.gfx =3D CreateRootGfx3D()
+-			entity.gfx:SetPosition(entity.x,entity.y,entity.z)
+-			entity.gfx.billboard =3D entity.gfx:CreateChild()
+-			-- we have to add 0x4000 for fallbacks
+-			self:CreateArtBillBoard(entity.gfx.billboard,iTranslatedTileTypeID + 0x=
+4000,entity.iHue)
+-			table.insert(chunk.lStaticEntities,entity)
+-			printdebug(&quot;missing&quot;,sprintf(&quot;Fallback: Static Billboard created : iTra=
+nslatedTileTypeID=3D%i\n&quot;, iTranslatedTileTypeID))
+-		end
+-	end
+-
+-	-- generate Cadune Trees
+-	if gUseCaduneTree then
+-		Renderer3D:GenerateCaduneTree(entity)
+-	end
+-	=
+
+-	-- adds a lightsource to Mesh-Tile
+-	-- note! lights don't cast shadows
+-	if (gLightsources) then
+-		local arrtiletype =3D GetStaticTileType(iTileTypeID)
+-		if( arrtiletype and TestBit(arrtiletype.miFlags or 0,kTileDataFlag_Light=
+Source) ) then
+-			entity.lightname =3D Renderer3D:AddPointLight(entity.x-0.5,entity.y+0.5=
+,entity.z+1+arrtiletype.miHeight, 0.3,0.3,0.0, 0.3,0.3,0.0, 5.0,0.1,0.1,0.0)
+-		end
+-	end
+-
+-	self:UpdateStaticVisibility(entity)
+-
+-	-- adds particle Effect to Mesh-Tile
+-	entity.particle =3D Renderer3D:Hook_ItemAddParticle(iTileTypeID, entity.x=
+,entity.y,entity.z)
+-end
+-
+--- coords in chunks
+-function Renderer3D:CreateMapChunk (x,y)
+-	if ((x &lt; 0) or (y &lt; 0)) then return end	-- we might also check the heighs=
+t value !?
+-	=
+
+-	self.gLowDetailTerrainNeedsRebuild =3D true
+-		=
+
+-	local chunk =3D {}
+-	chunk.bIsDead =3D false
+-	chunk.miX =3D x
+-	chunk.miY =3D y
+-	chunk.pStaticGeometryLayers =3D {}
+-
+-	-- water stats
+-	if gEnableMultiTexTerrain and (not gDisableMultiTexWater) then
+-		chunk.mWaterZMap =3D {}		-- local z height [x..&quot;_&quot;..y]
+-		chunk.SetWaterZWithoutBorder =3D function(self, tx, ty, z)
+-			if (tx &gt;=3D 0 and ty &gt;=3D 0 and tx &lt; Renderer3D.ROBMAP_CHUNK_SIZE * 8 a=
+nd ty &lt; Renderer3D.ROBMAP_CHUNK_SIZE * 8) then
+-				Array2DSet(self.mWaterZMap, tx,ty, math.max(Array2DGet(self.mWaterZMap=
+, tx,ty) or z, z))
+-				-- self.mWaterZMap[tx..&quot;_&quot;..ty] =3D math.max(self.mWaterZMap[tx..&quot;_&quot;..=
+ty] or z, z)
+-			end
+-		end
+-		chunk.SetWaterZ =3D function(self, tx, ty, z)
+-			self:SetWaterZWithoutBorder(tx,ty,z)
+-			-- set border of 1 tile
+-			-- TODO this is slow!!!
+-			--[[
+-			self:SetWaterZWithoutBorder(tx+1,ty+0,z)
+-			self:SetWaterZWithoutBorder(tx-1,ty+0,z)
+-			self:SetWaterZWithoutBorder(tx+0,ty+1,z)
+-			self:SetWaterZWithoutBorder(tx+0,ty-1,z)
+-			=
+
+-			self:SetWaterZWithoutBorder(tx+1,ty+1,z)
+-			self:SetWaterZWithoutBorder(tx-1,ty-1,z)
+-			self:SetWaterZWithoutBorder(tx+1,ty-1,z)
+-			self:SetWaterZWithoutBorder(tx-1,ty+1,z)
+-			]]--
+-		end
+-	end
+-	=
+
+-	-- start fastbatch
+-	if (gFastBatchStatics) then
+-		chunk.fastbatch =3D CreateRootGfx3D()
+-		chunk.fastbatch:SetFastBatch()
+-	end
+-
+-	local iBlockUO_X =3D x * self.ROBMAP_CHUNK_SIZE
+-	local iBlockUO_Y =3D y * self.ROBMAP_CHUNK_SIZE
+-	=
+
+-	-- water analysis
+-	if gEnableMultiTexTerrain and (not gDisableMultiTexWater) then
+-		if (gGroundBlockLoader) then
+-			local tiletype,z
+-			local tx,ty
+-			for bx =3D 0,self.ROBMAP_CHUNK_SIZE-1 do
+-				for by =3D 0,self.ROBMAP_CHUNK_SIZE-1 do
+-					for lx =3D 0,7 do
+-						for ly =3D 0,7 do
+-							tiletype,z =3D gGroundBlockLoader:GetTile(iBlockUO_X+bx,iBlockUO_Y+=
+by,lx,ly)
+-							tx,ty =3D lx + (bx*8), ly + (by*8)
+-							=
+
+-							if tiletype and FilterIsMapWater(tiletype) then
+-								chunk:SetWaterZ(tx,ty,z)
+-							end
+-						end
+-					end
+-				end
+-			end
+-		end
+-	end
+-
+-
+-	-- GROUNDMAP
+-	if (gGroundBlockLoader) then -- probably needs gTexMapLoader
+-		if (gEnableMultiTexTerrain) then
+-			chunk.terrain_multitex_gfx =3D MakeMultiTexTerrainGfx(iBlockUO_X,iBlock=
+UO_Y) =
+
+-		else -- old terrain code
+-			--local meshname =3D BuildTerrainEntity_Simple(gGroundBlockLoader,iBloc=
+kUO_X,iBlockUO_Y,self.ROBMAP_CHUNK_SIZE,self.ROBMAP_CHUNK_SIZE,false)
+-			local meshname =3D BuildTerrainEntity_Shaded(gGroundBlockLoader,iBlockU=
+O_X,iBlockUO_Y,self.ROBMAP_CHUNK_SIZE,self.ROBMAP_CHUNK_SIZE)
+-			if (meshname) then
+-				chunk.sTerrainMeshName =3D meshname
+-				local x,y,z =3D self:UOPosToLocal(iBlockUO_X*8,iBlockUO_Y*8,0)
+-				if (gbUseStaticGeometryForTerrain) then
+-					-- use static geometry
+-					chunk.pTerrainEntity =3D CreateMeshEntity(meshname)	=
+
+-					chunk.pStaticGeometryTerrain =3D CreateStaticGeometry()
+-					chunk.pStaticGeometryTerrain:AddEntity(chunk.pTerrainEntity,x,y,0)
+-					chunk.pStaticGeometryTerrain:Build()
+-					chunk.pStaticGeometryTerrain:SetVisible(self.gbBlendOutTerrainVisible)
+-				else
+-					-- use scenenode
+-					chunk.terraingfx =3D CreateRootGfx3D()
+-					chunk.terraingfx:SetMesh(meshname)
+-					chunk.terraingfx:SetPosition(x,y,0)
+-					chunk.terraingfx:SetCastShadows(gTerrainCastShadows)
+-					chunk.terraingfx:SetVisible(self.gbBlendOutTerrainVisible)
+-				end
+-			end
+-		end
+-	end
+-	=
+
+-	chunk.lStaticEntities =3D {}
+-	=
+
+-	-- STATICS
+-	if (gStaticBlockLoader) then
+-		local iTileTypeID,iX,iY,iZ,iHue
+-		local iStaticCount
+-		local xloc,yloc
+-
+-		for x =3D 0,self.ROBMAP_CHUNK_SIZE-1 do
+-			for y =3D 0,self.ROBMAP_CHUNK_SIZE-1 do
+-				gStaticBlockLoader:Load(iBlockUO_X+x,iBlockUO_Y+y)
+-				iStaticCount =3D gStaticBlockLoader:Count() -- operates on the block t=
+hat was last loaded using :Load()
+-
+-				for i =3D 0,iStaticCount-1 do
+-					iTileTypeID,iX,iY,iZ,iHue =3D gStaticBlockLoader:GetStatic(i) -- oper=
+ates on the block that was last loaded using :Load()
+-					=
+
+-					xloc =3D (iBlockUO_X+x)*8 + iX
+-					yloc =3D (iBlockUO_Y+y)*8 + iY
+-
+-					self:CreateMapChunkEntity(chunk,iTileTypeID,xloc,yloc,iZ,iHue)
+-				end =
+
+-		end end
+-	end
+-	=
+
+-	--[[
+-	-- MULTIS (add multis as statics)
+-	if (gMultis) then
+-		local iTileTypeID,iX,iY,iZ,iHue
+-		local UO_X,UO_Y
+-		local multi
+-		=
+
+-		for k,v in pairs(gMultis) do
+-			multi =3D k
+-			=
+
+-			if multi.lparts then
+-				for k,v in pairs(multi.lparts) do
+-					UO_X =3D x * self.ROBMAP_CHUNK_SIZE * 8
+-					UO_Y =3D y * self.ROBMAP_CHUNK_SIZE * 8
+-
+-					iTileTypeID,iX,iY,iZ,iHue =3D unpack(v)
+-
+-					if	iX &gt;=3D UO_X and iX &lt; UO_X+self.ROBMAP_CHUNK_SIZE*8 and =
+
+-						iY &gt;=3D UO_Y and iY &lt; UO_Y+self.ROBMAP_CHUNK_SIZE*8 then
+-						=
+
+-						self:CreateMapChunkEntity(chunk,iTileTypeID,iX,iY,iZ,iHue,false)
+-						=
+
+-						print(&quot;MULTI PART&quot;)
+-					end
+-				end
+-			end
+-		end
+-	end
+-	]]
+-
+-	-- TODO : fish in water ? other gimiks ?
+-
+-	if (gFastBatchStatics) then
+-		chunk.fastbatch:SetCastShadows(gStaticsCastShadows)
+-		chunk.fastbatch:FastBatch_Build()
+-		chunk.fastbatch:FastBatch_SetDisplayRange(self:BlendoutGetVisibleRange())
+-	else
+-		for layerZ,layerStaticGeom in pairs(chunk.pStaticGeometryLayers) do =
+
+-			layerStaticGeom:SetCastShadows(gStaticsCastShadows)
+-			layerStaticGeom:SetVisible(self:IsZLayerVisible(Renderer3D:LayerToZ(lay=
+erZ)))
+-			layerStaticGeom:Build()
+-		end
+-	end
+-
+-	-- WATER
+-	if gEnableMultiTexTerrain and (not gDisableMultiTexWater) then
+-		local count =3D Array2DGetElementCount(chunk.mWaterZMap) -- might be slow
+-		=
+
+-		local tiles =3D self.ROBMAP_CHUNK_SIZE * 8
+-
+-		if (gEnableMultiTexTerrain and count and count &gt; 0) then
+-			-- print(&quot;DEBUG&quot;,chunk,&quot;mostz&quot;,mostz)
+-			=
+
+-			-- create water
+-			local gfx =3D CreateRootGfx3D()
+-			local vc =3D 4 * count
+-			local ic =3D 6 * count
+-			=
+
+-			gfx:SetSimpleRenderable()
+-			=
+
+-			gfx:RenderableBegin(vc,ic,false,false,OT_TRIANGLE_LIST)
+-			=
+
+-			-- print(&quot;DEBUG&quot;,&quot;WATERSTART&quot;,count,vc,ic)
+-			local index =3D 0
+-			local x,y,z
+-
+-			-- k,v in pairs(chunk.mWaterZMap) do
+-			Array2DForAll(chunk.mWaterZMap, function(z, x,y)
+-				--x,y =3D unpack(strsplit(&quot;_&quot;,k))
+-				z =3D z * 0.1
+-
+-				-- print(&quot;DEBUG&quot;,&quot;water tile&quot;,x,y,z,k,v)
+-
+-				gfx:RenderableVertex(-x,y,z, 0,0,1, x/tiles, y/tiles)
+-				gfx:RenderableVertex(-x-1,y,z, 0,0,1, (x+1)/tiles, y/tiles)
+-				gfx:RenderableVertex(-x,y+1,z, 0,0,1, x/tiles, (y+1)/tiles)
+-				gfx:RenderableVertex(-x-1,y+1,z, 0,0,1, (x+1)/tiles, (y+1)/tiles)
+-				=
+
+-				gfx:RenderableIndex3(index+0, index+2, index+1)
+-				gfx:RenderableIndex3(index+1, index+2, index+3)
+-				=
+
+-				index =3D index + 4
+-			end)
+-
+-			gfx:RenderableEnd()
+-
+-			gfx:SetMaterial(&quot;water&quot;)
+-			gfx:SetCastShadows(false)
+-			=
+
+-			x,y,z =3D self:UOPosToLocal(chunk.miX * self.ROBMAP_CHUNK_SIZE * 8, chu=
+nk.miY * self.ROBMAP_CHUNK_SIZE * 8, 0.1)
+-
+-			gfx:SetPosition(x, y, z)
+-			=
+
+-			chunk.mWaterGfx =3D gfx
+-		end
+-	end
+-
+-	return chunk
+-end
+-
+--- NOTE: layerZ is a uo zloc not the layer index in pStaticGeometryLayers
+-function Renderer3D:IsZLayerVisible (layerZ)
+-	return (not self.giBlendOutCurZ) or layerZ &lt;=3D self.giBlendOutCurZ
+-end
+-
+-function Renderer3D:UpdateStaticVisibility	(entity) =
+
+-	if (entity and entity.gfx and entity.gfx.billboard) then
+-		entity.gfx.billboard:SetVisible(self:IsZLayerVisible(entity.zloc))
+-	end
+-end
+-
+--- returns fMinZ,fMaxZ
+-function Renderer3D:BlendoutGetVisibleRange ()
+-	local fMinZ =3D -1000
+-	local fMaxZ =3D (self.giBlendOutCurZ or 1000) -- inclusive
+-	return fMinZ,fMaxZ
++
++Renderer3D.kGoodFPS =3D 25
++Renderer3D.kGoodTicksBetweenFrames =3D 1000 / Renderer3D.kGoodFPS -- 1000=
+=3D1sec
++Renderer3D.kMapLoadAllowedTicksPerFrame =3D Renderer3D.kGoodTicksBetweenFr=
+ames =
+
++Renderer3D.kMapLoadStaticLoadAllowedTicks =3D Renderer3D.kGoodTicksBetween=
+Frames =
+
++--~ local bWeHaveSpareTime =3D gSecondsSinceLastFrame*1000 &lt; Renderer3D.kG=
+oodTicksBetweenFrames
++
++kMapLoad_3D_Terrain_Rough		=3D {prio=3D0}
++kMapLoad_3D_Water_Rough			=3D {prio=3D1} -- similar to rough terrain, just=
+ one poly per block
++kMapLoad_3D_Statics_Rough		=3D {prio=3D2}
++kMapLoad_3D_Multis_Rough		=3D {prio=3D3}
++kMapLoad_3D_Terrain_Detail		=3D {prio=3D4}
++kMapLoad_3D_Water_Detail		=3D {prio=3D5}
++kMapLoad_3D_Statics_Detail		=3D {prio=3D6}
++kMapLoad_3D_Multis_Detail		=3D {prio=3D7}
++kMapLoad_3D_Dynamics_AddRemove	=3D {prio=3D8}
++kMapLoad_3D_Dynamics_Batch		=3D {prio=3D5}
++
++dofile(libpath .. &quot;lib.mapblock.scheduler.lua&quot;)
++dofile(libpath .. &quot;lib.mapblock.spawner.lua&quot;)
++dofile(libpath .. &quot;lib.mapblock.base.lua&quot;)
++dofile(libpath .. &quot;lib.mapblock.grid.lua&quot;)
++dofile(libpath .. &quot;lib.mapblock.aabb.lua&quot;)
++dofile(libpath .. &quot;lib.mapblock.3d.statics.lua&quot;)
++dofile(libpath .. &quot;lib.mapblock.3d.terrain.lua&quot;)
++dofile(libpath .. &quot;lib.mapblock.3d.dynamics.lua&quot;)
++dofile(libpath .. &quot;lib.mapblock.3d.multis.lua&quot;)
++--~ dofile(libpath .. &quot;lib.mapblock.3d.water.lua&quot;)
++cMapBlock_3D_Water		=3D CreateClass(cMapBlockGrid)
++
++cMapBlock_3D_Terrain.kLOD_Detail		=3D kMapLoad_3D_Terrain_Detail
++cMapBlock_3D_Terrain.kLOD_Rough			=3D kMapLoad_3D_Terrain_Rough
++cMapBlock_3D_Statics.kLOD_Detail		=3D kMapLoad_3D_Statics_Detail
++cMapBlock_3D_Statics.kLOD_Rough			=3D kMapLoad_3D_Statics_Rough
++cMapBlock_3D_Multis.kLOD_Detail			=3D kMapLoad_3D_Multis_Detail
++cMapBlock_3D_Multis.kLOD_Rough			=3D kMapLoad_3D_Multis_Rough
++
++function Renderer3D:MapStep		()
++	if (not self.bMapLoadSystemInitialized) then
++		self.bMapLoadSystemInitialized =3D true
++		local scheduler =3D CreateScheduler()
++		self.map3d_scheduler =3D scheduler
++		self.map3d_spawners =3D {}
++		self.map3d_spawners.terrain		=3D CreateMapBlockSpawner(cMapBlock_3D_Terr=
+ain,scheduler)
++		self.map3d_spawners.statics		=3D CreateMapBlockSpawner(cMapBlock_3D_Stat=
+ics,scheduler)
++		self.map3d_spawners.dynamics	=3D CreateDynamicSpawner(scheduler)
++		self.map3d_spawners.multis		=3D CreateMultiSpawner(scheduler)
++		--~ self.map3d_spawners.water		=3D CreateMapBlockSpawner(cMapBlock_3D_Wa=
+ter,scheduler)
++	end
++	=
+
++	local t =3D Client_GetTicks()
++	local xloc,yloc,zloc =3D self:GetCamPos()
++	for k,spawner in pairs(self.map3d_spawners) do spawner:Step(t,xloc,yloc,z=
+loc) end
++	self.map3d_scheduler:Step(xloc,yloc,zloc)
++end
++
++function Renderer3D:MapClear	()
++	for k,spawner in pairs(self.map3d_spawners or {}) do spawner:Clear() end
++end
++
++-- water : block.terrain[10*ty+tx] =3D MapGetGround(block.bx*8+tx,block.by=
+*8+ty)
++-- water : analyze terrain infos and determine where water should be, Filt=
+erIsMapWater(tiletype) -- 3D: chunk:SetWaterZ(tx,ty,z) ??
++
++
++-- #########################################
++
++-- returns xloc,yloc in uo coords
++function Renderer3D:GetCamPos () =
+
++	local x,y,z =3D Renderer3D:GetLookAheadCamPos()
++	return -x,y,z
+ end
+ =
+
+ -- TODO: blend out mounts
+@@ -712,67 +178,54 @@
+ 			self.gbBlendOutTerrainVisible =3D bTerrainVisible
+ 		end
+ 		=
+
+-		-- update mapblocks
+-		for y,row in pairs(self.gMapChunks) do
+-			for x,chunk in pairs(row) do
+-				if (not chunk.bIsDead) then
+-					-- update statics
+-					for layerZ,layerStaticGeom in pairs(chunk.pStaticGeometryLayers) do
+-						layerStaticGeom:SetVisible(self:IsZLayerVisible(Renderer3D:LayerToZ(=
+layerZ + 1)))
++		if self.map3d_spawners then
++			for k,v in pairs(self.map3d_spawners) do
++				v:ForAllBlocks(function(block)
++					if block.SetDisplayRange then
++						block:SetDisplayRange(self:BlendoutGetVisibleRange())
+ 					end
+-					for k,entity in pairs(chunk.lStaticEntities) do =
+
+-						self:UpdateStaticVisibility(entity) =
+
+-					end
+-					=
+
+-					-- update fast batch
+-					if gFastBatchStatics then
+-						-- invalidate map chunk and trigger rebuild
+-						--~ chunk.mbRebuild =3D true
+-						chunk.fastbatch:FastBatch_SetDisplayRange(self:BlendoutGetVisibleRan=
+ge())
+-					end
+-					=
+
+-					-- update terrain
+-					if (chunk.pStaticGeometryTerrain) then
+-						chunk.pStaticGeometryTerrain:SetVisible(bTerrainVisible)
+-					elseif (chunk.terraingfx) then
+-						chunk.terraingfx:SetVisible(bTerrainVisible)
+-					end
+-				end
++				end)
+ 			end
+ 		end
+ 		=
+
+ 		-- update dynamics =
+
+-		for k,dynamic in pairs(GetDynamicList()) do if (DynamicIsInWorld(dynamic=
+)) then self:UpdateDynamicVisibility(dynamic) end end
+-		=
+
+-		self:UpdateDynamicDisplayRange()
++		--~ for k,dynamic in pairs(GetDynamicList()) do if (DynamicIsInWorld(dyn=
+amic)) then self:UpdateDynamicVisibility(dynamic) end end
++		=
+
++		--~ self:UpdateDynamicDisplayRange()
+ 		=
+
+ 		-- update mobiles
+ 		for k,mobile in pairs(GetMobileList()) do self:UpdateMobileVisibility(mo=
+bile) end
+ 	end
+ end
+ =
+
+--- coords in chunks
+--- TODO : release anything else that was allocated in CreateMapChunk
+-function Renderer3D:DestroyMapChunk (x,y,chunk)
+-	chunk.mbRebuild =3D nil
+-	if (not chunk.bIsDead) then
+-		self.gLowDetailTerrainNeedsRebuild =3D true
+-		--print(&quot;DestroyMapChunk&quot;,x,y)
+-		chunk.bIsDead =3D true
+-		if (chunk.mWaterGfx) then chunk.mWaterGfx:Destroy() chunk.mWaterGfx =3D =
+nil end
+-		if (chunk.fastbatch) then chunk.fastbatch:Destroy() chunk.fastbatch =3D =
+nil end
+-		if (chunk.pStaticGeometryTerrain) then chunk.pStaticGeometryTerrain:Dest=
+roy() chunk.pStaticGeometryTerrain =3D nil end
+-		if (chunk.terraingfx) then chunk.terraingfx:Destroy() chunk.terraingfx =
+=3D nil end
+-		if (chunk.terrain_multitex_gfx) then chunk.terrain_multitex_gfx:Destroy(=
+) chunk.terrain_multitex_gfx =3D nil end
+-		if (chunk.pTerrainEntity) then chunk.pTerrainEntity:Destroy() chunk.pTer=
+rainEntity =3D nil end
+-		for k,v in pairs(chunk.lStaticEntities) do
+-			if (v.lightname) then Renderer3D:RemovePointLight(v.lightname) v.lightn=
+ame =3D nil end
+-			if (v.particle and v.particle:IsAlive()) then v.particle:Destroy() v.pa=
+rticle =3D nil end
+-			if (v.staticentity) then v.staticentity:Destroy() v.staticentity =3D ni=
+l end
+-			if (v.gfx and v.gfx.billboard) then v.gfx.billboard:Destroy() v.gfx.bil=
+lboard =3D nil end
+-			if (v.gfx) then v.gfx:Destroy() v.gfx =3D nil end
+-		end =
+
+-		for k,v in pairs(chunk.pStaticGeometryLayers) do v:Destroy() end chunk.p=
+StaticGeometryLayers =3D {}
+-		if (chunk.sTerrainMeshName) then UnloadMeshName(chunk.sTerrainMeshName) =
+chunk.sTerrainMeshName =3D nil end -- unload terrain mesh
+-	end
+-end
++
++-- returns fMinZ,fMaxZ
++function Renderer3D:BlendoutGetVisibleRange ()
++	local fMinZ =3D -1000
++	local fMaxZ =3D (self.giBlendOutCurZ or 1000) -- inclusive
++	return fMinZ,fMaxZ
++end
++
++
++-- NOTE: layerZ is a uo zloc not the layer index in pStaticGeometryLayers
++function Renderer3D:IsZLayerVisible (layerZ)
++	return (not self.giBlendOutCurZ) or layerZ &lt;=3D self.giBlendOutCurZ
++end
++
++function Renderer3D:LayerToZ(zlayer)
++	--~ return zlayer * Renderer3D.giBlendOutPlayerHeight
++	return zlayer
++end
++
++function Renderer3D:UpdateStaticVisibility	(entity) =
+
++	if (entity and entity.gfx and entity.gfx.billboard) then
++		entity.gfx.billboard:SetVisible(self:IsZLayerVisible(entity.zloc))
++	end
++end
++
++function Renderer3D:ZToLayer(zloc)
++	--~ return math.floor(zloc / Renderer3D.giBlendOutPlayerHeight)
++	return math.floor(zloc)
++end
++
++function Renderer3D:ClearMapCache () end
+
+Modified: trunk/lua/lib.3d.mousepick.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.mousepick.lua (original)
++++ trunk/lua/lib.3d.mousepick.lua Thu Aug 14 15:54:03 2008
+@@ -104,39 +104,44 @@
+ 		end
+ 	end
+ 	=
+
++	=
+
++	if self.map3d_spawners and self.map3d_spawners.terrain then
++		self.map3d_spawners.statics:ForAllBlocks(function(block)
++			-- statics
++			block:ForAllEntities(function(entity)
++				if (Renderer3D:IsZLayerVisible(entity.zloc)) then -- zloc is in intege=
+r tilecoords from uo
++					if (entity.gfx and entity.gfx.billboard) then
++						-- fallback
++						local x,y,z =3D entity.gfx.billboard:GetDerivedPosition()
++						fHitDist =3D SphereRayPick(x,y,z,0.5,rx,ry,rz,rvx,rvy,rvz) -- 0.5 rad
++						bHit =3D (fHitDist ~=3D nil)
++					elseif (entity.staticentity) then
++						bHit,fHitDist =3D entity.staticentity:RayPick(rx,ry,rz,rvx,rvy,rvz,
++							entity.x,entity.y,entity.z,
++							entity.qw,entity.qx,entity.qy,entity.qz,
++							entity.sx,entity.sy,entity.sz)
++					elseif (entity.meshbuffer) then
++						bHit,fHitDist =3D entity.meshbuffer:RayPick(rx,ry,rz,rvx,rvy,rvz,
++							entity.x,entity.y,entity.z,
++							entity.qw,entity.qx,entity.qy,entity.qz,
++							entity.sx,entity.sy,entity.sz)
++					end
++					if (bHit and ((not gMousePickFoundHit) or fHitDist &lt; self.gMousePickF=
+oundDist)) then
++						self.gMousePickFoundDist =3D fHitDist
++						gMousePickFoundHit =3D {}
++						gMousePickFoundHit.hittype =3D kMousePickHitType_Static
++						gMousePickFoundHit.entity =3D entity
++						--entity has to have the following properties: hue, x, y, z, iTileTy=
+peID
++					end
++				end
++			end)
++		end)
++	end
++
++	--[[
+ 	for chunky,row in pairs(self.gMapChunks) do
+ 		for chunkx,chunk in pairs(row) do
+ 			if (not chunk.bIsDead) then
+-
+-				-- statics  (contained in lStaticEntities list)
+-				for k,entity in pairs(chunk.lStaticEntities) do =
+
+-					if (Renderer3D:IsZLayerVisible(entity.zloc)) then -- zloc is in integ=
+er tilecoords from uo
+-						if (entity.gfx and entity.gfx.billboard) then
+-							-- fallback
+-							local x,y,z =3D entity.gfx.billboard:GetDerivedPosition()
+-							fHitDist =3D SphereRayPick(x,y,z,0.5,rx,ry,rz,rvx,rvy,rvz) -- 0.5 r=
+ad
+-							bHit =3D (fHitDist ~=3D nil)
+-						elseif (entity.staticentity) then
+-							bHit,fHitDist =3D entity.staticentity:RayPick(rx,ry,rz,rvx,rvy,rvz,
+-								entity.x,entity.y,entity.z,
+-								entity.qw,entity.qx,entity.qy,entity.qz,
+-								entity.sx,entity.sy,entity.sz)
+-						elseif (entity.meshbuffer) then
+-							bHit,fHitDist =3D entity.meshbuffer:RayPick(rx,ry,rz,rvx,rvy,rvz,
+-								entity.x,entity.y,entity.z,
+-								entity.qw,entity.qx,entity.qy,entity.qz,
+-								entity.sx,entity.sy,entity.sz)
+-						end
+-						if (bHit and ((not gMousePickFoundHit) or fHitDist &lt; self.gMousePick=
+FoundDist)) then
+-							self.gMousePickFoundDist =3D fHitDist
+-							gMousePickFoundHit =3D {}
+-							gMousePickFoundHit.hittype =3D kMousePickHitType_Static
+-							gMousePickFoundHit.entity =3D entity
+-							--entity has to have the following properties: hue, x, y, z, iTileT=
+ypeID
+-						end
+-					end
+-				end
+-
+ 				-- terrain
+ 				if (gGroundBlockLoader and self.gbBlendOutTerrainVisible) then
+ 					local iBlockUO_X =3D chunk.miX * self.ROBMAP_CHUNK_SIZE
+@@ -192,31 +197,10 @@
+ 						gMousePickFoundHit.blockorigin_x =3D originoffx+bx*8
+ 						gMousePickFoundHit.blockorigin_y =3D originoffy+by*8
+ 					end
+-					=
+
+-					--[[
+-					-- OBSOLETED CODE ! don't use this, hasn't been adjusted to xmirror f=
+ix
+-					local iBlockUO_X =3D chunk.miX * self.ROBMAP_CHUNK_SIZE
+-					local iBlockUO_Y =3D chunk.miY * self.ROBMAP_CHUNK_SIZE
+-					local origin_abs_x =3D self.giMapOriginX * self.ROBMAP_CHUNK_SIZE
+-					local origin_abs_y =3D self.giMapOriginY * self.ROBMAP_CHUNK_SIZE
+-					local originoffx =3D 8.0*(iBlockUO_X-origin_abs_x)
+-					local originoffy =3D 8.0*(iBlockUO_Y-origin_abs_y)
+-					for bx =3D 0,self.ROBMAP_CHUNK_SIZE-1 do
+-					for by =3D 0,self.ROBMAP_CHUNK_SIZE-1 do
+-						self.gTerrainMousePickCurBlock.chunk =3D chunk
+-						self.gTerrainMousePickCurBlock.chunk =3D chunk
+-						self.gTerrainMousePickCurBlock.x =3D originoffx+bx*8
+-						self.gTerrainMousePickCurBlock.y =3D originoffy+by*8
+-						self.gTerrainMousePickCurBlock.iBlockX =3D iBlockUO_X+bx
+-						self.gTerrainMousePickCurBlock.iBlockY =3D iBlockUO_Y+by
+-						TerrainRayPick(gGroundBlockLoader,iBlockUO_X+bx,iBlockUO_Y+by,origin=
+offx+bx*8,originoffy+by*8,0,rx,ry,rz,rvx,rvy,rvz)
+-					end
+-					end
+-					]]--
+ 				end
+ 			end
+ 	end end
+-
++	]]
+ 	=
+
+ 	-- dynamics
+ 	for k,dynamic in pairs(GetDynamicList()) do
+
+Modified: trunk/lua/lib.3d.renderer.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.renderer.lua (original)
++++ trunk/lua/lib.3d.renderer.lua Thu Aug 14 15:54:03 2008
+@@ -11,6 +11,9 @@
+ dofile(libpath .. &quot;lib.3d.combat.lua&quot;)
+ dofile(libpath .. &quot;lib.3d.cam.lua&quot;)
+ dofile(libpath .. &quot;lib.3d.walksmooth.lua&quot;)
++dofile(libpath .. &quot;lib.3d.tilebatch.lua&quot;)
++dofile(libpath .. &quot;lib.3d.dynamicspawner.lua&quot;)
++dofile(libpath .. &quot;lib.3d.multispawner.lua&quot;)
+ =
+
+ gRendererList[ &quot;Renderer3d&quot; ] =3D Renderer3D
+ =
+
+@@ -90,7 +93,8 @@
+ 	self:CombatGuiStep()
+ 	self:MobileAnimStep()
+ 	self:CamStep()
+-	self:UpdateMap()
++	--~ self:UpdateMap()
++	self:MapStep()
+ 	self:MousePickStep()
+ 	=
+
+ 	-- b&amp;w effect on death
+@@ -216,7 +220,7 @@
+ 		local prec =3D gCaelumSystem:GetPrecipitationController()
+ 		if prec then
+ 			--~ print(&quot;PREC&quot;)
+-			prec:SetCoverage(0)
++			--~ prec:SetCoverage(0)
+ 		end
+ 		=
+
+ 		-- Sunrise with visible moon.
+@@ -225,7 +229,7 @@
+ 		local t =3D os.date('*t')
+ 		cl:SetGregorianDateTime(t.year, t.month, t.day, t.hour, t.min, t.sec)
+ =
+
+-		cl:SetTimeScale(1024)
++		--~ cl:SetTimeScale(1024)
+ 		=
+
+ 		-- to prevent wobbly shadows
+ 		-- updates clock and caelum every 30 sec
+@@ -343,7 +347,7 @@
+ -- hook to add artid based particle effects
+ function Renderer3D:Hook_ItemAddParticle	(artid, x, y, z)
+ 	-- moongate
+-	if artid =3D=3D 3948 then
++	if artid =3D=3D 3948 or artid =3D=3D 8148 then
+ 		local gfx =3D CreateRootGfx3D()
+ 		gfx:SetParticleSystem(&quot;Moongate&quot;)
+ 		gfx:SetPosition(x-0.5,y+0.5,z+1.5)
+
+Modified: trunk/lua/lib.loading.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.loading.lua (original)
++++ trunk/lua/lib.loading.lua Thu Aug 14 15:54:03 2008
+@@ -294,7 +294,7 @@
+ 	local profile =3D MakeProfiler(&quot;mapload&quot;)
+ =
+
+ 	profile:StartSection(&quot;clearcache&quot;)
+-	gCurrentRenderer:ClearMapCache()
++	--~ gCurrentRenderer:ClearMapCache()
+ 	MapClearCache()
+ 	print(&quot;gMapIndex&quot;,gMapIndex)
+ =
+
+
+Modified: trunk/lua/lib.mapblock.2d.statics.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mapblock.2d.statics.lua (original)
++++ trunk/lua/lib.mapblock.2d.statics.lua Thu Aug 14 15:54:03 2008
+@@ -1,4 +1,4 @@
+-cMapBlock_2D_Statics	=3D CreateClass(cMapBlock)
++cMapBlock_2D_Statics	=3D CreateClass(cMapBlockGrid)
+ cMapBlock_2D_Statics.iBlockSize		=3D 8 -- in tiles
+ cMapBlock_2D_Statics.iLoadRadius	=3D 4 -- in iBlockSize-blocks
+ =
+
+
+Modified: trunk/lua/lib.mapblock.2d.terrain.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mapblock.2d.terrain.lua (original)
++++ trunk/lua/lib.mapblock.2d.terrain.lua Thu Aug 14 15:54:03 2008
+@@ -1,4 +1,4 @@
+-cMapBlock_2D_Terrain	=3D CreateClass(cMapBlock)
++cMapBlock_2D_Terrain	=3D CreateClass(cMapBlockGrid)
+ cMapBlock_2D_Terrain.iBlockSize		=3D 8*2 -- in tiles
+ cMapBlock_2D_Terrain.iLoadRadius	=3D 4 -- in iBlockSize-blocks
+ --~ cMapBlock_2D_Terrain.kMaxDist_Visible		=3D 8*4 -- camdist in tiles  se=
+e mapblock.base for default
+
+Modified: trunk/lua/lib.mapblock.3d.dynamics.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mapblock.3d.dynamics.lua (original)
++++ trunk/lua/lib.mapblock.3d.dynamics.lua Thu Aug 14 15:54:03 2008
+@@ -1,1 +1,124 @@
+ -- todo
++
++cMapBlock_3D_Dynamics	=3D CreateClass(cMapBlockGrid)
++cMapBlock_3D_Dynamics.iBlockSize		=3D 8 -- in tiles
++cMapBlock_3D_Dynamics.iLoadRadius	=3D 4 -- in iBlockSize-blocks
++cMapBlock_3D_Dynamics.kMaxDist_Visible		=3D cMapBlock_3D_Dynamics.iBlockSi=
+ze * 4 -- camdist in tiles  see mapblock.base for default
++cMapBlock_3D_Dynamics.kMaxDist_Detail		=3D cMapBlock_3D_Dynamics.iBlockSiz=
+e * 2 -- camdist in tiles
++
++function cMapBlock_3D_Dynamics:Init (bx,by)
++	cMapBlockGrid.Init(self, bx,by)
++
++	self.lDynamics =3D {}
++end
++
++-- forall entities fun(entity)
++function cMapBlock_3D_Dynamics:ForAllEntities (fun)
++	if self.mTileBatch then self.mTileBatch:ForAllTiles(fun) end
++end
++
++function cMapBlock_3D_Dynamics:SetDisplayRange (fmin, fmax)
++	if self.mTileBatch then self.mTileBatch:SetDisplayRange(fmin,fmax) end
++end
++
++function cMapBlock_3D_Dynamics:Clear ()
++	if self.mTileBatch then self.mTileBatch:Clear() end
++end
++
++function cMapBlock_3D_Dynamics:IsUOLocationInsideBlock	(xloc,yloc)
++	return math.floor(xloc/8) =3D=3D self.bx and math.floor(yloc/8) =3D=3D se=
+lf.by
++end
++
++-- returns {iTileTypeID,xloc,yloc,iZ,iHue} of the given dynamic
++function cMapBlock_3D_Dynamics:GetRawDataFromDynamic (dynamic)
++	-- iTileTypeID,xloc,yloc,iZ,iHue
++	return dynamic.artid, dynamic.xloc, dynamic.yloc, dynamic.zloc, dynamic.h=
+ue
++end
++
++function cMapBlock_3D_Dynamics:AddDynamic (dynamic)
++	local iTileTypeID,xloc,yloc,iZ,iHue =3D self:GetRawDataFromDynamic(dynami=
+c)
++	if iTileTypeID and xloc and yloc and iZ then
++		--~ print(&quot;ADD&quot;,self,dynamic.serial)
++		self.mUpdateNeeded =3D true
++
++		self.lDynamics[dynamic.serial] =3D {
++			serial=3Ddynamic.serial, =
+
++			--~ remove_me=3Dfalse, preload_me=3Dtrue, =
+
++			dynamic=3Ddynamic, rawdata=3D{self:GetRawDataFromDynamic(dynamic)}
++		}
++		=
+
++		self.mLastChange =3D Client_GetTicks()
++	end
++end
++
++function cMapBlock_3D_Dynamics:RemoveDynamic (dynamic)
++	if self.lDynamics[dynamic.serial] then
++		--~ print(&quot;REMOVE&quot;,self,dynamic.serial)
++		self.mUpdateNeeded =3D true
++		self.lDynamics[dynamic.serial] =3D nil
++		=
+
++		self.mLastChange =3D Client_GetTicks()
++	end
++end
++
++-- called every frame, instant actions (destroy gfx), evaluate priority =
+
++function cMapBlock_3D_Dynamics:ShortStep (t,xloc,yloc,zloc)
++	if self.mUpdateNeeded then
++		-- big changes
++		self:SetPriority(kMapLoad_3D_Dynamics_AddRemove.prio)
++	--~ elseif self.mUnbatched &gt; 0 and self.mLastChange &lt; t - cMapBlock_3D_Dy=
+namics.kBatchTimeout then
++		--~ -- just =
+
++		--~ self.mRebatchNeeded =3D true
++		--~ self:SetPriority(kMapLoad_3D_Dynamics_Batch.prio)
++	--~ else
++		self:SetPriority(kSchedulerIdlePriority)
++	end
++		=
+
++	--~ elseif ((self.iNextLODUpdate or 0) &lt; t) then
++		--~ -- normal lod updates
++		--~ self.iNextLODUpdate =3D t + self.kLODUpdateInterval
++		--~ =
+
++		--~ local bx =3D floor(xloc/self.iBlockSize + 0.5)
++		--~ local by =3D floor(yloc/self.iBlockSize + 0.5)
++		--~ =
+
++		--~ local camdist =3D hypot(	(self.bx + 0.5)*self.iBlockSize-xloc,
++								--~ (self.by + 0.5)*self.iBlockSize-yloc)
++		--~ local newlod
++		--~ if (	camdist &lt;  self.kMaxDist_Detail ) then newlod =3D self.kLOD_Det=
+ail =
+
++		--~ elseif (camdist &lt;  self.kMaxDist_Visible) then newlod =3D self.kLOD_=
+Rough end
++		--~ =
+
++		--~ self:SetLOD(newlod)
++	--~ end
++end
++
++-- a single step during the thread
++function cMapBlock_3D_Dynamics:WorkStep ()
++	if self.mUpdateNeeded then
++		=
+
++		if not self.mTileBatch then
++			self.mTileBatch =3D CreateClassInstance(cTileBatch)
++		end
++		=
+
++		-- preload
++		for k,v in pairs(self.lDynamics) do
++			self.mTileBatch:PreloadTile(unpack(v.rawdata))
++			self:YieldIfOverTime()
++		end
++		=
+
++		self:Yield()
++
++		-- clear
++		self.mUpdateNeeded =3D nil
++
++		self.mTileBatch:Clear()
++
++		-- add existing ones
++		for k,v in pairs(self.lDynamics) do
++			self.mTileBatch:AddTile(unpack(v.rawdata))
++		end
++
++		self.mTileBatch:Build()
++		=
+
++		--~ print(&quot;count&quot;,self,countarr(self.lDynamics))
++	end
++end
+
+Modified: trunk/lua/lib.mapblock.3d.multis.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mapblock.3d.multis.lua (original)
++++ trunk/lua/lib.mapblock.3d.multis.lua Thu Aug 14 15:54:03 2008
+@@ -1,1 +1,85 @@
+ -- todo
++
++cMapBlock_3D_Multis	=3D CreateClass(cMapBlockAABB)
++cMapBlock_3D_Multis.iLoadRadius				=3D 64 -- in tiles
++cMapBlock_3D_Multis.kMaxDist_Visible		=3D 32 -- camdist in tiles  see mapb=
+lock.base for default
++cMapBlock_3D_Multis.kMaxDist_Detail			=3D 64 -- camdist in tiles
++
++function cMapBlock_3D_Multis:Init (multi)
++	local x,y,xx,yy
++	=
+
++	-- calc aabb
++	for k,v in pairs(multi.lparts) do
++		local iTileTypeID,iX,iY,iZ,iHue =3D unpack(v)
++		=
+
++		x =3D x and math.min(x, iX) or iX
++		y =3D y and math.min(y, iY) or iY
++		=
+
++		xx =3D xx and math.max(xx, iX) or iX
++		yy =3D yy and math.max(yy, iY) or iY
++	end
++
++	cMapBlockAABB.Init(self, x,y,xx-x+1,yy-y+1)
++	self.mMulti =3D multi
++end
++
++-- forall entities fun(entity)
++function cMapBlock_3D_Multis:ForAllEntities (fun)
++	if self.mTileBatch then self.mTileBatch:ForAllTiles(fun) end
++end
++
++function cMapBlock_3D_Multis:SetDisplayRange (fmin, fmax)
++	if self.mTileBatch then self.mTileBatch:SetDisplayRange(fmin,fmax) end
++end
++
++function cMapBlock_3D_Multis:ClearRough   () end -- override me !
++function cMapBlock_3D_Multis:WorkStep_LoadRough  () end -- override me !
++
++function cMapBlock_3D_Multis:ClearDetail  () =
+
++	if self.mTileBatch then self.mTileBatch:Clear() end
++end
++
++function cMapBlock_3D_Multis:WorkStep_LoadDetail ()
++	if not self.mTileBatch then
++		self.mTileBatch =3D CreateClassInstance(cTileBatch)
++	end
++		=
+
++	-- preload
++	for k,v in pairs(self.mMulti.lparts) do
++		local iTileTypeID,iX,iY,iZ,iHue =3D unpack(v)
++		--~ self.mTileBatch:PreloadTile(iTileTypeID,iX,iY,iZ,iHue)
++		--~ self:YieldIfOverTime()
++		=
+
++		local meshname =3D GetMeshName(iTileTypeID)
++		if meshname then
++			local meshbuffer =3D GetMeshBuffer(meshname)
++
++			local xadd,yadd,zadd =3D FilterPositionXYZ(iTileTypeID)
++			local x,y,z =3D Renderer3D:UOPosToLocal(iX + xadd,iY + yadd,iZ * 0.1 + =
+zadd) =
+
++			local qw,qx,qy,qz =3D GetStaticMeshOrientation(iTileTypeID)
++
++			local mousepick =3D {
++				xadd=3Dxadd,yadd=3Dyadd,zadd=3Dzadd,qw=3Dqw,qx=3Dqx,qy=3Dqy,qz=3Dqz,
++				sx=3D-1,sy=3D1,sz=3D1,x=3Dx,y=3Dy,z=3Dz,meshbuffer=3Dmeshbuffer,
++				iTileTypeID =3D iTileTypeID,
++				iHue =3D iHue,
++				iBlockX =3D math.floor(x/8), iBlockY =3D math.floor(y/8),
++			}
++		=
+
++			v.mousepick =3D mousepick
++		end
++
++		self:YieldIfOverTime()		=
+
++	end
++		=
+
++	self:Yield()
++
++	self.mTileBatch:Clear()
++
++	-- add parts
++	for k,v in pairs(self.mMulti.lparts) do
++		self.mTileBatch:AddTile(unpack(v))
++	end
++
++	self.mTileBatch:Build()
++end
+
+Modified: trunk/lua/lib.mapblock.3d.statics.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mapblock.3d.statics.lua (original)
++++ trunk/lua/lib.mapblock.3d.statics.lua Thu Aug 14 15:54:03 2008
+@@ -1,13 +1,68 @@
+ -- todo
+ =
+
++cMapBlock_3D_Statics	=3D CreateClass(cMapBlockGrid)
++cMapBlock_3D_Statics.iBlockSize		=3D 8*2 -- in tiles
++cMapBlock_3D_Statics.iLoadRadius	=3D 4 -- in iBlockSize-blocks
++cMapBlock_3D_Statics.kMaxDist_Visible		=3D cMapBlock_3D_Statics.iBlockSize=
+ * 4 -- camdist in tiles  see mapblock.base for default
++cMapBlock_3D_Statics.kMaxDist_Detail		=3D cMapBlock_3D_Statics.iBlockSize =
+* 2 -- camdist in tiles
+ =
+
+-function StaticBlock_LoadRough ()
+-	-- TODO : list rough-items
+-	-- TODO : preload item models, yield if time exceeded
+-	-- TODO : construct fastbatch (big step)
++-- forall entities fun(entity)
++function cMapBlock_3D_Statics:ForAllEntities (fun)
++	if self.mTileBatch then self.mTileBatch:ForAllTiles(fun) end
+ end
+ =
+
+-function StaticBlock_LoadDetail ()
+-	-- TODO : preload item models, yield if time exceeded
+-	-- TODO : construct fastbatch (big step)
++function cMapBlock_3D_Statics:SetDisplayRange (fmin, fmax)
++	if self.mTileBatch then self.mTileBatch:SetDisplayRange(fmin,fmax) end
+ end
++
++function cMapBlock_3D_Statics:ClearDetail ()
++	if self.mTileBatch then self.mTileBatch:Clear() end
++end
++
++function cMapBlock_3D_Statics:WorkStep_LoadDetail ()
++	--~ print(&quot;cMapBlock_3D_Statics:WorkStep_LoadDetail&quot;,self.bx,self.by)
++	=
+
++	if not self.mTileBatch then
++		self.mTileBatch =3D CreateClassInstance(cTileBatch)
++	else
++		self.mTileBatch:Clear()
++	end
++	=
+
++	-- uo map block position
++	local iBlockUO_X =3D math.floor(self.bx * self.iBlockSize / 8)
++	local iBlockUO_Y =3D math.floor(self.by * self.iBlockSize / 8)
++
++	-- preload models
++	local iTileTypeID,iX,iY,iZ,iHue
++	local iStaticCount
++	local xloc,yloc
++
++	local blocks =3D math.floor((self.iBlockSize-1) / 8)+1
++
++	for x =3D 0,blocks-1 do
++		for y =3D 0,blocks-1 do
++			local l =3D MapGetBlockStatics(iBlockUO_X+x,iBlockUO_Y+y)
++
++			for k,s in pairs(l) do =
+
++				iTileTypeID,iX,iY,iZ,iHue =3D s.artid, s.tx, s.ty, s.zloc, s.hue
++				=
+
++				if iTileTypeID and iX and iY and iZ then =
+
++					-- uo tile pos
++					local xloc,yloc =3D (iBlockUO_X+x)*8+iX,(iBlockUO_Y+y)*8+iY
++					if =
+
++						xloc &gt;=3D self.bx * self.iBlockSize and =
+
++						xloc &lt; (self.bx+1) * self.iBlockSize and =
+
++						yloc &gt;=3D self.by * self.iBlockSize and =
+
++						yloc &lt; (self.by+1) * self.iBlockSize
++					then =
+
++						self.mTileBatch:AddTile(iTileTypeID,xloc,yloc,iZ,iHue)
++						self:YieldIfOverTime()
++					end
++				end
++			end =
+
++	end end
++	=
+
++	self:Yield()
++
++	self.mTileBatch:Build()
++end
+
+Modified: trunk/lua/lib.mapblock.3d.terrain.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mapblock.3d.terrain.lua (original)
++++ trunk/lua/lib.mapblock.3d.terrain.lua Thu Aug 14 15:54:03 2008
+@@ -1,1 +1,16 @@
+--- todo
++cMapBlock_3D_Terrain	=3D CreateClass(cMapBlockGrid)
++cMapBlock_3D_Terrain.iBlockSize		=3D 8*2 -- in tiles
++cMapBlock_3D_Terrain.iLoadRadius	=3D 4 -- in iBlockSize-blocks
++cMapBlock_3D_Terrain.kMaxDist_Visible		=3D cMapBlock_3D_Terrain.iBlockSize=
+*4 -- camdist in tiles  see mapblock.base for default
++cMapBlock_3D_Terrain.kMaxDist_Detail		=3D cMapBlock_3D_Terrain.iBlockSize*=
+2 -- camdist in tiles
++
++function cMapBlock_3D_Terrain:ClearDetail ()
++	--~ print(&quot;cMapBlock_3D_Terrain:ClearDetail&quot;)
++	if (self.gfx_terrain) then self.gfx_terrain:Destroy() self.gfx_terrain =
+=3D nil end
++end
++
++function cMapBlock_3D_Terrain:WorkStep_LoadDetail ()
++	--~ print(&quot;cMapBlock_3D_Terrain:WorkStep_LoadDetail&quot;,self.bx,self.by)
++	local bs =3D kMultiTexTerrainChunkSize
++	self.gfx_terrain =3D MakeMultiTexTerrainGfx(self.bx * bs,self.by * bs)
++end
+
+Modified: trunk/lua/lib.mapblock.base.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mapblock.base.lua (original)
++++ trunk/lua/lib.mapblock.base.lua Thu Aug 14 15:54:03 2008
+@@ -1,4 +1,4 @@
+--- ***** ***** ***** ***** ***** scheduler process baseclass
++-- ***** ***** ***** ***** ***** block baseclass
+ =
+
+ cMapBlock =3D CreateClass()
+ cMapBlock.kLOD_Detail			=3D nil -- set to something with .prio =3D value
+@@ -7,18 +7,44 @@
+ cMapBlock.kMaxDist_Detail		=3D 8*3 -- camdist in tiles
+ cMapBlock.kLODUpdateInterval	=3D 500 -- msec
+ =
+
+-function cMapBlock:Init			(bx,by)		=
+
+-	self.bx =3D bx
+-	self.by =3D by
++function cMapBlock:Init			()		=
+
+ 	self.prio =3D kSchedulerIdlePriority
+-	self.co =3D coroutine.create(self.WorkThread) =
+
++	self.co =3D coroutine.create(self.WorkThread)
++end
++
++-- returns the bounding box of the map block (x,y,w,h) in tiles
++function cMapBlock:GetAABB	() return 0,0,0,0 end	-- override me !
++
++function cMapBlock:GetPos	()
++	local x,y,w,h =3D self:GetAABB()
++	return x,y
++end
++
++function cMapBlock:GetSize	()
++	local x,y,w,h =3D self:GetAABB()
++	return w,h
+ end
+ =
+
+ function cMapBlock:SetPriority		(prio)	self.prio =3D prio end
+ function cMapBlock:Yield			()		coroutine.yield() end
+ function cMapBlock:YieldIfOverTime	()		if (Client_GetTicks() &gt; self.t_end)=
+ then self:Yield() end end
+ =
+
+-function cMapBlock:Work			(t_end)	self.t_end =3D t_end coroutine.resume(se=
+lf.co,self) end
++function cMapBlock:Work			(t_end)	=
+
++	self.t_end =3D t_end =
+
++	self:Resume()
++end
++
++function cMapBlock:Resume	()
++	if coroutine.status(self.co) =3D=3D &quot;dead&quot; then return true, &quot;co is dead&quot;=
+ end
++	local status,r =3D coroutine.resume(self.co,self)
++	self:CheckForResumeError(status,r)
++end
++
++function cMapBlock:CheckForResumeError	(status,r)
++	if not status then
++		print(&quot;ERROR: job terminated: &quot;,r)
++	end
++end
+ =
+
+ function cMapBlock:WorkThread	()		-- executed as coroutine/thread
+ 	while (not self.bWorkTerminated) do =
+
+@@ -31,7 +57,7 @@
+ function cMapBlock:TerminateWork() =
+
+ 	self.bWorkTerminated =3D true
+ 	for i =3D 1,5 do
+-		coroutine.resume(self.co,self) =
+
++		self:Resume()
+ 		if (not coroutine.running(self.co)) then return end
+ 	end
+ 	print(&quot;cMapBlock:TerminateWork warning: work timeout&quot;,debug.traceback())
+@@ -41,26 +67,37 @@
+ =
+
+ function cMapBlock:Clear () self:ClearRough() self:ClearDetail() end -- re=
+move all gfx
+ =
+
++-- trigger block rebuild
++function cMapBlock:Rebuild ()
++	self:SetLOD(nil)
++	self.lod_finished =3D nil
++end
++
++-- manually sets the lod level, scheduler can overwrite this
++function cMapBlock:SetLOD (newlod)
++	if (newlod ~=3D self.lod) then =
+
++		self:SetPriority(newlod and newlod.prio or kSchedulerIdlePriority)
++		if (not newlod) then self:Clear() end
++		self.lod =3D newlod
++		self.iNextLODUpdate =3D 0
++	end
++end
++
+ -- called every frame, instant actions (destroy gfx), evaluate priority =
+
+ function cMapBlock:ShortStep (t,x,y,z)
+ 	if ((self.iNextLODUpdate or 0) &lt; t) then
+ 		self.iNextLODUpdate =3D t + self.kLODUpdateInterval
+ 		=
+
+-		local bx =3D floor(x/self.iBlockSize + 0.5)
+-		local by =3D floor(y/self.iBlockSize + 0.5)
++		local bx,by,w,h =3D self:GetAABB()
+ 		=
+
+-		local camdist =3D hypot(	(self.bx + 0.5)*self.iBlockSize-x,
+-								(self.by + 0.5)*self.iBlockSize-y)
++		local camdist =3D hypot(	(bx+w/2)-x,
++								(by+h/2)-y)
+ 		local newlod
+ 		if (	camdist &lt;  self.kMaxDist_Detail ) then newlod =3D self.kLOD_Detail =
+
+ 		elseif (camdist &lt;  self.kMaxDist_Visible) then newlod =3D self.kLOD_Roug=
+h end
+ 		--~ if (newlod) then print(&quot;cMapBlock:ShortStep&quot;,newlod,camdist,self.kMa=
+xDist_Detail) end
+ 		=
+
+-		if (newlod ~=3D self.lod) then =
+
+-			self:SetPriority(newlod and newlod.prio or kSchedulerIdlePriority)
+-			if (not newlod) then self:Clear() end
+-			self.lod =3D newlod
+-		end
++		self:SetLOD(newlod)
+ 	end
+ end
+ =
+
+@@ -87,4 +124,3 @@
+ function cMapBlock:ClearDetail  () end -- override me !
+ function cMapBlock:WorkStep_LoadRough  () end -- override me !
+ function cMapBlock:WorkStep_LoadDetail () end -- override me !
+-
+
+Modified: trunk/lua/lib.mapblock.scheduler.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mapblock.scheduler.lua (original)
++++ trunk/lua/lib.mapblock.scheduler.lua Thu Aug 14 15:54:03 2008
+@@ -3,7 +3,7 @@
+ cScheduler =3D CreateClass()
+ kSchedulerIdlePriority =3D 9999
+ =
+
+-function CreateScheduler	() local o =3D CreateClassInstance(cScheduler) o:=
+Init() return o end
++function CreateScheduler	() local o =3D CreateClassInstance(cScheduler) re=
+turn o end
+ =
+
+ function cScheduler:Init	()
+ 	self.pProcessList =3D {}
+@@ -23,7 +23,7 @@
+ =
+
+ -- x,y,z : cam/focus-pos
+ function cScheduler:Step		(x,y,z)
+-	local t =3D Client_GetTicks()
++	local t =3D gMyTicks
+ 	local t_end =3D t + self.kAllowedTicksPerFrame
+ 	=
+
+ 	-- shortsteps, re-evaluate prio, release gfx
+
+Modified: trunk/lua/lib.mapblock.spawner.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mapblock.spawner.lua (original)
++++ trunk/lua/lib.mapblock.spawner.lua Thu Aug 14 15:54:03 2008
+@@ -3,7 +3,7 @@
+ cMapBlockSpawner =3D CreateClass()
+ cMapBlockSpawner.kStepInterval =3D 200
+ =
+
+-function CreateMapBlockSpawner (pBlockClass,pScheduler) local o =3D Create=
+ClassInstance(cMapBlockSpawner) o:Init(pBlockClass,pScheduler) return o end
++function CreateMapBlockSpawner (pBlockClass,pScheduler) local o =3D Create=
+ClassInstance(cMapBlockSpawner, pBlockClass,pScheduler) return o end
+ =
+
+ function cMapBlockSpawner:Init	(pBlockClass,pScheduler)
+ 	self.pMapBlocks		=3D {} =
+
+@@ -62,8 +62,7 @@
+ =
+
+ function cMapBlockSpawner:CreateMapBlock	(bx,by)
+ 	--~ print(&quot;cMapBlockSpawner:CreateMapBlock&quot;,bx,by)
+-	local block =3D CreateClassInstance(self.pBlockClass)
+-	block:Init(bx,by)
++	local block =3D CreateClassInstance(self.pBlockClass, bx,by)
+ 	=
+
+ 	self.pMapBlocks[block] =3D true =
+
+ 	self.pScheduler:AddProcess(block)
+
+Modified: trunk/lua/lib.static.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.static.lua (original)
++++ trunk/lua/lib.static.lua Thu Aug 14 15:54:03 2008
+@@ -136,6 +136,9 @@
+ 	gFallbackModelCacheGfx:SetMaterial(sMatName)
+ 	=
+
+ 	local t =3D GetStaticTileType(iTileTypeID)
++	=
+
++	if not t then return nil end
++	=
+
+ 	local h =3D iHeight/iWidth
+ 	local hh =3D t.miHeight * 0.1
+ 			=
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001172.html">[Iris-commit] [IRIS] r2365 - /branches/stable_release/
+</A></li>
+	<LI>Next message: <A HREF="001175.html">[Iris-commit] [IRIS] r2368 - in /trunk/lua: lib.2d.map.lua lib.2d.renderer.lua lib.3d.map.lua lib.3d.renderer.lua lib.artatlas.lua lib.mapblock.3d.statics.lua lib.mapblock.3d.terrain.lua lib.mapblock.base.lua lib.mapblock.scheduler.lua lib.static.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1174">[ date ]</a>
+              <a href="thread.html#1174">[ thread ]</a>
+              <a href="subject.html#1174">[ subject ]</a>
+              <a href="author.html#1174">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

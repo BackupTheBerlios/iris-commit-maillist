@@ -1,0 +1,728 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2767 - in /trunk: lua/ lua/net/ lua/obj/	lua/widgets/ plugins/
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-December/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2767%20-%20in%20/trunk%3A%20lua/%20lua/net/%20lua/obj/%0A%09lua/widgets/%20plugins/&In-Reply-To=%3C20081202215909.560E41C187F2%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001570.html">
+   <LINK REL="Next"  HREF="001572.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2767 - in /trunk: lua/ lua/net/ lua/obj/	lua/widgets/ plugins/</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2767%20-%20in%20/trunk%3A%20lua/%20lua/net/%20lua/obj/%0A%09lua/widgets/%20plugins/&In-Reply-To=%3C20081202215909.560E41C187F2%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2767 - in /trunk: lua/ lua/net/ lua/obj/	lua/widgets/ plugins/">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Tue Dec  2 22:59:08 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001570.html">[Iris-commit] [IRIS] r2766 - /trunk/repairmusic.v2.sh
+</A></li>
+        <LI>Next message: <A HREF="001572.html">[Iris-commit] [IRIS] r2768 - in /trunk: lua/ lua/net/ lua/obj/	plugins/
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1571">[ date ]</a>
+              <a href="thread.html#1571">[ thread ]</a>
+              <a href="subject.html#1571">[ subject ]</a>
+              <a href="author.html#1571">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Tue Dec  2 22:59:08 2008
+New Revision: 2767
+
+Log:
+uogamers : multiline tooltips/labels, label hue stored and shown in moblist=
+, update on label receive, party namelist uses labels now as well, moblist =
+active target line hue colored, moblist playervendor detection from label h=
+ue : fixes sorting on preaos,  2d mobiles : layerorder direction dependence=
+ fixed (especially cloak), IsOrWasMobile() remembers mobile serials : avoid=
+ label spam when moving running/chasing, autoclick-itemtype-list for keg+ru=
+nebook labels
+
+Modified:
+    trunk/lua/lib.2d.mobile.lua
+    trunk/lua/lib.2d.mousepick.lua
+    trunk/lua/lib.uoids.lua
+    trunk/lua/net/net.object.lua
+    trunk/lua/net/net.partysystem.lua
+    trunk/lua/net/net.text.lua
+    trunk/lua/obj/obj.dynamic.lua
+    trunk/lua/obj/obj.mobile.lua
+    trunk/lua/widgets/widget.uotext.lua
+    trunk/plugins/moblist.lua
+
+Modified: trunk/lua/lib.2d.mobile.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.mobile.lua (original)
++++ trunk/lua/lib.2d.mobile.lua Tue Dec  2 22:59:08 2008
+@@ -141,7 +141,7 @@
+ 		=
+
+ 	--~ print(&quot;######### mobart&quot;,mobile.artid)
+ 	if (self:MobileHasVisibleEquip(mobile.artid)) then -- only humans have eq=
+uip
+-		for index,layer in pairs(gLayerOrder) do =
+
++		for index,layer in pairs(gLayerOrderByDir[DirWrap(mobile.dir)]) do =
+
+ 			local item =3D GetMobileEquipmentItem(mobile,layer)
+ 			if (item) then =
+
+ 				--~ print(&quot;######### equip&quot;,layer,item.artid)
+
+Modified: trunk/lua/lib.2d.mousepick.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.mousepick.lua (original)
++++ trunk/lua/lib.2d.mousepick.lua Tue Dec  2 22:59:08 2008
+@@ -109,11 +109,17 @@
+ 			if (mount) then hitinfo =3D hitinfo..sprintf(&quot;mount-artid(id=3D0x%04x),=
+&quot;,mount.artid) end =
+
+ 			hitinfo =3D hitinfo..sprintf(&quot;notoriety=3D%d,&quot;,o.mobile and o.mobile.no=
+toriety or -1)
+ 			hitinfo =3D hitinfo..sprintf(&quot;flags=3D0x%04x,&quot;,o.mobile and o.mobile.fl=
+ag or 0)
++			hitinfo =3D hitinfo..sprintf(&quot;dir=3D0x%02x,&quot;,o.mobile and o.mobile.dir =
+or 0)
++			hitinfo =3D hitinfo..sprintf(&quot;labelhue=3D%d,&quot;,GetItemLabelHue(o.mobile =
+and o.mobile.serial or 0) or 0)
+ 		end
+ 		if (o.hittype =3D=3D kMousePickHitType_Terrain 			) then =
+
+ 			local tiletype,z =3D GetGroundAtAbsPos(o.hit_xloc,o.hit_yloc) =
+
+ 			hitinfo =3D hitinfo..sprintf(&quot;tiletype=3D0x%04x,&quot;,tiletype or 0) =
+
+ 		end
++		if (o.hittype =3D=3D kMousePickHitType_PaperdollItem 	) then =
+
++			hitinfo =3D hitinfo..sprintf(&quot;layer=3D0x%02x,&quot;,GetPaperdollLayerFromTil=
+eType(o.item.artid)) =
+
++		end
++		=
+
+ 		if (o.hittype =3D=3D kMousePickHitType_Static			) then hitinfo =3D hitin=
+fo..&quot;static&quot; end
+ 		if (o.hittype =3D=3D kMousePickHitType_Terrain 			) then hitinfo =3D hit=
+info..&quot;terrain&quot; end
+ 		if (o.hittype =3D=3D kMousePickHitType_Dynamic 			) then hitinfo =3D hit=
+info..&quot;dynamic&quot; end
+
+Modified: trunk/lua/lib.uoids.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.uoids.lua (original)
++++ trunk/lua/lib.uoids.lua Tue Dec  2 22:59:08 2008
+@@ -199,6 +199,19 @@
+     0x15,                       -- - BackPack
+     0x0F
+ }
++
++
++-- 2d mode ingame anims, from varan
++gLayerOrderByDir =3D {}
++function RevertArray (arr) local res =3D {} for k=3D#arr,1,-1 do table.ins=
+ert(res,arr[k]) end return res end
++gLayerOrderByDir[0] =3D RevertArray({ 21, 20, 02, 01, 06, 18, 16, 12, 22, =
+11, 10, 17, 23, 07, 19, 15, 14, 09, 08, 13, 24, 03, 04, 05 })
++gLayerOrderByDir[1] =3D RevertArray({ 21, 02, 20, 01, 06, 18, 16, 12, 22, =
+11, 10, 17, 23, 07, 19, 15, 14, 09, 08, 13, 24, 03, 04, 05 })
++gLayerOrderByDir[2] =3D RevertArray({ 21, 02, 20, 01, 06, 18, 16, 12, 22, =
+11, 10, 17, 23, 07, 19, 15, 14, 09, 08, 13, 24, 03, 04, 05 })
++gLayerOrderByDir[3] =3D RevertArray({ 21, 02, 01, 06, 18, 16, 12, 22, 11, =
+10, 17, 23, 07, 19, 15, 14, 09, 08, 13, 24, 03, 04, 05, 20 })
++gLayerOrderByDir[4] =3D RevertArray({ 21, 02, 20, 01, 06, 18, 16, 12, 22, =
+11, 10, 17, 23, 07, 19, 15, 14, 09, 08, 13, 24, 03, 04, 05 })
++gLayerOrderByDir[5] =3D RevertArray({ 21, 02, 20, 01, 06, 18, 16, 12, 22, =
+11, 10, 17, 23, 07, 19, 15, 14, 09, 08, 13, 24, 03, 04, 05 })
++gLayerOrderByDir[6] =3D RevertArray({ 21, 20, 02, 01, 06, 18, 16, 12, 22, =
+11, 10, 17, 23, 07, 19, 15, 14, 09, 08, 13, 24, 03, 04, 05 })
++gLayerOrderByDir[7] =3D RevertArray({ 21, 20, 02, 01, 06, 18, 16, 12, 22, =
+11, 10, 17, 23, 07, 19, 15, 14, 09, 08, 13, 24, 03, 04, 05 })
+ =
+
+ -- you can add a paperdoll layer here with a position to overwrite the pos=
+ition in paperdoll (centered)
+ -- if you overwrite something the artid is used instead of the gumpid
+@@ -335,7 +348,9 @@
+ kTextType_Alliance			=3D 0x0E -- Alliance Chat =
+
+ kTextType_CommandPrompt		=3D 0x0F -- Command Prompts ???
+ kTextType_Encoded			=3D 0xC0 -- flag set if chat contains keywords from sp=
+eech.mul ?
+-	=
+
++
++kPlayerVendorLabelHue =3D 53
++
+ 	=
+
+ -- skill ids and stuff
+ glSkillNames =3D {	=
+
+
+Modified: trunk/lua/net/net.object.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.object.lua (original)
++++ trunk/lua/net/net.object.lua Tue Dec  2 22:59:08 2008
+@@ -25,6 +25,7 @@
+ 	out:PushNetUint8(kPacket_Single_Click)
+ 	out:PushNetUint32(iSerial)
+ 	out:SendPacket()
++	NotifyListener(&quot;Hook_SingleClick&quot;,iSerial)
+ end
+ =
+
+ -- Server sends Delete/Destroy command of char/item (usually during drag&amp;d=
+rop from container)
+
+Modified: trunk/lua/net/net.partysystem.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.partysystem.lua (original)
++++ trunk/lua/net/net.partysystem.lua Tue Dec  2 22:59:08 2008
+@@ -230,7 +230,7 @@
+ 		}
+ 	for k,serial in pairs(gPartySystemMemberList) do =
+
+ 		local mobile =3D GetMobile(serial)
+-		local name =3D mobile and mobile.name or (&quot;unknown&quot;..serial)
++		local name =3D mobile and (GetItemTooltipOrLabel(mobile.serial) or mobil=
+e.name) or (&quot;unknown&quot;..serial)
+ 		local row =3D {}
+ 		if (bIAmLeader) then table.insert(row,{&quot;Kick&quot;,function () PartySendKick(=
+serial) end}) end
+ 		table.insert(row,{&quot; #&quot;..k..&quot;:&quot;..name})
+
+Modified: trunk/lua/net/net.text.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.text.lua (original)
++++ trunk/lua/net/net.text.lua Tue Dec  2 22:59:08 2008
+@@ -1,11 +1,63 @@
+ gItemLabelCache =3D {} -- gItemLabelCache[serial]=3D{t=3D?,label=3D?}
+ gItemGuildLabelCache =3D {}
+ =
+
++function GetItemLabelHue (serial) =
+
++	local labelcache =3D GetLabelCacheNoCreate(serial)
++	return labelcache and labelcache.hue
++end
+ function GetItemLabel (serial) =
+
+-	local o =3D gItemLabelCache[serial] =
+
+-	return o and o.label and (o.label..(gItemGuildLabelCache[serial] or &quot;&quot;))
+-end
+-
++	local labelcache =3D GetLabelCacheNoCreate(serial)
++	return labelcache and labelcache.final
++end
++
++function UpdateLabelCache (serial)
++	local labelcache =3D GetLabelCacheNoCreate(serial)
++	if (not labelcache) then return end
++	=
+
++	local bNameInText =3D false
++	local bNewline =3D false
++	local name =3D labelcache.name
++	local nameLord =3D &quot;Lord &quot;..name
++	local nameLady =3D &quot;Lady &quot;..name
++	labelcache.final =3D &quot;&quot;
++	=
+
++	local lines =3D labelcache.lines
++	if (IsOrWasMobile(serial)) then lines =3D RevertArray(lines) end
++	=
+
++	if (labelcache.lines[1]) then
++		local text,hue,clilocid =3D unpack(labelcache.lines[1])
++		labelcache.hue =3D hue
++	end
++	for k,line in ipairs(lines) do =
+
++		local text,hue,clilocid =3D unpack(line)
++		if (beginswith(text,name) or beginswith(text,nameLord) or beginswith(tex=
+t,nameLady)) then bNameInText =3D true end
++		if (bNewline) then labelcache.final =3D labelcache.final .. &quot;\n&quot; end
++		--~ if (hue &gt; 0) then =
+
++			--~ local r,g,b =3D GetHueColor(hue-1)
++			--~ text =3D sprintf(&quot;&lt;BASEFONT COLOR=3D#%02X%02X%02X&gt;&quot;,floor(r*255),fl=
+oor(g*255),floor(b*255))..text..&quot;&lt;/BASEFONT&gt;&quot;
++		--~ end
++		labelcache.final =3D labelcache.final .. text
++		bNewline =3D true
++	end
++	-- name=3Dmina plaintext=3Dmina the banker =
+
++	-- name=3Dmandrake plaintext=3D15  ??? =
+
++	if (not bNameInText) then labelcache.final =3D name .. &quot; &quot; .. labelcache.=
+final end
++	local guildlabel =3D gItemGuildLabelCache[serial]
++	if (guildlabel) then labelcache.final =3D labelcache.final .. guildlabel =
+end
++	NotifyListener(&quot;Hook_LabelUpdate&quot;,serial) -- see also Hook_ToolTipUpdate
++end
++
++function GetLabelCacheNoCreate (serial) return gItemLabelCache[serial] end
++function GetOrCreateLabelCache (serial)
++	local labelcache =3D gItemLabelCache[serial]
++	if (not labelcache) then
++		labelcache =3D { lines=3D{} }
++		gItemLabelCache[serial] =3D labelcache
++	end
++	return labelcache
++end
++
++RegisterListener(&quot;Hook_SingleClick&quot;,function (serial) GetOrCreateLabelCach=
+e(serial).bClearOnNextLabel =3D true end)
+ =
+
+ -- ***** ***** ***** ***** ***** incoming text
+ =
+
+@@ -38,25 +90,33 @@
+ 	=
+
+ 	-- update label
+ 	=
+
+-	if (data.type =3D=3D kTextType_Label) then
+-		local label =3D data.text -- name=3Dmina plaintext=3Dmina the banker =
+
+-		if ((not beginswith(data.text,data.name)) and =
+
+-			(not beginswith(data.text,&quot;Lord &quot;..data.name)) and =
+
+-			(not beginswith(data.text,&quot;Lady &quot;..data.name)) ) then label =3D data.na=
+me .. &quot; &quot; .. data.text end  -- name=3Dmandrake plaintext=3D15  ??? =
+
+-		gItemLabelCache[serial] =3D {t=3DClient_GetTicks(),label=3Dlabel}
+-	else
+-		-- no label yet, so use name
+-		if (not gItemLabelCache[serial]) then gItemLabelCache[serial] =3D {t=3DC=
+lient_GetTicks(),label=3Ddata.name} end
++	local labelcache =3D GetOrCreateLabelCache(serial)
++	local bLabelUpdate =3D false
++	local bIsPetLabel =3D false
++	if (data.clilocid =3D=3D 502006 or data.clilocid =3D=3D 1049608) then bIs=
+Label =3D true bIsPetLabel =3D true end -- (tame) (bonded)
++	if (data.type =3D=3D kTextType_Label or bIsPetLabel) then
++		labelcache.name =3D data.name
++		if (labelcache.bClearOnNextLabel) then =
+
++			labelcache.bClearOnNextLabel =3D false =
+
++			labelcache.lines =3D {} =
+
++		end
++		table.insert(labelcache.lines,{data.text,data.hue,data.clilocid})
++		bLabelUpdate =3D true
++	elseif (labelcache.name ~=3D data.name) then
++		labelcache.name =3D data.name
++		bLabelUpdate =3D true
+ 	end
+ 	if (data.type =3D=3D kTextType_Normal and beginswith(data.text,&quot;[&quot;)) then =
+
+ 		bIsLabel =3D true
+ 		data.bIsGuildTagLabel =3D true =
+
+ 		gItemGuildLabelCache[serial] =3D data.text =
+
++		bLabelUpdate =3D true
+ 	end -- guild tag
+-	=
+
+-	if (data.clilocid =3D=3D 502006 or data.clilocid =3D=3D 1049608) then bIs=
+Label =3D true end -- (tame) (bonded)
+-	local show_below =3D (not mobile) or (not bIsLabel)	-- display as fadeline
+-	local show_journal =3D (not mobile) or (not bIsLabel)	-- display in journ=
+al
++	if (bLabelUpdate) then UpdateLabelCache(serial) end
++	=
+
++	local bIsOrWasMobile =3D IsOrWasMobile(serial)
++	local show_below =3D (not bIsOrWasMobile) or (not bIsLabel)	-- display as=
+ fadeline
++	local show_journal =3D (not bIsOrWasMobile) or (not bIsLabel)	-- display =
+in journal
+ 	=
+
+ 	-- brighten up the color
+ 	--~ local h,s,v =3D ColorRGB2HSV(r,g,b)
+@@ -89,6 +149,7 @@
+ 	if (gDebugUOTextMessages and (not data.bIsGuildTagLabel) and (data.type ~=
+=3D kTextType_Label)) then =
+
+ 		print(&quot;HandleUOText&quot;,sprintf(&quot;0x%02x&quot;,data.packet or 0),data.type,bIsLab=
+el,data.name,plaintext)
+ 	end
++	--~ print(&quot;HandleUOText&quot;,sprintf(&quot;0x%02x&quot;,data.packet or 0),data.type,bIs=
+Label,data.name,plaintext)
+ 	--~ if (data.serial =3D=3D 0xffffffff and data.artid =3D=3D 0xffff) then =
+sysmessage ?? decide by type
+ end
+ =
+
+
+Modified: trunk/lua/obj/obj.dynamic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/obj/obj.dynamic.lua (original)
++++ trunk/lua/obj/obj.dynamic.lua Tue Dec  2 22:59:08 2008
+@@ -23,6 +23,11 @@
+ ]]--
+ =
+
+ gDynamicPrototype =3D {}
++gDynamicAutoClickByArtID =3D {} -- for pre-aos tooltips/labels
++gDynamicAutoClickByArtID[0x1940] =3D true -- keg
++gDynamicAutoClickByArtID[0x0efa] =3D true -- runebook
++gDynamicAutoClickByArtID[0x0bd2] =3D true -- house sign
++-- todo : hausschild
+ =
+
+ function GetDynamic (dynamic_or_serial) =
+
+ 	if (not dynamic_or_serial) then return nil end
+@@ -151,6 +156,14 @@
+ 		gCurrentRenderer:AddDynamicItem(self) -- create new gfx
+ 		gCurrentRenderer:UpdateDynamicItemPos(self)
+ 	end
++	=
+
++	if (not self.bAutoClickSent) then
++		self.bAutoClickSent =3D true
++		if ((not GetItemTooltipOrLabel(self.serial)) and gDynamicAutoClickByArtI=
+D[self.artid]) then
++			Send_SingleClick(self.serial)
++		end
++	end
++		=
+
+ 	=
+
+ 	DynamicUpdatePosCache(self)
+ end
+
+Modified: trunk/lua/obj/obj.mobile.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/obj/obj.mobile.lua (original)
++++ trunk/lua/obj/obj.mobile.lua Tue Dec  2 22:59:08 2008
+@@ -33,6 +33,9 @@
+ =
+
+ -- kMobileGhostArtIDs =3D {402,403,607,608,970}
+ function IsGhostBodyID (bodyid) return in_array(bodyid,kMobileGhostArtIDs)=
+ end
++
++gMobileSerialMemory =3D {}
++function IsOrWasMobile (serial) return gMobileSerialMemory[serial] end
+ =
+
+ gMobilePrototype =3D {}
+ gbMobileMethodWrappersInitialized =3D false
+@@ -89,6 +92,7 @@
+ 	=
+
+ 	-- for mobile names and tooltips
+ 	Send_SingleClick(serial)
++	gMobileSerialMemory[serial] =3D true
+ 	=
+
+ 	return mobile
+ end
+
+Modified: trunk/lua/widgets/widget.uotext.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/widgets/widget.uotext.lua (original)
++++ trunk/lua/widgets/widget.uotext.lua Tue Dec  2 22:59:08 2008
+@@ -55,6 +55,10 @@
+ end
+ =
+
+ function gWidgetPrototype.UOText:SetText (text) self:SetUOHtml(text,false)=
+ end
++
++function gWidgetPrototype.UOText:SetCol (r,g,b)
++	self.params.col =3D {r=3Dr,g=3Dg,b=3Db}
++end
+ =
+
+ -- TODO : uohtml might be an array of ints for unicode (textline) instead =
+of text (no html then)
+ -- see also HtmlParser in lib.gumpparser.lua
+
+Modified: trunk/plugins/moblist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/plugins/moblist.lua (original)
++++ trunk/plugins/moblist.lua Tue Dec  2 22:59:08 2008
+@@ -31,7 +31,7 @@
+ 	self.catgroup =3D {}
+ 	for i=3D1,kMobList_MaxCat do self.catgroup[i] =3D self:CreateChild(&quot;Group=
+&quot;) end
+ 	=
+
+-	self.gfx_maintarget =3D gRootWidget.tooltip:CreateChild(&quot;UOText&quot;,{x=3D0,y=
+=3D0,text=3D&quot;&quot;,col=3D{r=3D1,g=3D0,b=3D0},bold=3Dtrue})
++	self.gfx_maintarget =3D gRootWidget.tooltip:CreateChild(&quot;UOText&quot;,{x=3D0,y=
+=3D0,text=3D&quot;&quot;,col=3D{r=3D1,g=3D0,b=3D0},bold=3Dtrue,html=3Dtrue})
+ 	self.gfx_maintarget_line =3D gRootWidget.tooltip:CreateChild(&quot;LineList&quot;,{=
+matname=3D&quot;BaseWhiteNoLighting&quot;,bDynamic=3Dtrue,r=3D1,g=3D0,b=3D0})
+ 	=
+
+ 	local vw,vh =3D GetViewportSize()
+@@ -40,6 +40,7 @@
+ 	RegisterListener(&quot;Hook_HUDStep&quot;,				function () 		self:Step() end)
+ 	RegisterListener(&quot;Hook_MobName&quot;,				function (serial,name,clilocid) self:=
+MobName(serial,name,clilocid) end) -- from several text/speak packets..
+ 	RegisterListener(&quot;Hook_ToolTipUpdate&quot;,			function (serial)	self:ToolTipUp=
+date(serial) self:UpdatePartyNameTooltip(serial) end)
++	RegisterListener(&quot;Hook_LabelUpdate&quot;,			function (serial)	self:ToolTipUpda=
+te(serial) self:UpdatePartyNameTooltip(serial) end)
+ 	RegisterListener(&quot;Hook_Object_CreateMobile&quot;,	function (mobile)	self:AddMo=
+b(mobile) end)
+ 	RegisterListener(&quot;Hook_Object_DestroyMobile&quot;,	function (mobile)	self:Remo=
+veMob(mobile) end)
+ 	RegisterListener(&quot;Hook_UpdatePartyMemberList&quot;,	function ()			self:RecalcC=
+at() self:UpdatePartyMemberList() end)
+@@ -50,7 +51,7 @@
+ 	local widget =3D self.partyWidgetList[serial]
+ 	if (not widget) then return end
+ 	widget.name =3D MobListShortenName(GetItemTooltipOrLabel(serial) or &quot;???+=
+&quot;)
+-	widget:SetText(widget.name)
++	widget:SetUOHtml(widget.name,true)
+ end
+ =
+
+ function gWidgetPrototype.UOMobList:UpdatePartyMemberList	()
+@@ -60,7 +61,7 @@
+ 		local widget =3D partyWidgetList[serial]
+ 		if ((not widget) and serial ~=3D GetPlayerSerial()) then
+ 			local name =3D MobListShortenName(GetItemTooltipOrLabel(serial) or &quot;???=
+#&quot;)
+-			widget =3D gRootWidget.tooltip:CreateChild(&quot;UOText&quot;,{x=3D0,y=3D0,text=
+=3Dname,col=3D{r=3D0,g=3D1,b=3D0},bold=3Dtrue})
++			widget =3D gRootWidget.tooltip:CreateChild(&quot;UOText&quot;,{x=3D0,y=3D0,text=
+=3Dname,col=3D{r=3D0,g=3D1,b=3D0},bold=3Dtrue,html=3Dtrue})
+ 			widget.name =3D name
+ 			partyWidgetList[serial] =3D widget
+ 		end
+@@ -89,7 +90,7 @@
+ 		if (widget.oldbIsOnSameFacet ~=3D bIsOnSameFacet) then
+ 			widget.oldbIsOnSameFacet =3D bIsOnSameFacet =
+
+ 			widget.params.col =3D bIsOnSameFacet and {r=3D0,g=3D1,b=3D0} or {r=3D0.=
+5,g=3D0.5,b=3D0.5}
+-			widget:SetText(widget.name)
++			widget:SetUOHtml(widget.name,true)
+ 		end
+ 	end
+ end
+@@ -102,7 +103,7 @@
+ 	for name,data in pairs(uoamPosList) do -- {xloc=3D?,yloc=3D?,bIsOnSameFac=
+et=3D?}
+ 		local widget =3D uoamWidgetList[name]
+ 		if (not widget) then =
+
+-			widget =3D gRootWidget.tooltip:CreateChild(&quot;UOText&quot;,{x=3D0,y=3D0,text=
+=3Dname,col=3D{r=3D0,g=3D1,b=3D0},bold=3Dtrue})
++			widget =3D gRootWidget.tooltip:CreateChild(&quot;UOText&quot;,{x=3D0,y=3D0,text=
+=3Dname,col=3D{r=3D0,g=3D1,b=3D0},bold=3Dtrue,html=3Dtrue})
+ 			uoamWidgetList[name] =3D widget
+ 		end
+ 		widget.xloc,widget.yloc =3D data.xloc,data.yloc
+@@ -129,7 +130,7 @@
+ 		if (widget.oldbIsOnSameFacet ~=3D widget.bIsOnSameFacet) then
+ 			widget.oldbIsOnSameFacet =3D widget.bIsOnSameFacet =
+
+ 			widget.params.col =3D widget.bIsOnSameFacet and {r=3D0,g=3D0.5,b=3D0} o=
+r {r=3D0.5,g=3D0.5,b=3D0.5}
+-			widget:SetText(name)
++			widget:SetUOHtml(name,true)
+ 		end
+ 	end
+ end
+@@ -173,7 +174,12 @@
+ 		gfx:SetVisible(true)
+ 		gfx2:SetVisible(true)
+ 		name =3D name or MobListShortenName(GetItemTooltipOrLabel(serial) or &quot;??=
+?&quot;)
+-		gfx:SetText(name)
++		local r,g,b =3D 1,1,1
++		local mobile =3D GetMobile(serial)
++		local notoriety =3D mobile and mobile.notoriety
++		if (notoriety) then r,g,b =3D GetNotorietyColor(notoriety) end
++		gfx:SetCol(r,g,b)
++		gfx:SetUOHtml(name,true)
+ 		MacroSetLastTarget(serial)
+ 	else
+ 		gfx:SetVisible(false)
+@@ -201,18 +207,21 @@
+ 	-- maintarget text : update position on screen
+ 	if (self.maintarget_serial) then
+ 		local mobile =3D GetMobile(self.maintarget_serial)
+-		local xloc,yloc,zloc
++		local xloc,yloc,zloc,notoriety
+ 		local bInRange =3D true
+ 		if (mobile) then =
+
+ 			xloc,yloc,zloc =3D gCurrentRenderer:GetExactMobilePos(mobile)
++			notoriety =3D mobile.notoriety
+ 			self.maintarget_last_xloc =3D xloc
+ 			self.maintarget_last_yloc =3D yloc
+ 			self.maintarget_last_zloc =3D zloc
++			self.maintarget_last_notoriety =3D notoriety
+ 		else
+ 			bInRange =3D false
+ 			xloc =3D self.maintarget_last_xloc
+ 			yloc =3D self.maintarget_last_yloc
+ 			zloc =3D self.maintarget_last_zloc
++			notoriety =3D self.maintarget_last_notoriety
+ 		end
+ 		local zadd =3D 10
+ 		local gfx  =3D self.gfx_maintarget
+@@ -229,7 +238,10 @@
+ 		local y =3D max(miny,min(maxy,(py or 0)))
+ 		local x2 =3D x*fi + f*gViewportW*0.5
+ 		local y2 =3D y*fi + f*gViewportH*0.5
+-		if (bInRange) then gfx2:SetColParam(1,0,0) else gfx2:SetColParam(0.2,0,0=
+) end
++		local r,g,b =3D GetNotorietyColor(notoriety)
++		local brightness =3D 1
++		if (not bInRange) then brightness =3D 0.2 end
++		gfx2:SetColParam(r*brightness,g*brightness,b*brightness) =
+
+ 		gfx2:SetLineList({{x2,y2,0,x,y,0}})
+ 	end
+ end
+@@ -243,7 +255,7 @@
+ 	self.serial =3D params.serial
+ 	self.mobile =3D params.mobile
+ 	self.moblist =3D params.moblist
+-	self.text =3D self:CreateChild(&quot;UOText&quot;,{x=3D0,y=3D0,text=3D&quot;&quot;,col=3D{r=
+=3D1,g=3D1,b=3D1},fontid=3D2,bold=3Dtrue})
++	self.text =3D self:CreateChild(&quot;UOText&quot;,{x=3D0,y=3D0,text=3D&quot;&quot;,col=3D{r=
+=3D1,g=3D1,b=3D1},fontid=3D2,bold=3Dtrue,html=3Dtrue})
+ 	self.text:SetIgnoreBBoxHit(false)
+ 	self.bNameUnknown =3D true
+ 	=
+
+@@ -289,7 +301,9 @@
+ 		self.bIsNPC =3D false =
+
+ 		if (StringContains(text,kMobList_Healer_Text)) then self.bIsNPC =3D true=
+ text =3D &quot;[HEALER]&quot;..string.gsub(text,kMobList_Healer_Text,&quot;&quot;) end
+ 		if (StringContains(text,kMobList_Escort_Text)) then self.bIsNPC =3D true=
+ text =3D &quot;[ESCORT]&quot;..string.gsub(text,kMobList_Escort_Text,&quot;&quot;) end
+-		=
+
++		local labelhue =3D GetItemLabelHue(self.serial)
++		if (labelhue =3D=3D kPlayerVendorLabelHue) then self.bIsNPC =3D true end
++	=
+
+ 		self.old_text =3D text
+ 		=
+
+ 		-- check friends
+@@ -310,8 +324,15 @@
+ function gWidgetPrototype.UOMobListItem:UpdateNameGfx()
+ 	local mobile =3D self.mobile
+ 	local r,g,b =3D GetNotorietyColor(mobile.notoriety)
++	local labelhue =3D GetItemLabelHue(mobile.serial)
++	if (labelhue =3D=3D kPlayerVendorLabelHue) then r,g,b =3D 0,1,1 end
+ 	self.text.params.col =3D {r=3Dr,g=3Dg,b=3Db}
+-	self.text:SetText(self.old_text) -- ..&quot; &quot;..self.cat
++	local text =3D self.old_text
++	if (labelhue) then =
+
++		local r,g,b =3D GetHueColor(labelhue-1)
++		text =3D sprintf(&quot;&lt;BASEFONT COLOR=3D#%02X%02X%02X&gt;&quot;,floor(r*255),floor(g=
+*255),floor(b*255))..&quot;+&quot;..&quot;&lt;/BASEFONT&gt;&quot;..text
++	end
++	self.text:SetUOHtml(text,true) -- ..&quot; &quot;..self.cat
+ end
+ =
+
+ function gWidgetPrototype.UOMobListItem:SetSelfAsMainTarget ()
+@@ -376,7 +397,7 @@
+ end
+ =
+
+ =
+
+-function gWidgetPrototype.UOMobListItem:on_mouse_left_down	() if (gKeyPres=
+sed[key_lcontrol]) then self:SetSelfAsMainTarget() end end
++function gWidgetPrototype.UOMobListItem:on_mouse_left_down	() if (not IsTa=
+rgetModeActive()) then self:SetSelfAsMainTarget() end end
+ =
+
+ =
+
+ -- ***** ***** ***** ***** ***** rest
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001570.html">[Iris-commit] [IRIS] r2766 - /trunk/repairmusic.v2.sh
+</A></li>
+	<LI>Next message: <A HREF="001572.html">[Iris-commit] [IRIS] r2768 - in /trunk: lua/ lua/net/ lua/obj/	plugins/
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1571">[ date ]</a>
+              <a href="thread.html#1571">[ thread ]</a>
+              <a href="subject.html#1571">[ subject ]</a>
+              <a href="author.html#1571">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

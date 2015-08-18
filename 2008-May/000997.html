@@ -1,0 +1,221 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2188 - in /trunk/lua: lib.2d.map.lua	lib.2d.mobile.lua lib.uoanim.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-May/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2188%20-%20in%20/trunk/lua%3A%20lib.2d.map.lua%0A%09lib.2d.mobile.lua%20lib.uoanim.lua&In-Reply-To=%3C20080516232059.830791524037%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000996.html">
+   <LINK REL="Next"  HREF="000998.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2188 - in /trunk/lua: lib.2d.map.lua	lib.2d.mobile.lua lib.uoanim.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2188%20-%20in%20/trunk/lua%3A%20lib.2d.map.lua%0A%09lib.2d.mobile.lua%20lib.uoanim.lua&In-Reply-To=%3C20080516232059.830791524037%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2188 - in /trunk/lua: lib.2d.map.lua	lib.2d.mobile.lua lib.uoanim.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat May 17 01:20:59 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000996.html">[Iris-commit] [IRIS] r2187 - /trunk/premakelinux_noccache.sh
+</A></li>
+        <LI>Next message: <A HREF="000998.html">[Iris-commit] [IRIS] r2189 - in /trunk/lua: lib.granny.lua main.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#997">[ date ]</a>
+              <a href="thread.html#997">[ thread ]</a>
+              <a href="subject.html#997">[ subject ]</a>
+              <a href="author.html#997">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sat May 17 01:20:58 2008
+New Revision: 2188
+
+Log:
+first 2d anim loader test successful
+
+Modified:
+    trunk/lua/lib.2d.map.lua
+    trunk/lua/lib.2d.mobile.lua
+    trunk/lua/lib.uoanim.lua
+
+Modified: trunk/lua/lib.2d.map.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.map.lua (original)
++++ trunk/lua/lib.2d.map.lua Sat May 17 01:20:58 2008
+@@ -26,7 +26,9 @@
+ for k,v in pairs(k2DMapJob) do v.totaltime =3D 0 v.totalcount =3D 0 end --=
+ TODO : profiling ?
+ =
+
+ =
+
++
+ function Renderer2D:MapStep	()
++	self:MobileTestStep()
+ 	local iCurTicks =3D Client_GetTicks()
+ 	if (iCurTicks &lt; Renderer2D.iNextMapStep) then return end
+ 	Renderer2D.iNextMapStep =3D iCurTicks + 0.1*Renderer2D.kGoodTicksBetweenF=
+rames -- often, but small steps
+
+Modified: trunk/lua/lib.2d.mobile.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.mobile.lua (original)
++++ trunk/lua/lib.2d.mobile.lua Sat May 17 01:20:58 2008
+@@ -6,3 +6,54 @@
+ function Renderer2D:MobileAnimStep				() end -- from mainstep
+ function Renderer2D:MobileStartServerSideAnim	(animdata) end
+ =
+
++g2DMobileTestGfx =3D nil
++
++function Renderer2D:MobileTestStep()
++	if (not g2DMobileTestGfx) then
++		-- TODO : sort by z for blendout upper floors
++		local iModelID,iAnimID =3D 400,0
++		local iRealID =3D Anim_GetRealID(iModelID,iAnimID) =
+
++		local iFrame,iHue =3D 0,0
++		local animinfo =3D GetAnimDataInfo(iRealID) -- o.miFrames,o.miUnknown,o.=
+miCount,o.miFrameInterval,o.miFrameStart
++		local pImage,iWidth,iHeight,iCenterX,iCenterY,iFrames =3D ExportAnimFram=
+eToImage(iRealID,iFrame,iHue)
++		local tex =3D pImage:MakeTexture()
++		local matname =3D GetPlainTextureMat(tex,true)
++		--~ local matname =3D &quot;BaseWhiteNoLighting&quot;
++
++		local sq2 =3D math.sqrt(2)
++		local scaleh =3D sq2 / 44
++		local scalew05 =3D 0.5 / 44 -- 0.5 : applied left and right, =
+
++		=
+
++		local spritecount =3D 1
++		local gfx =3D CreateRootGfx3D()
++		g2DMobileTestGfx =3D gfx
++		gfx:SetSimpleRenderable()
++		gfx:SetMaterial(matname)
++		=
+
++		-- generate geometry
++		local vc =3D 4*spritecount
++		local ic =3D 6*spritecount
++		gfx:RenderableBegin(vc,ic,false,false,OT_TRIANGLE_LIST)
++		--~ local x,y,z =3D -static.tx,static.ty,static.zloc*0.1 -- static : {zl=
+oc=3D?,artid=3D?,hue=3D?,xloc=3D?,yloc=3D?,tx=3D?,ty=3D?,bIsStatic=3Dtrue}
++		local x,y,z =3D -0,0,0*0.1 -- static : {zloc=3D?,artid=3D?,hue=3D?,xloc=
+=3D?,yloc=3D?,tx=3D?,ty=3D?,bIsStatic=3Dtrue}
++		local u0,v0 =3D 0,0
++		local u1,v1 =3D 1,1
++		x =3D x - 1  -- ox-1,oy+1 : sprites are too high normally, this moves th=
+em down =
+
++		y =3D y + 1
++		z =3D z =
+
++		local w =3D scalew05 * iWidth
++		local h =3D scaleh   * iHeight
++		gfx:RenderableVertex(x-w,y-w,z  , u1,v1)
++		gfx:RenderableVertex(x+w,y+w,z  , u0,v1)
++		gfx:RenderableVertex(x-w,y-w,z+h, u1,v0)
++		gfx:RenderableVertex(x+w,y+w,z+h, u0,v0)
++		gfx:RenderableIndex3(0,2,1)
++		gfx:RenderableIndex3(1,2,3)
++		gfx:RenderableEnd()
++	end
++	=
+
++	local xloc,yloc =3D self:GetCamPos()
++	local x,y,z =3D self:UOPosToLocal(xloc,yloc,4)
++	g2DMobileTestGfx:SetPosition(x,y,z)
++end
++
+
+Modified: trunk/lua/lib.uoanim.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.uoanim.lua (original)
++++ trunk/lua/lib.uoanim.lua Sat May 17 01:20:58 2008
+@@ -4,12 +4,12 @@
+ kAnim_IdRangeLen_LowDetailed	=3D 200  -- mLowDetailed
+ =
+
+ -- iID is probably bodyid, and animid the animation ? ported from varans c=
+ode
+-function Anim_GetRealID (iID,iAnimID) =
+
+-	if (iID &lt; kAnim_IdRangeLen_HighDetailed) then return iAnimID + iID*110 end
+-	if (iID &lt; kAnim_IdRangeLen_HighDetailed + kAnim_IdRangeLen_LowDetailed) t=
+hen
+-		return iAnimID + kAnim_IdRangeLen_HighDetailed*110 + (iID-kAnim_IdRangeL=
+en_HighDetailed)*65
++function Anim_GetRealID (iModelID,iAnimID) =
+
++	if (iModelID &lt; kAnim_IdRangeLen_HighDetailed) then return iAnimID + iMode=
+lID*110 end
++	if (iModelID &lt; kAnim_IdRangeLen_HighDetailed + kAnim_IdRangeLen_LowDetail=
+ed) then
++		return iAnimID + kAnim_IdRangeLen_HighDetailed*110 + (iModelID-kAnim_IdR=
+angeLen_HighDetailed)*65
+ 	end
+-	return iAnimID + kAnim_IdRangeLen_HighDetailed*110 + kAnim_IdRangeLen_Low=
+Detailed*65 + (iID-kAnim_IdRangeLen_HighDetailed-kAnim_IdRangeLen_LowDetail=
+ed)*175
++	return iAnimID + kAnim_IdRangeLen_HighDetailed*110 + kAnim_IdRangeLen_Low=
+Detailed*65 + (iModelID-kAnim_IdRangeLen_HighDetailed-kAnim_IdRangeLen_LowD=
+etailed)*175
+ end
+ =
+
+ gGetAnimDataInfoCache =3D {}
+@@ -43,6 +43,7 @@
+ 	gAnimLoader		gAnimidxFile	=3D &quot;anim.idx&quot;
+ 					gAnimFile		=3D &quot;anim.mul&quot;
+ 	gAnimDataLoader	gAnimdataFile	=3D &quot;animdata.mul&quot;
++	=
+
+ =
+
+ 264K anim2.idx
+ 132M anim2.mul
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000996.html">[Iris-commit] [IRIS] r2187 - /trunk/premakelinux_noccache.sh
+</A></li>
+	<LI>Next message: <A HREF="000998.html">[Iris-commit] [IRIS] r2189 - in /trunk/lua: lib.granny.lua main.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#997">[ date ]</a>
+              <a href="thread.html#997">[ thread ]</a>
+              <a href="subject.html#997">[ subject ]</a>
+              <a href="author.html#997">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

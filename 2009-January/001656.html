@@ -1,0 +1,705 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2854 - in /trunk: include/data_groundblock.h lua/lib.2d.mousepick.lua lua/lib.2d.renderer.lua lua/lib.charcreate.lua lua/lib.mapblock.2d.terrain.lua lua/main.lua plugins/itemcounter.lua src/data_groundblock.cpp src/terrain_multitex.cpp
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2009-January/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2854%20-%20in%20/trunk%3A%20include/data_groundblock.h%0A%20lua/lib.2d.mousepick.lua%20lua/lib.2d.renderer.lua%20lua/lib.charcreate.lua%0A%20lua/lib.mapblock.2d.terrain.lua%20lua/main.lua%20plugins/itemcounter.lua%0A%20src/data_groundblock.cpp%20src/terrain_multitex.cpp&In-Reply-To=%3C20090110225533.29F821C18809%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001655.html">
+   <LINK REL="Next"  HREF="001657.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2854 - in /trunk: include/data_groundblock.h lua/lib.2d.mousepick.lua lua/lib.2d.renderer.lua lua/lib.charcreate.lua lua/lib.mapblock.2d.terrain.lua lua/main.lua plugins/itemcounter.lua src/data_groundblock.cpp src/terrain_multitex.cpp</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2854%20-%20in%20/trunk%3A%20include/data_groundblock.h%0A%20lua/lib.2d.mousepick.lua%20lua/lib.2d.renderer.lua%20lua/lib.charcreate.lua%0A%20lua/lib.mapblock.2d.terrain.lua%20lua/main.lua%20plugins/itemcounter.lua%0A%20src/data_groundblock.cpp%20src/terrain_multitex.cpp&In-Reply-To=%3C20090110225533.29F821C18809%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2854 - in /trunk: include/data_groundblock.h lua/lib.2d.mousepick.lua lua/lib.2d.renderer.lua lua/lib.charcreate.lua lua/lib.mapblock.2d.terrain.lua lua/main.lua plugins/itemcounter.lua src/data_groundblock.cpp src/terrain_multitex.cpp">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat Jan 10 23:55:32 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001655.html">[Iris-commit] [IRIS] r2853 - /trunk/lua/filter/filter.art.lua
+</A></li>
+        <LI>Next message: <A HREF="001657.html">[Iris-commit] [IRIS] r2855 - in /trunk: lua/lib.2d.mousepick.lua lua/lib.3d.mousepick.lua lua/lib.mapblock.2d.terrain.lua lua/lib.mapblock.base.lua src/terrain_multitex.cpp
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1656">[ date ]</a>
+              <a href="thread.html#1656">[ thread ]</a>
+              <a href="subject.html#1656">[ subject ]</a>
+              <a href="author.html#1656">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sat Jan 10 23:55:30 2009
+New Revision: 2854
+
+Log:
+multitex terrain mousepick code optimized, mousepick profiling ( gEnablePro=
+filer_R2D_MousePick ) , item counter custom text
+
+Modified:
+    trunk/include/data_groundblock.h
+    trunk/lua/lib.2d.mousepick.lua
+    trunk/lua/lib.2d.renderer.lua
+    trunk/lua/lib.charcreate.lua
+    trunk/lua/lib.mapblock.2d.terrain.lua
+    trunk/lua/main.lua
+    trunk/plugins/itemcounter.lua
+    trunk/src/data_groundblock.cpp
+    trunk/src/terrain_multitex.cpp
+
+Modified: trunk/include/data_groundblock.h
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/include/data_groundblock.h (original)
++++ trunk/include/data_groundblock.h Sat Jan 10 23:55:30 2009
+@@ -21,6 +21,7 @@
+ class cGroundBlockLoader : public Lugre::cSmartPointable { public :
+ 	int				miMapW;
+ 	int				miMapH;
++	int				miLoaderID;
+ 	cGroundBlockLoader						(const int iMapH);
+ 	=
+
+ 	/// result of Get is only guaranteed to be valid until next Get call, unl=
+ess PrepareGroupLoading below is used and succeeds
+
+Modified: trunk/lua/lib.2d.mousepick.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.mousepick.lua (original)
++++ trunk/lua/lib.2d.mousepick.lua Sat Jan 10 23:55:30 2009
+@@ -2,12 +2,16 @@
+ Renderer2D.gNextMousePickStep =3D 0
+ Renderer2D.gMousePickStepInterval =3D 400
+ Renderer2D.gUOToolTipOverride =3D true
++
++gProfiler_R2D_MousePick =3D CreateRoughProfiler(&quot;2D:MousePick&quot;)
+ =
+
+ -- not every frame, but regularly
+ function Renderer2D:MousePickStep		()
+ 	local t =3D Client_GetTicks()
+ 	if (self.gNextMousePickStep &gt; t) then return end
+ 	self.gNextMousePickStep =3D t + self.gMousePickStepInterval
++	gProfiler_R2D_MousePick:Start(gEnableProfiler_R2D_MousePick)
++	gProfiler_R2D_MousePick:Section(&quot;GetMouseHitSerial start&quot;)
+ 	=
+
+ 	local serial
+ 	if (not gKeyPressed[key_mouse_right]) then
+@@ -16,7 +20,9 @@
+ 		if (gMousePickFoundHit and gMousePickFoundHit.hittype =3D=3D kMousePickH=
+itType_Container) then serial =3D nil end -- backpane
+ 	end
+ 	=
+
++	gProfiler_R2D_MousePick:Section(&quot;StartToolTip&quot;)
+ 	StartUOToolTipAtMouse_Serial(serial)
++	gProfiler_R2D_MousePick:End()
+ end
+ =
+
+ function Renderer2D:MousePick_Scene () =
+
+@@ -27,6 +33,7 @@
+ 	local rx,ry,rz, rvx,rvy,rvz =3D GetMouseRay()
+ 	=
+
+ 	-- RayPickStatics
++	gProfiler_R2D_MousePick:Section(&quot;statics&quot;)
+ 	local dist,sprite =3D self:RayPickStatics(rx,ry,rz, rvx,rvy,rvz)
+ 	if (dist and ((not founddist) or dist &lt; founddist)) then =
+
+ 		founddist =3D dist =
+
+@@ -41,6 +48,9 @@
+ 	end
+ 	=
+
+ 	-- RayPickTerrain
++	--~ print(&quot;mousepick terrain&quot;)
++	local t0 =3D Client_GetTicks()
++	gProfiler_R2D_MousePick:Section(&quot;terrain&quot;,true) -- this eats most
+ 	local dist,xloc,yloc =3D self:RayPickTerrain(rx,ry,rz, rvx,rvy,rvz)
+ 	if (dist and ((not founddist) or dist &lt; founddist)) then =
+
+ 		founddist =3D dist =
+
+@@ -52,8 +62,17 @@
+ 		gMousePickFoundHit.hit_zloc =3D ground.zloc
+ 		--~ print(&quot;RayPickTerrain&quot;,xloc,yloc)
+ 	end
++	local t1 =3D Client_GetTicks()
++	gTerrainMousePickProfileAvgSum =3D (gTerrainMousePickProfileAvgSum or 0) =
++ (t1-t0)
++	gTerrainMousePickProfileAvgC =3D (gTerrainMousePickProfileAvgC or 0) + 1
++	if (gTerrainMousePickProfileAvgC =3D=3D 10) then =
+
++		printf(&quot;mousepick terrain avg=3D%0.1f\n&quot;,gTerrainMousePickProfileAvgSum/=
+gTerrainMousePickProfileAvgC)
++		gTerrainMousePickProfileAvgSum =3D 0
++		gTerrainMousePickProfileAvgC =3D 0
++	end
+ 	=
+
+ 	-- RayPickDynamics
++	gProfiler_R2D_MousePick:Section(&quot;dynamics&quot;)
+ 	local dist,sprite =3D self:RayPickDynamics(rx,ry,rz, rvx,rvy,rvz)
+ 	if (dist and ((not founddist) or dist &lt; founddist)) then =
+
+ 		founddist =3D dist
+@@ -68,6 +87,7 @@
+ 	end
+ 	=
+
+ 	-- RayPickMobiles
++	gProfiler_R2D_MousePick:Section(&quot;mobiles&quot;)
+ 	local dist,sprite =3D self:RayPickMobiles(rx,ry,rz, rvx,rvy,rvz)
+ 	if (dist and ((not founddist) or dist &lt; founddist)) then =
+
+ 		founddist =3D dist =
+
+@@ -80,6 +100,8 @@
+ 		gMousePickFoundHit.hit_zloc =3D mobile.zloc
+ 		--~ print(&quot;RayPickMobiles&quot;,sprite.data.artid) =
+
+ 	end
++	=
+
++	gProfiler_R2D_MousePick:Section(&quot;GetMouseHitSerial rest&quot;)
+ end
+ =
+
+ function Renderer2D:MousePick_ShowHits	() =
+
+
+Modified: trunk/lua/lib.2d.renderer.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.renderer.lua (original)
++++ trunk/lua/lib.2d.renderer.lua Sat Jan 10 23:55:30 2009
+@@ -152,7 +152,7 @@
+ 	gProfiler_R2D_MainStep:Section(&quot;MapStep&quot;)				self:MapStep()
+ 	gProfiler_R2D_MainStep:Section(&quot;HUDFX_MainStep&quot;)		self:HUDFX_MainStep()
+ 	gProfiler_R2D_MainStep:Section(&quot;Dynamics_MainStep&quot;)		self:Dynamics_MainSt=
+ep()
+-	gProfiler_R2D_MainStep:Section(&quot;MousePickStep&quot;,true)	if (not bMousePickBl=
+ockedByWalk) then self:MousePickStep() end
++	gProfiler_R2D_MainStep:Section(&quot;MousePickStep&quot;,true)	self:MousePickStep()
+ 	gProfiler_R2D_MainStep:End()
+ end
+ =
+
+
+Modified: trunk/lua/lib.charcreate.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.charcreate.lua (original)
++++ trunk/lua/lib.charcreate.lua Sat Jan 10 23:55:30 2009
+@@ -77,7 +77,7 @@
+ 	chardata.hairColor		=3D hex2num(&quot;0x044E&quot;) -- 0x044E(human) 0x0034(elf)
+ 	chardata.facialHair		=3D hex2num(&quot;0x0000&quot;)
+ 	chardata.facialHairColor=3D hex2num(&quot;0x0000&quot;)
+-	chardata.location		=3D hex2num(&quot;0x0000&quot;) -- uogamers: 0=3Dyew,1=3Dminoc,2=
+=3Dbrit,3=3Dmoonglow,4=3Dtrinsik,5=3DMagincia,6=3Djhelom,7=3Dscara,8=3D
++	chardata.location		=3D hex2num(&quot;0x0000&quot;) -- uogamers: 0=3Dyew,1=3Dminoc,2=
+=3Dbrit,3=3Dmoonglow,4=3Dtrinsik,5=3DMagincia,6=3Djhelom,7=3Dscara,8=3Dvesp=
+er,9=3Docclo,10=3D
+ 	chardata.slot			=3D hex2num(&quot;0x0003&quot;)
+ 	chardata.shirtColor		=3D hex2num(&quot;0x036F&quot;) --hex2num(&quot;0x0083&quot;)
+ 	chardata.pantsColor		=3D hex2num(&quot;0x0111&quot;) --hex2num(&quot;0x01AC&quot;)
+
+Modified: trunk/lua/lib.mapblock.2d.terrain.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mapblock.2d.terrain.lua (original)
++++ trunk/lua/lib.mapblock.2d.terrain.lua Sat Jan 10 23:55:30 2009
+@@ -17,6 +17,7 @@
+ 	local gfx =3D self.gfx_terrain =
+
+ 	if (not gfx) then return end
+ 	local bx,by,bs =3D self.bx * 2, self.by * 2, self.iBlockSize
++	if (not self:BBRayPick(rx, ry, rz, rvx, rvy, rvz)) then return end
+ 	local bHit,fHitDist,tx,ty =3D TerrainMultiTex_RayPick(gGroundBlockLoader,=
+bx,by,bs,bs,kRenderer2D_ZScale, rx-gfx.x,ry-gfx.y,rz-gfx.z, rvx,rvy,rvz)
+ 	if (not bHit) then return end
+ 	return fHitDist,bx * 8 + tx,by*8 + ty
+
+Modified: trunk/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/main.lua (original)
++++ trunk/lua/main.lua Sat Jan 10 23:55:30 2009
+@@ -432,7 +432,7 @@
+ 	print(Client_GetTicks(),&quot;=3D=3D=3D MyProfilerTop =3D=3D=3D&quot;)
+ 	if (not gEnableRoughProfileSum) then return end
+ 	local arr =3D {}
+-	for k,profiler in pairs({gProfiler_MainStep,gProfiler_R2D_MainStep,gProfi=
+ler_R3D_MainStep}) do
++	for k,profiler in pairs({gProfiler_MainStep,gProfiler_R2D_MainStep,gProfi=
+ler_R2D_MousePick,gProfiler_R3D_MainStep}) do
+ 		for secname,tsum in pairs(profiler.sum) do table.insert(arr,{name=3Dprof=
+iler.name..&quot;:&quot;..secname,tsum=3Dtsum}) end
+ 		profiler.sum =3D {}
+ 	end =
+
+
+Modified: trunk/plugins/itemcounter.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/plugins/itemcounter.lua (original)
++++ trunk/plugins/itemcounter.lua Sat Jan 10 23:55:30 2009
+@@ -111,6 +111,7 @@
+ 	gItemCounterDialog:AddText(curw or 0,r,g,b)
+ 	gItemCounterDialog:AddText(&quot;/&quot;)
+ 	gItemCounterDialog:AddText(maxw or 0)
++	if (ItemCounterGetCustomText) then gItemCounterDialog:AddText(ItemCounter=
+GetCustomText() or &quot;&quot;) end
+ end
+ =
+
+ gWidgetClass[&quot;UOItemCounter&quot;] =3D nil -- unregister for reload
+@@ -118,7 +119,7 @@
+ =
+
+ =
+
+ function gWidgetPrototype.UOItemCounter:AddText (text,r,g,b)
+-	self:AddWidget(self:CreateChild(&quot;UOText&quot;,{x=3Dself.nextx,y=3D0,text=3Dtex=
+t,col=3D{r=3Dr or 1,g=3Dg or 1,b=3Db or 1},bold=3Dtrue}))
++	return self:AddWidget(self:CreateChild(&quot;UOText&quot;,{x=3Dself.nextx,y=3D0,tex=
+t=3Dtext,col=3D{r=3Dr or 1,g=3Dg or 1,b=3Db or 1},bold=3Dtrue}))
+ end
+ =
+
+ function gWidgetPrototype.UOItemCounter:AddItem (data,amount)
+@@ -162,6 +163,7 @@
+ 	table.insert(self.widgets,widget)
+ 	if (not xmove) then local l,t,r,b =3D widget:GetRelBounds() xmove =3D r e=
+nd
+ 	self.nextx =3D self.nextx + xmove
++	return widget
+ end
+ function gWidgetPrototype.UOItemCounter:AddSpace (xmove)
+ 	self.nextx =3D self.nextx + xmove
+
+Modified: trunk/src/data_groundblock.cpp
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/src/data_groundblock.cpp (original)
++++ trunk/src/data_groundblock.cpp Sat Jan 10 23:55:30 2009
+@@ -7,7 +7,10 @@
+ =
+
+ cGroundBlock::cGroundBlock				() : mpRawGroundBlock(0) {}
+ =
+
+-cGroundBlockLoader::cGroundBlockLoader	(const int iMapH) : miMapH(iMapH), =
+miMapW(0)  {}
++int gNextGroundBlockLoaderID =3D 1;
++cGroundBlockLoader::cGroundBlockLoader	(const int iMapH) : miMapH(iMapH), =
+miMapW(0),miLoaderID(0)  {
++	miLoaderID =3D gNextGroundBlockLoaderID++;
++}
+ 	=
+
+ 	=
+
+ // ***** ***** ***** ***** ***** cGroundBlockLoader_Dummy
+
+Modified: trunk/src/terrain_multitex.cpp
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/src/terrain_multitex.cpp (original)
++++ trunk/src/terrain_multitex.cpp Sat Jan 10 23:55:30 2009
+@@ -1,6 +1,7 @@
+ #include &quot;lugre_prefix.h&quot;
+ #include &quot;terrain.h&quot;
+ #include &quot;data.h&quot;
++#include &quot;lugre_shell.h&quot;
+ #include &quot;lugre_ogrewrapper.h&quot;
+ #include &quot;lugre_robrenderable.h&quot;
+ #include &quot;lugre_meshshape.h&quot; // for RayPick
+@@ -8,6 +9,7 @@
+ #include &quot;data.h&quot;
+ #include &lt;Ogre.h&gt;
+ #include &lt;vector&gt;
++#include &lt;list&gt;
+ =
+
+ #define XMIRROR
+ =
+
+@@ -27,6 +29,24 @@
+ // note : by rotation and mirroring, 51 masks are enough to express all 2^=
+8=3D256 neightborhood cases, see mask_rotmir.php
+ =
+
+ // uotypes : nodraw ? 0,2,431,432,433,434,435,436,437 =
+
++RawGroundBlock	gMultiTexTerrainVoidBlock;
++
++
++	class cMultiTexTerrainBlockCache { public:
++		int				miBX;
++		int				miBY;
++		RawGroundBlock	mBlock;
++		int				mZCache[(8+3)*(8+3)];
++		bool			mbZCacheValid;
++		cMultiTexTerrainBlockCache() {} // miLoaderID(o.miLoaderID),miBX(miBX),m=
+iBY(miBY),mbZCacheValid(false)
++		void Set (cGroundBlockLoader&amp; o,int miBX,int miBY) {
++			miBX =3D (miBX);
++			miBY =3D (miBY);
++			mbZCacheValid =3D (false);
++			cGroundBlock* pGroundBlock =3D o.GetGroundBlock(miBX,miBY);
++			memcpy(&amp;mBlock,pGroundBlock ? pGroundBlock-&gt;mpRawGroundBlock : &amp;gMultiT=
+exTerrainVoidBlock,sizeof(RawGroundBlock));
++		}
++	};
+ =
+
+ template&lt;int T&gt; class cTiledMultiTexTerrain { public:
+ 	enum { kVertexSizeInFloats =3D (3+3+4*2) }; // p,n,uv*4
+@@ -36,7 +56,39 @@
+ 	float			mfZUnit;
+ 	float			mfLookUpZUnit;
+ 	=
+
+-	cTiledMultiTexTerrain() : mfAddX(0), mfAddY(0), mfZUnit(0.1), mfLookUpZUn=
+it(0) {}
++
++	// BlockCache start
++	enum { kBlockCacheSize =3D 32 };
++	cMultiTexTerrainBlockCache	mBlockCache[kBlockCacheSize*kBlockCacheSize];
++	int				mBlockCacheLoaderID; // cGroundBlockLoader::miLoaderID (changes on=
+ mapchange)
++	int				mBlockCacheBX0;
++	int				mBlockCacheBY0;
++	void	BlockCacheLoadArea	(cGroundBlockLoader&amp; o,int bx,int by,int r) {
++		if (mBlockCacheLoaderID =3D=3D o.miLoaderID &amp;&amp;
++			mBlockCacheBX0					&lt;=3D bx-r &amp;&amp;
++			mBlockCacheBY0					&lt;=3D by-r &amp;&amp;
++			mBlockCacheBX0+kBlockCacheSize	 &gt; bx+r &amp;&amp;
++			mBlockCacheBY0+kBlockCacheSize	 &gt; by+r) return;
++		//~ printf(&quot;BlockCacheLoadArea : Cache MISS! old=3D(m%d,x%d,y%d) new=3D(=
+m%d,x%d,y%d)\n&quot;,
++			//~ mBlockCacheLoaderID,mBlockCacheBX0,mBlockCacheBY0,
++			//~ o.miLoaderID,bx,by);
++		mBlockCacheLoaderID =3D o.miLoaderID;
++		mBlockCacheBX0 =3D bx-kBlockCacheSize/2;
++		mBlockCacheBY0 =3D by-kBlockCacheSize/2;
++		for (int y=3D0;y&lt;kBlockCacheSize;++y)
++		for (int x=3D0;x&lt;kBlockCacheSize;++x) mBlockCache[y*kBlockCacheSize+x].S=
+et(o,mBlockCacheBX0+x,mBlockCacheBY0+y);
++	}
++	cMultiTexTerrainBlockCache&amp;		GetBlockCache	(int miBX,int miBY) {
++		int x =3D miBX - mBlockCacheBX0;
++		int y =3D miBY - mBlockCacheBY0;
++		//~ if (x &lt; 0 || x &gt;=3D kBlockCacheSize) { printf(&quot;MultiTexTerrainBlockC=
+ache : FATAL ERROR x\n&quot;); return mBlockCache[0]; } // assert =
+
++		//~ if (y &lt; 0 || y &gt;=3D kBlockCacheSize) { printf(&quot;MultiTexTerrainBlockC=
+ache : FATAL ERROR y\n&quot;); return mBlockCache[0]; } // assert =
+
++		return mBlockCache[y*kBlockCacheSize+x];
++	}
++	// BlockCache end
++	=
+
++	=
+
++	cTiledMultiTexTerrain() : mfAddX(0), mfAddY(0), mfZUnit(0.1), mfLookUpZUn=
+it(0), mBlockCacheBX0(-999),mBlockCacheBY0(-999) {}
+ 	=
+
+ 	enum { kMaxZDiff =3D 64 }; ///&lt; mNormalLookup
+ 	enum { kGroundMatLookUpSize =3D 0x4000 };
+@@ -51,7 +103,8 @@
+ 	int		mGroundMaterialTypeLookUp[kGroundMatLookUpSize]; ///&lt; key=3Duo-groun=
+dtype, value=3D in [0,16] or so (depends on tex-atlas)
+ 	float	mNormalLookup[kMaxZDiff*2+1][kMaxZDiff*2+1][3]; ///&lt; y,x : 192kb wi=
+th 64 maxdiff
+ 	float*	mNormals[(T+1)*(T+1)]; ///&lt; internal cache
+-	int		mZ[(T+3)*(T+3)]; ///&lt; internal cache
++	int*	mZ;
++	int		mZOld[(T+3)*(T+3)]; ///&lt; internal cache
+ =
+
+ 	/// x,y must be in [-7,8+7]
+ 	/// returns GroundMaterialType from mGroundMaterialTypeLookUp
+@@ -82,19 +135,24 @@
+ 	=
+
+ 	/// x,y must be in [-7,8+7]
+ 	inline RawGroundTile&amp; GetTile (const int x,const int y) { =
+
+-		if (x &lt; 0) {
+-				 if (y &lt; 0)	return mpBlocks[0*3+0]-&gt;mTiles[y+8][x+8];
+-			else if (y &lt; 8)	return mpBlocks[1*3+0]-&gt;mTiles[y  ][x+8];
+-			else			return mpBlocks[2*3+0]-&gt;mTiles[y-8][x+8];
+-		}                                            =
+
+-		if (x &lt; 8) {                                 =
+
+-				 if (y &lt; 0)	return mpBlocks[0*3+1]-&gt;mTiles[y+8][x  ];
+-			else if (y &lt; 8)	return mpBlocks[1*3+1]-&gt;mTiles[y  ][x  ];
+-			else			return mpBlocks[2*3+1]-&gt;mTiles[y-8][x  ];
+-		}                                            =
+
+-			 if (y &lt; 0)		return mpBlocks[0*3+2]-&gt;mTiles[y+8][x-8];
+-		else if (y &lt; 8)		return mpBlocks[1*3+2]-&gt;mTiles[y  ][x-8];
+-		else				return mpBlocks[2*3+2]-&gt;mTiles[y-8][x-8];
++		int dbx =3D (x+8)/8; // beware of int cast rounding towards zero if chan=
+ging this
++		int dby =3D (y+8)/8;
++		=
+
++		return mpBlocks[dby*3+dbx]-&gt;mTiles[y-8*(dby-1)][x-8*(dbx-1)];
++		=
+
++		//~ if (x &lt; 0) {
++				 //~ if (y &lt; 0)	return mpBlocks[0*3+0]-&gt;mTiles[y+8][x+8];
++			//~ else if (y &lt; 8)	return mpBlocks[1*3+0]-&gt;mTiles[y  ][x+8];
++			//~ else			return mpBlocks[2*3+0]-&gt;mTiles[y-8][x+8];
++		//~ }                                            =
+
++		//~ if (x &lt; 8) {                                 =
+
++				 //~ if (y &lt; 0)	return mpBlocks[0*3+1]-&gt;mTiles[y+8][x  ];
++			//~ else if (y &lt; 8)	return mpBlocks[1*3+1]-&gt;mTiles[y  ][x  ];
++			//~ else			return mpBlocks[2*3+1]-&gt;mTiles[y-8][x  ];
++		//~ }                                            =
+
++			 //~ if (y &lt; 0)		return mpBlocks[0*3+2]-&gt;mTiles[y+8][x-8];
++		//~ else if (y &lt; 8)		return mpBlocks[1*3+2]-&gt;mTiles[y  ][x-8];
++		//~ else				return mpBlocks[2*3+2]-&gt;mTiles[y-8][x-8];
+ 	}
+ =
+
+ 	/// returns true if the terraintype should not be drawn (=3DNoDraw types =
+in uo)
+@@ -220,12 +278,16 @@
+ 		bool bNothingFoundYet =3D true;
+ 		int x,y,k,ax,ay;
+ 		float myHitDist;
++	=
+
++		//~ int t0 =3D cShell::GetTicks();
++	=
+
+ 		for (ay=3D0;ay&lt;iDY;++ay)
+ 		for (ax=3D0;ax&lt;iDX;++ax) {
+ 			mfAddX =3D 8*ax;
+ 			mfAddY =3D 8*ay;
+ 			int bx =3D iBlockX + ax;
+ 			int by =3D iBlockY + ay;
++			=
+
+ 			=
+
+ 			// needed for GetZF() and GetVertexPos() to work...
+ 			LoadNearbyData(pGroundBlockLoader,bx,by);
+@@ -245,6 +307,9 @@
+ 				}
+ 			}
+ 		}
++		=
+
++		//~ printf(&quot;multitexterrain:RayPick(bxy=3D%d,%d  iDXY=3D%d,%d T=3D%d  t=
+=3D%d)\n&quot;,iBlockX,iBlockY,iDX,iDY,T,cShell::GetTicks()-t0);
++		=
+
+ 		return !bNothingFoundYet;
+ 	}
+ 	=
+
+@@ -252,21 +317,22 @@
+ 		int x,y;
+ 		=
+
+ 		// initialize void block if neccessary: used &quot;outside&quot; the map, e.g. on =
+the borders...
+-		static RawGroundBlock	myVoidBlock;
++		static RawGroundBlock	gMultiTexTerrainVoidBlock;
+ 		static bool				myVoidBlockInit =3D true;
+ 		if (myVoidBlockInit) { =
+
+ 			myVoidBlockInit =3D false; // only once
+ 			cGroundBlock* pGroundBlock =3D pGroundBlockLoader-&gt;GetGroundBlock(0,0);
+ 			for (y=3D0;y&lt;T;++y)
+ 			for (x=3D0;x&lt;T;++x) { =
+
+-				myVoidBlock.mTiles[y][x].miTileType	=3D pGroundBlock ? pGroundBlock-&gt;m=
+pRawGroundBlock-&gt;mTiles[0][0].miTileType : 0;
+-				myVoidBlock.mTiles[y][x].miZ		=3D pGroundBlock ? pGroundBlock-&gt;mpRawGr=
+oundBlock-&gt;mTiles[0][0].miZ : 0;
++				gMultiTexTerrainVoidBlock.mTiles[y][x].miTileType	=3D pGroundBlock ? p=
+GroundBlock-&gt;mpRawGroundBlock-&gt;mTiles[0][0].miTileType : 0;
++				gMultiTexTerrainVoidBlock.mTiles[y][x].miZ		=3D pGroundBlock ? pGround=
+Block-&gt;mpRawGroundBlock-&gt;mTiles[0][0].miZ : 0;
+ 			}
+ 		}
+ 		=
+
+ 		// called once at startup
+ 		if (mfLookUpZUnit !=3D mfZUnit) { =
+
+ 			mfLookUpZUnit =3D mfZUnit; // only once per zunit
++			printf(&quot;multitexterrain:LoadNearbyData zunit switch\n&quot;);
+ 			for (int dz_y=3D-kMaxZDiff;dz_y&lt;=3DkMaxZDiff;++dz_y)
+ 			for (int dz_x=3D-kMaxZDiff;dz_x&lt;=3DkMaxZDiff;++dz_x) {
+ 				Ogre::Vector3 n =3D Ogre::Vector3(2,0,dz_x*mfZUnit).crossProduct(Ogre:=
+:<i>Vector3(0,2,dz_y*mfZUnit)).normalisedCopy();
+</I>@@ -277,29 +343,51 @@
+ 			}
+ 		}
+ 		=
+
+-		// load nearby blocks
+-		if (pGroundBlockLoader-&gt;PrepareGroupLoading(bx,by,1)) {
++		if (1) {
++			// new(10.01.2009) code including caching here (instead of in loader), =
+better anyway for -1 .. T+2  Zarr
++			pGroundBlockLoader-&gt;PrepareGroupLoading(bx,by,1); // not really needed,=
+ but might increase performance here a bit if someone implements it someday=
+ *g*
++			BlockCacheLoadArea(*pGroundBlockLoader,bx,by,1);
+ 			for (y=3D0;y&lt;3;++y)
+ 			for (x=3D0;x&lt;3;++x) {
+-				cGroundBlock* pGroundBlock =3D pGroundBlockLoader-&gt;GetGroundBlock(bx+x=
+-1,by+y-1);
+-				mpBlocks[y*3+x] =3D pGroundBlock ? pGroundBlock-&gt;mpRawGroundBlock : &amp;m=
+yVoidBlock;
++				mpBlocks[y*3+x] =3D &amp;GetBlockCache(bx+x-1,by+y-1).mBlock;
++			}
++			// load z buffers to cache, each is used 4 times during vertex writing,=
+ and 4 times during normal calc
++			cMultiTexTerrainBlockCache&amp; b =3D GetBlockCache(bx,by);
++			mZ =3D b.mZCache;
++			if (sizeof(b.mZCache) !=3D sizeof(mZOld)) { mZ =3D mZOld; printf(&quot;multi=
+tex terrain : blocksize mismatch (T !=3D 8?) !!!\n&quot;); }
++			if (!b.mbZCacheValid) {
++				b.mbZCacheValid =3D true;
++				for (y=3D-1;y&lt;=3DT+1;++y) =
+
++				for (x=3D-1;x&lt;=3DT+1;++x) mZ[(y+1)*(T+3)+(x+1)] =3D GetZRaw(x,y); // i=
+nit cache for use by GetZ
+ 			}
+ 		} else {
+-			// group loading doesn't work, so we'll have to copy
+-			static bool bPrintWarning =3D true; // only print the warning once
+-			if (bPrintWarning) { printf(&quot;warning : terrain : groundblock loader doe=
+sn't support group loading, falling back to copy, but it's a bit slower (gr=
+oup loading not implemented yet)\n&quot;); bPrintWarning =3D false; }
+-			static RawGroundBlock myCopyBlocks[3*3];
+-			for (y=3D0;y&lt;3;++y)
+-			for (x=3D0;x&lt;3;++x) {
+-				cGroundBlock* pGroundBlock =3D pGroundBlockLoader-&gt;GetGroundBlock(bx+x=
+-1,by+y-1);
+-				if (pGroundBlock) memcpy(&amp;myCopyBlocks[y*3+x],pGroundBlock-&gt;mpRawGroun=
+dBlock,sizeof(RawGroundBlock));
+-				mpBlocks[y*3+x] =3D pGroundBlock ? &amp;myCopyBlocks[y*3+x] : &myVoidBlock;
+-			}
+-		}
+-		=
+
+-		// load z buffers to cache, each is used 4 times during vertex writing, =
+and 4 times during normal calc
+-		for (y=3D-1;y&lt;=3DT+1;++y) =
+
+-		for (x=3D-1;x&lt;=3DT+1;++x) mZ[(y+1)*(T+3)+(x+1)] =3D GetZRaw(x,y); // ini=
+t cache for use by GetZ
++			// old, uncached code
++			=
+
++			// load nearby blocks
++			if (pGroundBlockLoader-&gt;PrepareGroupLoading(bx,by,1)) {
++				for (y=3D0;y&lt;3;++y)
++				for (x=3D0;x&lt;3;++x) {
++					cGroundBlock* pGroundBlock =3D pGroundBlockLoader-&gt;GetGroundBlock(bx+=
+x-1,by+y-1);
++					mpBlocks[y*3+x] =3D pGroundBlock ? pGroundBlock-&gt;mpRawGroundBlock : &amp;=
+gMultiTexTerrainVoidBlock;
++				}
++			} else {
++				// group loading doesn't work, so we'll have to copy
++				static bool bPrintWarning =3D true; // only print the warning once
++				if (bPrintWarning) { printf(&quot;warning : terrain : groundblock loader do=
+esn't support group loading, falling back to copy, but it's a bit slower (g=
+roup loading not implemented yet)\n&quot;); bPrintWarning =3D false; }
++				static RawGroundBlock myCopyBlocks[3*3];
++				for (y=3D0;y&lt;3;++y)
++				for (x=3D0;x&lt;3;++x) {
++					cGroundBlock* pGroundBlock =3D pGroundBlockLoader-&gt;GetGroundBlock(bx+=
+x-1,by+y-1);
++					if (pGroundBlock) memcpy(&amp;myCopyBlocks[y*3+x],pGroundBlock-&gt;mpRawGrou=
+ndBlock,sizeof(RawGroundBlock));
++					mpBlocks[y*3+x] =3D pGroundBlock ? &amp;myCopyBlocks[y*3+x] : &amp;gMultiTexT=
+errainVoidBlock;
++				}
++			}
++			=
+
++			// load z buffers to cache, each is used 4 times during vertex writing,=
+ and 4 times during normal calc
++			mZ =3D mZOld;
++			for (y=3D-1;y&lt;=3DT+1;++y) =
+
++			for (x=3D-1;x&lt;=3DT+1;++x) mZ[(y+1)*(T+3)+(x+1)] =3D GetZRaw(x,y); // in=
+it cache for use by GetZ
++		}
+ 	}
+ 	=
+
+ 	/// pWriter should point to a locked vertex buffer (vram)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001655.html">[Iris-commit] [IRIS] r2853 - /trunk/lua/filter/filter.art.lua
+</A></li>
+	<LI>Next message: <A HREF="001657.html">[Iris-commit] [IRIS] r2855 - in /trunk: lua/lib.2d.mousepick.lua lua/lib.3d.mousepick.lua lua/lib.mapblock.2d.terrain.lua lua/lib.mapblock.base.lua src/terrain_multitex.cpp
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1656">[ date ]</a>
+              <a href="thread.html#1656">[ thread ]</a>
+              <a href="subject.html#1656">[ subject ]</a>
+              <a href="author.html#1656">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

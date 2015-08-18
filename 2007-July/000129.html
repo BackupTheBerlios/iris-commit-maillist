@@ -1,0 +1,165 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1313 - in /trunk/data/lua: lib.3d.map.lua lib.3d.renderer.lua lib.static.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2007-July/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1313%20-%20in%20/trunk/data/lua%3A%20lib.3d.map.lua%0A%20lib.3d.renderer.lua%20lib.static.lua&In-Reply-To=%3C20070729214134.892B3B140B4%40localhost.localdomain%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000128.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1313 - in /trunk/data/lua: lib.3d.map.lua lib.3d.renderer.lua lib.static.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1313%20-%20in%20/trunk/data/lua%3A%20lib.3d.map.lua%0A%20lib.3d.renderer.lua%20lib.static.lua&In-Reply-To=%3C20070729214134.892B3B140B4%40localhost.localdomain%3E"
+       TITLE="[Iris-commit] [IRIS] r1313 - in /trunk/data/lua: lib.3d.map.lua lib.3d.renderer.lua lib.static.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sun Jul 29 23:41:34 CEST 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000128.html">[Iris-commit] [IRIS] r1312 - in /trunk: bin/iris2.exe data/lua/lib.3d.map.lua data/lua/lib.data.lua
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#129">[ date ]</a>
+              <a href="thread.html#129">[ thread ]</a>
+              <a href="subject.html#129">[ subject ]</a>
+              <a href="author.html#129">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: sience
+Date: Sun Jul 29 23:41:33 2007
+New Revision: 1313
+
+Log:
+-fix for ingame seasonschanges (needs more memory, every seasonal translati=
+on is now cached)
+
+Modified:
+    trunk/data/lua/lib.3d.map.lua
+    trunk/data/lua/lib.3d.renderer.lua
+    trunk/data/lua/lib.static.lua
+
+Modified: trunk/data/lua/lib.3d.map.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.3d.map.lua (original)
++++ trunk/data/lua/lib.3d.map.lua Sun Jul 29 23:41:33 2007
+@@ -211,9 +211,9 @@
+ 						table.insert(chunk.lStaticEntities,entity)
+ =
+
+ 					elseif (gEnableFallBackBillboards_Statics) then
+-						-- fallback to billboard with original art or =
+
+-						=
+
++						-- fallback to billboard with original art or						=
+
+ 						local iTranslatedTileTypeID =3D TranslateTileTypeID(iTileTypeID + 16=
+384, gSeasonSetting)
++
+ 						if (not IsArtBillboardFallBackSkipped(iTileTypeID)) then
+ 							entity.x,entity.y,entity.z =3D self:UOPosToLocal(entity.xloc+0.5,en=
+tity.yloc+0.5,entity.zloc*0.1 + 0.5)
+ 							entity.gfx =3D CreateRootGfx3D()
+
+Modified: trunk/data/lua/lib.3d.renderer.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.3d.renderer.lua (original)
++++ trunk/data/lua/lib.3d.renderer.lua Sun Jul 29 23:41:33 2007
+@@ -794,10 +794,6 @@
+ 			if( BitwiseAND(arrtiletype.miFlags or 0,kTileDataFlag_LightSource) ~=3D=
+ 0 ) then
+ 				local x,y,z =3D Renderer3D:UOPosToLocal(item.xloc,item.yloc,(item.zloc=
++arrtiletype.miHeight) * 0.1)
+ 				Client_AddPointLight(x,y,z, 0.3,0.3,0.0, 0.3,0.3,0.0, 5.0,0.1,0.1,0.0)
+---				print(&quot;lichtquelle artid=3D&quot;..item.artid)
+---				print(&quot;item.xloc+item.xadd=3D&quot;..x)
+---				print(&quot;item.yloc+item.yadd=3D&quot;..y)
+---				print(&quot;item.zloc+item.zadd=3D&quot;..z)
+ 			end
+ 			end
+ =
+
+@@ -816,6 +812,7 @@
+ =
+
+ 		elseif (gEnableFallBackBillboards_Dynamics) then
+ 			local iTranslatedTileTypeID =3D TranslateTileTypeID(item.artid + 16384,=
+ gSeasonSetting)
++
+ 			--print(&quot;######DYNAMIC MESH NOT FOUND : &quot;,item.artid,iTranslatedTileTyp=
+eID)
+ 			--print(&quot;######&quot;,vardump(GetStaticTileType(item.artid)))
+ 			-- fallback to billboard with original art or =
+
+
+Modified: trunk/data/lua/lib.static.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.static.lua (original)
++++ trunk/data/lua/lib.static.lua Sun Jul 29 23:41:33 2007
+@@ -79,7 +79,7 @@
+ 	-- hue default value is 0
+ 	iHue =3D iHue or 0
+ =
+
+-	local meshname =3D gLegacyModelCache[iTileTypeID..&quot;_&quot;..iHue]
++	local meshname =3D gLegacyModelCache[iTranslatedTileTypeID..&quot;_&quot;..iHue]
+ 	if (meshname =3D=3D nil) then
+ 		-- try to load the new models
+ 		if gUseNewModelLoader then
+@@ -121,9 +121,9 @@
+ 			meshname =3D gLegacyModelAndTextureLoader:CreateMesh(iTranslatedTileTyp=
+eID)
+ 			printdebug(&quot;static&quot;,&quot;used OLD model loader:&quot;,iTranslatedTileTypeID,iHue=
+,meshname)
+ 		end
+-		=
+
++
+ 		if (meshname =3D=3D &quot;&quot;) then meshname =3D nil end
+-		gLegacyModelCache[iTileTypeID..&quot;_&quot;..iHue] =3D meshname
++		gLegacyModelCache[iTranslatedTileTypeID..&quot;_&quot;..iHue] =3D meshname
+ 	end
+ 	return meshname
+ end
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000128.html">[Iris-commit] [IRIS] r1312 - in /trunk: bin/iris2.exe data/lua/lib.3d.map.lua data/lua/lib.data.lua
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#129">[ date ]</a>
+              <a href="thread.html#129">[ thread ]</a>
+              <a href="subject.html#129">[ subject ]</a>
+              <a href="author.html#129">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,164 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r3402 - in /trunk/lua: lib.2d.renderer.lua lib.3d.cam.lua lib.devtool.lua lib.macrolist.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2011-November/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3402%20-%20in%20/trunk/lua%3A%20lib.2d.renderer.lua%0A%20lib.3d.cam.lua%20lib.devtool.lua%20lib.macrolist.lua&In-Reply-To=%3C20111109220702.998ED54D0007%40simon%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="002141.html">
+   <LINK REL="Next"  HREF="002143.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r3402 - in /trunk/lua: lib.2d.renderer.lua lib.3d.cam.lua lib.devtool.lua lib.macrolist.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3402%20-%20in%20/trunk/lua%3A%20lib.2d.renderer.lua%0A%20lib.3d.cam.lua%20lib.devtool.lua%20lib.macrolist.lua&In-Reply-To=%3C20111109220702.998ED54D0007%40simon%3E"
+       TITLE="[Iris-commit] [IRIS] r3402 - in /trunk/lua: lib.2d.renderer.lua lib.3d.cam.lua lib.devtool.lua lib.macrolist.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Wed Nov  9 23:07:02 CET 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="002141.html">[Iris-commit] [IRIS] r3401 - in /trunk/lua: filter/filter.art.lua lib.static.lua net/net.login.lua
+</A></li>
+        <LI>Next message: <A HREF="002143.html">[Iris-commit] [IRIS] r3404 - in /trunk: data/base/ data/models/textures/ data/terrain/multitex/parts/ lua/filter/
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2142">[ date ]</a>
+              <a href="thread.html#2142">[ thread ]</a>
+              <a href="subject.html#2142">[ subject ]</a>
+              <a href="author.html#2142">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Wed Nov  9 23:07:02 2011
+New Revision: 3402
+
+Log:
+devtool : search static : automatically subtract 0x4000 if above, can't be =
+static due to multi-id. also automatically set free cam mode  to avoid inst=
+ant jumpback in 3rd person cam
+
+Modified:
+    trunk/lua/lib.2d.renderer.lua
+    trunk/lua/lib.3d.cam.lua
+    trunk/lua/lib.devtool.lua
+    trunk/lua/lib.macrolist.lua
+
+Modified: trunk/lua/lib.2d.renderer.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.renderer.lua (original)
++++ trunk/lua/lib.2d.renderer.lua Wed Nov  9 23:07:02 2011
+@@ -218,6 +218,7 @@
+ =
+
+ function Renderer2D:InitLocalCam				(x,y,z) end -- ??? offline mode ?
+ function Renderer2D:ChangeCamMode				() end
++function Renderer2D:FreeCamMode					() end
+ function Renderer2D:SelectMobile				() end
+ function Renderer2D:DeselectMobile				() end
+ function Renderer2D:UpdateTrackingArrow			(...) end -- tracking skill, not=
+ yet implemented
+
+Modified: trunk/lua/lib.3d.cam.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.cam.lua (original)
++++ trunk/lua/lib.3d.cam.lua Wed Nov  9 23:07:02 2011
+@@ -158,6 +158,7 @@
+ end
+ =
+
+ -- targetmode can be nil, then the current mode is simply increased
++function Renderer3D:FreeCamMode	  () self:ChangeCamMode(Renderer3D.kCamMod=
+e_FreeMove) end
+ function Renderer3D:ChangeCamMode (targetmode) =
+
+     targetmode =3D targetmode or self.gCamMode + 1
+     self.gCamMode =3D targetmode
+
+Modified: trunk/lua/lib.devtool.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.devtool.lua (original)
++++ trunk/lua/lib.devtool.lua Wed Nov  9 23:07:02 2011
+@@ -119,6 +119,7 @@
+ =
+
+ -- searches for a static tiletype and teleports the cam there
+ function DevToolSearchStatic (iSearchTileTypeID)
++	if (iSearchTileTypeID &gt; 0x4000) then iSearchTileTypeID =3D iSearchTileTyp=
+eID - 0x4000 end -- multi-range, floor tiles etc ? =
+
+     local xloc,yloc,zloc =3D SearchStaticType(iSearchTileTypeID) =
+
+     print(&quot;DevToolSearchStatic&quot;,iSearchTileTypeID,&quot;(&quot;,xloc,yloc,zloc,&quot;)&quot;)
+     if (xloc) then DevToolTeleportCam(xloc,yloc,zloc) return true end
+@@ -126,6 +127,7 @@
+ =
+
+ function DevToolTeleportCam (xloc,yloc,zloc)
+     print(&quot;DevToolTeleportCam&quot;,xloc,yloc,zloc)
++	MacroCmd_FreeCamMode()
+     local x,y,z =3D Renderer3D:UOPosToLocal(xloc,yloc,zloc*0.1) =
+
+     GetMainCam():SetPos(x,y,z+1)
+ end
+
+Modified: trunk/lua/lib.macrolist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.macrolist.lua (original)
++++ trunk/lua/lib.macrolist.lua Wed Nov  9 23:07:02 2011
+@@ -173,6 +173,7 @@
+ =
+
+ function MacroCmd_Say                   (text,textmode)  if (gInGameStarte=
+d) then SendChat(text,nil,nil,textmode) end end
+ function MacroCmd_NextCamMode           ()      gCurrentRenderer:ChangeCam=
+Mode() end
++function MacroCmd_FreeCamMode           ()      gCurrentRenderer:FreeCamMo=
+de() end
+ function MacroCmd_BandageSelf           ()      SendBandageSelf() end
+ function MacroCmd_Quit                  ()      Terminate() end
+ function MacroCmd_RepeatLastChat        ()      if (gInGameStarted) then I=
+risChatLine_RepeatLast() end end
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="002141.html">[Iris-commit] [IRIS] r3401 - in /trunk/lua: filter/filter.art.lua lib.static.lua net/net.login.lua
+</A></li>
+	<LI>Next message: <A HREF="002143.html">[Iris-commit] [IRIS] r3404 - in /trunk: data/base/ data/models/textures/ data/terrain/multitex/parts/ lua/filter/
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2142">[ date ]</a>
+              <a href="thread.html#2142">[ thread ]</a>
+              <a href="subject.html#2142">[ subject ]</a>
+              <a href="author.html#2142">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

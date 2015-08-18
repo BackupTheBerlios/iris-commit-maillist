@@ -1,0 +1,258 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2272 - in /trunk/lua: gui/gui.gumpparser.lua lib.iris_atlasgroup.lua lib.unifont.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-June/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2272%20-%20in%20/trunk/lua%3A%20gui/gui.gumpparser.lua%0A%20lib.iris_atlasgroup.lua%20lib.unifont.lua&In-Reply-To=%3C20080630132233.6F9061C18060%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001079.html">
+   <LINK REL="Next"  HREF="001081.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2272 - in /trunk/lua: gui/gui.gumpparser.lua lib.iris_atlasgroup.lua lib.unifont.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2272%20-%20in%20/trunk/lua%3A%20gui/gui.gumpparser.lua%0A%20lib.iris_atlasgroup.lua%20lib.unifont.lua&In-Reply-To=%3C20080630132233.6F9061C18060%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2272 - in /trunk/lua: gui/gui.gumpparser.lua lib.iris_atlasgroup.lua lib.unifont.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Mon Jun 30 15:22:33 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001079.html">[Iris-commit] [IRIS] r2271 - in /trunk: lua/gui/gui.gumpparser.lua lua/lib.unifont.lua widgets/widget.uotext.lua
+</A></li>
+        <LI>Next message: <A HREF="001081.html">[Iris-commit] [IRIS] r2273 - in /trunk: lua/gui/gui.gumpparser.lua lua/lib.iris_atlasgroup.lua lua/lib.unifont.lua widgets/widget.uoimage.lua widgets/widget.uotext.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1080">[ date ]</a>
+              <a href="thread.html#1080">[ thread ]</a>
+              <a href="subject.html#1080">[ subject ]</a>
+              <a href="author.html#1080">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Mon Jun 30 15:22:33 2008
+New Revision: 2272
+
+Log:
+font and gumpparser preloading
+
+Modified:
+    trunk/lua/gui/gui.gumpparser.lua
+    trunk/lua/lib.iris_atlasgroup.lua
+    trunk/lua/lib.unifont.lua
+
+Modified: trunk/lua/gui/gui.gumpparser.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.gumpparser.lua (original)
++++ trunk/lua/gui/gui.gumpparser.lua Mon Jun 30 15:22:33 2008
+@@ -395,6 +395,7 @@
+ kGumpParser_CommandTypes[&quot;textentry&quot;]			=3D {paramformat=3D&quot;x,y,width,heig=
+ht,hue,return_value,textline_id_default,[ctrlname]&quot;}
+ kGumpParser_CommandTypes[&quot;gumppic&quot;]				=3D {paramformat=3D&quot;x,y,gump_id,...=
+&quot;}
+ 				=
+
++
+ function GumpParser_New (Gumpdata, bClientSideMode)
+ 	-- if there is a dialog with the same id, close it
+ 	GumpParser_CloseOldDialog(Gumpdata.dialogId,Gumpdata.playerid,bClientSide=
+Mode)
+@@ -408,6 +409,9 @@
+ 	=
+
+ 	-- parse gump code
+ 	local command_chunks =3D {}
++	local profiler =3D MakeProfiler(&quot;gumpparser&quot;,&quot;preload&quot;)
++	PreLoadGump_Start()
++	PreLoadArt_Start()
+ 	for k,v in pairs(strsplit(&quot;{&quot;,Gumpdata.Data)) do
+ 		local bToken =3D {}
+ 		for token in string.gfind(v, &quot;%w+&quot;) do table.insert(bToken,token) end
+@@ -422,8 +426,18 @@
+ 		=
+
+ 		table.insert(command_chunks,{command,bToken,param})
+ 		=
+
+-		-- todo : precache gumps,artids and cliloc strings
+-	end
++		-- preload gumps,artids and maybe unicode chars from cliloc and textline=
+s, texatlas bulk loading
++		--~ PreLoadCliloc(param.cliloc_id) -- later : unicode glyphs for font ?
++		if (param) then =
+
++			PreLoadGump(param.gump_id_normal)
++			PreLoadGump(param.gump_id_pressed)
++			PreLoadGump(param.gump_id,param.hue)
++			PreLoadArt(param.art_id,param.hue)
++		end
++	end
++	PreLoadGump_End()
++	PreLoadArt_End()
++	profiler:FinishAndPrint()
+ 	=
+
+ 	for k,command_chunk in pairs(command_chunks) do =
+
+ 		local command,bToken,param =3D unpack(command_chunk)
+
+Modified: trunk/lua/lib.iris_atlasgroup.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.iris_atlasgroup.lua (original)
++++ trunk/lua/lib.iris_atlasgroup.lua Mon Jun 30 15:22:33 2008
+@@ -7,6 +7,14 @@
+ =
+
+ gAtlasGroup_Gump	=3D CreateAtlasGroup(kIrisAtlasGroupSize,kIrisAtlasGroupS=
+ize)
+ gAtlasGroup_Art		=3D CreateAtlasGroup(kIrisAtlasGroupSize,kIrisAtlasGroupS=
+ize)
++
++function PreLoadGump_Start	() 				gAtlasGroup_Gump:PreLoad_Start()		end
++function PreLoadGump		(gump_id,hue)	if (gump_id) then gAtlasGroup_Gump:Pre=
+Load(gump_id,hue) end end
++function PreLoadGump_End	()				gAtlasGroup_Gump:PreLoad_End()			end
++
++function PreLoadArt_Start	()				gAtlasGroup_Art:PreLoad_Start()			end	=
+
++function PreLoadArt			(art_id,hue)	if (art_id) then gAtlasGroup_Art:PreLoa=
+d(art_id,hue) end end
++function PreLoadArt_End		()				gAtlasGroup_Art:PreLoad_End()			end	=
+
+ =
+
+ -- returns matname,u0,v0,uvw,uvh,origw,origh,bitmask
+ function LoadGump	(basemat,gump_id,hue) =
+
+
+Modified: trunk/lua/lib.unifont.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.unifont.lua (original)
++++ trunk/lua/lib.unifont.lua Mon Jun 30 15:22:33 2008
+@@ -45,8 +45,14 @@
+ 	SpriteList_Close()
+ ]]--
+ =
+
++function UniFont_AtlasUpdate ()
++	if (not gUniFontLastTextureAtlas.bDirty) then return end
++	gUniFontLastTextureAtlas:LoadToTexture(gUniFontLastTextureAtlas.texname) =
+-- update existing texture
++	gUniFontLastTextureAtlas.bDirty =3D false
++end
++	=
+
+ -- matname,u0,v0,u1,v1
+-function UniFont_AddImageToAtlas (glyphimg)
++function UniFont_AddImageToAtlas (glyphimg,bAvoidAtlasUpdate)
+ 	local w =3D gUniFontTexAtlasSize
+ 	if (gUniFontLastTextureAtlas =3D=3D nil) then gUniFontLastTextureAtlas =
+=3D CreateTexAtlas(w,w) end -- only first time
+ 	=
+
+@@ -54,6 +60,7 @@
+ 	local bSuccess,l,r,t,b =3D gUniFontLastTextureAtlas:AddImage(glyphimg)
+ 	if (not bSuccess) then =
+
+ 		-- not more space in the old atlas, start a new one
++		UniFont_AtlasUpdate()
+ 		gUniFontLastTextureAtlas =3D CreateTexAtlas(w,w)
+ 		bSuccess,l,r,t,b =3D gUniFontLastTextureAtlas:AddImage(glyphimg)
+ 		if (not bSuccess) then print(&quot;warning, glyph too big for texatlas&quot;) retu=
+rn end
+@@ -61,7 +68,8 @@
+ 	=
+
+ 	-- create or update texatlas
+ 	if (gUniFontLastTextureAtlas.texname) then =
+
+-		gUniFontLastTextureAtlas:LoadToTexture(gUniFontLastTextureAtlas.texname)=
+ -- update existing texture
++		gUniFontLastTextureAtlas.bDirty =3D true
++		if (not bAvoidAtlasUpdate) then UniFont_AtlasUpdate() end
+ 	else
+ 		gUniFontLastTextureAtlas.texname =3D gUniFontLastTextureAtlas:MakeTextur=
+e() -- generate new texture
+ 		gUniFontLastTextureAtlas.matname =3D GetPlainTextureGUIMat(gUniFontLastT=
+extureAtlas.texname)
+@@ -73,7 +81,7 @@
+ =
+
+ -- texname,u0,v0,u1,v1,xoff,yoff,w,h
+ -- bold=3Doutline for uo html
+-function GetUniFontGlyph (fontloader,iCharCode,bOutlined)
++function GetUniFontGlyph (fontloader,iCharCode,bOutlined,bAvoidAtlasUpdate)
+ 	if (not fontloader.glyphs) then fontloader.glyphs =3D {} end
+ 	if (not fontloader.glyphs_outlined) then fontloader.glyphs_outlined =3D {=
+} end
+ 	local cachearr =3D bOutlined and fontloader.glyphs_outlined or fontloader=
+.glyphs
+@@ -87,7 +95,7 @@
+ 	local success =3D fontloader:WriteGlyphToImage(img,iCharCode,bOutlined)
+ 	if (success) then
+ 		local xoff,yoff,w,h =3D fontloader:GetGlyphInfo(iCharCode)
+-		local matname,u0,v0,u1,v1 =3D UniFont_AddImageToAtlas(img)
++		local matname,u0,v0,u1,v1 =3D UniFont_AddImageToAtlas(img,bAvoidAtlasUpd=
+ate)
+ 		if (matname) then glyphdata =3D {matname,u0,v0,u1,v1,xoff,yoff,w,h} end
+ 	end
+ 	img:Destroy()
+@@ -121,9 +129,9 @@
+ 	myfont.GetLineHeight		=3D function (self,fontsize) return self.defaultlin=
+eh end
+ 	myfont.PreLoad				=3D function (self,preloadletters) =
+
+ 		preloadletters =3D preloadletters or &quot;abcdefghijklmnopqrstuvwxyzABCDEFGH=
+IJKLMNOPQRSTUVWXYZ01234567890:.&quot;
+-		local fontsize =3D self:GetDefaultFontSize()
+ 		local textlen =3D string.len(preloadletters)
+-		for i=3D1,textlen do self:GetGlyphInfo(string.byte(preloadletters,i),fon=
+tsize) end
++		for i=3D1,textlen do GetUniFontGlyph(loader,string.byte(preloadletters,i=
+),self.bOutlined,true) end -- bulkloading
++		UniFont_AtlasUpdate()
+ 	end
+ 	myfont.GetGlyphInfo			=3D function (self,iCharCode,fontsize) =
+
+ 		local matname,u0,v0,u1,v1,xoff,yoff,w,h =3D GetUniFontGlyph(loader,iChar=
+Code,self.bOutlined)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001079.html">[Iris-commit] [IRIS] r2271 - in /trunk: lua/gui/gui.gumpparser.lua lua/lib.unifont.lua widgets/widget.uotext.lua
+</A></li>
+	<LI>Next message: <A HREF="001081.html">[Iris-commit] [IRIS] r2273 - in /trunk: lua/gui/gui.gumpparser.lua lua/lib.iris_atlasgroup.lua lua/lib.unifont.lua widgets/widget.uoimage.lua widgets/widget.uotext.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1080">[ date ]</a>
+              <a href="thread.html#1080">[ thread ]</a>
+              <a href="subject.html#1080">[ subject ]</a>
+              <a href="author.html#1080">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

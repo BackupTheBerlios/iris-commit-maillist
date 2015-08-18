@@ -1,0 +1,361 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r3237 - in /trunk/lua: lib.macrolist.lua lib.objectpicker.lua net/net.objectpicker.lua net/net.trade.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2010-January/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3237%20-%20in%20/trunk/lua%3A%20lib.macrolist.lua%0A%20lib.objectpicker.lua%20net/net.objectpicker.lua%20net/net.trade.lua&In-Reply-To=%3C20100126132427.C699954D0039%40simon%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001996.html">
+   <LINK REL="Next"  HREF="001998.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r3237 - in /trunk/lua: lib.macrolist.lua lib.objectpicker.lua net/net.objectpicker.lua net/net.trade.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3237%20-%20in%20/trunk/lua%3A%20lib.macrolist.lua%0A%20lib.objectpicker.lua%20net/net.objectpicker.lua%20net/net.trade.lua&In-Reply-To=%3C20100126132427.C699954D0039%40simon%3E"
+       TITLE="[Iris-commit] [IRIS] r3237 - in /trunk/lua: lib.macrolist.lua lib.objectpicker.lua net/net.objectpicker.lua net/net.trade.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Tue Jan 26 14:24:27 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001996.html">[Iris-commit] [IRIS] r3236 - /trunk/config/shards/pangaea.xml
+</A></li>
+        <LI>Next message: <A HREF="001998.html">[Iris-commit] [IRIS] r3238 - /trunk/premake.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1997">[ date ]</a>
+              <a href="thread.html#1997">[ thread ]</a>
+              <a href="subject.html#1997">[ subject ]</a>
+              <a href="author.html#1997">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Tue Jan 26 14:24:27 2010
+New Revision: 3237
+
+Log:
+new macro tools : MacroCmd_QueuePickObject MacroCmd_QueueStringQueryRespons=
+e MacroCmd_RegisterTimeoutListener MacroCmd_PlayerPoisoned, utils for strin=
+gquery and objectpicker gump : old, seen on pol shard
+
+Modified:
+    trunk/lua/lib.macrolist.lua
+    trunk/lua/lib.objectpicker.lua
+    trunk/lua/net/net.objectpicker.lua
+    trunk/lua/net/net.trade.lua
+
+Modified: trunk/lua/lib.macrolist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.macrolist.lua (original)
++++ trunk/lua/lib.macrolist.lua Tue Jan 26 14:24:27 2010
+@@ -43,6 +43,8 @@
+ function GetPlayerTithingPoints() return GetMobileStat(GetPlayerMobile(),&quot;=
+tithing&quot;) end
+ function IsPlayerHidden() local mobile =3D GetPlayerMobile() return mobile=
+ and mobile.flag_hidden end
+ =
+
++function MacroCmd_PlayerPoisoned () return MacroCmd_MobilePoisoned(GetPlay=
+erMobile()) end
++function MacroCmd_PlayerMortaled () return MacroCmd_MobileMortaled(GetPlay=
+erMobile()) end
+ function MacroCmd_MobilePoisoned (mobile) return mobile and IsMobilePoison=
+ed(mobile) end
+ function MacroCmd_MobileMortaled (mobile) return mobile and IsMobileMortal=
+ed(mobile) end
+ =
+
+@@ -512,8 +514,11 @@
+     =
+
+ =
+
+ function MacroCmd_RiseText (r,g,b,text,serial)
++	text =3D tostring(text)
++	print(&quot;MacroCmd_RiseText&quot;,text)
+     serial =3D serial or GetPlayerSerial()
+     if (SpellBarRiseTextOnMob) then SpellBarRiseTextOnMob(serial,r,g,b,tex=
+t) end
++	GuiAddChatLine(text,{r,g,b,1},&quot;normal&quot;,&quot;script&quot;)
+ end
+ =
+
+ function MacroCmd_Item_Use  (item) if (item) then Send_DoubleClick(item.se=
+rial) return item end end
+@@ -820,6 +825,29 @@
+ 	return MacroCmd_WaitForListener(&quot;Hook_Text&quot;,function (name,plaintext,seri=
+al,data)  =
+
+ 			for k,text in pairs(textlist) do if (string.find(plaintext,text)) then =
+return k,plaintext,data end end =
+
+ 		end,timeout_delay or 9000) =
+
++end
++
++
++function MacroCmd_JobWaitAndPickObject (index,timeout_delay) =
+
++	assert(index) =
+
++	return MacroCmd_WaitForListener(&quot;Hook_ObjectPicker&quot;,function (data) data.=
+SendPickedObject(index) return true end,timeout_delay or 500) =
+
++end
++
++function MacroCmd_JobWaitAndStringQueryResponse (response,timeout_delay)
++	assert(response) =
+
++	return MacroCmd_WaitForListener(&quot;Hook_StringQuery&quot;,function (data) data.S=
+endText(response) return true end,timeout_delay or 500)
++end
++
++function MacroCmd_QueuePickObject			(index,timeout_delay)		job.create(func=
+tion () MacroCmd_JobWaitAndPickObject(index,timeout_delay) end) end
++function MacroCmd_QueueStringQueryResponse	(response,timeout_delay)	job.cr=
+eate(function () MacroCmd_JobWaitAndStringQueryResponse(response,timeout_de=
+lay) end) end
++
++function MacroCmd_RegisterTimeoutListener (listenername,fun,timeout_delay)
++	timeout_delay =3D timeout_delay or 1000
++	local timeout =3D gMyTicks+timeout_delay
++	RegisterListener(listenername,function (...) =
+
++		if (gMyTicks &gt; timeout) then return true end
++		return fun(...)
++		end)
+ end
+ =
+
+ -- call from a job! (see job.create)
+
+Modified: trunk/lua/lib.objectpicker.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.objectpicker.lua (original)
++++ trunk/lua/lib.objectpicker.lua Tue Jan 26 14:24:27 2010
+@@ -10,30 +10,54 @@
+ 	local a =3D {}
+ 	local b =3D {}
+ 	local c =3D {}
+-	local rows =3D { {{type=3D&quot;Label&quot;,	text=3Dquestion},},a,b,c }
++	local d =3D {}
++	local e =3D {}
++	local cancelrow =3D {}
++	local rows =3D { {{type=3D&quot;Label&quot;,	text=3Dquestion},},a,b,c,d,e,cancelrow=
+ }
+ 	=
+
+-	for k,entry in pairs(data.entrylist) do =
+
++	function data.SendPickedObject (index)
++		if (not data.dialog) then return end
++		local entry =3D data.entrylist[index] =
+
++		if (not entry) then print(&quot;ObjectPicker:SendPickedObject: entry not foun=
+d&quot;,index) return end
++		Send_Picked_Object(data.dialogid,data.menuid,entry.index,entry.artid,ent=
+ry.hue)
++		data.dialog:Destroy()
++		data.dialog =3D nil
++	end
++	--~ MacroCmd_QueueStringQueryResponse()
++	=
+
++	for k,entry in ipairs(data.entrylist) do =
+
+ 		table.insert(a	,MakeUOArtImageForDialog(entry.artid,entry.hue,64,64))
+-		table.insert(b	,{type=3D&quot;Label&quot;,	text=3Dentry.name})
+-		table.insert(c	,{type=3D&quot;Button&quot;,onMouseDown=3Dfunction(widget) =
+
+-			Send_Picked_Object(data.dialogid,data.menuid,k,entry.artid,entry.hue)
+-			widget.dialog:Destroy() end,text=3D&quot;choose&quot;})
++		table.insert(b	,{type=3D&quot;Label&quot;,	text=3Dentry.name..&quot; &quot;})
++		table.insert(c	,{type=3D&quot;Button&quot;,onMouseDown=3Dfunction(widget) data.Sen=
+dPickedObject(entry.index) end,text=3D&quot;choose&quot;})
++		table.insert(d	,{type=3D&quot;Button&quot;,onMouseDown=3Dfunction(widget) data.Sen=
+dPickedObject(entry.index) MacroCmd_QueueStringQueryResponse(&quot;10&quot;) end,text=
+=3D&quot;10&quot;})
++		table.insert(e	,{type=3D&quot;Button&quot;,onMouseDown=3Dfunction(widget) data.Sen=
+dPickedObject(entry.index) MacroCmd_QueueStringQueryResponse(&quot;30&quot;) end,text=
+=3D&quot;30&quot;})
+ 	end
++	table.insert(cancelrow	,{type=3D&quot;Button&quot;,onMouseDown=3Dfunction(widget) S=
+end_Picked_Object_Cancel() widget.dialog:Destroy() end,text=3D&quot;cancel&quot;})
+ 	=
+
+-	local dialog =3D guimaker.MakeTableDlg(rows,100,10,true,true,gGuiDefaultS=
+tyleSet,&quot;window&quot;)
++	data.dialog =3D guimaker.MakeTableDlg(rows,100,10,true,true,gGuiDefaultSt=
+yleSet,&quot;window&quot;)
++	NotifyListener(&quot;Hook_ObjectPicker&quot;,data)
+ end
+ =
+
+ function HandleStringQuery (data)
+ 	print(&quot;HandleStringQuery&quot;,data.id,data.parentid,data.buttonid)
++	function data.SendText (txt)
++		if (not data.dialog) then return end
++		txt =3D tostring(txt)
++		print(&quot;HandleStringQuery res=3D&quot;,txt)
++		Send_String_Query_Response(data.id,data.parentid,data.buttonid,txt)
++		data.dialog:Destroy()
++		data.dialog =3D nil
++	end
+ 	local rows =3D {
+ 		{ {data.text} },
+ 		{ {type=3D&quot;EditText&quot;,controlname=3D&quot;entry&quot;,w=3D200,h=3D24,text=3Ddata.te=
+xt2} },
+-		{ {&quot;OK&quot;,function (widget) =
+
+-				local txt =3D widget.dialog.controls[&quot;entry&quot;]:GetText() or &quot;&quot;
+-				print(&quot;HandleStringQuery&quot;,txt)
+-				Send_String_Query_Response(data.id,data.parentid,data.buttonid,txt)
+-				widget.dialog:Destroy()
+-			end} },
++		{ {&quot;OK&quot;,function (widget) data.SendText(widget.dialog.controls[&quot;entry&quot;]:=
+GetText() or &quot;&quot;) end},
++		  {&quot;1&quot;,function () data.SendText(&quot;1&quot;) end} ,
++		  {&quot;5&quot;,function () data.SendText(&quot;5&quot;) end} ,
++		  {&quot;10&quot;,function () data.SendText(&quot;10&quot;) end} ,
++		  {&quot;30&quot;,function () data.SendText(&quot;30&quot;) end} ,
++		  },
+ 		}
+-	local dialog =3D guimaker.MakeTableDlg(rows,100,100,false,true,gGuiDefaul=
+tStyleSet,&quot;window&quot;)
++	data.dialog =3D guimaker.MakeTableDlg(rows,100,100,false,true,gGuiDefault=
+StyleSet,&quot;window&quot;)
++	NotifyListener(&quot;Hook_StringQuery&quot;,data)
+ end
+
+Modified: trunk/lua/net/net.objectpicker.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.objectpicker.lua (original)
++++ trunk/lua/net/net.objectpicker.lua Tue Jan 26 14:24:27 2010
+@@ -13,7 +13,10 @@
+ 	out:PushNetUint16(artid)
+ 	out:PushNetUint16(hue)
+ 	out:SendPacket()
+-end
++end    =
+
++function Send_Picked_Object_Cancel () Send_Picked_Object(0,0,0,0,0) end --=
+ 0x7D
++
++
+ =
+
+ --[[
+ kPacket_Object_Picker   {entrynum=3D4,questionlen=3D28=3D0x1c,questiontxt=
+=3D&quot;What would you like to make?&quot;,unknown=3D0,serial=3D0,}
+@@ -47,11 +50,13 @@
+ 	end
+ 	local sizeleft =3D size - 1 - 2 - 4 - 2 - 1 - data.questionlen
+ 	data.entrynum		=3D input:PopNetUint8()
++	sizeleft =3D sizeleft - 1
+ 	print(&quot;kPacket_Object_Picker&quot;,SmartDump(data))
+ 	data.entrylist =3D {}
+ 	for i =3D 1,data.entrynum do
+ 		if (sizeleft &lt;=3D 0) then break end
+ 		local entry =3D {}
++		entry.index		=3D i
+ 		entry.artid		=3D input:PopNetUint16() -- (e.ItemID &amp; 0x3FFF)
+ 		entry.hue		=3D 0
+ 		sizeleft =3D sizeleft - 2
+
+Modified: trunk/lua/net/net.trade.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.trade.lua (original)
++++ trunk/lua/net/net.trade.lua Tue Jan 26 14:24:27 2010
+@@ -111,12 +111,12 @@
+ 			NetCrash()
+ 		end
+ =
+
+-		if (false) then -- debug
++		if (1 =3D=3D 1) then -- debug
+ 			for k,item in pairs(GetContainerContentList(playerBackpackContainer)) d=
+o =
+
+-				printf(&quot;item serial=3D0x%08x artid=3D0x%04x in backpack\n&quot;,item.serial=
+,item.artid)
++				print(&quot;item backpack&quot;,hex(item.serial),hex(item.artid))
+ 			end
+ 			for k,item in pairs(GetMobileEquipmentList(playerMobile)) do =
+
+-				printf(&quot;item serial=3D0x%08x artid=3D0x%04x equipped\n&quot;,item.serial,it=
+em.artid)
++				print(&quot;item equipped&quot;,hex(item.serial),hex(item.artid))
+ 			end
+ 		end
+ 	=
+
+@@ -134,12 +134,14 @@
+ 			good.index 		=3D i
+ 			good.item		=3D GetObjectBySerial(good.itemserial)
+ 			--- old : see also get obj with good.itemserial from playerBackpackCont=
+ainer
++			=
+
++			print(&quot;kPacket_Shop_Sell&quot;,hex(good.itemserial,8),hex(good.itemartid),he=
+x(good.item.artid),good.price,good.name)
+ =
+
+ 			if (good.item) then -- item is not always available, especially if its =
+in the backpack, and that has not been opened yet
+ 				if (good.itemartid ~=3D good.item.artid)	then
+-					printf(&quot;FATAL : kPacket_Shop_Sell : artid mismatch 0x%04x !=3D 0x%04x=
+\n&quot;,good.itemartid,good.item.artid)
+-					print(&quot;FATAL ! kPacket_Shop_Sell -&gt; forced Crash&quot;)
+-					NetCrash()
++					print(&quot;warning : kPacket_Shop_Sell : artid mismatch &quot;..hex(good.itema=
+rtid)..&quot; !=3D &quot;..good.item.artid,good.name,&quot;amt:&quot;,good.itemamount,good.item=
+.amount)
++					--~ print(&quot;FATAL ! kPacket_Shop_Sell -&gt; forced Crash&quot;)
++					--~ NetCrash()
+ 				end
+ 				if (good.itemamount ~=3D good.item.amount) then
+ 					printf(&quot;FATAL : kPacket_Shop_Sell : amount mismatch 0x%04x !=3D 0x%04=
+x\n&quot;,good.itemamount,good.item.amount)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001996.html">[Iris-commit] [IRIS] r3236 - /trunk/config/shards/pangaea.xml
+</A></li>
+	<LI>Next message: <A HREF="001998.html">[Iris-commit] [IRIS] r3238 - /trunk/premake.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1997">[ date ]</a>
+              <a href="thread.html#1997">[ thread ]</a>
+              <a href="subject.html#1997">[ subject ]</a>
+              <a href="author.html#1997">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,641 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r3233 - in /trunk/lua: lib.proxy.lua lib.uodragdrop.lua net/net.tooltips.lua net/net.walk.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2010-January/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3233%20-%20in%20/trunk/lua%3A%20lib.proxy.lua%0A%20lib.uodragdrop.lua%20net/net.tooltips.lua%20net/net.walk.lua&In-Reply-To=%3C20100123003816.9BE6C7A9817E%40simon%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001992.html">
+   <LINK REL="Next"  HREF="001994.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r3233 - in /trunk/lua: lib.proxy.lua lib.uodragdrop.lua net/net.tooltips.lua net/net.walk.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3233%20-%20in%20/trunk/lua%3A%20lib.proxy.lua%0A%20lib.uodragdrop.lua%20net/net.tooltips.lua%20net/net.walk.lua&In-Reply-To=%3C20100123003816.9BE6C7A9817E%40simon%3E"
+       TITLE="[Iris-commit] [IRIS] r3233 - in /trunk/lua: lib.proxy.lua lib.uodragdrop.lua net/net.tooltips.lua net/net.walk.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat Jan 23 01:38:16 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001992.html">[Iris-commit] [IRIS] r3232 - in /trunk/lua: lib.protocol.lua	lib.proxy.lua
+</A></li>
+        <LI>Next message: <A HREF="001994.html">[Iris-commit] [IRIS] r3234 - in /trunk/lua: lib.cursor.lua lib.macrolist.lua lib.mainmenu.lua net/net.login.lua net/net.objectpicker.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1993">[ date ]</a>
+              <a href="thread.html#1993">[ thread ]</a>
+              <a href="subject.html#1993">[ subject ]</a>
+              <a href="author.html#1993">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sat Jan 23 01:38:16 2010
+New Revision: 3233
+
+Log:
+dragdrop/stacking fixes and walk-config-params for pol, improved packet deb=
+ugging utils
+
+Modified:
+    trunk/lua/lib.proxy.lua
+    trunk/lua/lib.uodragdrop.lua
+    trunk/lua/net/net.tooltips.lua
+    trunk/lua/net/net.walk.lua
+
+Modified: trunk/lua/lib.proxy.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.proxy.lua (original)
++++ trunk/lua/lib.proxy.lua Sat Jan 23 01:38:16 2010
+@@ -16,17 +16,18 @@
+ 	=
+
+ 	gProxyHost =3D host
+ 	gProxyPort =3D port
+-	gProxyPort2 =3D port+1
++	gProxyPort2 =3D port
++	--~ gProxyPort2 =3D port+1
+ 	=
+
+ 	gServerListenerTCP =3D UOProxyOpenListener(gProxyPort)
+-	gServerListenerTCP2 =3D UOProxyOpenListener(gProxyPort2)
++	--~ gServerListenerTCP2 =3D UOProxyOpenListener(gProxyPort2)
+ 	=
+
+ 	print(&quot;listen port opened....&quot;)
+ 		=
+
+ 	while true do
+ 		local listener =3D gServerListenerTCP
+ 		while true do
+-			local newcon =3D listener:PopAccepted()
++			local newcon =3D listener:IsAlive() and listener:PopAccepted()
+ 			if (not newcon) then break end
+ 			print(&quot;###############################&quot;)
+ 			print(&quot;#### PROXY : connection started, listener=3D&quot;,(listener =3D=3D g=
+ServerListenerTCP) and &quot;A&quot; or &quot;B&quot;)
+@@ -35,7 +36,7 @@
+ 			print(&quot;###############################&quot;)
+ 			print(&quot;#### PROXY : connection ended&quot;)
+ 			print(&quot;###############################&quot;)
+-			listener =3D gServerListenerTCP2
++			--~ listener =3D gServerListenerTCP2
+ 			--~ print(&quot;proxy end&quot;) return
+ 		end
+ 		Client_USleep(10) =
+
+@@ -110,6 +111,7 @@
+ =
+
+ =
+
+ =
+
++gLastPacketTBySender =3D {}
+ -- returns false if packet incomplete
+ function UOProxyHandlePacket	(fifo_in,fifo_out,bIsFromClient) =
+
+ 	local t_since_start =3D Client_GetTicks() - gProxyConStartTime
+@@ -120,9 +122,10 @@
+ 	local bInterpret =3D true
+ 	--~ if (bIsFromServer and gProxyServerHuffmanStarted) then bInterpret =3D=
+ false end -- huffman comp&amp;decomp active now
+ 	--~ if (bIsFromClient and gProxyServerHuffmanStarted) then bInterpret =3D=
+ false end -- not really needed but something seems bugged
+-	if (gDisableProxyInterpretation) then bInterpret =3D false end
++	--~ if (gDisableProxyInterpretation) then bInterpret =3D false end
+ 	local bScrambleTest =3D false
+ 	local bClientBlockTest =3D true
++	local bShortDump =3D false
+ 	=
+
+ 	if (bInterpret) then =
+
+ 		-- 4-byte-head con1
+@@ -176,9 +179,11 @@
+ 				fifo_in:PeekNetUint8(3) =3D=3D 0x00 and
+ 				fifo_in:PeekNetUint8(4) =3D=3D 0x24) then
+ 				--~ fifo_in:PokeNetUint8(5,math.random(0,255))
+-				print(&quot;+++++++++++++++++++++++++++++++++++++++++++++++&quot;)
+-				print(&quot;detected unknownSE&quot;)
+-				print(&quot;+++++++++++++++++++++++++++++++++++++++++++++++&quot;)
++				if (not bShortDump) then
++					print(&quot;+++++++++++++++++++++++++++++++++++++++++++++++&quot;)
++					print(&quot;detected unknownSE&quot;)
++					print(&quot;+++++++++++++++++++++++++++++++++++++++++++++++&quot;)
++				end
+ 				if (bScrambleTest) then =
+
+ 					fifo_in:PokeNetUint8(5,16)
+ 					print(&quot;SCRAMBLED unknownSE&quot;)
+@@ -204,15 +209,36 @@
+ 		end
+ 	end
+ 	=
+
++	=
+
++	function Pad (str,len)
++		str =3D tostring(str)
++		local add =3D len - #str =
+
++		if (add &gt; 0) then return str..string.rep(&quot; &quot;,add) end =
+
++		return str
++	end
+ 	if (bInterpret) then =
+
+ 		local iId =3D fifo_in:PeekNetUint8(0)
+ 		local iPacketSize =3D gPacketSizeByID[iId]
+-		print(&quot;UOProxyHandlePacket&quot;,fromname,sprintf(&quot;0x%02x&quot;,iId),gPacketTypeId=
+2Name[iId],iPacketSize,&quot;t=3D&quot;..t_since_start)
+-		assert(iPacketSize)
+-		if (iPacketSize =3D=3D 0 and fifo_in:Size() &lt; 3) then print(&quot;incomplete =
+packet dynsize? &lt;3&quot;) return end -- packet incomplete
++		assert(iPacketSize,&quot;unknown iPacketSize for id=3D&quot;..hex(iId))
++		if (iPacketSize =3D=3D 0 and fifo_in:Size() &lt; 3) then print(&quot;incomplete =
+packet dynsize? &lt;3&quot;,hex(iId)) return end -- packet incomplete
+ 		if (iPacketSize =3D=3D 0) then iPacketSize =3D fifo_in:PeekNetUint16(1) =
+end
+-		if (fifo_in:Size() &lt; iPacketSize) then print(&quot;incomplete packet &quot;,fifo_i=
+n:Size(),iPacketSize) return end -- packet incomplete
+-		=
+
++		if (fifo_in:Size() &lt; iPacketSize) then print(&quot;incomplete packet &quot;,hex(iI=
+d),fifo_in:Size(),iPacketSize) return end -- packet incomplete
++		=
+
++		local timediff =3D t_since_start - (gLastPacketTBySender[fromname] or t_=
+since_start)
++		gLastPacketTBySender[fromname] =3D t_since_start
++		=
+
++		local debuginfo
++		if (1 =3D=3D 1) then -- generate some debug infos
++			if (iId =3D=3D kPacket_Generic_Command) then
++				local iBFSubCmd =3D fifo_in:PeekNetUint16(3)
++				debuginfo =3D sprintf(&quot;subcmd=3D%s[0x%02x]&quot;,gGenericSubCommandNamesByI=
+D[iBFSubCmd] or &quot;???&quot;,iBFSubCmd)
++			elseif (bIsFromClient and iId =3D=3D kPacket_Request_Movement) then =
+
++				debuginfo =3D sprintf(&quot;dir=3D%2x,seq=3D%3d,fc=3D%x&quot;,fifo_in:PeekNetUin=
+t8(1),fifo_in:PeekNetUint8(2),fifo_in:PeekNetUint32(3))
++			elseif (iId =3D=3D kPacket_Accept_Movement_Resync_Request) then =
+
++				debuginfo =3D sprintf(fromname..&quot;:a=3D%3d,b=3D%3d&quot;,fifo_in:PeekNetUint=
+8(1),fifo_in:PeekNetUint8(2))
++			end
++		end
++		print(&quot;UOProxyHandlePacket&quot;,fromname,sprintf(&quot;0x%02x&quot;,iId),Pad(gPacketTy=
+peId2Name[iId],40),Pad(iPacketSize,3),&quot;dt=3D&quot;..Pad(timediff,4),debuginfo)
+ 		=
+
+ 		if (bIsFromServer and iId =3D=3D kPacket_Server_List) then -- 0xA8
+ 			fifo_in:PokeNetUint8(16*3-3,127)
+@@ -240,11 +266,11 @@
+ 			fifo_in:PokeNetUint8(5,floor(iGameServerPort/256)) -- port
+ 			fifo_in:PokeNetUint8(6,math.mod(iGameServerPort,256)) -- port
+ 			=
+
+-			gProxyServerHuffmanStartedNextRound =3D true
++			gProxyServerHuffmanStartedNextRound =3D true  -- only after 4 byte head=
+er?
++			gDisableProxyInterpretation =3D true
+ 			print(&quot;+++++++++++++++++++++++++++++++++++++++++++++++&quot;)
+ 			print(&quot;+++++    adjusted kPacket_Server_Redirect&quot;)
+ 			print(&quot;+++++++++++++++++++++++++++++++++++++++++++++++&quot;)
+-			gDisableProxyInterpretation =3D true
+ 		end
+ 		=
+
+ 		-- todo : NetStartHuffman (after redirect?)
+@@ -298,9 +324,10 @@
+ 		end
+ 		]]--
+ 		=
+
+-		=
+
+-		print(&quot;recv:&quot;,fromname,&quot;t_since_start=3D&quot;,t_since_start) =
+
+-		print(HexDumpUOPacket(fifo_in,iPacketSize,bIsFromClient,&quot; proxy&quot;))
++		if (not bShortDump) then =
+
++			print(&quot;recv:&quot;,fromname,&quot;t_since_start=3D&quot;,t_since_start) =
+
++			print(HexDumpUOPacket(fifo_in,iPacketSize,bIsFromClient,&quot; proxy&quot;))
++		end
+ 		--~ print(FIFOHexDump(fifo_in,0,iPacketSize))
+ 		fifo_out:PushFIFOPartRaw(fifo_in,0,iPacketSize) =
+
+ 		fifo_in:PopRaw(iPacketSize)
+@@ -358,21 +385,26 @@
+ 	gProxyServerRecvCompFifo		=3D CreateFIFO()
+ 	gProxyClientSendCompFifo		=3D CreateFIFO()
+ 	=
+
++	local fHuffmanDummy_RawIn			=3D CreateFIFO()
++	local fHuffmanDummy_RawOut			=3D CreateFIFO()
++	local fHuffmanDummy_DecompIn		=3D CreateFIFO()
++	local fHuffmanDummy_DecompOut		=3D CreateFIFO()
++	=
+
++	=
+
+ 	gPacketSizeByID[0xEF] =3D 21 -- protocol start... dummy here
+ 	=
+
+ 	local bAlive =3D true
+ 	while bAlive do
+ 		-- send =
+
+-		gProxyServerHuffmanStarted =3D false
+-		if (gProxyServerHuffmanStarted) then
+-			HuffmanCompress(gProxyClientSendFifo,gProxyClientSendCompFifo) -- does =
+NOT remove data from in-fifo. compression can always be completed.
+-			gProxyClientCon:Push(gProxyClientSendCompFifo)
+-			gProxyClientSendCompFifo:Clear()
+-			gProxyClientSendFifo:Clear()
+-		else =
+
++		--~ if (gProxyServerHuffmanStarted) then
++			--~ HuffmanCompress(gProxyClientSendFifo,gProxyClientSendCompFifo) -- d=
+oes NOT remove data from in-fifo. compression can always be completed.
++			--~ gProxyClientCon:Push(gProxyClientSendCompFifo)
++			--~ gProxyClientSendCompFifo:Clear()
++			--~ gProxyClientSendFifo:Clear()
++		--~ else =
+
+ 			gProxyClientCon:Push(gProxyClientSendFifo)
+ 			gProxyClientSendFifo:Clear()
+-		end
++		--~ end
+ 		=
+
+ 		gProxyServerCon:Push(gProxyServerSendFifo)
+ 		gProxyServerSendFifo:Clear()
+@@ -384,16 +416,36 @@
+ 		-- receive
+ 		gProxyClientCon:Pop(gProxyClientRecvFifo)
+ 		=
+
++		--~ if (gProxyServerHuffmanStarted) then =
+
++			--~ gProxyServerCon:Pop(gProxyServerRecvCompFifo)
++			--~ HuffmanDecompress(gProxyServerRecvCompFifo,gProxyServerRecvFifo) --=
+ DOES remove data from gProxyServerRecvCompFifo, might not remove all if da=
+ta for decompression is not yet complete
++		--~ else
++			gProxyServerCon:Pop(gProxyServerRecvFifo)
++		--~ end
++		=
+
++		-- handle packets
+ 		if (gProxyServerHuffmanStarted) then =
+
+-			gProxyServerCon:Pop(gProxyServerRecvCompFifo)
+-			HuffmanDecompress(gProxyServerRecvCompFifo,gProxyServerRecvFifo) -- DOE=
+S remove data from gProxyServerRecvCompFifo, might not remove all if data f=
+or decompression is not yet complete
++			fHuffmanDummy_RawIn:PushFIFOPartRaw(gProxyServerRecvFifo)  -- copy from=
+ ServerRecv into huffRawIn
++			HuffmanDecompress(fHuffmanDummy_RawIn,fHuffmanDummy_DecompIn)  -- decom=
+press from huffRawIn to huffDecompIn
++			=
+
++			while UOProxyHandlePacket(fHuffmanDummy_DecompIn,fHuffmanDummy_DecompOu=
+t,false) do end  -- pipe packets from huffDecompIn to huffDecompOut
++			HuffmanCompress(fHuffmanDummy_DecompOut,fHuffmanDummy_RawOut) -- compre=
+ss from huffDecompOut to huffRawOut ... does NOT remove data from in-fifo. =
+compression can always be completed
++			fHuffmanDummy_DecompOut:Clear() -- clear huffDecompOut, as it has been =
+completely compressed
++			=
+
++			local bHuffmanCompBugged =3D true
++			if (bHuffmanCompBugged) then
++				-- throw away modified/filtered output
++				-- todo : show diff fHuffmanDummy_RawOut,gProxyServerRecvFifo ?   =
+
++				-- ServerRecv is what we originally got from the server, as long as no=
+thing was modified in handle, it should be the same.   maybe incomplete pac=
+kets,sizediff etc..
++				fHuffmanDummy_RawOut:Clear()
++				=
+
++				-- override
++				gProxyClientSendFifo:PushFIFOPartRaw(gProxyServerRecvFifo) =
+
++				gProxyServerRecvFifo:Clear()
++			end
+ 		else
+-			gProxyServerCon:Pop(gProxyServerRecvFifo)
+-		end
+-		gProxyServerHuffmanStarted =3D false
+-		=
+
+-		-- handle packets
+-		while UOProxyHandlePacket(gProxyServerRecvFifo,gProxyClientSendFifo,fals=
+e) do end
++			while UOProxyHandlePacket(gProxyServerRecvFifo,gProxyClientSendFifo,fal=
+se) do end
++		end
+ 		while UOProxyHandlePacket(gProxyClientRecvFifo,gProxyServerSendFifo,true=
+) do end
+ 		=
+
+ 		if (not gProxyClientCon:IsConnected()) then print(&quot;disconnected:client&quot;)=
+ bAlive =3D false end
+@@ -408,6 +460,11 @@
+ 	gProxyServerRecvFifo:Destroy()
+ 	gProxyServerRecvCompFifo:Destroy()
+ 	gProxyClientSendCompFifo:Destroy()
++	=
+
++	fHuffmanDummy_RawIn:Destroy()
++	fHuffmanDummy_RawOut:Destroy()
++	fHuffmanDummy_DecompIn:Destroy()
++	fHuffmanDummy_DecompOut:Destroy()
+ end
+ =
+
+ =
+
+
+Modified: trunk/lua/lib.uodragdrop.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.uodragdrop.lua (original)
++++ trunk/lua/lib.uodragdrop.lua Sat Jan 23 01:38:16 2010
+@@ -373,7 +373,12 @@
+ =
+
+ 			x =3D 0xffff
+ 			y =3D 0xffff
+-			z =3D 0
++			x =3D gMousePickFoundHit.item.xloc or 0xffff
++			y =3D gMousePickFoundHit.item.yloc or 0xffff
++			z =3D gMousePickFoundHit.item.zloc or 0
++			print(&quot;###############################&quot;)
++			print(&quot;#### drop on other item in container : &quot;,x,y,z)
++			print(&quot;###############################&quot;)
+ 			target =3D gMousePickFoundHit.item.serial =
+
+ 			--[[
+ 			-- if the item beneath has the same artid and stackable, try to stack t=
+hem
+@@ -407,6 +412,15 @@
+ 		Send_Drop_Object(item.serial,x,y,z,target)
+ 	elseif (dialog_under_mouse and dialog_under_mouse.dropOnMobileSerial) then
+ 		-- support drop of stuff onto dialogs
++		local mobile =3D GetMobile(dialog_under_mouse.dropOnMobileSerial)
++		if (mobile) then =
+
++			x =3D 0xffff
++			y =3D 0xffff
++			z =3D 0
++		end
++		print(&quot;###############################&quot;)
++		print(&quot;#### drop on mobile via dialog : &quot;,x,y,z,mobile)
++		print(&quot;###############################&quot;)
+ 		Send_Drop_Object(item.serial,x,y,z,dialog_under_mouse.dropOnMobileSerial)
+ 	elseif (dialog_under_mouse and dialog_under_mouse.uoSecureTrade) then
+ 		-- drop on secure trade container
+@@ -468,6 +482,24 @@
+ 				--~ if (not bOnContainer) then iSerial =3D nil end  -- might be bad fo=
+r potionkegs and similar non-container droptargets
+ 				if (TestBit(flags,kTileDataFlag_Surface)) then iSerial =3D nil end   -=
+-  or kTileDataFlag_Background ?
+ 				if (ItemIsMulti(dynamic)) then iSerial =3D nil end
++				if (iSerial) then =
+
++					-- pol fix?
++					x =3D dynamic.xloc =
+
++					y =3D dynamic.yloc =
+
++					z =3D dynamic.zloc =
+
++					print(&quot;###############################&quot;)
++					print(&quot;#### drop on other item in world : &quot;,x,y,z)
++					print(&quot;###############################&quot;)
++				end
++			end
++			local mobile =3D GetMobile(iSerial)
++			if (mobile) then =
+
++				x =3D 0xffff
++				y =3D 0xffff
++				z =3D 0
++				print(&quot;###############################&quot;)
++				print(&quot;#### drop on mobile in world : &quot;,x,y,z,mobile)
++				print(&quot;###############################&quot;)
+ 			end
+ 		end
+ 		=
+
+
+Modified: trunk/lua/net/net.tooltips.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.tooltips.lua (original)
++++ trunk/lua/net/net.tooltips.lua Sat Jan 23 01:38:16 2010
+@@ -18,6 +18,7 @@
+ --dword	- Serial
+ --endloop	- Item Info
+ function Send_AosToolTipRequest(objserial)
++	if (gClientDisable_kPacket_Mega_Cliloc) then return end
+ 	local out =3D GetSendFIFO()
+ 	out:PushNetUint8(kPacket_Mega_Cliloc) -- 0xD6 runuo : BatchQueryProperties
+ 	out:PushNetUint16(7) -- packetsize
+
+Modified: trunk/lua/net/net.walk.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.walk.lua (original)
++++ trunk/lua/net/net.walk.lua Sat Jan 23 01:38:16 2010
+@@ -45,6 +45,7 @@
+ gFastWalkKeysUsed =3D false
+ =
+
+ gWalkRequestAntiStuckTimeout =3D 0 -- Client_GetTicks()
++gWalkRequestAntiStuckTimeoutDelay =3D 2000
+ gNextWalkRequestTime =3D 0
+ gNextWalkSequenceNumber =3D 0
+ gWalkRequests =3D {}
+@@ -56,6 +57,9 @@
+ gWalkTimeout_MountMovingSpeed =3D 185
+ gWalkTimeout_MountRunningSpeed =3D 95
+ gWalkTimeout_DirectionChange =3D 60
++gMaxWalkQueueEntries =3D 3
++
++
+ =
+
+ =
+
+ gIncreasedMovementSpeedBodyIDs =3D {[220]=3D&quot;lama&quot;,[218]=3D&quot;ostard&quot;,[25]=
+=3D&quot;wolf&quot;,[246]=3D&quot;bake&quot;} -- bodyids, ninjitsu (todo : unicorn,kirin, necro=
+?)
+@@ -77,13 +81,17 @@
+ 	gFastWalkKeysUsed =3D true
+ 	WalkLog(&quot;FastWalk_Init end&quot;) =
+
+ end
+-function FastWalk_PushKey	(key)		WalkLog(&quot;FastWalk_PushKey&quot;,key) table.ins=
+ert(gFastwalkStack,key) gFastWalkKeysUsed =3D true end
++function FastWalk_PushKey	(key)		=
+
++	WalkLog(&quot;FastWalk_PushKey&quot;,key) =
+
++	table.insert(gFastwalkStack,key) =
+
++	gFastWalkKeysUsed =3D true =
+
++end
+ function FastWalk_PopKey	()
+ 	local res =3D FastWalk_HasKey() and table.remove(gFastwalkStack) or 0
+ 	--WalkLog(&quot;FastWalk_PopKey&quot;,res)
+ 	return res =
+
+ end =
+
+-function FastWalk_Ok	()			return FastWalk_HasKey() or (not gFastWalkKeysUs=
+ed) end =
+
++function FastWalk_Ok		()			return FastWalk_HasKey() or (not gFastWalkKeysU=
+sed) end =
+
+ function FastWalk_HasKey	()			return notempty(gFastwalkStack) end =
+
+ function FastWalk_CountKeys	()			return table.getn(gFastwalkStack) end
+ =
+
+@@ -187,7 +195,7 @@
+ =
+
+ -- returns false if the walk queue is full and the next request should wait
+ function WalkQueueOkForNextSend ()
+-	return countarr(gWalkRequests) &lt;=3D 3
++	return countarr(gWalkRequests) &lt;=3D gMaxWalkQueueEntries
+ end
+ 	=
+
+ -- internal, don't call directly, no check for walkable, only checks for t=
+ime
+@@ -202,7 +210,7 @@
+ 	if (not gFastWalkKeysUsed) then =
+
+ 		if (not WalkQueueOkForNextSend()) then
+ 			if (Client_GetTicks() &gt; gWalkRequestAntiStuckTimeout) then
+-				print(&quot;walk:walk-request-timeout,sending resync-request&quot;)
++				print(&quot;++++++++++++++++++++++++++++++ walk:walk-request-timeout,sendin=
+g resync-request&quot;)
+ 				Send_Movement_Resync_Request()
+ 			else
+ 				gProfiler_Walk:End()
+@@ -211,7 +219,7 @@
+ 		end
+ 	end
+ 	gProfiler_Walk:Section(&quot;ExecWalk:TimeCalc&quot;)
+-	gWalkRequestAntiStuckTimeout =3D Client_GetTicks() + 2000 -- might need r=
+esync
++	gWalkRequestAntiStuckTimeout =3D Client_GetTicks() + gWalkRequestAntiStuc=
+kTimeoutDelay -- might need resync
+ 	iDir =3D DirWrap(iDir)
+ 	local iFullDir =3D BitwiseOR(iDir,bRunFlag and kWalkFlag_Run or 0) -- inc=
+ludes runflag
+ 	=
+
+@@ -274,7 +282,7 @@
+ 	out:PushNetUint8(iSeqNum)
+ 	out:PushNetUint32(iFastKey)
+ 	out:SendPacket()
+-	--~ print(&quot;walk:request&quot;,sprintf(&quot;0x%04x&quot;,iFullDir),iSeqNum)
++	print(&quot;++++++++++++++++++++++++++++++ walk:request&quot;,sprintf(&quot;0x%04x&quot;,iFul=
+lDir),iSeqNum,WalkGetInterval(TestBit(iFullDir,kWalkFlag_Run)))
+ end
+ =
+
+ =
+
+@@ -283,7 +291,7 @@
+ 	local input =3D GetRecvFIFO()
+ 	local id =3D input:PopNetUint8()
+ 	local iSeqNum =3D input:PopNetUint8()
+-	--~ print(&quot;walk:accept&quot;,iSeqNum)
++	print(&quot;++++++++++++++++++++++++++++++ walk:accept&quot;,iSeqNum)
+ 	local player_notoriety =3D input:PopNetUint8()
+ 	local playermobile =3D GetPlayerMobile()
+ 	if (playermobile) then playermobile:SetNotoriety(player_notoriety) end --=
+ fast notoriety update
+@@ -308,6 +316,8 @@
+ -- WARNING ! don't forget doomlist, should't always need to be cleared tho=
+ugh, only on teleport ?
+ function ResetWalkQueue ()
+ 	--~ WalkLog(&quot;ResetWalkQueue start&quot;)
++	print(&quot;ResetWalkQueue,gNextWalkSequenceNumber=3D0&quot;)
++	print(_TRACEBACK())
+ 	gNextWalkSequenceNumber =3D 0
+ 	gWalkRequests =3D {}
+ 	gWalkPathToGo =3D nil
+@@ -357,6 +367,7 @@
+ 	out:PushNetUint8(seqnumber)
+ 	out:PushNetUint8(hex2num(&quot;0x00&quot;))
+ 	out:SendPacket()
++	print(&quot;++++++++++++++++++++++++++++++ Send_Accept_Block_Movement&quot;,seqnumb=
+er)
+ end
+ =
+
+ -- This Packet is send when Client thinks he is out of Sync (basicly: sequ=
+ence doesn't fit)
+@@ -375,6 +386,7 @@
+ 	out:PushNetUint8(0)
+ 	out:PushNetUint8(0)
+ 	out:SendPacket()
++	print(&quot;++++++++++++++++++++++++++++++ Send_Movement_Resync_Request,0,0&quot;)
+ end
+ =
+
+ -- Moves Player to Direction
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001992.html">[Iris-commit] [IRIS] r3232 - in /trunk/lua: lib.protocol.lua	lib.proxy.lua
+</A></li>
+	<LI>Next message: <A HREF="001994.html">[Iris-commit] [IRIS] r3234 - in /trunk/lua: lib.cursor.lua lib.macrolist.lua lib.mainmenu.lua net/net.login.lua net/net.objectpicker.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1993">[ date ]</a>
+              <a href="thread.html#1993">[ thread ]</a>
+              <a href="subject.html#1993">[ subject ]</a>
+              <a href="author.html#1993">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,208 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2497 - in /trunk/lua: lib.2d.dynamic.lua lib.2d.mobile.lua lib.uoanim.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-October/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2497%20-%20in%20/trunk/lua%3A%20lib.2d.dynamic.lua%0A%20lib.2d.mobile.lua%20lib.uoanim.lua&In-Reply-To=%3C20081002213351.6CC071C181B8%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001301.html">
+   <LINK REL="Next"  HREF="001303.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2497 - in /trunk/lua: lib.2d.dynamic.lua lib.2d.mobile.lua lib.uoanim.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2497%20-%20in%20/trunk/lua%3A%20lib.2d.dynamic.lua%0A%20lib.2d.mobile.lua%20lib.uoanim.lua&In-Reply-To=%3C20081002213351.6CC071C181B8%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2497 - in /trunk/lua: lib.2d.dynamic.lua lib.2d.mobile.lua lib.uoanim.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Thu Oct  2 23:33:51 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001301.html">[Iris-commit] [IRIS] r2496 - in /trunk: include/data_anim.h lua/lib.2d.mobile.lua lua/lib.2d.spriteblock.lua lua/lib.mapblock.2d.statics.lua lua/lib.uoanim.lua src/data_anim_L.cpp
+</A></li>
+        <LI>Next message: <A HREF="001303.html">[Iris-commit] [IRIS] r2498 - in /trunk/lua: lib.2d.dynamic.lua lib.2d.effect.lua lib.2d.mobile.lua lib.2d.renderer.lua lib.2d.spriteblock.lua lib.uoanim.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1302">[ date ]</a>
+              <a href="thread.html#1302">[ thread ]</a>
+              <a href="subject.html#1302">[ subject ]</a>
+              <a href="author.html#1302">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Thu Oct  2 23:33:50 2008
+New Revision: 2497
+
+Log:
+2d corpses
+
+Modified:
+    trunk/lua/lib.2d.dynamic.lua
+    trunk/lua/lib.2d.mobile.lua
+    trunk/lua/lib.uoanim.lua
+
+Modified: trunk/lua/lib.2d.dynamic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.dynamic.lua (original)
++++ trunk/lua/lib.2d.dynamic.lua Thu Oct  2 23:33:50 2008
+@@ -4,8 +4,49 @@
+ 	if (item.gfx2d) then item.gfx2d:Destroy() item.gfx2d =3D nil end
+ 	ArtAtlasUnLock(item)
+ end
+-function Renderer2D:AddCorpseItem					(item) =
+
++function Renderer2D:UpdateCorpseItemGfx				(item) =
+
+ 	print(&quot;TODO:Renderer2D:AddCorpseItem&quot;)
++	=
+
++	local spriteblock =3D item.gfx2d
++	if (not spriteblock) then =
+
++		spriteblock =3D cUOSpriteBlock:New()
++		item.gfx2d =3D spriteblock =
+
++	else	=
+
++		spriteblock:Clear()
++	end
++
++	local xloc,yloc,zloc =3D item.xloc,item.yloc,item.zloc
++	local tx,ty,tz,iIndex,fIndexRel =3D 0,0,0,0
++	local sorttx =3D xloc-floor(xloc/8)*8
++	local sortty =3D yloc-floor(yloc/8)*8
++	local sorttz =3D zloc
++	local parts =3D {}
++	item.corpsedir =3D item.corpsedir or math.random(0,7)
++	local iDirAdd,bMirrorX =3D GetAnimDirAdd(DirWrap(item.corpsedir))  -- som=
+e param ? last known dir ?
++	=
+
++	local bodyid =3D item.amount
++	table.insert(parts,{bodyid,item.hue,13}) -- fallback=3D13=3Devortex
++	=
+
++	for k,v in pairs(parts) do =
+
++		local iModelID,iHue,iFallBackModel =3D unpack(v)
++		if iModelID then =
+
++			local iLoaderIndex =3D 1
++			iModelID,iHue,iLoaderIndex =3D UOAnimTranslateBodyID(iModelID,iHue)
++			iIndex =3D iIndex + 1 =
+
++			fIndexRel =3D 200 * (1 - 1/iIndex) -- dirty hack to avoid zbuffer flick=
+er
++			=
+
++			local iAnimID =3D Anim_GetCorpseAnim(iModelID,mount) + iDirAdd
++			local iFrameCount =3D Anim2D_GetFrameCount(Anim_GetRealID(iModelID,iAni=
+mID),iLoaderIndex) or 1000
++			if (iFrameCount &lt; 1) then iFrameCount =3D 1 end
++			local iFrame =3D iFrameCount - 1
++			local iFallBackAnim =3D iFallBackModel and Anim_GetIdleAnim(iFallBackMo=
+del)
++			spriteblock:AddAnim(tx,ty,tz,iModelID,iHue,iLoaderIndex,iFallBackModel,=
+iFallBackAnim,iAnimID,iFrame,bMirrorX,CalcSortBonus(nil,sorttx,sortty,sortt=
+z,fIndexRel,4),item) =
+
++		end
++	end
++	spriteblock:Build(Renderer2D.kSpriteBaseMaterial,false)
++	=
+
++	local x,y,z =3D self:UOPosToLocal(item.xloc,item.yloc,item.zloc*kRenderer=
+2D_ZScale)
++	item.gfx2d:SetPosition(x,y,z)
+ end
+ =
+
+ function Renderer2D:UpdateDynamicBlendOut			(item,iBlendOutMinZ,iBlendOutM=
+axZ) =
+
+@@ -65,7 +106,7 @@
+ function Renderer2D:AddDynamicItem					(item) =
+
+ 	if (item.artid_base =3D=3D kCorpseDynamicArtID) then
+ 		-- corpse
+-		self:AddCorpseItem(item)
++		self:UpdateCorpseItemGfx(item)
+ 	elseif not item.artid then
+ 		print(&quot;ERROR: artid missing!!!!\n&quot;)
+ 	elseif item.artid &gt;=3D gMulti_ID then =
+
+
+Modified: trunk/lua/lib.2d.mobile.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.mobile.lua (original)
++++ trunk/lua/lib.2d.mobile.lua Thu Oct  2 23:33:50 2008
+@@ -15,7 +15,7 @@
+ =
+
+ function My2DMobileDebug (a)
+ 	local playermobile =3D GetPlayerMobile()
+-	gMy2DMobileDebug =3D (gMy2DMobileDebug or 200) + a
++	gMy2DMobileDebug =3D (gMy2DMobileDebug or 220) + a
+ 	playermobile.artid =3D gMy2DMobileDebug
+ 	print(&quot;My2DMobileDebug&quot;,gMy2DMobileDebug)
+ 	Renderer2D:UpdateMobile(playermobile)
+
+Modified: trunk/lua/lib.uoanim.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.uoanim.lua (original)
++++ trunk/lua/lib.uoanim.lua Thu Oct  2 23:33:50 2008
+@@ -271,8 +271,8 @@
+ =
+
+ =
+
+ function Anim_GetIdleAnim (iModelID,bHasMount)
+-	if (iModelID &lt; kAnimIDRangeLen_HighDetailed									) then return 10 end
+-	if (iModelID &lt; kAnimIDRangeLen_HighDetailed + kAnimIDRangeLen_LowDetailed=
+	) then return  5 end
++	if (iModelID &lt; kAnimIDRangeLen_HighDetailed									) then return  5 end
++	if (iModelID &lt; kAnimIDRangeLen_HighDetailed + kAnimIDRangeLen_LowDetailed=
+	) then return 10 end
+ 	return bHasMount and 125 or 20  -- Human
+ 	--~ return 20 -- Human
+ end
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001301.html">[Iris-commit] [IRIS] r2496 - in /trunk: include/data_anim.h lua/lib.2d.mobile.lua lua/lib.2d.spriteblock.lua lua/lib.mapblock.2d.statics.lua lua/lib.uoanim.lua src/data_anim_L.cpp
+</A></li>
+	<LI>Next message: <A HREF="001303.html">[Iris-commit] [IRIS] r2498 - in /trunk/lua: lib.2d.dynamic.lua lib.2d.effect.lua lib.2d.mobile.lua lib.2d.renderer.lua lib.2d.spriteblock.lua lib.uoanim.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1302">[ date ]</a>
+              <a href="thread.html#1302">[ thread ]</a>
+              <a href="subject.html#1302">[ subject ]</a>
+              <a href="author.html#1302">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

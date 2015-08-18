@@ -1,0 +1,296 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1597 - in /trunk: data/lua/net.buff.lua data/lua/net/net.packethandlers.lua premake.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2007-December/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1597%20-%20in%20/trunk%3A%20data/lua/net.buff.lua%0A%20data/lua/net/net.packethandlers.lua%20premake.lua&In-Reply-To=%3C20071203180810.0DE591C182F9%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000412.html">
+   <LINK REL="Next"  HREF="000414.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1597 - in /trunk: data/lua/net.buff.lua data/lua/net/net.packethandlers.lua premake.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1597%20-%20in%20/trunk%3A%20data/lua/net.buff.lua%0A%20data/lua/net/net.packethandlers.lua%20premake.lua&In-Reply-To=%3C20071203180810.0DE591C182F9%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1597 - in /trunk: data/lua/net.buff.lua data/lua/net/net.packethandlers.lua premake.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Mon Dec  3 19:08:09 CET 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000412.html">[Iris-commit] [IRIS] r1596 - in /trunk/data/lua: gui/gui.paperdoll.lua net.popup.lua obj/obj.container.lua
+</A></li>
+        <LI>Next message: <A HREF="000414.html">[Iris-commit] [IRIS] r1598 - in /trunk/data/lua: net.buff.lua net/net.buff.lua net/net.main.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#413">[ date ]</a>
+              <a href="thread.html#413">[ thread ]</a>
+              <a href="subject.html#413">[ subject ]</a>
+              <a href="author.html#413">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Mon Dec  3 19:08:08 2007
+New Revision: 1597
+
+Log:
+fixed emotes menu exception crash (setmaterial trycatch block) , premake no=
+w uses a mylugre dir override if present, moved buff code to data/lua/net.b=
+uff.lua
+
+Added:
+    trunk/data/lua/net.buff.lua
+Modified:
+    trunk/data/lua/net/net.packethandlers.lua
+    trunk/premake.lua
+
+Modified: trunk/data/lua/net/net.packethandlers.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/net/net.packethandlers.lua (original)
++++ trunk/data/lua/net/net.packethandlers.lua Mon Dec  3 19:08:08 2007
+@@ -31,90 +31,6 @@
+ 	local unknown2 =3D input:PopNetUint16()
+ 	NotifyWarmode(flag)
+ end
+-
+---[[
+-Buff/DeBuff System
+---------------------
+-<A HREF="http://update.uo.com/design_523.html">http://update.uo.com/design_523.html</A>
+-
+-Packet Build:
+-BYTE[1] Cmd					-- 0xDF
+-BYTE[2] Length =
+
+-BYTE[4] Serial of player =
+
+-
+-BYTE[2] Icon Number to show =
+
+-BYTE[2] 0x1 =3D Show, 0x0 =3D Remove. On remove byte, packet ends here. =
+
+-BYTE[4] 0x00000000
+-
+-BYTE[2] Icon Number to show. =
+
+-BYTE[2] 0x1 =3D Show =
+
+-BYTE[4] 0x00000000
+-
+-BYTE[2] Buff Duration in seconds - Time in seconds (simple countdown witho=
+ut automatic remove) =
+
+-BYTE[2] 0x0000 =
+
+-BYTE[1] 0x00 =
+
+-BYTE[4] Buff Title Cliloc - Cliloc ID of title of icon. =
+
+-BYTE[4] Buff Secondary Cliloc - Cliloc ID for the Description of the icon.=
+ If no arguments for cliloc, then add 10 more bytes 0x00000000000000000000 =
+and end packet =
+
+-BYTE[4] 0x00000000 =
+
+-BYTE[2] 0x00 01			-Arguments Mode
+-
+-BYTE[2] 0x00 00			-If (Arguments Mode =3D 0x01)
+-BYTE[len(str)*2] Flipped Unicode String (&quot; &quot;+str) (To seperate the entrys =
+add &quot; &quot;) =
+
+-BYTE[2] 0x00 01			-EndIf Arguments Mode
+-
+-BYTE[2] 0x00 00			-EndIf Type
+-]]--
+-
+--- buff / debuff  (0xDF)
+---[[
+-function gPacketHandler.kPacket_BuffDebuff_System()
+-	local buffinfos =3D {}
+-	local input =3D GetRecvFIFO()
+-	local id =3D input:PopNetUint8()
+-	local packetsize =3D input:PopNetUint16()
+-
+-	buffinfos.player_serial	=3D input:PopNetUint32()
+-	buffinfos.icon_artid1		=3D input:PopNetUint16()
+-	buffinfos.icon_show1		=3D input:PopNetUint16()
+-	buffinfos.temp1			=3D input:PopNetUint32()
+-
+-	if (packetsize &gt; 15) then
+-		buffinfos.icon_artid2		=3D input:PopNetUint16()			-- ??
+-		buffinfos.icon_show2		=3D input:PopNetUint16()
+-		buffinfos.temp2			=3D input:PopNetUint32()
+-	=
+
+-		buffinfos.buff_duration	=3D input:PopNetUint16()
+-	=
+
+-		buffinfos.temp3			=3D input:PopNetUint16()
+-		buffinfos.temp4			=3D input:PopNetUint8()
+-	=
+
+-		buffinfos.clilocid1		=3D input:PopNetUint32()
+-		buffinfos.clilocid2		=3D input:PopNetUint32()
+-	=
+
+-		buffinfos.temp5			=3D input:PopNetUint32()
+-	=
+
+-		buffinfos.argumentsmode_start	=3D input:PopNetUint16()
+-	=
+
+-		buffinfos.argumentsmode_startif	=3D input:PopNetUint16()
+-	=
+
+-		if (buffinfos.argumentsmode_start =3D=3D 1) then
+-	=
+
+-			local argument_string =3D &quot;&quot;
+-			repeat
+-				local argument_char	=3D input:PopNetUint8()
+-				argument_string =3D argument_string..argument_char
+-				print(argument_char)
+-			until (argument_char =3D=3D 1)
+-			=
+
+-			print(argument_string)
+-		end
+-	=
+
+-		buffinfos.argumentsmode_end		=3D input:PopNetUint16()
+-	end
+-	=
+
+-	print(&quot;spell buff packet received !!!!!!!!!!&quot;)
+-end
+-]]--
+ =
+
+ -- if clilochash is wrong, request new megacliloc tooltip from server
+ -- used in function gPacketHandler.kPacket_AOSObjProp()  &amp;  gPacketHandler=
+.kPacket_Generic_Command()
+
+Modified: trunk/premake.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/premake.lua (original)
++++ trunk/premake.lua Mon Dec  3 19:08:08 2007
+@@ -10,7 +10,10 @@
+ addoption(&quot;wall&quot;,&quot;very verbose report, most warnings enabled&quot;)
+ if (options[&quot;wall&quot;]) then gbExtraWarnings =3D true print(&quot;extra warnings e=
+nabled&quot;) end
+ =
+
+-gLugreLuaSrcDir =3D &quot;./lugre/lib/lua-5.0.3/&quot;
++gLugreDir =3D &quot;lugre&quot;
++if (io.open(&quot;mylugre/lua/lugre.lua&quot;)) then print(&quot;using mylugre dir overri=
+de&quot;) gLugreDir =3D &quot;mylugre&quot; end
++
++gLugreLuaSrcDir =3D &quot;./&quot;..gLugreDir..&quot;/lib/lua-5.0.3/&quot;
+ =
+
+ -- list of easy libs inclusion (located in lugre/lib/NAME). this will add =
+lugre/lib/NAME/src and lugre/lib/NAME/include.
+ gLugreLibList =3D {
+@@ -84,10 +87,10 @@
+ package.buildflags =3D { gbExtraWarnings and &quot;extra-warnings&quot; or nil, &quot;opt=
+imize&quot; }
+ package.buildoptions =3D {}
+ =
+
+-package.includepaths =3D { &quot;lugre/include&quot;, gLugreLuaSrcDir..&quot;/include/&quot;, =
+&quot;include&quot; }
++package.includepaths =3D { gLugreDir..&quot;/include&quot;, gLugreLuaSrcDir..&quot;/inclu=
+de/&quot;, &quot;include&quot; }
+ -- add lib includes
+ for k,v in pairs(gLugreLibList) do =
+
+-	table.insert(package.includepaths, &quot;lugre/lib/&quot;..v..&quot;/include/&quot;) =
+
++	table.insert(package.includepaths, gLugreDir..&quot;/lib/&quot;..v..&quot;/include/&quot;) =
+
+ end
+ =
+
+ package.linkoptions =3D {}
+@@ -97,7 +100,7 @@
+ 	&quot;USE_OPENAL&quot;,
+ 	&quot;MAIN_WORKING_DIR=3D\\\&quot;..\\\&quot;&quot;,
+ 	&quot;LUA_DIR=3D\\\&quot;lua\\\&quot;&quot;,
+-	&quot;LUGRE_DIR=3D\\\&quot;lugre\\\&quot;&quot;,
++	&quot;LUGRE_DIR=3D\\\&quot;&quot;..gLugreDir..&quot;\\\&quot;&quot;,
+ 	&quot;DATA_DIR=3D\\\&quot;data\\\&quot;&quot;,
+ 	&quot;ENABLE_THREADS&quot;,
+ }
+@@ -118,15 +121,15 @@
+ addcustomlib(package,&quot;boost_thread-mt&quot;)
+ =
+
+ package.files =3D {
+-  matchrecursive(&quot;lugre/include/*.h&quot;, &quot;lugre/src/*.cpp&quot;),
++  matchrecursive(gLugreDir..&quot;/include/*.h&quot;, gLugreDir..&quot;/src/*.cpp&quot;),
+   matchrecursive(&quot;include/*.h&quot;, &quot;src/*.cpp&quot;),
+ }
+ =
+
+ -- add lib src
+ for k,v in pairs(gLugreLibList) do =
+
+-	table.insert(package.files, matchrecursive(&quot;lugre/lib/&quot;..v..&quot;/include/*.h=
+&quot;)) =
+
+-	table.insert(package.files, matchrecursive(&quot;lugre/lib/&quot;..v..&quot;/src/*.cpp&quot;)=
+) =
+
+-	table.insert(package.files, matchrecursive(&quot;lugre/lib/&quot;..v..&quot;/src/*.c&quot;)) =
+
++	table.insert(package.files, matchrecursive(gLugreDir..&quot;/lib/&quot;..v..&quot;/inclu=
+de/*.h&quot;)) =
+
++	table.insert(package.files, matchrecursive(gLugreDir..&quot;/lib/&quot;..v..&quot;/src/*=
+.cpp&quot;)) =
+
++	table.insert(package.files, matchrecursive(gLugreDir..&quot;/lib/&quot;..v..&quot;/src/*=
+.c&quot;)) =
+
+ end
+ =
+
+ =
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000412.html">[Iris-commit] [IRIS] r1596 - in /trunk/data/lua: gui/gui.paperdoll.lua net.popup.lua obj/obj.container.lua
+</A></li>
+	<LI>Next message: <A HREF="000414.html">[Iris-commit] [IRIS] r1598 - in /trunk/data/lua: net.buff.lua net/net.buff.lua net/net.main.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#413">[ date ]</a>
+              <a href="thread.html#413">[ thread ]</a>
+              <a href="subject.html#413">[ subject ]</a>
+              <a href="author.html#413">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,4359 @@
+From no-reply at zwischenwelt.org  Thu Jan  7 23:40:43 2010
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Thu, 07 Jan 2010 22:40:43 -0000
+Subject: [Iris-commit] [IRIS] r3206 - in /trunk: lua/gui/gui.healthbar.lua
+ lua/lib.configdialog.hotkeys.lua lua/lib.macrolist.lua
+ lua/net/net.other.lua lua/obj/obj.mobile.lua lua/widgets/widget.uotext.lua
+ plugins/loot.lua plugins/moblist.lua
+Message-ID: <20100107224044.1B82A7A98179@simon>
+
+Author: ghoulsblade
+Date: Thu Jan  7 23:40:36 2010
+New Revision: 3206
+
+Log: (empty)
+
+Modified:
+    trunk/lua/gui/gui.healthbar.lua
+    trunk/lua/lib.configdialog.hotkeys.lua
+    trunk/lua/lib.macrolist.lua
+    trunk/lua/net/net.other.lua
+    trunk/lua/obj/obj.mobile.lua
+    trunk/lua/widgets/widget.uotext.lua
+    trunk/plugins/loot.lua
+    trunk/plugins/moblist.lua
+
+Modified: trunk/lua/gui/gui.healthbar.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.healthbar.lua (original)
++++ trunk/lua/gui/gui.healthbar.lua Thu Jan  7 23:40:36 2010
+@@ -65,8 +65,8 @@
+ =
+
+ -- color healthbar for poison/golden effect, called from mobile:UpdateFlag=
+s()
+ function StatBar_UpdateMobileFlags (mobile)
+-	local bPoisoned	=3D TestBit(mobile.flag,kMobileFlag_Poisoned) =
+
+-	local bGolden	=3D TestBit(mobile.flag,kMobileFlag_GoldenHealth) =
+
++	local bPoisoned	=3D IsMobilePoisoned(mobile) =
+
++	local bGolden	=3D IsMobileMortaled(mobile) =
+
+ 	local iGumpID =3D kHealthBarGump_Bar_Blue
+ 	if (bPoisoned)	then iGumpID =3D kHealthBarGump_Bar_Green end
+ 	if (bGolden)	then iGumpID =3D kHealthBarGump_Bar_Golden end
+
+Modified: trunk/lua/lib.configdialog.hotkeys.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.configdialog.hotkeys.lua (original)
++++ trunk/lua/lib.configdialog.hotkeys.lua Thu Jan  7 23:40:36 2010
+@@ -115,8 +115,8 @@
+ gMobListFilters:Register("rep:neutral"              ,{fun=3Dfunction (mobi=
+le) return mobile.notoriety =3D=3D kNotoriety_Neutral   end})
+ gMobListFilters:Register("rep:crime"                ,{fun=3Dfunction (mobi=
+le) return mobile.notoriety =3D=3D kNotoriety_Crime     end})
+ gMobListFilters:Register("rep:orange(enemy)"        ,{fun=3Dfunction (mobi=
+le) return mobile.notoriety =3D=3D kNotoriety_Orange    end})
+-gMobListFilters:Register("poisoned"                 ,{fun=3Dfunction (mobi=
+le) return TestBit(mobile.flag,kMobileFlag_Poisoned)    end})
+-gMobListFilters:Register("healable"                 ,{fun=3Dfunction (mobi=
+le) return ((mobile:GetRelHP() or 1) < 1) and (not TestBit(mobile.flag,kMob=
+ileFlag_Poisoned)) and (not TestBit(mobile.flag,kMobileFlag_GoldenHealth)) =
+end}) =
+
++gMobListFilters:Register("poisoned"                 ,{fun=3Dfunction (mobi=
+le) return IsMobilePoisoned(mobile)    end})
++gMobListFilters:Register("healable"                 ,{fun=3Dfunction (mobi=
+le) return ((mobile:GetRelHP() or 1) < 1) and (not IsMobilePoisoned(mobile)=
+) and (not IsMobileMortaled(mobile)) end}) =
+
+ gMobListFilters:Register("inrange"                  ,{fun=3Dfunction (mobi=
+le) return not IsOutsideRange(mobile.xloc,mobile.yloc,gPlayerXLoc,gPlayerYL=
+oc,gSpellCastRange) end})
+ --~ gMobListFilters:Register("insight"                  ,{fun=3Dfunction (=
+mobile) return TODO(mobile.xloc,mobile.yloc,mobile.zloc) end})
+ gMobListFilters:Register("fullhp"                   ,{fun=3Dfunction (mobi=
+le) return ((mobile:GetRelHP() or 1) >=3D 1) end})
+
+Modified: trunk/lua/lib.macrolist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.macrolist.lua (original)
++++ trunk/lua/lib.macrolist.lua Thu Jan  7 23:40:36 2010
+@@ -43,8 +43,8 @@
+ function GetPlayerTithingPoints() return GetMobileStat(GetPlayerMobile(),"=
+tithing") end
+ function IsPlayerHidden() local mobile =3D GetPlayerMobile() return mobile=
+ and mobile.flag_hidden end
+ =
+
+-function MacroCmd_MobilePoisoned (mobile) return mobile and TestBit(mobile=
+.flag,kMobileFlag_Poisoned) end
+-function MacroCmd_MobileMortaled (mobile) return mobile and TestBit(mobile=
+.flag,kMobileFlag_GoldenHealth) end
++function MacroCmd_MobilePoisoned (mobile) return mobile and IsMobilePoison=
+ed(mobile) end
++function MacroCmd_MobileMortaled (mobile) return mobile and IsMobileMortal=
+ed(mobile) end
+ =
+
+ function MacroCmd_MiniHealCureSelf () =
+
+     if (not GetPlayerMobile()) then return end
+
+Modified: trunk/lua/net/net.other.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.other.lua (original)
++++ trunk/lua/net/net.other.lua Thu Jan  7 23:40:36 2010
+@@ -42,6 +42,9 @@
+ 	out:PushNetUint8(range)
+ 	out:SendPacket()
+ end
++
++function IsMobilePoisoned (mobile) return mobile.bHealtBarCol_Green  or Te=
+stBit(mobile.flag,kMobileFlag_Poisoned) end
++function IsMobileMortaled (mobile) return mobile.bHealtBarCol_Yellow or Te=
+stBit(mobile.flag,kMobileFlag_GoldenHealth) end
+ =
+
+ -- http://docs.polserver.com/packets/index.php?Packet=3D0x17      Health b=
+ar status update (KR)
+ -- new in v7000 ? used on poison state
+@@ -63,11 +66,13 @@
+ 		if (healthbarcol =3D=3D 2) then mask =3D kMobileFlag_GoldenHealth end
+ 		local mobile =3D GetMobile(serial)
+ 		if (mobile and mask) then
+-			if (bEnable) then =
+
+-				if (not TestBit(mobile.flag,mask)) then mobile.flag =3D mobile.flag + =
+mask end
+-			else
+-				if (TestBit(mobile.flag,mask)) then mobile.flag =3D mobile.flag - mask=
+ end
+-			end
++			if (healthbarcol =3D=3D 1) then mobile.bHealtBarCol_Green =3D bEnable e=
+nd
++			if (healthbarcol =3D=3D 2) then mobile.bHealtBarCol_Yellow =3D bEnable =
+end
++			--~ if (bEnable) then =
+
++				--~ if (not TestBit(mobile.flag,mask)) then mobile.flag =3D mobile.fla=
+g + mask end
++			--~ else
++				--~ if (    TestBit(mobile.flag,mask)) then mobile.flag =3D mobile.fla=
+g - mask end
++			--~ end
+ 			mobile:UpdateFlags()
+ 			print("healthbarcol:mobile",serial,mobile.flag)
+ 		end
+
+Modified: trunk/lua/obj/obj.mobile.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/obj/obj.mobile.lua (original)
++++ trunk/lua/obj/obj.mobile.lua Thu Jan  7 23:40:36 2010
+@@ -232,13 +232,13 @@
+ =
+
+ -- sets self.flag_* from self.flag
+ function gMobilePrototype:UpdateFlags	()
+-	self.flag_female			=3D TestBit( self.flag, 0x02 )
+-	self.flag_poisoned			=3D TestBit( self.flag, 0x04 )
+-	self.flag_yellowhits		=3D TestBit( self.flag, 0x08 )
+-	self.flag_factionship		=3D TestBit( self.flag, 0x10 )
+-	self.flag_explicitmovable	=3D TestBit( self.flag, 0x20 )
+-	self.flag_warmode	 		=3D TestBit( self.flag, 0x40 )
+-	self.flag_hidden			=3D TestBit( self.flag, 0x80 )
++	self.flag_female			=3D TestBit( self.flag, kMobileFlag_Unknown2 )
++	self.flag_poisoned			=3D IsMobilePoisoned(self) -- kMobileFlag_Poisoned
++	self.flag_yellowhits		=3D IsMobileMortaled(self) -- kMobileFlag_GoldenHea=
+lth
++	self.flag_factionship		=3D TestBit( self.flag, kMobileFlag_FactionShip )
++	self.flag_explicitmovable	=3D TestBit( self.flag, kMobileFlag_Movable )
++	self.flag_warmode	 		=3D TestBit( self.flag, kMobileFlag_WarMode )
++	self.flag_hidden			=3D TestBit( self.flag, kMobileFlag_Hidden )
+ 	=
+
+ 	if (self.old_flag ~=3D self.flag) then -- only if a change has occurred
+ 		self.old_flag  =3D self.flag
+
+Modified: trunk/lua/widgets/widget.uotext.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/widgets/widget.uotext.lua (original)
++++ trunk/lua/widgets/widget.uotext.lua Thu Jan  7 23:40:36 2010
+@@ -28,7 +28,7 @@
+ 	self:SetIgnoreBBoxHit(true) -- default is true for every derivate class o=
+f group,
+ 	-- but text in gumps is not allowed to be mousepickable (e.g. label is di=
+splayed above button but not child of button)
+ 	--~ create uotext  {gumpcommand=3D"htmlgump",textline_id=3D5,width=3D10=
+=3D0x0a,y=3D328=3D0x0148,x=3D210=3D0xd2,default_black=3Dtrue,height=3D16=3D=
+0x10,background=3D0,scrollbar=3D0,html=3Dtrue,}
+-
++	=
+
+ 	if (not text) then
+ 		if (params.textline_id) then text =3D textlines[params.textline_id] =
+
+ 		elseif (params.cliloc_id and gClilocLoader) then =
+
+@@ -41,6 +41,11 @@
+ 	end
+ 	text =3D text or ""
+ 	=
+
++	if (gDumpLongUOTextToConsole) then =
+
++		local dumptxt =3D text
++		if (type(dumptxt) =3D=3D "table") then dumptxt =3D UnicodeToPlainText_Ke=
+epLength(dumptxt) end
++		if (dumptxt and type(dumptxt) =3D=3D "string" and #dumptxt >=3D gDumpLon=
+gUOTextToConsole) then print("gDumpLongUOTextToConsole",dumptxt) end
++	end
+ 	=
+
+ 	self:SetUOHtml(text,bParseHTML)
+ 	local xoff,yoff =3D -1,-2 -- ugly, but needed for serverside gump positio=
+ns ? maybe find a better way, or offset via font or so...
+
+Modified: trunk/plugins/loot.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/plugins/loot.lua (original)
++++ trunk/plugins/loot.lua Thu Jan  7 23:40:36 2010
+@@ -3,7 +3,7 @@
+ if (not gDisabledPlugins.loot) then =
+
+ gLootPluginCutCorspes =3D false =
+
+ --~ gLootPluginCutCorspes =3D true =
+
+-gLootPluginMinGoldAmount =3D 1500000
++gLootPluginMinGoldAmount =3D gLootPluginMinGoldAmount or 1500000
+ =
+
+ kLootPlugin_RecentlyClickedInterval =3D 4*1000
+ kLootPluginHideCorpseWithoutContentChangeTimeout =3D false -- if corpse do=
+es not contain interesting item and hasn't changed contents, hide it
+@@ -190,6 +190,7 @@
+ function LootEvaluateItem (item)
+ 	local artid	=3D item.artid
+ 	local hue	=3D item.hue
++	print("LootEvaluateItem",item,artid,hue)
+ 	if (artid =3D=3D 0x170b) then return true end -- kobold schuhe
+ 	if (artid =3D=3D 0x2da2) then return true end -- mysticism scroll
+ 	if (artid =3D=3D 5110 and hue =3D=3D 2419) then return true end -- gargy =
+knife
+@@ -214,6 +215,7 @@
+ 	if (artid =3D=3D 0x1bd1) then return true end -- feathers
+ 	if (artid =3D=3D 0x26b7) then return true end -- fungus
+ 	if (artid =3D=3D 0x0e2e) then return true end -- petball
++	print("LootEvaluateItem2",item,artid,hue,artid =3D=3D kLootArtID_Gold,ite=
+m.amount,gLootPluginMinGoldAmount)
+ 	--~ if (artid =3D=3D 0x1079) then return true end -- raw leather
+ 	if (artid =3D=3D kLootArtID_Gold and item.amount >=3D gLootPluginMinGoldA=
+mount) then return true end -- gold
+ 	local tooltip =3D AosToolTip_GetText(item.serial,true)
+
+Modified: trunk/plugins/moblist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/plugins/moblist.lua (original)
++++ trunk/plugins/moblist.lua Thu Jan  7 23:40:36 2010
+@@ -470,8 +470,8 @@
+ 	=
+
+ 	-- healthbar color
+ 	local r,g,b =3D 0,0.5,1 -- blue
+-	if (TestBit(mobile.flag,kMobileFlag_Poisoned)		)	then r,g,b =3D 0,0.5,0 e=
+nd
+-	if (TestBit(mobile.flag,kMobileFlag_GoldenHealth)	)	then r,g,b =3D 1,1,0 =
+end
++	if (IsMobilePoisoned(mobile))	then r,g,b =3D 0,0.5,0 end
++	if (IsMobileMortaled(mobile))	then r,g,b =3D 1,1,0 end
+ 	local gfxparam =3D self.fill.params.gfxparam_init
+ 	gfxparam.r =3D r =
+
+ 	gfxparam.g =3D g =
+
+
+
+
+From no-reply at zwischenwelt.org  Thu Jan  7 23:47:01 2010
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Thu, 07 Jan 2010 22:47:01 -0000
+Subject: [Iris-commit] [IRIS] r3207 - /trunk/lua/lib.macrolist.lua
+Message-ID: <20100107224701.B26457A98179@simon>
+
+Author: ghoulsblade
+Date: Thu Jan  7 23:47:01 2010
+New Revision: 3207
+
+Log: (empty)
+
+Modified:
+    trunk/lua/lib.macrolist.lua
+
+Modified: trunk/lua/lib.macrolist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.macrolist.lua (original)
++++ trunk/lua/lib.macrolist.lua Thu Jan  7 23:47:01 2010
+@@ -334,22 +334,22 @@
+ end
+ =
+
+ -- method:  nil=3Drecall "gate"=3Dgate "chivalry"=3Dsacred-journey "use"=
+=3Drunebookcharge  "default":set as runebook default
+-function MacroCmd_UseRuneBookPostAOS (runebookid,runeidx,method,timeout) -=
+- for post-aos (vetus-mundus)   runeidx:0-15      =
+
++function MacroCmd_UseRuneBookPostAOS (runebookid,runeidx,method,timeout,fo=
+rcew,forceh) -- for post-aos (vetus-mundus)   runeidx:0-15      =
+
+     Send_DoubleClick(runebookid)
+     MacroCmd_NextGumpContaining("Charges",timeout or 1000,function (dialog=
+) =
+
+             if (dialog) then =
+
+                 dialog:ShowPage(floor(runeidx/2)+2)
+                 local side =3D (runeidx%2)
+ 				if (method =3D=3D "use") then
+-                    dialog:SendClick((side =3D=3D 0) and 135 or 295,70) --=
+ runebook charge
++                    dialog:SendClick((side =3D=3D 0) and 135 or 295,70,for=
+cew,forceh) -- runebook charge
+                 elseif (method =3D=3D "gate") then
+-                    dialog:SendClick((side =3D=3D 0) and 140 or 300,160) -=
+- gate travel
++                    dialog:SendClick((side =3D=3D 0) and 140 or 300,160,fo=
+rcew,forceh) -- gate travel
+                 elseif (method =3D=3D "chivalry") then
+-                    dialog:SendClick((side =3D=3D 0) and 140 or 300,180) -=
+- chivalry : sacred journey
++                    dialog:SendClick((side =3D=3D 0) and 140 or 300,180,fo=
+rcew,forceh) -- chivalry : sacred journey
+                 elseif (method =3D=3D "default") then
+-                    dialog:SendClick((side =3D=3D 0) and 165 or 305,25) --=
+ recall
++                    dialog:SendClick((side =3D=3D 0) and 165 or 305,25,for=
+cew,forceh) -- recall
+                 else    =
+
+-                    dialog:SendClick((side =3D=3D 0) and 140 or 300,145) -=
+- recall
++                    dialog:SendClick((side =3D=3D 0) and 140 or 300,145,fo=
+rcew,forceh) -- recall
+                 end
+             end
+         end) =
+
+
+
+
+From no-reply at zwischenwelt.org  Fri Jan  8 19:18:11 2010
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Fri, 08 Jan 2010 18:18:11 -0000
+Subject: [Iris-commit] [IRIS] r3208 - in /trunk/lua: gui/gui.securetrade.lua
+	net/net.text.lua
+Message-ID: <20100108181811.3C6AF7A9816E@simon>
+
+Author: ghoulsblade
+Date: Fri Jan  8 19:18:11 2010
+New Revision: 3208
+
+Log:
+secure trade for norender, text-entry hook
+
+Modified:
+    trunk/lua/gui/gui.securetrade.lua
+    trunk/lua/net/net.text.lua
+
+Modified: trunk/lua/gui/gui.securetrade.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.securetrade.lua (original)
++++ trunk/lua/gui/gui.securetrade.lua Fri Jan  8 19:18:11 2010
+@@ -44,10 +44,12 @@
+ 	=
+
+ 	local parent =3D bIsMyStuff and mysectrade.dialog.items_mine or mysectrad=
+e.dialog.items_other
+ 	for k,item in pairs(container:GetContent()) do
+-		local widget =3D parent:CreateChild("UOContainerItemWidget",{item=3Ditem=
+})
++		local widget =3D gNoRender and {item=3Ditem, Destroy=3Dfunction () end} =
+or parent:CreateChild("UOContainerItemWidget",{item=3Ditem})
+ 		item.widget =3D widget
+ 		table.insert(widgetarr,widget)
+ 	end
++	NotifyListener("Hook_TradeUpdate",mysectrade,container,bIsMyStuff)
++	gLastSecureTrade =3D mysectrade
+ end
+ =
+
+ -- triggered when anything is changed,added or removed in/from a container
+@@ -67,7 +69,6 @@
+ end
+ =
+
+ function RecvSecureTrade (sectrade) -- handles data from kPacket_SecureTra=
+de
+-	if (gNoRender) then return end
+ 	if (sectrade.action =3D=3D kSecTradeAction_Start) then
+ 		-- construct sectrade object
+ 		local mysectrade =3D {}
+@@ -82,7 +83,7 @@
+ 			mysectrade:Close()
+ 		end
+ 		mysectrade.Close =3D function (mysectrade)
+-			mysectrade.dialog:Destroy()
++			if (mysectrade.dialog) then mysectrade.dialog:Destroy() mysectrade.dial=
+og =3D nil end
+ 			gSecureTrades[mysectrade.id] =3D nil
+ 		end
+ 		=
+
+@@ -92,30 +93,42 @@
+ 		gSecureTrades[mysectrade.id] =3D mysectrade
+ =
+
+ 		-- show dialog
+-		local dialog =3D GumpParser( securetrading, true )
+-		dialog.items_mine	=3D dialog:CreateChild("Group",{x=3DkSecureTradeContai=
+nerPos_LeftX,y=3DkSecureTradeContainerPos_LeftY})
+-		dialog.items_other	=3D dialog:CreateChild("Group",{x=3DkSecureTradeConta=
+inerPos_RightX,y=3DkSecureTradeContainerPos_RightY})
++		if (gNoRender) then
++			dialog =3D { Destroy=3Dfunction ()end}
++			dialog.items_mine	=3D {}
++			dialog.items_other	=3D {}
++			mysectrade.dialog =3D dialog
++			dialog.uoSecureTrade =3D mysectrade
++		else
++			local dialog =3D GumpParser( securetrading, true )
++			dialog.items_mine	=3D dialog:CreateChild("Group",{x=3DkSecureTradeConta=
+inerPos_LeftX,y=3DkSecureTradeContainerPos_LeftY})
++			dialog.items_other	=3D dialog:CreateChild("Group",{x=3DkSecureTradeCont=
+ainerPos_RightX,y=3DkSecureTradeContainerPos_RightY})
+ =
+
+-		mysectrade.dialog =3D dialog
+-		dialog.uoSecureTrade =3D mysectrade
++			mysectrade.dialog =3D dialog
++			dialog.uoSecureTrade =3D mysectrade
+ =
+
+-		-- overwrite the onMouseDown function from gumpparser
+-		dialog.SendClose =3D function (dialog) dialog.uoSecureTrade:Cancel() end
++			-- overwrite the onMouseDown function from gumpparser
++			dialog.SendClose =3D function (dialog) dialog.uoSecureTrade:Cancel() end
+ =
+
+-		-- update gump text fields
+-		dialog:GetCtrlByName("namemy"):SetUOHtml(GetPlayerName() or "me")
+-		dialog:GetCtrlByName("nametheir"):SetUOHtml(sectrade.name or "unknown")
++			-- update gump text fields
++			dialog:GetCtrlByName("namemy"):SetUOHtml(GetPlayerName() or "me")
++			dialog:GetCtrlByName("nametheir"):SetUOHtml(sectrade.name or "unknown")
+ =
+
+-		-- create function for checkbox
+-		dialog:GetCtrlByName("cbtheir").params.bReadOnly =3D true
+-		dialog:GetCtrlByName("cbmy").on_change =3D function (widget,bState)
+-												Send_SecureTrade_ChangeAgree(widget:GetDialog().uoSecureTrade.=
+id,bState and 1 or 0)
+-										   end
++			-- create function for checkbox
++			dialog:GetCtrlByName("cbtheir").params.bReadOnly =3D true
++			dialog:GetCtrlByName("cbmy").on_change =3D function (widget,bState)
++													Send_SecureTrade_ChangeAgree(widget:GetDialog().uoSecureTrade=
+.id,bState and 1 or 0)
++											   end
++		end
+ =
+
+ 		SecureTradeRebuildContainers(mysectrade)
++		NotifyListener("Hook_TradeStart",mysectrade)
++		gLastSecureTrade =3D mysectrade
+ 	elseif (sectrade.action =3D=3D kSecTradeAction_Cancel) then
+ 		local mysectrade =3D gSecureTrades[sectrade.serial1]
+ 		if (mysectrade) then mysectrade:Close() end
++		NotifyListener("Hook_TradeCancel",mysectrade)
++		gLastSecureTrade =3D mysectrade
+ 	elseif (sectrade.action =3D=3D kSecTradeAction_ChangeCheck) then
+ 		local mysectrade =3D gSecureTrades[sectrade.serial1]
+ 		if (mysectrade) then =
+
+@@ -130,5 +143,7 @@
+ 				mysectrade.dialog:GetCtrlByName("cbtheir"):SetState(theirOK)
+ 			end
+ 		end
++		NotifyListener("Hook_TradeChangeCheckbox",mysectrade, myOK, theirOK)
++		gLastSecureTrade =3D mysectrade
+ 	end
+ end
+
+Modified: trunk/lua/net/net.text.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.text.lua (original)
++++ trunk/lua/net/net.text.lua Fri Jan  8 19:18:11 2010
+@@ -408,6 +408,7 @@
+ 	size =3D size - 11
+ 	input:PopRaw(size) -- 10 zero-bytes usually
+ 	print("kPacket_Unicode_Text_Entry request")
++	NotifyListener("Hook_Unicode_Text_Entry",gUnicodeTextEntryRequest)
+ end
+ =
+
+ =
+
+
+
+
+From no-reply at zwischenwelt.org  Sat Jan  9 00:47:23 2010
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Fri, 08 Jan 2010 23:47:23 -0000
+Subject: [Iris-commit] [IRIS] r3209 - /trunk/lua/gui/gui.securetrade.lua
+Message-ID: <20100108234723.B90097A9816E@simon>
+
+Author: ghoulsblade
+Date: Sat Jan  9 00:47:23 2010
+New Revision: 3209
+
+Log:
+securetrade norender fix
+
+Modified:
+    trunk/lua/gui/gui.securetrade.lua
+
+Modified: trunk/lua/gui/gui.securetrade.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.securetrade.lua (original)
++++ trunk/lua/gui/gui.securetrade.lua Sat Jan  9 00:47:23 2010
+@@ -139,8 +139,10 @@
+ 				mysectrade:Close()
+ 			else =
+
+ 				-- change checkboxes
+-				mysectrade.dialog:GetCtrlByName("cbmy"):SetState(myOK)
+-				mysectrade.dialog:GetCtrlByName("cbtheir"):SetState(theirOK)
++				if (not gNoRender) then
++					mysectrade.dialog:GetCtrlByName("cbmy"):SetState(myOK)
++					mysectrade.dialog:GetCtrlByName("cbtheir"):SetState(theirOK)
++				end
+ 			end
+ 		end
+ 		NotifyListener("Hook_TradeChangeCheckbox",mysectrade, myOK, theirOK)
+
+
+
+From no-reply at zwischenwelt.org  Wed Jan 13 21:20:57 2010
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Wed, 13 Jan 2010 20:20:57 -0000
+Subject: [Iris-commit] [IRIS] r3210 - in /trunk: lua/lib.2d.mousepick.lua
+ lua/lib.cursor.lua lua/net/net.cursor.lua plugins/loot.lua
+Message-ID: <20100113202058.0F1D654D0039@simon>
+
+Author: ghoulsblade
+Date: Wed Jan 13 21:20:57 2010
+New Revision: 3210
+
+Log:
+fixed targetting multi-floor etc, for example when placing furniture
+
+Modified:
+    trunk/lua/lib.2d.mousepick.lua
+    trunk/lua/lib.cursor.lua
+    trunk/lua/net/net.cursor.lua
+    trunk/plugins/loot.lua
+
+Modified: trunk/lua/lib.2d.mousepick.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.mousepick.lua (original)
++++ trunk/lua/lib.2d.mousepick.lua Wed Jan 13 21:20:57 2010
+@@ -85,6 +85,7 @@
+ 		gMousePickFoundHit.hit_xloc =3D sprite.xloc or item.xloc -- sprite.xloc =
+: multi parts exact pos
+ 		gMousePickFoundHit.hit_yloc =3D sprite.yloc or item.yloc
+ 		gMousePickFoundHit.hit_zloc =3D sprite.zloc or item.zloc
++		gMousePickFoundHit.hit_artid =3D sprite.artid or item.artid
+ 		--~ print("RayPickDynamics",GetStaticTileTypeName(sprite.data.artid)) =
+
+ 	end
+ 	=
+
+@@ -144,12 +145,24 @@
+ 			hitinfo =3D hitinfo..sprintf("layer=3D0x%02x,",GetPaperdollLayerFromTil=
+eType(o.item.artid) or 0) =
+
+ 		end
+ 		if (o.hittype =3D=3D kMousePickHitType_Dynamic 	) then =
+
++			hitinfo =3D hitinfo..sprintf("packetid=3D0x%02x,",data.packetid or 0) =
+
++			hitinfo =3D hitinfo..sprintf("itemclass=3D0x%02x,",data.itemclass or 0) =
+
++			hitinfo =3D hitinfo..sprintf("amount2=3D0x%02x,",data.amount2 or 0) =
+
++			hitinfo =3D hitinfo..sprintf("artid_base=3D0x%04x,",data.artid_base or =
+0) =
+
+ 			hitinfo =3D hitinfo..sprintf("amount=3D0x%02x,",data.amount or 0) =
+
+ 		end
+ 		=
+
+ 		if (o.hittype =3D=3D kMousePickHitType_Static			) then hitinfo =3D hitin=
+fo.."static" end
+ 		if (o.hittype =3D=3D kMousePickHitType_Terrain 			) then hitinfo =3D hit=
+info.."terrain" end
+-		if (o.hittype =3D=3D kMousePickHitType_Dynamic 			) then hitinfo =3D hit=
+info.."dynamic" end
++		if (o.hittype =3D=3D kMousePickHitType_Dynamic 			) then 	=
+
++			if (gTileTypeLoader) then
++				local t =3D GetStaticTileType(data.artid)
++				if (t and t.msName) then hitinfo =3D hitinfo..t.msName.."," end
++				if (t and t.miFlags) then hitinfo =3D hitinfo.."tflag=3D"..hex(t.miFla=
+gs).."," end
++			end
++			hitinfo =3D hitinfo.."oflag=3D"..hex(data.flag or 0)..","
++			hitinfo =3D hitinfo.."dynamic"
++		end
+ 		if (o.hittype =3D=3D kMousePickHitType_Mobile 			) then hitinfo =3D hiti=
+nfo.."mobile" end
+ 		if (o.hittype =3D=3D kMousePickHitType_ContainerItem 	) then hitinfo =3D=
+ hitinfo.."containeritem" end
+ 		if (o.hittype =3D=3D kMousePickHitType_PaperdollItem 	) then hitinfo =3D=
+ hitinfo.."paperdollitem" end
+
+Modified: trunk/lua/lib.cursor.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.cursor.lua (original)
++++ trunk/lua/lib.cursor.lua Wed Jan 13 21:20:57 2010
+@@ -170,7 +170,14 @@
+     --targetcursormodetype must be ignored!
+     if (hitobject.hittype =3D=3D kMousePickHitType_Dynamic) then
+         bSendPos =3D false
+-        Send_Target_Dynamic(hitobject.dynamic)
++		local item =3D hitobject.dynamic
++		if (item and ItemIsMulti(item)) then =
+
++			Send_Target_MultiPart(	hitobject.hit_xloc or item.xloc,
++									hitobject.hit_yloc or item.yloc,
++									hitobject.hit_zloc or item.zloc,item,hitobject.hit_artid)
++		else =
+
++			Send_Target_Dynamic(item)
++		end
+     end
+ =
+
+     --targetcursormodetype must be ignored!
+@@ -183,7 +190,7 @@
+     if (hitobject.hittype =3D=3D kMousePickHitType_Static) then =
+
+         bSendPos =3D false =
+
+         local x,y,z =3D GetMouseHitTileCoords()
+-        Send_Target_Static(hitobject.hit_xloc or x,hitobject.hit_yloc or y=
+,hitobject.hit_zloc or z,hitobject.entity,hitobject.hit_artid)
++		Send_Target_Static(hitobject.hit_xloc or x,hitobject.hit_yloc or y,hitob=
+ject.hit_zloc or z,hitobject.entity,hitobject.hit_artid)
+     end
+     =
+
+     -- ground hit
+
+Modified: trunk/lua/net/net.cursor.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.cursor.lua (original)
++++ trunk/lua/net/net.cursor.lua Wed Jan 13 21:20:57 2010
+@@ -52,6 +52,7 @@
+ =
+
+ -- Send Targetcursor (0x6c)
+ function Send_Target (bIsPos,flag,serial,x,y,z,model)
++	print("Send_Target",bIsPos,hex(flag),hex(serial),x,y,z,hex(model))
+ 	--printf("NET: Send_Target: %d 0x%02x 0x%08x %d %d %d 0x%04x\n",bIsPos an=
+d 1 or 0,flag,serial,x or 0,y or 0,z or 0,model or 0)
+ 	local out =3D GetSendFIFO()
+ 	out:PushNetUint8(kPacket_Target)
+@@ -105,3 +106,7 @@
+ 	NotifyListener("Hook_TargetMode_Dynamic",dynamic)
+ 	Send_Target_Item(dynamic) -- compatible fieldnames =
+
+ end
++
++function Send_Target_MultiPart(x,y,z,item,hit_artid)
++	Send_Target(true,0,0,x or 0,y or 0,z or 0,hit_artid or item.artid or 0) =
+
++end
+
+Modified: trunk/plugins/loot.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/plugins/loot.lua (original)
++++ trunk/plugins/loot.lua Wed Jan 13 21:20:57 2010
+@@ -200,8 +200,8 @@
+ 	if (artid =3D=3D 0xeb1) then return false end -- music instruments
+ 	if (artid =3D=3D 0xe9d) then return false end -- music instruments
+ 	if (artid =3D=3D 0xe9c) then return false end -- music instruments
+-	--~ if (artid =3D=3D 0x1bfb and item.amount >=3D 30) then return true end=
+ -- bolts
+-	--~ if (artid =3D=3D 0x0f3f and item.amount >=3D 30) then return true end=
+ -- arrows
++	if (artid =3D=3D 0x1bfb and item.amount >=3D 30) then return true end -- =
+bolts
++	if (artid =3D=3D 0x0f3f and item.amount >=3D 30) then return true end -- =
+arrows
+ 	if (1 =3D=3D 2) then -- jewels
+ 		if (artid =3D=3D 0xf21) then return true end -- star saphire
+ 		if (artid =3D=3D 0xf26) then return true end -- star diamond
+
+
+
+From no-reply at zwischenwelt.org  Thu Jan 14 10:40:48 2010
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Thu, 14 Jan 2010 09:40:48 -0000
+Subject: [Iris-commit] [IRIS] r3211 - /trunk/premake.lua
+Message-ID: <20100114094048.14DCE7A9816E@simon>
+
+Author: ghoulsblade
+Date: Thu Jan 14 10:40:47 2010
+New Revision: 3211
+
+Log:
+premake.lua path fix : removed double / , needed for rpm build/extract debu=
+g infos, ask che
+
+Modified:
+    trunk/premake.lua
+
+Modified: trunk/premake.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/premake.lua (original)
++++ trunk/premake.lua Thu Jan 14 10:40:47 2010
+@@ -59,7 +59,7 @@
+ 		print("=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D")
+ 	end
+ else
+-	gLugreLuaSrcDir =3D "./"..gLugreDir.."/lib/lua-5.1.4/"
++	gLugreLuaSrcDir =3D string.gsub("./"..gLugreDir.."/lib/lua-5.1.4","//","/=
+") -- removed / at the end and // in the middle, for rpm building (extract =
+debug infos, ask che)
+ end
+ =
+
+ gLugreOisDir =3D "./"..gLugreDir.."/baselib/ois/"
+
+
+
+From no-reply at zwischenwelt.org  Thu Jan 14 21:30:44 2010
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Thu, 14 Jan 2010 20:30:44 -0000
+Subject: [Iris-commit] [IRIS] r3212 - /trunk/lua/lib.protocol.lua
+Message-ID: <20100114203044.E69DF54D0039@simon>
+
+Author: ghoulsblade
+Date: Thu Jan 14 21:30:44 2010
+New Revision: 3212
+
+Log:
+gPacketSizeOverride6017 was applied before the shard config was loaded
+
+Modified:
+    trunk/lua/lib.protocol.lua
+
+Modified: trunk/lua/lib.protocol.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.protocol.lua (original)
++++ trunk/lua/lib.protocol.lua Thu Jan 14 21:30:44 2010
+@@ -19,9 +19,9 @@
+ =
+
+ -- check if packets are complete and handle them
+ function HandlePackets ()
+-	if (not gPacketInit) then gPacketInit =3D true InitPackets() end
+ 	if (not gNoLogPackets_ByPacket) then gNoLogPackets_ByPacket =3D {} for k,=
+v in pairs(gNoLogPackets) do gNoLogPackets_ByPacket[v] =3D true end end
+ 	local input =3D GetRecvFIFO()
++	if ((not gPacketInit) and input:Size() >=3D 1) then gPacketInit =3D true =
+InitPackets() end -- don't call before shard config is loaded !!! clientver=
+sion!
+ 	=
+
+ 	gProfiler_Packets:Start(gEnableProfiler_Packets)
+ 	=
+
+
+
+
+From no-reply at zwischenwelt.org  Thu Jan 14 21:55:23 2010
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Thu, 14 Jan 2010 20:55:23 -0000
+Subject: [Iris-commit] [IRIS] r3213 - in /trunk/bin: OgreMain.dll
+ Plugin_CgProgramManager.dll Plugin_ParticleFX.dll
+ RenderSystem_Direct3D9.dll RenderSystem_GL.dll iris2.exe
+Message-ID: <20100114205523.7D22B7A9816E@simon>
+
+Author: sience
+Date: Thu Jan 14 21:55:14 2010
+New Revision: 3213
+
+Log:
+-new win32
+-Ogre updated to 1.6.5 for Windows only
+
+Modified:
+    trunk/bin/OgreMain.dll
+    trunk/bin/Plugin_CgProgramManager.dll
+    trunk/bin/Plugin_ParticleFX.dll
+    trunk/bin/RenderSystem_Direct3D9.dll
+    trunk/bin/RenderSystem_GL.dll
+    trunk/bin/iris2.exe
+
+Modified: trunk/bin/OgreMain.dll
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+Binary files - no diff available.
+
+Modified: trunk/bin/Plugin_CgProgramManager.dll
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+Binary files - no diff available.
+
+Modified: trunk/bin/Plugin_ParticleFX.dll
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+Binary files - no diff available.
+
+Modified: trunk/bin/RenderSystem_Direct3D9.dll
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+Binary files - no diff available.
+
+Modified: trunk/bin/RenderSystem_GL.dll
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+Binary files - no diff available.
+
+Modified: trunk/bin/iris2.exe
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+Binary files - no diff available.
+
+
+
+From no-reply at zwischenwelt.org  Sat Jan 16 00:17:14 2010
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Fri, 15 Jan 2010 23:17:14 -0000
+Subject: [Iris-commit] [IRIS] r3214 - in /trunk: config/shards/oblivion.xml
+ lua/lib.compass.lua lua/lib.desktop.lua lua/lib.macrolist.lua
+ lua/lib.registry.slow.lua lua/lib.shardlist.lua lua/main.lua
+ lua/widgets/widget.mappiece.lua
+Message-ID: <20100115231714.A4C0754D0039@simon>
+
+Author: ghoulsblade
+Date: Sat Jan 16 00:17:14 2010
+New Revision: 3214
+
+Log:
+use .iris for config and temp data in user home dir if USE_HOME_DIR exists =
+in iris maindir, centralized a few path variables
+
+Added:
+    trunk/config/shards/oblivion.xml
+Modified:
+    trunk/lua/lib.compass.lua
+    trunk/lua/lib.desktop.lua
+    trunk/lua/lib.macrolist.lua
+    trunk/lua/lib.registry.slow.lua
+    trunk/lua/lib.shardlist.lua
+    trunk/lua/main.lua
+    trunk/lua/widgets/widget.mappiece.lua
+
+Modified: trunk/lua/lib.compass.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.compass.lua (original)
++++ trunk/lua/lib.compass.lua Sat Jan 16 00:17:14 2010
+@@ -361,7 +361,7 @@
+     =
+
+     if (not md5) then print("WARNING, md5 checks for tmp/compass* files no=
+t possible (maps)") md5 =3D "md5dummy" end =
+
+ =
+
+-    gMapImagePath_Small =3D datapath.."tmp/compass_"..md5.."_small_s.png"
++    gMapImagePath_Small =3D gTempPath.."compass_"..md5.."_small_s.png"
+ =
+
+     local mapfile_exists =3D file_exists(gMapImagePath_Small)
+     if (mapfile_exists) then
+
+Modified: trunk/lua/lib.desktop.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.desktop.lua (original)
++++ trunk/lua/lib.desktop.lua Sat Jan 16 00:17:14 2010
+@@ -3,7 +3,6 @@
+         handles ingame desktop savings
+ ]]--
+ =
+
+-gDesktopDir =3D gMainWorkingDir.."data/desktop/"
+ gDesktop =3D {}
+ gDesktopPositions =3D {}
+ gDesktopFile =3D "test.lua"
+
+Modified: trunk/lua/lib.macrolist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.macrolist.lua (original)
++++ trunk/lua/lib.macrolist.lua Sat Jan 16 00:17:14 2010
+@@ -468,11 +468,11 @@
+ function MacroCmd_ZoomCompass           (zoomfactor)    if (gInGameStarted=
+) then ZoomCompass(zoomfactor) end end
+ function MacroCmd_ActivateNextRenderer  ()              if (gInGameStarted=
+) then ActivateNextRenderer() end end
+ function MacroCmd_CamChangeZoom         (zoomadd)       if (gInGameStarted=
+) then gCurrentRenderer:CamChangeZoom(zoomadd) end end
+-function MacroCmd_Screenshot            ()              Client_TakeScreens=
+hot(gMainWorkingDir.."screenshots/") end
++function MacroCmd_Screenshot            ()              Client_TakeScreens=
+hot(gScreenshotDir) end
+ function MacroCmd_GridScreenshot        ()          =
+
+     if (not gInGameStarted) then return end
+     ToggleCompass()
+-    Client_TakeGridScreenshot(gMainWorkingDir.."screenshots/")
++    Client_TakeGridScreenshot(gScreenshotDir)
+     ToggleCompass()
+ end
+ =
+
+
+Modified: trunk/lua/lib.registry.slow.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.registry.slow.lua (original)
++++ trunk/lua/lib.registry.slow.lua Sat Jan 16 00:17:14 2010
+@@ -6,6 +6,6 @@
+ gRegistrySlow =3D {}
+ function gRegistrySlow:Set (key,val) self.data[key] =3D val   self:Save() =
+end
+ function gRegistrySlow:Get (key) return self.data[key] end
+-function gRegistrySlow:GetFilePath () return gMainWorkingDir.."config/regi=
+stry.xml" end
++function gRegistrySlow:GetFilePath () return gConfigPath.."registry.xml" e=
+nd
+ function gRegistrySlow:Load () self.data =3D	SimpleXMLLoad(self:GetFilePat=
+h()) or {} end
+ function gRegistrySlow:Save () 				SimpleXMLSave(self:GetFilePath(),self.d=
+ata) end
+
+Modified: trunk/lua/lib.shardlist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.shardlist.lua (original)
++++ trunk/lua/lib.shardlist.lua Sat Jan 16 00:17:14 2010
+@@ -1,7 +1,7 @@
+ =
+
+ -- paths
+ =
+
+-function GetConfigDirPath               () return gMainWorkingDir.."config=
+/" end
++function GetConfigDirPath               () return gConfigPath end
+ function GetShardListDirPath            () return GetConfigDirPath().."sha=
+rds/" end
+ function GetShardMemoryFilePath         () return GetConfigDirPath().."sha=
+rdmemory.xml" end
+ function GetCharFilePath                (loginname,charid) return GetConfi=
+gDirPath().."chars/"..table.concat({gLoginServerIP,gLoginServerPort,ShardLi=
+stFileNamePartEncode(loginname or gLoginname),(giGameServerID or 0),(charid=
+ or gCharID or 0)},".")..".xml" end
+
+Modified: trunk/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/main.lua (original)
++++ trunk/lua/main.lua Sat Jan 16 00:17:14 2010
+@@ -1,6 +1,7 @@
+ --###############################
+ --###        CONSTANTS        ###
+ --###############################
++
+ =
+
+ gMainWorkingDir     =3D GetMainWorkingDir and GetMainWorkingDir() or ""
+ datapath            =3D gMainWorkingDir.."data/"
+@@ -9,6 +10,8 @@
+ gMacroPathFallback  =3D gMainWorkingDir.."lua/config_macros_declarations.l=
+ua"
+ gMainPluginDir      =3D gMainWorkingDir.."plugins/"
+ gConfigPath         =3D gMainWorkingDir.."config/"
++gDesktopDir			=3D gMainWorkingDir.."data/desktop/"
++gScreenshotDir		=3D gMainWorkingDir.."screenshots/"
+ gMacroFile          =3D "mymacros.lua"
+ gMacroPathFile      =3D gConfigPath..gMacroFile
+ gMacroPathFile_old  =3D datapath..gMacroFile          -- only as Fallback =
+for old users
+@@ -25,6 +28,34 @@
+ function GetStackTrace () return _TRACEBACK() end
+ =
+
+ --###############################
++--###    USE USER HOME DIR    ###
++--###############################
++
++function InitHomeDirInfos ()
++	-- todo : shardlist : display shards from original dir also ?
++	if ((not WIN32) and file_exists(gMainWorkingDir.."USE_HOME_DIR")) then
++		local home =3D GetHomePath()
++		if (not home) then return end
++		=
+
++		gHomeIrisPath 		=3D home.."/.iris/"
++		gTempPath 			=3D gHomeIrisPath.."tmp/"
++		gScreenshotDir		=3D gHomeIrisPath.."screenshots/"
++		gConfigPath 		=3D gHomeIrisPath.."config/"
++		gConfigPathFile     =3D gConfigPath..gConfigFile
++		gMacroPathFile      =3D gConfigPath..gMacroFile
++		=
+
++		if (not file_exists(gHomeIrisPath)) then
++			print("initializing "..gHomeIrisPath)
++			mkdir(gHomeIrisPath)
++			mkdir(gTempPath)
++			mkdir(gScreenshotDir)
++			mkdir(gConfigPath)
++			MyCopyDir(gMainWorkingDir.."config/",gConfigPath)
++		end
++	end
++end
++
++--###############################
+ --###     OTHER LUA FILES     ###
+ --###############################
+ =
+
+@@ -36,6 +67,8 @@
+ dofile(libpath .. "lib.sound.iris.lua")
+ dofile(libpath .. "lib.keybinds.lua")
+ dofile(libpath .. "lib.net.lua")
++
++InitHomeDirInfos()
+ =
+
+ -- renderer second
+ gRendererList =3D {}
+@@ -234,7 +267,7 @@
+     --~ OgreAddResLoc(gMainWorkingDir.."/."                     ,"FileSyst=
+em","General")
+     OgreAddResLoc(mydatapath.."."                           ,"FileSystem",=
+"General")
+     OgreAddResLoc(mydatapath.."base"                        ,"FileSystem",=
+"General")
+-    OgreAddResLoc(mydatapath.."tmp"                         ,"FileSystem",=
+"General")
++    OgreAddResLoc(string.gsub(gTempPath,"/$","")			,"FileSystem","General"=
+) -- remove trailing slash ?
+     OgreAddResLoc(mydatapath.."base/ui"                     ,"FileSystem",=
+"General")
+     OgreAddResLoc(mydatapath.."base/font"                   ,"FileSystem",=
+"General")
+     OgreAddResLoc(mydatapath.."skybox/materials"            ,"FileSystem",=
+"General")
+
+Modified: trunk/lua/widgets/widget.mappiece.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/widgets/widget.mappiece.lua (original)
++++ trunk/lua/widgets/widget.mappiece.lua Sat Jan 16 00:17:14 2010
+@@ -22,7 +22,7 @@
+ 	end
+ 	=
+
+ 	k =3D k..".png"
+-	local b =3D datapath.."tmp/"
++	local b =3D gTempPath
+ 	=
+
+ 	if file_exists(b..k) then
+ 		self.mImage =3D LoadImageFromFile(k)
+
+
+
+From no-reply at zwischenwelt.org  Sat Jan 16 00:28:43 2010
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Fri, 15 Jan 2010 23:28:43 -0000
+Subject: [Iris-commit] [IRIS] r3215 - in /trunk: config/desktop/
+	data/desktop/ lua/main.lua
+Message-ID: <20100115232843.942C07A98179@simon>
+
+Author: ghoulsblade
+Date: Sat Jan 16 00:28:42 2010
+New Revision: 3215
+
+Log:
+moved desktop dir to config folder
+
+Added:
+    trunk/config/desktop/
+      - copied from r3214, trunk/data/desktop/
+Removed:
+    trunk/data/desktop/
+Modified:
+    trunk/lua/main.lua
+
+Modified: trunk/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/main.lua (original)
++++ trunk/lua/main.lua Sat Jan 16 00:28:42 2010
+@@ -10,7 +10,6 @@
+ gMacroPathFallback  =3D gMainWorkingDir.."lua/config_macros_declarations.l=
+ua"
+ gMainPluginDir      =3D gMainWorkingDir.."plugins/"
+ gConfigPath         =3D gMainWorkingDir.."config/"
+-gDesktopDir			=3D gMainWorkingDir.."data/desktop/"
+ gScreenshotDir		=3D gMainWorkingDir.."screenshots/"
+ gMacroFile          =3D "mymacros.lua"
+ gMacroPathFile      =3D gConfigPath..gMacroFile
+@@ -19,6 +18,7 @@
+ gConfigPathFile     =3D gConfigPath..gConfigFile
+ gConfigPathFile_old =3D datapath..gConfigFile         -- only as Fallback =
+for old users
+ gIrisWidgetDir      =3D libpath.."widgets/"
++gDesktopDir			=3D gConfigPath.."desktop/" -- old was data/desktop/
+ gTempPath           =3D datapath.."tmp/"
+ gSecondsSinceLastFrame =3D 0
+ =
+
+@@ -43,6 +43,8 @@
+ 		gConfigPath 		=3D gHomeIrisPath.."config/"
+ 		gConfigPathFile     =3D gConfigPath..gConfigFile
+ 		gMacroPathFile      =3D gConfigPath..gMacroFile
++		gDesktopDir			=3D gConfigPath.."desktop/"
++		=
+
+ 		=
+
+ 		if (not file_exists(gHomeIrisPath)) then
+ 			print("initializing "..gHomeIrisPath)
+@@ -50,7 +52,8 @@
+ 			mkdir(gTempPath)
+ 			mkdir(gScreenshotDir)
+ 			mkdir(gConfigPath)
+-			MyCopyDir(gMainWorkingDir.."config/",gConfigPath)
++			mkdir(gDesktopDir)
++			CopyDir(gMainWorkingDir.."config/",gConfigPath)
+ 		end
+ 	end
+ end
+
+
+
+From no-reply at zwischenwelt.org  Sat Jan 16 14:59:51 2010
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Sat, 16 Jan 2010 13:59:51 -0000
+Subject: [Iris-commit] [IRIS] r3216 - in /trunk/lua: lib.packetvideo.lua
+ lib.terrain.multitex.lua main.lua
+Message-ID: <20100116135951.308A454D0039@simon>
+
+Author: ghoulsblade
+Date: Sat Jan 16 14:59:50 2010
+New Revision: 3216
+
+Log:
+texatlas creation on first startup : fixed temp path, fixed videos paths : =
+for packetvids
+
+Modified:
+    trunk/lua/lib.packetvideo.lua
+    trunk/lua/lib.terrain.multitex.lua
+    trunk/lua/main.lua
+
+Modified: trunk/lua/lib.packetvideo.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.packetvideo.lua (original)
++++ trunk/lua/lib.packetvideo.lua Sat Jan 16 14:59:50 2010
+@@ -29,7 +29,6 @@
+ gPacketVideoNoPlaybackPackets[kPacket_Open_Container] =3D true
+ gPacketVideoNoPlaybackPackets[kPacket_Logout] =3D true -- logout
+ =
+
+-gPacketVideoFileName_folderpath	=3D "../videos/"
+ gPacketVideoFileName_prefix		=3D gPacketVideoFileName_folderpath.."myvid."
+ gPacketVideoFileName_postfix	=3D ".ipv"
+ =
+
+
+Modified: trunk/lua/lib.terrain.multitex.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.terrain.multitex.lua (original)
++++ trunk/lua/lib.terrain.multitex.lua Sat Jan 16 14:59:50 2010
+@@ -173,7 +173,7 @@
+ 	if (true) then -- export texatlas image
+ 		local imgAtlas =3D CreateImage()
+ 		pTexAtlas:MakeImage(imgAtlas)
+-		imgAtlas:SaveAsFile("../data/tmp/terrain_tex_atlas.png")
++		imgAtlas:SaveAsFile(gTempPath.."terrain_tex_atlas.png")
+ 	end
+ 	local sGroundTexName =3D pTexAtlas:MakeTexture()
+ 	pTexAtlas:Destroy()
+
+Modified: trunk/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/main.lua (original)
++++ trunk/lua/main.lua Sat Jan 16 14:59:50 2010
+@@ -20,6 +20,7 @@
+ gIrisWidgetDir      =3D libpath.."widgets/"
+ gDesktopDir			=3D gConfigPath.."desktop/" -- old was data/desktop/
+ gTempPath           =3D datapath.."tmp/"
++gPacketVideoFileName_folderpath	=3D gMainWorkingDir.."videos/"
+ gSecondsSinceLastFrame =3D 0
+ =
+
+ gInGameStarted =3D false
+@@ -44,6 +45,7 @@
+ 		gConfigPathFile     =3D gConfigPath..gConfigFile
+ 		gMacroPathFile      =3D gConfigPath..gMacroFile
+ 		gDesktopDir			=3D gConfigPath.."desktop/"
++		gPacketVideoFileName_folderpath	=3D gHomeIrisPath.."videos/" -- todo : t=
+ext=3D'will be saved as .ipv files in iris/videos/'
+ 		=
+
+ 		=
+
+ 		if (not file_exists(gHomeIrisPath)) then
+@@ -53,6 +55,7 @@
+ 			mkdir(gScreenshotDir)
+ 			mkdir(gConfigPath)
+ 			mkdir(gDesktopDir)
++			mkdir(gPacketVideoFileName_folderpath)
+ 			CopyDir(gMainWorkingDir.."config/",gConfigPath)
+ 		end
+ 	end
+
+
+
+From no-reply at zwischenwelt.org  Sat Jan 16 15:23:14 2010
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Sat, 16 Jan 2010 14:23:14 -0000
+Subject: [Iris-commit] [IRIS] r3217 - in /trunk: bin/iris2.exe lua/main.lua
+Message-ID: <20100116142314.7033254D0039@simon>
+
+Author: sience
+Date: Sat Jan 16 15:23:14 2010
+New Revision: 3217
+
+Log:
+-USE_HOME_DIR option added for windows too (currently only works for german=
+...later i took a look into other lang support)
+
+Modified:
+    trunk/bin/iris2.exe
+    trunk/lua/main.lua
+
+Modified: trunk/bin/iris2.exe
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+Binary files - no diff available.
+
+Modified: trunk/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/main.lua (original)
++++ trunk/lua/main.lua Sat Jan 16 15:23:14 2010
+@@ -34,9 +34,11 @@
+ =
+
+ function InitHomeDirInfos ()
+ 	-- todo : shardlist : display shards from original dir also ?
+-	if ((not WIN32) and file_exists(gMainWorkingDir.."USE_HOME_DIR")) then
++	if (file_exists(gMainWorkingDir.."USE_HOME_DIR")) then
+ 		local home =3D GetHomePath()
+ 		if (not home) then return end
++
++		if (WIN32) then home =3D home .. "/Anwendungsdaten" end
+ 		=
+
+ 		gHomeIrisPath 		=3D home.."/.iris/"
+ 		gTempPath 			=3D gHomeIrisPath.."tmp/"
+@@ -56,6 +58,8 @@
+ 			mkdir(gConfigPath)
+ 			mkdir(gDesktopDir)
+ 			mkdir(gPacketVideoFileName_folderpath)
++
++			print("Copy config from: " .. gMainWorkingDir.."config/" .. " to: " .. =
+gConfigPath)
+ 			CopyDir(gMainWorkingDir.."config/",gConfigPath)
+ 		end
+ 	end
+
+
+
+From no-reply at zwischenwelt.org  Sat Jan 16 19:06:39 2010
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Sat, 16 Jan 2010 18:06:39 -0000
+Subject: [Iris-commit] [IRIS] r3218 - in /trunk: config/iris.filter.lua
+ config/shards/zwischenwelt.xml config/uoam/ config/uoam/EMPTY
+ lua/config_declarations.lua lua/lib.compass.lua lua/lib.macrolist.lua
+ lua/lib.mainmenu.lua lua/main.lua tmp/ tmp/EMPTY
+Message-ID: <20100116180639.C224554D0039@simon>
+
+Author: sience
+Date: Sat Jan 16 19:06:39 2010
+New Revision: 3218
+
+Log:
+-CustomArtFilterFile sample (iris.filter.lua) for Shards added to "/config"=
+ and "/config/shards/zwischenwelt.xml
+-obsolete shardconfig removed from config defaults
+-gUOAMEnabled added to config defaults
+-uoam folder moved from "/data" to "/config"  (should be in shard config la=
+ter)
+-"/tmp" dir moved from default "/data" to "iris2" root
+-mark.uoam file moved to "/tmp"
+-some optimizations to default dir handling in main.lua
+
+Added:
+    trunk/config/iris.filter.lua
+    trunk/config/uoam/
+    trunk/config/uoam/EMPTY
+    trunk/tmp/
+    trunk/tmp/EMPTY
+Modified:
+    trunk/config/shards/zwischenwelt.xml
+    trunk/lua/config_declarations.lua
+    trunk/lua/lib.compass.lua
+    trunk/lua/lib.macrolist.lua
+    trunk/lua/lib.mainmenu.lua
+    trunk/lua/main.lua
+
+Modified: trunk/config/shards/zwischenwelt.xml
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/config/shards/zwischenwelt.xml (original)
++++ trunk/config/shards/zwischenwelt.xml Sat Jan 16 19:06:39 2010
+@@ -5,6 +5,7 @@
+     <number key=3D"gLoginServerPort">2593</number>
+     <string key=3D"gPassword"></string>
+     <string key=3D"gLoginServerIP">zwischenwelt.org</string>
++    <string key=3D"gCustomArtFilterFile">iris.filter.lua</string>
+     <table key=3D"gMaps" keytype=3D"string">
+         <table key=3D"0" keytype=3D"number">
+             <string key=3D"name">Trammel</string>
+
+Modified: trunk/lua/config_declarations.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/config_declarations.lua (original)
++++ trunk/lua/config_declarations.lua Sat Jan 16 19:06:39 2010
+@@ -143,90 +143,13 @@
+ --------------------------------
+ gShardList =3D {}
+ =
+
+-
+ --~ preset shards now loaded from config/shards/*.xml
+-
+---[[
+-gShardList["localhost"] =3D {
+-		gLoginname =3D "admin",	-- Loginname
+-		gPassword =3D "admin",	-- Password
+-		gLoginServerIP =3D "localhost",
+-		gLoginServerPort =3D 2593,
+-		gServerSeed =3D hex2num("0xFFFFFFFF"),
+-		gPolServer =3D false
+-	}
+-
+-gShardList["vetus-mundus"] =3D {
+-		gLoginname =3D "",	-- Loginname
+-		gPassword =3D "",		-- Password
+-		gLoginServerIP =3D "shard.vetus-mundus.de",
+-		gLoginServerPort =3D 2594,
+-		gWalkMinDiagonalBlock =3D 2,
+-		gServerSeed =3D hex2num("0xFFFFFFFF"),
+-		gPolServer =3D false
+-	}
+-
+-gShardList["Jarrys (chinese)"] =3D {
+-		gLoginname =3D "",	-- Loginname
+-		gPassword =3D "",		-- Password
+-		gLoginServerIP =3D "login.uofans.com", =
+
+-		gLoginServerPort =3D 2593, =
+
+-		gServerSeed =3D 1, =
+
+-		gPolServer =3D false =
+
+-	}
+-
+--- demise admins banned iris =3D(  http://www.uodemise.com/forum/showthrea=
+d.php?p=3D477997
+---~ gShardList["uodemise.com"] =3D {
+-		--~ gLoginname =3D "",	-- Loginname
+-		--~ gPassword =3D "",		-- Password
+-		--~ gLoginServerIP =3D "login.uodemise.com",
+-		--~ gLoginServerPort =3D 2593,
+-		--~ gServerSeed =3D hex2num("0xFFFFFFFF"),
+-		--~ gPolServer =3D false
+-	--~ }
+-
+-gShardList["uogamers.com"] =3D {
+-		gLoginname =3D "",	-- Loginname
+-		gPassword =3D "",		-- Password
+-		gLoginServerIP =3D "login.uogamers.com",
+-		gLoginServerPort =3D 2593,
+-		gServerSeed =3D hex2num("0xFFFFFFFF"),
+-		gPolServer =3D false,
+-		--~ gbAutoClickItems =3D true -- preaos (causes lag)
+-	}
+-
+-gShardList["defianceuo.com"] =3D { =
+
+-		gLoginname =3D "",	-- Loginname
+-		gPassword =3D "",		-- Password
+-		gLoginServerIP =3D "dfi.defianceuo.com", =
+
+-		gLoginServerPort =3D 2593,
+-		gServerSeed =3D hex2num("0xFFFFFFFF"),
+-		gPolServer =3D false
+-	}
+-]]--
+-
+--- in config.lua you can add shards like this: 	=
+
+--- gShardList["myshard"] =3D { ..... } =
+
+-
+--- in config.lua you can set login infos like this: (not recommended for s=
+ecurity reasons)  =
+
+--- gShardList["uogamers.com"].gLoginname =3D "YOUR_USERNAME" =
+
+--- gShardList["uogamers.com"].gPassword =3D "YOUR_PASSWORD" =
+
+-
+--- for pol servers use this:
+--- gShardList["localhost"].gPolServer=3Dtrue
+--- gShardList["localhost"].gLoginServerPort=3D5003
+--- gShardList["localhost"].gGameServerPort=3D5003
+-
+--- you can specify a specialised filter file for your shard
+--- gShardList["localhost"].gCustomArtFilterFilePath =3D "config\\iris.filt=
+er.lua"
+ =
+
+ =
+
+ -- Standard Serversettings
+ --------------------------
+ gConfig:DeclareBoolean("gStartGameWithoutNetwork", "client", "start withou=
+t network", 'TODO', false)
+ gConfig:DeclareBoolean("gStartInDebugMode", "client", "start in debug mode=
+", 'TODO', false)
+-
+-gConfig:DeclareString("gCustomArtFilterFilePath", "path", "art filter path=
+", 'TODO', "")
+ =
+
+ gServerEmulator=3D0
+ gServerType =3D {
+@@ -494,7 +417,8 @@
+ =
+
+ gConfig:DeclareBoolean("gEnableGotoOnClick", "input", "goto on click", 'TO=
+DO', false)
+ =
+
+-gMarkFile =3D "../data/uoam/mark.uoam"
++-- UOAM Server support
++gConfig:DeclareBoolean("gUOAMEnabled", "protocol", "Enabled UOAM", 'TODO',=
+ false)
+ =
+
+ gConfig:DeclareBoolean("gTileFreeWalkDiagonalOptimization", "input", "diag=
+onal walk optimize", 'experimental code for faster diagonal movement (tries=
+ to avoid stair effect)', true)
+ =
+
+@@ -517,7 +441,6 @@
+ gConfig:DeclareBoolean("gLogStatsToFile", "debug", "log stats to file", 'd=
+umps statistical informations into stats.dat', false)
+ =
+
+ gConfig:DeclareFloat("gMaxFPS", "gfx", "max fps", 'upper fps limit', 50)
+-
+ =
+
+ =
+
+ -- port me to new config system ! (or extend system for complex stuff)
+
+Modified: trunk/lua/lib.compass.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.compass.lua (original)
++++ trunk/lua/lib.compass.lua Sat Jan 16 19:06:39 2010
+@@ -59,8 +59,8 @@
+ end
+ =
+
+ function MarkCurrentPosition    (name)
+-    if gMarkFile then
+-        local fp =3D io.open(gMarkFile,"a")
++    if gUoamMarkFilePath then
++        local fp =3D io.open(gUoamMarkFilePath,"a")
+         if (fp) then
+             local x,y,z =3D MacroRead_GetPlayerPosition()
+             local mapid =3D gCompassMapIndex - 1
+@@ -69,10 +69,10 @@
+         end
+     end
+     gPositionMarkers =3D {}
+-    LoadUOAutomapFiles("../data/uoam/", gPositionMarkers)
+-end
+-
+-LoadUOAutomapFiles("../data/uoam/", gPositionMarkers)
++    LoadUOAutomapFiles(gUOAMDir, gPositionMarkers)
++end
++
++LoadUOAutomapFiles(gUOAMDir, gPositionMarkers)
+ =
+
+ function SetPositionMarker(mapindex,name,xloc,yloc,r,g,b,a)
+     if not mapindex or not name or not xloc or not yloc then return end
+
+Modified: trunk/lua/lib.macrolist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.macrolist.lua (original)
++++ trunk/lua/lib.macrolist.lua Sat Jan 16 19:06:39 2010
+@@ -1283,7 +1283,7 @@
+ 	=
+
+ 	local shard =3D gShardList[shardname]  assert(shard)
+ 	gShardName =3D shardname
+-    LoadShardfilter(shard.gCustomArtFilterFilePath) -- todo : revert on er=
+ror or back-button ?
++    LoadShardfilter(shard.gCustomArtFilterFile) -- todo : revert on error =
+or back-button ?
+ 	=
+
+     -- load global config from shard
+     for k,v in pairs(shard) do _G[k] =3D v end
+
+Modified: trunk/lua/lib.mainmenu.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mainmenu.lua (original)
++++ trunk/lua/lib.mainmenu.lua Sat Jan 16 19:06:39 2010
+@@ -88,13 +88,13 @@
+ =
+
+ -- ***** ***** ***** ***** ***** Shardfilter
+ =
+
+-function LoadShardfilter (filterfilepath)
+-    if (filterfilepath) then
+-        if (file_exists(gMainWorkingDir..filterfilepath) ) then
+-            print("Load custom shard-specific Filter: "..gMainWorkingDir..=
+filterfilepath)
+-            dofile(gMainWorkingDir..filterfilepath)
++function LoadShardfilter (filterfile)
++    if (filterfile) then
++        if (file_exists(gConfigPath..filterfile) ) then
++            print("Load custom shard-specific Filter: "..gConfigPath..filt=
+erfile)
++            dofile(gConfigPath..filterfile)
+         else
+-            print("Shard-specific Filter not found: "..gMainWorkingDir..fi=
+lterfilepath)
++            print("Shard-specific Filter not found: "..gConfigPath..filter=
+file)
+         end
+     end
+ end
+@@ -105,7 +105,7 @@
+ --  print("MainMenu_SelectShard",shard,shard.gShardName)
+     MainMenuStopAllMenus()
+     =
+
+-    LoadShardfilter(shard.gCustomArtFilterFilePath) -- todo : revert on er=
+ror or back-button ?
++    LoadShardfilter(shard.gCustomArtFilterFile) -- todo : revert on error =
+or back-button ?
+     =
+
+     -- load global config from shard
+     for k,v in pairs(shard) do _G[k] =3D v end
+
+Modified: trunk/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/main.lua (original)
++++ trunk/lua/main.lua Sat Jan 16 19:06:39 2010
+@@ -2,27 +2,33 @@
+ --###        CONSTANTS        ###
+ --###############################
+ =
+
+-
++-- Iris2 Directories/Files
+ gMainWorkingDir     =3D GetMainWorkingDir and GetMainWorkingDir() or ""
+ datapath            =3D gMainWorkingDir.."data/"
+ libpath             =3D gMainWorkingDir.."lua/"
+-lugreluapath        =3D (file_exists(gMainWorkingDir.."mylugre") and gMain=
+WorkingDir.."mylugre/lua/" or GetLugreLuaPath())
+ gMacroPathFallback  =3D gMainWorkingDir.."lua/config_macros_declarations.l=
+ua"
+ gMainPluginDir      =3D gMainWorkingDir.."plugins/"
++gIrisWidgetDir      =3D libpath.."widgets/"
++
++lugreluapath        =3D (file_exists(gMainWorkingDir.."mylugre") and gMain=
+WorkingDir.."mylugre/lua/" or GetLugreLuaPath()) -- this is should also in =
+USERHOME dir
++
++-- User Directories/Files
++gTempPath           =3D gMainWorkingDir.."tmp/"
++gUoamMarkFile		=3D "mark.uoam"
++gUoamMarkFilePath	=3D gTempPath..gUoamMarkFile
++gScreenshotDir		=3D gMainWorkingDir.."screenshots/"
+ gConfigPath         =3D gMainWorkingDir.."config/"
+-gScreenshotDir		=3D gMainWorkingDir.."screenshots/"
++gConfigFile         =3D "config.lua"
++gConfigPathFile     =3D gConfigPath..gConfigFile
++gConfigPathFile_old =3D datapath..gConfigFile         -- only as Fallback =
+for old users
+ gMacroFile          =3D "mymacros.lua"
+ gMacroPathFile      =3D gConfigPath..gMacroFile
+ gMacroPathFile_old  =3D datapath..gMacroFile          -- only as Fallback =
+for old users
+-gConfigFile         =3D "config.lua"
+-gConfigPathFile     =3D gConfigPath..gConfigFile
+-gConfigPathFile_old =3D datapath..gConfigFile         -- only as Fallback =
+for old users
+-gIrisWidgetDir      =3D libpath.."widgets/"
+ gDesktopDir			=3D gConfigPath.."desktop/" -- old was data/desktop/
+-gTempPath           =3D datapath.."tmp/"
+ gPacketVideoFileName_folderpath	=3D gMainWorkingDir.."videos/"
++gUOAMDir			=3D gConfigPath.."uoam/"
++
+ gSecondsSinceLastFrame =3D 0
+-
+ gInGameStarted =3D false
+ gNet_State =3D false
+ =
+
+@@ -38,7 +44,7 @@
+ 		local home =3D GetHomePath()
+ 		if (not home) then return end
+ =
+
+-		if (WIN32) then home =3D home .. "/Anwendungsdaten" end
++		if (WIN32) then home =3D home .. "/Anwendungsdaten" end	-- TODO: other L=
+anguages!!!
+ 		=
+
+ 		gHomeIrisPath 		=3D home.."/.iris/"
+ 		gTempPath 			=3D gHomeIrisPath.."tmp/"
+@@ -48,9 +54,10 @@
+ 		gMacroPathFile      =3D gConfigPath..gMacroFile
+ 		gDesktopDir			=3D gConfigPath.."desktop/"
+ 		gPacketVideoFileName_folderpath	=3D gHomeIrisPath.."videos/" -- todo : t=
+ext=3D'will be saved as .ipv files in iris/videos/'
++		gUOAMDir			=3D gConfigPath.."uoam/"
+ 		=
+
+-		=
+
+-		if (not file_exists(gHomeIrisPath)) then
++		-- check if config.lua is already copied
++		if (not file_exists(gConfigPathFile)) then
+ 			print("initializing "..gHomeIrisPath)
+ 			mkdir(gHomeIrisPath)
+ 			mkdir(gTempPath)
+@@ -58,6 +65,7 @@
+ 			mkdir(gConfigPath)
+ 			mkdir(gDesktopDir)
+ 			mkdir(gPacketVideoFileName_folderpath)
++			mkdir(gUOAMDir)
+ =
+
+ 			print("Copy config from: " .. gMainWorkingDir.."config/" .. " to: " .. =
+gConfigPath)
+ 			CopyDir(gMainWorkingDir.."config/",gConfigPath)
+
+
+
+From no-reply at zwischenwelt.org  Sat Jan 16 19:07:40 2010
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Sat, 16 Jan 2010 18:07:40 -0000
+Subject: [Iris-commit] [IRIS] r3219 - in /trunk/data: tmp/ uoam/
+Message-ID: <20100116180740.1C22D54D0039@simon>
+
+Author: sience
+Date: Sat Jan 16 19:07:39 2010
+New Revision: 3219
+
+Log:
+-obsolete folders deleted
+
+Removed:
+    trunk/data/tmp/
+    trunk/data/uoam/
+
+
+
+From no-reply at zwischenwelt.org  Sat Jan 16 22:39:43 2010
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Sat, 16 Jan 2010 21:39:43 -0000
+Subject: [Iris-commit] [IRIS] r3220 - /trunk/lua/main.lua
+Message-ID: <20100116213943.67E5654D0039@simon>
+
+Author: sience
+Date: Sat Jan 16 22:39:42 2010
+New Revision: 3220
+
+Log:
+-bugfix (win32 check not needed anymore)
+
+Modified:
+    trunk/lua/main.lua
+
+Modified: trunk/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/main.lua (original)
++++ trunk/lua/main.lua Sat Jan 16 22:39:42 2010
+@@ -43,8 +43,6 @@
+ 	if (file_exists(gMainWorkingDir.."USE_HOME_DIR")) then
+ 		local home =3D GetHomePath()
+ 		if (not home) then return end
+-
+-		if (WIN32) then home =3D home .. "/Anwendungsdaten" end	-- TODO: other L=
+anguages!!!
+ 		=
+
+ 		gHomeIrisPath 		=3D home.."/.iris/"
+ 		gTempPath 			=3D gHomeIrisPath.."tmp/"
+
+
+
+From no-reply at zwischenwelt.org  Sun Jan 17 13:56:04 2010
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Sun, 17 Jan 2010 12:56:04 -0000
+Subject: [Iris-commit] [IRIS] r3221 - /branches/stable_release/
+Message-ID: <20100117125606.23E467A98171@simon>
+
+Author: ghoulsblade
+Date: Sun Jan 17 13:56:02 2010
+New Revision: 3221
+
+Log:
+removing stable for trunk -> stable update
+
+Removed:
+    branches/stable_release/
+
+
+
+From no-reply at zwischenwelt.org  Sun Jan 17 13:56:10 2010
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Sun, 17 Jan 2010 12:56:10 -0000
+Subject: [Iris-commit] [IRIS] r3222 - /branches/stable_release/
+Message-ID: <20100117125611.03AA77A9817E@simon>
+
+Author: ghoulsblade
+Date: Sun Jan 17 13:56:10 2010
+New Revision: 3222
+
+Log:
+copying trunk to stable
+
+Added:
+    branches/stable_release/
+      - copied from r3221, trunk/
+
+
+
+From no-reply at zwischenwelt.org  Sun Jan 17 13:56:11 2010
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Sun, 17 Jan 2010 12:56:11 -0000
+Subject: [Iris-commit] [IRIS] r3223 - /branches/stable_release/
+Message-ID: <20100117125611.675557A98180@simon>
+
+Author: ghoulsblade
+Date: Sun Jan 17 13:56:11 2010
+New Revision: 3223
+
+Log:
+lugre -r810 svn://zwischenwelt.org/lugre/trunk/lugre
+
+Modified:
+    branches/stable_release/   (props changed)
+
+
+
+From no-reply at zwischenwelt.org  Sun Jan 17 16:02:27 2010
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Sun, 17 Jan 2010 15:02:27 -0000
+Subject: [Iris-commit] [IRIS] r3224 - in /trunk: USE_HOME_DIR
+ lua/config_declarations.lua lua/lib.compass.lua lua/lib.configdialog.lua
+ lua/main.lua
+Message-ID: <20100117150228.271977A98171@simon>
+
+Author: sience
+Date: Sun Jan 17 16:02:23 2010
+New Revision: 3224
+
+Log:
+-uoam bugfixed
+-USE_HOME_DIR now standard (delete if you don't want to use User Home Dirs)
+
+Added:
+    trunk/USE_HOME_DIR
+Modified:
+    trunk/lua/config_declarations.lua
+    trunk/lua/lib.compass.lua
+    trunk/lua/lib.configdialog.lua
+    trunk/lua/main.lua
+
+Modified: trunk/lua/config_declarations.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/config_declarations.lua (original)
++++ trunk/lua/config_declarations.lua Sun Jan 17 16:02:23 2010
+@@ -432,7 +432,7 @@
+ =
+
+ gConfig:DeclareBoolean("gEnable2DWaterAnim", "gfx", "2D : Water Animation"=
+, 'enable/disable Water Animation in 2d mode', false)
+ gConfig:DeclareBoolean("gEnableBloomShader", "gfx", "bloom shader", 'TODO'=
+, false)
+-gConfig:DeclareBoolean("gGrannyAnimEnabled", "gfx", "granny anims, bad for=
+ performance as long as we don't use anim-shader", 'TODO', false) =
+
++gConfig:DeclareBoolean("gGrannyAnimEnabled", "gfx", "granny anims, bad for=
+ performance as long as we don't use anim-shader", 'TODO', true) =
+
+ gConfig:DeclareBoolean("gUseWaterShader", "gfx", "water shader", 'TODO', f=
+alse)
+ gConfig:DeclareBoolean("gWaterAsGroundTiles", "gfx", "water as ground tile=
+s", 'TODO', false)
+ =
+
+
+Modified: trunk/lua/lib.compass.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.compass.lua (original)
++++ trunk/lua/lib.compass.lua Sun Jan 17 16:02:23 2010
+@@ -59,8 +59,8 @@
+ end
+ =
+
+ function MarkCurrentPosition    (name)
+-    if gUoamMarkFilePath then
+-        local fp =3D io.open(gUoamMarkFilePath,"a")
++    if gUoamMarkPathFile then
++        local fp =3D io.open(gUoamMarkPathFile,"a")
+         if (fp) then
+             local x,y,z =3D MacroRead_GetPlayerPosition()
+             local mapid =3D gCompassMapIndex - 1
+
+Modified: trunk/lua/lib.configdialog.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.configdialog.lua (original)
++++ trunk/lua/lib.configdialog.lua Sun Jan 17 16:02:23 2010
+@@ -193,7 +193,7 @@
+ =
+
+ function ConfigDialogPage_PacketVideo(page)
+     page:AddChild("Button",{label=3D"Play Iris PacketVideo (*.ipv)",on_but=
+ton_click=3Dfunction ()  =
+
+-            if (PacketVideo_Load(FileOpenDialog(".","*.ipv","select iris p=
+acketvideo"))) then PacketVideo_Playback() end
++            if (PacketVideo_Load(FileOpenDialog(gPacketVideoFileName_folde=
+rpath,"*.ipv","select iris packetvideo"))) then PacketVideo_Playback() end
+         end})
+     page:AddChild("Button",{label=3D"Play Razor PacketVideo (*.rpv)",on_bu=
+tton_click=3Dfunction ()  =
+
+             if (PacketVideo_LoadRarzorPV(FileOpenDialog(".","*.rpv","selec=
+t razor packetvideo"))) then PacketVideo_Playback() end
+
+Modified: trunk/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/main.lua (original)
++++ trunk/lua/main.lua Sun Jan 17 16:02:23 2010
+@@ -14,8 +14,6 @@
+ =
+
+ -- User Directories/Files
+ gTempPath           =3D gMainWorkingDir.."tmp/"
+-gUoamMarkFile		=3D "mark.uoam"
+-gUoamMarkFilePath	=3D gTempPath..gUoamMarkFile
+ gScreenshotDir		=3D gMainWorkingDir.."screenshots/"
+ gConfigPath         =3D gMainWorkingDir.."config/"
+ gConfigFile         =3D "config.lua"
+@@ -27,6 +25,8 @@
+ gDesktopDir			=3D gConfigPath.."desktop/" -- old was data/desktop/
+ gPacketVideoFileName_folderpath	=3D gMainWorkingDir.."videos/"
+ gUOAMDir			=3D gConfigPath.."uoam/"
++gUoamMarkFile		=3D "mark.uoam"
++gUoamMarkPathFile	=3D gUOAMDir..gUoamMarkFile
+ =
+
+ gSecondsSinceLastFrame =3D 0
+ gInGameStarted =3D false
+@@ -53,6 +53,7 @@
+ 		gDesktopDir			=3D gConfigPath.."desktop/"
+ 		gPacketVideoFileName_folderpath	=3D gHomeIrisPath.."videos/" -- todo : t=
+ext=3D'will be saved as .ipv files in iris/videos/'
+ 		gUOAMDir			=3D gConfigPath.."uoam/"
++		gUoamMarkPathFile	=3D gUOAMDir..gUoamMarkFile
+ 		=
+
+ 		-- check if config.lua is already copied
+ 		if (not file_exists(gConfigPathFile)) then
+
+
+
+From no-reply at zwischenwelt.org  Sun Jan 17 16:19:48 2010
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Sun, 17 Jan 2010 15:19:48 -0000
+Subject: [Iris-commit] [IRIS] r3225 - /trunk/bin/iris2.exe
+Message-ID: <20100117151948.69CB57A98171@simon>
+
+Author: sience
+Date: Sun Jan 17 16:19:48 2010
+New Revision: 3225
+
+Log:
+-new win32 binary
+
+Modified:
+    trunk/bin/iris2.exe
+
+Modified: trunk/bin/iris2.exe
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+Binary files - no diff available.
+
+
+
+From no-reply at zwischenwelt.org  Sun Jan 17 16:41:09 2010
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Sun, 17 Jan 2010 15:41:09 -0000
+Subject: [Iris-commit] [IRIS] r3228 - /branches/stable_release/
+Message-ID: <20100117154109.3B4A87A98171@simon>
+
+Author: ghoulsblade
+Date: Sun Jan 17 16:41:09 2010
+New Revision: 3228
+
+Log:
+lugre -r811 svn://zwischenwelt.org/lugre/trunk/lugre
+
+Modified:
+    branches/stable_release/   (props changed)
+
+
+
+From no-reply at zwischenwelt.org  Sun Jan 17 16:41:09 2010
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Sun, 17 Jan 2010 15:41:09 -0000
+Subject: [Iris-commit] [IRIS] r3227 - /branches/stable_release/
+Message-ID: <20100117154109.0A7707A98171@simon>
+
+Author: ghoulsblade
+Date: Sun Jan 17 16:41:08 2010
+New Revision: 3227
+
+Log:
+copying trunk to stable
+
+Added:
+    branches/stable_release/
+      - copied from r3226, trunk/
+
+
+
+From no-reply at zwischenwelt.org  Sun Jan 17 16:41:08 2010
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Sun, 17 Jan 2010 15:41:08 -0000
+Subject: [Iris-commit] [IRIS] r3226 - /branches/stable_release/
+Message-ID: <20100117154108.D304D7A98171@simon>
+
+Author: ghoulsblade
+Date: Sun Jan 17 16:41:08 2010
+New Revision: 3226
+
+Log:
+removing stable for trunk -> stable update
+
+Removed:
+    branches/stable_release/
+
+
+
+From no-reply at zwischenwelt.org  Sun Jan 17 19:03:11 2010
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Sun, 17 Jan 2010 18:03:11 -0000
+Subject: [Iris-commit] [IRIS] r3229 - /trunk/README
+Message-ID: <20100117180312.233707A98171@simon>
+
+Author: sience
+Date: Sun Jan 17 19:03:10 2010
+New Revision: 3229
+
+Log:
+-readme updated
+
+Modified:
+    trunk/README
+
+Modified: trunk/README
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/README (original)
++++ trunk/README Sun Jan 17 19:03:10 2010
+@@ -1,8 +1,8 @@
+-Iris2, Copyright (C) 2006 - 2009 Iris Team
++Iris2, Copyright (C) 2006 - 2010 Iris Team
+ __________________________________________
+ =
+
+-Iris2 is a 3D/2D game client for Online Role Playing Game "Ultima Online" =
+(tm)
+-using the Ogre 3D-Engine.
++Iris2 is a 2d/3d game client for Online Role Playing Game "Ultima Online" =
+(tm)
++using the Ogre Engine.
+ =
+
+ Iris Installation (Step 1-4):
+ 1. You need a legal copy of Ultima Online to use Iris2.
+
+
+
+From no-reply at zwischenwelt.org  Sun Jan 17 19:06:36 2010
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Sun, 17 Jan 2010 18:06:36 -0000
+Subject: [Iris-commit] [IRIS] r3230 - /tools/installer/Iris_Setup.iss
+Message-ID: <20100117180636.4293F7A98171@simon>
+
+Author: sience
+Date: Sun Jan 17 19:06:36 2010
+New Revision: 3230
+
+Log:
+-updated
+
+Modified:
+    tools/installer/Iris_Setup.iss
+
+Modified: tools/installer/Iris_Setup.iss
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- tools/installer/Iris_Setup.iss (original)
++++ tools/installer/Iris_Setup.iss Sun Jan 17 19:06:36 2010
+@@ -9,7 +9,7 @@
+ #define UpdaterExeName "updater.exe"
+ #define UpdaterExeName2 "emergency_update.bat"
+ #define AppUrlName "iris2.url"
+-#define BuildNumber "build 3021"
++#define BuildNumber "build 3228"
+ #define DataDir "svnclient\Data\"
+ =
+
+ [Setup]
+@@ -36,6 +36,10 @@
+ AppVersion=3D{#AppVersion}
+ AppID=3D{{EFB07745-76F8-4AB4-89F2-CAA1AEBC0137}
+ ShowLanguageDialog=3Dauto
++PrivilegesRequired=3Dadmin
++
++[Messages]
++AdminPrivilegesRequired=3DThe Iris2 Installer needs Admin rights to instal=
+l the Microsoft VisualStudio Runtime.
+ =
+
+ [Languages]
+ Name: eng; MessagesFile: compiler:Default.isl
+@@ -58,7 +62,7 @@
+ Name: {group}\{#AppUpdaterName2}; WorkingDir: {app}\bin\; Filename: {app}\=
+bin\{#UpdaterExeName2}
+ Name: {group}\{cm:ProgramOnTheWeb,{#AppName}}; Filename: {app}\{#AppUrlNam=
+e}
+ Name: {group}\{cm:UninstallProgram,{#AppName}}; Filename: {uninstallexe}
+-Name: {userdesktop}\{#AppUpdaterName}; WorkingDir: {app}\bin\; Filename: {=
+app}\bin\{#UpdaterExeName}; Tasks: desktopicon
++Name: {userdesktop}\{#AppName}; WorkingDir: {app}\bin\; Filename: {app}\bi=
+n\{#AppExeName}; Tasks: desktopicon
+ ;Name: {userdesktop}\{#AppUpdaterName2}; WorkingDir: {app}\bin\; Filename:=
+ {app}\bin\{#UpdaterExeName2}; Tasks: desktopicon
+ =
+
+ [Run]
+
+
+
+From no-reply at zwischenwelt.org  Wed Jan 20 13:30:45 2010
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Wed, 20 Jan 2010 12:30:45 -0000
+Subject: [Iris-commit] [IRIS] r3231 - /trunk/lua/main.lua
+Message-ID: <20100120123050.74B1D7A9817B@simon>
+
+Author: ghoulsblade
+Date: Wed Jan 20 13:30:43 2010
+New Revision: 3231
+
+Log:
+ogre bin path
+
+Modified:
+    trunk/lua/main.lua
+
+Modified: trunk/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/main.lua (original)
++++ trunk/lua/main.lua Wed Jan 20 13:30:43 2010
+@@ -4,6 +4,7 @@
+ =
+
+ -- Iris2 Directories/Files
+ gMainWorkingDir     =3D GetMainWorkingDir and GetMainWorkingDir() or ""
++gBinPath			=3D gMainWorkingDir.."bin/"  -- bin folder with config etc
+ datapath            =3D gMainWorkingDir.."data/"
+ libpath             =3D gMainWorkingDir.."lua/"
+ gMacroPathFallback  =3D gMainWorkingDir.."lua/config_macros_declarations.l=
+ua"
+@@ -498,7 +499,7 @@
+     print("initializing ogre...")
+     if (not gNoOgre) then
+ 		local bAutoCreateWindow =3D false
+-        if (not InitOgre("Iris2",gOgrePluginPathOverride or lugre_detect_o=
+gre_plugin_path(),"../bin/",bAutoCreateWindow)) then os.exit(0) end
++        if (not InitOgre("Iris2",gOgrePluginPathOverride or lugre_detect_o=
+gre_plugin_path(),gBinPath,bAutoCreateWindow)) then os.exit(0) end
+ 		if (OgreCreateWindow and (not bAutoCreateWindow)) then -- new startup pr=
+ocedure with separate window creation to allow gfx-config
+ 			GfxConfig_Apply()
+ 			GfxConfig_PreWindowCreate()
+
+
+
+From no-reply at zwischenwelt.org  Thu Jan 21 23:13:51 2010
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Thu, 21 Jan 2010 22:13:51 -0000
+Subject: [Iris-commit] [IRIS] r3232 - in /trunk/lua: lib.protocol.lua
+	lib.proxy.lua
+Message-ID: <20100121221351.2A8157A9817C@simon>
+
+Author: ghoulsblade
+Date: Thu Jan 21 23:13:51 2010
+New Revision: 3232
+
+Log:
+packet debugging utils
+
+Modified:
+    trunk/lua/lib.protocol.lua
+    trunk/lua/lib.proxy.lua
+
+Modified: trunk/lua/lib.protocol.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.protocol.lua (original)
++++ trunk/lua/lib.protocol.lua Thu Jan 21 23:13:51 2010
+@@ -62,9 +62,20 @@
+ 		=
+
+ 		local sPacketTypeName =3D gPacketTypeId2Name[iId] -- get packet-type-name
+ 		local packet_debuginfo =3D sprintf("typeid=3D0x%02x,size=3D%d,typename=
+=3D%s",iId,iPacketSize,sPacketTypeName or "")
++		local iBFSubCmd =3D (iId =3D=3D kPacket_Generic_Command) and input:PeekN=
+etUint16(3)
++		if (iBFSubCmd) then
++			local genname =3D gGenericSubCommandNamesByID[iBFSubCmd] or "???"
++			packet_debuginfo =3D packet_debuginfo .. sprintf(",subcmd=3D%s[0x%02x]"=
+,genname,iBFSubCmd)
++		end
+ 		if (not gNoLogPackets_ByPacket[iId]) then -- log on
+ 			printdebug("net",sprintf("NET: ProtocolPacketRecvHandler "..packet_debu=
+ginfo))
+-			if (gEnablePacketDebug_Short) then print("packet",packet_debuginfo) end
++			if (gEnablePacketDebug_Short) then =
+
++				if (iBFSubCmd and gNoLogPackets_BySubCmd and gNoLogPackets_BySubCmd[iB=
+FSubCmd]) then
++					-- skip
++				else =
+
++					print("packet",packet_debuginfo) =
+
++				end
++			end
+ 			if (gbPacketLogToFadeLines) then GuiAddChatLine("recv "..packet_debugin=
+fo) end
+ 		end
+ 		=
+
+
+Modified: trunk/lua/lib.proxy.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.proxy.lua (original)
++++ trunk/lua/lib.proxy.lua Thu Jan 21 23:13:51 2010
+@@ -1,26 +1,41 @@
+ -- uoproxy for debugging
+ =
+
++function UOProxyOpenListener (port)
++	local timeout =3D Client_GetTicks() + 5*1000
++	local listener
++	repeat
++		listener =3D NetListen(port)
++		if (not listener) then print("port listen bind fail, retrying...") Clien=
+t_USleep(1 * 1000) end
++	until listener or Client_GetTicks() > timeout =
+
++	assert(listener,"failed to bind to local port "..(port or 0))
++	return listener
++end
+ function UOProxyMode (host,port)
+ 	print("starting proxy mode")
+ 	print("host:",host,"port:",port)
+ 	=
+
+ 	gProxyHost =3D host
+ 	gProxyPort =3D port
+-	=
+
+-	local timeout =3D Client_GetTicks() + 5*1000
+-	repeat
+-		gServerListenerTCP =3D NetListen(port)
+-		if (not gServerListenerTCP) then print("port listen bind fail, retrying.=
+..") Client_USleep(1 * 1000) end
+-	until gServerListenerTCP or Client_GetTicks() > timeout =
+
+-	assert(gServerListenerTCP,"failed to bind to local port "..(port or 0))
++	gProxyPort2 =3D port+1
++	=
+
++	gServerListenerTCP =3D UOProxyOpenListener(gProxyPort)
++	gServerListenerTCP2 =3D UOProxyOpenListener(gProxyPort2)
+ 	=
+
+ 	print("listen port opened....")
+ 		=
+
+ 	while true do
++		local listener =3D gServerListenerTCP
+ 		while true do
+-			local newcon =3D gServerListenerTCP:PopAccepted()
++			local newcon =3D listener:PopAccepted()
+ 			if (not newcon) then break end
++			print("###############################")
++			print("#### PROXY : connection started, listener=3D",(listener =3D=3D g=
+ServerListenerTCP) and "A" or "B")
++			print("###############################")
+ 			UOProxyOneConnection(newcon)
++			print("###############################")
++			print("#### PROXY : connection ended")
++			print("###############################")
++			listener =3D gServerListenerTCP2
+ 			--~ print("proxy end") return
+ 		end
+ 		Client_USleep(10) =
+
+@@ -105,79 +120,98 @@
+ 	local bInterpret =3D true
+ 	--~ if (bIsFromServer and gProxyServerHuffmanStarted) then bInterpret =3D=
+ false end -- huffman comp&decomp active now
+ 	--~ if (bIsFromClient and gProxyServerHuffmanStarted) then bInterpret =3D=
+ false end -- not really needed but something seems bugged
+-	=
+
++	if (gDisableProxyInterpretation) then bInterpret =3D false end
+ 	local bScrambleTest =3D false
+ 	local bClientBlockTest =3D true
+ 	=
+
+-	if (bIsFromClient and gProxyServerHuffmanStarted and (not gProxySecondPar=
+tHeaderStarted)) then
+-		gProxySecondPartHeaderStarted =3D true
+-		local iPacketSize =3D 4
+-		print("recv:",fromname,"4byte header before protocol start") =
+
+-		print(FIFOHexDump(fifo_in,0,iPacketSize))
+-		fifo_out:PushFIFOPartRaw(fifo_in,0,iPacketSize) =
+
+-		fifo_in:PopRaw(iPacketSize)
+-		return true
+-	end
+-	=
+
+-	-- scramble kPacket_Generic_SubCommand_Screensize (0xBF subcmd 0x05)  las=
+t 5 bytes (unknown)
+-	--~ bf 00 0d 00 05 00 00 03 20 3f d0 11 00            |........ ?...|
+-	if (bScrambleTest and bIsFromClient and fifo_in:Size() >=3D 13) then =
+
+-		if (fifo_in:PeekNetUint8(0) =3D=3D 0xBF and
+-			fifo_in:PeekNetUint8(1) =3D=3D 0x00 and
+-			fifo_in:PeekNetUint8(2) =3D=3D 0x0d and
+-			fifo_in:PeekNetUint8(3) =3D=3D 0x00 and
+-			fifo_in:PeekNetUint8(4) =3D=3D 0x05) then
+-			fifo_in:PokeNetUint8(9,0xff)
+-			fifo_in:PokeNetUint8(10,0xff)
+-			fifo_in:PokeNetUint8(11,0xff)
+-			fifo_in:PokeNetUint8(12,0xff)
+-			print("SCRAMBLED kPacket_Generic_SubCommand_Screensize")
+-		end
+-	end
+-	=
+
+-	=
+
+-	=
+
+-	-- modify the unknown se packets
+-	if (bIsFromClient and fifo_in:Size() >=3D 6) then
+-		--~ bf 00 06 00 24 5e
+-		if (fifo_in:PeekNetUint8(0) =3D=3D 0xBF and
+-			fifo_in:PeekNetUint8(1) =3D=3D 0x00 and
+-			fifo_in:PeekNetUint8(2) =3D=3D 0x06 and
+-			fifo_in:PeekNetUint8(3) =3D=3D 0x00 and
+-			fifo_in:PeekNetUint8(4) =3D=3D 0x24) then
+-			--~ fifo_in:PokeNetUint8(5,math.random(0,255))
+-			print("detected unknownSE")
+-			if (bScrambleTest) then =
+
+-				fifo_in:PokeNetUint8(5,16)
+-				print("SCRAMBLED unknownSE")
++	if (bInterpret) then =
+
++		-- 4-byte-head con1
++		if (bIsFromClient and (not gProxyFirstPartHeaderStarted)) then
++			gProxyFirstPartHeaderStarted =3D true
++			local iPacketSize =3D 4
++			print("recv:",fromname,"4byte header before protocol start con1") =
+
++			print(FIFOHexDump(fifo_in,0,iPacketSize))
++			fifo_out:PushFIFOPartRaw(fifo_in,0,iPacketSize) =
+
++			fifo_in:PopRaw(iPacketSize)
++			return true
++		end
++		=
+
++		-- 4-byte-head con2
++		if (bIsFromClient and gProxyServerHuffmanStarted and (not gProxySecondPa=
+rtHeaderStarted)) then
++			gProxySecondPartHeaderStarted =3D true
++			local iPacketSize =3D 4
++			print("recv:",fromname,"4byte header before protocol start con2") =
+
++			print(FIFOHexDump(fifo_in,0,iPacketSize))
++			fifo_out:PushFIFOPartRaw(fifo_in,0,iPacketSize) =
+
++			fifo_in:PopRaw(iPacketSize)
++			return true
++		end
++	=
+
++		-- scramble kPacket_Generic_SubCommand_Screensize (0xBF subcmd 0x05)  la=
+st 5 bytes (unknown)
++		--~ bf 00 0d 00 05 00 00 03 20 3f d0 11 00            |........ ?...|
++		if (bScrambleTest and bIsFromClient and fifo_in:Size() >=3D 13) then =
+
++			if (fifo_in:PeekNetUint8(0) =3D=3D 0xBF and
++				fifo_in:PeekNetUint8(1) =3D=3D 0x00 and
++				fifo_in:PeekNetUint8(2) =3D=3D 0x0d and
++				fifo_in:PeekNetUint8(3) =3D=3D 0x00 and
++				fifo_in:PeekNetUint8(4) =3D=3D 0x05) then
++				fifo_in:PokeNetUint8(9,0xff)
++				fifo_in:PokeNetUint8(10,0xff)
++				fifo_in:PokeNetUint8(11,0xff)
++				fifo_in:PokeNetUint8(12,0xff)
++				print("+++++++++++++++++++++++++++++++++++++++++++++++")
++				print("SCRAMBLED kPacket_Generic_SubCommand_Screensize")
++				print("+++++++++++++++++++++++++++++++++++++++++++++++")
+ 			end
+-			if (bClientBlockTest) then gProxyBlockingClient =3D true end
+-		end
+-	end
+-	=
+
+-	=
+
+-	-- modify kPacket_Pre_Login 0x5D packet data
+-	if (bScrambleTest and bIsFromClient and fifo_in:Size() >=3D 49) then
+-		if (fifo_in:PeekNetUint8(0) =3D=3D 0x5D and
+-			fifo_in:PeekNetUint8(1) =3D=3D 0xED and
+-			fifo_in:PeekNetUint8(2) =3D=3D 0xED and
+-			fifo_in:PeekNetUint8(3) =3D=3D 0xED and
+-			fifo_in:PeekNetUint8(4) =3D=3D 0xED) then
+-			--~ fifo_in:PokeNetUint8(5,math.random(0,255))
+-			fifo_in:PokeNetUint8(48,0x11)
+-			print("SCRAMBLED kPacket_Pre_Login")
++		end
++		=
+
++		=
+
++		=
+
++		-- modify the unknown se packets
++		if (bIsFromClient and fifo_in:Size() >=3D 6) then
++			--~ bf 00 06 00 24 5e
++			if (fifo_in:PeekNetUint8(0) =3D=3D 0xBF and
++				fifo_in:PeekNetUint8(1) =3D=3D 0x00 and
++				fifo_in:PeekNetUint8(2) =3D=3D 0x06 and
++				fifo_in:PeekNetUint8(3) =3D=3D 0x00 and
++				fifo_in:PeekNetUint8(4) =3D=3D 0x24) then
++				--~ fifo_in:PokeNetUint8(5,math.random(0,255))
++				print("+++++++++++++++++++++++++++++++++++++++++++++++")
++				print("detected unknownSE")
++				print("+++++++++++++++++++++++++++++++++++++++++++++++")
++				if (bScrambleTest) then =
+
++					fifo_in:PokeNetUint8(5,16)
++					print("SCRAMBLED unknownSE")
++				end
++				if (bClientBlockTest) then gProxyBlockingClient =3D true end
++			end
++		end
++		=
+
++		=
+
++		-- modify kPacket_Pre_Login 0x5D packet data
++		if (bScrambleTest and bIsFromClient and fifo_in:Size() >=3D 49) then
++			if (fifo_in:PeekNetUint8(0) =3D=3D 0x5D and
++				fifo_in:PeekNetUint8(1) =3D=3D 0xED and
++				fifo_in:PeekNetUint8(2) =3D=3D 0xED and
++				fifo_in:PeekNetUint8(3) =3D=3D 0xED and
++				fifo_in:PeekNetUint8(4) =3D=3D 0xED) then
++				--~ fifo_in:PokeNetUint8(5,math.random(0,255))
++				fifo_in:PokeNetUint8(48,0x11)
++				print("+++++++++++++++++++++++++++++++++++++++++++++++")
++				print("SCRAMBLED kPacket_Pre_Login")
++				print("+++++++++++++++++++++++++++++++++++++++++++++++")
++			end
+ 		end
+ 	end
+ 	=
+
+ 	if (bInterpret) then =
+
+ 		local iId =3D fifo_in:PeekNetUint8(0)
+ 		local iPacketSize =3D gPacketSizeByID[iId]
+-		print("UOProxyHandlePacket",fromname,sprintf("0x%02x",iId),gPacketTypeId=
+2Name[iId],
+-				iPacketSize,"t=3D"..t_since_start)
++		print("UOProxyHandlePacket",fromname,sprintf("0x%02x",iId),gPacketTypeId=
+2Name[iId],iPacketSize,"t=3D"..t_since_start)
+ 		assert(iPacketSize)
+-		if (iPacketSize =3D=3D 0 and fifo_in:Size() < 3) then return end -- pack=
+et incomplete
++		if (iPacketSize =3D=3D 0 and fifo_in:Size() < 3) then print("incomplete =
+packet dynsize? <3") return end -- packet incomplete
+ 		if (iPacketSize =3D=3D 0) then iPacketSize =3D fifo_in:PeekNetUint16(1) =
+end
+-		if (fifo_in:Size() < iPacketSize) then return end -- packet incomplete
++		if (fifo_in:Size() < iPacketSize) then print("incomplete packet ",fifo_i=
+n:Size(),iPacketSize) return end -- packet incomplete
+ 		=
+
+ 		=
+
+ 		if (bIsFromServer and iId =3D=3D kPacket_Server_List) then -- 0xA8
+@@ -185,6 +219,10 @@
+ 			fifo_in:PokeNetUint8(16*3-4,0)
+ 			fifo_in:PokeNetUint8(16*3-5,0)
+ 			fifo_in:PokeNetUint8(16*3-6,1)
++			print("adjusted kPacket_Server_List") -- TODO : more than one server ?
++			print("+++++++++++++++++++++++++++++++++++++++++++++++")
++			print("+++++    adjusted  kPacket_Server_List")
++			print("+++++++++++++++++++++++++++++++++++++++++++++++")
+ 		end
+ 		-- login.uogamers.com (209=3D0xD1.173=3D0xAD.139=3D0x8B.110=3D0x6E)
+ 		--~ NET: server redirect: id=3D0x0000008c ip=3D209.173.139.110 port=3D25=
+93 AccountNr.:0x79e01b53
+@@ -198,12 +236,20 @@
+ 			fifo_in:PokeNetUint8(2,0)
+ 			fifo_in:PokeNetUint8(3,0)
+ 			fifo_in:PokeNetUint8(4,1)
++			local iGameServerPort =3D gProxyPort2
++			fifo_in:PokeNetUint8(5,floor(iGameServerPort/256)) -- port
++			fifo_in:PokeNetUint8(6,math.mod(iGameServerPort,256)) -- port
++			=
+
+ 			gProxyServerHuffmanStartedNextRound =3D true
++			print("+++++++++++++++++++++++++++++++++++++++++++++++")
++			print("+++++    adjusted kPacket_Server_Redirect")
++			print("+++++++++++++++++++++++++++++++++++++++++++++++")
++			gDisableProxyInterpretation =3D true
+ 		end
+ 		=
+
+ 		-- todo : NetStartHuffman (after redirect?)
+ 		=
+
+-		=
+
++		--[[
+ 		if (bIsFromServer and iId =3D=3D kPacket_Compressed_Gump) then 	--0xDD
+ 			local packetfifo =3D CreateFIFO()
+ 			packetfifo:PushFIFOPartRaw(fifo_in,0,iPacketSize) =
+
+@@ -224,11 +270,6 @@
+ 			MyPrintField(gumpdata,"textline")
+ 			MyPrintField(gumpdata,"textline_unicode")
+ 		end
+-		=
+
+-		=
+
+-		=
+
+-		=
+
+-		=
+
+ 		=
+
+ 		=
+
+ 		if (bIsFromClient and gProxyBlockingClient) then
+@@ -255,6 +296,7 @@
+ 				return true
+ 			end
+ 		end
++		]]--
+ 		=
+
+ 		=
+
+ 		print("recv:",fromname,"t_since_start=3D",t_since_start) =
+
+@@ -264,7 +306,7 @@
+ 		fifo_in:PopRaw(iPacketSize)
+ 		return true
+ 	else
+-		print("recv:",fromname,"(uninterpreted) t_since_start=3D",t_since_start) =
+
++		print("recv:",fromname,"(uninterpreted) t_since_start=3D",t_since_start,=
+fifo_in:Size()) =
+
+ 		print(FIFOHexDump(fifo_in))
+ 		fifo_out:PushFIFOPartRaw(fifo_in) =
+
+ 		fifo_in:Clear()
+@@ -321,6 +363,7 @@
+ 	local bAlive =3D true
+ 	while bAlive do
+ 		-- send =
+
++		gProxyServerHuffmanStarted =3D false
+ 		if (gProxyServerHuffmanStarted) then
+ 			HuffmanCompress(gProxyClientSendFifo,gProxyClientSendCompFifo) -- does =
+NOT remove data from in-fifo. compression can always be completed.
+ 			gProxyClientCon:Push(gProxyClientSendCompFifo)
+@@ -347,6 +390,7 @@
+ 		else
+ 			gProxyServerCon:Pop(gProxyServerRecvFifo)
+ 		end
++		gProxyServerHuffmanStarted =3D false
+ 		=
+
+ 		-- handle packets
+ 		while UOProxyHandlePacket(gProxyServerRecvFifo,gProxyClientSendFifo,fals=
+e) do end
+
+
+
+From no-reply at zwischenwelt.org  Sat Jan 23 01:38:16 2010
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Sat, 23 Jan 2010 00:38:16 -0000
+Subject: [Iris-commit] [IRIS] r3233 - in /trunk/lua: lib.proxy.lua
+ lib.uodragdrop.lua net/net.tooltips.lua net/net.walk.lua
+Message-ID: <20100123003816.9BE6C7A9817E@simon>
+
+Author: ghoulsblade
+Date: Sat Jan 23 01:38:16 2010
+New Revision: 3233
+
+Log:
+dragdrop/stacking fixes and walk-config-params for pol, improved packet deb=
+ugging utils
+
+Modified:
+    trunk/lua/lib.proxy.lua
+    trunk/lua/lib.uodragdrop.lua
+    trunk/lua/net/net.tooltips.lua
+    trunk/lua/net/net.walk.lua
+
+Modified: trunk/lua/lib.proxy.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.proxy.lua (original)
++++ trunk/lua/lib.proxy.lua Sat Jan 23 01:38:16 2010
+@@ -16,17 +16,18 @@
+ 	=
+
+ 	gProxyHost =3D host
+ 	gProxyPort =3D port
+-	gProxyPort2 =3D port+1
++	gProxyPort2 =3D port
++	--~ gProxyPort2 =3D port+1
+ 	=
+
+ 	gServerListenerTCP =3D UOProxyOpenListener(gProxyPort)
+-	gServerListenerTCP2 =3D UOProxyOpenListener(gProxyPort2)
++	--~ gServerListenerTCP2 =3D UOProxyOpenListener(gProxyPort2)
+ 	=
+
+ 	print("listen port opened....")
+ 		=
+
+ 	while true do
+ 		local listener =3D gServerListenerTCP
+ 		while true do
+-			local newcon =3D listener:PopAccepted()
++			local newcon =3D listener:IsAlive() and listener:PopAccepted()
+ 			if (not newcon) then break end
+ 			print("###############################")
+ 			print("#### PROXY : connection started, listener=3D",(listener =3D=3D g=
+ServerListenerTCP) and "A" or "B")
+@@ -35,7 +36,7 @@
+ 			print("###############################")
+ 			print("#### PROXY : connection ended")
+ 			print("###############################")
+-			listener =3D gServerListenerTCP2
++			--~ listener =3D gServerListenerTCP2
+ 			--~ print("proxy end") return
+ 		end
+ 		Client_USleep(10) =
+
+@@ -110,6 +111,7 @@
+ =
+
+ =
+
+ =
+
++gLastPacketTBySender =3D {}
+ -- returns false if packet incomplete
+ function UOProxyHandlePacket	(fifo_in,fifo_out,bIsFromClient) =
+
+ 	local t_since_start =3D Client_GetTicks() - gProxyConStartTime
+@@ -120,9 +122,10 @@
+ 	local bInterpret =3D true
+ 	--~ if (bIsFromServer and gProxyServerHuffmanStarted) then bInterpret =3D=
+ false end -- huffman comp&decomp active now
+ 	--~ if (bIsFromClient and gProxyServerHuffmanStarted) then bInterpret =3D=
+ false end -- not really needed but something seems bugged
+-	if (gDisableProxyInterpretation) then bInterpret =3D false end
++	--~ if (gDisableProxyInterpretation) then bInterpret =3D false end
+ 	local bScrambleTest =3D false
+ 	local bClientBlockTest =3D true
++	local bShortDump =3D false
+ 	=
+
+ 	if (bInterpret) then =
+
+ 		-- 4-byte-head con1
+@@ -176,9 +179,11 @@
+ 				fifo_in:PeekNetUint8(3) =3D=3D 0x00 and
+ 				fifo_in:PeekNetUint8(4) =3D=3D 0x24) then
+ 				--~ fifo_in:PokeNetUint8(5,math.random(0,255))
+-				print("+++++++++++++++++++++++++++++++++++++++++++++++")
+-				print("detected unknownSE")
+-				print("+++++++++++++++++++++++++++++++++++++++++++++++")
++				if (not bShortDump) then
++					print("+++++++++++++++++++++++++++++++++++++++++++++++")
++					print("detected unknownSE")
++					print("+++++++++++++++++++++++++++++++++++++++++++++++")
++				end
+ 				if (bScrambleTest) then =
+
+ 					fifo_in:PokeNetUint8(5,16)
+ 					print("SCRAMBLED unknownSE")
+@@ -204,15 +209,36 @@
+ 		end
+ 	end
+ 	=
+
++	=
+
++	function Pad (str,len)
++		str =3D tostring(str)
++		local add =3D len - #str =
+
++		if (add > 0) then return str..string.rep(" ",add) end =
+
++		return str
++	end
+ 	if (bInterpret) then =
+
+ 		local iId =3D fifo_in:PeekNetUint8(0)
+ 		local iPacketSize =3D gPacketSizeByID[iId]
+-		print("UOProxyHandlePacket",fromname,sprintf("0x%02x",iId),gPacketTypeId=
+2Name[iId],iPacketSize,"t=3D"..t_since_start)
+-		assert(iPacketSize)
+-		if (iPacketSize =3D=3D 0 and fifo_in:Size() < 3) then print("incomplete =
+packet dynsize? <3") return end -- packet incomplete
++		assert(iPacketSize,"unknown iPacketSize for id=3D"..hex(iId))
++		if (iPacketSize =3D=3D 0 and fifo_in:Size() < 3) then print("incomplete =
+packet dynsize? <3",hex(iId)) return end -- packet incomplete
+ 		if (iPacketSize =3D=3D 0) then iPacketSize =3D fifo_in:PeekNetUint16(1) =
+end
+-		if (fifo_in:Size() < iPacketSize) then print("incomplete packet ",fifo_i=
+n:Size(),iPacketSize) return end -- packet incomplete
+-		=
+
++		if (fifo_in:Size() < iPacketSize) then print("incomplete packet ",hex(iI=
+d),fifo_in:Size(),iPacketSize) return end -- packet incomplete
++		=
+
++		local timediff =3D t_since_start - (gLastPacketTBySender[fromname] or t_=
+since_start)
++		gLastPacketTBySender[fromname] =3D t_since_start
++		=
+
++		local debuginfo
++		if (1 =3D=3D 1) then -- generate some debug infos
++			if (iId =3D=3D kPacket_Generic_Command) then
++				local iBFSubCmd =3D fifo_in:PeekNetUint16(3)
++				debuginfo =3D sprintf("subcmd=3D%s[0x%02x]",gGenericSubCommandNamesByI=
+D[iBFSubCmd] or "???",iBFSubCmd)
++			elseif (bIsFromClient and iId =3D=3D kPacket_Request_Movement) then =
+
++				debuginfo =3D sprintf("dir=3D%2x,seq=3D%3d,fc=3D%x",fifo_in:PeekNetUin=
+t8(1),fifo_in:PeekNetUint8(2),fifo_in:PeekNetUint32(3))
++			elseif (iId =3D=3D kPacket_Accept_Movement_Resync_Request) then =
+
++				debuginfo =3D sprintf(fromname..":a=3D%3d,b=3D%3d",fifo_in:PeekNetUint=
+8(1),fifo_in:PeekNetUint8(2))
++			end
++		end
++		print("UOProxyHandlePacket",fromname,sprintf("0x%02x",iId),Pad(gPacketTy=
+peId2Name[iId],40),Pad(iPacketSize,3),"dt=3D"..Pad(timediff,4),debuginfo)
+ 		=
+
+ 		if (bIsFromServer and iId =3D=3D kPacket_Server_List) then -- 0xA8
+ 			fifo_in:PokeNetUint8(16*3-3,127)
+@@ -240,11 +266,11 @@
+ 			fifo_in:PokeNetUint8(5,floor(iGameServerPort/256)) -- port
+ 			fifo_in:PokeNetUint8(6,math.mod(iGameServerPort,256)) -- port
+ 			=
+
+-			gProxyServerHuffmanStartedNextRound =3D true
++			gProxyServerHuffmanStartedNextRound =3D true  -- only after 4 byte head=
+er?
++			gDisableProxyInterpretation =3D true
+ 			print("+++++++++++++++++++++++++++++++++++++++++++++++")
+ 			print("+++++    adjusted kPacket_Server_Redirect")
+ 			print("+++++++++++++++++++++++++++++++++++++++++++++++")
+-			gDisableProxyInterpretation =3D true
+ 		end
+ 		=
+
+ 		-- todo : NetStartHuffman (after redirect?)
+@@ -298,9 +324,10 @@
+ 		end
+ 		]]--
+ 		=
+
+-		=
+
+-		print("recv:",fromname,"t_since_start=3D",t_since_start) =
+
+-		print(HexDumpUOPacket(fifo_in,iPacketSize,bIsFromClient," proxy"))
++		if (not bShortDump) then =
+
++			print("recv:",fromname,"t_since_start=3D",t_since_start) =
+
++			print(HexDumpUOPacket(fifo_in,iPacketSize,bIsFromClient," proxy"))
++		end
+ 		--~ print(FIFOHexDump(fifo_in,0,iPacketSize))
+ 		fifo_out:PushFIFOPartRaw(fifo_in,0,iPacketSize) =
+
+ 		fifo_in:PopRaw(iPacketSize)
+@@ -358,21 +385,26 @@
+ 	gProxyServerRecvCompFifo		=3D CreateFIFO()
+ 	gProxyClientSendCompFifo		=3D CreateFIFO()
+ 	=
+
++	local fHuffmanDummy_RawIn			=3D CreateFIFO()
++	local fHuffmanDummy_RawOut			=3D CreateFIFO()
++	local fHuffmanDummy_DecompIn		=3D CreateFIFO()
++	local fHuffmanDummy_DecompOut		=3D CreateFIFO()
++	=
+
++	=
+
+ 	gPacketSizeByID[0xEF] =3D 21 -- protocol start... dummy here
+ 	=
+
+ 	local bAlive =3D true
+ 	while bAlive do
+ 		-- send =
+
+-		gProxyServerHuffmanStarted =3D false
+-		if (gProxyServerHuffmanStarted) then
+-			HuffmanCompress(gProxyClientSendFifo,gProxyClientSendCompFifo) -- does =
+NOT remove data from in-fifo. compression can always be completed.
+-			gProxyClientCon:Push(gProxyClientSendCompFifo)
+-			gProxyClientSendCompFifo:Clear()
+-			gProxyClientSendFifo:Clear()
+-		else =
+
++		--~ if (gProxyServerHuffmanStarted) then
++			--~ HuffmanCompress(gProxyClientSendFifo,gProxyClientSendCompFifo) -- d=
+oes NOT remove data from in-fifo. compression can always be completed.
++			--~ gProxyClientCon:Push(gProxyClientSendCompFifo)
++			--~ gProxyClientSendCompFifo:Clear()
++			--~ gProxyClientSendFifo:Clear()
++		--~ else =
+
+ 			gProxyClientCon:Push(gProxyClientSendFifo)
+ 			gProxyClientSendFifo:Clear()
+-		end
++		--~ end
+ 		=
+
+ 		gProxyServerCon:Push(gProxyServerSendFifo)
+ 		gProxyServerSendFifo:Clear()
+@@ -384,16 +416,36 @@
+ 		-- receive
+ 		gProxyClientCon:Pop(gProxyClientRecvFifo)
+ 		=
+
++		--~ if (gProxyServerHuffmanStarted) then =
+
++			--~ gProxyServerCon:Pop(gProxyServerRecvCompFifo)
++			--~ HuffmanDecompress(gProxyServerRecvCompFifo,gProxyServerRecvFifo) --=
+ DOES remove data from gProxyServerRecvCompFifo, might not remove all if da=
+ta for decompression is not yet complete
++		--~ else
++			gProxyServerCon:Pop(gProxyServerRecvFifo)
++		--~ end
++		=
+
++		-- handle packets
+ 		if (gProxyServerHuffmanStarted) then =
+
+-			gProxyServerCon:Pop(gProxyServerRecvCompFifo)
+-			HuffmanDecompress(gProxyServerRecvCompFifo,gProxyServerRecvFifo) -- DOE=
+S remove data from gProxyServerRecvCompFifo, might not remove all if data f=
+or decompression is not yet complete
++			fHuffmanDummy_RawIn:PushFIFOPartRaw(gProxyServerRecvFifo)  -- copy from=
+ ServerRecv into huffRawIn
++			HuffmanDecompress(fHuffmanDummy_RawIn,fHuffmanDummy_DecompIn)  -- decom=
+press from huffRawIn to huffDecompIn
++			=
+
++			while UOProxyHandlePacket(fHuffmanDummy_DecompIn,fHuffmanDummy_DecompOu=
+t,false) do end  -- pipe packets from huffDecompIn to huffDecompOut
++			HuffmanCompress(fHuffmanDummy_DecompOut,fHuffmanDummy_RawOut) -- compre=
+ss from huffDecompOut to huffRawOut ... does NOT remove data from in-fifo. =
+compression can always be completed
++			fHuffmanDummy_DecompOut:Clear() -- clear huffDecompOut, as it has been =
+completely compressed
++			=
+
++			local bHuffmanCompBugged =3D true
++			if (bHuffmanCompBugged) then
++				-- throw away modified/filtered output
++				-- todo : show diff fHuffmanDummy_RawOut,gProxyServerRecvFifo ?   =
+
++				-- ServerRecv is what we originally got from the server, as long as no=
+thing was modified in handle, it should be the same.   maybe incomplete pac=
+kets,sizediff etc..
++				fHuffmanDummy_RawOut:Clear()
++				=
+
++				-- override
++				gProxyClientSendFifo:PushFIFOPartRaw(gProxyServerRecvFifo) =
+
++				gProxyServerRecvFifo:Clear()
++			end
+ 		else
+-			gProxyServerCon:Pop(gProxyServerRecvFifo)
+-		end
+-		gProxyServerHuffmanStarted =3D false
+-		=
+
+-		-- handle packets
+-		while UOProxyHandlePacket(gProxyServerRecvFifo,gProxyClientSendFifo,fals=
+e) do end
++			while UOProxyHandlePacket(gProxyServerRecvFifo,gProxyClientSendFifo,fal=
+se) do end
++		end
+ 		while UOProxyHandlePacket(gProxyClientRecvFifo,gProxyServerSendFifo,true=
+) do end
+ 		=
+
+ 		if (not gProxyClientCon:IsConnected()) then print("disconnected:client")=
+ bAlive =3D false end
+@@ -408,6 +460,11 @@
+ 	gProxyServerRecvFifo:Destroy()
+ 	gProxyServerRecvCompFifo:Destroy()
+ 	gProxyClientSendCompFifo:Destroy()
++	=
+
++	fHuffmanDummy_RawIn:Destroy()
++	fHuffmanDummy_RawOut:Destroy()
++	fHuffmanDummy_DecompIn:Destroy()
++	fHuffmanDummy_DecompOut:Destroy()
+ end
+ =
+
+ =
+
+
+Modified: trunk/lua/lib.uodragdrop.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.uodragdrop.lua (original)
++++ trunk/lua/lib.uodragdrop.lua Sat Jan 23 01:38:16 2010
+@@ -373,7 +373,12 @@
+ =
+
+ 			x =3D 0xffff
+ 			y =3D 0xffff
+-			z =3D 0
++			x =3D gMousePickFoundHit.item.xloc or 0xffff
++			y =3D gMousePickFoundHit.item.yloc or 0xffff
++			z =3D gMousePickFoundHit.item.zloc or 0
++			print("###############################")
++			print("#### drop on other item in container : ",x,y,z)
++			print("###############################")
+ 			target =3D gMousePickFoundHit.item.serial =
+
+ 			--[[
+ 			-- if the item beneath has the same artid and stackable, try to stack t=
+hem
+@@ -407,6 +412,15 @@
+ 		Send_Drop_Object(item.serial,x,y,z,target)
+ 	elseif (dialog_under_mouse and dialog_under_mouse.dropOnMobileSerial) then
+ 		-- support drop of stuff onto dialogs
++		local mobile =3D GetMobile(dialog_under_mouse.dropOnMobileSerial)
++		if (mobile) then =
+
++			x =3D 0xffff
++			y =3D 0xffff
++			z =3D 0
++		end
++		print("###############################")
++		print("#### drop on mobile via dialog : ",x,y,z,mobile)
++		print("###############################")
+ 		Send_Drop_Object(item.serial,x,y,z,dialog_under_mouse.dropOnMobileSerial)
+ 	elseif (dialog_under_mouse and dialog_under_mouse.uoSecureTrade) then
+ 		-- drop on secure trade container
+@@ -468,6 +482,24 @@
+ 				--~ if (not bOnContainer) then iSerial =3D nil end  -- might be bad fo=
+r potionkegs and similar non-container droptargets
+ 				if (TestBit(flags,kTileDataFlag_Surface)) then iSerial =3D nil end   -=
+-  or kTileDataFlag_Background ?
+ 				if (ItemIsMulti(dynamic)) then iSerial =3D nil end
++				if (iSerial) then =
+
++					-- pol fix?
++					x =3D dynamic.xloc =
+
++					y =3D dynamic.yloc =
+
++					z =3D dynamic.zloc =
+
++					print("###############################")
++					print("#### drop on other item in world : ",x,y,z)
++					print("###############################")
++				end
++			end
++			local mobile =3D GetMobile(iSerial)
++			if (mobile) then =
+
++				x =3D 0xffff
++				y =3D 0xffff
++				z =3D 0
++				print("###############################")
++				print("#### drop on mobile in world : ",x,y,z,mobile)
++				print("###############################")
+ 			end
+ 		end
+ 		=
+
+
+Modified: trunk/lua/net/net.tooltips.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.tooltips.lua (original)
++++ trunk/lua/net/net.tooltips.lua Sat Jan 23 01:38:16 2010
+@@ -18,6 +18,7 @@
+ --dword	- Serial
+ --endloop	- Item Info
+ function Send_AosToolTipRequest(objserial)
++	if (gClientDisable_kPacket_Mega_Cliloc) then return end
+ 	local out =3D GetSendFIFO()
+ 	out:PushNetUint8(kPacket_Mega_Cliloc) -- 0xD6 runuo : BatchQueryProperties
+ 	out:PushNetUint16(7) -- packetsize
+
+Modified: trunk/lua/net/net.walk.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.walk.lua (original)
++++ trunk/lua/net/net.walk.lua Sat Jan 23 01:38:16 2010
+@@ -45,6 +45,7 @@
+ gFastWalkKeysUsed =3D false
+ =
+
+ gWalkRequestAntiStuckTimeout =3D 0 -- Client_GetTicks()
++gWalkRequestAntiStuckTimeoutDelay =3D 2000
+ gNextWalkRequestTime =3D 0
+ gNextWalkSequenceNumber =3D 0
+ gWalkRequests =3D {}
+@@ -56,6 +57,9 @@
+ gWalkTimeout_MountMovingSpeed =3D 185
+ gWalkTimeout_MountRunningSpeed =3D 95
+ gWalkTimeout_DirectionChange =3D 60
++gMaxWalkQueueEntries =3D 3
++
++
+ =
+
+ =
+
+ gIncreasedMovementSpeedBodyIDs =3D {[220]=3D"lama",[218]=3D"ostard",[25]=
+=3D"wolf",[246]=3D"bake"} -- bodyids, ninjitsu (todo : unicorn,kirin, necro=
+?)
+@@ -77,13 +81,17 @@
+ 	gFastWalkKeysUsed =3D true
+ 	WalkLog("FastWalk_Init end") =
+
+ end
+-function FastWalk_PushKey	(key)		WalkLog("FastWalk_PushKey",key) table.ins=
+ert(gFastwalkStack,key) gFastWalkKeysUsed =3D true end
++function FastWalk_PushKey	(key)		=
+
++	WalkLog("FastWalk_PushKey",key) =
+
++	table.insert(gFastwalkStack,key) =
+
++	gFastWalkKeysUsed =3D true =
+
++end
+ function FastWalk_PopKey	()
+ 	local res =3D FastWalk_HasKey() and table.remove(gFastwalkStack) or 0
+ 	--WalkLog("FastWalk_PopKey",res)
+ 	return res =
+
+ end =
+
+-function FastWalk_Ok	()			return FastWalk_HasKey() or (not gFastWalkKeysUs=
+ed) end =
+
++function FastWalk_Ok		()			return FastWalk_HasKey() or (not gFastWalkKeysU=
+sed) end =
+
+ function FastWalk_HasKey	()			return notempty(gFastwalkStack) end =
+
+ function FastWalk_CountKeys	()			return table.getn(gFastwalkStack) end
+ =
+
+@@ -187,7 +195,7 @@
+ =
+
+ -- returns false if the walk queue is full and the next request should wait
+ function WalkQueueOkForNextSend ()
+-	return countarr(gWalkRequests) <=3D 3
++	return countarr(gWalkRequests) <=3D gMaxWalkQueueEntries
+ end
+ 	=
+
+ -- internal, don't call directly, no check for walkable, only checks for t=
+ime
+@@ -202,7 +210,7 @@
+ 	if (not gFastWalkKeysUsed) then =
+
+ 		if (not WalkQueueOkForNextSend()) then
+ 			if (Client_GetTicks() > gWalkRequestAntiStuckTimeout) then
+-				print("walk:walk-request-timeout,sending resync-request")
++				print("++++++++++++++++++++++++++++++ walk:walk-request-timeout,sendin=
+g resync-request")
+ 				Send_Movement_Resync_Request()
+ 			else
+ 				gProfiler_Walk:End()
+@@ -211,7 +219,7 @@
+ 		end
+ 	end
+ 	gProfiler_Walk:Section("ExecWalk:TimeCalc")
+-	gWalkRequestAntiStuckTimeout =3D Client_GetTicks() + 2000 -- might need r=
+esync
++	gWalkRequestAntiStuckTimeout =3D Client_GetTicks() + gWalkRequestAntiStuc=
+kTimeoutDelay -- might need resync
+ 	iDir =3D DirWrap(iDir)
+ 	local iFullDir =3D BitwiseOR(iDir,bRunFlag and kWalkFlag_Run or 0) -- inc=
+ludes runflag
+ 	=
+
+@@ -274,7 +282,7 @@
+ 	out:PushNetUint8(iSeqNum)
+ 	out:PushNetUint32(iFastKey)
+ 	out:SendPacket()
+-	--~ print("walk:request",sprintf("0x%04x",iFullDir),iSeqNum)
++	print("++++++++++++++++++++++++++++++ walk:request",sprintf("0x%04x",iFul=
+lDir),iSeqNum,WalkGetInterval(TestBit(iFullDir,kWalkFlag_Run)))
+ end
+ =
+
+ =
+
+@@ -283,7 +291,7 @@
+ 	local input =3D GetRecvFIFO()
+ 	local id =3D input:PopNetUint8()
+ 	local iSeqNum =3D input:PopNetUint8()
+-	--~ print("walk:accept",iSeqNum)
++	print("++++++++++++++++++++++++++++++ walk:accept",iSeqNum)
+ 	local player_notoriety =3D input:PopNetUint8()
+ 	local playermobile =3D GetPlayerMobile()
+ 	if (playermobile) then playermobile:SetNotoriety(player_notoriety) end --=
+ fast notoriety update
+@@ -308,6 +316,8 @@
+ -- WARNING ! don't forget doomlist, should't always need to be cleared tho=
+ugh, only on teleport ?
+ function ResetWalkQueue ()
+ 	--~ WalkLog("ResetWalkQueue start")
++	print("ResetWalkQueue,gNextWalkSequenceNumber=3D0")
++	print(_TRACEBACK())
+ 	gNextWalkSequenceNumber =3D 0
+ 	gWalkRequests =3D {}
+ 	gWalkPathToGo =3D nil
+@@ -357,6 +367,7 @@
+ 	out:PushNetUint8(seqnumber)
+ 	out:PushNetUint8(hex2num("0x00"))
+ 	out:SendPacket()
++	print("++++++++++++++++++++++++++++++ Send_Accept_Block_Movement",seqnumb=
+er)
+ end
+ =
+
+ -- This Packet is send when Client thinks he is out of Sync (basicly: sequ=
+ence doesn't fit)
+@@ -375,6 +386,7 @@
+ 	out:PushNetUint8(0)
+ 	out:PushNetUint8(0)
+ 	out:SendPacket()
++	print("++++++++++++++++++++++++++++++ Send_Movement_Resync_Request,0,0")
+ end
+ =
+
+ -- Moves Player to Direction
+
+
+
+From no-reply at zwischenwelt.org  Sun Jan 24 01:19:20 2010
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Sun, 24 Jan 2010 00:19:20 -0000
+Subject: [Iris-commit] [IRIS] r3234 - in /trunk/lua: lib.cursor.lua
+ lib.macrolist.lua lib.mainmenu.lua net/net.login.lua
+ net/net.objectpicker.lua
+Message-ID: <20100124001920.E728954D0039@simon>
+
+Author: ghoulsblade
+Date: Sun Jan 24 01:19:20 2010
+New Revision: 3234
+
+Log:
+two new macro helpers : MacroCmd_WaitForListener MacroCmd_WaitForText , fix=
+ed text entry gump for old pol crafting system, IsTargetModeActive check in=
+ CompleteTargetMode to avoid illegal messages if used directly by scripts, =
+new shard config gAutoSelectServerIndex for shards with multiple subservers
+
+Modified:
+    trunk/lua/lib.cursor.lua
+    trunk/lua/lib.macrolist.lua
+    trunk/lua/lib.mainmenu.lua
+    trunk/lua/net/net.login.lua
+    trunk/lua/net/net.objectpicker.lua
+
+Modified: trunk/lua/lib.cursor.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.cursor.lua (original)
++++ trunk/lua/lib.cursor.lua Sun Jan 24 01:19:20 2010
+@@ -140,6 +140,7 @@
+ end
+ =
+
+ function CompleteTargetMode (hitobject,maxrange) -- maxrange=3Dnil
++	if (not IsTargetModeActive()) then return end
+     if (not hitobject) then
+         MainMousePick()
+         if (not gMousePickFoundHit) then =
+
+
+Modified: trunk/lua/lib.macrolist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.macrolist.lua (original)
++++ trunk/lua/lib.macrolist.lua Sun Jan 24 01:19:20 2010
+@@ -814,7 +814,35 @@
+     return nil
+ end
+ =
+
+--- waits until a given text appears, list =3D {text=3Dreturnvalue, text=3D=
+returnvalue, ...}
++-- call from a job! (see job.create)
++-- returns key(from textlist),plaintext,textdata      or nil if timeout
++function MacroCmd_WaitForText (textlist,timeout_delay) =
+
++	return MacroCmd_WaitForListener("Hook_Text",function (name,plaintext,seri=
+al,data)  =
+
++			for k,text in pairs(textlist) do if (string.find(plaintext,text)) then =
+return k,plaintext,data end end =
+
++		end,timeout_delay or 9000) =
+
++end
++
++-- call from a job! (see job.create)
++-- pauses the current job until a listener with listenername is notified a=
+nd fun returns true for the listener, or until a timeout
++-- returns the complete resultset from fun, or nil if timeout
++function MacroCmd_WaitForListener (listenername,fun,timeout_delay)
++	timeout_delay =3D timeout_delay or 9000
++	local timeout =3D gMyTicks+timeout_delay
++	local jobid =3D job.running_id() assert(jobid)
++	local done =3D false
++	local res
++	RegisterListener(listenername,function (...) =
+
++		if (done or gMyTicks > timeout) then return true end
++		res =3D {fun(...)}
++		if (res[1]) then done =3D true job.wakeup(jobid) return true end
++		end)
++	job.wait(timeout_delay)
++	done =3D true
++	if (res) then return unpack(res) end
++end
++
++
++-- waits until a given text appears, list =3D {text=3Dreturnvalue, text=3D=
+returnvalue, ...} .... see also MacroCmd_WaitForText (might be better/faste=
+r)
+ function MacroJournal_WaitForText   (list,timeout)
+     if not list then return end
+     =
+
+
+Modified: trunk/lua/lib.mainmenu.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mainmenu.lua (original)
++++ trunk/lua/lib.mainmenu.lua Sun Jan 24 01:19:20 2010
+@@ -180,6 +180,8 @@
+         MainMenu_SendServer(v.index)
+         return
+     end
++	=
+
++	if (gAutoSelectServerIndex) then MainMenu_SendServer(gAutoSelectServerInd=
+ex) return end
+     =
+
+     -- show serverlist
+     local rows =3D {}
+
+Modified: trunk/lua/net/net.login.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.login.lua (original)
++++ trunk/lua/net/net.login.lua Sun Jan 24 01:19:20 2010
+@@ -28,6 +28,7 @@
+ 	printdebug("login",sprintf("-> Emulator=3D: %s\n",gServerType[gServerEmul=
+ator] or "Unknown Server"))
+ =
+
+ 	serverlist.servers =3D {}
++	serverlist.servers_by_index =3D {}
+ 	gSubServerNamesByID =3D {}
+ 	for i =3D 0,serverlist.iServerNumber - 1 do
+ 		local server =3D {}
+@@ -37,6 +38,7 @@
+ 		server.tz =3D input:PopNetUint8() -- timezone
+ 		server.ip =3D input:PopNetUint32()
+ 		serverlist.servers[i] =3D server
++		serverlist.servers_by_index[server.index] =3D server
+ 		gSubServerNamesByID[server.index] =3D server.name
+ 		=
+
+ 		local a =3D math.mod(floor(server.ip / 1),256)
+
+Modified: trunk/lua/net/net.objectpicker.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.objectpicker.lua (original)
++++ trunk/lua/net/net.objectpicker.lua Sun Jan 24 01:19:20 2010
+@@ -75,19 +75,34 @@
+ end
+ =
+
+ -- response to 0xAB
++
+ function Send_String_Query_Response (id,mytype,myidx,response) -- 0xAC
+ 	local responselen =3D string.len(response)
+ 	local out =3D GetSendFIFO()
++	=
+
+ 	out:PushNetUint8(kPacket_String_Response)
+-	out:PushNetUint16(responselen+3+1+1+4+2+1)
++	out:PushNetUint16(responselen+1 +3 +1+1 +4+2+1)
+ 	out:PushNetUint32(id)
+ 	out:PushNetUint8(mytype)
+ 	out:PushNetUint8(myidx)
++	out:PushNetUint8(1) -- unknown
+ 	out:PushNetUint8(0) -- unknown
+-	out:PushNetUint8(0) -- unknown
+-	out:PushNetUint8(0) -- unknown
++	out:PushNetUint8(responselen+1) -- unknown
+ 	out:PushFilledString(response,responselen)
++	out:PushNetUint8(0) -- zero term
++	                         =
+
++--~ 0000   AC 00 0E 01 40 05 18 00  00 01 00 02 32 00         .... at .......=
+2.       =
+
++	   --~ c] [len] [----id---] ty  id u1 u2 u3 [text]
++         =
+
++       --~ ac 00 0f 01 40 05 18 00  00 00 00 00 01 31 00      |.... at ......=
+..1.|
++	   =
+
++	print("###############################")
++	print("rawstr:#"..response.."# len=3D"..responselen)
++	print(FIFOHexDump(out))
++	print("###############################")
++	=
+
+ 	out:SendPacket()
++	print("Send_String_Query_Response",hex(id),hex(mytype),hex(myidx))
+ 	-- doesn't seemt to work yet =3D(
+ end
+ =
+
+@@ -115,6 +130,7 @@
+ 	data.text2len	=3D input:PopNetUint8()
+ 	=
+
+ 	data.datalenleft =3D size-1-2-4-1-1-2-data.textlen-1-1-4-1
++	if (data.datalenleft > 0) then data.text2head =3D input:PopNetUint8() dat=
+a.datalenleft =3D data.datalenleft - 1 end
+ 	data.text2		=3D (data.datalenleft > 0) and input:PopFilledString(data.dat=
+alenleft) or ""
+ 	HandleStringQuery(data)
+ 	--~ print("kPacket_String_Query",SmartDump(data))
+
+
+
+From no-reply at zwischenwelt.org  Sun Jan 24 01:25:02 2010
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Sun, 24 Jan 2010 00:25:02 -0000
+Subject: [Iris-commit] [IRIS] r3235 - /trunk/premake.lua
+Message-ID: <20100124002503.3937E7A9817C@simon>
+
+Author: ghoulsblade
+Date: Sun Jan 24 01:25:01 2010
+New Revision: 3235
+
+Log:
+sound related compile options
+
+Modified:
+    trunk/premake.lua
+
+Modified: trunk/premake.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/premake.lua (original)
++++ trunk/premake.lua Sun Jan 24 01:25:01 2010
+@@ -45,7 +45,8 @@
+ if (options["noassert"]) then gbDisableAssert =3D true print(">>> disabled=
+ asserts (NDEBUG)") end
+ if (options["openalsoft"]) then gbUseSoundOpenAl =3D true gLugreUseOpenAlS=
+oft =3D true print(">>> enabled openal-soft") end
+ if (options["useluajit"]) then gbUseLuaJit =3D true print(">>> enabled lua=
+jit") end
+-if (options["nosound"]) then gbUseSoundOpenAl =3D false gbUseSoundFmod =3D=
+ false print(">>> nosound") end
++if (options["nosound"]) then 		gLugreUseOpenAlSoft =3D false gbUseSoundOpe=
+nAl =3D false gbUseSoundFmod =3D false print(">>> nosound") end
++if (options["soundfmodonly"]) then 	gLugreUseOpenAlSoft =3D false gbUseSou=
+ndOpenAl =3D false gbUseSoundFmod =3D true  print(">>> soundfmodonly") end
+ =
+
+ gLugreDir =3D "lugre"
+ if (io.open("mylugre/lua/lugre.lua")) then print(">>> using mylugre dir ov=
+erride") gLugreDir =3D "mylugre" end
+
+
+
+From no-reply at zwischenwelt.org  Tue Jan 26 14:22:31 2010
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Tue, 26 Jan 2010 13:22:31 -0000
+Subject: [Iris-commit] [IRIS] r3236 - /trunk/config/shards/pangaea.xml
+Message-ID: <20100126132231.B4E5B7A98076@simon>
+
+Author: ghoulsblade
+Date: Tue Jan 26 14:22:31 2010
+New Revision: 3236
+
+Log:
+pangaea.dk config added
+
+Added:
+    trunk/config/shards/pangaea.xml
+
+
+
+From no-reply at zwischenwelt.org  Tue Jan 26 14:24:27 2010
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Tue, 26 Jan 2010 13:24:27 -0000
+Subject: [Iris-commit] [IRIS] r3237 - in /trunk/lua: lib.macrolist.lua
+ lib.objectpicker.lua net/net.objectpicker.lua net/net.trade.lua
+Message-ID: <20100126132427.C699954D0039@simon>
+
+Author: ghoulsblade
+Date: Tue Jan 26 14:24:27 2010
+New Revision: 3237
+
+Log:
+new macro tools : MacroCmd_QueuePickObject MacroCmd_QueueStringQueryRespons=
+e MacroCmd_RegisterTimeoutListener MacroCmd_PlayerPoisoned, utils for strin=
+gquery and objectpicker gump : old, seen on pol shard
+
+Modified:
+    trunk/lua/lib.macrolist.lua
+    trunk/lua/lib.objectpicker.lua
+    trunk/lua/net/net.objectpicker.lua
+    trunk/lua/net/net.trade.lua
+
+Modified: trunk/lua/lib.macrolist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.macrolist.lua (original)
++++ trunk/lua/lib.macrolist.lua Tue Jan 26 14:24:27 2010
+@@ -43,6 +43,8 @@
+ function GetPlayerTithingPoints() return GetMobileStat(GetPlayerMobile(),"=
+tithing") end
+ function IsPlayerHidden() local mobile =3D GetPlayerMobile() return mobile=
+ and mobile.flag_hidden end
+ =
+
++function MacroCmd_PlayerPoisoned () return MacroCmd_MobilePoisoned(GetPlay=
+erMobile()) end
++function MacroCmd_PlayerMortaled () return MacroCmd_MobileMortaled(GetPlay=
+erMobile()) end
+ function MacroCmd_MobilePoisoned (mobile) return mobile and IsMobilePoison=
+ed(mobile) end
+ function MacroCmd_MobileMortaled (mobile) return mobile and IsMobileMortal=
+ed(mobile) end
+ =
+
+@@ -512,8 +514,11 @@
+     =
+
+ =
+
+ function MacroCmd_RiseText (r,g,b,text,serial)
++	text =3D tostring(text)
++	print("MacroCmd_RiseText",text)
+     serial =3D serial or GetPlayerSerial()
+     if (SpellBarRiseTextOnMob) then SpellBarRiseTextOnMob(serial,r,g,b,tex=
+t) end
++	GuiAddChatLine(text,{r,g,b,1},"normal","script")
+ end
+ =
+
+ function MacroCmd_Item_Use  (item) if (item) then Send_DoubleClick(item.se=
+rial) return item end end
+@@ -820,6 +825,29 @@
+ 	return MacroCmd_WaitForListener("Hook_Text",function (name,plaintext,seri=
+al,data)  =
+
+ 			for k,text in pairs(textlist) do if (string.find(plaintext,text)) then =
+return k,plaintext,data end end =
+
+ 		end,timeout_delay or 9000) =
+
++end
++
++
++function MacroCmd_JobWaitAndPickObject (index,timeout_delay) =
+
++	assert(index) =
+
++	return MacroCmd_WaitForListener("Hook_ObjectPicker",function (data) data.=
+SendPickedObject(index) return true end,timeout_delay or 500) =
+
++end
++
++function MacroCmd_JobWaitAndStringQueryResponse (response,timeout_delay)
++	assert(response) =
+
++	return MacroCmd_WaitForListener("Hook_StringQuery",function (data) data.S=
+endText(response) return true end,timeout_delay or 500)
++end
++
++function MacroCmd_QueuePickObject			(index,timeout_delay)		job.create(func=
+tion () MacroCmd_JobWaitAndPickObject(index,timeout_delay) end) end
++function MacroCmd_QueueStringQueryResponse	(response,timeout_delay)	job.cr=
+eate(function () MacroCmd_JobWaitAndStringQueryResponse(response,timeout_de=
+lay) end) end
++
++function MacroCmd_RegisterTimeoutListener (listenername,fun,timeout_delay)
++	timeout_delay =3D timeout_delay or 1000
++	local timeout =3D gMyTicks+timeout_delay
++	RegisterListener(listenername,function (...) =
+
++		if (gMyTicks > timeout) then return true end
++		return fun(...)
++		end)
+ end
+ =
+
+ -- call from a job! (see job.create)
+
+Modified: trunk/lua/lib.objectpicker.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.objectpicker.lua (original)
++++ trunk/lua/lib.objectpicker.lua Tue Jan 26 14:24:27 2010
+@@ -10,30 +10,54 @@
+ 	local a =3D {}
+ 	local b =3D {}
+ 	local c =3D {}
+-	local rows =3D { {{type=3D"Label",	text=3Dquestion},},a,b,c }
++	local d =3D {}
++	local e =3D {}
++	local cancelrow =3D {}
++	local rows =3D { {{type=3D"Label",	text=3Dquestion},},a,b,c,d,e,cancelrow=
+ }
+ 	=
+
+-	for k,entry in pairs(data.entrylist) do =
+
++	function data.SendPickedObject (index)
++		if (not data.dialog) then return end
++		local entry =3D data.entrylist[index] =
+
++		if (not entry) then print("ObjectPicker:SendPickedObject: entry not foun=
+d",index) return end
++		Send_Picked_Object(data.dialogid,data.menuid,entry.index,entry.artid,ent=
+ry.hue)
++		data.dialog:Destroy()
++		data.dialog =3D nil
++	end
++	--~ MacroCmd_QueueStringQueryResponse()
++	=
+
++	for k,entry in ipairs(data.entrylist) do =
+
+ 		table.insert(a	,MakeUOArtImageForDialog(entry.artid,entry.hue,64,64))
+-		table.insert(b	,{type=3D"Label",	text=3Dentry.name})
+-		table.insert(c	,{type=3D"Button",onMouseDown=3Dfunction(widget) =
+
+-			Send_Picked_Object(data.dialogid,data.menuid,k,entry.artid,entry.hue)
+-			widget.dialog:Destroy() end,text=3D"choose"})
++		table.insert(b	,{type=3D"Label",	text=3Dentry.name.." "})
++		table.insert(c	,{type=3D"Button",onMouseDown=3Dfunction(widget) data.Sen=
+dPickedObject(entry.index) end,text=3D"choose"})
++		table.insert(d	,{type=3D"Button",onMouseDown=3Dfunction(widget) data.Sen=
+dPickedObject(entry.index) MacroCmd_QueueStringQueryResponse("10") end,text=
+=3D"10"})
++		table.insert(e	,{type=3D"Button",onMouseDown=3Dfunction(widget) data.Sen=
+dPickedObject(entry.index) MacroCmd_QueueStringQueryResponse("30") end,text=
+=3D"30"})
+ 	end
++	table.insert(cancelrow	,{type=3D"Button",onMouseDown=3Dfunction(widget) S=
+end_Picked_Object_Cancel() widget.dialog:Destroy() end,text=3D"cancel"})
+ 	=
+
+-	local dialog =3D guimaker.MakeTableDlg(rows,100,10,true,true,gGuiDefaultS=
+tyleSet,"window")
++	data.dialog =3D guimaker.MakeTableDlg(rows,100,10,true,true,gGuiDefaultSt=
+yleSet,"window")
++	NotifyListener("Hook_ObjectPicker",data)
+ end
+ =
+
+ function HandleStringQuery (data)
+ 	print("HandleStringQuery",data.id,data.parentid,data.buttonid)
++	function data.SendText (txt)
++		if (not data.dialog) then return end
++		txt =3D tostring(txt)
++		print("HandleStringQuery res=3D",txt)
++		Send_String_Query_Response(data.id,data.parentid,data.buttonid,txt)
++		data.dialog:Destroy()
++		data.dialog =3D nil
++	end
+ 	local rows =3D {
+ 		{ {data.text} },
+ 		{ {type=3D"EditText",controlname=3D"entry",w=3D200,h=3D24,text=3Ddata.te=
+xt2} },
+-		{ {"OK",function (widget) =
+
+-				local txt =3D widget.dialog.controls["entry"]:GetText() or ""
+-				print("HandleStringQuery",txt)
+-				Send_String_Query_Response(data.id,data.parentid,data.buttonid,txt)
+-				widget.dialog:Destroy()
+-			end} },
++		{ {"OK",function (widget) data.SendText(widget.dialog.controls["entry"]:=
+GetText() or "") end},
++		  {"1",function () data.SendText("1") end} ,
++		  {"5",function () data.SendText("5") end} ,
++		  {"10",function () data.SendText("10") end} ,
++		  {"30",function () data.SendText("30") end} ,
++		  },
+ 		}
+-	local dialog =3D guimaker.MakeTableDlg(rows,100,100,false,true,gGuiDefaul=
+tStyleSet,"window")
++	data.dialog =3D guimaker.MakeTableDlg(rows,100,100,false,true,gGuiDefault=
+StyleSet,"window")
++	NotifyListener("Hook_StringQuery",data)
+ end
+
+Modified: trunk/lua/net/net.objectpicker.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.objectpicker.lua (original)
++++ trunk/lua/net/net.objectpicker.lua Tue Jan 26 14:24:27 2010
+@@ -13,7 +13,10 @@
+ 	out:PushNetUint16(artid)
+ 	out:PushNetUint16(hue)
+ 	out:SendPacket()
+-end
++end    =
+
++function Send_Picked_Object_Cancel () Send_Picked_Object(0,0,0,0,0) end --=
+ 0x7D
++
++
+ =
+
+ --[[
+ kPacket_Object_Picker   {entrynum=3D4,questionlen=3D28=3D0x1c,questiontxt=
+=3D"What would you like to make?",unknown=3D0,serial=3D0,}
+@@ -47,11 +50,13 @@
+ 	end
+ 	local sizeleft =3D size - 1 - 2 - 4 - 2 - 1 - data.questionlen
+ 	data.entrynum		=3D input:PopNetUint8()
++	sizeleft =3D sizeleft - 1
+ 	print("kPacket_Object_Picker",SmartDump(data))
+ 	data.entrylist =3D {}
+ 	for i =3D 1,data.entrynum do
+ 		if (sizeleft <=3D 0) then break end
+ 		local entry =3D {}
++		entry.index		=3D i
+ 		entry.artid		=3D input:PopNetUint16() -- (e.ItemID & 0x3FFF)
+ 		entry.hue		=3D 0
+ 		sizeleft =3D sizeleft - 2
+
+Modified: trunk/lua/net/net.trade.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.trade.lua (original)
++++ trunk/lua/net/net.trade.lua Tue Jan 26 14:24:27 2010
+@@ -111,12 +111,12 @@
+ 			NetCrash()
+ 		end
+ =
+
+-		if (false) then -- debug
++		if (1 =3D=3D 1) then -- debug
+ 			for k,item in pairs(GetContainerContentList(playerBackpackContainer)) d=
+o =
+
+-				printf("item serial=3D0x%08x artid=3D0x%04x in backpack\n",item.serial=
+,item.artid)
++				print("item backpack",hex(item.serial),hex(item.artid))
+ 			end
+ 			for k,item in pairs(GetMobileEquipmentList(playerMobile)) do =
+
+-				printf("item serial=3D0x%08x artid=3D0x%04x equipped\n",item.serial,it=
+em.artid)
++				print("item equipped",hex(item.serial),hex(item.artid))
+ 			end
+ 		end
+ 	=
+
+@@ -134,12 +134,14 @@
+ 			good.index 		=3D i
+ 			good.item		=3D GetObjectBySerial(good.itemserial)
+ 			--- old : see also get obj with good.itemserial from playerBackpackCont=
+ainer
++			=
+
++			print("kPacket_Shop_Sell",hex(good.itemserial,8),hex(good.itemartid),he=
+x(good.item.artid),good.price,good.name)
+ =
+
+ 			if (good.item) then -- item is not always available, especially if its =
+in the backpack, and that has not been opened yet
+ 				if (good.itemartid ~=3D good.item.artid)	then
+-					printf("FATAL : kPacket_Shop_Sell : artid mismatch 0x%04x !=3D 0x%04x=
+\n",good.itemartid,good.item.artid)
+-					print("FATAL ! kPacket_Shop_Sell -> forced Crash")
+-					NetCrash()
++					print("warning : kPacket_Shop_Sell : artid mismatch "..hex(good.itema=
+rtid).." !=3D "..good.item.artid,good.name,"amt:",good.itemamount,good.item=
+.amount)
++					--~ print("FATAL ! kPacket_Shop_Sell -> forced Crash")
++					--~ NetCrash()
+ 				end
+ 				if (good.itemamount ~=3D good.item.amount) then
+ 					printf("FATAL : kPacket_Shop_Sell : amount mismatch 0x%04x !=3D 0x%04=
+x\n",good.itemamount,good.item.amount)
+
+
+
+From no-reply at zwischenwelt.org  Tue Jan 26 14:32:35 2010
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Tue, 26 Jan 2010 13:32:35 -0000
+Subject: [Iris-commit] [IRIS] r3238 - /trunk/premake.lua
+Message-ID: <20100126133236.639AA7A98076@simon>
+
+Author: ghoulsblade
+Date: Tue Jan 26 14:32:32 2010
+New Revision: 3238
+
+Log:
+added environment variable for additional compile flags in premake.lua : IR=
+IS_COMPILE_FLAGS
+
+Modified:
+    trunk/premake.lua
+
+Modified: trunk/premake.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/premake.lua (original)
++++ trunk/premake.lua Tue Jan 26 14:32:32 2010
+@@ -22,7 +22,14 @@
+ =
+
+ gbUseSoundOpenAl =3D true
+ gbUseSoundFmod =3D true
+-		=
+
++
++gAdditionalCompileFlags =3D os.getenv("IRIS_COMPILE_FLAGS") -- environment=
+ variable
++
++function MyModPackage(package) =
+
++	package.buildoptions =3D package.buildoptions or {}
++	if (gAdditionalCompileFlags) then table.insert(package.buildoptions,gAddi=
+tionalCompileFlags) end
++end
++
+ -- ------------------------------------------------------------------
+ -- ------------------------------------------------------------------
+ =
+
+@@ -203,6 +210,7 @@
+ 	  matchfiles(gLugreOisDir.."/src/*.h", gLugreOisDir.."/src/*.cpp"),
+ 	  matchfiles(gLugreOisDir.."/src/"..gOisPlatform.."/*.h", gLugreOisDir.."=
+/src/"..gOisPlatform.."/*.cpp"),
+ 	}
++	MyModPackage(package)
+ else
+ 	print("OIS platform: system wide installed")
+ end
+@@ -227,6 +235,7 @@
+ 	table.insert(package.files, matchrecursive(gLugreDir.."/lib/"..v.."/src/*=
+.c")) =
+
+ 	table.insert(package.includepaths, gLugreDir.."/lib/"..v.."/include/") =
+
+ 	AddLugreLibDeps(package)
++	MyModPackage(package)
+ end
+ =
+
+ -- ---------------------------------------------
+@@ -245,6 +254,7 @@
+   matchrecursive(gLugreDir.."/include/*.h", gLugreDir.."/src/*.cpp", gLugr=
+eDir.."/lib/sqlite/src/*.c"),
+ }
+ AddLugreDeps(package)
++MyModPackage(package)
+ =
+
+ -- ---------------------------------------------
+ -- MAIN
+@@ -276,3 +286,4 @@
+ package.excludes =3D {
+ --  "dont_build_this.c"
+ }
++MyModPackage(package)
+
+
+
+From no-reply at zwischenwelt.org  Tue Jan 26 15:11:20 2010
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Tue, 26 Jan 2010 14:11:20 -0000
+Subject: [Iris-commit] [IRIS] r3239 - /trunk/README
+Message-ID: <20100126141120.6C70C54D0039@simon>
+
+Author: ghoulsblade
+Date: Tue Jan 26 15:11:20 2010
+New Revision: 3239
+
+Log:
+added info about IRIS_COMPILE_FLAGS env-var to readme
+
+Modified:
+    trunk/README
+
+Modified: trunk/README
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/README (original)
++++ trunk/README Tue Jan 26 15:11:20 2010
+@@ -165,6 +165,10 @@
+ http://sfz.sourceforge.net/		- Stressfree Zone (space game)
+ http://lugre.sourceforge.net	- Lugre	(middelware for Ogre3D, Lua, Fmod, Op=
+enAL, ODE, Boost)
+ =
+
++=3D=3D=3D environment vars =3D=3D=3D
++
++for additional compile options : IRIS_COMPILE_FLAGS , added to premake pac=
+kage.buildoptions
++
+ =3D=3D=3D license =3D=3D=3D
+ see COPYING for license of our code
+ =
+
+
+
+
+From no-reply at zwischenwelt.org  Thu Jan 28 18:56:28 2010
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Thu, 28 Jan 2010 17:56:28 -0000
+Subject: [Iris-commit] [IRIS] r3240 - in /trunk/lua: lib.cursor.lua
+ lib.macrolist.lua lib.mainmenu.accountlist.lua lib.shardlist.lua
+ net/net.cursor.lua net/net.mobile.lua net/net.partysystem.lua
+Message-ID: <20100128175628.A4D3B7A98004@simon>
+
+Author: ghoulsblade
+Date: Thu Jan 28 18:56:28 2010
+New Revision: 3240
+
+Log:
+charlist skill display fixed for subserverid other than 0, StartTargetMode_=
+ClientSide : no message sent to server, MacroCmd_PlayerDead,MacroCmd_Mobile=
+Dead , MacroCmd_JobGetTargetClientSide, MacroCmd_StoreLastTarget , MacroCmd=
+_SendStoredTarget , MacroCmd_GetStoredTarget_Serial , MacroCmd_GetStoredTar=
+get_Pos , macropathfind bugfix return value
+
+Modified:
+    trunk/lua/lib.cursor.lua
+    trunk/lua/lib.macrolist.lua
+    trunk/lua/lib.mainmenu.accountlist.lua
+    trunk/lua/lib.shardlist.lua
+    trunk/lua/net/net.cursor.lua
+    trunk/lua/net/net.mobile.lua
+    trunk/lua/net/net.partysystem.lua
+
+Modified: trunk/lua/lib.cursor.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.cursor.lua (original)
++++ trunk/lua/lib.cursor.lua Thu Jan 28 18:56:28 2010
+@@ -100,11 +100,17 @@
+ function IsTargetModeActive () return gTargetModeActive end
+ =
+
+ function CleanupTargetMode ()
++	gNextTargetClientSide =3D nil -- should be nil already after sendtarget (=
+also used with 0 if cancelled)
+     if (not gTargetModeActive) then return end
+     gSmartLastSpellID =3D nil -- either cancelled or targetted.
+     SetUOCursor(kCursorIndex_Normal)
+     gTargetModeActive =3D false
+     NotifyListener("Hook_TargetMode_End") -- always called, even if aborte=
+d by server
++end
++
++function StartTargetMode_ClientSide ()
++	gNextTargetClientSide =3D true
++	StartTargetMode()
+ end
+ =
+
+ function StartTargetMode ()
+@@ -121,6 +127,7 @@
+ =
+
+ -- client side cancel
+ function CancelTargetMode ()
++	if (not IsTargetModeActive()) then return end
+     GuiAddChatLine("Target Mode canceled")
+     Send_Target_Cancel()
+     CleanupTargetMode()
+
+Modified: trunk/lua/lib.macrolist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.macrolist.lua (original)
++++ trunk/lua/lib.macrolist.lua Thu Jan 28 18:56:28 2010
+@@ -43,8 +43,11 @@
+ function GetPlayerTithingPoints() return GetMobileStat(GetPlayerMobile(),"=
+tithing") end
+ function IsPlayerHidden() local mobile =3D GetPlayerMobile() return mobile=
+ and mobile.flag_hidden end
+ =
+
++function MacroCmd_PlayerDead 	 () return MacroCmd_MobileDead(GetPlayerMobi=
+le()) end
+ function MacroCmd_PlayerPoisoned () return MacroCmd_MobilePoisoned(GetPlay=
+erMobile()) end
+ function MacroCmd_PlayerMortaled () return MacroCmd_MobileMortaled(GetPlay=
+erMobile()) end
++function MacroCmd_MobileDead	 (mobile) return mobile and (mobile.artid =3D=
+=3D 402 or mobile.artid =3D=3D 403) end -- ghost form
++--~ function MacroCmd_MobileDead	 (mobile) return mobile and GetMobileRelH=
+P(mobile.serial) =3D=3D 0 end
+ function MacroCmd_MobilePoisoned (mobile) return mobile and IsMobilePoison=
+ed(mobile) end
+ function MacroCmd_MobileMortaled (mobile) return mobile and IsMobileMortal=
+ed(mobile) end
+ =
+
+@@ -183,6 +186,36 @@
+ function MacroCmd_ToggleHideGUI () GuiToggleHide() Client_RenderOneFrame()=
+ end
+ =
+
+ =
+
++function MacroCmd_StartTargetModeClientSide () StartTargetMode_ClientSide(=
+) end
++
++function MacroCmd_JobGetTargetClientSide ()
++	local jobid =3D job.running_id() assert(jobid)
++	local res
++	RegisterListener("Hook_TargetMode_Send",function (...) res =3D {...} job.=
+wakeup(jobid) return true end)
++	MacroCmd_StartTargetModeClientSide()
++	job.wait(1000*3600*24)
++	if (not res) then return end
++	local bIsPos,flag,serial,x,y,z,model,bIsCancel =3D unpack(res)
++	if (bIsCancel) then return false end
++	return MacroCmd_StoreLastTarget()
++end
++
++function MacroCmd_StoreLastTarget () return CopyArray(gMacroLastTargetMemo=
+ry) end
++function MacroCmd_SendStoredTarget (t) return CompleteTargetMode(t) end
++function MacroCmd_GetStoredTarget_Serial (t)
++	if (not t) then return end
++    if (t.hittype =3D=3D kMousePickHitType_Mobile) then return t.mobile.se=
+rial end
++    if (t.hittype =3D=3D kMousePickHitType_Dynamic) then return t.dynamic.=
+serial end
++end
++function MacroCmd_GetStoredTarget_Pos (t)
++	if (not t) then return end
++    if (t.hittype =3D=3D kMousePickHitType_Mobile) then return t.mobile.xl=
+oc,t.mobile.yloc,t.mobile.zloc end
++    if (t.hittype =3D=3D kMousePickHitType_Dynamic) then return t.dynamic.=
+xloc,t.dynamic.yloc,t.dynamic.zloc end
++    if (t.hittype =3D=3D kMousePickHitType_Static) then return t.hit_xloc,=
+t.hit_yloc,t.hit_zloc end
++    if (t.hittype =3D=3D kMousePickHitType_Ground) then return t.x,t.y,t.z=
+ end
++    return t.hit_xloc,t.hit_yloc,t.hit_zloc
++end
++	=
+
+ function MacroCmd_PopupCommandByTag (serial,tag,timeout)
+     local timeout_endt =3D Client_GetTicks() + (timeout or 1000)
+     Send_PopupRequest(serial)
+@@ -1047,14 +1080,14 @@
+ 	tolerance =3D tolerance or 0
+ 	local bLog =3D not bNoLog
+ 	if (bLog) then print("MacroCmd_PathFindTo : start",xloc,yloc,tolerance,ti=
+meout) end
+-	if (GetUODistToPlayer(xloc,yloc) <=3D tolerance) then =
+
+-		if (bLog) then print("MacroCmd_PathFindTo : already there") end
+-		return true =
+
+-	end
+ 	local iJobWaitInterval =3D 50
+ 	timeout =3D timeout or 0
+ 	local endt =3D (timeout > 0) and (Client_GetTicks() + timeout)
+ 	repeat -- repeat the pathfinding calc every few seconds in case dynamics =
+show up
++		if (GetUODistToPlayer(xloc,yloc) <=3D tolerance) then =
+
++			if (bLog) then print("MacroCmd_PathFindTo : already there") end
++			return true =
+
++		end
+ 		local t =3D Client_GetTicks()
+ 		local res =3D cPathFind2:CalcRouteFromPlayerToPos(xloc,yloc,tolerance,iJ=
+obWaitInterval,endt and (endt-t)) =
+
+ 		local t2 =3D Client_GetTicks()
+
+Modified: trunk/lua/lib.mainmenu.accountlist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mainmenu.accountlist.lua (original)
++++ trunk/lua/lib.mainmenu.accountlist.lua Thu Jan 28 18:56:28 2010
+@@ -57,7 +57,8 @@
+                 local myrow =3D bHadFirstChar and {{""},{""},{""}} or base=
+row
+                 bHadFirstChar =3D true
+                 =
+
+-                local chardata =3D SimpleXMLLoad(GetCharFilePath(user,char=
+.id))
++                local chardata =3D SimpleXMLLoad(GetCharFilePath(user,char=
+.id,0)) or SimpleXMLLoad(GetCharFilePath(user,char.id,1))
++				print("MainMenu_AccountList_Start GetCharFilePath",user,char.id,charda=
+ta)
+                 local charinfo =3D ""
+                 if (chardata) then
+                     local timediff =3D os.time() - (chardata.time or 0)
+
+Modified: trunk/lua/lib.shardlist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.shardlist.lua (original)
++++ trunk/lua/lib.shardlist.lua Thu Jan 28 18:56:28 2010
+@@ -4,7 +4,7 @@
+ function GetConfigDirPath               () return gConfigPath end
+ function GetShardListDirPath            () return GetConfigDirPath().."sha=
+rds/" end
+ function GetShardMemoryFilePath         () return GetConfigDirPath().."sha=
+rdmemory.xml" end
+-function GetCharFilePath                (loginname,charid) return GetConfi=
+gDirPath().."chars/"..table.concat({gLoginServerIP,gLoginServerPort,ShardLi=
+stFileNamePartEncode(loginname or gLoginname),(giGameServerID or 0),(charid=
+ or gCharID or 0)},".")..".xml" end
++function GetCharFilePath                (loginname,charid,subserverid) ret=
+urn GetConfigDirPath().."chars/"..table.concat({gLoginServerIP,gLoginServer=
+Port,ShardListFileNamePartEncode(loginname or gLoginname),(subserverid or g=
+iGameServerID or 0),(charid or gCharID or 0)},".")..".xml" end
+ function GetShardConfigFilePath         (shardname) return GetShardListDir=
+Path()..ShardListFileNamePartEncode(shardname)..".xml" end
+ =
+
+ function ShardListFileNamePartEncode    (x) return string.gsub(x,"[^0-9a-z=
+A-Z_%-%(%) ]",".") end
+
+Modified: trunk/lua/net/net.cursor.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.cursor.lua (original)
++++ trunk/lua/net/net.cursor.lua Thu Jan 28 18:56:28 2010
+@@ -51,28 +51,33 @@
+ end
+ =
+
+ -- Send Targetcursor (0x6c)
+-function Send_Target (bIsPos,flag,serial,x,y,z,model)
++function Send_Target (bIsPos,flag,serial,x,y,z,model,bIsCancel)
+ 	print("Send_Target",bIsPos,hex(flag),hex(serial),x,y,z,hex(model))
+ 	--printf("NET: Send_Target: %d 0x%02x 0x%08x %d %d %d 0x%04x\n",bIsPos an=
+d 1 or 0,flag,serial,x or 0,y or 0,z or 0,model or 0)
+-	local out =3D GetSendFIFO()
+-	out:PushNetUint8(kPacket_Target)
+-	out:PushNetUint8(bIsPos and kTargetModeType_Pos or kTargetModeType_Object)
+-	out:PushNetUint32(gTargetModeSerial)
+-	out:PushNetUint8(flag)
+-	out:PushNetUint32(serial)
+-	out:PushNetUint16(x or 0)
+-	out:PushNetUint16(y or 0)
+-	out:PushNetUint16(z or 0)		-- out:PushInt16(z)
+-	out:PushNetUint16(model or 0)	-- ArtID, ModelID (granny)
+ 	=
+
+-	NotifyListener("Hook_TargetMode_Send",bIsPos,flag,serial,x,y,z,model) -- =
+called on target and cancel-by-client, but not if aborted by server
+-	out:SendPacket()
++	if (gNextTargetClientSide) then =
+
++		gNextTargetClientSide =3D nil
++	else
++		local out =3D GetSendFIFO()
++		out:PushNetUint8(kPacket_Target)
++		out:PushNetUint8(bIsPos and kTargetModeType_Pos or kTargetModeType_Objec=
+t)
++		out:PushNetUint32(gTargetModeSerial)
++		out:PushNetUint8(flag)
++		out:PushNetUint32(serial)
++		out:PushNetUint16(x or 0)
++		out:PushNetUint16(y or 0)
++		out:PushNetUint16(z or 0)		-- out:PushInt16(z)
++		out:PushNetUint16(model or 0)	-- ArtID, ModelID (granny)
++		out:SendPacket()
++	end
++	=
+
++	NotifyListener("Hook_TargetMode_Send",bIsPos,flag,serial,x,y,z,model,bIsC=
+ancel) -- called on target and cancel-by-client, but not if aborted by serv=
+er
+ end
+ =
+
+ -- Cancel Target Cursor Mode  by cleint
+ function Send_Target_Cancel () =
+
+ 	NotifyListener("Hook_TargetMode_CancelByClient")
+-	Send_Target(false,0,0x00000000,hex2num("0xFFFF"),hex2num("0xFFFF"),0,0)
++	Send_Target(false,0,0x00000000,0xFFFF,0xFFFF,0,0,true)
+ end
+ =
+
+ -- Target Ground Map
+
+Modified: trunk/lua/net/net.mobile.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.mobile.lua (original)
++++ trunk/lua/net/net.mobile.lua Thu Jan 28 18:56:28 2010
+@@ -182,6 +182,8 @@
+ 	=
+
+ 	=
+
+ 	stats.mobstatversion	=3D MySave_PopNetUint8()
++	=
+
++	print("stats.mobstatversion",hex(stats.mobstatversion))
+ 	=
+
+ 	-- mobstatversion : http://docs.polserver.com/packets/index.php?Packet=3D=
+0x11
+     --~ * 0x00: no more data following (end of packet here).
+
+Modified: trunk/lua/net/net.partysystem.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.partysystem.lua (original)
++++ trunk/lua/net/net.partysystem.lua Thu Jan 28 18:56:28 2010
+@@ -228,7 +228,7 @@
+ function PartyListDialog_StartInviteMode () =
+
+ 	print("PartyListDialog_StartInviteMode") =
+
+ 	-- start targetting mode
+-	StartTargetMode()
++	StartTargetMode_ClientSide()
+ 	gPartyList_InviteNextTarget =3D true
+ end
+ =
+
+
+
+

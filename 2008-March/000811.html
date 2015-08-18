@@ -1,0 +1,441 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2000 - in /trunk/lua: lib.protocol.lua lib.tilefreewalk.lua lib.walking3.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-March/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2000%20-%20in%20/trunk/lua%3A%20lib.protocol.lua%0A%20lib.tilefreewalk.lua%20lib.walking3.lua&In-Reply-To=%3C20080328225403.ADD2D1C18749%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000810.html">
+   <LINK REL="Next"  HREF="000812.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2000 - in /trunk/lua: lib.protocol.lua lib.tilefreewalk.lua lib.walking3.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2000%20-%20in%20/trunk/lua%3A%20lib.protocol.lua%0A%20lib.tilefreewalk.lua%20lib.walking3.lua&In-Reply-To=%3C20080328225403.ADD2D1C18749%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2000 - in /trunk/lua: lib.protocol.lua lib.tilefreewalk.lua lib.walking3.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Fri Mar 28 23:53:59 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000810.html">[Iris-commit] [IRIS] r1999 - in /trunk/lua: lib.keybinds.lua	main.lua
+</A></li>
+        <LI>Next message: <A HREF="000812.html">[Iris-commit] [IRIS] r2001 - /trunk/lua/lib.keybinds.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#811">[ date ]</a>
+              <a href="thread.html#811">[ thread ]</a>
+              <a href="subject.html#811">[ subject ]</a>
+              <a href="author.html#811">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Fri Mar 28 23:53:55 2008
+New Revision: 2000
+
+Log:
+worked a bit on runuo1 walking code port
+
+Modified:
+    trunk/lua/lib.protocol.lua
+    trunk/lua/lib.tilefreewalk.lua
+    trunk/lua/lib.walking3.lua
+
+Modified: trunk/lua/lib.protocol.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.protocol.lua (original)
++++ trunk/lua/lib.protocol.lua Fri Mar 28 23:53:55 2008
+@@ -35,7 +35,7 @@
+ 	for k,v in pairs(gPacketType) do gPacketTypeId2Name[v.id] =3D k end
+ 	for k,v in pairs(gPacketType) do _G[k] =3D v.id end -- make names availab=
+le as global constants, like kPacket_Account_Login_Request, needed for send=
+ing
+ 	=
+
+-function DirWrap (iDir) -- wraps into [0,7]
++function DirWrap (iDir) -- wraps into [0,7], also removes runflag automati=
+cally, but a bit expensive for that
+ 	while (iDir &lt; 0) do iDir =3D iDir + 8 end
+ 	while (iDir &gt; 7) do iDir =3D iDir - 8 end
+ 	return iDir
+@@ -53,7 +53,7 @@
+ function GetDirYLocal (dir) return GetDirY(dir) end
+ =
+
+ -- interpret dircode in uo coordinate system  uneven numbers (1,3,5,7) are=
+ diagonal
+-function DirisDiagonal (dir) return dir =3D=3D 1 or dir =3D=3D 3 or dir =
+=3D=3D 5 or dir =3D=3D 7 end
++function DirIsDiagonal (dir) return dir =3D=3D 1 or dir =3D=3D 3 or dir =
+=3D=3D 5 or dir =3D=3D 7 end
+ function GetDirX (dir) =
+
+ 	if (dir =3D=3D 1 or dir =3D=3D 2 or dir =3D=3D 3) then return 1 -- east
+ 	elseif (dir =3D=3D 5 or dir =3D=3D 6 or dir =3D=3D 7) then return -1 -- w=
+est
+
+Modified: trunk/lua/lib.tilefreewalk.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.tilefreewalk.lua (original)
++++ trunk/lua/lib.tilefreewalk.lua Fri Mar 28 23:53:55 2008
+@@ -595,7 +595,7 @@
+ 		local iNewZ =3D self:Impl_CalcWalkStep(xloc2,yloc2,zloc,iDir)
+ 		RegisterZ(ldx,ldy,iNewZ)
+ 		if (iNewZ) then iSelfZ =3D self:Impl_CalcWalkStep(xloc,yloc,zloc,DirWrap=
+(iDir+4)) or iSelfZ end
+-		--~ if (iNewZ and (not DirisDiagonal(iDir))) then =
+
++		--~ if (iNewZ and (not DirIsDiagonal(iDir))) then =
+
+ 			--~ local iDirL,iDirR =3D DirWrap(iDir-2),DirWrap(iDir+2) =
+
+ 			--~ RegisterZ(ldx+GetDirXLocal(iDirL),ldy+GetDirYLocal(iDirL),self:Impl=
+_CalcWalkStep(xloc2+GetDirX(iDirL),yloc2+GetDirY(iDirL),iNewZ,iDirL))
+ 			--~ RegisterZ(ldx+GetDirXLocal(iDirR),ldy+GetDirYLocal(iDirR),self:Impl=
+_CalcWalkStep(xloc2+GetDirX(iDirR),yloc2+GetDirY(iDirR),iNewZ,iDirR))
+
+Modified: trunk/lua/lib.walking3.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.walking3.lua (original)
++++ trunk/lua/lib.walking3.lua Fri Mar 28 23:53:55 2008
+@@ -10,8 +10,8 @@
+ end
+ ]]--
+ =
+
+-kHex_4000 =3D hex2num(&quot;0x4000&quot;)
+-kHex_3FFF =3D hex2num(&quot;0x3FFF&quot;)
++kHex_4000 =3D 0x4000
++kHex_3FFF =3D 0x3FFF
+ =
+
+ kTileFlag =3D {}
+ kTileFlag.Wet			=3D kTileDataFlag_Wet
+@@ -26,7 +26,7 @@
+ kTileData.LandTable =3D {}
+ -- kTileData.ItemTable[BitwiseAND(check.ID,kHex_3FFF)]  itemData.Flags  .H=
+eight  .CalcHeight  .Bridge
+ --~ kTileData.LandTable[BitwiseAND(landTile.ID,kHex_3FFF)]  .Flags
+--- m.CanSwim m.CantWalk  m.CantWalk  m.Alive) or m.Body.BodyID =3D=3D hex2=
+num(&quot;0x3DB&quot;) or m.IsDeadBondedPet m.Z    m.IsDeadBondedPet
++-- m.CanSwim m.CantWalk  m.CantWalk  m.Alive) or m.Body.BodyID =3D=3D 0x3D=
+B or m.IsDeadBondedPet m.Z    m.IsDeadBondedPet
+ -- item.ItemData.Impassable  item.ItemData.Flags
+ -- item.Movable item.Z =
+
+ -- item.AtWorldPoint( xStart, yStart ) and item.ItemID =
+
+@@ -44,139 +44,51 @@
+ =
+
+ =
+
+ function ApplyDir (dir,posx,posy) =
+
+-	dir =3D DirWrap(BitwiseAND(dir,7)) -- warp and remove run bit
++	dir =3D DirWrap(dir) -- warp and remove run bit
+ 	return posx+GetDirX(dir),posy+GetDirY(dir)
+ end =
+
+ =
+
+ --- bMoveIsOk,newZ =3D CheckMovement( Mobile m, Map map, Point3D loc, Dire=
+ction d, out int newZ )
+ -- see also RunUO1.0/Scripts/Engines/Pathing/Movement.cs : CheckMovement a=
+nd Check
+ -- TODO : see also RunUO1.0/src/Mobile.cs : Move : checks items(dynamics?)=
+ and mobiles
++-- m=3Dmobile , d=3Ddir
+ function CheckMovement( m, map, posx,posy,posz, d)
+-	d =3D DirWrap(d)
+-	local newZ =3D 0
++	d =3D DirWrap(d) -- alsor removes runflag
++	local moveIsOk,newZ =3D false,0
+ 	if (map =3D=3D nil) then return false,newZ end
+ =
+
+ 	local xStart =3D posx -- ints
+ 	local yStart =3D posy
+-	local xForward	, yForward	=3D xStart,yStart
+-	local xRight	, yRight	=3D xStart,yStart
+-	local xLeft		, yLeft		=3D xStart,yStart
+-
+-	local checkDiagonals =3D DirisDiagonal(d) -- see lib.protocol.lua:56:
+-
+-	xForward,yForward	=3D ApplyDir( d, xForward,yForward )
+-	xLeft,yLeft			=3D ApplyDir( d - 1, xLeft,yLeft )
+-	xRight,yRight		=3D ApplyDir( d + 1, xRight,yRight )
++	local xForward	, yForward	=3D ApplyDir( d    , xForward	,yForward	)
++	local xLeft		, yLeft		=3D ApplyDir( d - 1, xLeft	,yLeft		)
++	local xRight	, yRight	=3D ApplyDir( d + 1, xRight	,yRight		)
+ =
+
+ 	if ( xForward &lt; 0 or yForward &lt; 0 or xForward &gt;=3D map.Width or yForward =
+&gt;<i>=3D map.Height ) then return false,newZ end
+</I>-
+-	local startZ, startTop -- int
+-
+-	local itemsStart	=3D {} -- ArrayList
+-	local itemsForward	=3D {}
+-	local itemsLeft		=3D {}
+-	local itemsRight	=3D {}
+-	local items
++	=
+
++	local checkDiagonals =3D DirIsDiagonal(d) -- see lib.protocol.lua:56:
+ =
+
+ 	local ignoreMovableImpassables =3D kIgnoreMovableImpassables -- bool
+ 	local reqFlags =3D kImpassableSurface -- TileFlag
+ =
+
+ 	if ( m.CanSwim ) then reqFlags =3D BitwiseOR(reqFlags,kTileFlag.Wet) end
+ =
+
+-	if ( checkDiagonals ) then
+-		local sectorStart	=3D map.GetSector( xStart, yStart ) -- Sector
+-		local sectorForward	=3D map.GetSector( xForward, yForward )
+-		local sectorLeft	=3D map.GetSector( xLeft, yLeft )
+-		local sectorRight	=3D map.GetSector( xRight, yRight )
+-
+-		local sectors =3D {} -- ArrayList
+-
+-		table.insert(sectors, sectorStart )
+-
+-		if ( not sectors.Contains( sectorForward	) ) then table.insert(sectors, =
+sectorForward ) end
+-		if ( not sectors.Contains( sectorLeft		) ) then table.insert(sectors, se=
+ctorLeft ) end
+-		if ( not sectors.Contains( sectorRight		) ) then table.insert(sectors, s=
+ectorRight ) end
+-
+-		for i,sector in pairs(sectors)  do -- Sector
+-			items =3D sector.Items
+-
+-			for j,item in pairs(items) do -- Item
++	local filterItemFun =3D function (item)
++		if ( ignoreMovableImpassables and item.Movable and item.ItemData.Impassa=
+ble ) then return false end
++		if ( BitwiseAND(item.ItemData.Flags,reqFlags) =3D=3D 0 ) then return fal=
+se end
++		return item.ItemID &lt; kHex_4000
++	end
+ 	=
+
+-				if ( ignoreMovableImpassables and item.Movable and item.ItemData.Impas=
+sable ) then =
+
+-					-- continue
+-				elseif ( BitwiseAND(item.ItemData.Flags,reqFlags) =3D=3D 0 ) then =
+
+-					-- continue
+-				else
+-					if ( sector =3D=3D sectorStart and item.AtWorldPoint( xStart, yStart =
+) and item.ItemID &lt; kHex_4000 ) then
+-						table.insert(itemsStart, item )
+-					elseif ( sector =3D=3D sectorForward and item.AtWorldPoint( xForward,=
+ yForward ) and item.ItemID &lt; kHex_4000 ) then
+-						table.insert(itemsForward, item )
+-					elseif ( sector =3D=3D sectorLeft and item.AtWorldPoint( xLeft, yLeft=
+ ) and item.ItemID &lt; kHex_4000 ) then
+-						table.insert(itemsLeft, item )
+-					elseif ( sector =3D=3D sectorRight and item.AtWorldPoint( xRight, yRi=
+ght ) and item.ItemID &lt; kHex_4000 ) then
+-						table.insert(itemsRight, item )
+-					end
+-				end
+-			end
+-		end
+-	else
+-		local sectorStart =3D map.GetSector( xStart, yStart ) -- Sector
+-		local sectorForward =3D map.GetSector( xForward, yForward )
+-
+-		if ( sectorStart =3D=3D sectorForward ) then
+-			items =3D sectorStart.Items
+-
+-			for i,item in pairs(items) do -- Item
+-				if ( ignoreMovableImpassables and item.Movable and item.ItemData.Impas=
+sable ) then
+-					-- continue
+-				elseif ( BitwiseAND(item.ItemData.Flags,reqFlags) =3D=3D 0 ) then
+-					-- continue
+-				else
+-					if ( item.AtWorldPoint( xStart, yStart ) and item.ItemID &lt; kHex_4000 =
+) then
+-						table.insert(itemsStart, item )
+-					elseif ( item.AtWorldPoint( xForward, yForward ) and item.ItemID &lt; kH=
+ex_4000 ) then
+-						table.insert(itemsForward, item )
+-					end
+-				end
+-			end
+-		else
+-			items =3D sectorForward.Items
+-
+-			for i,item in pairs(items) do -- Item
+-				if ( ignoreMovableImpassables and item.Movable and item.ItemData.Impas=
+sable ) then
+-					--continue
+-				elseif ( BitwiseAND(item.ItemData.Flags,reqFlags) =3D=3D 0 ) then
+-					--continue
+-				else =
+
+-					if ( item.AtWorldPoint( xForward, yForward ) and item.ItemID &lt; kHex_4=
+000 ) then
+-						table.insert(itemsForward, item )
+-					end
+-				end
+-			end
+-
+-			items =3D sectorStart.Items
+-
+-			for i,item in pairs(items) do -- Item
+-
+-				if ( ignoreMovableImpassables and item.Movable and item.ItemData.Impas=
+sable ) then
+-					-- continue
+-				elseif ( BitwiseAND(item.ItemData.Flags,reqFlags) =3D=3D 0 ) then
+-					--continue
+-				else
+-					if ( item.AtWorldPoint( xStart, yStart ) and item.ItemID &lt; kHex_4000 =
+) then
+-						table.insert(itemsStart, item )
+-					end
+-				end
+-			end
+-		end
+-	end
+-
+-	startZ,startTop =3D GetStartZ( m, map, posx,posy,posz, itemsStart)
+-
+-	local moveIsOk
++	local itemsStart	=3D FilterArray(map.GetItemsAtPos(xStart	,yStart		),filt=
+erItemFun)
++	local itemsForward	=3D FilterArray(map.GetItemsAtPos(xForward	,yForward	)=
+,filterItemFun)
++	local items
++	=
+
++	local startZ,startTop =3D GetStartZ( m, map, posx,posy,posz, itemsStart)
++
+ 	moveIsOk,newZ =3D Check( map, m, itemsForward, xForward, yForward, startT=
+op, startZ, m.CanSwim, m.CantWalk)
+ =
+
+ 	if ( moveIsOk and checkDiagonals ) then
++		local itemsLeft		=3D FilterArray(map.GetItemsAtPos(xLeft	,yLeft		),filte=
+rItemFun)
++		local itemsRight	=3D FilterArray(map.GetItemsAtPos(xRight	,yRight		),fil=
+terItemFun)
+ 		local myok1,ignored_z =3D Check( map, m, itemsLeft , xLeft , yLeft , sta=
+rtTop, startZ, m.CanSwim, m.CantWalk)
+ 		local myok2,ignored_z =3D Check( map, m, itemsRight, xRight, yRight, sta=
+rtTop, startZ, m.CanSwim, m.CantWalk)
+ 		if ( (not myok1) and (not myok2) ) then  moveIsOk =3D false  end
+@@ -192,8 +104,7 @@
+ 	for i,check in pairs(tiles) do -- Tile  ( check.ID check.Z )
+ 		local itemData =3D kTileData.ItemTable[BitwiseAND(check.ID,kHex_3FFF)] -=
+- ItemData
+ =
+
+-		if ( BitwiseAND(itemData.Flags,kImpassableSurface) ~=3D 0 ) -- Impassabl=
+e or Surface
+-		then
++		if ( BitwiseAND(itemData.Flags,kImpassableSurface) ~=3D 0 ) then -- Impa=
+ssable or Surface
+ 			local checkZ =3D check.Z -- int
+ 			local checkTop =3D checkZ + itemData.CalcHeight -- int
+ =
+
+@@ -211,10 +122,10 @@
+ 		if ( BitwiseAND(flags,kImpassableSurface) ~=3D 0 ) -- Impassable or Surf=
+ace
+ 		then
+ 			if ( ignoreDoors and (BitwiseAND(flags,kTileFlag.Door) ~=3D 0 or =
+
+-				itemID =3D=3D hex2num(&quot;0x692&quot;) or =
+
+-				itemID =3D=3D hex2num(&quot;0x846&quot;) or =
+
+-				itemID =3D=3D hex2num(&quot;0x873&quot;) or =
+
+-				(itemID &gt;=3D hex2num(&quot;0x6F5&quot;) and itemID &lt;=3D hex2num(&quot;0x6F6&quot;))) ) then
++				itemID =3D=3D 0x692 or =
+
++				itemID =3D=3D 0x846 or =
+
++				itemID =3D=3D 0x873 or =
+
++				(itemID &gt;=3D 0x6F5 and itemID &lt;=3D 0x6F6)) ) then
+ 				--continue
+ 			else
+ 				local checkZ =3D item.Z -- int
+@@ -234,8 +145,8 @@
+ function Check(  map,  m,  items,  x,  y,  startTop,  startZ,  canSwim,  c=
+antWalk )
+ 	local newZ =3D 0
+ =
+
+-	local tiles =3D map.Tiles.GetStaticTiles( x, y, true ) -- Tile[]
+-	local landTile =3D map.Tiles.GetLandTile( x, y ) -- Tile
++	local tiles		=3D map.Tiles.GetStaticTiles( x, y, true ) -- Tile[]
++	local landTile	=3D map.Tiles.GetLandTile( x, y ) -- Tile
+ =
+
+ 	local landBlocks =3D BitwiseAND(kTileData.LandTable[BitwiseAND(landTile.I=
+D,kHex_3FFF)].Flags,kTileFlag.Impassable) ~=3D 0 -- bool
+ 	local considerLand =3D not landTile.Ignored -- bool
+@@ -257,7 +168,7 @@
+ 	local stepTop =3D startTop + kStepHeight
+ 	local checkTop =3D startZ + kPersonHeight
+ =
+
+-	local ignoreDoors =3D ( kAlwaysIgnoreDoors or (not m.Alive) or m.Body.Bod=
+yID =3D=3D hex2num(&quot;0x3DB&quot;) or m.IsDeadBondedPet )
++	local ignoreDoors =3D ( kAlwaysIgnoreDoors or (not m.Alive) or m.Body.Bod=
+yID =3D=3D 0x3DB or m.IsDeadBondedPet )
+ =
+
+ 	for i,tile in pairs(tiles) do -- Tile
+ 		local itemData =3D kTileData.ItemTable[BitwiseAND(tile.ID,kHex_3FFF)] --=
+ ItemData
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000810.html">[Iris-commit] [IRIS] r1999 - in /trunk/lua: lib.keybinds.lua	main.lua
+</A></li>
+	<LI>Next message: <A HREF="000812.html">[Iris-commit] [IRIS] r2001 - /trunk/lua/lib.keybinds.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#811">[ date ]</a>
+              <a href="thread.html#811">[ thread ]</a>
+              <a href="subject.html#811">[ subject ]</a>
+              <a href="author.html#811">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

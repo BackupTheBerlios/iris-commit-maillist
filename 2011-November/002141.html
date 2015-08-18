@@ -1,0 +1,323 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r3401 - in /trunk/lua: filter/filter.art.lua lib.static.lua net/net.login.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2011-November/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3401%20-%20in%20/trunk/lua%3A%20filter/filter.art.lua%0A%20lib.static.lua%20net/net.login.lua&In-Reply-To=%3C20111109212143.98CF254D0007%40simon%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="002140.html">
+   <LINK REL="Next"  HREF="002142.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r3401 - in /trunk/lua: filter/filter.art.lua lib.static.lua net/net.login.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3401%20-%20in%20/trunk/lua%3A%20filter/filter.art.lua%0A%20lib.static.lua%20net/net.login.lua&In-Reply-To=%3C20111109212143.98CF254D0007%40simon%3E"
+       TITLE="[Iris-commit] [IRIS] r3401 - in /trunk/lua: filter/filter.art.lua lib.static.lua net/net.login.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Wed Nov  9 22:21:43 CET 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="002140.html">[Iris-commit] [IRIS] r3400 - /trunk/config/shards/zwischenwelt.xml
+</A></li>
+        <LI>Next message: <A HREF="002142.html">[Iris-commit] [IRIS] r3402 - in /trunk/lua: lib.2d.renderer.lua lib.3d.cam.lua lib.devtool.lua lib.macrolist.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2141">[ date ]</a>
+              <a href="thread.html#2141">[ thread ]</a>
+              <a href="subject.html#2141">[ subject ]</a>
+              <a href="author.html#2141">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Wed Nov  9 22:21:42 2011
+New Revision: 3401
+
+Log:
+added gArtFilter override_tex_0 etc
+
+Modified:
+    trunk/lua/filter/filter.art.lua
+    trunk/lua/lib.static.lua
+    trunk/lua/net/net.login.lua
+
+Modified: trunk/lua/filter/filter.art.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/filter/filter.art.lua (original)
++++ trunk/lua/filter/filter.art.lua Wed Nov  9 22:21:42 2011
+@@ -1,6 +1,9 @@
+ --This Array holds a list with modifications: map ArtIDs to another ArtID,=
+ Ogre-Mesh, Orientation, Position
+ --later we can change Scaling, tiledata entry, add particles or skeletons =
+too
++-- see also iris/config/iris.filter.lua
+ gArtFilter =3D {}
++
++if (not ParseHex2HexArray) then ParseHex2HexArray =3D function (a) return =
+a end end
+ =
+
+ -- adds all the skipped meshes to the skip art fallback file
+ function InitArtFilter	()
+@@ -10,6 +13,83 @@
+ 		end
+ 	end
+ end
++
++function GetFilterData(iTranslatedTileTypeID) return gArtFilter[iTranslate=
+dTileTypeID] end
++
++-- apply overrides, like cloning the mesh to change material (2011-11 floo=
+rtiles+walls)
++-- returns meshname
++--[[
++easy syntax:		gArtFilter[0x04ac]=3D{clone_meshname=3D&quot;mdl_001194.mesh&quot;,ove=
+rride_tex_0=3D&quot;art_fallback.png&quot;,override_tex_1=3D&quot;mybumbmap.png&quot;}
++
++complex syntax:		gArtFilter[0x04ac]=3D{clone_meshname=3D&quot;mdl_001194.mesh&quot;,=
+override_material=3D{...see below...}}
++	override_material=3D{[submeshid]=3Dsubdata,...}   replaces the material o=
+f submesh
++	subdata =3D {
++		-- material is always cloned to keep further changes local
++		newmatname=3D&quot;matname&quot;,  -- optional
++		texture_overrides=3D{texover,...}
++	}
++	texover =3D {
++		sTextureName=3D&quot;sometexture.png&quot;,
++		iTech=3D0, 		-- optional, default to 0
++		iPass=3D0, 		-- optional, default to 0
++		iTextureUnit=3D0, -- optional, default to 0
++	}
++]]--
++function FilterApplyMeshOverrides(meshname,iSeasonedButNotRemappedTileType=
+ID)
++	local filter =3D gArtFilter[iSeasonedButNotRemappedTileTypeID]
++	if (meshname and filter) then
++	=
+
++		-- easy syntax
++		if (filter.override_tex_0 or filter.newmatname) then
++			filter.override_material						=3D filter.override_material or {}
++			filter.override_material[0]						=3D filter.override_material[0] or {}
++			filter.override_material[0].texture_overrides	=3D filter.override_mater=
+ial[0].texture_overrides or {}
++			for i=3D0,10 do
++				local tex =3D filter[&quot;override_tex_&quot;..i]
++				if (tex) then table.insert(filter.override_material[0].texture_overrid=
+es,{sTextureName=3Dtex,iTech=3D0,iPass=3D0,iTextureUnit=3Di}) end
++			end
++			if (filter.newmatname) then filter.override_material[0].newmatname =3D =
+filter.newmatname end
++			=
+
++			-- gArtFilter[0x04ac]=3D{clone_meshname=3D&quot;mdl_001194.mesh&quot;,override_te=
+x_0=3D&quot;art_fallback.png&quot;,override_tex_1=3D&quot;mybumbmap.png&quot;}
++			--~ gArtFilter[0x04ac]=3D{clone_meshname=3D&quot;mdl_001194.mesh&quot;,override_m=
+aterial=3D{[0]=3D{newmatname=3D&quot;BaseWhiteNoLighting&quot;,texture_overrides=3D{{=
+sTextureName=3D&quot;art_fallback.png&quot;,iTech=3D0,iPass=3D0,iTextureUnit=3D0,}}}}}
++			--~ gArtFilter[0x04aa]=3D{clone_meshname=3D&quot;mdl_001194.mesh&quot;,override_m=
+aterial=3D{[0]=3D{newmatname=3D&quot;BaseWhiteNoLighting&quot;,texture_overrides=3D{{=
+sTextureName=3D&quot;guibordertest.png&quot;,iTech=3D0,iPass=3D0,iTextureUnit=3D0,}}}=
+}}
++		end
++		=
+
++		-- apply override
++		if (filter.override_material) then
++			assert(not filter.maptoid,&quot;filter.maptoid and filter.override_material =
+not allowed together, would interfer with cloning due to cache, use filter.=
+clone_meshname=3D\&quot;mdl_001194.mesh\&quot; instead&quot;)
++			print(&quot;## FilterApplyMeshOverrides meshname,iSeasonedButNotRemappedTile=
+TypeID&quot;,meshname,iSeasonedButNotRemappedTileTypeID)
++			=
+
++			-- load mesh
++			local load_meshname =3D filter.clone_meshname and tostring(filter.clone=
+_meshname) or meshname
++			local pMeshOrig =3D MeshManager_load(load_meshname)
++			assert(pMeshOrig,&quot;FilterApplyMeshOverrides failed to load &quot;..load_meshn=
+ame)
++			local clone_name =3D &quot;FilterApplyMeshOverrides_&quot;..tostring(iSeasonedBut=
+NotRemappedTileTypeID)..&quot;_&quot;..load_meshname
++			=
+
++			-- clone
++			local pMesh =3D pMeshOrig:clone(clone_name,&quot;&quot;)
++			assert(pMesh,&quot;mesh clone failed&quot;)
++			meshname =3D clone_name
++			=
+
++			-- apply material override
++			if (filter.override_material) then
++				for subid,subdata in pairs(filter.override_material) do =
+
++					local pSubMesh =3D pMesh:getSubMesh(subid)
++					assert(pSubMesh,&quot;failed to get submesh id=3D&quot;..tostring(subid))
++					local matname =3D subdata.newmatname or pSubMesh:getMaterialName()
++					local matname =3D CloneMaterial(matname)
++					print(&quot;## FilterApplyMeshOverrides subid,matname&quot;,subid,matname)
++					for k,texover in pairs(subdata.texture_overrides or {}) do =
+
++						SetTexture(matname,texover.sTextureName,texover.iTech or 0,texover.i=
+Pass or 0,texover.iTextureUnit or 0)
++					end
++					pSubMesh:setMaterialName(matname)
++				end
++			end
++		end
++	end
++	return meshname
++end
++
+ =
+
+ --FILTER: map Mesh to other Mesh
+ function FilterMesh(iTranslatedTileTypeID)
+@@ -58,6 +138,15 @@
+ end
+ =
+
+ ----------------------------------------------------------------------
++
++-- old, not allowed : maptoid=3D0x0ada
++-- 0x04aa =3D 001194 =3D &quot;mdl_001194.mesh&quot;
++--~ gArtFilter[0x04ac]=3D{clone_meshname=3D&quot;mdl_001194.mesh&quot;,override_tex_=
+0=3D&quot;art_fallback.png&quot;}
++--~ gArtFilter[0x04aa]=3D{clone_meshname=3D&quot;mdl_001194.mesh&quot;,override_tex_=
+0=3D&quot;guibordertest.png&quot;}
++-- TEST for  tex_colmap / tex_bumpmap , test-textures : art_fallback.png,g=
+uibordertest.png
++-- 0x0ada =3D yellow/brown carped
++-- 0x04ac =3D wooden boards
++
+ =
+
+ --armoire - left
+ --opened
+@@ -1585,3 +1674,9 @@
+ 	=
+
+ 	return false
+ end
++
++--~ local c =3D 0
++--~ for i=3D0x0000,0x4000 do if (IsGroundPlate(i)) then c =3D c + 1 =
+
++	--~ print(&quot;gArtFilter[&quot;..i..&quot;]=3D{maptoid=3D1146}&quot;)
++--~ end end =
+
++--~ print(&quot;-- IsGroundPlate #true=3D&quot;,c)
+
+Modified: trunk/lua/lib.static.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.static.lua (original)
++++ trunk/lua/lib.static.lua Wed Nov  9 22:21:42 2011
+@@ -16,7 +16,7 @@
+ gCustomModelCache =3D {}
+ function GetModelPath(id) =
+
+ 	local cached =3D gCustomModelCache[id]
+-	if (cached ~=3D nil) then print(&quot;Model schonmal im gCustomModelCache&quot;) re=
+turn cached end
++	if (cached ~=3D nil) then print(&quot;Model already in gCustomModelCache&quot;) ret=
+urn cached end
+ =
+
+ 	local custompath =3D datapath..&quot;custom/models/&quot;..GetModelName(id)
+ 	if file_exists(custompath) then
+@@ -47,19 +47,23 @@
+ 	--1st: Seasonal Translation
+ 	local iTranslatedTileTypeID =3D SeasonalStaticTranslation(iTileTypeID, gS=
+easonSetting)
+ 	-- FILTER: map Mesh to other Mesh
++	local iSeasonedButNotRemappedTileTypeID =3D iTranslatedTileTypeID -- to g=
+et params BEFORE filter.maptoid, so override is possible
+ 	iTranslatedTileTypeID =3D FilterMesh(iTranslatedTileTypeID)
+ =
+
+ 	local meshname =3D nil
+ 	meshname =3D gLegacyModelCache[iTranslatedTileTypeID]
+ 	if (meshname =3D=3D nil) then
+-		local modellocation =3D GetModelPath(iTranslatedTileTypeID)
++		local modellocation =3D GetModelPath(iTranslatedTileTypeID) -- returns p=
+ath including subfolders, also checks if custom model is available
+ =
+
+ 		if ( modellocation ~=3D nil ) then
+ =
+
+-			meshname =3D GetModelName(iTranslatedTileTypeID)
++			meshname =3D GetModelName(iTranslatedTileTypeID) -- &quot;mdl_%06d.mesh&quot;, ju=
+st number-to-string, no translation : =
+
+ 			-- load Mesh here
+ 			if ( OgreMeshAvailable(meshname) ) then
+ 				printdebug(&quot;static&quot;,&quot;Meshloader:&quot;,iTranslatedTileTypeID,meshname)
++				=
+
++				-- apply overrides, like cloning the mesh to change material (2011-11 =
+floortiles+walls)
++				meshname =3D FilterApplyMeshOverrides(meshname,iSeasonedButNotRemapped=
+TileTypeID)
+ 			else
+ 				meshname =3D false
+ 				printdebug(&quot;static&quot;,&quot;mesh cannot be loaded -&gt; temp. disabled (false) &quot;=
+,meshname, iTranslatedTileTypeID)
+
+Modified: trunk/lua/net/net.login.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.login.lua (original)
++++ trunk/lua/net/net.login.lua Wed Nov  9 22:21:42 2011
+@@ -438,7 +438,7 @@
+ 	=
+
+ 	UOLoginPushFilledStringAddByte(out,sName,30,0x74)
+ 	out:PushFilledString(sPassword,30)
+-	out:PushNetUint8(iSeed or hex2num(&quot;0x5D&quot;))
++	out:PushNetUint8(iSeed or hex2num(&quot;0x5D&quot;)) -- <A HREF="http://docs.polserver.com/p=">http://docs.polserver.com/p=</A>
+ackets/index.php?Packet=3D0x80  says : sagt  BYTE[1] NextLoginKey value fro=
+m uo.cfg on client machine.
+ 	out:SendPacket()
+ 	gNextPingTime =3D gMyTicks + gPingInterval
+ end
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="002140.html">[Iris-commit] [IRIS] r3400 - /trunk/config/shards/zwischenwelt.xml
+</A></li>
+	<LI>Next message: <A HREF="002142.html">[Iris-commit] [IRIS] r3402 - in /trunk/lua: lib.2d.renderer.lua lib.3d.cam.lua lib.devtool.lua lib.macrolist.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2141">[ date ]</a>
+              <a href="thread.html#2141">[ thread ]</a>
+              <a href="subject.html#2141">[ subject ]</a>
+              <a href="author.html#2141">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,174 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2550 - in /trunk: lua/lib.buff.lua lua/lib.spellbooks.lua plugins/lib.spellbar.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-October/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2550%20-%20in%20/trunk%3A%20lua/lib.buff.lua%0A%20lua/lib.spellbooks.lua%20plugins/lib.spellbar.lua&In-Reply-To=%3C20081012024735.1B1381C187C4%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001354.html">
+   <LINK REL="Next"  HREF="001356.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2550 - in /trunk: lua/lib.buff.lua lua/lib.spellbooks.lua plugins/lib.spellbar.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2550%20-%20in%20/trunk%3A%20lua/lib.buff.lua%0A%20lua/lib.spellbooks.lua%20plugins/lib.spellbar.lua&In-Reply-To=%3C20081012024735.1B1381C187C4%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2550 - in /trunk: lua/lib.buff.lua lua/lib.spellbooks.lua plugins/lib.spellbar.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sun Oct 12 04:47:34 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001354.html">[Iris-commit] [IRIS] r2549 - in /trunk: lua/gui/gui.spellbook.lua lua/lib.spellbooks.lua plugins/lib.spellbar.lua
+</A></li>
+        <LI>Next message: <A HREF="001356.html">[Iris-commit] [IRIS] r2551 - in /trunk: lua/lib.spellbooks.lua	plugins/lib.spellbar.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1355">[ date ]</a>
+              <a href="thread.html#1355">[ thread ]</a>
+              <a href="subject.html#1355">[ subject ]</a>
+              <a href="author.html#1355">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sun Oct 12 04:47:34 2008
+New Revision: 2550
+
+Log:
+spelltimecalc starts to work
+
+Modified:
+    trunk/lua/lib.buff.lua
+    trunk/lua/lib.spellbooks.lua
+    trunk/plugins/lib.spellbar.lua
+
+Modified: trunk/lua/lib.buff.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.buff.lua (original)
++++ trunk/lua/lib.buff.lua Sun Oct 12 04:47:34 2008
+@@ -64,6 +64,11 @@
+ gBuffIcons[1046] =3D { iGumpID=3Dhex2num(&quot;0x7547&quot;), name=3D&quot;Cunning&quot;					}
+ gBuffIcons[1047] =3D { iGumpID=3Dhex2num(&quot;0x7567&quot;), name=3D&quot;Strength&quot;					}
+ gBuffIcons[1048] =3D { iGumpID=3Dhex2num(&quot;0x7542&quot;), name=3D&quot;Bless&quot;					}
++
++
++function IsBuffActive_Protection		() return gBuffs[1029] end
++function IsBuffActive_EssenceOfWind		() return gBuffs[1023] end
++
+ =
+
+ kUnknownBuffGumpID =3D hex2num(&quot;0x7555&quot;) -- (snakes)
+ =
+
+
+Modified: trunk/lua/lib.spellbooks.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.spellbooks.lua (original)
++++ trunk/lua/lib.spellbooks.lua Sun Oct 12 04:47:34 2008
+@@ -308,7 +308,8 @@
+ function GetSpell_CastDelayBase (spellid)
+ 	local base =3D 3 --~ RunUO-2.0-SVN/Scripts/Spells/Base/Spell.cs:642:	//pu=
+blic virtual int CastDelayBase{ get{ return 3; } }
+ 	if (IsMageSpell(spellid)) then -- RunUO-2.0-SVN/Scripts/Spells/Base/Mager=
+ySpell.cs:108:	public override TimeSpan CastDelayBase
+-		base =3D (3 + GetSpellCircleByID(spellid)) * kCastDelaySecondsPerTick
++		local circle =3D GetSpellCircleByID(spellid)
++		base =3D (3 + circle) * kCastDelaySecondsPerTick
+ 	end
+ =
+
+ 	if (spellid =3D=3D 606) then return 1.5  end	--~ RunUO-2.0-SVN/Scripts/Sp=
+ells/Spellweaving/NatureFury.cs:15:			TimeSpan.FromSeconds( 1.5 ); } }
+@@ -385,14 +386,17 @@
+ 	return 1 -- default 1
+ end
+ =
+
+- =
+
+-function GetSpellCastTime (spellid,fc,bProtectionBuffActive)
++-- bProtectionBuffActive : see IsBuffActive_Protection() IsBuffActive_Esse=
+nceOfWind()
++function GetSpellCastTime (spellid,fc,bBuffActive_Protection,bBuffActive_E=
+ssenceOfWind)
+ 	--~ TODO : fcmax =3D 2 ,   (castskill=3Dchiv&amp;&amp;magery&lt;70):fcmax=3D4
+ 	--~ TODO : if( EssenceOfWindSpell.IsDebuffed( m_Caster ) ) fc -=3D Essenc=
+eOfWindSpell.GetFCMalus( m_Caster );
+ 	fc =3D min(fc,2)
+-	if (bProtectionBuffActive) then fc =3D fc - 2 end
+-	local spellcircle =3D GetSpellCircleByID(spellid)
+-	return min(GetSpell_CastDelayBase(spellid) - (GetSpell_CastDelayFastScala=
+r(spellid) * fc * kCastDelaySecondsPerTick),GetSpell_CastDelayMinimum(spell=
+id));
++	if (bBuffActive_Protection) then fc =3D fc - 2 end
++	local castDelayBase			=3D GetSpell_CastDelayBase(spellid)
++	local castDelayFastScalar	=3D GetSpell_CastDelayFastScalar(spellid)
++	local castDelayMinimum		=3D GetSpell_CastDelayMinimum(spellid)
++	--~ print(&quot;GetSpellCastTime&quot;,spellid,fc,bBuffActive_Protection,castDelayB=
+ase,castDelayFastScalar,castDelayMinimum)
++	return max(castDelayBase - (castDelayFastScalar * fc * kCastDelaySecondsP=
+erTick),castDelayMinimum);
+ end
+ =
+
+ gMagerySpellMana =3D { 4, 6, 9, 11, 14, 20, 40, 50 }
+
+Modified: trunk/plugins/lib.spellbar.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/plugins/lib.spellbar.lua (original)
++++ trunk/plugins/lib.spellbar.lua Sun Oct 12 04:47:34 2008
+@@ -45,7 +45,8 @@
+ 	local spellcircle	=3D GetSpellCircleByID(spellid)
+ 	local spellbookid	=3D GetSpellBookIDBySpellID(spellid)
+ 	local equipprop		=3D GetSpellBarEquipProps()
+-	print(&quot;spellbar:Hook_SendSpell&quot;,spellid,spellname,spellcircle,SmartDump(e=
+quipprop))
++	local casttime		=3D GetSpellCastTime(spellid,equipprop.fc,IsBuffActive_Pr=
+otection(),IsBuffActive_EssenceOfWind())
++	print(&quot;spellbar:Hook_SendSpell&quot;,spellid,spellname,spellcircle,casttime,Sm=
+artDump(equipprop))
+ 	SpellBarRiseTextOnMob(GetPlayerSerial(),sprintf(&quot;%s(%d,%d)%s&quot;,spellname,s=
+pellcircle,spellid,IsMageSpell(spellid) and &quot;mage&quot; or &quot;&quot;),1,1,1) =
+
+ end)
+ =
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001354.html">[Iris-commit] [IRIS] r2549 - in /trunk: lua/gui/gui.spellbook.lua lua/lib.spellbooks.lua plugins/lib.spellbar.lua
+</A></li>
+	<LI>Next message: <A HREF="001356.html">[Iris-commit] [IRIS] r2551 - in /trunk: lua/lib.spellbooks.lua	plugins/lib.spellbar.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1355">[ date ]</a>
+              <a href="thread.html#1355">[ thread ]</a>
+              <a href="subject.html#1355">[ subject ]</a>
+              <a href="author.html#1355">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

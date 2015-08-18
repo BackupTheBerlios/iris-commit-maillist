@@ -1,0 +1,180 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r3160 - /trunk/lua/lib.granny.debug.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2009-November/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3160%20-%20/trunk/lua/lib.granny.debug.lua&In-Reply-To=%3C20091121164652.3F4B354D0039%40simon%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001920.html">
+   <LINK REL="Next"  HREF="001922.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r3160 - /trunk/lua/lib.granny.debug.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3160%20-%20/trunk/lua/lib.granny.debug.lua&In-Reply-To=%3C20091121164652.3F4B354D0039%40simon%3E"
+       TITLE="[Iris-commit] [IRIS] r3160 - /trunk/lua/lib.granny.debug.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat Nov 21 17:46:52 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001920.html">[Iris-commit] [IRIS] r3159 - in /trunk/lua: lib.profile.top.lua	main.lua
+</A></li>
+        <LI>Next message: <A HREF="001922.html">[Iris-commit] [IRIS] r3161 - in /trunk/lua: lib.granny.debug.lua	lib.granny.types.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1921">[ date ]</a>
+              <a href="thread.html#1921">[ thread ]</a>
+              <a href="subject.html#1921">[ subject ]</a>
+              <a href="author.html#1921">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sat Nov 21 17:46:51 2009
+New Revision: 3160
+
+Log:
+granny debug tweaking
+
+Modified:
+    trunk/lua/lib.granny.debug.lua
+
+Modified: trunk/lua/lib.granny.debug.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.granny.debug.lua (original)
++++ trunk/lua/lib.granny.debug.lua Sat Nov 21 17:46:51 2009
+@@ -139,8 +139,16 @@
+ 		for k,v in pairs(obj) do print(&quot; &quot;,k,v,MyGetChunkT(v and type(v) =3D=3D =
+&quot;table&quot; and v.iChunkType)) end
+ 	end
+ 	=
+
+-	function MyGrannyDump(arr,name)
+-		for k,entry in ipairs(arr) do if (k&lt;=3D3) then print(name,k..&quot;/&quot;..#arr,S=
+martDump(entry)) end end
++	function MyFilterFields (arr) =
+
++		if (type(arr) ~=3D &quot;table&quot;) then return arr end
++		local res =3D {}
++		local blocked =3D {iChildren=3Dtrue,childsleft=3Dtrue,iChunkType=3Dtrue,=
+iOffset=3Dtrue,} -- ,childs=3Dtable: 0x9532d20
++		for k,v in pairs(arr) do if (not blocked[k]) then res[k] =3D v end end
++		return res
++	end
++	function MyGrannyDump(arr,name,subfield,levels)
++		if (#arr =3D=3D 0) then print(name,&quot;!!EMPTY!!&quot;,SmartDump(MyFilterFields(=
+arr))) end
++		for k,entry in ipairs(arr) do if (k&lt;=3D6) then print(name,k..&quot;/&quot;..#arr,S=
+martDump(MyFilterFields(subfield and entry[subfield] or entry),levels or 2)=
+) end end
+ 	end
+ 	=
+
+ 	local Object =3D grn.pMainChunk.Object
+@@ -154,31 +162,22 @@
+ 	print(&quot;texcoords:unknown:&quot;,point_container.texture_container.texcoords.un=
+known)
+ 	MyGrannyDump(point_container.texture_container.texcoords.list_texcoords,&quot;=
+texcoord&quot;)
+ 	=
+
+-	print(&quot;weights:&quot;,SmartDump(mesh.weights))
++	print(&quot;weights:&quot;,SmartDump(MyFilterFields(mesh.weights)))
+ 	MyGrannyDump(mesh.weights.list_weights,&quot;weight&quot;)
+ 	MyGrannyDump(mesh.polygons.list_polygons,&quot;polygon&quot;)
+ 	=
+
+ 	=
+
+ 	=
+
+-	--[[
+-		&lt;Object miListOffset=3D&quot;440&quot; miUnknown1=3D&quot;0&quot;&gt;
+-        &lt;miUnknown2 1=3D&quot;0&quot; 0=3D&quot;2149427081&quot; /&gt;
+-        &lt;textChunk iNumEntries=3D&quot;60&quot; iTextLen=3D&quot;856&quot;&gt;
+-            &lt;texts&gt;
+-                &lt;entry&gt;__Standard&lt;/entry&gt;
+-                &lt;entry&gt;__FileName&lt;/entry&gt;
+-			..
+-		&lt;/textChunk&gt;
+-	]]--
+ 	--[[
+         &lt;boneTies1&gt;
+             &lt;boneobject&gt;
+                 &lt;id iID=3D&quot;1&quot; /&gt;
+             &lt;/boneobject&gt;
+             &lt;boneobject&gt;...&lt;/boneobject&gt;
+-			=
+
+-	]]--
+-	MyGrannyDump(Object.boneTies1,&quot;boneTies1:boneobject&quot;)
++	]]--
++	MyGrannyDump(Object.boneTies1.childs,&quot;boneTies1:boneobject&quot;)
++	=
+
++	=
+
+ 	--[[
+         &lt;bones&gt;
+             &lt;skeleton&gt;
+@@ -192,7 +191,7 @@
+ 			...
+ 		&lt;/bones&gt;
+ 	]]--
+-	MyGrannyDump(Object.bones.skeleton.bonelist,&quot;bone&quot;)
++	MyGrannyDump(Object.bones.skeleton.bonelist.childs,&quot;bone&quot;,&quot;bone&quot;)
+ 	--[[
+         &lt;texture_info_list&gt;
+             &lt;texture_info&gt;
+@@ -239,8 +238,12 @@
+ 			...
+         &lt;/boneTies2&gt;
+ 	]]--
+-	MyGrannyDump(Object.boneTies2.boneties_container.bone_objptrs_container.b=
+one_objptr,&quot;bt2:bone_objptr&quot;)
+-	MyGrannyDump(Object.boneTies2.boneties_container.bonetie_container.boneti=
+e_group.bonetie_list,&quot;bt2:bonetie&quot;)
++	local btcont =3D Object.boneTies2.boneties_container
++	local a =3D btcont.bone_objptrs_container.bone_objptr
++	local b =3D btcont.bonetie_container.bonetie_group.bonetie_list
++	print(&quot;iBoneTie2ID=3D&quot;,a.iBoneTie2ID,&quot;bone_objptrs.iNum=3D&quot;,a.bone_objptr=
+s.iNum)
++	MyGrannyDump(a.bone_objptrs.BoneTies2,&quot;bt2:bone_objptr&quot;)
++	MyGrannyDump(b.childs,&quot;bt2:bonetie&quot;,&quot;bonetie&quot;)
+ 	--[[
+         &lt;texture_list&gt;
+             &lt;texture iTextureID=3D&quot;1&quot;&gt;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001920.html">[Iris-commit] [IRIS] r3159 - in /trunk/lua: lib.profile.top.lua	main.lua
+</A></li>
+	<LI>Next message: <A HREF="001922.html">[Iris-commit] [IRIS] r3161 - in /trunk/lua: lib.granny.debug.lua	lib.granny.types.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1921">[ date ]</a>
+              <a href="thread.html#1921">[ thread ]</a>
+              <a href="subject.html#1921">[ subject ]</a>
+              <a href="author.html#1921">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

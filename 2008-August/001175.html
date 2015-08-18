@@ -1,0 +1,427 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2368 - in /trunk/lua: lib.2d.map.lua lib.2d.renderer.lua lib.3d.map.lua lib.3d.renderer.lua lib.artatlas.lua lib.mapblock.3d.statics.lua lib.mapblock.3d.terrain.lua lib.mapblock.base.lua lib.mapblock.scheduler.lua lib.static.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-August/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2368%20-%20in%20/trunk/lua%3A%20lib.2d.map.lua%0A%20lib.2d.renderer.lua%20lib.3d.map.lua%20lib.3d.renderer.lua%20lib.artatlas.lua%0A%20lib.mapblock.3d.statics.lua%20lib.mapblock.3d.terrain.lua%0A%20lib.mapblock.base.lua%20lib.mapblock.scheduler.lua%20lib.static.lua&In-Reply-To=%3C20080814135416.213411C18259%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001174.html">
+   <LINK REL="Next"  HREF="001176.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2368 - in /trunk/lua: lib.2d.map.lua lib.2d.renderer.lua lib.3d.map.lua lib.3d.renderer.lua lib.artatlas.lua lib.mapblock.3d.statics.lua lib.mapblock.3d.terrain.lua lib.mapblock.base.lua lib.mapblock.scheduler.lua lib.static.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2368%20-%20in%20/trunk/lua%3A%20lib.2d.map.lua%0A%20lib.2d.renderer.lua%20lib.3d.map.lua%20lib.3d.renderer.lua%20lib.artatlas.lua%0A%20lib.mapblock.3d.statics.lua%20lib.mapblock.3d.terrain.lua%0A%20lib.mapblock.base.lua%20lib.mapblock.scheduler.lua%20lib.static.lua&In-Reply-To=%3C20080814135416.213411C18259%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2368 - in /trunk/lua: lib.2d.map.lua lib.2d.renderer.lua lib.3d.map.lua lib.3d.renderer.lua lib.artatlas.lua lib.mapblock.3d.statics.lua lib.mapblock.3d.terrain.lua lib.mapblock.base.lua lib.mapblock.scheduler.lua lib.static.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Thu Aug 14 15:54:15 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001174.html">[Iris-commit] [IRIS] r2367 - /trunk/lua/
+</A></li>
+        <LI>Next message: <A HREF="001176.html">[Iris-commit] [IRIS] r2369 - /trunk/lua/lib.3d.mousepick.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1175">[ date ]</a>
+              <a href="thread.html#1175">[ thread ]</a>
+              <a href="subject.html#1175">[ subject ]</a>
+              <a href="author.html#1175">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: hagish
+Date: Thu Aug 14 15:54:14 2008
+New Revision: 2368
+
+Log:
+*added block scheduler init to renderer init
+*mesh preload possible with static fallback meshes
+
+Modified:
+    trunk/lua/lib.2d.map.lua
+    trunk/lua/lib.2d.renderer.lua
+    trunk/lua/lib.3d.map.lua
+    trunk/lua/lib.3d.renderer.lua
+    trunk/lua/lib.artatlas.lua
+    trunk/lua/lib.mapblock.3d.statics.lua
+    trunk/lua/lib.mapblock.3d.terrain.lua
+    trunk/lua/lib.mapblock.base.lua
+    trunk/lua/lib.mapblock.scheduler.lua
+    trunk/lua/lib.static.lua
+
+Modified: trunk/lua/lib.2d.map.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.map.lua (original)
++++ trunk/lua/lib.2d.map.lua Thu Aug 14 15:54:14 2008
+@@ -33,8 +33,7 @@
+ cMapBlock_2D_Statics.kLOD_Detail		=3D kMapLoad_2D_Statics_Detail
+ cMapBlock_2D_Statics.kLOD_Rough			=3D kMapLoad_2D_Statics_Rough
+ =
+
+-
+-function Renderer2D:MapStep		()
++function Renderer2D:InitMap	()
+ 	if (not self.bMapLoadSystemInitialized) then
+ 		self.bMapLoadSystemInitialized =3D true
+ 		local scheduler =3D CreateScheduler()
+@@ -44,6 +43,9 @@
+ 		self.map2d_spawners.statics		=3D CreateMapBlockSpawner(cMapBlock_2D_Stat=
+ics,scheduler)
+ 		--~ self.map2d_spawners.water		=3D CreateMapBlockSpawner(cMapBlock_2D_Wa=
+ter,scheduler)
+ 	end
++end
++
++function Renderer2D:MapStep		()
+ 	self:MobileTestStep()
+ 	=
+
+ 	local t =3D Client_GetTicks()
+
+Modified: trunk/lua/lib.2d.renderer.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.renderer.lua (original)
++++ trunk/lua/lib.2d.renderer.lua Thu Aug 14 15:54:14 2008
+@@ -20,6 +20,7 @@
+ 	self.bFirstInitDone =3D true
+ 	RegisterListener(&quot;Hook_MainWindowResized&quot;,function () Renderer2D.gbNeedCo=
+rrectAspectRatio =3D true end)
+ 	MultiTexTerrainInit()
++	self:InitMap()	=
+
+ end
+ =
+
+ function Renderer2D:Init ()
+
+Modified: trunk/lua/lib.3d.map.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.map.lua (original)
++++ trunk/lua/lib.3d.map.lua Thu Aug 14 15:54:14 2008
+@@ -45,7 +45,7 @@
+ cMapBlock_3D_Multis.kLOD_Detail			=3D kMapLoad_3D_Multis_Detail
+ cMapBlock_3D_Multis.kLOD_Rough			=3D kMapLoad_3D_Multis_Rough
+ =
+
+-function Renderer3D:MapStep		()
++function Renderer3D:InitMap	()
+ 	if (not self.bMapLoadSystemInitialized) then
+ 		self.bMapLoadSystemInitialized =3D true
+ 		local scheduler =3D CreateScheduler()
+@@ -57,7 +57,9 @@
+ 		self.map3d_spawners.multis		=3D CreateMultiSpawner(scheduler)
+ 		--~ self.map3d_spawners.water		=3D CreateMapBlockSpawner(cMapBlock_3D_Wa=
+ter,scheduler)
+ 	end
+-	=
+
++end
++
++function Renderer3D:MapStep		()
+ 	local t =3D Client_GetTicks()
+ 	local xloc,yloc,zloc =3D self:GetCamPos()
+ 	for k,spawner in pairs(self.map3d_spawners) do spawner:Step(t,xloc,yloc,z=
+loc) end
+
+Modified: trunk/lua/lib.3d.renderer.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.renderer.lua (original)
++++ trunk/lua/lib.3d.renderer.lua Thu Aug 14 15:54:14 2008
+@@ -31,6 +31,7 @@
+ 	LoadTexAtlas()
+ 	MultiTexTerrainInit()
+ 	RegisterListener(&quot;Hook_MainWindowResized&quot;,function () Renderer3D.gbNeedCo=
+rrectAspectRatio =3D true end)
++	self:InitMap()
+ end
+ =
+
+ function Renderer3D:Init ()
+
+Modified: trunk/lua/lib.artatlas.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.artatlas.lua (original)
++++ trunk/lua/lib.artatlas.lua Thu Aug 14 15:54:14 2008
+@@ -55,7 +55,7 @@
+ 			if (kArtAtlasDebugDumpAtlas) then
+ 				local img2 =3D CreateImage()
+ 				v:MakeImage(img2)
+-				img2:SaveAsFile(&quot;../artatlas_&quot;..k..&quot;.png&quot;)
++				img2:SaveAsFile(&quot;artatlas_&quot;..k..&quot;.png&quot;)
+ 				img2:Destroy()
+ 			end
+ 			=
+
+@@ -77,7 +77,7 @@
+ 		if (kArtAtlasDebugDumpAtlas) then
+ 			local img2 =3D CreateImage()
+ 			gLastArtAtlas:MakeImage(img2)
+-			img2:SaveAsFile(&quot;../artatlas_&quot;..k..&quot;.png&quot;)
++			img2:SaveAsFile(&quot;artatlas_&quot;..k..&quot;.png&quot;)
+ 			img2:Destroy()
+ 		end
+ =
+
+
+Modified: trunk/lua/lib.mapblock.3d.statics.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mapblock.3d.statics.lua (original)
++++ trunk/lua/lib.mapblock.3d.statics.lua Thu Aug 14 15:54:14 2008
+@@ -2,9 +2,9 @@
+ =
+
+ cMapBlock_3D_Statics	=3D CreateClass(cMapBlockGrid)
+ cMapBlock_3D_Statics.iBlockSize		=3D 8*2 -- in tiles
+-cMapBlock_3D_Statics.iLoadRadius	=3D 4 -- in iBlockSize-blocks
+-cMapBlock_3D_Statics.kMaxDist_Visible		=3D cMapBlock_3D_Statics.iBlockSize=
+ * 4 -- camdist in tiles  see mapblock.base for default
+-cMapBlock_3D_Statics.kMaxDist_Detail		=3D cMapBlock_3D_Statics.iBlockSize =
+* 2 -- camdist in tiles
++cMapBlock_3D_Statics.iLoadRadius	=3D 2*4 -- in iBlockSize-blocks
++cMapBlock_3D_Statics.kMaxDist_Visible		=3D 2*cMapBlock_3D_Statics.iBlockSi=
+ze * 4 -- camdist in tiles  see mapblock.base for default
++cMapBlock_3D_Statics.kMaxDist_Detail		=3D 2*cMapBlock_3D_Statics.iBlockSiz=
+e * 2 -- camdist in tiles
+ =
+
+ -- forall entities fun(entity)
+ function cMapBlock_3D_Statics:ForAllEntities (fun)
+
+Modified: trunk/lua/lib.mapblock.3d.terrain.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mapblock.3d.terrain.lua (original)
++++ trunk/lua/lib.mapblock.3d.terrain.lua Thu Aug 14 15:54:14 2008
+@@ -1,8 +1,8 @@
+ cMapBlock_3D_Terrain	=3D CreateClass(cMapBlockGrid)
+ cMapBlock_3D_Terrain.iBlockSize		=3D 8*2 -- in tiles
+-cMapBlock_3D_Terrain.iLoadRadius	=3D 4 -- in iBlockSize-blocks
+-cMapBlock_3D_Terrain.kMaxDist_Visible		=3D cMapBlock_3D_Terrain.iBlockSize=
+*4 -- camdist in tiles  see mapblock.base for default
+-cMapBlock_3D_Terrain.kMaxDist_Detail		=3D cMapBlock_3D_Terrain.iBlockSize*=
+2 -- camdist in tiles
++cMapBlock_3D_Terrain.iLoadRadius	=3D 2*8 -- in iBlockSize-blocks
++cMapBlock_3D_Terrain.kMaxDist_Visible		=3D 2*cMapBlock_3D_Terrain.iBlockSi=
+ze*4 -- camdist in tiles  see mapblock.base for default
++cMapBlock_3D_Terrain.kMaxDist_Detail		=3D 2*cMapBlock_3D_Terrain.iBlockSiz=
+e*2 -- camdist in tiles
+ =
+
+ function cMapBlock_3D_Terrain:ClearDetail ()
+ 	--~ print(&quot;cMapBlock_3D_Terrain:ClearDetail&quot;)
+
+Modified: trunk/lua/lib.mapblock.base.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mapblock.base.lua (original)
++++ trunk/lua/lib.mapblock.base.lua Thu Aug 14 15:54:14 2008
+@@ -3,6 +3,7 @@
+ cMapBlock =3D CreateClass()
+ cMapBlock.kLOD_Detail			=3D nil -- set to something with .prio =3D value
+ cMapBlock.kLOD_Rough			=3D nil
++cMapBlock.kMaxDist_Destroy		=3D 8*9 -- camdist in tiles
+ cMapBlock.kMaxDist_Visible		=3D 8*6 -- camdist in tiles
+ cMapBlock.kMaxDist_Detail		=3D 8*3 -- camdist in tiles
+ cMapBlock.kLODUpdateInterval	=3D 500 -- msec
+
+Modified: trunk/lua/lib.mapblock.scheduler.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mapblock.scheduler.lua (original)
++++ trunk/lua/lib.mapblock.scheduler.lua Thu Aug 14 15:54:14 2008
+@@ -21,8 +21,15 @@
+ -- internal, search current index in list
+ function cScheduler:_FindProcessPos	(process) for k,process2 in ipairs(sel=
+f.pProcessList) do if (process2 =3D=3D process) then return k end end end =
+
+ =
+
++gfScheduler_WorkTime =3D 0
++gfScheduler_WorkCount =3D 0
++
+ -- x,y,z : cam/focus-pos
+ function cScheduler:Step		(x,y,z)
++	--~ if math.mod(gMyFrameCounter, 100) =3D=3D 0 then
++		--~ print(&quot;procs&quot;,table.getn(self.pProcessList))
++	--~ end
++
+ 	local t =3D gMyTicks
+ 	local t_end =3D t + self.kAllowedTicksPerFrame
+ 	=
+
+@@ -34,9 +41,17 @@
+ 	=
+
+ 	-- work until no time left
+ 	for k,process in ipairs(self.pProcessList) do =
+
++		local t1 =3D Client_GetTicks()
+ 		process:Work(t_end)
+-		if (Client_GetTicks() &gt;=3D t_end) then break end
++		local t2 =3D Client_GetTicks()
++		=
+
++		--~ if (Client_GetTicks() &gt;=3D t_end) then break end
++		if (t2 + t2 - t1 &gt;=3D t_end) then break end
+ 	end
++	=
+
++	--~ if gfScheduler_WorkCount &gt; 0 then
++		--~ print(&quot;avg work time&quot;,gfScheduler_WorkTime/gfScheduler_WorkCount)
++	--~ end
+ end
+ =
+
+ -- true when the first is less than the second       (NOT less-equal)
+
+Modified: trunk/lua/lib.static.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.static.lua (original)
++++ trunk/lua/lib.static.lua Thu Aug 14 15:54:14 2008
+@@ -40,8 +40,9 @@
+ -- generates or retrieves meshname for static model
+ -- TODO : not flexible enough, what if model should be skipped, or multipl=
+e models set ? or model depending on surrounding ?
+ -- TODO: remove hueing from her, not needed for fastbatch here
++-- bDontGenerateFallback is used during preload to not generate uo art fal=
+lback models
+ gLegacyModelCache =3D {}
+-function GetMeshName (iTileTypeID)
++function GetMeshName (iTileTypeID, bDontGenerateFallback)
+ 	--1st: Seasonal Translation
+ 	local iTranslatedTileTypeID =3D SeasonalStaticTranslation(iTileTypeID, gS=
+easonSetting)
+ 	-- FILTER: map Mesh to other Mesh
+@@ -104,19 +105,24 @@
+ 	end
+ 	=
+
+ 	-- build a static mesh fallback with uo tile as texture (faster than clas=
+sic billboard)
+-	if not meshname and gUseStaticFallbacks then
+-		return GetFallbackMeshName(iTranslatedTileTypeID)
++	if not meshname and gUseStaticFallbacks and not bDontGenerateFallback then
++		meshname =3D GetFallbackMeshName(iTranslatedTileTypeID)
++		if meshname then
++			gLegacyModelCache[iTranslatedTileTypeID] =3D meshname
++			--~ giStaticFallbackCount =3D (giStaticFallbackCount or 0) + 1
++			--~ print(&quot;giStaticFallbackCount&quot;,giStaticFallbackCount)
++		end
+ 	end
+ 	=
+
+ 	return meshname
+ end
+ =
+
+ =
+
+-gFallbackModelCache =3D {}
++--~ gFallbackModelCache =3D {}
+ -- returns the name of a static generated mesh that can be used instead of=
+ classic billboards
+ function GetFallbackMeshName	(iTileTypeID)
+-	local name =3D gFallbackModelCache[iTileTypeID]
+-	if name then return name end
++	--~ local name =3D gFallbackModelCache[iTileTypeID]
++	--~ if name then return name end
+ 	=
+
+ 	if IsArtBillboardFallBackSkipped(iTileTypeID) then return nil end
+ 	=
+
+@@ -128,7 +134,7 @@
+ 	=
+
+ 	-- TODO currently just ignores the art atlas lockkeeper
+ 	local sMatName,iWidth,iHeight,iCenterX,iCenterY,u0,v0,u1,v1 =3D ArtAtlasL=
+oadAndLockDirect(iTileTypeID+0x4000,0,nil,gStaticFallbackAtlasBaseMaterial)
+-	-- print(&quot;###&quot;, iTileTypeID, sMatName,iWidth,iHeight,iCenterX,iCenterY,u0=
+,v0,u1,v1)
++	--~ print(&quot;###&quot;, iTileTypeID, sMatName,iWidth,iHeight,iCenterX,iCenterY,u=
+0,v0,u1,v1)
+ 	=
+
+ 	if not sMatName then return nil end
+ 	=
+
+@@ -207,7 +213,7 @@
+ 	=
+
+ 	-- name =3D &quot;mdl_000405.mesh&quot;
+ 	=
+
+-	gFallbackModelCache[iTileTypeID] =3D name
++	--~ gFallbackModelCache[iTileTypeID] =3D name
+ 	=
+
+ 	return name
+ end
+@@ -222,6 +228,6 @@
+ -- TODO: Wrong !!! hueing must be taken from statics instead of tiledata
+ function PreloadAllStaticMesh()
+ 	for i =3D 0,16085 do
+-		GetMeshName(i)
+-	end
+-end
++		GetMeshName(i, true)
++	end
++end
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001174.html">[Iris-commit] [IRIS] r2367 - /trunk/lua/
+</A></li>
+	<LI>Next message: <A HREF="001176.html">[Iris-commit] [IRIS] r2369 - /trunk/lua/lib.3d.mousepick.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1175">[ date ]</a>
+              <a href="thread.html#1175">[ thread ]</a>
+              <a href="subject.html#1175">[ subject ]</a>
+              <a href="author.html#1175">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

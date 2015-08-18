@@ -1,0 +1,234 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1642 - in /trunk: include/data.h include/terrain.h include/tiledterrain.h src/scripting.iris.cpp src/terrain_multitex.cpp
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2007-December/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1642%20-%20in%20/trunk%3A%20include/data.h%0A%20include/terrain.h%20include/tiledterrain.h%20src/scripting.iris.cpp%0A%20src/terrain_multitex.cpp&In-Reply-To=%3C20071218045850.068ED1C186F7%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000457.html">
+   <LINK REL="Next"  HREF="000459.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1642 - in /trunk: include/data.h include/terrain.h include/tiledterrain.h src/scripting.iris.cpp src/terrain_multitex.cpp</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1642%20-%20in%20/trunk%3A%20include/data.h%0A%20include/terrain.h%20include/tiledterrain.h%20src/scripting.iris.cpp%0A%20src/terrain_multitex.cpp&In-Reply-To=%3C20071218045850.068ED1C186F7%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1642 - in /trunk: include/data.h include/terrain.h include/tiledterrain.h src/scripting.iris.cpp src/terrain_multitex.cpp">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Tue Dec 18 05:58:49 CET 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000457.html">[Iris-commit] [IRIS] r1641 - in /trunk/data/lua: lib.3d.dynamic.lua lib.3d.map.lua lib.gui.iris.lua main.lua
+</A></li>
+        <LI>Next message: <A HREF="000459.html">[Iris-commit] [IRIS] r1643 - in /trunk/data/lua: lib.3d.dynamic.lua	lib.3d.map.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#458">[ date ]</a>
+              <a href="thread.html#458">[ thread ]</a>
+              <a href="subject.html#458">[ subject ]</a>
+              <a href="author.html#458">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Tue Dec 18 05:58:49 2007
+New Revision: 1642
+
+Log:
+worked on mutlitex-terrain code
+
+Added:
+    trunk/src/terrain_multitex.cpp
+Removed:
+    trunk/include/tiledterrain.h
+Modified:
+    trunk/include/data.h
+    trunk/include/terrain.h
+    trunk/src/scripting.iris.cpp
+
+Modified: trunk/include/data.h
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/include/data.h (original)
++++ trunk/include/data.h Tue Dec 18 05:58:49 2007
+@@ -297,7 +297,20 @@
+ 		int				miMapW;
+ 		int				miMapH;
+ 		cGroundBlockLoader						(const int iMapH);
+-		virtual	cGroundBlock*	GetGroundBlock	(const int iX,const int iY) =3D 0; =
+///&lt; result of Get is only valid until next Get call
++		=
+
++		/// result of Get is only guaranteed to be valid until next Get call, un=
+less PrepareGroupLoading below is used and succeeds
++		virtual	cGroundBlock*	GetGroundBlock	(const int iX,const int iY) =3D 0;
++		=
+
++		/// bx,by is the center
++		/// used for terrain
++		/// returns true on success, false if not possible
++		/// not all loader implementations might implement this
++		/// guarantees that as long as all succeeding GetGroundBlock calls are i=
+nside the area, they don't invalidate each other,
++		/// e.g. you can load more than one block at once
++		/// warning, as soon as something outside the area is requested, all loa=
+ded blocks could be invalidated
++		/// not implemented by default -&gt; fails
++		/// 17.12.2007,ghoulsblade : not yet implemented anywhere due to diffloa=
+der would also have to be adjusted (or disabled)
++		virtual bool PrepareGroupLoading (const int iBX,const int iBY,const int =
+iRadius) { return false; }
+ 	};
+ =
+
+ 	/// dummy loader, doesn't load anything, just repeats a predefined mapblo=
+ck
+
+Modified: trunk/include/terrain.h
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/include/terrain.h (original)
++++ trunk/include/terrain.h Tue Dec 18 05:58:49 2007
+@@ -5,9 +5,16 @@
+ #include &lt;string&gt;
+ =
+
+ class cGroundBlockLoader;
++namespace Lugre {
++	class cRobRenderOp;
++};
+ 	=
+
+ void			TerrainRayIntersect			(cGroundBlockLoader* pGroundBlockLoader,const=
+ int iBlockX,const int iBlockY,const Ogre::Vector3&amp; vOrigin,const Ogre::Vec=
+tor3&amp; vDir);
+ std::string		BuildTerrainEntity_Simple	(cGroundBlockLoader* pGroundBlockLo=
+ader,const int iMinX,const int iMinY,const int iW,const int iH,const bool b=
+GenerateNormals);
+ std::string		BuildTerrainEntity_Shaded	(cGroundBlockLoader* pGroundBlockLo=
+ader,const int iMinX,const int iMinY,const int iW,const int iH);
+ =
+
++void	 		TerrainMultiTexWrite		(cGroundBlockLoader* pGroundBlockLoader,cons=
+t int iBlockX,const int iBlockY,Lugre::cRobRenderOp&amp; pRobRenderOp);
++void	 		TerrainMultiTex_SetGroundMaterialTypeLookUp	(const int* piValues,c=
+onst int iCount);
++void			TerrainMultiTex_AddTexCoordSet				(int iMode,float tx,float ty,floa=
+t tw,float th); ///&lt; 0:ground,1:mainmask,2:mask
++
+ #endif
+
+Modified: trunk/src/scripting.iris.cpp
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/src/scripting.iris.cpp (original)
++++ trunk/src/scripting.iris.cpp Tue Dec 18 05:58:49 2007
+@@ -288,6 +288,48 @@
+ 	return 1;
+ }
+ =
+
++/// for lua : void	Gfx3D_SetMultiTexTerrain (gfx3d,pGroundBlockLoader,bx,b=
+y)
++static int l_Gfx3D_SetMultiTexTerrain (lua_State *L) { PROFILE
++	cGfx3D* pGfx3D =3D cLuaBind&lt;cGfx3D&gt;::checkudata_alive(L);
++	cGroundBlockLoader* pGroundBlockLoader =3D cLuaBind&lt;cGroundBlockLoader&gt;::=
+checkudata_alive(L,2);
++	int bx =3D luaL_checkint(L,3);
++	int by =3D luaL_checkint(L,4);
++	=
+
++	pGfx3D-&gt;SetSimpleRenderable();
++	cRobRenderOp* pRobRenderOp =3D pGfx3D-&gt;mpSimpleRenderable;
++	TerrainMultiTexWrite(pGroundBlockLoader,bx,by,*pRobRenderOp);
++	return 0;
++}
++
++/// for lua : void	TerrainMultiTex_SetGroundMaterialTypeLookUp (table) =
+
++/// key=3Duo-ground-tiletype-id  value=3Dindex_for_AddTexCoordSet_mode_0
++static int l_TerrainMultiTex_SetGroundMaterialTypeLookUp (lua_State *L) { =
+PROFILE
++	enum { kLookUpSize =3D 0x4000 };
++	int myLookUp[kLookUpSize];
++	for (int i=3D0;i&lt;0x4000;++i) {
++		myLookUp[i] =3D 0;
++		if (lua_istable(L,1)) { // table is at index 1
++			lua_rawgeti(L,1,i); // table is at index 1
++			if (lua_isnil(L,-1)) myLookUp[i] =3D luaL_checkint(L,-1);
++			lua_pop(L,1); // pop 1 elements
++		}
++	}
++	TerrainMultiTex_SetGroundMaterialTypeLookUp(myLookUp,kLookUpSize);
++	return 0;
++}
++
++/// for lua : void	TerrainMultiTex_AddTexCoordSet (int iMode,float tx,floa=
+t ty,float tw,float th) =
+
++/// 0:ground,1:mainmask,2:mask
++static int l_TerrainMultiTex_AddTexCoordSet (lua_State *L) { PROFILE
++	int iMode =3D luaL_checkint(L,1);
++	float tx =3D luaL_checknumber(L,2);
++	float ty =3D luaL_checknumber(L,3);
++	float tw =3D luaL_checknumber(L,4);
++	float th =3D luaL_checknumber(L,5);
++	TerrainMultiTex_AddTexCoordSet(iMode,tx,ty,tw,th);
++	return 0;
++}
++	=
+
+ static int l_BuildTerrainEntity_Shaded (lua_State *L) { PROFILE
+ 	cGroundBlockLoader* pGroundBlockLoader =3D cLuaBind&lt;cGroundBlockLoader&gt;::=
+checkudata(L,1);
+ 	if (!pGroundBlockLoader) return 0;
+@@ -367,6 +409,9 @@
+ 			lua_register(L,&quot;HuffmanDecompress&quot;,				l_HuffmanDecompress);
+ 			lua_register(L,&quot;BuildTerrainEntity_Simple&quot;,		l_BuildTerrainEntity_Simpl=
+e);
+ 			lua_register(L,&quot;BuildTerrainEntity_Shaded&quot;,		l_BuildTerrainEntity_Shade=
+d);
++			lua_register(L,&quot;Gfx3D_SetMultiTexTerrain&quot;,		l_Gfx3D_SetMultiTexTerrain);
++			lua_register(L,&quot;TerrainMultiTex_SetGroundMaterialTypeLookUp&quot;,	l_Terrain=
+MultiTex_SetGroundMaterialTypeLookUp);
++			lua_register(L,&quot;TerrainMultiTex_AddTexCoordSet&quot;,				l_TerrainMultiTex_A=
+ddTexCoordSet);
+ 			lua_register(L,&quot;TerrainRayPick&quot;,				l_TerrainRayPick);
+ 			lua_register(L,&quot;GetUOPath&quot;,						l_getUOPath);
+ 			lua_register(L,&quot;PathSearch&quot;,					l_PathSearch);
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000457.html">[Iris-commit] [IRIS] r1641 - in /trunk/data/lua: lib.3d.dynamic.lua lib.3d.map.lua lib.gui.iris.lua main.lua
+</A></li>
+	<LI>Next message: <A HREF="000459.html">[Iris-commit] [IRIS] r1643 - in /trunk/data/lua: lib.3d.dynamic.lua	lib.3d.map.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#458">[ date ]</a>
+              <a href="thread.html#458">[ thread ]</a>
+              <a href="subject.html#458">[ subject ]</a>
+              <a href="author.html#458">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

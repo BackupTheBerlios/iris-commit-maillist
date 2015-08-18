@@ -1,0 +1,594 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2879 - in /trunk: lua/ lua/net/ plugins/
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2009-January/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2879%20-%20in%20/trunk%3A%20lua/%20lua/net/%20plugins/&In-Reply-To=%3C20090117230853.402E91C1880F%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001680.html">
+   <LINK REL="Next"  HREF="001682.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2879 - in /trunk: lua/ lua/net/ plugins/</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2879%20-%20in%20/trunk%3A%20lua/%20lua/net/%20plugins/&In-Reply-To=%3C20090117230853.402E91C1880F%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2879 - in /trunk: lua/ lua/net/ plugins/">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sun Jan 18 00:08:52 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001680.html">[Iris-commit] [IRIS] r2878 - in /trunk: data/profiles/gfx_high.lua data/profiles/gfx_med.lua data/profiles/gfx_ultrahigh.lua lua/config_declarations.lua
+</A></li>
+        <LI>Next message: <A HREF="001682.html">[Iris-commit] [IRIS] r2880 - /trunk/lua/net/net.text.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1681">[ date ]</a>
+              <a href="thread.html#1681">[ thread ]</a>
+              <a href="subject.html#1681">[ subject ]</a>
+              <a href="author.html#1681">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sun Jan 18 00:08:52 2009
+New Revision: 2879
+
+Log:
+disable lua static block bbox check (might be unreliable, and the per mesh =
+check uses boundingspheres as early out, so no big harm to performance this=
+ way),  added staticmousepick.hit_artid to ensure the target packet can sen=
+d the unmodified artid. SetPlayerPos : added bTeleported param, DestroyObje=
+ctsFarFromPlayer now only called on teleport and on walk-confirm from serve=
+r, this should solve a few of the ghost/zombie mobile problems.  added prea=
+os label hints, e.g. what ruin/vanq means, how many potions in keg...  spel=
+lbar : added mining ores,  new plugin : minergrid, shows 8x8 blocks (experi=
+mental, only tested in 2d, still ugly)
+
+Added:
+    trunk/plugins/minergrid.lua
+Modified:
+    trunk/lua/lib.2d.renderer.lua
+    trunk/lua/lib.3d.mousepick.lua
+    trunk/lua/lib.3d.renderer.lua
+    trunk/lua/lib.cursor.lua
+    trunk/lua/lib.packetvideo.lua
+    trunk/lua/main.lua
+    trunk/lua/net.walk.lua
+    trunk/lua/net/net.cursor.lua
+    trunk/lua/net/net.text.lua
+    trunk/plugins/lib.spellbar.lua
+
+Modified: trunk/lua/lib.2d.renderer.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.renderer.lua (original)
++++ trunk/lua/lib.2d.renderer.lua Sun Jan 18 00:08:52 2009
+@@ -193,6 +193,9 @@
+ 			 (z or 0)
+ end
+ =
+
++
++function Renderer2D:UOPosToLocal2 (xloc,yloc,zloc) return self:UOPosToLoca=
+l(xloc,yloc,zloc*kRenderer2D_ZScale) end
++
+ -- returns px,py,bIsInFront
+ function Renderer2D:UOPosToPixelPos (xloc,yloc,zloc)
+ 	return self:LocalPosToPixelPos(self:UOPosToLocal(xloc,yloc,zloc*kRenderer=
+2D_ZScale))
+
+Modified: trunk/lua/lib.3d.mousepick.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.mousepick.lua (original)
++++ trunk/lua/lib.3d.mousepick.lua Sun Jan 18 00:08:52 2009
+@@ -135,7 +135,9 @@
+ 	local numcustomquads =3D 0
+ 	if self.map3d_spawners and self.map3d_spawners.statics then
+ 		self.map3d_spawners.statics:ForAllBlocks(function(block)
+-			if block:BBRayPick(rx, ry, rz, rvx, rvy, rvz) then -- if 3d static mous=
+epicking is strange, look here, xmirror maybe.. no longer used for terrain,=
+ only here
++			-- bbox raypick disabled, as it seems broken. model raypick contains bo=
+unding sphere precheck already.
++			-- block:BBRayPick(rx, ry, rz, rvx, rvy, rvz) -- if 3d static mousepick=
+ing is strange, look here, xmirror maybe.. no longer used for terrain, only=
+ here
++			if true then
+ 				block:ForAllEntities(function(entity)
+ 					if (not entity.bLoaded) then return end
+ 					if (not entity.zloc) then print(&quot;mousepick warning, static entity has=
+ no zloc&quot;,entity.serial,entity.artid) end
+@@ -178,6 +180,7 @@
+ 							gMousePickFoundHit.hit_xloc =3D iX -- (iX is already absolute in th=
+is case), do NOT use entity.xloc here, it contains filter position add =
+
+ 							gMousePickFoundHit.hit_yloc =3D iY -- (iY is already absolute in th=
+is case), do NOT use entity.xloc here, it contains filter position add =
+
+ 							gMousePickFoundHit.hit_zloc =3D iZ
++							gMousePickFoundHit.hit_artid =3D iTileTypeID
+ 							print(&quot;static mousepick&quot;,iX,iY)
+ 							--entity has to have the following properties: hue, x, y, z, iTileT=
+ypeID
+ 						end
+
+Modified: trunk/lua/lib.3d.renderer.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.renderer.lua (original)
++++ trunk/lua/lib.3d.renderer.lua Sun Jan 18 00:08:52 2009
+@@ -179,6 +179,8 @@
+ 			yloc - 8*self.giMapOriginY * self.ROBMAP_CHUNK_SIZE,
+ 			(z or 0) + self.gZ_Factor
+ end
++
++function Renderer3D:UOPosToLocal2 (xloc,yloc,zloc) return self:UOPosToLoca=
+l(xloc,yloc,zloc*0.1) end
+ =
+
+ -- warning ! you still have to do 0.1 z factor seperately
+ function Renderer3D:LocalToUOPos (xlocal,ylocal,zlocal) =
+
+
+Modified: trunk/lua/lib.cursor.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.cursor.lua (original)
++++ trunk/lua/lib.cursor.lua Sun Jan 18 00:08:52 2009
+@@ -173,7 +173,7 @@
+ 	if (hitobject.hittype =3D=3D kMousePickHitType_Static) then =
+
+ 		bSendPos =3D false =
+
+ 		local x,y,z =3D GetMouseHitTileCoords()
+-		Send_Target_Static(hitobject.hit_xloc or x,hitobject.hit_yloc or y,hitob=
+ject.hit_zloc or z,hitobject.entity)
++		Send_Target_Static(hitobject.hit_xloc or x,hitobject.hit_yloc or y,hitob=
+ject.hit_zloc or z,hitobject.entity,hitobject.hit_artid)
+ 	end
+ 	=
+
+ 	-- ground hit
+
+Modified: trunk/lua/lib.packetvideo.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.packetvideo.lua (original)
++++ trunk/lua/lib.packetvideo.lua Sun Jan 18 00:08:52 2009
+@@ -99,7 +99,7 @@
+ 			elseif (chunk.chunktype =3D=3D kPacketVideoChunkType_Send) then
+ 			elseif (chunk.chunktype =3D=3D kPacketVideoChunkType_Pos) then
+ 				local xloc,yloc,zloc,fulldir =3D unpack(chunk.data)
+-				SetPlayerPos(xloc,yloc,zloc,fulldir) =
+
++				SetPlayerPos(xloc,yloc,zloc,fulldir,true) =
+
+ 				if (gCurrentRenderer =3D=3D Renderer3D) then =
+
+ 					gCurrentRenderer:NotifyPlayerTeleported() =
+
+ 					gTileFreeWalk:SetPosFromPacketVideo(xloc,yloc,zloc,fulldir)
+@@ -116,7 +116,8 @@
+ 		print(&quot;### packetvideo playback end&quot;)
+ 		gPlayerBodySerial =3D oldserial
+ 		MapChangeRequest(oldfacet)
+-		SetPlayerPos(unpack(oldpos)) =
+
++		local xloc,yloc,zloc,fulldir =3D unpack(oldpos)
++		SetPlayerPos(xloc,yloc,zloc,fulldir,true) =
+
+ 		Send_Movement_Resync_Request()
+ 		Send_ClientQuery(gRequest_States,GetPlayerSerial())
+ 	end)
+
+Modified: trunk/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/main.lua (original)
++++ trunk/lua/main.lua Sun Jan 18 00:08:52 2009
+@@ -429,8 +429,8 @@
+ gMyProfilerTopCPUTSum =3D 0
+ gMyProfilerTopGPUTSum =3D 0
+ function MyProfilerTop ()
++	if (not gEnableRoughProfileSum) then return end
+ 	print(Client_GetTicks(),&quot;=3D=3D=3D MyProfilerTop cpu time =3D=3D=3D&quot;)
+-	if (not gEnableRoughProfileSum) then return end
+ 	local arr_t =3D {}
+ 	local arr_memL =3D {}
+ 	local arr_memO =3D {}
+
+Modified: trunk/lua/net.walk.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net.walk.lua (original)
++++ trunk/lua/net.walk.lua Sun Jan 18 00:08:52 2009
+@@ -95,7 +95,7 @@
+ -- fulldir CAN include runflag
+ =
+
+ =
+
+-function SetPlayerPos (xloc,yloc,zloc,fulldir) =
+
++function SetPlayerPos (xloc,yloc,zloc,fulldir,bTeleported) =
+
+ 	--~ WalkLog(&quot;SetPlayerPos&quot;,xloc,yloc,zloc,fulldir)
+ 	local dir =3D BitwiseAND(fulldir,hex2num(&quot;0x07&quot;))
+ 	gPlayerDir =3D dir -- change of view dir does require one move packet, th=
+e players stays on the same tile
+@@ -104,7 +104,7 @@
+ 	gPlayerZLoc =3D zloc
+ 	=
+
+ 	gProfiler_Walk:Section(&quot;SetPlayerPos:Hook_SetPlayerPos&quot;)
+-	NotifyListener(&quot;Hook_SetPlayerPos&quot;)
++	NotifyListener(&quot;Hook_SetPlayerPos&quot;,xloc,yloc,zloc)
+ 	gProfiler_Walk:Section(&quot;SetPlayerPos:GetPlayerMobile&quot;)
+ 	=
+
+ 	local mobile =3D GetPlayerMobile()
+@@ -123,8 +123,9 @@
+ 	-- handle position update
+ 	gProfiler_Walk:Section(&quot;SetPlayerPos:BlendOutLayersAbovePlayer&quot;)
+ 	gCurrentRenderer:BlendOutLayersAbovePlayer()
+-	gProfiler_Walk:Section(&quot;SetPlayerPos:DestroyObjectsFarFromPlayer&quot;)
+-	DestroyObjectsFarFromPlayer(gPlayerXLoc,gPlayerYLoc)
++	=
+
++	gProfiler_Walk:Section(&quot;SetPlayerPos:DestroyObjectsFarFromPlayer&quot;) -- her=
+e only on teleport, see confirmed position / moveack =
+
++	if (bTeleported) then DestroyObjectsFarFromPlayer(gPlayerXLoc,gPlayerYLoc=
+) end
+ 	gProfiler_Walk:End() -- in case it this is called from outside walk
+ end
+ =
+
+@@ -292,6 +293,7 @@
+ 		gWalkRequests[iSeqNum] =3D nil -- request has been handled, remove from =
+queue
+ 		gCurrentRenderer:SetLastConfirmedUOPos(request.xloc,request.yloc,request=
+.zloc)
+ 	=
+
++		DestroyObjectsFarFromPlayer(request.xloc,request.yloc)
+ 		-- todo : tilefree : set last confirmed pos
+ 		--~ WalkLog(&quot;kPacket_Accept_Movement ok&quot;)
+ 	else
+@@ -340,7 +342,7 @@
+ 			end
+ 		end
+ 		ResetWalkQueue()
+-		SetPlayerPos(xloc,yloc,zloc,dir)
++		SetPlayerPos(xloc,yloc,zloc,dir,true)
+ 		gCurrentRenderer:NotifyPlayerTeleported()
+ 	end
+ end
+@@ -394,10 +396,10 @@
+ 		yloc =3D yloc + GetDirY(fulldir)
+ 	end
+ 	=
+
+-	SetPlayerPos(xloc,yloc,zloc,fulldir) =
+
++	SetPlayerPos(xloc,yloc,zloc,fulldir,true) =
+
+ 	if (gCurrentRenderer =3D=3D Renderer3D) then =
+
+ 		gCurrentRenderer:NotifyPlayerTeleported() =
+
+-		gTileFreeWalk:SetPosFromPacketVideo(xloc,yloc,zloc,fulldir)
++		gTileFreeWalk:SetPosFromPacketVideo(xloc,yloc,zloc,fulldir,true)
+ 	end
+ end
+ =
+
+@@ -425,7 +427,7 @@
+ 	=
+
+ 	ResetWalkQueue()
+ 	WalkClearDoomList()
+-	SetPlayerPos(mobiledata.xloc,mobiledata.yloc,mobiledata.zloc,mobiledata.d=
+ir) -- always call this, affects gPlayerPos
++	SetPlayerPos(mobiledata.xloc,mobiledata.yloc,mobiledata.zloc,mobiledata.d=
+ir,true) -- always call this, affects gPlayerPos
+ 	gCurrentRenderer:NotifyPlayerTeleported()
+ 	MultiTexTerrain_NotifyTeleport()
+ 	WalkLog(&quot;NotifyTeleport end&quot;)
+
+Modified: trunk/lua/net/net.cursor.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.cursor.lua (original)
++++ trunk/lua/net/net.cursor.lua Sun Jan 18 00:08:52 2009
+@@ -81,9 +81,9 @@
+ end
+ =
+
+ -- Target Statics (TODO: is this correct?; sends entitiy tile zloc instead=
+ of click pos; seems to expect the position at the ground
+-function Send_Target_Static (x,y,z,entity) =
+
++function Send_Target_Static (x,y,z,entity,artid) =
+
+ 	NotifyListener(&quot;Hook_TargetMode_Static&quot;,x,y,z,entity)
+-	Send_Target(true,0,hex2num(&quot;0x00000000&quot;),x,y,entity.zloc,entity.artid or =
+entity.iTileTypeID) =
+
++	Send_Target(true,0,hex2num(&quot;0x00000000&quot;),x,y,z or entity.zloc,artid or en=
+tity.artid or entity.iTileTypeID) =
+
+ end
+ =
+
+ -- Target Item (Backpack, Paperdoll)
+
+Modified: trunk/lua/net/net.text.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.text.lua (original)
++++ trunk/lua/net/net.text.lua Sun Jan 18 00:08:52 2009
+@@ -10,33 +10,80 @@
+ 	return labelcache and labelcache.final
+ end
+ =
+
++function PreAOSAttributeAddHints (text)
++	function MyReplace (subject,search,add,bAtStart) return string.gsub(subje=
+ct,(bAtStart and &quot;^&quot; or &quot;&quot;)..search,search..&quot; &quot;..add) end
++	text =3D MyReplace(text,&quot;Ruin&quot;			,&quot;(1/5:dmg+1 &lt;gm)&quot;)
++	text =3D MyReplace(text,&quot;Might&quot;			,&quot;(2/5:dmg+3 =3Dgm)&quot;)
++	text =3D MyReplace(text,&quot;Force&quot;			,&quot;(3/5:dmg+5)&quot;)
++	text =3D MyReplace(text,&quot;Power&quot;			,&quot;(4/5:dmg+6)&quot;)
++	text =3D MyReplace(text,&quot;Vanquishing&quot;		,&quot;(5/5:dmg+7)&quot;)
++	=
+
++	text =3D MyReplace(text,&quot;Durable&quot;			,&quot;(1/5:dur+5)&quot;)    -- (might be doubl=
+e instead?)
++	text =3D MyReplace(text,&quot;Substantial&quot;		,&quot;(2/5:dur+10)&quot;)
++	text =3D MyReplace(text,&quot;Massive&quot;			,&quot;(3/5:dur+15)&quot;)
++	text =3D MyReplace(text,&quot;Fortified&quot;		,&quot;(4/5:dur+20)&quot;)
++	text =3D MyReplace(text,&quot;Indestructible&quot;	,&quot;(5/5:dur+25)&quot;)
++ =
+
++	text =3D MyReplace(text,&quot;Defense&quot;			,&quot;(1/5:ar+5)&quot;)
++	text =3D MyReplace(text,&quot;Guarding&quot;		,&quot;(2/5:ar+10)&quot;)
++	text =3D MyReplace(text,&quot;Hardening&quot;		,&quot;(3/5:ar+15)&quot;)
++	text =3D MyReplace(text,&quot;Fortification&quot;	,&quot;(4/5:ar+20)&quot;)
++	text =3D MyReplace(text,&quot;Invulnerability&quot;	,&quot;(5/5:ar+25)&quot;)
++	=
+
++	text =3D MyReplace(text,&quot;Accurate&quot;				,&quot;(1/5:tac/arch+5)&quot;,true)
++	text =3D MyReplace(text,&quot;Surpassingly Accurate&quot;	,&quot;(2/5:tac/arch+10)&quot;)
++	text =3D MyReplace(text,&quot;Eminently Accurate&quot;		,&quot;(3/5:tac/arch+15)&quot;)
++	text =3D MyReplace(text,&quot;Exceedingly Accurate&quot;	,&quot;(4/5:tac/arch+20)&quot;)
++	text =3D MyReplace(text,&quot;Supremely Accurate&quot;		,&quot;(5/5:tac/arch+25)&quot;)
++	=
+
++	text =3D MyReplace(text,&quot;Brand new&quot;									,&quot;100%&quot;)
++	text =3D MyReplace(text,&quot;Almost new&quot;									,&quot;90%&quot;) =
+
++	text =3D MyReplace(text,&quot;Barely used, with a few nicks and scrapes&quot;	,&quot;80%=
+&quot;) 								=
+
++	text =3D MyReplace(text,&quot;Fairly good condition&quot;						,&quot;70%&quot;) 			=
+
++	text =3D MyReplace(text,&quot;Suffered some wear and tear&quot;					,&quot;60%&quot;) 				=
+
++	text =3D MyReplace(text,&quot;Well used&quot;									,&quot;50%&quot;) =
+
++	text =3D MyReplace(text,&quot;Rather Battered&quot;								,&quot;40%&quot;) 	=
+
++	text =3D MyReplace(text,&quot;Somewhat badly damaged&quot;						,&quot;30%&quot;) 			=
+
++	text =3D MyReplace(text,&quot;Flimsy and not trustworthy&quot;					,&quot;20%&quot;) 				=
+
++	text =3D MyReplace(text,&quot;Falling Apart&quot;								,&quot;10%&quot;)
++	=
+
++	text =3D MyReplace(text,&quot;Is superbly crafted to provide maximum protectio=
+n&quot;	,&quot;31+&quot;) 	=
+
++	text =3D MyReplace(text,&quot;Offers excellent protection&quot;							,&quot;26-30&quot;)	=
+
++	text =3D MyReplace(text,&quot;Is a superior defense against attack&quot;				,&quot;21-25=
+&quot;) 	=
+
++	text =3D MyReplace(text,&quot;Serves as sturdy protection&quot;							,&quot;16-20&quot;) 	=
+
++	text =3D MyReplace(text,&quot;Offers some protection against blows&quot;				,&quot;11-15=
+&quot;) 	=
+
++	text =3D MyReplace(text,&quot;Provides very little protection&quot;						,&quot;6-10&quot;) 	=
+
++	text =3D MyReplace(text,&quot;Provides almost no protection&quot;						,&quot;1-5&quot;) 	=
+
++	text =3D MyReplace(text,&quot;Offers no defense against attackers&quot;					,&quot;0&quot;) 		=
+
++	=
+
++	text =3D MyReplace(text,&quot;Would be extraordinarily deadly&quot;				,&quot;26+&quot;) 	=
+
++	text =3D MyReplace(text,&quot;Would be a superior weapon&quot;					,&quot;21-25&quot;) 	=
+
++	text =3D MyReplace(text,&quot;Would inflict serious damage and pain&quot;		,&quot;16-20&quot;=
+) 	=
+
++	text =3D MyReplace(text,&quot;Likely hurt opponent a fair amount&quot;			,&quot;11-15&quot;) 	=
+
++	text =3D MyReplace(text,&quot;Would do some damage&quot;						,&quot;6-10&quot;) 	=
+
++	text =3D MyReplace(text,&quot;Would do minimal damage&quot;						,&quot;3-5&quot;) 	=
+
++	text =3D MyReplace(text,&quot;Might scratch their opponent slightly&quot;		,&quot;0-2&quot;) 	=
+
++	=
+
++	text =3D MyReplace(text,&quot;The keg is empty&quot;								,&quot;0&quot;) =
+
++	text =3D MyReplace(text,&quot;The keg is nearly empty&quot;							,&quot;1-4&quot;) =
+
++	text =3D MyReplace(text,&quot;The keg is not very full&quot;						,&quot;5-19&quot;) =
+
++	text =3D MyReplace(text,&quot;The keg is about one quarter full&quot;				,&quot;20-29&quot;) =
+
++	text =3D MyReplace(text,&quot;The keg is about one third full&quot;					,&quot;30-39&quot;) =
+
++	text =3D MyReplace(text,&quot;The keg is almost half full&quot;						,&quot;40-46&quot;) =
+
++	text =3D MyReplace(text,&quot;The keg is approximately half full&quot;				,&quot;47-53&quot;) =
+
++	text =3D MyReplace(text,&quot;The keg is more than half full&quot;					,&quot;54-69&quot;) =
+
++	text =3D MyReplace(text,&quot;The keg is about three quarters full&quot;			,&quot;70-79&quot;=
+) =
+
++	text =3D MyReplace(text,&quot;The keg is very full&quot;							,&quot;80-95&quot;) =
+
++	text =3D MyReplace(text,&quot;The liquid is almost to the top of the keg&quot;		,&quot;9=
+6-99&quot;) =
+
++	text =3D MyReplace(text,&quot;The keg is completely full&quot;						,&quot;100&quot;) =
+
++	return text
++end
++
++-- used by kPacket_Generic_SubCommand_AOSTooltip (misnamed, also used by p=
+reaos)
+ function SetPreAOSAttributes (serial,lines) =
+
+ 	local labelcache =3D GetOrCreateLabelCache(serial)
+ 	for k,text in pairs(lines) do
+-		text =3D string.gsub(text,&quot;Ruin&quot;,&quot;Ruin(1/5:dmg+1 &lt;gm)&quot;)
+-		text =3D string.gsub(text,&quot;Might&quot;,&quot;Might(2/5:dmg+3 =3Dgm)&quot;)
+-		text =3D string.gsub(text,&quot;Force&quot;,&quot;Force(3/5:dmg+5)&quot;)
+-		text =3D string.gsub(text,&quot;Power&quot;,&quot;Power(4/5:dmg+6)&quot;)
+-		text =3D string.gsub(text,&quot;Vanquishing&quot;,&quot;Vanquishing(5/5:dmg+7)&quot;)
+-		=
+
+-		text =3D string.gsub(text,&quot;Durable&quot;,&quot;Durable(1/5:dur+5)&quot;)    -- (might b=
+e double instead?)
+-		text =3D string.gsub(text,&quot;Substantial&quot;,&quot;Substantial(2/5:dur+10)&quot;)
+-		text =3D string.gsub(text,&quot;Massive&quot;,&quot;Massive(3/5:dur+15)&quot;)
+-		text =3D string.gsub(text,&quot;Fortified&quot;,&quot;Fortified(4/5:dur+20)&quot;)
+-		text =3D string.gsub(text,&quot;Indestructible&quot;,&quot;Indestructible(5/5:dur+25)&quot;)
+-	 =
+
+-		text =3D string.gsub(text,&quot;Defense&quot;,&quot;Defense(1/5:ar+5)&quot;)
+-		text =3D string.gsub(text,&quot;Guarding&quot;,&quot;Guarding(2/5:ar+10)&quot;)
+-		text =3D string.gsub(text,&quot;Hardening&quot;,&quot;Hardening(3/5:ar+15)&quot;)
+-		text =3D string.gsub(text,&quot;Fortification&quot;,&quot;Fortification(4/5:ar+20)&quot;)
+-		text =3D string.gsub(text,&quot;Invulnerability&quot;,&quot;Invulnerability(5/5:ar+25)&quot;)
+-		=
+
+-		text =3D string.gsub(text,&quot;^Accurate&quot;,&quot;Accurate(1/5:tac/arch+5)&quot;)
+-		text =3D string.gsub(text,&quot;Surpassingly Accurate&quot;,&quot;Surpassingly Accurate=
+(2/5:tac/arch+10)&quot;)
+-		text =3D string.gsub(text,&quot;Eminently Accurate&quot;,&quot;Eminently Accurate(3/5:t=
+ac/arch+15)&quot;)
+-		text =3D string.gsub(text,&quot;Exceedingly Accurate&quot;,&quot;Exceedingly Accurate(4=
+/5:tac/arch+20)&quot;)
+-		text =3D string.gsub(text,&quot;Supremely Accurate&quot;,&quot;Supremely Accurate(5/5:t=
+ac/arch+25)&quot;)
+-		=
+
++		text =3D PreAOSAttributeAddHints(text)
+ 		GuiAddChatLine(text,{1,1,1,1})
+ 		lines[k] =3D text
+ 	end
+@@ -116,6 +163,7 @@
+ 	if data.type =3D=3D kTextType_System then	r,g,b =3D 0,0,1 end
+ 	if data.type =3D=3D kTextType_Emote then	r,g,b =3D 0,1,0 end
+ 	if data.type =3D=3D kTextType_Label then =
+
++		data.text =3D PreAOSAttributeAddHints(data.text)
+ 		bIsLabel =3D true
+ 		gProfiler_Text:Section(&quot;Mobile_NameHint&quot;)
+ 		if mobile then Mobile_NameHint(data.serial,data.artid,data.name,data.tex=
+t) end
+@@ -193,7 +241,7 @@
+ 	end
+ 	=
+
+ 	gProfiler_Text:Section(&quot;JournalAddText&quot;)
+-	if show_journal or show_below then print(&quot;HandleUOText&quot;,plaintext,data.cl=
+ilocid) end
++	if show_journal or show_below then print(&quot;HandleUOText&quot;,plaintext,data.cl=
+ilocid,data.type) end
+ 	if show_journal then
+ 		JournalAddText(data.name,plaintext)
+ 	end
+
+Modified: trunk/plugins/lib.spellbar.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/plugins/lib.spellbar.lua (original)
++++ trunk/plugins/lib.spellbar.lua Sun Jan 18 00:08:52 2009
+@@ -221,6 +221,8 @@
+ gSpellbarShortMessages[1007076]	=3D {r=3D0,g=3D1,b=3D0.0,txt=3D&quot;5:bronze&quot;	=
+		} -- You dig some bronze ore and put it in your backpack.
+ gSpellbarShortMessages[1007077]	=3D {r=3D0,g=3D1,b=3D0.0,txt=3D&quot;6:golden&quot;	=
+		} -- You dig some golden ore and put it in your backpack.
+ gSpellbarShortMessages[1007078]	=3D {r=3D0,g=3D1,b=3D0.0,txt=3D&quot;7:agapite&quot;=
+		} -- You dig some agapite ore and put it in your backpack.
++gSpellbarShortMessages[1007080]	=3D {r=3D0,g=3D1,b=3D0.0,txt=3D&quot;9:valorite=
+&quot;		} -- You dig some valorite ore and put it in your backpack.
++
+ =
+
+ =
+
+ =
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001680.html">[Iris-commit] [IRIS] r2878 - in /trunk: data/profiles/gfx_high.lua data/profiles/gfx_med.lua data/profiles/gfx_ultrahigh.lua lua/config_declarations.lua
+</A></li>
+	<LI>Next message: <A HREF="001682.html">[Iris-commit] [IRIS] r2880 - /trunk/lua/net/net.text.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1681">[ date ]</a>
+              <a href="thread.html#1681">[ thread ]</a>
+              <a href="subject.html#1681">[ subject ]</a>
+              <a href="author.html#1681">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

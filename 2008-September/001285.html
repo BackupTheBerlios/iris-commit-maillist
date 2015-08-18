@@ -1,0 +1,921 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2480 - in /trunk/lua: ./ net/ obj/
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-September/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2480%20-%20in%20/trunk/lua%3A%20./%20net/%20obj/&In-Reply-To=%3C20080930213636.C4F291524030%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001284.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2480 - in /trunk/lua: ./ net/ obj/</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2480%20-%20in%20/trunk/lua%3A%20./%20net/%20obj/&In-Reply-To=%3C20080930213636.C4F291524030%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2480 - in /trunk/lua: ./ net/ obj/">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Tue Sep 30 23:36:36 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001284.html">[Iris-commit] [IRIS] r2479 - in /trunk: include/builder.h lua/lib.2d.map.lua lua/lib.2d.mobile.lua lua/lib.2d.spriteblock.lua lua/lib.uoanim.lua src/data_anim.cpp src/data_anim_L.cpp
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1285">[ date ]</a>
+              <a href="thread.html#1285">[ thread ]</a>
+              <a href="subject.html#1285">[ subject ]</a>
+              <a href="author.html#1285">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Tue Sep 30 23:36:35 2008
+New Revision: 2480
+
+Log:
+mousepick code cleaned up a bit, and enabled in 2d mode. fixed crash when o=
+pening spellbook a second time
+
+Added:
+    trunk/lua/lib.2d.mousepick.lua
+Modified:
+    trunk/lua/lib.2d.dynamic.lua
+    trunk/lua/lib.2d.map.lua
+    trunk/lua/lib.2d.renderer.lua
+    trunk/lua/lib.3d.mousepick.lua
+    trunk/lua/lib.cursor.lua
+    trunk/lua/lib.devtool.lua
+    trunk/lua/lib.fallback.lua
+    trunk/lua/lib.macrolist.lua
+    trunk/lua/lib.mousepick.lua
+    trunk/lua/lib.pathfind.lua
+    trunk/lua/lib.tilefreewalk.lua
+    trunk/lua/lib.uodragdrop.lua
+    trunk/lua/net/net.cursor.lua
+    trunk/lua/obj/obj.container.lua
+
+Modified: trunk/lua/lib.2d.dynamic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.dynamic.lua (original)
++++ trunk/lua/lib.2d.dynamic.lua Tue Sep 30 23:36:35 2008
+@@ -30,7 +30,10 @@
+ 		local sortty =3D yloc-floor(yloc/8)*8
+ 		local sorttz =3D zloc
+ 		local fIndexRel =3D k / totalpartnum
+-		spriteblock:AddArtSprite(tx,ty,tz,iTileTypeID,iHue,CalcSortBonus(iTileTy=
+peID,sorttx,sortty,sorttz,fIndexRel)+1,item)
++		local sprite =3D spriteblock:AddArtSprite(tx,ty,tz,iTileTypeID,iHue,Calc=
+SortBonus(iTileTypeID,sorttx,sortty,sorttz,fIndexRel)+1,item)
++		sprite.xloc =3D xloc -- mousepicking
++		sprite.yloc =3D yloc
++		sprite.zloc =3D zloc
+ 	end
+ 	spriteblock:Build(Renderer2D.kSpriteBaseMaterial)
+ 	local x,y,z =3D gCurrentRenderer:UOPosToLocal(itemxloc,itemyloc,itemzloc*=
+kRenderer2D_ZScale)
+
+Modified: trunk/lua/lib.2d.map.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.map.lua (original)
++++ trunk/lua/lib.2d.map.lua Tue Sep 30 23:36:35 2008
+@@ -45,70 +45,6 @@
+ 	end
+ end
+ =
+
+-	=
+
+--- returns dist,xloc,yloc   if hit, or nil otherwise
+-function Renderer2D:RayPickTerrain (rx,ry,rz, rvx,rvy,rvz)
+-	local founddist,foundxloc,foundyloc
+-	for block,v in pairs(self.map2d_spawners.terrain.pMapBlocks) do  -- spawn=
+er:ForAllBlocks()
+-		local dist,xloc,yloc =3D block:RayPick(rx,ry,rz, rvx,rvy,rvz) =
+
+-		if (dist and ((not founddist) or dist &lt; founddist)) then
+-			founddist =3D dist
+-			foundxloc =3D xloc
+-			foundyloc =3D yloc
+-		end
+-	end
+-	return founddist,foundxloc,foundyloc
+-end
+-
+--- returns dist,sprite   if hit, or nil otherwise    sprite=3D{artid=3D?,h=
+ue=3D?,static=3D?}
+-function Renderer2D:RayPickStatics (rx,ry,rz, rvx,rvy,rvz)
+-	local founddist,foundsprite
+-	for block,v in pairs(self.map2d_spawners.statics.pMapBlocks) do  -- spawn=
+er:ForAllBlocks()
+-		local dist,sprite =3D block:RayPick(rx,ry,rz, rvx,rvy,rvz) =
+
+-		if (dist and ((not founddist) or dist &lt; founddist)) then
+-			founddist =3D dist
+-			foundsprite =3D sprite
+-		end
+-	end
+-	return founddist,foundsprite
+-end
+-
+-
+-
+-function Renderer2D:RayPickDynamics (rx,ry,rz, rvx,rvy,rvz)
+-	local founddist,foundsprite
+-	for k,item in pairs(GetDynamicList()) do =
+
+-		if (DynamicIsInWorld(item)) then =
+
+-			local spriteblock =3D item.gfx2d
+-			if (spriteblock) then =
+
+-				local dist,sprite =3D spriteblock:RayPick(rx,ry,rz, rvx,rvy,rvz) =
+
+-				if (dist and ((not founddist) or dist &lt; founddist)) then
+-					founddist =3D dist
+-					foundsprite =3D sprite
+-				end
+-			end
+-		end
+-	end
+-	return founddist,foundsprite -- item=3Dfoundsprite.data
+-end
+-
+-function Renderer2D:RayPickMobiles (rx,ry,rz, rvx,rvy,rvz)
+-	local founddist,foundsprite
+-	for k,mobile in pairs(GetMobileList()) do =
+
+-		local spriteblock =3D mobile.gfx2d
+-		if (spriteblock) then =
+
+-			local dist,sprite =3D spriteblock:RayPick(rx,ry,rz, rvx,rvy,rvz) =
+
+-			if (dist and ((not founddist) or dist &lt; founddist)) then
+-				founddist =3D dist
+-				foundsprite =3D sprite
+-			end
+-		end
+-	end
+-	return founddist,foundsprite -- item=3Dfoundsprite.data
+-end
+-	=
+
+-	=
+
+-
+ function Renderer2D:MapStep		()
+ 	self:MobileTestStep()
+ 	=
+
+@@ -116,21 +52,6 @@
+ 	local x,y,z =3D self:GetCamPos()
+ 	for k,spawner in pairs(self.map2d_spawners) do spawner:Step(t,x,y,z) end
+ 	self.map2d_scheduler:Step(x,y,z)
+-	=
+
+-	=
+
+-	-- raypick test : =
+
+-	--~ local rx,ry,rz, rvx,rvy,rvz =3D GetMouseRay()
+-	--~ local dist,sprite =3D self:RayPickStatics(rx,ry,rz, rvx,rvy,rvz)
+-	--~ if (dist) then print(&quot;RayPickStatics&quot;,sprite,GetStaticTileTypeName(sp=
+rite.artid)) end
+-	=
+
+-	--~ local dist,xloc,yloc =3D self:RayPickTerrain(rx,ry,rz, rvx,rvy,rvz)
+-	--~ print(&quot;RayPickTerrain&quot;,xloc,yloc)
+-	=
+
+-	--~ local dist,sprite =3D self:RayPickDynamics(rx,ry,rz, rvx,rvy,rvz)
+-	--~ if (dist) then print(&quot;RayPickDynamics&quot;,GetStaticTileTypeName(sprite.d=
+ata.artid)) end
+-	=
+
+-	--~ local dist,sprite =3D self:RayPickMobiles(rx,ry,rz, rvx,rvy,rvz)
+-	--~ if (dist) then print(&quot;RayPickMobiles&quot;,sprite.data.artid) end
+ end
+ =
+
+ function Renderer2D:MapClear	()
+
+Modified: trunk/lua/lib.2d.renderer.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.renderer.lua (original)
++++ trunk/lua/lib.2d.renderer.lua Tue Sep 30 23:36:35 2008
+@@ -19,6 +19,7 @@
+ =
+
+ dofile(libpath .. &quot;lib.2d.cam.lua&quot;)
+ dofile(libpath .. &quot;lib.2d.map.lua&quot;)
++dofile(libpath .. &quot;lib.2d.mousepick.lua&quot;)
+ dofile(libpath .. &quot;lib.2d.mobile.lua&quot;)
+ dofile(libpath .. &quot;lib.2d.dynamic.lua&quot;)
+ dofile(libpath .. &quot;lib.2d.spriteblock.lua&quot;)
+@@ -56,7 +57,7 @@
+ 	-- initialize Mapenvironment
+ 	self:SetMapEnvironment()
+ =
+
+--- sience: not needed anymore? bring up and assertion failure (it seems wi=
+thout, everything is correct)
++	-- switch renderer : create all object visuals
+ 	--	for k,dynamic in pairs(GetDynamicList()) do if (DynamicIsInWorld(dynam=
+ic)) then self:AddDynamicItem(dynamic) end end
+ 	--	for k,mobile in pairs(GetMobileList()) do self:CreateMobileGfx(mobile)=
+ end
+ end
+@@ -109,7 +110,6 @@
+ 	end
+ 	=
+
+ 	-- TODO : self:CombatGuiStep() ?
+-	-- TODO : self:MousePickStep() ?
+ 	local xloc,yloc,zloc =3D GetPlayerPos()
+ 	if (xloc) then self:SetCamPos(xloc,yloc,zloc) end
+ 	=
+
+@@ -129,7 +129,10 @@
+ end
+ =
+
+  =
+
+-function Renderer2D:DestroyMousePickItemBySerial	() end
++ =
+
++ =
+
++
++
+ function Renderer2D:AddEffect						(effectdata) end
+ function Renderer2D:CamKeyDown						(key) end
+ function Renderer2D:CamKeyUp						(key) end
+@@ -144,7 +147,6 @@
+ -- used by MacroRead_GetPlayerPosition when no playermobile found (yet)
+ function Renderer2D:GetExactLocalPos() return 0,0,0 end
+ =
+
+-function Renderer2D:MousePickStep				() end
+ function Renderer2D:SetOfflineStartPos			(x,y,z) self:SetCamPos(-x,y,z) end
+ =
+
+ =
+
+@@ -170,12 +172,8 @@
+ =
+
+ function Renderer2D:InitLocalCam				(x,y,z) end -- ??? offline mode ?
+ function Renderer2D:ChangeCamMode				() end
+-function Renderer2D:GetMouseHitSerial			() end
+-function Renderer2D:GetMouseHitTileCoords		() end
+ function Renderer2D:SelectMobile				() end
+ function Renderer2D:DeselectMobile				() end
+-function Renderer2D:GetMouseHitSerial			() end
+-function Renderer2D:MousePick					() end
+ function Renderer2D:UpdateTrackingArrow			(...) end -- tracking skill, not=
+ yet implemented
+ function Renderer2D:NotifyDamage				(olddamage_serial,olddamage_amount) end
+ function Renderer2D:NotifyHPChange				(mobile, value) end
+
+Modified: trunk/lua/lib.3d.mousepick.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.mousepick.lua (original)
++++ trunk/lua/lib.3d.mousepick.lua Tue Sep 30 23:36:35 2008
+@@ -14,11 +14,6 @@
+ Renderer3D.gMousePickTippOverride =3D false -- used for container-item-tip=
+ps and other stuff from widget system, TODO : proper mousepicking for them
+ =
+
+ =
+
+-function Renderer3D:GetMouseHitTileCoords ()
+-	if ((not gMousePickFoundHit) or (not self.gMousePickFoundHit_ExactX)) the=
+n return end
+-	local x,y =3D Renderer3D:LocalToUOPos(self.gMousePickFoundHit_ExactX,self=
+.gMousePickFoundHit_ExactY)
+-	return math.floor(x),math.floor(y),math.floor(0.5 + (self.gMousePickFound=
+Hit_ExactZ)/0.1)
+-end
+ =
+
+ function Renderer3D:DeactivateMousePick ()
+ 	Client_SetBottomLine(self.gMousePickTippOverride or &quot;&quot;)
+@@ -37,47 +32,9 @@
+ 	end
+ end
+ =
+
+-function Renderer3D:MousePick ()
+-	gMousePickFoundHit =3D false
+-	=
+
+-	local widget =3D self:MousePick_2D()
+-	=
+
+-	-- 3d mousepicking, only if no widget hit
+-	if (not widget) then self:MousePick_3D() end
+-	=
+
+-	self:MousePick_ShowHits()
+-	=
+
+-	-- close context/popup menu if currently open, widget is the currently cl=
+icked widget, to ignore close in context menu
+-	ClosePopUpMenu(widget)
+-end
+-		=
+
+-function Renderer3D:MousePick_2D ()
+-	-- 2d mousepicking
+-	local widget =3D GetWidgetUnderMouse()
+-	if (widget) then =
+
+-		--~ print(&quot;Renderer3D:MousePick_2D&quot;,widget,widget.uoContainer,widget.ite=
+m,widget.GetClassName and widget:GetClassName())
+-		if (widget.uoContainer and widget.item) then
+-			gMousePickFoundHit =3D {}
+-			gMousePickFoundHit.hittype =3D kMousePickHitType_ContainerItem
+-			gMousePickFoundHit.item =3D widget.item
+-			gMousePickFoundHit.is2DHit =3D true
+-		elseif (widget.uoPaperdoll and widget.item) then
+-			gMousePickFoundHit =3D {}
+-			gMousePickFoundHit.hittype =3D kMousePickHitType_PaperdollItem
+-			gMousePickFoundHit.item =3D widget.item
+-			gMousePickFoundHit.is2DHit =3D true
+-		elseif widget.dialog and widget.dialog.uoContainer then
+-			gMousePickFoundHit =3D {}
+-			gMousePickFoundHit.hittype =3D kMousePickHitType_Container
+-			gMousePickFoundHit.container =3D widget.dialog.uoContainer
+-			gMousePickFoundHit.is2DHit =3D true
+-		end
+-	end
+-	return widget
+-end
+ =
+
+ -- CLEAR gMousePickFoundHit =3D {} if you want to use this alone !!!
+-function Renderer3D:MousePick_3D ()
++function Renderer3D:MousePick_Scene ()
+ 	-- 3d mousepicking : mouseray
+ 	local rx,ry,rz,rvx,rvy,rvz =3D GetMouseRay()
+ =
+
+@@ -500,20 +457,6 @@
+ 	end
+ end
+ =
+
+--- excecutes mousepick by default
+-function Renderer3D:GetMouseHitSerial (bExecuteMousePick)
+-	if (bExecuteMousePick =3D=3D nil) then bExecuteMousePick =3D true end
+-	if (bExecuteMousePick) then self:MousePick() end
+-	if (gMousePickFoundHit) then
+-		if (gMousePickFoundHit.hittype =3D=3D kMousePickHitType_Dynamic) 	then r=
+eturn gMousePickFoundHit.dynamic.serial end
+-		if (gMousePickFoundHit.hittype =3D=3D kMousePickHitType_Mobile)  	then r=
+eturn gMousePickFoundHit.mobile.serial end
+-		if (gMousePickFoundHit.hittype =3D=3D kMousePickHitType_ContainerItem) t=
+hen return gMousePickFoundHit.item.serial end
+-		if (gMousePickFoundHit.hittype =3D=3D kMousePickHitType_PaperdollItem) t=
+hen return gMousePickFoundHit.item.serial end
+-		--print(vardump(gMousePickFoundHit))
+-	end
+-	return 0
+-end
+-
+ function Renderer3D:DestroyMousePickItemBySerial (serial)
+-	if (self:GetMouseHitSerial(false) =3D=3D serial) then self.gMousePickFoun=
+dHit =3D false end
+-end
++	if (GetMouseHitSerial(false) =3D=3D serial) then gMousePickFoundHit =3D f=
+alse end
++end
+
+Modified: trunk/lua/lib.cursor.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.cursor.lua (original)
++++ trunk/lua/lib.cursor.lua Tue Sep 30 23:36:35 2008
+@@ -125,7 +125,7 @@
+ =
+
+ function CompleteTargetMode (hitobject)
+ 	if (not hitobject) then
+-		gCurrentRenderer:MousePick()
++		MainMousePick()
+ 		if (not gMousePickFoundHit) then CancelTargetMode() return end
+ 		hitobject =3D gMousePickFoundHit
+ 	end
+@@ -158,20 +158,20 @@
+ 	-- in object and pos pick ?
+ 	if (hitobject.hittype =3D=3D kMousePickHitType_Static) then =
+
+ 		bSendPos =3D false =
+
+-		local x,y,z =3D gCurrentRenderer:GetMouseHitTileCoords()
++		local x,y,z =3D GetMouseHitTileCoords()
+ 		Send_Target_Static(x,y,z,hitobject.entity)
+ 	end
+ 	=
+
+ 	-- ground hit
+-	if (hitobject.hittype =3D=3D kMousePickHitType_Ground) then
++	if (hitobject.hittype =3D=3D kMousePickHitType_Ground) then -- only used =
+by macro system
+ 		bSendPos =3D false =
+
+ 		Send_Target_Ground(hitobject.x,hitobject.y,hitobject.z)
+ 	end
+ 	=
+
+-	-- TODO: Obsolete ?! (SiENcE)
++	-- kMousePickHitType_Terrain
+ 	if (bSendPos) then
+ 		-- target ground
+-		local x,y,z =3D gCurrentRenderer:GetMouseHitTileCoords()
++		local x,y,z =3D GetMouseHitTileCoords()
+ 		Send_Target_Ground(x,y,z)
+ 	end
+ 	=
+
+
+Modified: trunk/lua/lib.devtool.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.devtool.lua (original)
++++ trunk/lua/lib.devtool.lua Tue Sep 30 23:36:35 2008
+@@ -4,8 +4,8 @@
+ gMeshTextureUsageFilePath =3D datapath..&quot;meshtextureusage.lua&quot;
+ =
+
+ function ShowDevTool ()
+-	gCurrentRenderer:MousePick()
+-	local x,y,z =3D gCurrentRenderer:GetMouseHitTileCoords()
++	MainMousePick()
++	local x,y,z =3D GetMouseHitTileCoords()
+ 	local radius =3D gKeyPressed[key_lshift] and 0 or 2
+ =
+
+ 	=
+
+@@ -252,9 +252,9 @@
+ 	print(&quot;AdjustArtPosition&quot;,x,y,z)
+ 	if (not x) then =
+
+ 		-- default params : read current mousepos
+-		gCurrentRenderer:MousePick()
++		MainMousePick()
+ 		if (not gMousePickFoundHit) then return end
+-		x,y,z =3D gCurrentRenderer:GetMouseHitTileCoords() =
+
++		x,y,z =3D GetMouseHitTileCoords() =
+
+ 	end
+ 	print(&quot;AdjustArtPosition2&quot;,x,y,z)
+ 	=
+
+@@ -304,9 +304,9 @@
+ 	print(&quot;DevToolListStuffUnderMouse1&quot;,x,y,z,radius)
+ 	if (not x) then =
+
+ 		-- default params : read current mousepos
+-		gCurrentRenderer:MousePick()
++		MainMousePick()
+ 		if (not gMousePickFoundHit) then return end
+-		x,y,z =3D gCurrentRenderer:GetMouseHitTileCoords() =
+
++		x,y,z =3D GetMouseHitTileCoords() =
+
+ 		radius =3D gKeyPressed[key_lshift] and 0 or 3 =
+
+ 	end
+ 	print(&quot;DevToolListStuffUnderMouse2&quot;,x,y,z,radius)
+
+Modified: trunk/lua/lib.fallback.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.fallback.lua (original)
++++ trunk/lua/lib.fallback.lua Tue Sep 30 23:36:35 2008
+@@ -41,9 +41,9 @@
+ 	if (gCurrentRenderer ~=3D Renderer3D) then return end
+ 	if (not x) then =
+
+ 		-- default params : read current mousepos
+-		gCurrentRenderer:MousePick()
++		MainMousePick()
+ 		if (not gMousePickFoundHit) then return end
+-		x,y,z =3D gCurrentRenderer:GetMouseHitTileCoords() =
+
++		x,y,z =3D GetMouseHitTileCoords() =
+
+ 		radius =3D gKeyPressed[key_lshift] and 0 or 3 =
+
+ 	end
+ 	local statictypes =3D ListFallBackTypesNearPos(x,y,z,radius)
+
+Modified: trunk/lua/lib.macrolist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.macrolist.lua (original)
++++ trunk/lua/lib.macrolist.lua Tue Sep 30 23:36:35 2008
+@@ -137,7 +137,7 @@
+ -- itemserial defaults to the serial of the item currently under the mouse
+ function MacroCmd_ItemSlot_Set	(slotnumber,itemserial) 	=
+
+ 	if (not gInGameStarted) then return end
+-	if (not itemserial) then itemserial =3D gCurrentRenderer:GetMouseHitSeria=
+l() end -- itemserial_under_mouse
++	if (not itemserial) then itemserial =3D GetMouseHitSerial() end -- itemse=
+rial_under_mouse
+ 	if (itemserial =3D=3D 0) then itemserial =3D nil end -- set 0 to clear
+ 	print(&quot;MacroCmd_ItemSlot_Set&quot;,slotnumber,itemserial)
+ 	local item =3D itemserial and GetObjectBySerial(itemserial)
+@@ -372,8 +372,8 @@
+ end
+ =
+
+ function MacroCmd_WalkToMouse	()
+-	gCurrentRenderer:MousePick()
+-	local x,y,z =3D gCurrentRenderer:GetMouseHitTileCoords()
++	MainMousePick()
++	local x,y,z =3D GetMouseHitTileCoords()
+ 	SetAutoWalkTo(x,y)
+ end
+ =
+
+@@ -574,6 +574,5 @@
+ end
+ =
+
+ function MacroGetSerialUnderMouse	()
+-	gCurrentRenderer:MousePick()
+-	return gCurrentRenderer:GetMouseHitSerial()
+-end
++	return GetMouseHitSerial(true)
++end
+
+Modified: trunk/lua/lib.mousepick.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mousepick.lua (original)
++++ trunk/lua/lib.mousepick.lua Tue Sep 30 23:36:35 2008
+@@ -16,10 +16,84 @@
+ 	gCurrentRenderer:TerrainRayIntersect_Hit (tx,ty,tiletype,hit_dist,minz,ma=
+xz)
+ end
+ =
+
++function MainMousePick ()
++	gMousePickFoundHit =3D false
++	Renderer3D.gMousePickFoundHit_ExactX =3D false
++	=
+
++	local widget =3D MousePick_GUI()
++	=
+
++	-- 3d mousepicking, only if no widget hit
++	if (not widget) then gCurrentRenderer:MousePick_Scene() end
++	=
+
++	gCurrentRenderer:MousePick_ShowHits()
++	=
+
++	-- close context/popup menu if currently open, widget is the currently cl=
+icked widget, to ignore close in context menu
++	ClosePopUpMenu(widget)
++end
++
++
++-- returns xloc,yloc,zloc   (uocoordinates,directly used by  uodragdrop Se=
+nd_Drop_Object)
++function GetMouseHitTileCoords ()
++	if (not gMousePickFoundHit) then return end
++	if (gMousePickFoundHit.hit_xloc) then return	gMousePickFoundHit.hit_xloc,
++													gMousePickFoundHit.hit_yloc,
++													gMousePickFoundHit.hit_zloc end
++	if (not Renderer3D.gMousePickFoundHit_ExactX) then return end
++	local x,y =3D Renderer3D:LocalToUOPos(Renderer3D.gMousePickFoundHit_Exact=
+X,Renderer3D.gMousePickFoundHit_ExactY)
++	return math.floor(x),math.floor(y),math.floor(0.5 + (Renderer3D.gMousePic=
+kFoundHit_ExactZ)/0.1)
++end
++
++function MousePick_GUI ()
++	-- 2d mousepicking
++	local widget =3D GetWidgetUnderMouse()
++	if (widget) then =
+
++		--~ print(&quot;MousePick_GUI&quot;,widget,widget.uoContainer,widget.item,widget.G=
+etClassName and widget:GetClassName())
++		if (widget.uoContainer and widget.item) then
++			gMousePickFoundHit =3D {}
++			gMousePickFoundHit.hittype =3D kMousePickHitType_ContainerItem
++			gMousePickFoundHit.item =3D widget.item
++			gMousePickFoundHit.is2DHit =3D true
++		elseif (widget.uoPaperdoll and widget.item) then
++			gMousePickFoundHit =3D {}
++			gMousePickFoundHit.hittype =3D kMousePickHitType_PaperdollItem
++			gMousePickFoundHit.item =3D widget.item
++			gMousePickFoundHit.is2DHit =3D true
++		elseif widget.dialog and widget.dialog.uoContainer then
++			gMousePickFoundHit =3D {}
++			gMousePickFoundHit.hittype =3D kMousePickHitType_Container
++			gMousePickFoundHit.container =3D widget.dialog.uoContainer
++			gMousePickFoundHit.is2DHit =3D true
++		end
++	end
++	return widget
++end
++
++
++
++-- excecutes mousepick by default
++function GetMouseHitSerial (bExecuteMousePick)
++	local o =3D GetMouseHitObject(bExecuteMousePick)
++	return o and o.serial or 0
++end
++
++-- excecutes mousepick by default
++function GetMouseHitObject (bExecuteMousePick)
++	if (bExecuteMousePick =3D=3D nil) then bExecuteMousePick =3D true end
++	if (bExecuteMousePick) then MainMousePick() end
++	if (gMousePickFoundHit) then
++		if (gMousePickFoundHit.hittype =3D=3D kMousePickHitType_Static			) then =
+return gMousePickFoundHit.entity end
++		if (gMousePickFoundHit.hittype =3D=3D kMousePickHitType_Dynamic			) then=
+ return gMousePickFoundHit.dynamic end
++		if (gMousePickFoundHit.hittype =3D=3D kMousePickHitType_Mobile			) then =
+return gMousePickFoundHit.mobile end
++		if (gMousePickFoundHit.hittype =3D=3D kMousePickHitType_ContainerItem	) =
+then return gMousePickFoundHit.item end
++		if (gMousePickFoundHit.hittype =3D=3D kMousePickHitType_PaperdollItem	) =
+then return gMousePickFoundHit.item end
++		if (gMousePickFoundHit.hittype =3D=3D kMousePickHitType_Container		) the=
+n return gMousePickFoundHit.container end
++	end
++end
++
+ =
+
+ function IrisDoubleClick ()
+-	gCurrentRenderer:MousePick()
+-	local iSerial =3D gCurrentRenderer:GetMouseHitSerial()
++	MainMousePick()
++	local iSerial =3D GetMouseHitSerial()
+ 	if gKeyPressed[key_lcontrol] then
+ 		-- open status window if control pressed and mobile targeted
+ 		if (iSerial and iSerial ~=3D 0) then =
+
+@@ -74,7 +148,7 @@
+ 		not gbMouseLastLeftDownWasTarget and =
+
+ 		len2(sub2(x,y,gbMouseLastLeftDownWasTargetPositionX, gbMouseLastLeftDown=
+WasTargetPositionY)) &lt;=3D 2
+ 	then =
+
+-		local iSerial =3D gCurrentRenderer:GetMouseHitSerial()
++		local iSerial =3D GetMouseHitSerial()
+ 		gLastRightClickSerial =3D nil
+ 		if (iSerial and iSerial ~=3D 0) then =
+
+ 			printdebug(&quot;net&quot;,sprintf(&quot;IrisContextMenuClick: serial=3D0x%08x\n&quot;,iSer=
+ial))
+@@ -82,7 +156,7 @@
+ 			gLastRightClickSerial =3D iSerial
+ 		end
+ =
+
+-		--~ local iSerial =3D gCurrentRenderer:GetMouseHitSerial()
++		--~ local iSerial =3D GetMouseHitSerial()
+ 		--~ if (iSerial and iSerial ~=3D 0) then =
+
+ 			--~ printdebug(&quot;net&quot;,sprintf(&quot;IrisSingleClick: serial=3D0x%08x\n&quot;,iSeri=
+al))
+ 			--~ Send_SingleClick(iSerial)
+@@ -92,7 +166,7 @@
+ 			--~ -- gCurrentRenderer:DeselectMobile()
+ 			--~ =
+
+ 			--~ if gEnableGotoOnClick and not GetWidgetUnderMouse() then
+-				--~ local x,y =3D gCurrentRenderer:GetMouseHitTileCoords()
++				--~ local x,y =3D GetMouseHitTileCoords()
+ 				--~ SetAutoWalkTo(x,y)
+ 			--~ end
+ 		--~ end
+
+Modified: trunk/lua/lib.pathfind.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.pathfind.lua (original)
++++ trunk/lua/lib.pathfind.lua Tue Sep 30 23:36:35 2008
+@@ -1,8 +1,8 @@
+ -- a star pathfinding
+ =
+
+ function Pathfinding_TriggeredByMouse	()
+-	gCurrentRenderer:MousePick()
+-	local x,y,z =3D gCurrentRenderer:GetMouseHitTileCoords()
++	MainMousePick()
++	local x,y,z =3D GetMouseHitTileCoords()
+ 	z =3D math.floor(z * 0.1)
+ 	Pathfinding_TriggeredByDestination(x,y,z)
+ end
+
+Modified: trunk/lua/lib.tilefreewalk.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.tilefreewalk.lua (original)
++++ trunk/lua/lib.tilefreewalk.lua Tue Sep 30 23:36:35 2008
+@@ -650,7 +650,7 @@
+ -- returns x,y,z
+ function gTileFreeWalk:Impl_MousePickPos ()
+ 	gMousePickFoundHit =3D false
+-	Renderer3D:MousePick_3D()
++	Renderer3D:MousePick_Scene()
+ 	local x =3D Renderer3D.gMousePickFoundHit_ExactX
+ 	local y =3D Renderer3D.gMousePickFoundHit_ExactY
+ 	local z =3D Renderer3D.gMousePickFoundHit_ExactZ
+
+Modified: trunk/lua/lib.uodragdrop.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.uodragdrop.lua (original)
++++ trunk/lua/lib.uodragdrop.lua Tue Sep 30 23:36:35 2008
+@@ -53,7 +53,7 @@
+ end
+ =
+
+ function MouseDownUODragDrop()
+-	gCurrentRenderer:MousePick()
++	MainMousePick()
+ 	if (gMousePickFoundHit and gMousePickFoundHit.hittype =3D=3D kMousePickHi=
+tType_Dynamic) then
+ 		gLeftDownItem =3D {}
+ 		gLeftDownItem.item =3D gMousePickFoundHit.dynamic
+@@ -89,7 +89,7 @@
+ 				Send_Equip_Item_Request( gDragDropItem.serial, gDragDropItem.layer, Gu=
+mp.mobileserial )
+ 			end
+ 		else
+-			gCurrentRenderer:MousePick()
++			MainMousePick()
+ 			=
+
+ 			if (gMousePickFoundHit) then
+ 				if (gMousePickFoundHit.hittype =3D=3D kMousePickHitType_Dynamic and Te=
+stBit(GetStaticTileTypeFlags( gDragDropItem.artid ) or 0,kTileDataFlag_Cont=
+ainer)) then
+@@ -98,7 +98,7 @@
+ 					--Send_Equip_Item_Request( gDragDropItem.serial, gDragDropItem.layer,=
+ gMousePickFoundHit.mobile.serial )
+ 					Send_Drop_Object( gDragDropItem.serial, hex2num(&quot;0xFFFF&quot;), hex2num(&quot;0=
+xFFFF&quot;), 0, gMousePickFoundHit.mobile.serial )
+ 				else
+-					local x, y, z =3D gCurrentRenderer:GetMouseHitTileCoords()
++					local x, y, z =3D GetMouseHitTileCoords()
+ 					Send_Drop_Object( gDragDropItem.serial, x, y, z, hex2num(&quot;0xFFFFFFFF&quot;=
+) )
+ 				end
+ 			end
+@@ -242,7 +242,7 @@
+ 	if (gDragDrop and gDragDrop.started) then -- when dragging with amount di=
+alog
+ 		CompleteUODragDrop()
+ 	else =
+
+-		gCurrentRenderer:MousePick()
++		MainMousePick()
+ 		if (gMousePickFoundHit) then
+ 			if (gMousePickFoundHit.hittype =3D=3D kMousePickHitType_ContainerItem)	=
+then PrepareDragContainerItem(gMousePickFoundHit.item) end
+ 			if (gMousePickFoundHit.hittype =3D=3D kMousePickHitType_PaperdollItem)	=
+then PrepareDragPaperdollItem(gMousePickFoundHit.item) end
+@@ -327,7 +327,7 @@
+ 	if (not gDragDrop) then return end
+ 	--GuiAddChatLine(&quot;dragdrop : complete&quot;)
+ =
+
+-	gCurrentRenderer:MousePick()
++	MainMousePick()
+ 	=
+
+ 	local item =3D gDragDrop.item
+ 	local dialog_under_mouse =3D GetDialogUnderMouse()
+@@ -435,8 +435,8 @@
+ 			Send_Equip_Item_Request(item.serial,layer,paperdoll.mobileserial)
+ 		end
+ 	elseif (gMousePickFoundHit) then
+-		x,y,z =3D gCurrentRenderer:GetMouseHitTileCoords()
+-		local iSerial =3D gCurrentRenderer:GetMouseHitSerial()
++		x,y,z =3D GetMouseHitTileCoords()
++		local iSerial =3D GetMouseHitSerial()
+ 		if (iSerial and iSerial ~=3D 0) then =
+
+ 			-- drop on mobile,dynamic etc =
+
+ 			printdebug(&quot;dragdrop&quot;,&quot;MouseUpUODragDrop: drop on worlobject : &quot;,item.s=
+erial,item.amount,x,y,z,iSerial)
+
+Modified: trunk/lua/net/net.cursor.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.cursor.lua (original)
++++ trunk/lua/net/net.cursor.lua Tue Sep 30 23:36:35 2008
+@@ -83,7 +83,7 @@
+ -- Target Statics (TODO: is this correct?; sends entitiy tile zloc instead=
+ of click pos; seems to expect the position at the ground
+ function Send_Target_Static (x,y,z,entity) =
+
+ 	NotifyListener(&quot;Hook_TargetMode_Static&quot;,x,y,z,entity)
+-	Send_Target(true,0,hex2num(&quot;0x00000000&quot;),x,y,entity.zloc,entity.iTileType=
+ID) =
+
++	Send_Target(true,0,hex2num(&quot;0x00000000&quot;),x,y,entity.zloc,entity.artid or =
+entity.iTileTypeID) =
+
+ end
+ =
+
+ -- Target Item (Backpack, Paperdoll)
+
+Modified: trunk/lua/obj/obj.container.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/obj/obj.container.lua (original)
++++ trunk/lua/obj/obj.container.lua Tue Sep 30 23:36:35 2008
+@@ -90,7 +90,7 @@
+ 		spellbook.itemid =3D containerdata.gumpid
+ 		-- container with spell is already created (invisible)
+ 		Open_Spellbook(spellbook)
+-		printf(&quot;NET: Old_Spellbook: serial=3D0x%08x itemId=3D0x%04x offset=3D0x%=
+04x\n&quot;,spellbook.serial, spellbook.itemid, spellbook.scrolloffset)
++		printf(&quot;NET: Old_Spellbook: serial=3D0x%08x itemId=3D0x%04x offset=3D0x%=
+04x\n&quot;,spellbook.serial or 0, spellbook.itemid or 0, spellbook.scrolloffset=
+ or 0)
+ 		return =
+
+ 	end
+ 	=
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001284.html">[Iris-commit] [IRIS] r2479 - in /trunk: include/builder.h lua/lib.2d.map.lua lua/lib.2d.mobile.lua lua/lib.2d.spriteblock.lua lua/lib.uoanim.lua src/data_anim.cpp src/data_anim_L.cpp
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1285">[ date ]</a>
+              <a href="thread.html#1285">[ thread ]</a>
+              <a href="subject.html#1285">[ subject ]</a>
+              <a href="author.html#1285">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

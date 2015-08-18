@@ -1,0 +1,165 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2352 - /trunk/lua/gui/gui.amount.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-August/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2352%20-%20/trunk/lua/gui/gui.amount.lua&In-Reply-To=%3C20080805153511.0D2851524030%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001159.html">
+   <LINK REL="Next"  HREF="001161.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2352 - /trunk/lua/gui/gui.amount.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2352%20-%20/trunk/lua/gui/gui.amount.lua&In-Reply-To=%3C20080805153511.0D2851524030%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2352 - /trunk/lua/gui/gui.amount.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Tue Aug  5 17:35:10 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001159.html">[Iris-commit] [IRIS] r2351 - /trunk/lua/lib.3d.cam.lua
+</A></li>
+        <LI>Next message: <A HREF="001161.html">[Iris-commit] [IRIS] r2353 - /trunk/lua/lib.mapblock.2d.statics.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1160">[ date ]</a>
+              <a href="thread.html#1160">[ thread ]</a>
+              <a href="subject.html#1160">[ subject ]</a>
+              <a href="author.html#1160">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: hagish
+Date: Tue Aug  5 17:35:10 2008
+New Revision: 2352
+
+Log:
+amount dialog working but not bound to drag actions
+
+Modified:
+    trunk/lua/gui/gui.amount.lua
+
+Modified: trunk/lua/gui/gui.amount.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.amount.lua (original)
++++ trunk/lua/gui/gui.amount.lua Tue Aug  5 17:35:10 2008
+@@ -37,7 +37,8 @@
+ =
+
+ -- Open amount Gump
+ function OpenAmount (x,y,minValue,currentValue,maxValue)
+-	if minValue =3D=3D nil or currentValue =3D=3D nil or maxValue =3D=3D nil =
+then return end
++	if currentValue =3D=3D nil then currentValue =3D maxValue end
++	if minValue =3D=3D nil or maxValue =3D=3D nil then return end
+ 	=
+
+ 	CloseAmount()
+ 	=
+
+@@ -58,7 +59,7 @@
+ =
+
+ 	-- set a value (adjusts dot and amount text entry field)
+ 	dialog.SetAbsoluteValue =3D function(self,v)
+-		v =3D tonumber(v) or 0
++		v =3D math.floor(tonumber(v) or 0)
+ 		self.currentValue =3D Clamp(v, self.minValue, self.maxValue)
+ 		dialog:GetCtrlByName(&quot;amount&quot;):SetText(self.currentValue or &quot;?&quot;,false)
+ 		=
+
+@@ -79,33 +80,20 @@
+ 	local dot =3D dialog:GetCtrlByName(&quot;dot&quot;)
+ =
+
+ 	dialog.moveDot =3D function (self, x,y)
+-		print(&quot;#&quot;,x,y)
++		local x1,y1 =3D dialog:GetCtrlByName(&quot;start&quot;):GetPos()
++		local x2,y2 =3D dialog:GetCtrlByName(&quot;end&quot;):GetPos()
++		local r =3D (x - x1) / (x2 - x1)
++		local v =3D minValue + (maxValue + minValue) * r
++		dialog:SetAbsoluteValue(v)
+ 	end
+ =
+
+-	dot.onMouseDown =3D function () dot:StartMouseMove(key_mouse_left,dialog.=
+moveDot,dialog) end
++	dot.on_mouse_left_down =3D function () dot:StartMouseMove(key_mouse_left,=
+dialog.moveDot,dialog) end
+ =
+
+ 	-- initial setup
+ 	if x and y then dialog:SetPos(x,y) end
+ 	dialog:SetAbsoluteValue(currentValue)
+ 	=
+
+-	--~ =
+
+-	--~ skill.button_use =3D MakeGumpButtonFunctionOnClick(curparent, hex2num=
+(&quot;0x837&quot;), hex2num(&quot;0x838&quot;), hex2num(&quot;0x838&quot;), x, y, 11, 11,
+-						--~ function (widget,mousebutton) Send_Request_SkillUse(skill.skilli=
+d) end)
+-					--~ skill.button_use_drag =3D MakeGumpButtonFunctionOnClick(curparent=
+, hex2num(&quot;0x93a&quot;), hex2num(&quot;0x93a&quot;), hex2num(&quot;0x93a&quot;), x, y, 11, 11,
+-						--~ function (widget,mousebutton) end)
+-					--~ skill.button_use_drag.onMouseDown =3D function (widget,mousebutto=
+n)
+-						--~ if (mousebutton =3D=3D 1) then =
+
+-							--~ skill.button_use_drag.mStartX,skill.button_use_drag.mStartY =3D=
+ skill.button_use_drag.gfx:GetPos()
+-							--~ skill.button_use_drag.dialog:BringToFront() =
+
+-							--~ gui.StartMoveDialog(skill.button_use_drag) =
+
+-						--~ end
+-					--~ end
+-					--~ skill.button_use_drag.CustomMoveStop =3D function(widget)
+-						--~ -- reset button to source and create quick use/cast button
+-						--~ -- current position
+-						--~ local x,y =3D GetMousePos()
+-						--~ CreateQuickCastButtonSkill(x,y,skill.skillid)
+-						--~ =
+
+-						--~ skill.button_use_drag.gfx:SetPos(skill.button_use_drag.mStartX,s=
+kill.button_use_drag.mStartY)
+-					--~ end
++	dialog:GetCtrlByName(&quot;start&quot;):SetVisible(false)
++	dialog:GetCtrlByName(&quot;end&quot;):SetVisible(false)
++	=
+
+ end
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001159.html">[Iris-commit] [IRIS] r2351 - /trunk/lua/lib.3d.cam.lua
+</A></li>
+	<LI>Next message: <A HREF="001161.html">[Iris-commit] [IRIS] r2353 - /trunk/lua/lib.mapblock.2d.statics.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1160">[ date ]</a>
+              <a href="thread.html#1160">[ thread ]</a>
+              <a href="subject.html#1160">[ subject ]</a>
+              <a href="author.html#1160">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

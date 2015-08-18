@@ -1,0 +1,235 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2639 - in /trunk: lua/gui/gui.paperdoll.lua lua/lib.macrolist.lua lua/lib.packetvideo.lua lua/obj/obj.player.lua plugins/moblist.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-October/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2639%20-%20in%20/trunk%3A%20lua/gui/gui.paperdoll.lua%0A%20lua/lib.macrolist.lua%20lua/lib.packetvideo.lua%20lua/obj/obj.player.lua%0A%20plugins/moblist.lua&In-Reply-To=%3C20081023180906.E249D1C18451%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001443.html">
+   <LINK REL="Next"  HREF="001445.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2639 - in /trunk: lua/gui/gui.paperdoll.lua lua/lib.macrolist.lua lua/lib.packetvideo.lua lua/obj/obj.player.lua plugins/moblist.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2639%20-%20in%20/trunk%3A%20lua/gui/gui.paperdoll.lua%0A%20lua/lib.macrolist.lua%20lua/lib.packetvideo.lua%20lua/obj/obj.player.lua%0A%20plugins/moblist.lua&In-Reply-To=%3C20081023180906.E249D1C18451%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2639 - in /trunk: lua/gui/gui.paperdoll.lua lua/lib.macrolist.lua lua/lib.packetvideo.lua lua/obj/obj.player.lua plugins/moblist.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Thu Oct 23 20:09:06 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001443.html">[Iris-commit] [IRIS] r2638 - /trunk/lua/lib.2d.mousepick.lua
+</A></li>
+        <LI>Next message: <A HREF="001445.html">[Iris-commit] [IRIS] r2640 - /trunk/lua/gui/gui.chat.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1444">[ date ]</a>
+              <a href="thread.html#1444">[ thread ]</a>
+              <a href="subject.html#1444">[ subject ]</a>
+              <a href="author.html#1444">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Thu Oct 23 20:09:04 2008
+New Revision: 2639
+
+Log:
+paperdoll : fixed warmode button coloring, MobListSetMainTargetSerial(seria=
+l), MacroCmd_FindNearestMob()
+
+Modified:
+    trunk/lua/gui/gui.paperdoll.lua
+    trunk/lua/lib.macrolist.lua
+    trunk/lua/lib.packetvideo.lua
+    trunk/lua/obj/obj.player.lua
+    trunk/plugins/moblist.lua
+
+Modified: trunk/lua/gui/gui.paperdoll.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.paperdoll.lua (original)
++++ trunk/lua/gui/gui.paperdoll.lua Thu Oct 23 20:09:04 2008
+@@ -76,7 +76,6 @@
+  [7]	=3D function (widget,mousebutton)
+ 			if (mousebutton =3D=3D 1) then
+ 				Send_CombatMode(IsWarModeActive() and gWarmode_Normal or gWarmode_Comb=
+at)
+-				UpdatePaperdollWarPeaceButton()
+ 			end
+ 		  end,
+  -- status
+@@ -151,7 +150,14 @@
+ =
+
+ gPaperdolls =3D {}
+ =
+
+-function UpdatePaperdollWarPeaceButton(widget)
++RegisterListener(&quot;Hook_WarmodeChange&quot;,function () UpdatePaperdollWarPeaceB=
+utton() end)
++
++function GetPaperDoll (serial) return serial and gPaperdolls[serial] end
++
++function UpdatePaperdollWarPeaceButton()
++	local paperdoll =3D GetPaperDoll(GetPlayerSerial())
++	local dialog =3D paperdoll and paperdoll.dialog
++	local widget =3D dialog and dialog.controls[&quot;btnpeace&quot;]
+ 	if (widget) then
+ 		if (IsWarModeActive()) then
+ 			widget:SetButtonGumpIDs(0x7E8,0x7E9,0x7EA) -- normal,pressed,over
+@@ -374,8 +380,7 @@
+ 	end
+ =
+
+ 	-- visually change the Peace/Warmode Button when opening the Paperdoll wh=
+en in combat mode
+-	local widget =3D dialog.controls[&quot;btnpeace&quot;]
+-	UpdatePaperdollWarPeaceButton(widget)
++	UpdatePaperdollWarPeaceButton()
+ =
+
+ 	-- update paperdoll name and color
+ 	--~ local r,g,b =3D GetNotorietyColor(paperdoll.mobile and paperdoll.mobi=
+le.notoriety or 0)
+
+Modified: trunk/lua/lib.macrolist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.macrolist.lua (original)
++++ trunk/lua/lib.macrolist.lua Thu Oct 23 20:09:04 2008
+@@ -310,8 +310,8 @@
+ 	local xloc,yloc =3D GetPlayerPos()
+ 	for k,mobile in pairs(GetMobileList()) do =
+
+ 		local dist =3D dist2(xloc,yloc,mobile.xloc,mobile.yloc)
+-		if ((not founddist) or dist &lt; founddist) then =
+
+-			if (StringContains(AosToolTip_GetText(mobile.serial) or mobile.name or =
+&quot;&quot;,namepart)) then
++		if (((not founddist) or dist &lt; founddist) and (not IsPlayerMobile(mobile=
+))) then =
+
++			if ((not namepart) or StringContains(AosToolTip_GetText(mobile.serial) =
+or mobile.name or &quot;&quot;,namepart)) then
+ 				founddist =3D dist
+ 				foundmob =3D mobile
+ 			end
+@@ -319,6 +319,8 @@
+ 	end
+ 	return foundmob
+ end
++
++function MacroCmd_FindNearestMob () return MacroCmd_FindNearestMobByName()=
+ end
+ =
+
+ -- set itemserial =3D 0 to clear
+ -- itemserial defaults to the serial of the item currently under the mouse
+
+Modified: trunk/lua/lib.packetvideo.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.packetvideo.lua (original)
++++ trunk/lua/lib.packetvideo.lua Thu Oct 23 20:09:04 2008
+@@ -27,6 +27,10 @@
+ =
+
+ gPacketVideoFileName =3D &quot;../myvid.ipv&quot;
+ =
+
++
++function PacketVideo_Recording_Toggle() =
+
++	if (gPacketVideoRecording) then PacketVideo_Recording_End() else PacketVi=
+deo_Recording_Start() end
++end
+ =
+
+ function PacketVideo_Recording_Start() =
+
+ 	gPacketVideoFileName =3D &quot;../myvid.&quot;..(os.time() or Client_GetTicks())..&quot;=
+.ipv&quot;
+
+Modified: trunk/lua/obj/obj.player.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/obj/obj.player.lua (original)
++++ trunk/lua/obj/obj.player.lua Thu Oct 23 20:09:04 2008
+@@ -111,6 +111,7 @@
+ 		JournalAddText(&quot;&quot;,&quot;You go into War!&quot;)
+ 		--printf(&quot;NET: kPacket_SetPlayerWarmode id: 0x%02x gWarmode: combat\n&quot;,i=
+d)
+ 	end
++	NotifyListener(&quot;Hook_WarmodeChange&quot;,IsWarModeActive())
+ 	HealthBarSetWarMode()
+ end
+ =
+
+
+Modified: trunk/plugins/moblist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/plugins/moblist.lua (original)
++++ trunk/plugins/moblist.lua Thu Oct 23 20:09:04 2008
+@@ -172,6 +172,7 @@
+ 	if (self.maintarget_serial) then
+ 		gfx:SetVisible(true)
+ 		gfx2:SetVisible(true)
++		name =3D name or MobListShortenName(AosToolTip_GetText(serial) or &quot;???&quot;)
+ 		gfx:SetText(name)
+ 		MacroSetLastTarget(serial)
+ 	else
+@@ -383,6 +384,7 @@
+ -- ***** ***** ***** ***** ***** rest
+ =
+
+ function MobListGetMainTargetSerial() return gMobList.maintarget_serial end
++function MobListSetMainTargetSerial(serial) gMobList:SetMainTarget(serial)=
+ end
+ 		=
+
+ RegisterListener(&quot;Hook_PostLoad&quot;,function () gMobList =3D GetDesktopWidget=
+():CreateChild(&quot;UOMobList&quot;) end)
+ =
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001443.html">[Iris-commit] [IRIS] r2638 - /trunk/lua/lib.2d.mousepick.lua
+</A></li>
+	<LI>Next message: <A HREF="001445.html">[Iris-commit] [IRIS] r2640 - /trunk/lua/gui/gui.chat.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1444">[ date ]</a>
+              <a href="thread.html#1444">[ thread ]</a>
+              <a href="subject.html#1444">[ subject ]</a>
+              <a href="author.html#1444">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

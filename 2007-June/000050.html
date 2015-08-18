@@ -1,0 +1,178 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1234 - in /trunk/data/lua: main.lua	net.other.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2007-June/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1234%20-%20in%20/trunk/data/lua%3A%20main.lua%0A%09net.other.lua&In-Reply-To=%3C20070624110152.C8A24B1466D%40localhost.localdomain%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000049.html">
+   <LINK REL="Next"  HREF="000051.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1234 - in /trunk/data/lua: main.lua	net.other.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1234%20-%20in%20/trunk/data/lua%3A%20main.lua%0A%09net.other.lua&In-Reply-To=%3C20070624110152.C8A24B1466D%40localhost.localdomain%3E"
+       TITLE="[Iris-commit] [IRIS] r1234 - in /trunk/data/lua: main.lua	net.other.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sun Jun 24 13:01:51 CEST 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000049.html">[Iris-commit] [IRIS] r1233 - in /trunk/data: lua/lib.gui.lua lua/lib.time.lua lua/main.lua skippedfallbacks.lua terrain/materials/terrain.material
+</A></li>
+        <LI>Next message: <A HREF="000051.html">[Iris-commit] [IRIS] r1235 - in /trunk/data: lua/lib.debugmenu.lua lua/lib.models.lua skippedfallbacks.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#50">[ date ]</a>
+              <a href="thread.html#50">[ thread ]</a>
+              <a href="subject.html#50">[ subject ]</a>
+              <a href="author.html#50">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: sience
+Date: Sun Jun 24 13:01:48 2007
+New Revision: 1234
+
+Log:
+-bug fixed in compressed gump packet (its a runuo problem, but now we handl=
+e wrong sizes)
+
+Modified:
+    trunk/data/lua/main.lua
+    trunk/data/lua/net.other.lua
+
+Modified: trunk/data/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/main.lua (original)
++++ trunk/data/lua/main.lua Sun Jun 24 13:01:48 2007
+@@ -209,13 +209,9 @@
+ 	BindInGameKeys()
+ =
+
+ 	print(&quot;Welcome to Iris&quot;)
+---	OgreAddCompositor(GetMainViewport(), &quot;Ogre/Compositor/BlackAndWhite&quot;)
+ =
+
+ 	gInGameStarted =3D true
+ end
+--- currently no deinit of compositor test
+--- OgreRemoveCompositor(GetMainViewport() , &quot;Ogre/Compositor/BlackAndWhite=
+&quot;)
+-
+ =
+
+ -- called every frame, after all timer-steppers, see Step() in lib.time.lua
+ function MainStep (curticks)
+
+Modified: trunk/data/lua/net.other.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/net.other.lua (original)
++++ trunk/data/lua/net.other.lua Sun Jun 24 13:01:48 2007
+@@ -740,6 +740,7 @@
+ ]]--
+ function gPacketHandler.kPacket_Compressed_Gump ()	--0xDD
+ 	local input =3D GetRecvFIFO()
++	local popped_start =3D input:GetTotalPopped()
+ 	local id =3D input:PopNetUint8()
+ 	local size =3D input:PopNetUint16()
+ 	local newgump =3D {}
+@@ -751,10 +752,12 @@
+ =
+
+ 	newgump.Length_CompressedData =3D input:PopNetUint32() - 4
+ 	newgump.Length_Data =3D input:PopNetUint32()
+-	printf(&quot;NETDEBUG: Length_CompressedData=3D0x%08x Length_Data=3D0x%08x\n&quot;,=
+newgump.Length_CompressedData,newgump.Length_Data)
++
++	printdebug(&quot;net&quot;,sprintf(&quot;NET: Length_CompressedData=3D%d Length_Uncompre=
+ssedData=3D%d\n&quot;,newgump.Length_CompressedData,newgump.Length_Data))
+ =
+
+ 	if (28 + newgump.Length_CompressedData &gt; size) then =
+
+-		printf(&quot;NET: broken kPacket_Compressed_Gump packet, compressed gumplen =
+=3D 0x%08x\n&quot;,newgump.Length_CompressedData)
++		printf(&quot;NET: BROKEN - kPacket_Compressed_Gump packet, compressed gumplen=
+ =3D 0x%08x\n&quot;,newgump.Length_CompressedData)
++		print(&quot;Error: Server Sends bad COmpressed Gumpdata ! Please report.&quot;)
+ 		Crash()
+ 	end
+ =
+
+@@ -772,16 +775,16 @@
+ 	--- Textlines Part ---
+ 	newgump.numTextLines =3D input:PopNetUint32()
+ =
+
+-	if (newgump.numTextLines ~=3D 0 ) then
++	if (newgump.numTextLines ~=3D 0) then
+ 		newgump.Length_CompressedTextLines =3D input:PopNetUint32() - 4
+ 		newgump.Length_TextLines =3D input:PopNetUint32()
+ 	=
+
+-		printf(&quot;NETDEBUG: numTextLines=3D0x%08x Length_CompressedTextLines=3D0x%=
+08x\n&quot;,newgump.numTextLines,newgump.Length_CompressedTextLines,newgump.Leng=
+th_TextLines)
+ 		-- pop and decompress data into decompress fifo
+ 		input:PeekDecompressIntoFifo(newgump.Length_CompressedTextLines,newgump.=
+Length_TextLines,decompressed)
+ 		-- skip compressed part (peeked)
+ 		input:PopRaw(newgump.Length_CompressedTextLines)
+ 		=
+
++		-- print gumpdata
+ 		for k,v in pairs(newgump) do printdebug(&quot;gump&quot;,sprintf(&quot;newgump.%s =3D &quot;=
+,k),v) end
+ 		=
+
+ 		local totaltext =3D &quot;&quot;
+@@ -799,7 +802,7 @@
+ =
+
+ 	decompressed:Destroy()
+ =
+
+-	if (input:Size() &gt;=3D 4) then
++	if ( (input:Size() &gt;=3D 4) and (input:GetTotalPopped()-popped_start &lt; siz=
+e) ) then
+ 		local unknownterminator=3Dinput:PopNetUint32()
+ 	end
+ =
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000049.html">[Iris-commit] [IRIS] r1233 - in /trunk/data: lua/lib.gui.lua lua/lib.time.lua lua/main.lua skippedfallbacks.lua terrain/materials/terrain.material
+</A></li>
+	<LI>Next message: <A HREF="000051.html">[Iris-commit] [IRIS] r1235 - in /trunk/data: lua/lib.debugmenu.lua lua/lib.models.lua skippedfallbacks.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#50">[ date ]</a>
+              <a href="thread.html#50">[ thread ]</a>
+              <a href="subject.html#50">[ subject ]</a>
+              <a href="author.html#50">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

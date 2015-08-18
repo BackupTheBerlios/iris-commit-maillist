@@ -1,0 +1,363 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2354 - in /trunk: lua/gui/gui.amount.lua lua/gui/gui.gumpparser.lua lua/lib.uodragdrop.lua widgets/widget.uoedittext.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-August/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2354%20-%20in%20/trunk%3A%20lua/gui/gui.amount.lua%0A%20lua/gui/gui.gumpparser.lua%20lua/lib.uodragdrop.lua%0A%20widgets/widget.uoedittext.lua&In-Reply-To=%3C20080805172446.A5B0D1C18017%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001161.html">
+   <LINK REL="Next"  HREF="001163.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2354 - in /trunk: lua/gui/gui.amount.lua lua/gui/gui.gumpparser.lua lua/lib.uodragdrop.lua widgets/widget.uoedittext.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2354%20-%20in%20/trunk%3A%20lua/gui/gui.amount.lua%0A%20lua/gui/gui.gumpparser.lua%20lua/lib.uodragdrop.lua%0A%20widgets/widget.uoedittext.lua&In-Reply-To=%3C20080805172446.A5B0D1C18017%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2354 - in /trunk: lua/gui/gui.amount.lua lua/gui/gui.gumpparser.lua lua/lib.uodragdrop.lua widgets/widget.uoedittext.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Tue Aug  5 19:24:46 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001161.html">[Iris-commit] [IRIS] r2353 - /trunk/lua/lib.mapblock.2d.statics.lua
+</A></li>
+        <LI>Next message: <A HREF="001163.html">[Iris-commit] [IRIS] r2355 - /trunk/lua/lib.mapblock.spawner.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1162">[ date ]</a>
+              <a href="thread.html#1162">[ thread ]</a>
+              <a href="subject.html#1162">[ subject ]</a>
+              <a href="author.html#1162">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Tue Aug  5 19:24:46 2008
+New Revision: 2354
+
+Log:
+uodragdrop : activated amount-input-dialog, amount dialog : tweaked edittex=
+t, added callback, gumpparser : removed debug output
+
+Modified:
+    trunk/lua/gui/gui.amount.lua
+    trunk/lua/gui/gui.gumpparser.lua
+    trunk/lua/lib.uodragdrop.lua
+    trunk/widgets/widget.uoedittext.lua
+
+Modified: trunk/lua/gui/gui.amount.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.amount.lua (original)
++++ trunk/lua/gui/gui.amount.lua Tue Aug  5 19:24:46 2008
+@@ -29,14 +29,16 @@
+ =
+
+ =
+
+ -- open healdbar at mouse pos
+-function OpenAmountAtMouse (minValue,currentValue,maxValue)
++-- callback_done(amount)
++function OpenAmountAtMouse (minValue,currentValue,maxValue,callback_done)
+ 	local iMouseX,iMouseY =3D GetMousePos()
+-	OpenAmount(iMouseX - 50,iMouseY - 30, minValue,currentValue,maxValue)
++	OpenAmount(iMouseX - 50,iMouseY - 30, minValue,currentValue,maxValue,call=
+back_done)
+ end
+ =
+
+ =
+
+ -- Open amount Gump
+-function OpenAmount (x,y,minValue,currentValue,maxValue)
++-- callback_done(amount) =
+
++function OpenAmount (x,y,minValue,currentValue,maxValue,callback_done)
+ 	if currentValue =3D=3D nil then currentValue =3D maxValue end
+ 	if minValue =3D=3D nil or maxValue =3D=3D nil then return end
+ 	=
+
+@@ -47,21 +49,36 @@
+ 	gAmountDialog =3D dialog
+ =
+
+ 	-- save mobile info to dialog
++	dialog.callback_done =3D callback_done
+ 	dialog.minValue =3D minValue
+ 	dialog.currentValue =3D currentValue
+ 	dialog.maxValue =3D maxValue
+ 	=
+
+ 	-- update dialog on pressing enter
+-	dialog:GetCtrlByName(&quot;amount&quot;).on_return =3D function(self) =
+
+-		self:RemoveFocus() =
+
++	dialog:GetCtrlByName(&quot;amount&quot;).params.bClearOnFirstKeyDown =3D true
++	dialog:GetCtrlByName(&quot;amount&quot;).params.bNumbersOnly =3D true
++	dialog:GetCtrlByName(&quot;amount&quot;):SetFocus()
++	dialog:GetCtrlByName(&quot;amount&quot;).on_change_text =3D function(self) =
+
++		local text =3D self:GetText()
++		local v =3D math.floor(tonumber(text) or 0)
++		if (v &gt; dialog.maxValue) then
++			dialog:SetAbsoluteValue(dialog.maxValue)
++		else
++			dialog.bKeepAmountText =3D true
++			dialog:SetAbsoluteValue(text)
++			dialog.bKeepAmountText =3D false
++		end
++	end
++	dialog:GetCtrlByName(&quot;amount&quot;).on_return =3D function(self)
+ 		dialog:SetAbsoluteValue(self:GetText())
++		dialog:SendClose()
+ 	end
+ =
+
+ 	-- set a value (adjusts dot and amount text entry field)
+ 	dialog.SetAbsoluteValue =3D function(self,v)
+ 		v =3D math.floor(tonumber(v) or 0)
+ 		self.currentValue =3D Clamp(v, self.minValue, self.maxValue)
+-		dialog:GetCtrlByName(&quot;amount&quot;):SetText(self.currentValue or &quot;?&quot;,false)
++		if (not dialog.bKeepAmountText) then dialog:GetCtrlByName(&quot;amount&quot;):SetT=
+ext(self.currentValue or &quot;?&quot;,false) end
+ 		=
+
+ 		local r =3D (self.currentValue - self.minValue) / (self.maxValue - self.=
+minValue)
+ 		=
+
+@@ -73,7 +90,7 @@
+ 	end
+ =
+
+ 	-- overwrite the dialog close function from gumpparser
+-	dialog.SendClose =3D function (self) CloseAmount() end
++	dialog.SendClose =3D function (self) local amount =3D self.currentValue C=
+loseAmount() self.callback_done(amount) end
+ 	=
+
+ =
+
+ 	-- drag the dot around
+
+Modified: trunk/lua/gui/gui.gumpparser.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.gumpparser.lua (original)
++++ trunk/lua/gui/gui.gumpparser.lua Tue Aug  5 19:24:46 2008
+@@ -325,7 +325,7 @@
+ 	=
+
+ 	-- parse gump code
+ 	local command_chunks =3D {}
+-	local profiler =3D MakeProfiler(&quot;gumpparser&quot;,&quot;preload&quot;)
++	--~ local profiler =3D MakeProfiler(&quot;gumpparser&quot;,&quot;preload&quot;)
+ 	for k,v in pairs(strsplit(&quot;{&quot;,Gumpdata.Data)) do
+ 		local bToken =3D {}
+ 		for token in string.gfind(v, &quot;%w+&quot;) do table.insert(bToken,token) end
+@@ -350,7 +350,7 @@
+ 			PreLoadArt(param.art_id,param.hue)
+ 		end
+ 	end
+-	profiler:FinishAndPrint()
++	--~ profiler:FinishAndPrint()
+ 	=
+
+ 	for k,command_chunk in pairs(command_chunks) do =
+
+ 		local command,bToken,param =3D unpack(command_chunk)
+
+Modified: trunk/lua/lib.uodragdrop.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.uodragdrop.lua (original)
++++ trunk/lua/lib.uodragdrop.lua Tue Aug  5 19:24:46 2008
+@@ -223,30 +223,36 @@
+ 	gDragDrop.offy =3D offy
+ 	gDragDrop.iMouseX,gDragDrop.iMouseY =3D GetMousePos()
+ 	gDragDrop.started =3D false
++	gDragDrop.wait_for_dragmove =3D true
+ end
+ =
+
+ function StepUODragDrop () =
+
+ 	-- start dragdrop if the mouse is dragged for a minimum distance
+-	if (gDragDrop and (not gDragDrop.started)) then =
+
++	if (gDragDrop and gDragDrop.wait_for_dragmove) then =
+
+ 		local iMouseX,iMouseY =3D GetMousePos()
+ 		local dx =3D gDragDrop.iMouseX - iMouseX
+ 		local dy =3D gDragDrop.iMouseY - iMouseY
+ 		local sqdist =3D dx*dx + dy*dy
+-		if (sqdist &gt;=3D gSquareDragStartDist) then StartUODragDrop() end
+-	end
+-end
+-
+-function MouseDownUODragDrop () =
+
+-	gCurrentRenderer:MousePick()
+-	if (gMousePickFoundHit) then
+-		if (gMousePickFoundHit.hittype =3D=3D kMousePickHitType_ContainerItem)	t=
+hen PrepareDragContainerItem(gMousePickFoundHit.item) end
+-		if (gMousePickFoundHit.hittype =3D=3D kMousePickHitType_PaperdollItem)	t=
+hen PrepareDragPaperdollItem(gMousePickFoundHit.item) end
+-		if (gMousePickFoundHit.hittype =3D=3D kMousePickHitType_Dynamic)		then P=
+repareDragDynamic(gMousePickFoundHit.dynamic) end
++		if (sqdist &gt;=3D gSquareDragStartDist) then gDragDrop.wait_for_dragmove =
+=3D false UODragDrop_TakeItem() end
++	end
++end
++
++function MouseDownUODragDrop ()
++	if (gDragDrop and gDragDrop.started) then -- when dragging with amount di=
+alog
++		CompleteUODragDrop()
++	else =
+
++		gCurrentRenderer:MousePick()
++		if (gMousePickFoundHit) then
++			if (gMousePickFoundHit.hittype =3D=3D kMousePickHitType_ContainerItem)	=
+then PrepareDragContainerItem(gMousePickFoundHit.item) end
++			if (gMousePickFoundHit.hittype =3D=3D kMousePickHitType_PaperdollItem)	=
+then PrepareDragPaperdollItem(gMousePickFoundHit.item) end
++			if (gMousePickFoundHit.hittype =3D=3D kMousePickHitType_Dynamic)		then =
+PrepareDragDynamic(gMousePickFoundHit.dynamic) end
++		end
+ 	end
+ end
+ =
+
+ function MouseUpUODragDrop () =
+
+ 	if (not gDragDrop) then return end
++	if (gDragDrop.bWithAmountDialog) then return end
+ 	if (gDragDrop.started) then
+ 		CompleteUODragDrop()
+ 	else
+@@ -262,20 +268,29 @@
+ 	end
+ end
+ =
+
+-function StartUODragDrop ()
+-	--~ GuiAddChatLine(&quot;dragdrop : start&quot;)
++function StartUODragDrop (amount)
++	if (not gDragDrop) then print(&quot;StartUODragDrop : error, gDragDrop already=
+ released&quot;) return end
+ 	gDragDrop.started =3D true
+-	if (gDragDrop.widget and gDragDrop.widget:IsAlive()) then gDragDrop.widge=
+t.gfx:SetVisible(false) end
++	--~ if (gDragDrop.widget and gDragDrop.widget:IsAlive()) then gDragDrop.w=
+idget.gfx:SetVisible(false) end
+ 	SetDragIcon(gDragDrop.matname,gDragDrop.w,gDragDrop.h,gDragDrop.offx,gDra=
+gDrop.offy)
+ =
+
+-	-- TODO better amount handling
++	Send_Take_Object(gDragDrop.item.serial,amount) =
+
++	gui.bMouseBlocked =3D true
++end
++
++function UODragDrop_AmountEntryCallback (chosen_amount)
++	StartUODragDrop(chosen_amount)
++end
++
++function UODragDrop_TakeItem ()
+ 	local amount =3D gDragDrop.item.amount
+-	-- take only half the amount if shift is pressed
+-	if (gKeyPressed[key_lalt] or gKeyPressed[key_lshift]) and amount then amo=
+unt =3D math.floor(amount / 2) end
+-	if ((gKeyPressed[key_lcontrol]	or gKeyPressed[key_rcontrol]) and amount) =
+then amount =3D 1 end
+-
+-	Send_Take_Object(gDragDrop.item.serial,amount)
+-	gui.bMouseBlocked =3D true
++	if (amount &gt; 1 and (not gKeyPressed[key_lshift])) then =
+
++		-- show amount bSendTakeMessage
++		gDragDrop.bWithAmountDialog =3D true
++		OpenAmountAtMouse(1,amount,amount,UODragDrop_AmountEntryCallback)
++	else
++		StartUODragDrop(amount)
++	end
+ end
+ =
+
+ -- called in all cases at the end
+@@ -424,7 +439,7 @@
+ 			Send_Drop_Object(item.serial,x,y,z,iSerial)
+ 		else
+ 			-- drop on world
+-			print(&quot;MouseUpUODragDrop: drop on world : &quot;,item.serial,item.amount,x,y=
+,z,hex2num(&quot;0xFFFFFFFF&quot;))
++			printdebug(&quot;dragdrop&quot;,&quot;MouseUpUODragDrop: drop on world : &quot;,item.serial=
+,item.amount,x,y,z,hex2num(&quot;0xFFFFFFFF&quot;))
+ 			Send_Drop_Object(item.serial,x,y,z,hex2num(&quot;0xFFFFFFFF&quot;))
+ 		end
+ 	else
+
+Modified: trunk/widgets/widget.uoedittext.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/widgets/widget.uoedittext.lua (original)
++++ trunk/widgets/widget.uoedittext.lua Tue Aug  5 19:24:46 2008
+@@ -32,7 +32,10 @@
+ function gWidgetPrototype.UOEditText:GetText ()		return self.text end -- w=
+arning ! might be an array of unicode charcodes (usually)
+ function gWidgetPrototype.UOEditText:SetText (text) self.text =3D text sel=
+f:UpdateTextDisplay() end
+ =
+
+-function gWidgetPrototype.UOEditText:UpdateTextDisplay () self.textwidget:=
+SetUOHtml(self.text) end
++function gWidgetPrototype.UOEditText:UpdateTextDisplay () =
+
++	self.textwidget:SetUOHtml(self.text) =
+
++	self:on_change_text()
++end
+ =
+
+ function gWidgetPrototype.UOEditText:RemoveLastChar		()
+ 	if (type(self.text) =3D=3D &quot;table&quot;) then
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001161.html">[Iris-commit] [IRIS] r2353 - /trunk/lua/lib.mapblock.2d.statics.lua
+</A></li>
+	<LI>Next message: <A HREF="001163.html">[Iris-commit] [IRIS] r2355 - /trunk/lua/lib.mapblock.spawner.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1162">[ date ]</a>
+              <a href="thread.html#1162">[ thread ]</a>
+              <a href="subject.html#1162">[ subject ]</a>
+              <a href="author.html#1162">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

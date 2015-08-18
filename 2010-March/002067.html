@@ -1,0 +1,184 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r3307 - in /trunk: lua/lib.bodygfx.lua lua/lib.granny.debug.lua plugins/moblist.lua scripts/luabindheader.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2010-March/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3307%20-%20in%20/trunk%3A%20lua/lib.bodygfx.lua%0A%20lua/lib.granny.debug.lua%20plugins/moblist.lua%20scripts/luabindheader.lua&In-Reply-To=%3C20100326204256.66DC47A98067%40simon%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="002066.html">
+   <LINK REL="Next"  HREF="002068.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r3307 - in /trunk: lua/lib.bodygfx.lua lua/lib.granny.debug.lua plugins/moblist.lua scripts/luabindheader.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3307%20-%20in%20/trunk%3A%20lua/lib.bodygfx.lua%0A%20lua/lib.granny.debug.lua%20plugins/moblist.lua%20scripts/luabindheader.lua&In-Reply-To=%3C20100326204256.66DC47A98067%40simon%3E"
+       TITLE="[Iris-commit] [IRIS] r3307 - in /trunk: lua/lib.bodygfx.lua lua/lib.granny.debug.lua plugins/moblist.lua scripts/luabindheader.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Fri Mar 26 21:42:56 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="002066.html">[Iris-commit] [IRIS] r3306 - in /trunk: lua/lib.granny.anim.lua lua/lib.granny.debug.lua plugins/loot.lua
+</A></li>
+        <LI>Next message: <A HREF="002068.html">[Iris-commit] [IRIS] r3308 - /trunk/lua/lib.granny.debug.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2067">[ date ]</a>
+              <a href="thread.html#2067">[ thread ]</a>
+              <a href="subject.html#2067">[ subject ]</a>
+              <a href="author.html#2067">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Fri Mar 26 21:42:56 2010
+New Revision: 3307
+
+Log:
+first anim played for lua-loaded granny, bone assignments still off by one =
+or so, luadbind for AnimationState, c++ recompile needed
+
+Modified:
+    trunk/lua/lib.bodygfx.lua
+    trunk/lua/lib.granny.debug.lua
+    trunk/plugins/moblist.lua
+    trunk/scripts/luabindheader.lua
+
+Modified: trunk/lua/lib.bodygfx.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.bodygfx.lua (original)
++++ trunk/lua/lib.bodygfx.lua Fri Mar 26 21:42:56 2010
+@@ -197,7 +197,7 @@
+     end
+     self.groupgfx:SetPosition(0,0,mount and kMountZAdd[bodyid] or 0)
+     =
+
+-    self:PartsSetAnim()
++    self:PartsSetAnim() -- todo : update returned animlen ? self.bla_animl=
+en =3D result ?
+ end
+ =
+
+ =
+
+
+Modified: trunk/lua/lib.granny.debug.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.granny.debug.lua (original)
++++ trunk/lua/lib.granny.debug.lua Fri Mar 26 21:42:56 2010
+@@ -357,6 +357,26 @@
+ 	local gfx =3D CreateRootGfx3D()
+ 	local scenenode =3D gfx:GetSceneNode()
+ 	scenenode:attachObject(entity)
++	=
+
++	=
+
++	local curanimid =3D 1
++    local animname =3D GetAnimName(bodyid,curanimid)
++	local bLoop =3D true
++	local mpAnimState
++	if (animname) then
++		mpAnimState =3D entity:getAnimationState(animname)
++		assert(mpAnimState)
++		mpAnimState:setEnabled(true)
++		mpAnimState:setLoop(bLoop)
++	end
++	=
+
++--~ /cavern/code/iris/mylugre/src/lugre_gfx3D.cpp:700:void	cGfx3D::SetAnim=
+	(const char* szAnimName,const bool bLoop) {
++--~ /cavern/code/iris/mylugre/src/lugre_gfx3D.cpp:721:void	cGfx3D::SetAnim=
+TimePos	(const Real fTimeInSeconds) { if (mpAnimState) mpAnimState-&gt;setTime=
+Position(fTimeInSeconds); }
++	RegisterStepper(function () =
+
++		local fTimeInSeconds =3D math.mod(gMyTicks/1000,10) =
+
++		--~ print(&quot;debug.granny.animstep&quot;,animname,fTimeInSeconds)
++		mpAnimState:setTimePosition(fTimeInSeconds)
++	end)
+ end
+ =
+
+ function cDebugGrannyMenu:MakeNewGranny_OldDump (artid)
+
+Modified: trunk/plugins/moblist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/plugins/moblist.lua (original)
++++ trunk/plugins/moblist.lua Fri Mar 26 21:42:56 2010
+@@ -532,7 +532,7 @@
+ -- ***** ***** ***** ***** ***** rest
+ =
+
+ function MobListGetMainTargetSerial() return gMobList and gMobList.maintar=
+get_serial end
+-function MobListSetMainTargetSerial(serial) gMobList:SetMainTarget(serial)=
+ end
+-		=
+
+-
+-end
++function MobListSetMainTargetSerial(serial) if (gMobList) then gMobList:Se=
+tMainTarget(serial) end end
++		=
+
++
++end
+
+Modified: trunk/scripts/luabindheader.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/scripts/luabindheader.lua (original)
++++ trunk/scripts/luabindheader.lua Fri Mar 26 21:42:56 2010
+@@ -31,6 +31,7 @@
+ 							{basepath..&quot;OgreEntity.h&quot;				,&quot;Entity&quot;				,{&quot;MovableObject&quot;}},
+ 							{basepath..&quot;OgreAnimationTrack.h&quot;		,&quot;AnimationTrack&quot;		,{}},
+ 							{basepath..&quot;OgreAnimationTrack.h&quot;		,&quot;NodeAnimationTrack&quot;	,{&quot;Animati=
+onTrack&quot;}},
++							{basepath..&quot;OgreAnimationState.h&quot;		,&quot;AnimationState&quot;		,{}},
+ 							=
+
+ 							{basepath..&quot;OgreKeyFrame.h&quot;				,&quot;KeyFrame&quot;				,{}},
+ 							{basepath..&quot;OgreKeyFrame.h&quot;				,&quot;NumericKeyFrame&quot;		,{&quot;KeyFrame&quot;}},
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="002066.html">[Iris-commit] [IRIS] r3306 - in /trunk: lua/lib.granny.anim.lua lua/lib.granny.debug.lua plugins/loot.lua
+</A></li>
+	<LI>Next message: <A HREF="002068.html">[Iris-commit] [IRIS] r3308 - /trunk/lua/lib.granny.debug.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2067">[ date ]</a>
+              <a href="thread.html#2067">[ thread ]</a>
+              <a href="subject.html#2067">[ subject ]</a>
+              <a href="author.html#2067">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

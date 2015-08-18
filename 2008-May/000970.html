@@ -1,0 +1,239 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2160 - in /trunk/lua: lib.2d.cam.lua lib.2d.renderer.lua lib.terrain.multitex.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-May/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2160%20-%20in%20/trunk/lua%3A%20lib.2d.cam.lua%0A%20lib.2d.renderer.lua%20lib.terrain.multitex.lua&In-Reply-To=%3C20080510153431.D0F3A1524040%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000969.html">
+   <LINK REL="Next"  HREF="000971.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2160 - in /trunk/lua: lib.2d.cam.lua lib.2d.renderer.lua lib.terrain.multitex.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2160%20-%20in%20/trunk/lua%3A%20lib.2d.cam.lua%0A%20lib.2d.renderer.lua%20lib.terrain.multitex.lua&In-Reply-To=%3C20080510153431.D0F3A1524040%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2160 - in /trunk/lua: lib.2d.cam.lua lib.2d.renderer.lua lib.terrain.multitex.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat May 10 17:34:31 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000969.html">[Iris-commit] [IRIS] r2159 - in /trunk/lua: lib.2d.cam.lua lib.2d.renderer.lua lib.terrain.multitex.lua
+</A></li>
+        <LI>Next message: <A HREF="000971.html">[Iris-commit] [IRIS] r2161 - /trunk/lua/lib.2d.cam.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#970">[ date ]</a>
+              <a href="thread.html#970">[ thread ]</a>
+              <a href="subject.html#970">[ subject ]</a>
+              <a href="author.html#970">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sat May 10 17:34:30 2008
+New Revision: 2160
+
+Log:
+2d : arrowkeys move cam around
+
+Modified:
+    trunk/lua/lib.2d.cam.lua
+    trunk/lua/lib.2d.renderer.lua
+    trunk/lua/lib.terrain.multitex.lua
+
+Modified: trunk/lua/lib.2d.cam.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.cam.lua (original)
++++ trunk/lua/lib.2d.cam.lua Sat May 10 17:34:30 2008
+@@ -12,14 +12,24 @@
+ 	pRenderSys._setWorldMatrix( 		Ogre::Matrix4::IDENTITY );
+ ]]--
+ =
+
++Renderer2D.fCamDistClipAdd =3D 300
+ =
+
+-Renderer2D.iTestZeroBX,Renderer2D.iTestZeroBY =3D 653,424
++Renderer2D.pCamTestBlocks =3D {}
+ =
+
+ function Renderer2D:CamTestBlock ()
+-	local bx,by =3D Renderer2D.iTestZeroBX,Renderer2D.iTestZeroBY
++	local xloc,yloc =3D self:GetCamPos()
++	local bx,by =3D math.floor(xloc/8 - 0.5),math.floor(yloc/8 - 0.5)
++	if (self.pCamTestBlockX =3D=3D bx and self.pCamTestBlockY =3D=3D by) then=
+ return end
++	print(&quot;CamTestBlock&quot;,bx,by)
++	=
+
++	-- moved, new block
++	self.pCamTestBlockX =3D bx
++	self.pCamTestBlockY =3D by
++	for k,v in pairs(self.pCamTestBlocks) do v:Destroy() end
++	self.pCamTestBlocks =3D {}
+ 	for ax =3D -1,1 do
+ 	for ay =3D -1,1 do
+-		local gfx =3D MakeMultiTexTerrainGfx(bx+ax,by+ay)
++		table.insert(self.pCamTestBlocks,MakeMultiTexTerrainGfx(bx+ax,by+ay))
+ 	end
+ 	end
+ end
+@@ -59,7 +69,7 @@
+ =
+
+ function Renderer2D:CamInit ()
+ =
+
+-	self:CamTestTile()
++	--~ self:CamTestTile()
+ 	=
+
+ 	self.gbNeedCorrectAspectRatio =3D true
+ 	local cam =3D GetMainCam() =
+
+@@ -87,20 +97,33 @@
+ 	local w2,x2,y2,z2 =3D Quaternion.fromAngleAxis(xang,1,0,0)	=
+
+ 	local w,x,y,z =3D Quaternion.Mul(w1,x1,y1,z1, w2,x2,y2,z2)
+ 	=
+
+-	=
+
+-	local camdist =3D self.fNearClip+300
+-	=
+
++	self.fCamDist =3D self.fNearClip + self.fCamDistClipAdd
++	self.qCamRot =3D {w,x,y,z}
+ 	cam:SetRot(w,x,y,z)
+-	local px,py,pz =3D Quaternion.ApplyToVector(0,0,camdist,w,x,y,z)
+-	--~ local bx,by =3D 653,424
+-	local bx,by =3D 0,0
+-	cam:SetPos(px+bx*8,py+by*8,pz)
++	self:SetCamPos(0,0)
++	self:SetCamPos(653*8,424*8)
++end
++
++-- returns xloc,yloc in uo coords
++function Renderer2D:GetCamPos () return self.fCamPosXLoc,self.fCamPosYLoc =
+end
++
++function Renderer2D:SetCamPos (xloc,yloc)
++	--~ print(&quot;SetCamPos&quot;,xloc,yloc,self.fCamDist)
++	self.fCamPosXLoc =3D xloc
++	self.fCamPosYLoc =3D yloc
++	local px,py,pz =3D Quaternion.ApplyToVector(0,0,self.fCamDist,unpack(self=
+.qCamRot))
++	local x,y,z =3D self:UOPosToLocal(xloc,yloc,0)
++	GetMainCam():SetPos(px+x,py+y,pz+z)
+ end
+ =
+
+ function Renderer2D:CamStep						() =
+
+ 	local curticks =3D Client_GetTicks()
+-	if (not self.blockload) then self.blockload =3D curticks end
+-	--~ if (curticks &gt; self.blockload + 1000*5) then self:CamTestBlock() self=
+.blockload =3D nil print(&quot;blockload&quot;) end
++	local xloc,yloc =3D self:GetCamPos()
++	local move =3D 4 * 8 * gSecondsSinceLastFrame
++	local dx =3D move * ((gKeyPressed[key_left] and -1 or 0) + (gKeyPressed[k=
+ey_right] and 1 or 0))
++	local dy =3D move * ((gKeyPressed[key_up] and -1 or 0) + (gKeyPressed[key=
+_down] and 1 or 0))
++	if (dx ~=3D 0 or dy ~=3D 0) then self:SetCamPos(xloc+dx,yloc+dy) end
++	self:CamTestBlock()
+ 	--~ print(&quot;Renderer2D:CamStep&quot;,math.floor(Renderer2D.gCamAngle/gfDeg2Rad))
+ 	--~ local cam =3D GetMainCam() =
+
+ 	--~ Renderer2D.gCamAngle =3D Renderer2D.gCamAngle + 0.2 * gfDeg2Rad
+
+Modified: trunk/lua/lib.2d.renderer.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.renderer.lua (original)
++++ trunk/lua/lib.2d.renderer.lua Sat May 10 17:34:30 2008
+@@ -49,7 +49,7 @@
+ -- returns ax,xloc,yloc  (ax =3D angle, constant for iso cam)
+ function Renderer2D:GetCompassInfo				() =
+
+ 	local ax =3D (180+45)*gfDeg2Rad
+-	local xloc,yloc =3D Renderer2D.iTestZeroBX*8,Renderer2D.iTestZeroBY*8 -- =
+TODO
++	local xloc,yloc =3D self:GetCamPos()
+ 	return ax,xloc,yloc
+ end
+ =
+
+@@ -79,9 +79,9 @@
+ =
+
+ =
+
+ function Renderer2D:UOPosToLocal				(xloc,yloc,z) -- needed for multitex-t=
+errain ?
+-	return	-(xloc - Renderer2D.iTestZeroBX * 8 - 4),
+-			 (yloc - Renderer2D.iTestZeroBY * 8 - 4),
+-			(z or 0)
++	return	-(xloc),
++			 (yloc),
++			 (z or 0)
+ end
+ =
+
+ function Renderer2D:InitLocalCam				(x,y,z) end -- ??? offline mode ?
+
+Modified: trunk/lua/lib.terrain.multitex.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.terrain.multitex.lua (original)
++++ trunk/lua/lib.terrain.multitex.lua Sat May 10 17:34:30 2008
+@@ -350,7 +350,7 @@
+ 	gfx.x =3D x
+ 	gfx.y =3D y
+ 	gfx.z =3D z
+-	gfx:SetPosition(x,y,z) print(&quot;MakeMultiTexTerrainGfx&quot;,x,y,z,gGroundBlockL=
+oader,bx,by,kMultiTexTerrainChunkSize)
++	gfx:SetPosition(x,y,z) -- print(&quot;MakeMultiTexTerrainGfx&quot;,x,y,z,gGroundBlo=
+ckLoader,bx,by,kMultiTexTerrainChunkSize)
+ 	Gfx3D_SetMultiTexTerrain(gfx,gGroundBlockLoader,bx,by,kMultiTexTerrainChu=
+nkSize,kMultiTexTerrainChunkSize)
+ 	gfx:SetMaterial(MultiTexTerrainGetMat())
+ 	gfx:SetCastShadows(gTerrainCastShadows)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000969.html">[Iris-commit] [IRIS] r2159 - in /trunk/lua: lib.2d.cam.lua lib.2d.renderer.lua lib.terrain.multitex.lua
+</A></li>
+	<LI>Next message: <A HREF="000971.html">[Iris-commit] [IRIS] r2161 - /trunk/lua/lib.2d.cam.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#970">[ date ]</a>
+              <a href="thread.html#970">[ thread ]</a>
+              <a href="subject.html#970">[ subject ]</a>
+              <a href="author.html#970">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

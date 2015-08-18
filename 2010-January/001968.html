@@ -1,0 +1,217 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r3208 - in /trunk/lua: gui/gui.securetrade.lua	net/net.text.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2010-January/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3208%20-%20in%20/trunk/lua%3A%20gui/gui.securetrade.lua%0A%09net/net.text.lua&In-Reply-To=%3C20100108181811.3C6AF7A9816E%40simon%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001967.html">
+   <LINK REL="Next"  HREF="001969.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r3208 - in /trunk/lua: gui/gui.securetrade.lua	net/net.text.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3208%20-%20in%20/trunk/lua%3A%20gui/gui.securetrade.lua%0A%09net/net.text.lua&In-Reply-To=%3C20100108181811.3C6AF7A9816E%40simon%3E"
+       TITLE="[Iris-commit] [IRIS] r3208 - in /trunk/lua: gui/gui.securetrade.lua	net/net.text.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Fri Jan  8 19:18:11 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001967.html">[Iris-commit] [IRIS] r3207 - /trunk/lua/lib.macrolist.lua
+</A></li>
+        <LI>Next message: <A HREF="001969.html">[Iris-commit] [IRIS] r3209 - /trunk/lua/gui/gui.securetrade.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1968">[ date ]</a>
+              <a href="thread.html#1968">[ thread ]</a>
+              <a href="subject.html#1968">[ subject ]</a>
+              <a href="author.html#1968">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Fri Jan  8 19:18:11 2010
+New Revision: 3208
+
+Log:
+secure trade for norender, text-entry hook
+
+Modified:
+    trunk/lua/gui/gui.securetrade.lua
+    trunk/lua/net/net.text.lua
+
+Modified: trunk/lua/gui/gui.securetrade.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.securetrade.lua (original)
++++ trunk/lua/gui/gui.securetrade.lua Fri Jan  8 19:18:11 2010
+@@ -44,10 +44,12 @@
+ 	=
+
+ 	local parent =3D bIsMyStuff and mysectrade.dialog.items_mine or mysectrad=
+e.dialog.items_other
+ 	for k,item in pairs(container:GetContent()) do
+-		local widget =3D parent:CreateChild(&quot;UOContainerItemWidget&quot;,{item=3Ditem=
+})
++		local widget =3D gNoRender and {item=3Ditem, Destroy=3Dfunction () end} =
+or parent:CreateChild(&quot;UOContainerItemWidget&quot;,{item=3Ditem})
+ 		item.widget =3D widget
+ 		table.insert(widgetarr,widget)
+ 	end
++	NotifyListener(&quot;Hook_TradeUpdate&quot;,mysectrade,container,bIsMyStuff)
++	gLastSecureTrade =3D mysectrade
+ end
+ =
+
+ -- triggered when anything is changed,added or removed in/from a container
+@@ -67,7 +69,6 @@
+ end
+ =
+
+ function RecvSecureTrade (sectrade) -- handles data from kPacket_SecureTra=
+de
+-	if (gNoRender) then return end
+ 	if (sectrade.action =3D=3D kSecTradeAction_Start) then
+ 		-- construct sectrade object
+ 		local mysectrade =3D {}
+@@ -82,7 +83,7 @@
+ 			mysectrade:Close()
+ 		end
+ 		mysectrade.Close =3D function (mysectrade)
+-			mysectrade.dialog:Destroy()
++			if (mysectrade.dialog) then mysectrade.dialog:Destroy() mysectrade.dial=
+og =3D nil end
+ 			gSecureTrades[mysectrade.id] =3D nil
+ 		end
+ 		=
+
+@@ -92,30 +93,42 @@
+ 		gSecureTrades[mysectrade.id] =3D mysectrade
+ =
+
+ 		-- show dialog
+-		local dialog =3D GumpParser( securetrading, true )
+-		dialog.items_mine	=3D dialog:CreateChild(&quot;Group&quot;,{x=3DkSecureTradeContai=
+nerPos_LeftX,y=3DkSecureTradeContainerPos_LeftY})
+-		dialog.items_other	=3D dialog:CreateChild(&quot;Group&quot;,{x=3DkSecureTradeConta=
+inerPos_RightX,y=3DkSecureTradeContainerPos_RightY})
++		if (gNoRender) then
++			dialog =3D { Destroy=3Dfunction ()end}
++			dialog.items_mine	=3D {}
++			dialog.items_other	=3D {}
++			mysectrade.dialog =3D dialog
++			dialog.uoSecureTrade =3D mysectrade
++		else
++			local dialog =3D GumpParser( securetrading, true )
++			dialog.items_mine	=3D dialog:CreateChild(&quot;Group&quot;,{x=3DkSecureTradeConta=
+inerPos_LeftX,y=3DkSecureTradeContainerPos_LeftY})
++			dialog.items_other	=3D dialog:CreateChild(&quot;Group&quot;,{x=3DkSecureTradeCont=
+ainerPos_RightX,y=3DkSecureTradeContainerPos_RightY})
+ =
+
+-		mysectrade.dialog =3D dialog
+-		dialog.uoSecureTrade =3D mysectrade
++			mysectrade.dialog =3D dialog
++			dialog.uoSecureTrade =3D mysectrade
+ =
+
+-		-- overwrite the onMouseDown function from gumpparser
+-		dialog.SendClose =3D function (dialog) dialog.uoSecureTrade:Cancel() end
++			-- overwrite the onMouseDown function from gumpparser
++			dialog.SendClose =3D function (dialog) dialog.uoSecureTrade:Cancel() end
+ =
+
+-		-- update gump text fields
+-		dialog:GetCtrlByName(&quot;namemy&quot;):SetUOHtml(GetPlayerName() or &quot;me&quot;)
+-		dialog:GetCtrlByName(&quot;nametheir&quot;):SetUOHtml(sectrade.name or &quot;unknown&quot;)
++			-- update gump text fields
++			dialog:GetCtrlByName(&quot;namemy&quot;):SetUOHtml(GetPlayerName() or &quot;me&quot;)
++			dialog:GetCtrlByName(&quot;nametheir&quot;):SetUOHtml(sectrade.name or &quot;unknown&quot;)
+ =
+
+-		-- create function for checkbox
+-		dialog:GetCtrlByName(&quot;cbtheir&quot;).params.bReadOnly =3D true
+-		dialog:GetCtrlByName(&quot;cbmy&quot;).on_change =3D function (widget,bState)
+-												Send_SecureTrade_ChangeAgree(widget:GetDialog().uoSecureTrade.=
+id,bState and 1 or 0)
+-										   end
++			-- create function for checkbox
++			dialog:GetCtrlByName(&quot;cbtheir&quot;).params.bReadOnly =3D true
++			dialog:GetCtrlByName(&quot;cbmy&quot;).on_change =3D function (widget,bState)
++													Send_SecureTrade_ChangeAgree(widget:GetDialog().uoSecureTrade=
+.id,bState and 1 or 0)
++											   end
++		end
+ =
+
+ 		SecureTradeRebuildContainers(mysectrade)
++		NotifyListener(&quot;Hook_TradeStart&quot;,mysectrade)
++		gLastSecureTrade =3D mysectrade
+ 	elseif (sectrade.action =3D=3D kSecTradeAction_Cancel) then
+ 		local mysectrade =3D gSecureTrades[sectrade.serial1]
+ 		if (mysectrade) then mysectrade:Close() end
++		NotifyListener(&quot;Hook_TradeCancel&quot;,mysectrade)
++		gLastSecureTrade =3D mysectrade
+ 	elseif (sectrade.action =3D=3D kSecTradeAction_ChangeCheck) then
+ 		local mysectrade =3D gSecureTrades[sectrade.serial1]
+ 		if (mysectrade) then =
+
+@@ -130,5 +143,7 @@
+ 				mysectrade.dialog:GetCtrlByName(&quot;cbtheir&quot;):SetState(theirOK)
+ 			end
+ 		end
++		NotifyListener(&quot;Hook_TradeChangeCheckbox&quot;,mysectrade, myOK, theirOK)
++		gLastSecureTrade =3D mysectrade
+ 	end
+ end
+
+Modified: trunk/lua/net/net.text.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.text.lua (original)
++++ trunk/lua/net/net.text.lua Fri Jan  8 19:18:11 2010
+@@ -408,6 +408,7 @@
+ 	size =3D size - 11
+ 	input:PopRaw(size) -- 10 zero-bytes usually
+ 	print(&quot;kPacket_Unicode_Text_Entry request&quot;)
++	NotifyListener(&quot;Hook_Unicode_Text_Entry&quot;,gUnicodeTextEntryRequest)
+ end
+ =
+
+ =
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001967.html">[Iris-commit] [IRIS] r3207 - /trunk/lua/lib.macrolist.lua
+</A></li>
+	<LI>Next message: <A HREF="001969.html">[Iris-commit] [IRIS] r3209 - /trunk/lua/gui/gui.securetrade.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1968">[ date ]</a>
+              <a href="thread.html#1968">[ thread ]</a>
+              <a href="subject.html#1968">[ subject ]</a>
+              <a href="author.html#1968">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

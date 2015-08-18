@@ -1,0 +1,305 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1306 - in /trunk: data/lua/lib.3d.renderer.lua data/lua/lib.time.lua include/gfx3D.h src/gfx3D.cpp src/gfx3D_L.cpp
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2007-July/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1306%20-%20in%20/trunk%3A%0A%20data/lua/lib.3d.renderer.lua%20data/lua/lib.time.lua%20include/gfx3D.h%0A%20src/gfx3D.cpp%20src/gfx3D_L.cpp&In-Reply-To=%3C20070728193627.1EEA7B140B4%40localhost.localdomain%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000120.html">
+   <LINK REL="Next"  HREF="000123.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1306 - in /trunk: data/lua/lib.3d.renderer.lua data/lua/lib.time.lua include/gfx3D.h src/gfx3D.cpp src/gfx3D_L.cpp</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1306%20-%20in%20/trunk%3A%0A%20data/lua/lib.3d.renderer.lua%20data/lua/lib.time.lua%20include/gfx3D.h%0A%20src/gfx3D.cpp%20src/gfx3D_L.cpp&In-Reply-To=%3C20070728193627.1EEA7B140B4%40localhost.localdomain%3E"
+       TITLE="[Iris-commit] [IRIS] r1306 - in /trunk: data/lua/lib.3d.renderer.lua data/lua/lib.time.lua include/gfx3D.h src/gfx3D.cpp src/gfx3D_L.cpp">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat Jul 28 21:36:26 CEST 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000120.html">[Iris-commit] [IRIS] r1305 - /branches/stable_release/
+</A></li>
+        <LI>Next message: <A HREF="000123.html">[Iris-commit] [IRIS] r1307 - /trunk/data/config.lua.dist
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#122">[ date ]</a>
+              <a href="thread.html#122">[ thread ]</a>
+              <a href="subject.html#122">[ subject ]</a>
+              <a href="author.html#122">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: hagish
+Date: Sat Jul 28 21:36:25 2007
+New Revision: 1306
+
+Log:
+added effect kill-on-timeout
+
+Modified:
+    trunk/data/lua/lib.3d.renderer.lua
+    trunk/data/lua/lib.time.lua
+    trunk/include/gfx3D.h
+    trunk/src/gfx3D.cpp
+    trunk/src/gfx3D_L.cpp
+
+Modified: trunk/data/lua/lib.3d.renderer.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.3d.renderer.lua (original)
++++ trunk/data/lua/lib.3d.renderer.lua Sat Jul 28 21:36:25 2007
+@@ -124,6 +124,8 @@
+ ConsecrateWeapon2=3D 9501	--???
+ --Fizzels		=3D hex2num(&quot;0x3735&quot;)
+ =
+
++-- effects can have a ttl (time-to-live, effect.ttl in milliseconds, defau=
+lt is gParticleEffectDefualtTTL in ms)
++gParticleEffectDefualtTTL =3D 10 * 1000
+ gParticleEffects =3D {}
+ gParticleEffects[StandardEffect]=3D { etype=3D0, name=3D&quot;bluering&quot;, relx=
+=3D0.5, rely=3D0.5, relz=3D0.1, scalex=3D1, scaley=3D1, scalez=3D1 }
+ gParticleEffects[Fireball]		=3D { etype=3D0, name=3D&quot;Large Fireball&quot;, relx=
+=3D0.5, rely=3D0.5, relz=3D1, scalex=3D0.2, scaley=3D0.2, scalez=3D0.2}
+@@ -146,15 +148,13 @@
+ =
+
+ -- TODO: manage particle effects, esp. huedfx, decide between effecttypes
+ function Renderer3D:AddEffect( effect )
+-	if (gParticleEffects[effect.itemid]) then
+-		Renderer3D:AddParticleEffect( effect, gParticleEffects[effect.itemid].na=
+me,
+-								gParticleEffects[effect.itemid].relx, gParticleEffects[effect.item=
+id].rely, gParticleEffects[effect.itemid].relz,
+-								gParticleEffects[effect.itemid].scalex, gParticleEffects[effect.it=
+emid].scaley, gParticleEffects[effect.itemid].scalez)
+-	else
+-		Renderer3D:AddParticleEffect( effect, gParticleEffects[StandardEffect].n=
+ame,
+-								gParticleEffects[StandardEffect].relx, gParticleEffects[StandardEf=
+fect].rely, gParticleEffects[StandardEffect].relz,
+-								gParticleEffects[StandardEffect].scalex, gParticleEffects[Standard=
+Effect].scaley, gParticleEffects[StandardEffect].scalez)
+-	end
++	local id =3D StandardEffect
++	=
+
++	if (gParticleEffects[effect.itemid]) then id =3D effect.itemid end
++	=
+
++	Renderer3D:AddParticleEffect( effect, gParticleEffects[effect.itemid].nam=
+e,
++							gParticleEffects[effect.itemid].relx, gParticleEffects[effect.itemi=
+d].rely, gParticleEffects[effect.itemid].relz,
++							gParticleEffects[effect.itemid].scalex, gParticleEffects[effect.ite=
+mid].scaley, gParticleEffects[effect.itemid].scalez)
+ end
+ =
+
+ --gHued_FX =3D {}
+@@ -191,11 +191,20 @@
+ =
+
+ -- TODO : check particle before
+ function Renderer3D:AddParticleEffect( effect, particlename, relx, rely, r=
+elz, scalex, scaley, scalez)
++	printdebug(&quot;effect&quot;,&quot;AddParticleEffect&quot;)
+ 	effect.gfx=3DCreateRootGfx3D()
+ 	effect.gfx:SetParticleSystem(particlename)
+ 	effect.gfx:SetPosition(self:UOPosToLocal(effect.source_locx + relx,effect=
+.source_locy + rely,effect.source_locz * 0.1 + relz))
+ 	effect.gfx:SetScale( scalex or 1, scaley or 1, scalez or 1)
+ --	effect.gfx:SetNormaliseNormals(true)
++
++	--RegisterListener(&quot;Hook_MainStep&quot;,function(ticks) =
+
++	InvokeLater(effect.ttl or gParticleEffectDefualtTTL, function ()
++		-- destroy effect
++		printdebug(&quot;effect&quot;,&quot;destroy effect&quot;)
++		effect.gfx:Destroy()
++		effect =3D nil
++	end)
+ end
+ =
+
+ --###############################
+@@ -606,6 +615,8 @@
+ 	-- Detect Multis
+ 	if item.artid &gt;=3D gMulti_ID then
+ 		-- Check if Serverside Multi (Custom Multi)
++		print(&quot;-----------------------------&quot;)
++		print(&quot;ARTID&quot;,item.artid,vardump(item))
+ 		if (item.lTile) then
+ 			printdebug(&quot;multi&quot;,&quot;Serverside Multi detected&quot;)
+ 			local rootgfx =3D CreateRootGfx3D()
+@@ -648,7 +659,7 @@
+ 				local blocknum,xloc,yloc,zloc,flags
+ 				blocknum,xloc,yloc,zloc,flags =3D gMultiLoader:GetMultiParts(id,p)
+ 				=
+
+-				--printdebug(&quot;multi&quot;,&quot;part&quot;,p,&quot;:&quot;,blocknum,x,y,z,flags)
++				--printdebug(&quot;multi&quot;,&quot;part&quot;,p,&quot;:&quot;,blocknum,xloc,yloc,zloc,flags)
+ 				=
+
+ 				-- skip invisible parts
+ 				if flags =3D=3D 1 then
+@@ -679,6 +690,9 @@
+ 			for k,v in pairs(item.lMultiChildGfx) do item.gfx:SetOrientation(GetSta=
+ticMeshOrientation(v.artid)) end
+ =
+
+ 			self:UpdateDynamicItemPos(item)
++
++			print(&quot;+++++++++++++++++++++++++&quot;)
++			print(&quot;ITEM&quot;,vardump(item))
+ 		else =
+
+ 			printdebug(&quot;missing&quot;,sprintf(&quot;Renderer3D:CreateDynamicGfx: failed loadi=
+ng mesh for dynamic (multi): artid=3D%i z_typename=3D%s\n&quot;,item.artid or -1=
+,item.z_typename or &quot;&quot;))
+ 		end
+@@ -768,6 +782,7 @@
+ =
+
+ -- handle child destroy of Multis
+ function Renderer3D:DestroyDynamicGfx (dynamic)
++	-- print(&quot;DEBUG&quot;,&quot;destroy&quot;,vardump(dynamic))
+ 	if (dynamic.gfx) then
+ 		if (dynamic.lMultiChildGfx) then
+ 			for k,child in pairs(dynamic.lMultiChildGfx) do child:Destroy() end
+
+Modified: trunk/data/lua/lib.time.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.time.lua (original)
++++ trunk/data/lua/lib.time.lua Sat Jul 28 21:36:25 2007
+@@ -53,3 +53,13 @@
+ function RegisterStepper (fun,param) =
+
+ 	table.insert(gTimerEveryFrame_New,{fun,param})
+ end
++
++-- calls the function fun after timout ms
++function InvokeLater	(timeout, fun)
++	RegisterStepper(function(starttime)
++		if starttime + timeout &lt; gMyTicks then
++			fun()
++			return true
++		end
++	end, gMyTicks)
++end
+
+Modified: trunk/include/gfx3D.h
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/include/gfx3D.h (original)
++++ trunk/include/gfx3D.h Sat Jul 28 21:36:25 2007
+@@ -84,6 +84,7 @@
+ 	void	SetPrepareFrameStep	(const bool bOn);
+ 	=
+
+ 	void	SetParticleSystem	(const char* szTemplateName);
++	const unsigned int	GetNumParticles	();
+ 	void	SetMesh				(const char* szMeshName);
+ 	void	SetAnim				(const char* szAnimName,const bool bLoop);
+ 	Real	GetAnimLength		(const char* szAnimName);
+
+Modified: trunk/src/gfx3D.cpp
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/src/gfx3D.cpp (original)
++++ trunk/src/gfx3D.cpp Sat Jul 28 21:36:25 2007
+@@ -394,6 +394,13 @@
+ 	if (mpParticleSystem) Clear();
+ 	mpParticleSystem =3D cOgreWrapper::GetSingleton().mSceneMgr-&gt;createPartic=
+leSystem(cOgreWrapper::GetSingleton().GetUniqueName(),szTemplateName);
+ 	AttachObject(mpParticleSystem);
++}
++
++const unsigned int	cGfx3D::GetNumParticles	()	{ PROFILE
++	if (!mpSceneNode) return 0;
++	if (!mpParticleSystem) return 0;
++	=
+
++	return mpParticleSystem-&gt;getNumParticles();
+ }
+ =
+
+ =
+
+
+Modified: trunk/src/gfx3D_L.cpp
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/src/gfx3D_L.cpp (original)
++++ trunk/src/gfx3D_L.cpp Sat Jul 28 21:36:25 2007
+@@ -85,9 +85,11 @@
+ 			REGISTER_METHOD(SetCastShadows);
+ 			=
+
+ 			REGISTER_METHOD(SetParticleSystem);
++			REGISTER_METHOD(SetParticleSystem);
+ 			REGISTER_METHOD(ParticleSystem_FastForward);
+ 			REGISTER_METHOD(ParticleSystem_SetNonVisibleUpdateTimeout);
+ 			REGISTER_METHOD(ParticleSystem_SetSpeedFactor);
++			REGISTER_METHOD(ParticleSystem_GetNumParticles);
+ 			=
+
+ 			REGISTER_METHOD(SetForcePosCam);
+ 			REGISTER_METHOD(SetForceRotCam);
+@@ -391,6 +393,12 @@
+ 			Ogre::ParticleSystem* target =3D checkudata_alive(L)-&gt;mpParticleSystem;
+ 			if (target) target-&gt;setSpeedFactor(luaL_checknumber(L, 2));
+ 			return 0;
++		}
++		=
+
++		/// int			ParticleSystem_GetNumParticles			()
++		static int		ParticleSystem_GetNumParticles			(lua_State *L) { PROFILE
++			lua_pushnumber(L,checkudata_alive(L)-&gt;GetNumParticles());
++			return 1;
+ 		}
+ 		=
+
+ 		/// void		SetMesh			(udata_obj obj, string meshname=3D&quot;razor.mesh&quot;)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000120.html">[Iris-commit] [IRIS] r1305 - /branches/stable_release/
+</A></li>
+	<LI>Next message: <A HREF="000123.html">[Iris-commit] [IRIS] r1307 - /trunk/data/config.lua.dist
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#122">[ date ]</a>
+              <a href="thread.html#122">[ thread ]</a>
+              <a href="subject.html#122">[ subject ]</a>
+              <a href="author.html#122">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

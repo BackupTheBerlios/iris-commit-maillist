@@ -1,0 +1,275 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2554 - in /trunk: lua/lib.spellbooks.lua	plugins/lib.spellbar.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-October/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2554%20-%20in%20/trunk%3A%20lua/lib.spellbooks.lua%0A%09plugins/lib.spellbar.lua&In-Reply-To=%3C20081012141646.B56C51C187C4%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001358.html">
+   <LINK REL="Next"  HREF="001360.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2554 - in /trunk: lua/lib.spellbooks.lua	plugins/lib.spellbar.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2554%20-%20in%20/trunk%3A%20lua/lib.spellbooks.lua%0A%09plugins/lib.spellbar.lua&In-Reply-To=%3C20081012141646.B56C51C187C4%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2554 - in /trunk: lua/lib.spellbooks.lua	plugins/lib.spellbar.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sun Oct 12 16:16:46 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001358.html">[Iris-commit] [IRIS] r2553 - /trunk/lua/gui/gui.skill.lua
+</A></li>
+        <LI>Next message: <A HREF="001360.html">[Iris-commit] [IRIS] r2555 - /trunk/plugins/lib.spellbar.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1359">[ date ]</a>
+              <a href="thread.html#1359">[ thread ]</a>
+              <a href="subject.html#1359">[ subject ]</a>
+              <a href="author.html#1359">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sun Oct 12 16:16:46 2008
+New Revision: 2554
+
+Log:
+spellbar and a few casttime fixes
+
+Modified:
+    trunk/lua/lib.spellbooks.lua
+    trunk/plugins/lib.spellbar.lua
+
+Modified: trunk/lua/lib.spellbooks.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.spellbooks.lua (original)
++++ trunk/lua/lib.spellbooks.lua Sun Oct 12 16:16:46 2008
+@@ -387,6 +387,7 @@
+ =
+
+ -- returns time in milliseconds, you should  add about 150 msec latency
+ -- bProtectionBuffActive : see IsBuffActive_Protection() IsBuffActive_Esse=
+nceOfWind()
++-- see also RunUO-2.0-SVN/Scripts/Spells/Base/Spell.cs:647:	public virtual=
+ TimeSpan GetCastDelay()
+ function GetSpellCastTime (spellid,fc,bBuffActive_Protection,bBuffActive_E=
+ssenceOfWind)
+ 	--~ TODO : fcmax =3D 2 ,   (castskill=3Dchiv&amp;&amp;magery&lt;70):fcmax=3D4
+ 	--~ TODO : if( EssenceOfWindSpell.IsDebuffed( m_Caster ) ) fc -=3D Essenc=
+eOfWindSpell.GetFCMalus( m_Caster );
+@@ -395,8 +396,11 @@
+ 	local castDelayBase			=3D GetSpell_CastDelayBase(spellid)
+ 	local castDelayFastScalar	=3D GetSpell_CastDelayFastScalar(spellid)
+ 	local castDelayMinimum		=3D GetSpell_CastDelayMinimum(spellid)
++	local castDelay				=3D 1000 * max(castDelayBase - (castDelayFastScalar * =
+fc * kCastDelaySecondsPerTick),castDelayMinimum)
+ 	--~ print(&quot;GetSpellCastTime&quot;,spellid,fc,bBuffActive_Protection,castDelayB=
+ase,castDelayFastScalar,castDelayMinimum)
+-	return 1000 * max(castDelayBase - (castDelayFastScalar * fc * kCastDelayS=
+econdsPerTick),castDelayMinimum);
++	if (spellid =3D=3D 33) then return castDelay*3 end -- RunUO-2.0-SVN/Scrip=
+ts/Spells/Fifth/BladeSpirits.cs:29:	return TimeSpan.FromTicks( base.GetCast=
+Delay().Ticks * ((Core.SE) ? 3 : 5) );
++	if (spellid =3D=3D 40) then return castDelay*5 end -- RunUO-2.0-SVN/Scrip=
+ts/Spells/Fifth/SummonCreature.cs:86:	return TimeSpan.FromTicks( base.GetCa=
+stDelay().Ticks * 5 );
++	return castDelay
+ end
+ =
+
+ gMagerySpellMana =3D { 4, 6, 9, 11, 14, 20, 40, 50 }
+
+Modified: trunk/plugins/lib.spellbar.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/plugins/lib.spellbar.lua (original)
++++ trunk/plugins/lib.spellbar.lua Sun Oct 12 16:16:46 2008
+@@ -38,7 +38,7 @@
+ end)
+ =
+
+ RegisterListener(&quot;Hook_HUDStep&quot;,function ()
+-	=
+
++	SpellBarStep()
+ end)
+ =
+
+ RegisterListener(&quot;Hook_TargetMode_Start&quot;,function () =
+
+@@ -48,8 +48,9 @@
+ 		local spellid =3D gSpellBarLastSpellSendID
+ 		--~ print(&quot;spellbar : timediff&quot;,dt,&quot;C:&quot;..GetSpellCircleByID(spellid),Get=
+SpellNameByID(spellid))
+ 		--~ local r,g,b =3D 0.5,0.5,0.5
+-		--~ SpellBarRiseTextOnMob(GetPlayerSerial(),&quot;t:&quot;..dt,r,g,b)
++		--~ SpellBarRiseTextOnMob(GetPlayerSerial(),r,g,b,&quot;t:&quot;..dt)
+ 		gSpellBarLastSpellSendTime =3D nil
++		SpellBarTargetCursor()
+ 	end
+ end)
+ =
+
+@@ -63,10 +64,66 @@
+ 	local equipprop		=3D GetSpellBarEquipProps()
+ 	local casttime		=3D GetSpellCastTime(spellid,equipprop.fc,IsBuffActive_Pr=
+otection(),IsBuffActive_EssenceOfWind()) + kSpellTimeLatency
+ 	print(&quot;spellbar:Hook_SendSpell&quot;,spellid,spellname,spellcircle,casttime,Sm=
+artDump(equipprop))
+-	SpellBarRiseTextOnMob(GetPlayerSerial(),sprintf(&quot;%s(%d,%d)%s&quot;,spellname,s=
+pellcircle,spellid,IsMageSpell(spellid) and &quot;mage&quot; or &quot;&quot;),1,1,1) =
+
++	SpellBarRiseTextOnMob(GetPlayerSerial(),1,1,1,spellname)
++	SpellBarStart(casttime)	=
+
++	--~ SpellBarRiseTextOnMob(GetPlayerSerial(),1,1,1,sprintf(&quot;%s(%d,%d)%s&quot;,s=
+pellname,spellcircle,spellid,IsMageSpell(spellid) and &quot;mage&quot; or &quot;&quot;)) =
+
+ end)
+ =
+
+-function SpellBarRiseTextOnMob (serial,text,r,g,b)
++
++
++function SpellBarEnd ()
++	if (gSpellBarGfx) then gSpellBarGfx:Destroy() gSpellBarGfx =3D nil end
++end
++function SpellBarStart (casttime)
++	if (gCurrentRenderer ~=3D Renderer2D) then return end
++	SpellBarEnd()
++	local t =3D Client_GetTicks()
++	local gfx	=3D gRootWidget.hudfx:CreateChild(&quot;Group&quot;)
++	gfx.mob		=3D GetPlayerMobile()
++	gfx.zadd	=3D 10 -- above head
++	gfx.startt	=3D t
++	gfx.endt	=3D t + casttime
++	gfx.dur		=3D casttime
++	gfx.maxw	=3D 100
++	gfx.h		=3D 10
++	local w,h	=3D gfx.maxw,gfx.h
++	local paramb =3D MakeSpritePanelParam_BorderPartMatrix(GetPlainTextureGUI=
+Mat(&quot;simplebutton.png&quot;),w,h, 0,0, 0,0, 4,8,4, 4,8,4, 32,32, 1,1, false, fal=
+se)
++	local paramf =3D MakeSpritePanelParam_BorderPartMatrix(GetPlainTextureGUI=
+Mat(&quot;simplebutton.png&quot;),0,h, 0,0, 0,0, 4,8,4, 4,8,4, 32,32, 1,1, false, fal=
+se)
++	local gray	=3D 0.2
++	paramb.r =3D gray
++	paramb.g =3D gray
++	paramb.b =3D gray
++	=
+
++	gfx.border	=3D gfx:CreateChild(&quot;Image&quot;,{gfxparam_init=3Dparamb})
++	gfx.fill	=3D gfx:CreateChild(&quot;Image&quot;,{gfxparam_init=3Dparamf})
++	gSpellBarGfx =3D gfx
++end
++function SpellBarStep ()
++	if (gCurrentRenderer ~=3D Renderer2D) then return end
++	local gfx =3D gSpellBarGfx
++	if (not gfx) then return end
++	=
+
++	-- position above mob
++	local mobile =3D gfx.mob
++	local px,py =3D gCurrentRenderer:UOPosToPixelPos(mobile.xloc,mobile.yloc,=
+mobile.zloc+gfx.zadd)
++	if (px) then gfx:SetPos(px,py) end
++	=
+
++	-- calc time and width
++	local t =3D Client_GetTicks()
++	local ft =3D (t - gfx.startt) / gfx.dur
++	if (ft &gt; 1) then SpellBarEnd() return end
++	ft =3D max(0,min(1,ft))
++	local w =3D ft * gfx.maxw
++	gfx.fill:SetSize(w,gfx.h)
++end
++function SpellBarInterrupt ()
++	SpellBarEnd()
++end
++function SpellBarTargetCursor ()
++	SpellBarEnd()
++end
++
++function SpellBarRiseTextOnMob (serial,r,g,b,text)
+ 	if (gCurrentRenderer ~=3D Renderer2D) then return end
+ 	Renderer2D:HUDFX_AddRisingTextOnMob(GetMobile(serial),text,r,g,b) -- see =
+2d.hudfx.lua
+ end
+@@ -80,16 +137,16 @@
+ RegisterListener(&quot;Hook_Packet_Text&quot;,			function (serial,plaintext) =
+
+ 	--~ print(&quot;Hook_Packet_Text&quot;,serial,plaintext) =
+
+ end)
++
+ RegisterListener(&quot;Hook_Packet_Localized_Text&quot;,	function (serial,plaintext,=
+text_messagenum) =
+
+ 	local r,g,b =3D 1,0,0 -- red
+-	if (text_messagenum =3D=3D kSpellBar_Msg_AlreadyCasting		) then SpellBarR=
+iseTextOnMob(GetPlayerSerial(),&quot;already casting&quot;		,r,g,b) end
+-	if (text_messagenum =3D=3D kSpellBar_Msg_Fizzle				) then SpellBarRiseTex=
+tOnMob(GetPlayerSerial(),&quot;fizzle&quot;					,r,g,b) end
+-	if (text_messagenum =3D=3D kSpellBar_Msg_Disturbed			) then SpellBarRiseT=
+extOnMob(GetPlayerSerial(),&quot;disturbed&quot;				,r,g,b) end
+-	if (text_messagenum =3D=3D kSpellBar_Msg_NoMana				) then SpellBarRiseTex=
+tOnMob(GetPlayerSerial(),&quot;no mana&quot;				,r,g,b) end
+-	if (text_messagenum =3D=3D kSpellBar_Msg_TooManyFollowers	) then SpellBar=
+RiseTextOnMob(GetPlayerSerial(),&quot;too many followers&quot;		,r,g,b) end
++	if (text_messagenum =3D=3D kSpellBar_Msg_AlreadyCasting		) then SpellBarR=
+iseTextOnMob(GetPlayerSerial(),r,g,b,&quot;already casting&quot;		) end
++	if (text_messagenum =3D=3D kSpellBar_Msg_Fizzle				) then SpellBarRiseTex=
+tOnMob(GetPlayerSerial(),r,g,b,&quot;fizzle&quot;				) SpellBarInterrupt() end
++	if (text_messagenum =3D=3D kSpellBar_Msg_Disturbed			) then SpellBarRiseT=
+extOnMob(GetPlayerSerial(),r,g,b,&quot;disturbed&quot;			) SpellBarInterrupt() end
++	if (text_messagenum =3D=3D kSpellBar_Msg_NoMana				) then SpellBarRiseTex=
+tOnMob(GetPlayerSerial(),r,g,b,&quot;no mana&quot;				) SpellBarInterrupt() end
++	if (text_messagenum =3D=3D kSpellBar_Msg_TooManyFollowers	) then SpellBar=
+RiseTextOnMob(GetPlayerSerial(),r,g,b,&quot;too many followers&quot;	) SpellBarInterr=
+upt() end
+ 	--~ print(&quot;Hook_Packet_Localized_Text&quot;,serial,plaintext,text_messagenum) =
+
+ end)
+-
+ =
+
+ 	=
+
+ --[[
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001358.html">[Iris-commit] [IRIS] r2553 - /trunk/lua/gui/gui.skill.lua
+</A></li>
+	<LI>Next message: <A HREF="001360.html">[Iris-commit] [IRIS] r2555 - /trunk/plugins/lib.spellbar.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1359">[ date ]</a>
+              <a href="thread.html#1359">[ thread ]</a>
+              <a href="subject.html#1359">[ subject ]</a>
+              <a href="author.html#1359">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,160 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1628 - in /trunk/data: config.lua.dist	lua/lib.tilefreewalk.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2007-December/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1628%20-%20in%20/trunk/data%3A%20config.lua.dist%0A%09lua/lib.tilefreewalk.lua&In-Reply-To=%3C20071213220254.68F151C184AA%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000443.html">
+   <LINK REL="Next"  HREF="000445.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1628 - in /trunk/data: config.lua.dist	lua/lib.tilefreewalk.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1628%20-%20in%20/trunk/data%3A%20config.lua.dist%0A%09lua/lib.tilefreewalk.lua&In-Reply-To=%3C20071213220254.68F151C184AA%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1628 - in /trunk/data: config.lua.dist	lua/lib.tilefreewalk.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Thu Dec 13 23:02:53 CET 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000443.html">[Iris-commit] [IRIS] r1627 - in /trunk: bin/resources.cfg data/custom/charactermodels/ data/custom/charoverride.lua data/lua/lib.bodygfx.lua data/lua/lib.granny.lua data/lua/main.lua include/builder.h mapinfo.php src/builder.cpp src/data_L.cpp
+</A></li>
+        <LI>Next message: <A HREF="000445.html">[Iris-commit] [IRIS] r1629 - in /trunk: bin/resources.cfg data/custom/charactermodels/ data/custom/charoverride.lua data/grannys/charoverride.lua data/grannys/models/ data/lua/lib.bodygfx.lua data/lua/net/net.login.lua data/skippedfallbacks.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#444">[ date ]</a>
+              <a href="thread.html#444">[ thread ]</a>
+              <a href="subject.html#444">[ subject ]</a>
+              <a href="author.html#444">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Thu Dec 13 23:02:53 2007
+New Revision: 1628
+
+Log:
+debug grid added
+
+Modified:
+    trunk/data/config.lua.dist
+    trunk/data/lua/lib.tilefreewalk.lua
+
+Modified: trunk/data/config.lua.dist
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/config.lua.dist (original)
++++ trunk/data/config.lua.dist Thu Dec 13 23:02:53 2007
+@@ -17,6 +17,8 @@
+ -- gUOPath =3D &quot;/some/where/uo/&quot;  -- example for linux
+ -- gUOPath =3D &quot;C:\\Programme\\EA Games\\Ultima Online\\&quot; -- example for w=
+in
+ -- gUOPath =3D &quot;c:/programme/uo/&quot;  -- example for win
++
++gDebugTerrainGrid =3D false
+ =
+
+ -- Speech support
+ gSpeechSupport =3D true
+
+Modified: trunk/data/lua/lib.tilefreewalk.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.tilefreewalk.lua (original)
++++ trunk/data/lua/lib.tilefreewalk.lua Thu Dec 13 23:02:53 2007
+@@ -21,6 +21,41 @@
+ gTileFreePlayerRad =3D 0.2 -- radius of player/human
+ gTileFreeDebugWallH =3D 0.7
+ kStuckCheckDuration =3D 4000
++
++-- ##### ##### ##### ##### ##### init
++
++function UpdateDebugTerrainGrid (rx,ry,rz)
++	if (not gDebugTerrainGrid) then return end
++	if (gDebugTerrainGridGfx) then  gDebugTerrainGridGfx:Destroy() end
++	local gfx =3D CreateRootGfx3D()
++	gDebugTerrainGridGfx =3D gfx
++	gfx:SetSimpleRenderable()
++	=
+
++	rx =3D rx + 0.5
++	ry =3D ry + 0.5
++	local h =3D 0.5
++	local minx,maxx =3D -4,4
++	local miny,maxy =3D -4,4
++	local wallpieces =3D (maxx-minx+1) + (maxy-miny+1)
++	local r,g,b,a =3D 0,1,0,0.5
++	=
+
++	gfx:RenderableBegin(4*2*wallpieces,6*2*wallpieces,false,false,OT_TRIANGLE=
+_LIST)
++	local vc =3D 0
++	for x =3D minx,maxx do
++		local x1,y1,z1 =3D rx+x,ry+miny,rz
++		local x2,y2,z2 =3D rx+x,ry+maxy,rz
++		vc =3D DrawQuad(gfx,vc, x1,y1,z1, x2,y2,z2, x1,y1,z1+h, x2,y2,z2+h, 0,0,=
+ 1,0, 0,1, 1,1)
++		vc =3D DrawQuad(gfx,vc, x1,y1,z1+h, x2,y2,z2+h, x1,y1,z1, x2,y2,z2, 0,0,=
+ 1,0, 0,1, 1,1)
++	end
++	for y =3D miny,maxy do
++		local x1,y1,z1 =3D rx+minx,ry+y,rz
++		local x2,y2,z2 =3D rx+maxx,ry+y,rz
++		vc =3D DrawQuad(gfx,vc, x1,y1,z1, x2,y2,z2, x1,y1,z1+h, x2,y2,z2+h, 0,0,=
+ 1,0, 0,1, 1,1)
++		vc =3D DrawQuad(gfx,vc, x1,y1,z1+h, x2,y2,z2+h, x1,y1,z1, x2,y2,z2, 0,0,=
+ 1,0, 0,1, 1,1)
++	end
++	gfx:RenderableEnd()
++	gfx:SetMaterial(GetPlainColourMat(r,g,b,a))
++end
+ =
+
+ -- ##### ##### ##### ##### ##### init
+ =
+
+@@ -247,6 +282,7 @@
+ 		self.lastscanx =3D rx
+ 		self.lastscany =3D ry
+ 		self.bSkipWalkStep =3D false
++		UpdateDebugTerrainGrid(rx,ry,rz)
+ 		=
+
+ 		self:DebugMarkerGroup_Clear(&quot;nearground&quot;)
+ 		function GetGround (x,y) local z =3D self.groundcache[x..&quot;,&quot;..y] return =
+z end --  print(&quot;GetGround&quot;,x,y,z,rx,ry)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000443.html">[Iris-commit] [IRIS] r1627 - in /trunk: bin/resources.cfg data/custom/charactermodels/ data/custom/charoverride.lua data/lua/lib.bodygfx.lua data/lua/lib.granny.lua data/lua/main.lua include/builder.h mapinfo.php src/builder.cpp src/data_L.cpp
+</A></li>
+	<LI>Next message: <A HREF="000445.html">[Iris-commit] [IRIS] r1629 - in /trunk: bin/resources.cfg data/custom/charactermodels/ data/custom/charoverride.lua data/grannys/charoverride.lua data/grannys/models/ data/lua/lib.bodygfx.lua data/lua/net/net.login.lua data/skippedfallbacks.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#444">[ date ]</a>
+              <a href="thread.html#444">[ thread ]</a>
+              <a href="subject.html#444">[ subject ]</a>
+              <a href="author.html#444">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

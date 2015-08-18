@@ -1,0 +1,171 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1603 - /trunk/data/lua/net/net.buff.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2007-December/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1603%20-%20/trunk/data/lua/net/net.buff.lua&In-Reply-To=%3C20071203223429.AC5F31524004%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000418.html">
+   <LINK REL="Next"  HREF="000420.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1603 - /trunk/data/lua/net/net.buff.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1603%20-%20/trunk/data/lua/net/net.buff.lua&In-Reply-To=%3C20071203223429.AC5F31524004%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1603 - /trunk/data/lua/net/net.buff.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Mon Dec  3 23:34:24 CET 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000418.html">[Iris-commit] [IRIS] r1602 - /trunk/data/lua/net/net.buff.lua
+</A></li>
+        <LI>Next message: <A HREF="000420.html">[Iris-commit] [IRIS] r1604 - in /trunk: bin/ data/ data/base/ data/grannys/ data/grannys/materials/ data/grannys/programs/ data/grannys/textures/ data/lua/ data/models/materials/ data/terrain/materials/
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#419">[ date ]</a>
+              <a href="thread.html#419">[ thread ]</a>
+              <a href="subject.html#419">[ subject ]</a>
+              <a href="author.html#419">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: sience
+Date: Mon Dec  3 23:34:23 2007
+New Revision: 1603
+
+Log:
+-buff runuo2 code added
+
+Modified:
+    trunk/data/lua/net/net.buff.lua
+
+Modified: trunk/data/lua/net/net.buff.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/net/net.buff.lua (original)
++++ trunk/data/lua/net/net.buff.lua Mon Dec  3 23:34:23 2007
+@@ -29,6 +29,81 @@
+ BYTE[2] 0x00 01			-EndIf Arguments Mode
+ =
+
+ BYTE[2] 0x00 00			-EndIf Type
++
++
++--RUNUO2 code
++		public AddBuffPacket( Mobile m, BuffInfo info )
++			: this( m, info.ID, info.TitleCliloc, info.SecondaryCliloc, info.Args, =
+(info.TimeStart !=3D DateTime.MinValue) ? ((info.TimeStart + info.TimeLengt=
+h) - DateTime.Now) : TimeSpan.Zero )
++		{
++		}
++		public AddBuffPacket( Mobile mob, BuffIcon iconID, int titleCliloc, int =
+secondaryCliloc, TextDefinition args, TimeSpan length )
++			: base( 0xDF )
++		{
++			bool hasArgs =3D (args !=3D null);
++
++			this.EnsureCapacity( (hasArgs ? (48 + args.ToString().Length * 2): 44) =
+);
++			m_Stream.Write( (int)mob.Serial );
++
++
++			m_Stream.Write( (short)iconID );	//ID
++			m_Stream.Write( (short)0x1 );	//Type 0 for removal. 1 for add 2 for Data
++
++			m_Stream.Fill( 4 );
++
++			m_Stream.Write( (short)iconID );	//ID
++			m_Stream.Write( (short)0x01 );	//Type 0 for removal. 1 for add 2 for Da=
+ta
++
++			m_Stream.Fill( 4 );
++
++			if( length &lt; TimeSpan.Zero )
++				length =3D TimeSpan.Zero;
++
++			m_Stream.Write( (short)length.TotalSeconds );	//Time in seconds
++
++			m_Stream.Fill( 3 );
++			m_Stream.Write( (int)titleCliloc );
++			m_Stream.Write( (int)secondaryCliloc );
++
++			if( !hasArgs )
++			{
++				//m_Stream.Fill( 2 );
++				m_Stream.Fill( 10 );
++			}
++			else
++			{
++				m_Stream.Fill( 4 );
++				m_Stream.Write( (short)0x1 );	//Unknown -&gt; Possibly something saying '=
+hey, I have more data!'?
++				m_Stream.Fill( 2 );
++
++				//m_Stream.WriteLittleUniNull( &quot;\t#1018280&quot; );
++				m_Stream.WriteLittleUniNull( String.Format( &quot;\t{0}&quot;, args.ToString() )=
+ );
++
++				m_Stream.Write( (short)0x1 );	//Even more Unknown -&gt; Possibly somethin=
+g saying 'hey, I have more data!'?
++				m_Stream.Fill( 2 );
++			}
++		}
++	}
++
++	public class RemoveBuffPacket : Packet
++	{
++		public RemoveBuffPacket( Mobile mob, BuffInfo info )
++			: this( mob, info.ID )
++		{
++		}
++
++		public RemoveBuffPacket( Mobile mob, BuffIcon iconID )
++			: base( 0xDF )
++		{
++			this.EnsureCapacity( 13 );
++			m_Stream.Write( (int)mob.Serial );
++
++
++			m_Stream.Write( (short)iconID );	//ID
++			m_Stream.Write( (short)0x0 );	//Type 0 for removal. 1 for add 2 for Data
++
++			m_Stream.Fill( 4 );
++		}
++	}
+ ]]--
+ =
+
+ function gPacketHandler.kPacket_BuffDebuff_System()
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000418.html">[Iris-commit] [IRIS] r1602 - /trunk/data/lua/net/net.buff.lua
+</A></li>
+	<LI>Next message: <A HREF="000420.html">[Iris-commit] [IRIS] r1604 - in /trunk: bin/ data/ data/base/ data/grannys/ data/grannys/materials/ data/grannys/programs/ data/grannys/textures/ data/lua/ data/models/materials/ data/terrain/materials/
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#419">[ date ]</a>
+              <a href="thread.html#419">[ thread ]</a>
+              <a href="subject.html#419">[ subject ]</a>
+              <a href="author.html#419">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

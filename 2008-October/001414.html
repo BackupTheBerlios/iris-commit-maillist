@@ -1,0 +1,367 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2607 - in /trunk: lua/net/net.other.lua lua/net/net.partysystem.lua plugins/moblist.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-October/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2607%20-%20in%20/trunk%3A%20lua/net/net.other.lua%0A%20lua/net/net.partysystem.lua%20plugins/moblist.lua&In-Reply-To=%3C20081019200003.F21051C1807F%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001411.html">
+   <LINK REL="Next"  HREF="001413.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2607 - in /trunk: lua/net/net.other.lua lua/net/net.partysystem.lua plugins/moblist.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2607%20-%20in%20/trunk%3A%20lua/net/net.other.lua%0A%20lua/net/net.partysystem.lua%20plugins/moblist.lua&In-Reply-To=%3C20081019200003.F21051C1807F%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2607 - in /trunk: lua/net/net.other.lua lua/net/net.partysystem.lua plugins/moblist.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sun Oct 19 21:05:29 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001411.html">[Iris-commit] [IRIS] r2606 - in /trunk/lua: lib.packet.lua lib.protocol.lua net/net.other.lua net/net.partysystem.lua
+</A></li>
+        <LI>Next message: <A HREF="001413.html">[Iris-commit] [IRIS] r2608 - /trunk/lua/gui/gui.gumpparser.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1414">[ date ]</a>
+              <a href="thread.html#1414">[ thread ]</a>
+              <a href="subject.html#1414">[ subject ]</a>
+              <a href="author.html#1414">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sun Oct 19 21:05:28 2008
+New Revision: 2607
+
+Log:
+moblist : code to show party member position
+
+Modified:
+    trunk/lua/net/net.other.lua
+    trunk/lua/net/net.partysystem.lua
+    trunk/plugins/moblist.lua
+
+Modified: trunk/lua/net/net.other.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.other.lua (original)
++++ trunk/lua/net/net.other.lua Sun Oct 19 21:05:28 2008
+@@ -169,10 +169,10 @@
+ 			memberpos.xloc		=3D input:PopNetUint16()
+ 			memberpos.yloc		=3D input:PopNetUint16()
+ 			memberpos.facet		=3D input:PopNetUint8() -- mapid
+-			print(&quot;partypos&quot;,memberpos.serial,memberpos.xloc,memberpos.yloc,memberp=
+os.facet)
++			--~ print(&quot;partypos&quot;,memberpos.serial,memberpos.xloc,memberpos.yloc,mem=
+berpos.facet)
+ 			partyposlist[memberpos.serial] =3D memberpos
+ 		end
+-		NotifyListener(&quot;Hook_PartyPos&quot;,partyposlist)	=
+
++		NotifyListener(&quot;Hook_PartyPos&quot;,partyposlist) -- {[serial]=3D{serial=3D?,=
+xloc=3D?,yloc=3D?,facet=3D?},...}
+ 	end
+ 	=
+
+ =
+
+@@ -191,6 +191,12 @@
+ end
+ =
+
+ =
+
++
++
++
++
++
++
+ -- TODO : implement all subpackets
+ function gPacketHandler.kPacket_Generic_Command()
+ 	local input =3D GetRecvFIFO()
+@@ -198,7 +204,7 @@
+ 	local id =3D input:PopNetUint8()
+ 	local size =3D input:PopNetUint16()
+ 	local subcmd =3D input:PopNetUint16()
+-	printf(&quot;NET: kPacket_Generic_Command size=3D0x%04x subcmd=3D0x%04x=3D%s\n=
+&quot;,size,subcmd,tostring(gGenericSubCommandNamesByID[subcmd]))
++	--~ printf(&quot;NET: kPacket_Generic_Command size=3D0x%04x subcmd=3D0x%04x=3D=
+%s\n&quot;,size,subcmd,tostring(gGenericSubCommandNamesByID[subcmd]))
+ 	printdebug(&quot;net&quot;,sprintf(&quot;NET: kPacket_Generic_Command size=3D0x%04x subc=
+md=3D0x%04x=3D%s\n&quot;,size,subcmd,tostring(gGenericSubCommandNamesByID[subcmd=
+])))
+ =
+
+ 	-- FastWalkInit : 6 keys (runuo's fifosize 0-255)
+
+Modified: trunk/lua/net/net.partysystem.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.partysystem.lua (original)
++++ trunk/lua/net/net.partysystem.lua Sun Oct 19 21:05:28 2008
+@@ -26,6 +26,19 @@
+ gPartySystemMemberList =3D {}
+ gPartySystemMemberListByID =3D {}
+ =
+
++gPartyMemberPosList =3D {} -- Hook_PartyPos -- {[serial]=3D{serial=3D?,xlo=
+c=3D?,yloc=3D?,facet=3D?},...}  , 0xF0 packet, protocol extension
++RegisterListener(&quot;Hook_PartyPos&quot;, function (partyposlist) gPartyMemberPosL=
+ist =3D partyposlist end)
++
++-- can see party members not in sightrange using 0xF0 packet
++-- returns xloc,yloc,iFacet,bIsOnSameFacet      =
+
++function PartySystem_GetMemberPos (serial)
++	local mapindex =3D MapGetMapIndex()
++	local pos =3D gPartyMemberPosList[serial]
++	if (pos) then return pos.xloc,pos.yloc,pos.facet,pos.facet=3D=3Dmapindex =
+end
++	local mob =3D GetMobile(serial)
++	if (mob) then return mob.xloc,mob.yloc,mapindex,true end
++end
++
+ function PartySystem_UpdateMemberList (memberlist)
+ 	gPartySystemMemberList =3D memberlist
+ 	gPartySystemMemberListByID =3D {}
+@@ -34,8 +47,10 @@
+ 	NotifyListener(&quot;Hook_UpdatePartyMemberList&quot;)
+ end
+ =
+
+-function IsMobileInParty		(serial) return gPartySystemMemberListByID[seria=
+l] end
+-function IsMobilePartyLeader	(serial) return gPartySystemMemberList[1] =3D=
+=3D serial end
++
++function IsMobileInParty		(serial)	return gPartySystemMemberListByID[seria=
+l] end
++function IsMobilePartyLeader	(serial)	return gPartySystemMemberList[1] =3D=
+=3D serial end
++function GetPartyMemberList		() 			return gPartySystemMemberListByID end -=
+- {[serial]=3Dtrue,...}
+ =
+
+ function	PartySendAccept () =
+
+ 	local out =3D GetSendFIFO()
+
+Modified: trunk/plugins/moblist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/plugins/moblist.lua (original)
++++ trunk/plugins/moblist.lua Sun Oct 19 21:05:28 2008
+@@ -39,11 +39,61 @@
+ 	=
+
+ 	RegisterListener(&quot;Hook_HUDStep&quot;,				function () 		self:Step() end)
+ 	RegisterListener(&quot;Hook_MobName&quot;,				function (serial,name,clilocid) self:=
+MobName(serial,name,clilocid) end) -- from several text/speak packets..
+-	RegisterListener(&quot;Hook_ToolTipUpdate&quot;,			function (serial)	self:ToolTipUp=
+date(serial) end)
++	RegisterListener(&quot;Hook_ToolTipUpdate&quot;,			function (serial)	self:ToolTipUp=
+date(serial) self:UpdatePartyNameTooltip(serial) end)
+ 	RegisterListener(&quot;Hook_Object_CreateMobile&quot;,	function (mobile)	self:AddMo=
+b(mobile) end)
+ 	RegisterListener(&quot;Hook_Object_DestroyMobile&quot;,	function (mobile)	self:Remo=
+veMob(mobile) end)
+-	RegisterListener(&quot;Hook_UpdatePartyMemberList&quot;,	function ()			self:RecalcC=
+at() end)
+-end
++	RegisterListener(&quot;Hook_UpdatePartyMemberList&quot;,	function ()			self:RecalcC=
+at() self:UpdatePartyMemberList() end)
++	RegisterListener(&quot;Hook_UOAM_PosUpdate&quot;,			function () 		self:UOAMUpdate()=
+ end)
++end
++
++function gWidgetPrototype.UOMobList:UpdatePartyNameTooltip	(serial)
++	local widget =3D self.partyWidgetList[serial]
++	if (not widget) then return end
++	widget.name =3D MobListShortenName(AosToolTip_GetText(serial) or &quot;???&quot;)
++	widget:SetText(widget.name)
++end
++
++function gWidgetPrototype.UOMobList:UpdatePartyMemberList	()
++	local partylist =3D GetPartyMemberList() -- {[serial]=3Dtrue,...}
++	local partyWidgetList =3D self.partyWidgetList
++	for serial,v in pairs(partylist) do
++		local widget =3D partyWidgetList[serial]
++		if ((not widget) and serial ~=3D GetPlayerSerial()) then
++			local name =3D MobListShortenName(AosToolTip_GetText(serial) or &quot;???&quot;)
++			widget =3D gRootWidget.tooltip:CreateChild(&quot;UOText&quot;,{x=3D0,y=3D0,text=
+=3Dname,col=3D{r=3D0,g=3D1,b=3D0},bold=3Dtrue})
++			widget.name =3D name
++			partyWidgetList[serial] =3D widget
++		end
++	end
++	for serial,widget in pairs(partyWidgetList) do
++		if (not partylist[serial]) then -- left party
++			widget:Destroy()
++			partyWidgetList[serial] =3D nil =
+
++		end
++	end
++end
++
++function gWidgetPrototype.UOMobList:StepPartyMarkers	()
++	for serial,widget in pairs(self.partyWidgetList) do
++		local xloc,yloc,iFacet,bIsOnSameFacet =3D PartySystem_GetMemberPos(seria=
+l)
++		local zloc =3D 0
++		=
+
++		if (xloc) then
++			local px,py =3D gCurrentRenderer:UOPosToPixelPos(xloc,yloc,zloc)
++			local w,h =3D widget:GetSize()
++			local minx,miny,maxx,maxy =3D 0,64,gViewportW-160,gViewportH-32
++			local x =3D max(minx,min(maxx-w,(px or 0)-0.5*w))
++			local y =3D max(miny,min(maxy-h,(py or 0)))
++			widget:SetPos(x,y)
++		end
++		if (widget.oldbIsOnSameFacet ~=3D bIsOnSameFacet) then
++			widget.oldbIsOnSameFacet =3D bIsOnSameFacet =
+
++			widget.params.col =3D bIsOnSameFacet and {r=3D0,g=3D1,b=3D0} or {r=3D0.=
+5,g=3D0.5,b=3D0.5}
++			widget:SetText(widget.name)
++		end
++	end
++end
++
+ =
+
+ -- triggered when uoam-data-packet is received
+ function gWidgetPrototype.UOMobList:UOAMUpdate	()
+@@ -78,7 +128,7 @@
+ 		widget:SetPos(x,y)
+ 		if (widget.oldbIsOnSameFacet ~=3D widget.bIsOnSameFacet) then
+ 			widget.oldbIsOnSameFacet =3D widget.bIsOnSameFacet =
+
+-			widget.params.col =3D widget.bIsOnSameFacet and {r=3D0,g=3D1,b=3D0} or =
+{r=3D0.5,g=3D0.5,b=3D0.5}
++			widget.params.col =3D widget.bIsOnSameFacet and {r=3D0,g=3D0.5,b=3D0} o=
+r {r=3D0.5,g=3D0.5,b=3D0.5}
+ 			widget:SetText(name)
+ 		end
+ 	end
+@@ -145,6 +195,7 @@
+ 	=
+
+ 	-- uoam-name-widgets
+ 	self:UOAMStep()
++	self:StepPartyMarkers()
+ 	=
+
+ 	-- maintarget text : update position on screen
+ 	if (self.maintarget_serial) then
+@@ -208,6 +259,19 @@
+ 	self:RecalcCat()
+ end
+ =
+
++function MobListShortenName (text) -- AosToolTip_GetText(self.serial)
++	text =3D string.gsub(text,&quot;\n.*&quot;,&quot;&quot;) -- only keep first line
++	text =3D string.gsub(text,&quot;^[ \t]+&quot;,&quot;&quot;) -- remove leading spaces
++	text =3D string.gsub(text,&quot; %[&quot;,&quot;%[&quot;) -- move guildtag closer
++	text =3D string.gsub(text,&quot;^Lord&quot;,&quot;&quot;)
++	text =3D string.gsub(text,&quot;^Lady&quot;,&quot;&quot;)
++	text =3D string.gsub(text,&quot;^an &quot;,&quot;&quot;)
++	text =3D string.gsub(text,&quot;^a &quot;,&quot;&quot;)
++	text =3D string.gsub(text,&quot;^[ \t]+&quot;,&quot;&quot;) -- remove leading spaces
++	text =3D string.gsub(text,&quot;[ \t]+$&quot;,&quot;&quot;) -- remove trailing spaces
++	return text
++end
++
+ function gWidgetPrototype.UOMobListItem:UpdateName(name,clilocid)
+ 	if (name and (not self.lowname)) then self.lowname =3D name self.nameclil=
+oc =3D clilocid end
+ 	local tooltip =3D AosToolTip_GetText(self.serial)
+@@ -218,15 +282,8 @@
+ 	if (self.old_fulltext ~=3D text) then =
+
+ 		self.old_fulltext =3D text
+ 		bNameUpdate =3D true
+-		text =3D string.gsub(text,&quot;\n.*&quot;,&quot;&quot;) -- only keep first line
+-		text =3D string.gsub(text,&quot;^[ \t]+&quot;,&quot;&quot;) -- remove leading spaces
+-		text =3D string.gsub(text,&quot; %[&quot;,&quot;%[&quot;) -- move guildtag closer
+-		text =3D string.gsub(text,&quot;^Lord&quot;,&quot;&quot;)
+-		text =3D string.gsub(text,&quot;^Lady&quot;,&quot;&quot;)
+-		text =3D string.gsub(text,&quot;^an &quot;,&quot;&quot;)
+-		text =3D string.gsub(text,&quot;^a &quot;,&quot;&quot;)
+-		text =3D string.gsub(text,&quot;^[ \t]+&quot;,&quot;&quot;) -- remove leading spaces
+-		text =3D string.gsub(text,&quot;[ \t]+$&quot;,&quot;&quot;) -- remove trailing spaces
++		local fulltext =3D text
++		text =3D MobListShortenName(text)
+ 		=
+
+ 		-- npcs friends
+ 		self.bIsNPC =3D false =
+
+@@ -241,7 +298,7 @@
+ 		if (StringContains(text,&quot;hazk&quot;)) then print(&quot;ghaz:&quot;,self.bIsFriendlyGuil=
+d) end
+ 		=
+
+ 		-- check pets
+-		self.bIsPet =3D StringContains(text,&quot;(summoned)&quot;) or StringContains(text=
+,&quot;(tame)&quot;)
++		self.bIsPet =3D StringContains(fulltext,&quot;(summoned)&quot;) or StringContains(=
+fulltext,&quot;(tame)&quot;)
+ 		local mobile =3D self.mobile
+ 		if (mobile.artid =3D=3D 574 and mobile.hue =3D=3D 0) then self.bIsPet =
+=3D true end -- blade spirit
+ 		if (mobile.artid =3D=3D 164 and mobile.hue =3D=3D 0) then self.bIsPet =
+=3D true end -- energy vortex
+@@ -324,8 +381,7 @@
+ -- ***** ***** ***** ***** ***** rest
+ =
+
+ function MobListGetMainTargetSerial() return gMobList.maintarget_serial end
+-
+-RegisterListener(&quot;Hook_UOAM_PosUpdate&quot;,function () gMobList:UOAMUpdate() e=
+nd)
++		=
+
+ RegisterListener(&quot;Hook_PostLoad&quot;,function () gMobList =3D GetDesktopWidget=
+():CreateChild(&quot;UOMobList&quot;) end)
+ =
+
+ end
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001411.html">[Iris-commit] [IRIS] r2606 - in /trunk/lua: lib.packet.lua lib.protocol.lua net/net.other.lua net/net.partysystem.lua
+</A></li>
+	<LI>Next message: <A HREF="001413.html">[Iris-commit] [IRIS] r2608 - /trunk/lua/gui/gui.gumpparser.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1414">[ date ]</a>
+              <a href="thread.html#1414">[ thread ]</a>
+              <a href="subject.html#1414">[ subject ]</a>
+              <a href="author.html#1414">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

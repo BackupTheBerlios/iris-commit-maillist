@@ -1,0 +1,414 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r3156 - in /trunk/lua: lib.2d.map.lua lib.2d.spriteblock.lua lib.mapblock.2d.statics.lua lib.mapblock.2d.terrain.lua lib.mapblock.3d.multis.lua lib.mapblock.base.lua lib.uoutils.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2009-November/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3156%20-%20in%20/trunk/lua%3A%20lib.2d.map.lua%0A%20lib.2d.spriteblock.lua%20lib.mapblock.2d.statics.lua%0A%20lib.mapblock.2d.terrain.lua%20lib.mapblock.3d.multis.lua%0A%20lib.mapblock.base.lua%20lib.uoutils.lua&In-Reply-To=%3C20091121120059.D65B87A9814F%40simon%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001916.html">
+   <LINK REL="Next"  HREF="001918.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r3156 - in /trunk/lua: lib.2d.map.lua lib.2d.spriteblock.lua lib.mapblock.2d.statics.lua lib.mapblock.2d.terrain.lua lib.mapblock.3d.multis.lua lib.mapblock.base.lua lib.uoutils.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3156%20-%20in%20/trunk/lua%3A%20lib.2d.map.lua%0A%20lib.2d.spriteblock.lua%20lib.mapblock.2d.statics.lua%0A%20lib.mapblock.2d.terrain.lua%20lib.mapblock.3d.multis.lua%0A%20lib.mapblock.base.lua%20lib.uoutils.lua&In-Reply-To=%3C20091121120059.D65B87A9814F%40simon%3E"
+       TITLE="[Iris-commit] [IRIS] r3156 - in /trunk/lua: lib.2d.map.lua lib.2d.spriteblock.lua lib.mapblock.2d.statics.lua lib.mapblock.2d.terrain.lua lib.mapblock.3d.multis.lua lib.mapblock.base.lua lib.uoutils.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat Nov 21 13:00:59 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001916.html">[Iris-commit] [IRIS] r3155 - in /trunk/lua: lib.gfxconfig.lua lib.granny.debug.lua lib.granny.loader.lua
+</A></li>
+        <LI>Next message: <A HREF="001918.html">[Iris-commit] [IRIS] r3157 - /trunk/lua/lib.gfxconfig.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1917">[ date ]</a>
+              <a href="thread.html#1917">[ thread ]</a>
+              <a href="subject.html#1917">[ subject ]</a>
+              <a href="author.html#1917">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sat Nov 21 13:00:58 2009
+New Revision: 3156
+
+Log:
+2d: fixed terrain and statics being loaded too late, now the loader calcula=
+tes the screen area, before it just loaded a circle. util:PixelOffsetToTile=
+Offset
+
+Modified:
+    trunk/lua/lib.2d.map.lua
+    trunk/lua/lib.2d.spriteblock.lua
+    trunk/lua/lib.mapblock.2d.statics.lua
+    trunk/lua/lib.mapblock.2d.terrain.lua
+    trunk/lua/lib.mapblock.3d.multis.lua
+    trunk/lua/lib.mapblock.base.lua
+    trunk/lua/lib.uoutils.lua
+
+Modified: trunk/lua/lib.2d.map.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.map.lua (original)
++++ trunk/lua/lib.2d.map.lua Sat Nov 21 13:00:58 2009
+@@ -28,6 +28,8 @@
+ --~ dofile(libpath .. &quot;lib.mapblock.2d.water.lua&quot;)
+ cMapBlock_2D_Water		=3D CreateClass(cMapBlockGrid)
+ =
+
++
++
+ cMapBlock_2D_Terrain.kLOD_Detail		=3D kMapLoad_2D_Terrain_Detail
+ cMapBlock_2D_Terrain.kLOD_Rough			=3D kMapLoad_2D_Terrain_Rough
+ cMapBlock_2D_Statics.kLOD_Detail		=3D kMapLoad_2D_Statics_Detail
+@@ -47,10 +49,11 @@
+ 	if (not self.bMapLoadSystemInitialized) then
+ 		self.bMapLoadSystemInitialized =3D true
+ 		local scheduler =3D CreateScheduler()
++		self.map2d_nextAreaCalc =3D 0
+ 		self.map2d_scheduler =3D scheduler
+ 		self.map2d_spawners =3D {}
+-		self.map2d_spawners.terrain		=3D CreateMapBlockSpawner(cMapBlock_2D_Terr=
+ain,scheduler)
+-		self.map2d_spawners.statics		=3D CreateMapBlockSpawner(cMapBlock_2D_Stat=
+ics,scheduler)
++		self.map2d_spawners.terrain		=3D CreateMapBlockSpawner2D(cMapBlock_2D_Te=
+rrain,scheduler)
++		self.map2d_spawners.statics		=3D CreateMapBlockSpawner2D(cMapBlock_2D_St=
+atics,scheduler)
+ 		--~ self.map2d_spawners.water		=3D CreateMapBlockSpawner(cMapBlock_2D_Wa=
+ter,scheduler)
+ 	end
+ end
+@@ -96,9 +99,35 @@
+ 	return fMinZ,fMaxZ
+ end
+ =
+
++
++-- local l,t,r,b =3D Renderer2D:GetScreenAreaInTileCoords ()  (relative co=
+ords, add xloc,yloc of cam center)
++function Renderer2D:GetScreenAreaInTileCoords () return unpack(self.screen=
+AreaInTileCoords) end
++
++function Renderer2D:MapRecalcScreenArea		(x,y)
++	-- calc view area for current window size
++	local vw,vh =3D GetViewportSize()
++	local x0,y0 =3D PixelOffsetToTileOffset(-vw/2,-vh/2)
++	local x1,y1 =3D PixelOffsetToTileOffset( vw/2,-vh/2)
++	local x2,y2 =3D PixelOffsetToTileOffset(-vw/2, vh/2)
++	local x3,y3 =3D PixelOffsetToTileOffset( vw/2, vh/2)
++	local e =3D 3 -- should cope with different zlevels
++	local l =3D floor(min(x0,x1,x2,x3))-e
++	local t =3D floor(min(y0,y1,y2,y3))-e
++	local r =3D ceil(max(x0,x1,x2,x3))+e
++	local b =3D ceil(max(y0,y1,y2,y3))+e
++	--~ print(&quot;Renderer2D:MapStep : dx,dy=3D&quot;,dx,dy,&quot;x,y=3D&quot;,floor(xloc),floo=
+r(yloc),&quot;l,t:&quot;,l,t,&quot;r,b:&quot;,r,b)
++	self.screenAreaInTileCoords =3D {l,t,r,b}
++end
++
+ function Renderer2D:MapStep		()
+ 	local t =3D Client_GetTicks()
+ 	local x,y,z =3D self:GetCamPos()
++	=
+
++	if (self.map2d_nextAreaCalc &lt; t) then =
+
++		self.map2d_nextAreaCalc =3D t + 1000
++		self:MapRecalcScreenArea(x,y)
++	end
++	=
+
+ 	for k,spawner in pairs(self.map2d_spawners) do spawner:Step(t,x,y,z) end
+ 	self.map2d_scheduler:Step(x,y,z)
+ end
+@@ -110,3 +139,60 @@
+ -- water : block.terrain[10*ty+tx] =3D MapGetGround(block.bx*8+tx,block.by=
+*8+ty)
+ -- water : analyze terrain infos and determine where water should be, Filt=
+erIsMapWater(tiletype) -- 3D: chunk:SetWaterZ(tx,ty,z) ??
+ =
+
++
++-- ***** ***** ***** cMapBlockSpawner2D
++
++cMapBlockSpawner2D =3D CreateClass(cMapBlockSpawner)
++cMapBlockSpawner2D.kStepInterval =3D 100
++function CreateMapBlockSpawner2D (pBlockClass,pScheduler) local o =3D Crea=
+teClassInstance(cMapBlockSpawner2D, pBlockClass,pScheduler) return o end
++
++
++function cMapBlockSpawner2D:Step	(t,x,y) =
+
++	if ((self.iNextStep or 0) &gt; t) then return end
++	self.iNextStep =3D t + self.kStepInterval
++	=
+
++	local xloc,yloc =3D x,y
++	local l,t,r,b =3D Renderer2D:GetScreenAreaInTileCoords()
++	local minx =3D floor((xloc+l)/self.iBlockSize)
++	local miny =3D floor((yloc+t)/self.iBlockSize)
++	local maxx =3D floor((xloc+r)/self.iBlockSize)
++	local maxy =3D floor((yloc+b)/self.iBlockSize)
++	=
+
++	-- destroy blocks outside radius
++	for block,v in pairs(self.pMapBlocks) do =
+
++		if (block.bx &lt; minx or =
+
++			block.by &lt; miny or =
+
++			block.bx &gt; maxx or =
+
++			block.by &gt; maxy) then
++			-- outside, destroyed
++			self.mlToBeDestroyedBlock[block] =3D true
++			--~ self:DestroyMapBlock(block)
++		end
++	end
++	=
+
++	-- create blocks inside radius if needed
++	for by =3D miny,maxy do
++	for bx =3D minx,maxx do
++		self:GetOrCreateMapBlock(bx,by)
++	end
++	end
++	=
+
++	giShowLoadingUnfinished =3D countarr(self.mlUnfinishedBlock) + countarr(s=
+elf.mlToBeDestroyedBlock)
++	=
+
++	-- check unfinished jobs and remove them if finished
++	for k,v in pairs(self.mlUnfinishedBlock) do
++		if k:IsDead() then
++			--~ print(&quot;REMOVE UNFINISHED JOB&quot;)
++			self.pScheduler:RemoveProcess(k)
++			self.mlUnfinishedBlock[k] =3D nil
++		end
++	end
++	=
+
++	-- destroy blocks
++	for k,v in pairs(self.mlToBeDestroyedBlock) do
++		self.mlToBeDestroyedBlock[k] =3D nil
++		self:DestroyMapBlock(k)
++		if not TimeLeftInFrame() then break end
++	end
++end
++
+
+Modified: trunk/lua/lib.2d.spriteblock.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.spriteblock.lua (original)
++++ trunk/lua/lib.2d.spriteblock.lua Sat Nov 21 13:00:58 2009
+@@ -43,11 +43,6 @@
+ 	self:ClearGfx()
+ 	self.pSpritesByAtlas =3D {}
+ 	self.pWaterTiles =3D {}
+-end
+-
+-function TileOffsetToPixelOffset (tx,ty)
+-	return	tx *  22 + ty * -22,
+-			tx *  22 + ty *  22
+ end
+ =
+
+ function ArtCheckBitMask(artid,px,py)
+
+Modified: trunk/lua/lib.mapblock.2d.statics.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mapblock.2d.statics.lua (original)
++++ trunk/lua/lib.mapblock.2d.statics.lua Sat Nov 21 13:00:58 2009
+@@ -11,6 +11,8 @@
+ 	if (not self.spriteblock) then return end
+ 	return self.spriteblock:RayPick(rx,ry,rz, rvx,rvy,rvz) =
+
+ end
++
++function cMapBlock_2D_Statics:RecalcLOD () return self.kLOD_Detail end
+ =
+
+ function cMapBlock_2D_Statics:RebuildForBlendout ()
+ 	if (not self.bMyDetailLoaded) then return end
+
+Modified: trunk/lua/lib.mapblock.2d.terrain.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mapblock.2d.terrain.lua (original)
++++ trunk/lua/lib.mapblock.2d.terrain.lua Sat Nov 21 13:00:58 2009
+@@ -1,6 +1,6 @@
+ cMapBlock_2D_Terrain	=3D CreateClass(cMapBlockGrid)
+-cMapBlock_2D_Terrain.iBlockSize		=3D 8*2 -- in tiles
+-cMapBlock_2D_Terrain.iLoadRadius	=3D 4 -- in iBlockSize-blocks
++cMapBlock_2D_Terrain.iBlockSize				=3D 8*2 -- in tiles
++cMapBlock_2D_Terrain.iLoadRadius			=3D 4 -- in iBlockSize-blocks
+ --~ cMapBlock_2D_Terrain.kMaxDist_Visible		=3D 8*4 -- camdist in tiles  se=
+e mapblock.base for default
+ --~ cMapBlock_2D_Terrain.kMaxDist_Detail		=3D 8*2 -- camdist in tiles
+ =
+
+@@ -11,6 +11,8 @@
+ function cMapBlock_2D_Terrain:UpdateBlendOutVisibility ()
+ 	if (self.gfx_terrain) then self.gfx_terrain:SetVisible(gCurrentRenderer.g=
+bBlendOutTerrainVisible) end
+ end
++
++function cMapBlock_2D_Terrain:RecalcLOD () return self.kLOD_Detail end
+ =
+
+ -- returns dist,xloc,yloc   if hit, or nil if not hit.    sprite=3D{artid=
+=3D?,hue=3D?,static=3D?}
+ function cMapBlock_2D_Terrain:RayPick (rx,ry,rz, rvx,rvy,rvz) =
+
+
+Modified: trunk/lua/lib.mapblock.3d.multis.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mapblock.3d.multis.lua (original)
++++ trunk/lua/lib.mapblock.3d.multis.lua Sat Nov 21 13:00:58 2009
+@@ -1,7 +1,7 @@
+ -- todo
+ =
+
+ cMapBlock_3D_Multis	=3D CreateClass(cMapBlockAABB)
+-cMapBlock_3D_Multis.iLoadRadius				=3D 64 -- in tiles
++cMapBlock_3D_Multis.iLoadRadius				=3D 64 -- in tiles  -- TODO : all other=
+ mapblock loaders are in iBlockSize-blocks, is this here a bug ?
+ cMapBlock_3D_Multis.kMaxDist_Visible		=3D 32 -- camdist in tiles  see mapb=
+lock.base for default
+ cMapBlock_3D_Multis.kMaxDist_Detail			=3D 64 -- camdist in tiles
+ =
+
+
+Modified: trunk/lua/lib.mapblock.base.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mapblock.base.lua (original)
++++ trunk/lua/lib.mapblock.base.lua Sat Nov 21 13:00:58 2009
+@@ -115,19 +115,19 @@
+ function cMapBlock:ShortStep (t,x,y,z)
+ 	if ((self.iNextLODUpdate or 0) &lt; t) then
+ 		self.iNextLODUpdate =3D t + self.kLODUpdateInterval
++		self:SetLOD(self:RecalcLOD(x,y,z))
++	end
++end
+ 		=
+
+-		local bx,by,w,h =3D self:GetAABB()
+-		=
+
+-		local camdist =3D hypot(	(bx+w/2)-x,
+-								(by+h/2)-y)
+-		self.last_camdist =3D camdist
++function cMapBlock:RecalcLOD (x,y,z)
++	local bx,by,w,h =3D self:GetAABB()
++	=
+
++	local camdist =3D hypot(	(bx+w/2)-x,
++							(by+h/2)-y)
++	self.last_camdist =3D camdist
+ =
+
+-		local newlod
+-		if (	camdist &lt;  self.kMaxDist_Detail ) then newlod =3D self.kLOD_Detail =
+
+-		elseif (camdist &lt;  self.kMaxDist_Visible) then newlod =3D self.kLOD_Roug=
+h end
+-		--~ if (newlod) then print(&quot;cMapBlock:ShortStep&quot;,newlod,camdist,self.kMa=
+xDist_Detail) end
+-		self:SetLOD(newlod)
+-	end
++	if (	camdist &lt;  self.kMaxDist_Detail ) then return self.kLOD_Detail =
+
++	elseif (camdist &lt;  self.kMaxDist_Visible) then return self.kLOD_Rough end
+ end
+ =
+
+ -- a single step during the thread
+
+Modified: trunk/lua/lib.uoutils.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.uoutils.lua (original)
++++ trunk/lua/lib.uoutils.lua Sat Nov 21 13:00:58 2009
+@@ -19,6 +19,24 @@
+ 	function res:Set	(name,val) 	self:Reload()			self.data[name] =3D val	self=
+:<i>Save() end
+</I> 	res:Reload()
+ 	return res
++end
++
++function TileOffsetToPixelOffset (tx,ty)
++	return	tx *  22 + ty * -22,
++			tx *  22 + ty *  22
++end
++function PixelOffsetToTileOffset (px,py)
++	--~ px =3D tx *  22 + ty * -22 -- TileOffsetToPixelOffset
++	--~ (px + ty * 22) / 22 =3D tx
++	=
+
++	--~ py =3D tx *  22 + ty *  22 -- TileOffsetToPixelOffset
++	--~ py =3D (px + ty * 22) / 22 *  22 + ty *  22
++	--~ py =3D px + ty * 22 + ty *  22
++	--~ py =3D px + ty * 44
++	--~ (py - px)/44 =3D ty
++	local ty =3D (py - px)/44
++	local tx =3D (px + ty * 22) / 22
++	return tx,ty
+ end
+ =
+
+ function ApplyDir (dir,posx,posy) =
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001916.html">[Iris-commit] [IRIS] r3155 - in /trunk/lua: lib.gfxconfig.lua lib.granny.debug.lua lib.granny.loader.lua
+</A></li>
+	<LI>Next message: <A HREF="001918.html">[Iris-commit] [IRIS] r3157 - /trunk/lua/lib.gfxconfig.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1917">[ date ]</a>
+              <a href="thread.html#1917">[ thread ]</a>
+              <a href="subject.html#1917">[ subject ]</a>
+              <a href="author.html#1917">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

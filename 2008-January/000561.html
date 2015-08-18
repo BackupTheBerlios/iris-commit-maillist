@@ -1,0 +1,345 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1746 - in /trunk: include/terrain.h src/scripting.iris.cpp src/terrain_multitex.cpp
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-January/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1746%20-%20in%20/trunk%3A%20include/terrain.h%0A%20src/scripting.iris.cpp%20src/terrain_multitex.cpp&In-Reply-To=%3C20080115170821.9A9071C181AD%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000563.html">
+   <LINK REL="Next"  HREF="000562.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1746 - in /trunk: include/terrain.h src/scripting.iris.cpp src/terrain_multitex.cpp</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1746%20-%20in%20/trunk%3A%20include/terrain.h%0A%20src/scripting.iris.cpp%20src/terrain_multitex.cpp&In-Reply-To=%3C20080115170821.9A9071C181AD%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1746 - in /trunk: include/terrain.h src/scripting.iris.cpp src/terrain_multitex.cpp">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Thu Jan 10 20:27:56 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000563.html">[Iris-commit] [IRIS] r1745 - /trunk/src/terrain_multitex.cpp
+</A></li>
+        <LI>Next message: <A HREF="000562.html">[Iris-commit] [IRIS] r1747 - in /trunk: bin/ data/ lua/ lua/net/	vs8/
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#561">[ date ]</a>
+              <a href="thread.html#561">[ thread ]</a>
+              <a href="subject.html#561">[ subject ]</a>
+              <a href="author.html#561">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Thu Jan 10 20:27:56 2008
+New Revision: 1746
+
+Log:
+started working on terrain raypick
+
+Modified:
+    trunk/include/terrain.h
+    trunk/src/scripting.iris.cpp
+    trunk/src/terrain_multitex.cpp
+
+Modified: trunk/include/terrain.h
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/include/terrain.h (original)
++++ trunk/include/terrain.h Thu Jan 10 20:27:56 2008
+@@ -17,4 +17,12 @@
+ void	 		TerrainMultiTex_SetGroundMaterialTypeLookUp	(const int* piValues,c=
+onst int iCount);
+ void			TerrainMultiTex_AddTexCoordSet				(int iMode,float tx,float ty,floa=
+t tw,float th); ///&lt; 0:ground,1:mainmask,2:mask
+ void			TerrainMultiTex_AddMaskTexCoordSet			(float u1,float v1, float u2,f=
+loat v2, float u3,float v3, float u4,float v4);
++
++
++/// returns true if something was hit
++/// output : float&amp; pfHitDist,int&amp; pTX,int&amp; pTY
++/// the terrain is assumed to start at 0,0,0,  if this is not the case, ju=
+st adjust the ray origin : rx,ry,rz
++/// tx,ty are the relative tile coordinates, in the range [0,8*dx[ , [0,8*=
+dy[ =
+
++bool			TerrainMultiTex_RayPick		(cGroundBlockLoader* pGroundBlockLoader,co=
+nst int iBlockX,const int iBlockY,const int iDX,const int iDY,const Ogre::V=
+ector3&amp; vRayPos,const Ogre::Vector3&amp; vRayDir,float&amp; pfHitDist,int&amp; pTX,int&amp;=
+ pTY);
++
+ #endif
+
+Modified: trunk/src/scripting.iris.cpp
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/src/scripting.iris.cpp (original)
++++ trunk/src/scripting.iris.cpp Thu Jan 10 20:27:56 2008
+@@ -305,6 +305,29 @@
+ 	return 0;
+ }
+ =
+
++/// bhit,bhitdist,tx,ty =3D MultiTexTerrain_RayPick(pGroundBlockLoader,bx,=
+by,dx,dy, rx,ry,rz, rvx,rvy,rvz) -- mainly for mousepicking
++/// see also  TerrainMultiTex_RayPick (terrain.h,terrain_multitex.cpp)
++static int	l_TerrainMultiTex_RayPick			(lua_State *L) { PROFILE =
+
++	cGroundBlockLoader* pGroundBlockLoader =3D cLuaBind&lt;cGroundBlockLoader&gt;::=
+checkudata_alive(L,2);
++	int bx =3D luaL_checkint(L,3);
++	int by =3D luaL_checkint(L,4);
++	int dx =3D luaL_checkint(L,5);
++	int dy =3D luaL_checkint(L,6);
++
++	// don't use ++i or something here, the compiler might mix the order
++	Ogre::Vector3	vRayPos(luaL_checknumber(L, 7),luaL_checknumber(L, 8),luaL_=
+checknumber(L, 9));
++	Ogre::Vector3	vRayDir(luaL_checknumber(L,10),luaL_checknumber(L,11),luaL_=
+checknumber(L,12));
++	=
+
++	float fHitDist =3D 0;
++	int tx =3D 0,ty =3D 0;
++	bool bHit =3D TerrainMultiTex_RayPick(pGroundBlockLoader,bx,by,dx,dy,vRay=
+Pos,vRayDir,fHitDist,tx,ty);
++	lua_pushboolean(L,bHit);
++	lua_pushnumber(L,fHitDist);
++	lua_pushnumber(L,tx);
++	lua_pushnumber(L,ty);
++	return 4;
++}
++
+ /// for lua : void	TerrainMultiTex_SetGroundMaterialTypeLookUp (table) =
+
+ /// key=3Duo-ground-tiletype-id  value=3Dindex_for_AddTexCoordSet_mode_0
+ /// use value=3D-1 to skip tiles
+@@ -431,6 +454,7 @@
+ 			lua_register(L,&quot;BuildTerrainEntity_Simple&quot;,		l_BuildTerrainEntity_Simpl=
+e);
+ 			lua_register(L,&quot;BuildTerrainEntity_Shaded&quot;,		l_BuildTerrainEntity_Shade=
+d);
+ 			lua_register(L,&quot;Gfx3D_SetMultiTexTerrain&quot;,		l_Gfx3D_SetMultiTexTerrain);
++			lua_register(L,&quot;TerrainMultiTex_RayPick&quot;,		l_TerrainMultiTex_RayPick);
+ 			lua_register(L,&quot;TerrainMultiTex_SetGroundMaterialTypeLookUp&quot;,	l_Terrain=
+MultiTex_SetGroundMaterialTypeLookUp);
+ 			lua_register(L,&quot;TerrainMultiTex_AddTexCoordSet&quot;,				l_TerrainMultiTex_A=
+ddTexCoordSet);
+ 			lua_register(L,&quot;TerrainMultiTex_AddMaskTexCoordSet&quot;,			l_TerrainMultiTe=
+x_AddMaskTexCoordSet);
+
+Modified: trunk/src/terrain_multitex.cpp
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/src/terrain_multitex.cpp (original)
++++ trunk/src/terrain_multitex.cpp Thu Jan 10 20:27:56 2008
+@@ -3,7 +3,7 @@
+ #include &quot;data.h&quot;
+ #include &quot;lugre_ogrewrapper.h&quot;
+ #include &quot;lugre_robrenderable.h&quot;
+-#include &quot;lugre_meshshape.h&quot; // for TerrainRayIntersect
++#include &quot;lugre_meshshape.h&quot; // for RayPick
+ #include &quot;lugre_fifo.h&quot;
+ #include &quot;data.h&quot;
+ #include &lt;Ogre.h&gt;
+@@ -109,9 +109,9 @@
+ 		=
+
+ 		// write position
+ 		#ifdef XMIRROR
+-		*++w =3D mfAddX-(x + dx);
++		*++w =3D -(mfAddX+(x + dx));
+ 		#else
+-		*++w =3D mfAddX+(x + dx);
++		*++w =3D   mfAddX+(x + dx);
+ 		#endif
+ 		*++w =3D mfAddY+(y + dy);
+ 		*++w =3D GetZF(x+idx,y+idy);
+@@ -171,8 +171,8 @@
+ 		=
+
+ 		for (ay=3D0;ay&lt;iDY;++ay)
+ 		for (ax=3D0;ax&lt;iDX;++ax) {
+-			mfAddX =3D -8*ax;
+-			mfAddY =3D  8*ay;
++			mfAddX =3D 8*ax;
++			mfAddY =3D 8*ay;
+ 			WriteToVertexBuffer(pGroundBlockLoader,bx+ax,by+ay,pWriter);
+ 			pWriter +=3D iVertexCountPerBlock * kVertexSizeInFloats;
+ 			=
+
+@@ -196,15 +196,51 @@
+ 		pRobRenderOp.End();
+ 	}
+ 	=
+
+-	/// pWriter should point to a locked vertex buffer (vram)
+-	/// format has to be   p,n,uv1,uv2,uv3,uv4
+-	void	WriteToVertexBuffer (cGroundBlockLoader* pGroundBlockLoader,int bx,i=
+nt by,Ogre::Real* pWriter) {
++	inline Ogre::Vector3 GetVertexPos	(const int x,const int y) {
++		#ifdef XMIRROR
++		return Ogre::Vector3(-(mfAddX+float(x)),mfAddY+float(y),GetZF(x,y));
++		#else
++		return Ogre::Vector3(  mfAddX+float(x) ,mfAddY+float(y),GetZF(x,y));
++		#endif
++	}
++	=
+
++	/// don't call before WriteToVertexBuffer has been called at least once t=
+o set up lookup tables
++	bool	RayPick		(cGroundBlockLoader* pGroundBlockLoader,const int iBlockX,c=
+onst int iBlockY,const int iDX,const int iDY,const Ogre::Vector3&amp; vRayPos,c=
+onst Ogre::Vector3&amp; vRayDir,float&amp; pfHitDist,int&amp; pTX,int&amp; pTY) {
++		=
+
++		//~ if (!Ogre::Ray(vRayPos,vRayDir).intersects(Ogre::Sphere(Ogre::Vector=
+3::ZERO,mfBoundRad + 0.1)).first) return -1;
++		bool bNothingFoundYet =3D true;
++		int x,y,k,ax,ay;
++		float myHitDist;
++		for (ay=3D0;ay&lt;iDY;++ay)
++		for (ax=3D0;ax&lt;iDX;++ax) {
++			mfAddX =3D 8*ax;
++			mfAddY =3D 8*ay;
++			int bx =3D iBlockX + ax;
++			int by =3D iBlockY + ay;
++			=
+
++			// needed for GetZF() and GetVertexPos() to work...
++			LoadNearbyData(pGroundBlockLoader,bx,by);
++			=
+
++			for (y=3D0;y&lt;T;++y)
++			for (x=3D0;x&lt;T;++x)
++			for (k=3D0;k&lt;2;++k) { // k:face  =
+
++				// raypick face triangle
++				if (IntersectRayTriangle(vRayPos,vRayDir,
++					GetVertexPos(x+k,y+k),GetVertexPos(x+1,y),GetVertexPos(x,y+1),&amp;myHitD=
+ist)) {
++					if (bNothingFoundYet || myHitDist &lt; pfHitDist) { =
+
++						bNothingFoundYet =3D false; =
+
++						pfHitDist =3D myHitDist; =
+
++						pTX =3D x + ax*T; =
+
++						pTY =3D y + ay*T;
++					}
++				}
++			}
++		}
++		return !bNothingFoundYet;
++	}
++	=
+
++	void	LoadNearbyData	(cGroundBlockLoader* pGroundBlockLoader,int bx,int by=
+) {
+ 		int x,y;
+-		int iMainType;	=
+
+-		int iMainMask;	=
+
+-		int iTypeA;		=
+
+-		int iMaskA;	=
+
+-		float spanx,spany;
+ 		=
+
+ 		// initialize void block if neccessary: used &quot;outside&quot; the map, e.g. on =
+the borders...
+ 		static RawGroundBlock	myVoidBlock;
+@@ -233,7 +269,6 @@
+ 			}
+ 		}
+ 		=
+
+-		=
+
+ 		// load nearby blocks
+ 		if (pGroundBlockLoader-&gt;PrepareGroupLoading(bx,by,1)) {
+ 			for (y=3D0;y&lt;3;++y)
+@@ -257,6 +292,20 @@
+ 		// load z buffers to cache, each is used 4 times during vertex writing, =
+and 4 times during normal calc
+ 		for (y=3D-1;y&lt;=3DT+1;++y) =
+
+ 		for (x=3D-1;x&lt;=3DT+1;++x) mZ[(y+1)*(T+3)+(x+1)] =3D GetZRaw(x,y); // ini=
+t cache for use by GetZ
++	}
++	=
+
++	/// pWriter should point to a locked vertex buffer (vram)
++	/// format has to be   p,n,uv1,uv2,uv3,uv4
++	void	WriteToVertexBuffer (cGroundBlockLoader* pGroundBlockLoader,int bx,i=
+nt by,Ogre::Real* pWriter) {
++		int x,y;
++		int iMainType;	=
+
++		int iMainMask;	=
+
++		int iTypeA;		=
+
++		int iMaskA;	=
+
++		float spanx,spany;
++		=
+
++		// GetZ can only be used after this
++		LoadNearbyData(pGroundBlockLoader,bx,by);
+ 		=
+
+ 		// load normals to cache, each is used 4 times during vertex writing
+ 		// init cache for use by GetNormal
+@@ -398,3 +447,8 @@
+ 	gTiledMultiTexTerrain.mTexCoords_Mask.push_back(u4);
+ 	gTiledMultiTexTerrain.mTexCoords_Mask.push_back(v4);
+ }
++
++bool	TerrainMultiTex_RayPick		(cGroundBlockLoader* pGroundBlockLoader,cons=
+t int iBlockX,const int iBlockY,const int iDX,const int iDY,const Ogre::Vec=
+tor3&amp; vRayPos,const Ogre::Vector3&amp; vRayDir,float&amp; pfHitDist,int&amp; pTX,int&amp; p=
+TY) {
++	return gTiledMultiTexTerrain.RayPick(pGroundBlockLoader,iBlockX,iBlockY,i=
+DX,iDY,vRayPos,vRayDir,pfHitDist,pTX,pTY);
++}
++
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000563.html">[Iris-commit] [IRIS] r1745 - /trunk/src/terrain_multitex.cpp
+</A></li>
+	<LI>Next message: <A HREF="000562.html">[Iris-commit] [IRIS] r1747 - in /trunk: bin/ data/ lua/ lua/net/	vs8/
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#561">[ date ]</a>
+              <a href="thread.html#561">[ thread ]</a>
+              <a href="subject.html#561">[ subject ]</a>
+              <a href="author.html#561">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

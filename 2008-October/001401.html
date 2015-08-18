@@ -1,0 +1,251 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2596 - in /trunk: lua/net.walk.lua	plugins/lib.spellbar.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-October/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2596%20-%20in%20/trunk%3A%20lua/net.walk.lua%0A%09plugins/lib.spellbar.lua&In-Reply-To=%3C20081017205710.BBF491C1879D%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001400.html">
+   <LINK REL="Next"  HREF="001402.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2596 - in /trunk: lua/net.walk.lua	plugins/lib.spellbar.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2596%20-%20in%20/trunk%3A%20lua/net.walk.lua%0A%09plugins/lib.spellbar.lua&In-Reply-To=%3C20081017205710.BBF491C1879D%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2596 - in /trunk: lua/net.walk.lua	plugins/lib.spellbar.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Fri Oct 17 22:57:10 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001400.html">[Iris-commit] [IRIS] r2595 - in /trunk: lua/lib.macrolist.lua	plugins/moblist.lua
+</A></li>
+        <LI>Next message: <A HREF="001402.html">[Iris-commit] [IRIS] r2597 - /trunk/bin/iris2.exe
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1401">[ date ]</a>
+              <a href="thread.html#1401">[ thread ]</a>
+              <a href="subject.html#1401">[ subject ]</a>
+              <a href="author.html#1401">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Fri Oct 17 22:57:10 2008
+New Revision: 2596
+
+Log:
+improved walkcode to handle block packets correctly without resync-request
+
+Modified:
+    trunk/lua/net.walk.lua
+    trunk/plugins/lib.spellbar.lua
+
+Modified: trunk/lua/net.walk.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net.walk.lua (original)
++++ trunk/lua/net.walk.lua Fri Oct 17 22:57:10 2008
+@@ -174,7 +174,7 @@
+ 	local iFullDir =3D BitwiseOR(iDir,bRunFlag and kWalkFlag_Run or 0) -- inc=
+ludes runflag
+ 	=
+
+ 	local playermobile =3D GetPlayerMobile()
+-	WalkLog2(&quot;ExecWalkRequestIfPossible playermobile&quot;,playermobile)
++	--~ WalkLog2(&quot;ExecWalkRequestIfPossible playermobile&quot;,playermobile)
+ 	if (not playermobile) then return end
+ 	=
+
+ 	-- init request
+@@ -227,6 +227,7 @@
+ 	out:PushNetUint8(iSeqNum)
+ 	out:PushNetUint32(iFastKey)
+ 	out:SendPacket()
++	--~ print(&quot;walk:request&quot;,sprintf(&quot;0x%04x&quot;,iFullDir),iSeqNum)
+ end
+ =
+
+ =
+
+@@ -235,6 +236,7 @@
+ 	local input =3D GetRecvFIFO()
+ 	local id =3D input:PopNetUint8()
+ 	local iSeqNum =3D input:PopNetUint8()
++	--~ print(&quot;walk:accept&quot;,iSeqNum)
+ 	local player_notoriety =3D input:PopNetUint8()
+ 	local playermobile =3D GetPlayerMobile()
+ 	if (playermobile) then playermobile:SetNotoriety(player_notoriety) end --=
+ fast notoriety update
+@@ -248,6 +250,7 @@
+ 		-- todo : tilefree : set last confirmed pos
+ 		--~ WalkLog(&quot;kPacket_Accept_Movement ok&quot;)
+ 	else
++		print(&quot;walk:received accept movement with unknown seqnum&quot;,iSeqNum) -- ha=
+ppens while trying to walk into a private house and then to the side
+ 		WalkLog(&quot;kPacket_Accept_Movement UNKNOWN&quot;)
+ 		Send_Movement_Resync_Request()
+ 	end
+@@ -255,15 +258,17 @@
+ =
+
+ -- reset WalkSeq. and Stack
+ function ResetWalkQueue ()
+-	WalkLog(&quot;ResetWalkQueue start&quot;)
++	--~ WalkLog(&quot;ResetWalkQueue start&quot;)
+ 	gNextWalkSequenceNumber =3D 0
+ 	gWalkRequests =3D {}
+ 	gWalkPathToGo =3D nil
+-	WalkLog(&quot;ResetWalkQueue end&quot;)
+-end
++	--~ WalkLog(&quot;ResetWalkQueue end&quot;)
++end
++
++gDoomedWalkRequests =3D {}
+ =
+
+ -- Block Movement Request - reset player to back to location
+-function gPacketHandler.kPacket_Block_Movement()
++function gPacketHandler.kPacket_Block_Movement() -- 0x21
+ 	local input			=3D GetRecvFIFO()
+ 	local id			=3D input:PopNetUint8()
+ 	local seqnumber		=3D input:PopNetUint8()
+@@ -272,17 +277,30 @@
+ 	local dir			=3D input:PopNetUint8()
+ 	local zloc			=3D input:PopInt8()
+ =
+
+-	WalkLog(&quot;kPacket_Block_Movement start&quot;)
+-	ResetWalkQueue()
+-	SetPlayerPos(xloc,yloc,zloc,dir)
+-	gCurrentRenderer:NotifyPlayerTeleported()
+-	=
+
+-	Send_Accept_Block_Movement(seqnumber)
+-	WalkLog(&quot;kPacket_Block_Movement end&quot;)
+-end
+-
++	-- usecase(idea) : player has sent  north,north,west,west  , the first tw=
+o are blocked(private house), but the latter two are accepted
++	-- usecase :  request0a,request1a,block0a,request0b,request1b,block1a!!!!=
+(deletes 1b)  (this is now prevented via doom list -&gt; it's known which are =
+old)
++	=
+
++	local doomed =3D gDoomedWalkRequests[seqnumber]
++	--~ print(&quot;walk:block&quot;,seqnumber,doomed and &quot;doomed&quot; or &quot;&quot;,countarr(gDoom=
+edWalkRequests))
++	if (doomed) then
++		doomed =3D doomed - 1
++		gDoomedWalkRequests[seqnumber] =3D (doomed &gt; 0) and doomed or nil
++	else
++		-- doomcount should be zero in this case ? rarely, but not neccessarily =
+if =
+
++		for newdoomedseqnum,request in pairs(gWalkRequests) do
++			if (newdoomedseqnum ~=3D seqnumber) then
++				gDoomedWalkRequests[newdoomedseqnum] =3D (gDoomedWalkRequests[newdoome=
+dseqnum] or 0) + 1 -- server will send block-msg for those
++			end
++		end
++		ResetWalkQueue()
++		SetPlayerPos(xloc,yloc,zloc,dir)
++		gCurrentRenderer:NotifyPlayerTeleported()
++	end
++end
++
++-- original client doesn't send this, e.g. trying to walk while casting a =
+spell
+ -- TODO : is this the same as Send_Movement_Resync_Request ?
+-function Send_Accept_Block_Movement(seqnumber)
++function Send_Accept_Block_Movement(seqnumber) -- 0x22
+ 	WalkLog(&quot;Send_Accept_Block_Movement&quot;,seqnumber)
+ 	local out =3D GetSendFIFO()
+ 	out:PushNetUint8(kPacket_Accept_Movement_Resync_Request)
+@@ -293,9 +311,13 @@
+ =
+
+ -- This Packet is send when Client thinks he is out of Sync (basicly: sequ=
+ence doesn't fit)
+ -- The proper response from the server is a Teleport packet kPacket_Telepo=
+rt
++gEarliestNextResyncRequestTime =3D 0
+ function Send_Movement_Resync_Request()
++	local t =3D Client_GetTicks()
++	if (t &lt; gEarliestNextResyncRequestTime) then return end
++	gEarliestNextResyncRequestTime =3D t + 2000 -- server sends everything, i=
+ncluding surrounding stuff
++	print(&quot;######## walk : ResyncRequest&quot;)
+ 	WalkLog(&quot;Send_Movement_Resync_Request&quot;)
+-	-- todo : block too many resync requests by remembering gMyTicks here ?
+ 	ResetWalkQueue()
+ 	local out =3D GetSendFIFO()
+ 	out:PushNetUint8(kPacket_Accept_Movement_Resync_Request)
+
+Modified: trunk/plugins/lib.spellbar.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/plugins/lib.spellbar.lua (original)
++++ trunk/plugins/lib.spellbar.lua Fri Oct 17 22:57:10 2008
+@@ -134,7 +134,10 @@
+ gSpellbarShortMessages[500113] =3D {r=3D0.5,g=3D0,b=3D0,txt=3D&quot;goardzone o=
+ff&quot;			} -- You have left the protection of the town guards.     =
+
+ gSpellbarShortMessages[501942] =3D {r=3D0.5,g=3D0.5,b=3D0.5,txt=3D&quot;locatio=
+n blocked&quot;	} -- That location is blocked.           =
+
+ gSpellbarShortMessages[500119] =3D {r=3D0.5,g=3D0.5,b=3D0.5,txt=3D&quot;mustwai=
+t&quot;			} -- You must wait to perform another action.     =
+
+-gSpellbarShortMessages[500446] =3D {r=3D0.5,g=3D0.5,b=3D0.5,txt=3D&quot;too far=
+&quot;			} -- That is too far away.  =
+
++gSpellbarShortMessages[500446] =3D {r=3D0.5,g=3D0.5,b=3D0.5,txt=3D&quot;too far=
+&quot;			} -- That is too far away. =
+
++ =
+
++gSpellbarShortMessages[501284] =3D {r=3D0.5,g=3D0.0,b=3D0.0,txt=3D&quot;You may=
+ not enter.&quot; } -- You may not enter.
++gSpellbarShortMessages[500111] =3D {r=3D0.5,g=3D0.0,b=3D0.0,txt=3D&quot;frozen&quot;=
+ 			} -- You are frozen and cannot move. =
+
+ =
+
+ --[[
+ Hook_Packet_Localized_Text      4294967295      You prepare to hit your op=
+ponent with a Death Strike.   1063091
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001400.html">[Iris-commit] [IRIS] r2595 - in /trunk: lua/lib.macrolist.lua	plugins/moblist.lua
+</A></li>
+	<LI>Next message: <A HREF="001402.html">[Iris-commit] [IRIS] r2597 - /trunk/bin/iris2.exe
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1401">[ date ]</a>
+              <a href="thread.html#1401">[ thread ]</a>
+              <a href="subject.html#1401">[ subject ]</a>
+              <a href="author.html#1401">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

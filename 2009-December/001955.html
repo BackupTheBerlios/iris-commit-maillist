@@ -1,0 +1,361 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r3195 - in /trunk/lua: lib.2d.dynamic.lua lib.3d.dynamic.lua lib.3d.mousepick.lua lib.packet.lua lib.protocol.lua lib.uodragdrop.lua lib.walking3.lua net/net.dynamic.lua net/net.multi.lua obj/obj.dynamic.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2009-December/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3195%20-%20in%20/trunk/lua%3A%20lib.2d.dynamic.lua%0A%20lib.3d.dynamic.lua%20lib.3d.mousepick.lua%20lib.packet.lua%20lib.protocol.lua%0A%20lib.uodragdrop.lua%20lib.walking3.lua%20net/net.dynamic.lua%20net/net.multi.lua%0A%20obj/obj.dynamic.lua&In-Reply-To=%3C20091219200137.E2F5A54D0039%40simon%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001954.html">
+   <LINK REL="Next"  HREF="001956.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r3195 - in /trunk/lua: lib.2d.dynamic.lua lib.3d.dynamic.lua lib.3d.mousepick.lua lib.packet.lua lib.protocol.lua lib.uodragdrop.lua lib.walking3.lua net/net.dynamic.lua net/net.multi.lua obj/obj.dynamic.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3195%20-%20in%20/trunk/lua%3A%20lib.2d.dynamic.lua%0A%20lib.3d.dynamic.lua%20lib.3d.mousepick.lua%20lib.packet.lua%20lib.protocol.lua%0A%20lib.uodragdrop.lua%20lib.walking3.lua%20net/net.dynamic.lua%20net/net.multi.lua%0A%20obj/obj.dynamic.lua&In-Reply-To=%3C20091219200137.E2F5A54D0039%40simon%3E"
+       TITLE="[Iris-commit] [IRIS] r3195 - in /trunk/lua: lib.2d.dynamic.lua lib.3d.dynamic.lua lib.3d.mousepick.lua lib.packet.lua lib.protocol.lua lib.uodragdrop.lua lib.walking3.lua net/net.dynamic.lua net/net.multi.lua obj/obj.dynamic.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat Dec 19 21:01:37 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001954.html">[Iris-commit] [IRIS] r3194 - /trunk/lua/lib.protocol.lua
+</A></li>
+        <LI>Next message: <A HREF="001956.html">[Iris-commit] [IRIS] r3196 - /trunk/lua/net/net.multi.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1955">[ date ]</a>
+              <a href="thread.html#1955">[ thread ]</a>
+              <a href="subject.html#1955">[ subject ]</a>
+              <a href="author.html#1955">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sat Dec 19 21:01:37 2009
+New Revision: 3195
+
+Log:
+added new packet : kPacket_ObjectInfo 0xf3 which replaces showitem 0x1a to =
+some degree in v7000,  most multis fixed, a few still broken/invis
+
+Modified:
+    trunk/lua/lib.2d.dynamic.lua
+    trunk/lua/lib.3d.dynamic.lua
+    trunk/lua/lib.3d.mousepick.lua
+    trunk/lua/lib.packet.lua
+    trunk/lua/lib.protocol.lua
+    trunk/lua/lib.uodragdrop.lua
+    trunk/lua/lib.walking3.lua
+    trunk/lua/net/net.dynamic.lua
+    trunk/lua/net/net.multi.lua
+    trunk/lua/obj/obj.dynamic.lua
+
+Modified: trunk/lua/lib.2d.dynamic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.dynamic.lua (original)
++++ trunk/lua/lib.2d.dynamic.lua Sat Dec 19 21:01:37 2009
+@@ -6,7 +6,7 @@
+ function Renderer2D:AddDynamicItem					(item) =
+
+ 	if (Renderer2D.bMinimalGfx) then return end =
+
+ 	item.r2d_removed =3D nil
+-	if item.artid &gt;=3D gMulti_ID then =
+
++	if ItemIsMulti(item) then =
+
+ 		-- multi
+ 		self:UpdateMultiItemGfx(item)
+ 	elseif (item.artid_base =3D=3D kCorpseDynamicArtID or (item.artid and ite=
+m.artid &gt; 1)) then -- 1 =3D=3D nodraw =
+
+@@ -176,7 +176,7 @@
+ =
+
+ =
+
+ function Renderer2D:UpdateDynamicBlendOut			(item,iBlendOutMinZ,iBlendOutM=
+axZ) =
+
+-	if item.artid &gt;=3D gMulti_ID then =
+
++	if ItemIsMulti(item) then =
+
+ 		-- multi
+ 		self:UpdateMultiItemGfx(item)
+ 	else
+
+Modified: trunk/lua/lib.3d.dynamic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.dynamic.lua (original)
++++ trunk/lua/lib.3d.dynamic.lua Sat Dec 19 21:01:37 2009
+@@ -336,7 +336,7 @@
+         self:AddCorpseItem(item)
+     elseif not item.artid then
+         print(&quot;ERROR: artid missing!!!!\n&quot;)
+-    elseif item.artid &gt;=3D gMulti_ID then =
+
++    elseif ItemIsMulti(item) then =
+
+         -- multi
+         self:AddMultiItem(item)
+     else
+
+Modified: trunk/lua/lib.3d.mousepick.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.mousepick.lua (original)
++++ trunk/lua/lib.3d.mousepick.lua Sat Dec 19 21:01:37 2009
+@@ -204,7 +204,7 @@
+ 	assert(gMulti_ID)
+     for k,dynamic in pairs(GetDynamicList()) do
+         -- if Dynamic is in World (if it's not an Container) &amp; if it's not=
+ an Multi &amp; if it's not a skipped Fallback (multitile mesh)
+-        if (DynamicIsInWorld(dynamic) and dynamic.artid and (dynamic.artid=
+ &lt; gMulti_ID) and not(IsArtBillboardFallBackSkipped(dynamic.artid))) then
++        if (DynamicIsInWorld(dynamic) and dynamic.artid and (not ItemIsMul=
+ti(dynamic)) and not(IsArtBillboardFallBackSkipped(dynamic.artid))) then
+             -- WARNING copy &amp; paste code
+             if (self:IsZLayerVisible(dynamic.zloc)) then
+                 if (dynamic.corpsegfx) then
+
+Modified: trunk/lua/lib.packet.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.packet.lua (original)
++++ trunk/lua/lib.packet.lua Sat Dec 19 21:01:37 2009
+@@ -240,6 +240,7 @@
+ -- buff/debuff packet
+ gPacketType.kPacket_BuffDebuff_System								=3D { id=3D0xDF, size=3D0 }
+ gPacketType.kPacket_ExtBundledPacket								=3D { id=3D0xF0, size=3D0 } --=
+ party positions, used by razor positioning system
++gPacketType.kPacket_ObjectInfo										=3D { id=3D0xF3, size=3D24 }
+ =
+
+ gPacketSizeOverride6017 =3D {[0x25]=3D21,[0x08]=3D15,} -- 0x3C is changed =
+as well, but was dynamic anyway
+ =
+
+@@ -283,7 +284,7 @@
+ =
+
+ gPacketType.kPacket_								=3D { id=3D0xF1 }
+ gPacketType.kPacket_								=3D { id=3D0xF2 }
+-gPacketType.kPacket_								=3D { id=3D0xF3 }
++0xF3 .. see above
+ gPacketType.kPacket_								=3D { id=3D0xF4 }
+ gPacketType.kPacket_								=3D { id=3D0xF5 }
+ gPacketType.kPacket_								=3D { id=3D0xF6 }
+
+Modified: trunk/lua/lib.protocol.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.protocol.lua (original)
++++ trunk/lua/lib.protocol.lua Sat Dec 19 21:01:37 2009
+@@ -27,12 +27,6 @@
+ 	=
+
+ 	while (input:Size() &gt;=3D 1) do
+ 		local iId =3D input:PeekNetUint8(0)
+-		if (iId =3D=3D 0xf3 and ClientVersionIsPost7000()) then =
+
+-			print(&quot;7000Init skipped&quot;)
+-			input:PopRaw(16+8)
+-			if (input:Size() =3D=3D 0) then break end
+-			iId =3D input:PeekNetUint8(0)
+-		end
+ 		local iPacketSize =3D gPacketSizeByID[iId]
+ 		--~ print(&quot;packet&quot;,gPacketTypeId2Name[iId],iPacketSize)
+ 		if (not iPacketSize) then
+
+Modified: trunk/lua/lib.uodragdrop.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.uodragdrop.lua (original)
++++ trunk/lua/lib.uodragdrop.lua Sat Dec 19 21:01:37 2009
+@@ -197,8 +197,8 @@
+ -- SiENcE: just skip Multis here
+ -- Todo: Multi support
+ function PrepareDragDynamic (dynamic)
+-	--~ if dynamic.artid &gt;=3D gMulti_ID then dynamic.artid =3D 0xeef end -- v=
+m hausklau bug
+-	if dynamic.artid &lt; gMulti_ID then
++	--~ if ItemIsMulti(dynamic) then dynamic.artid =3D 0xeef end -- vm hauskl=
+au bug
++	if (not ItemIsMulti(dynamic)) then
+ 		local iArtID =3D dynamic.artid + 0x4000
+ 		local matname =3D GetArtMat(iArtID,dynamic.hue)
+ 		local w,h =3D GetArtSize(iArtID,dynamic.hue)
+@@ -467,7 +467,7 @@
+ 				if (TestBit(flags,kTileDataFlag_Container)) then bOnContainer =3D true=
+ end
+ 				--~ if (not bOnContainer) then iSerial =3D nil end  -- might be bad fo=
+r potionkegs and similar non-container droptargets
+ 				if (TestBit(flags,kTileDataFlag_Surface)) then iSerial =3D nil end   -=
+-  or kTileDataFlag_Background ?
+-				if (dynamic.artid &gt;=3D gMulti_ID) then iSerial =3D nil end
++				if (ItemIsMulti(dynamic)) then iSerial =3D nil end
+ 			end
+ 		end
+ 		=
+
+
+Modified: trunk/lua/lib.walking3.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.walking3.lua (original)
++++ trunk/lua/lib.walking3.lua Sat Dec 19 21:01:37 2009
+@@ -115,7 +115,7 @@
+ 	W3_ForAllMultiPartsAtPos(xloc,yloc,fun,param)
+ 	for k,static in pairs(MapGetStatics(xloc,yloc)) do fun(static,param) end
+ 	for k,dynamic in pairs(GetDynamicsAtPosition(xloc,yloc)) do
+-		if dynamic.artid and dynamic.artid &lt; gMulti_ID then -- non-multi
++		if dynamic.artid and (not ItemIsMulti(dynamic)) then -- non-multi
+ 			fun(dynamic,param)
+ 		end
+ 	end
+
+Modified: trunk/lua/net/net.dynamic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.dynamic.lua (original)
++++ trunk/lua/net/net.dynamic.lua Sat Dec 19 21:01:37 2009
+@@ -27,12 +27,42 @@
+ --			// +1 - Flags
+ -- TODO : here Tooltip request   0x1A  (old iris:PCK_Put)
+ =
+
++-- 0xf3, replaces 0x1a:kPacket_Show_Item for client v7000 =
+
++-- see <A HREF="http://docs.polserver.com/packets/index.php?Packet=3D0xF3">http://docs.polserver.com/packets/index.php?Packet=3D0xF3</A>
++function gPacketHandler.kPacket_ObjectInfo() =
+
++	local dynamicdata =3D {}
++	local input =3D GetRecvFIFO()
++	local popped_start =3D input:GetTotalPopped()
++	dynamicdata.packetid	=3D input:PopNetUint8()
++	dynamicdata.unknown1	=3D input:PopNetUint16() -- polguide: always 0x1 on =
+OSI
++	dynamicdata.itemclass	=3D input:PopNetUint8() -- polguide: 0x00 =3D Item =
+, 0x02 =3D Multi , see kItemClassMulti,ItemIsMulti
++	dynamicdata.serial		=3D input:PopNetUint32()
++	dynamicdata.artid_base	=3D input:PopNetUint16()
++	dynamicdata.dir			=3D input:PopNetUint8()	-- corpses?
++	dynamicdata.amount		=3D input:PopNetUint16() -- polguide:1 for multi
++	dynamicdata.amount2		=3D input:PopNetUint16() -- polguide:1 for multi , u=
+nknown why sent 2 times
++	dynamicdata.xloc		=3D input:PopNetUint16() --only use lowest significant =
+15 bits)
++	dynamicdata.yloc		=3D input:PopNetUint16()
++	dynamicdata.zloc		=3D input:PopInt8()
++	dynamicdata.layer		=3D input:PopNetUint8() -- new    polguide:0 if multi
++	dynamicdata.hue			=3D input:PopNetUint16() -- polguide:0 if multi
++	dynamicdata.flag		=3D input:PopNetUint8() -- polguide:0x20 =3D Show Prope=
+rties , 0x80 =3D Hidden , 0x00 if Multi
++	dynamicdata.iContainerSerial =3D 0
++	dynamicdata.artid_addstack =3D 0
++	=
+
++	local dynamic =3D CreateOrUpdateDynamic(dynamicdata)
++	NotifyListener(&quot;Hook_Show_item&quot;,dynamic)
++end
++
++kItemClassMulti =3D 2
++function ItemIsMulti (item) return item.artid &gt;=3D gMulti_ID or item.itemc=
+lass =3D=3D kItemClassMulti end
++
+ -- show item (0x1a)
+ function gPacketHandler.kPacket_Show_Item()
+ 	local dynamicdata =3D {}
+ 	local input =3D GetRecvFIFO()
+ 	local popped_start =3D input:GetTotalPopped()
+-	local id =3D input:PopNetUint8()
++	dynamicdata.packetid =3D input:PopNetUint8()
+ 	=
+
+ 	local iPacketSize =3D input:PopNetUint16()
+ 	dynamicdata.serial			=3D input:PopNetUint32() -- id =3D serial . Include =
+the flag 0x80000000 if the item's amount is greater than one.
+
+Modified: trunk/lua/net/net.multi.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.multi.lua (original)
++++ trunk/lua/net/net.multi.lua Sat Dec 19 21:01:37 2009
+@@ -326,7 +326,7 @@
+ end
+ =
+
+ function UpdateMultiData (item)
+-	if item.artid &lt; gMulti_ID then return end
++	if (not ItemIsMulti(item)) then return end
+ 	local iHue =3D 0
+ 	local multi =3D {}
+ 	multi.lparts =3D {}
+
+Modified: trunk/lua/obj/obj.dynamic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/obj/obj.dynamic.lua (original)
++++ trunk/lua/obj/obj.dynamic.lua Sat Dec 19 21:01:37 2009
+@@ -76,7 +76,6 @@
+ 	dynamic:Update(dynamicdata,mobile)
+ 	return dynamic
+ end
+-
+ =
+
+ -- see also CreateOrUpdateDynamic
+ function gDynamicPrototype:Update (dynamicdata,mobile)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001954.html">[Iris-commit] [IRIS] r3194 - /trunk/lua/lib.protocol.lua
+</A></li>
+	<LI>Next message: <A HREF="001956.html">[Iris-commit] [IRIS] r3196 - /trunk/lua/net/net.multi.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1955">[ date ]</a>
+              <a href="thread.html#1955">[ thread ]</a>
+              <a href="subject.html#1955">[ subject ]</a>
+              <a href="author.html#1955">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

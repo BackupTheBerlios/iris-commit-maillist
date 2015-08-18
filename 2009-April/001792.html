@@ -1,0 +1,617 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2993 - in /trunk: lua/lib.desktop.lua lua/main.lua lua/net/net.uodragdrop.lua lua/widgets/widget.uocontainer.lua plugins/lib.spellbar.lua plugins/loot.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2009-April/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2993%20-%20in%20/trunk%3A%20lua/lib.desktop.lua%0A%20lua/main.lua%20lua/net/net.uodragdrop.lua%20lua/widgets/widget.uocontainer.lua%0A%20plugins/lib.spellbar.lua%20plugins/loot.lua&In-Reply-To=%3C20090412015124.B35241C18837%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001791.html">
+   <LINK REL="Next"  HREF="001793.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2993 - in /trunk: lua/lib.desktop.lua lua/main.lua lua/net/net.uodragdrop.lua lua/widgets/widget.uocontainer.lua plugins/lib.spellbar.lua plugins/loot.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2993%20-%20in%20/trunk%3A%20lua/lib.desktop.lua%0A%20lua/main.lua%20lua/net/net.uodragdrop.lua%20lua/widgets/widget.uocontainer.lua%0A%20plugins/lib.spellbar.lua%20plugins/loot.lua&In-Reply-To=%3C20090412015124.B35241C18837%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2993 - in /trunk: lua/lib.desktop.lua lua/main.lua lua/net/net.uodragdrop.lua lua/widgets/widget.uocontainer.lua plugins/lib.spellbar.lua plugins/loot.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sun Apr 12 03:51:21 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001791.html">[Iris-commit] [IRIS] r2992 - /trunk/bin/iris2.exe
+</A></li>
+        <LI>Next message: <A HREF="001793.html">[Iris-commit] [IRIS] r2994 - in /trunk: lua/lib.uotooltip.lua plugins/loot.lua plugins/moblist.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1792">[ date ]</a>
+              <a href="thread.html#1792">[ thread ]</a>
+              <a href="subject.html#1792">[ subject ]</a>
+              <a href="author.html#1792">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sun Apr 12 03:51:06 2009
+New Revision: 2993
+
+Log:
+loot plugin redesign to consider serverside minwait better,  improved conta=
+iner-dialog refresh : only once during kPacket_Container_Contents now
+
+Modified:
+    trunk/lua/lib.desktop.lua
+    trunk/lua/main.lua
+    trunk/lua/net/net.uodragdrop.lua
+    trunk/lua/widgets/widget.uocontainer.lua
+    trunk/plugins/lib.spellbar.lua
+    trunk/plugins/loot.lua
+
+Modified: trunk/lua/lib.desktop.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.desktop.lua (original)
++++ trunk/lua/lib.desktop.lua Sun Apr 12 03:51:06 2009
+@@ -145,7 +145,7 @@
+     RemoveDesktopElement(&quot;container&quot;,serial) =
+
+     SaveDesktop() =
+
+ end)
+-RegisterListener(&quot;Hook_OpenContainer&quot;,function(widget) =
+
++RegisterListener(&quot;Hook_CreateContainerWidget&quot;,function(widget) =
+
+     local serial =3D widget.uoContainer.serial
+     if widget and serial and widget.uoContainer.gumpid ~=3D kCorpseContain=
+erGumpID then -- ignore corpses here (massive with autoloot)
+         local x,y =3D widget:GetPos()
+
+Modified: trunk/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/main.lua (original)
++++ trunk/lua/main.lua Sun Apr 12 03:51:06 2009
+@@ -603,6 +603,8 @@
+         StepMainMenu()
+     end
+     =
+
++    gProfiler_MainStep:Section(&quot;UOContainerDialogExecuteRefreshs&quot;)
++	UOContainerDialogExecuteRefreshs()
+     gProfiler_MainStep:Section(&quot;SetToolTipSubject&quot;)
+     local gObjectUnderMouse =3D nil -- todo : mousepick every frame ?
+     SetToolTipSubject(GetWidgetUnderMouse() or gObjectUnderMouse)
+
+Modified: trunk/lua/net/net.uodragdrop.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.uodragdrop.lua (original)
++++ trunk/lua/net/net.uodragdrop.lua Sun Apr 12 03:51:06 2009
+@@ -46,17 +46,18 @@
+ 	local id =3D input:PopNetUint8()
+ 	local reason =3D input:PopNetUint8()
+ 	local reasontxt =3D &quot;unknown_Get_Item_Failed&quot;
+-	if (reason =3D=3D hex2num(&quot;0x00&quot;)) then reasontxt =3D &quot;You cannot pick th=
+at up.&quot; end
+-	if (reason =3D=3D hex2num(&quot;0x01&quot;)) then reasontxt =3D &quot;That is too far aw=
+ay.&quot; end
+-	if (reason =3D=3D hex2num(&quot;0x02&quot;)) then reasontxt =3D &quot;That is out of sig=
+ht.&quot; end
+-	if (reason =3D=3D hex2num(&quot;0x03&quot;)) then reasontxt =3D &quot;That item does not=
+ belong to you. You will have to steal it.&quot; end
+-	if (reason =3D=3D hex2num(&quot;0x04&quot;)) then reasontxt =3D &quot;You are already ho=
+lding an item.&quot; end
+-	if (reason =3D=3D hex2num(&quot;0x05&quot;)) then =
+
++	if (reason =3D=3D 0x00) then reasontxt =3D &quot;You cannot pick that up.&quot; end
++	if (reason =3D=3D 0x01) then reasontxt =3D &quot;That is too far away.&quot; end
++	if (reason =3D=3D 0x02) then reasontxt =3D &quot;That is out of sight.&quot; end
++	if (reason =3D=3D 0x03) then reasontxt =3D &quot;That item does not belong to =
+you. You will have to steal it.&quot; end
++	if (reason =3D=3D 0x04) then reasontxt =3D &quot;You are already holding an it=
+em.&quot; end
++	if (reason =3D=3D 0x05) then =
+
+ 		reasontxt =3D &quot;The item was destroyed.&quot;
+ 	end
+-	if (reason =3D=3D hex2num(&quot;0x06&quot;)) then -- No message.
++	if (reason =3D=3D 0x06) then -- No message.
+ 		reasontxt =3D false
+ 	end
++	NotifyListener(&quot;Hook_GetItemFailed&quot;,reason,reasontxt)
+ 	MacroCmd_RiseText(1,0,0,&quot;Get_Item_Failed:&quot;..reasontxt)
+ 	print(&quot;NET : Get_Item_Failed&quot;,reasontxt)
+ 	printdebug(&quot;net&quot;,&quot;NET : Get_Item_Failed&quot;,reasontxt)
+
+Modified: trunk/lua/widgets/widget.uocontainer.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/widgets/widget.uocontainer.lua (original)
++++ trunk/lua/widgets/widget.uocontainer.lua Sun Apr 12 03:51:06 2009
+@@ -36,8 +36,8 @@
+ 	gProfiler_UOContainerDialog:Section(&quot;RefreshItems&quot;)
+ 	self:RefreshItems()
+ 	=
+
+-	gProfiler_UOContainerDialog:Section(&quot;Hook_OpenContainer&quot;)
+-	NotifyListener(&quot;Hook_OpenContainer&quot;,self)
++	gProfiler_UOContainerDialog:Section(&quot;Hook_CreateContainerWidget&quot;)
++	NotifyListener(&quot;Hook_CreateContainerWidget&quot;,self)
+ 	gProfiler_UOContainerDialog:End()
+ end
+ =
+
+@@ -45,9 +45,26 @@
+ 	--~ local container		=3D self.uoContainer
+ 	--~ print(&quot;container destroy&quot;,container and container.serial,_TRACEBACK())
+ --~ end
+-	=
+
+-function gWidgetPrototype.UOContainerDialog:RefreshItems ()
++
++gUOContainerDialogsNeedingRefresh =3D {}
++function gWidgetPrototype.UOContainerDialog:RefreshItems () -- just mark h=
+ere to avoid many refreshs during container kPacket_Container_Contents
++	local serial =3D self.uoContainer and self.uoContainer.serial
++	gUOContainerDialogsNeedingRefresh[serial] =3D true
++end
++
++function UOContainerDialogExecuteRefreshs ()
++	if (isempty(gUOContainerDialogsNeedingRefresh)) then return end =
+
++	for serial,v in pairs(gUOContainerDialogsNeedingRefresh) do =
+
++		local container =3D GetContainer(serial)
++		if (container and container.dialog) then container.dialog:RefreshItemsEx=
+ecute() end =
+
++	end =
+
++	gUOContainerDialogsNeedingRefresh =3D {}
++end
++
++
++function gWidgetPrototype.UOContainerDialog:RefreshItemsExecute ()  -- del
+ 	local container =3D self.uoContainer
++	--~ print(&quot;UOContainerDialog:RefreshItemsExecute&quot;,GetOneLineBackTrace(2,9=
+9))
+ 	--~ print(&quot;UOContainerDialog : gumpid&quot;,container.gumpid)
+ 	for k,item in pairs(container:GetContent()) do if (item.widget) then item=
+.widget:Destroy() end end
+ 	for k,item in pairs(container:GetContent()) do item.widget =3D CreateUOCo=
+ntainerItemWidget(self.items,item) end
+
+Modified: trunk/plugins/lib.spellbar.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/plugins/lib.spellbar.lua (original)
++++ trunk/plugins/lib.spellbar.lua Sun Apr 12 03:51:06 2009
+@@ -16,6 +16,9 @@
+ 		--~ print(&quot;spellbar : timediff&quot;,dt,&quot;C:&quot;..GetSpellCircleByID(spellid),Get=
+SpellNameByID(spellid))
+ 		--~ local r,g,b =3D 0.5,0.5,0.5
+ 		--~ SpellBarRiseTextOnMob(GetPlayerSerial(),r,g,b,&quot;t:&quot;..dt)
++		=
+
++		print(&quot;############SPELLTIME&quot;,dt)
++		=
+
+ 		gSpellBarLastSpellSendTime =3D nil
+ 		SpellBarTargetCursor()
+ 	end
+
+Modified: trunk/plugins/loot.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/plugins/loot.lua (original)
++++ trunk/plugins/loot.lua Sun Apr 12 03:51:06 2009
+@@ -4,168 +4,164 @@
+ =
+
+ function LootSetBackPackFullCallBack (fun) gLootBPFullCallBack =3D fun end
+ =
+
++gLoot_TrashCorpseTypes =3D { =
+
++	35,36,  --lizzardmen
++	240, -- kappa
++	}
++gLoot_TrashCorpseTypesByID =3D {}
++for k,v in pairs(gLoot_TrashCorpseTypes) do gLoot_TrashCorpseTypesByID[v] =
+=3D true end
++
++	=
+
+ kCorpseContainerGumpID =3D 9
+ kLootArtID_Gold =3D 3823
+ kLoot_GoldWeight =3D 20/1000 -- 1000gold =3D 20 stones
+ -- artid=3D3791,3794,...(not corpse-art-id) : bones after animate undead
++gStepperInterval =3D 700 -- serverside =3D 500, add a bit of tolerance
+ =
+
++--~ Send_Take_Object(...) -- NextActionTime =3D now + 0.5 s   =
+
++--~ Send_Drop_Object_AutoStack(...)  -- no timeout
++--~ Send_DoubleClick(..) : UseReq : NextActionTime =3D now + 0.5 s   =
+
+ =
+
+ function LootEvaluateItem (item)
+ 	if (item.artid =3D=3D 5110 and item.hue =3D=3D 2419) then return true end=
+ -- gargy knife
+ 	if (item.artid =3D=3D 3718 and item.hue =3D=3D 2419) then return true end=
+ -- gargy pickaxe
+ 	if (item.artid =3D=3D 3909 and item.hue =3D=3D 2419) then return true end=
+ -- gargy axe
++	if (item.artid =3D=3D kLootArtID_Gold) then return true end -- gold
+ end
+ =
+
+-
+-
+-
+-
+-gLootFinishedCorpses =3D {}
+-
+-gAutoLootNextT =3D 0
+-gAutoLootInterval =3D 750
+-
+-gLoot_TrashCorpseTypes =3D { =
+
+-	35,36,  --lizzardmen
+-	240, -- kappa
+-	}
+-	=
+
+-gLoot_TrashCorpseTypesByID =3D {}
+-for k,v in pairs(gLoot_TrashCorpseTypes) do gLoot_TrashCorpseTypesByID[v] =
+=3D true end
++gLastLootLogTime =3D 0
++function MyLootLog (...)
++	--~ local t =3D Client_GetTicks()
++	--~ local dt =3D t - gLastLootLogTime
++	--~ gLastLootLogTime =3D t
++	--~ print(&quot;lootlog&quot;,dt,...)
++end
++-- todo : detect empty corpses : Hook_OpenContainer starts timeout, if Hoo=
+k_Container_Contents doesn't arrive in time, assume corpse is empty
++--~ RegisterListener(&quot;Hook_Text&quot;,function (name,plaintext,serial,data) MyL=
+ootLog(&quot;Hook_Text&quot;,name,plaintext,serial,data.clilocid) end)
++--~ RegisterListener(&quot;Hook_OpenContainer&quot;,function (dialog,serial,gumpid) =
+MyLootLog(&quot;Hook_OpenContainer&quot;,serial) end)
++--~ RegisterListener(&quot;Hook_Packet_Destroy&quot;,function (serial) if (gLootPlug=
+inMarkedItems[serial]) then MyLootLog(&quot;Hook_Packet_Destroy&quot;,serial) end end)
++--~ RegisterListener(&quot;Hook_GetItemFailed&quot;,function (reason,reasontxt) MyLo=
+otLog(&quot;Hook_GetItemFailed&quot;,reason,reasontxt) end)
+ =
+
+ function ToggleAutoLoot ()
+ 	gAutoLoot =3D not gAutoLoot
+ 	SpellBarRiseTextOnMob(GetPlayerSerial(),0,1,0,&quot;autoloot:&quot;..(gAutoLoot and=
+ &quot;ON&quot; or &quot;off&quot;))
+ end
+ =
+
++-- warning, might disrupt item listing, especially detection if an item is=
+ still inside a corpse
++function LootPlugin_HideCorpse (dynamic)
++	dynamic:Destroy()
++	--~ gCurrentRenderer:RemoveDynamicItem(dynamic) -- hide corpse... doesn't=
+ work, becomes visible again on update
++end
+ =
+
+-function FindNearbyCorpse (maxdist)
+-	local res
+-	maxdist =3D maxdist or 2
++RegisterListener(&quot;Hook_Container_Contents&quot;,function (serial) =
+
++	if (not gAutoLoot) then return end
++	MyLootLog(&quot;Hook_Container_Contents&quot;,serial)
++	if (not serial) then return end
++	local container =3D GetContainer(serial)
++	if (not container) then return end
++	if (container.gumpid ~=3D kCorpseContainerGumpID) then return end -- only=
+ loot corpses (not backpack/bankbox...)
++	=
+
++	for k,item in pairs(container:GetContent()) do =
+
++		if (LootEvaluateItem(item)) then LootPluginMarkItem(item,container) end
++	end
++end)
++
++
++
++gLootPlugin_RecentlyDoubleClickedCorpses =3D {}
++function LootPlugin_FindNearbyCorpses ()
++	local res =3D {}
++	local maxdist =3D 2
+ 	local xloc,yloc =3D GetPlayerPos()
++	local t =3D Client_GetTicks()
+ 	for k,dynamic in pairs(GetDynamicList()) do =
+
+ 		if (DynamicIsInWorld(dynamic) and dynamic.artid_base =3D=3D kCorpseDynam=
+icArtID) then =
+
+-			if (gLoot_TrashCorpseTypesByID[dynamic.amount] or gLootFinishedCorpses[=
+dynamic.serial]) then
+-				LootHideCorpse(dynamic)
++			if (gLoot_TrashCorpseTypesByID[dynamic.amount]) then
++				LootPlugin_HideCorpse(dynamic)
+ 			elseif (dist2(xloc,yloc,dynamic.xloc,dynamic.yloc) &lt;=3D maxdist) then
+ 			--~ elseif (abs(dynamic.xloc-xloc) + abs(dynamic.yloc-yloc) &lt;=3D maxdis=
+t) then
+-				res =3D dynamic
++				local oldt =3D gLootPlugin_RecentlyDoubleClickedCorpses[dynamic.serial]
++				if (oldt and oldt &gt; t - 30*1000) then =
+
++					-- was recently clicked, don't list again
++				else
++					table.insert(res,dynamic)
++				end
+ 			end
+ 		end
+ 	end
+ 	return res
+ end
+ =
+
+-function LootHideCorpse (dynamic) =
+
+-	gLootFinishedCorpses[dynamic.serial] =3D true
+-	dynamic:Destroy()
+-	--~ gCurrentRenderer:RemoveDynamicItem(corpse) -- hide corpse =
+
++gLootPluginMarkedItems =3D {}
++function LootPluginMarkItem (item,container) =
+
++	gLootPluginMarkedItems[item.serial] =3D {t=3DClient_GetTicks(),xloc=3Dcon=
+tainer.xloc,yloc=3Dcontainer.yloc}
+ end
+ =
+
+-RegisterStepper(function ()
++function LootPlugin_TakeItem (item) =
+
++	local iContainerSerial =3D item.iContainerSerial
++	job.create(function ()
++		MyLootLog(&quot;Send_Take_Object&quot;,item.serial)
++		Send_Take_Object(item.serial,item.amount)
++		job.wait(math.random(200,300))
++		MyLootLog(&quot;Send_Drop_Object_AutoStack&quot;,item.serial)
++		Send_Drop_Object_AutoStack(item.serial,GetPlayerBackPackSerial())
++		=
+
++		local corpse =3D GetDynamic(iContainerSerial)
++		--~ if (corpse) then LootPlugin_HideCorpse(corpse) end
++	end)
++end
++
++gLootPluginNextStep =3D 0
++function LootPluginStep ()
++	if (not gAutoLoot) then return end
+ 	local t =3D Client_GetTicks()
+-	if (gLootNextCorpseContainerTimeout) then =
+
+-		if (t &gt; gLootNextCorpseContainerTimeout) then
+-			LootCleanup() -- timeout : happens for empty corpses (no serial detecta=
+ble in container-content packet)
+-		end	=
+
+-	elseif (gAutoLoot) then =
+
+-		if (t &gt; gAutoLootNextT) then =
+
+-			gAutoLootNextT =3D t + gAutoLootInterval
+-			LootNearbyCorpse()
++	if (t &lt; gLootPluginNextStep) then return end
++	=
+
++	-- take items
++	local forgett =3D t - 30*1000 -- forget items after 30sek
++	local items =3D {}
++	for serial,lootinfo in pairs(gLootPluginMarkedItems) do =
+
++		if (lootinfo.t &lt; forgett) then =
+
++			gLootPluginMarkedItems[serial] =3D nil =
+
++		elseif (GetUODistToPlayer(lootinfo.xloc,lootinfo.yloc) &lt;=3D 2) then =
+
++			local item =3D GetDynamic(serial)
++			if (item and item.iContainerSerial ~=3D GetPlayerBackPackSerial()) then
++				local container =3D GetContainer(item.iContainerSerial)
++				if (container.gumpid =3D=3D kCorpseContainerGumpID) then -- in case it=
+em ends up in bankbox or so
++					table.insert(items,item)
++				end
++			end
+ 		end
+ 	end
+-end)
+-
+-function LootCancel ()
+-	gLootNextCorpseContainer =3D nil
+-	gLootNextCorpseContainerTimeout =3D nil
+-end
+-function LootCleanup ()
+-	--~ if (container.dialog) then container.dialog:Close() end
+-	local corpse =3D gLootNextCorpseContainer
+-	LootHideCorpse(corpse)
+-	gLootNextCorpseContainer =3D nil
+-	gLootNextCorpseContainerTimeout =3D nil
+-end
+-
+-RegisterListener(&quot;Hook_OpenContainer&quot;,function (dialog,serial,gumpid) =
+
+-	if (gumpid ~=3D kCorpseContainerGumpID) then return end
+-	if (not gLootNextCorpseContainer) then return end
+-	if (not gLootNextCorpseContainerTimeout) then =
+
+-		gLootNextCorpseContainerTimeout =3D Client_GetTicks() + 500
+-	end
+-end)
+-
+-gMyLootPlugin_LootItems =3D {}
+-RegisterIntervalStepper(600,function ()
+-	for serial,item in pairs(gMyLootPlugin_LootItems) do
+-		if (GetUODistToPlayer(	item.mylootplugin_worldxloc or 0,
+-								item.mylootplugin_worldyloc or 0) &lt;=3D 2) then
+-			job.create(function ()
+-				Send_Take_Object(item.serial,item.amount)
+-				job.wait(math.random(100,300))
+-				Send_Drop_Object_AutoStack(item.serial,GetPlayerBackPackSerial())
+-			end)
+-			return =
+
++	if (#items &gt; 0) then
++		local item =3D GetRandomArrayElement(items)
++		=
+
++		-- check weight
++		local curw,maxw =3D GetPlayerWeight()
++		local w =3D max(5,ceil(item.amount * kLoot_GoldWeight))
++		if (curw and maxw and curw + w &gt; maxw) then
++			SpellBarRiseTextOnMob(GetPlayerSerial(),1,0.5,0,&quot;backpack full!&quot;)
++			if (gLootBPFullCallBack) then gLootBPFullCallBack() end
++			gLootPluginNextStep =3D t + 2*1000
++			return
+ 		end
+-	end
+-end) =
+
+-RegisterListener(&quot;Hook_Packet_Destroy&quot;,function (serial) gMyLootPlugin_Loo=
+tItems[serial] =3D nil end)
+-
+-RegisterListener(&quot;Hook_Container_Contents&quot;,function (serial) =
+
+-	if (not serial) then return end -- empty corpse
+-	if (not gLootNextCorpseContainer) then return end
+-	local corpse =3D gLootNextCorpseContainer
+-	if (corpse.serial ~=3D serial) then print(&quot;loot serial mismatch&quot;,corpse.s=
+erial,serial) return end
+-	local container =3D GetContainer(serial)
+-	if (not container) then return end
+-	if (container.gumpid ~=3D kCorpseContainerGumpID) then return end
+-	local takeitem
+-	for k,item in pairs(container:GetContent()) do =
+
+-		if (item.artid =3D=3D kLootArtID_Gold and (not gDisableLootGold) and (no=
+t takeitem)) then takeitem =3D item end
+-		if (LootEvaluateItem(item)) then takeitem =3D item end
++		=
+
++		-- take item
++		local info =3D (AosToolTip_GetText(item.serial) or GetStaticTileTypeName=
+(item.artid) or &quot;???&quot;) .. &quot;:&quot; .. item.amount
++		SpellBarRiseTextOnMob(GetPlayerSerial(),1,0.5,0,info)
++		LootPlugin_TakeItem(item)
++		return =
+
+ 	end
+ 	=
+
+-	if (takeitem) then
+-		local item =3D takeitem
+-		if (item.artid =3D=3D kLootArtID_Gold) then
+-			local curw,maxw =3D GetPlayerWeight()
+-			local w =3D ceil(item.amount * kLoot_GoldWeight)
+-
+-			--~ print(&quot;######------#######  takeitem =3D=3D kLootArtID_Gold&quot;,item.a=
+mount , kLoot_GoldWeight,curw,maxw )
+-			if (curw and maxw and curw + w &gt; maxw) then
+-				SpellBarRiseTextOnMob(GetPlayerSerial(),1,0.5,0,&quot;backpack full!&quot;)
+-				if (gLootBPFullCallBack) then gLootBPFullCallBack() end
+-				LootCancel() -- don't hide this corpse
+-				return
+-			else
+-				gMyLootPlugin_LootItems[item.serial] =3D item
+-				item.mylootplugin_worldxloc =3D container.xloc
+-				item.mylootplugin_worldyloc =3D container.yloc
+-				SpellBarRiseTextOnMob(GetPlayerSerial(),1,0.5,0,
+-						sprintf(&quot;%d[%d:%d,%s]&quot;,item.amount,gLootCorpseArt,gLootCorpseHue,Aos=
+ToolTip_GetText(serial) or &quot;&quot;))
+-			end
+-		else =
+
+-			--~ print(&quot;######------#######  takeitem =3D=3D other&quot;,item.artid,item.=
+amount , kLoot_GoldWeight,curw,maxw )
+-			SpellBarRiseTextOnMob(GetPlayerSerial(),1,0.5,0,GetStaticTileTypeName(i=
+tem.artid) or &quot;???&quot;)
+-			gMyLootPlugin_LootItems[item.serial] =3D item
+-			item.mylootplugin_worldxloc =3D container.xloc
+-			item.mylootplugin_worldyloc =3D container.yloc
+-		end
+-	end =
+
+-	LootCleanup()
+-end)
+-
+-function LootNearbyCorpse ()
+-	local corpse =3D FindNearbyCorpse()
+-	if (not corpse) then return end
+-	print(&quot;LootNearbyCorpse art=3D&quot;,corpse.amount)
+-	gLootCorpseArt =3D corpse.amount
+-	gLootCorpseHue =3D corpse.hue
+-	gLootNextCorpseContainerTimeout =3D nil
+-	gLootNextCorpseContainer =3D corpse
+-	Send_DoubleClick(corpse.serial)
+-	--~ SpellBarRiseTextOnMob(GetPlayerSerial(),0,1,0,&quot;looting:&quot;..corpse.seri=
+al)
++	-- open nearby corpse
++	local corpses =3D LootPlugin_FindNearbyCorpses()
++	if (#corpses &gt; 0) then
++		local corpse =3D GetRandomArrayElement(corpses)
++		MyLootLog(&quot;Send_DoubleClick&quot;,corpse.serial)
++		Send_DoubleClick(corpse.serial)
++		gLootPlugin_RecentlyDoubleClickedCorpses[corpse.serial] =3D t
++	end
+ end
++RegisterIntervalStepper(gStepperInterval,LootPluginStep) =
+
+ =
+
+ end
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001791.html">[Iris-commit] [IRIS] r2992 - /trunk/bin/iris2.exe
+</A></li>
+	<LI>Next message: <A HREF="001793.html">[Iris-commit] [IRIS] r2994 - in /trunk: lua/lib.uotooltip.lua plugins/loot.lua plugins/moblist.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1792">[ date ]</a>
+              <a href="thread.html#1792">[ thread ]</a>
+              <a href="subject.html#1792">[ subject ]</a>
+              <a href="author.html#1792">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

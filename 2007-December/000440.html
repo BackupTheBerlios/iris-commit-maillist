@@ -1,0 +1,444 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1624 - in /trunk: data/lua/main.lua include/builder.h include/data.h mapdata.php mapinfo.php src/builder.cpp src/data_L.cpp
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2007-December/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1624%20-%20in%20/trunk%3A%20data/lua/main.lua%0A%20include/builder.h%20include/data.h%20mapdata.php%20mapinfo.php%20src/builder.cpp%0A%20src/data_L.cpp&In-Reply-To=%3C20071211190204.3C05C1C18279%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000439.html">
+   <LINK REL="Next"  HREF="000441.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1624 - in /trunk: data/lua/main.lua include/builder.h include/data.h mapdata.php mapinfo.php src/builder.cpp src/data_L.cpp</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1624%20-%20in%20/trunk%3A%20data/lua/main.lua%0A%20include/builder.h%20include/data.h%20mapdata.php%20mapinfo.php%20src/builder.cpp%0A%20src/data_L.cpp&In-Reply-To=%3C20071211190204.3C05C1C18279%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1624 - in /trunk: data/lua/main.lua include/builder.h include/data.h mapdata.php mapinfo.php src/builder.cpp src/data_L.cpp">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Tue Dec 11 20:02:04 CET 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000439.html">[Iris-commit] [IRIS] r1623 - /trunk/data/lua/lib.macrolist.lua
+</A></li>
+        <LI>Next message: <A HREF="000441.html">[Iris-commit] [IRIS] r1625 - /trunk/data/lua/lib.3d.renderer.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#440">[ date ]</a>
+              <a href="thread.html#440">[ thread ]</a>
+              <a href="subject.html#440">[ subject ]</a>
+              <a href="author.html#440">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Tue Dec 11 20:02:03 2007
+New Revision: 1624
+
+Log:
+added a few statistical utils for texmaps and groundloader, and a return 0 =
+for  idx_length=3D0, and a ExportToFile for texmaps
+
+Added:
+    trunk/mapdata.php
+    trunk/mapinfo.php
+Modified:
+    trunk/data/lua/main.lua
+    trunk/include/builder.h
+    trunk/include/data.h
+    trunk/src/builder.cpp
+    trunk/src/data_L.cpp
+
+Modified: trunk/data/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/main.lua (original)
++++ trunk/data/lua/main.lua Tue Dec 11 20:02:03 2007
+@@ -239,7 +239,7 @@
+ 	gui.StartLoading()
+ =
+
+ 	LoadBasicData()
+-
++	=
+
+ 	-- show loading screen
+ 	SetLoadingBackground()
+ 	Client_RenderOneFrame() -- first frame rendered with ogre, needed for ini=
+t of viewport size
+@@ -247,6 +247,31 @@
+ 	NotifyListener(&quot;Hook_PreLoad&quot;)
+ 	PreLoad()
+ =
+
++	=
+
++	if (gCommandLineArguments[1] =3D=3D &quot;-et&quot;) then -- export texmaps
++		local count =3D gTexMapLoader:GetCount()
++		print(&quot;exporting texmaps : &quot;,count)
++		for iTexMapID =3D 0,count-1 do =
+
++			local sFilePath =3D sprintf(&quot;../mytexmaps/texmap%08d.png&quot;,iTexMapID)
++			-- iTexMapID =3D iTranslatedTileTypeID
++			local bSuccess =3D	gTexMapLoader:ExportToFile(sFilePath,iTexMapID)
++			--~ local bSuccess =3D	gTexMapLoader:ExportToFile(sFilePath,iTexMapID,p=
+HueLoader=3Dnil,iHue=3D0)
++			print(&quot;export&quot;,iTexMapID,sFilePath,bSuccess)
++			--~ if (bSuccess) then break end
++		end
++		print(&quot;done&quot;)
++		os.exit(0)
++	end
++	=
+
++	if (gCommandLineArguments[1] =3D=3D &quot;-egt&quot;) then -- export ground tiletyp=
+ecounter
++		local iMapIndex =3D 4
++		LoadMap(iMapIndex)
++		local counter =3D gGroundBlockLoader:CountTileTypes()
++		for k,v in pairs(counter) do print(&quot;gTileTypeCount[&quot;..iMapIndex..&quot;][&quot;..k=
+..&quot;] =3D &quot;..v..&quot;;&quot;) end
++		print(&quot;done&quot;)
++		os.exit(0)
++	end
++	=
+
+ 	gCurrentRenderer:PreInit()
+ =
+
+ 	MainMenuFinishedPreLoading()
+
+Modified: trunk/include/builder.h
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/include/builder.h (original)
++++ trunk/include/builder.h Tue Dec 11 20:02:03 2007
+@@ -72,6 +72,7 @@
+ bool	GenerateAnimMaterial				(cAnimLoader&amp; oAnimLoader		,const char* szMat=
+Name,const int iID,const int iAnimID,const int iFrame, int&amp; iWidth, int&amp; iH=
+eight, int&amp; iCenterX, int&amp; iCenterY, int&amp; iFrames, cHueLoader* pHueLoader, =
+short iHue);
+ bool	GenerateUnicodeText					(const Ogre::UTFString&amp; sText, const Ogre::UT=
+FString&amp; sFont, Ogre::RenderOperation&amp; RenderOp, const uint8 bRed, const ui=
+nt8 bGreen, const uint8 bBlue, const uint8 bAlpha, const int iMaxWidth);
+ =
+
++bool	WriteTexMapToFile					(cTexMapLoader&amp; oTexMapLoader,const char* szFil=
+ePath,const int iID,cHueLoader* pHueLoader,const short iHue);
+ =
+
+ bool	GenerateArtImage(Ogre::Image &amp;image, cArtMapLoader&amp; oArtMapLoader,con=
+st int iID,const bool bPixelExact,const bool bInvertY,const bool bInvertX,c=
+HueLoader* pHueLoader,const short iHue);
+ =
+
+
+Modified: trunk/include/data.h
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/include/data.h (original)
++++ trunk/include/data.h Tue Dec 11 20:02:03 2007
+@@ -494,6 +494,7 @@
+ 		inline _T*		GetChunk				(const int iID) { PROFILE ///&lt; result of Get is =
+only valid until next Get call
+ 			RawIndex* pRawIndex =3D mIndexFile.GetRawIndex(iID);
+ 			if (!IsIndexValid(pRawIndex)) { printf(&quot;GetChunk failed to load index\n=
+&quot;); return 0; }
++			if (pRawIndex-&gt;miLength &lt;=3D 0) return 0;
+ 			if (pRawIndex-&gt;miOffset + pRawIndex-&gt;miLength &gt; miFullFileSize) { =
+
+ 				//PROFILE_PRINT_STACKTRACE =
+
+ 				//printf(&quot;index points to invalid memory : offset=3D%d len=3D%d filele=
+n=3D%d\n&quot;,pRawIndex-&gt;miOffset,pRawIndex-&gt;miLength,miFullFileSize); =
+
+@@ -526,6 +527,7 @@
+ 		inline _T* GetChunk (const int iID) { PROFILE ///&lt; result of Get is only=
+ valid until next Get call =
+
+ 			RawIndex* pRawIndex =3D mIndexFile.GetRawIndex(iID); =
+
+ 			if (!IsIndexValid(pRawIndex) || pRawIndex-&gt;miOffset &lt; 0 || pRawIndex-&gt;m=
+iOffset + pRawIndex-&gt;miLength &gt; miFileSize) return 0; // index must be vali=
+d, and must point to a valid rawblock =
+
++			if (pRawIndex-&gt;miLength &lt;=3D 0) return 0;
+ 			=
+
+ 			// resize buffer if too small
+ 			if (miBufferSize &lt; pRawIndex-&gt;miLength) {
+@@ -591,18 +593,21 @@
+ 	/// abstract base class
+ 	class cTexMapLoader : public Lugre::cSmartPointable { public :
+ 		virtual	cTexMap*	GetTexMap	(const int iID) =3D 0; ///&lt; result of Get is =
+only valid until next Get call
++		virtual unsigned int	GetCount	() =3D 0;	///&lt; number of texmaps
+ 	};
+ 	=
+
+ 	/// loads complete file into one big buffer
+ 	class cTexMapLoader_IndexedFullFile : public cTexMapLoader, public cIndex=
+edRawDataLoader_IndexedFullFile&lt;cTexMap&gt; { public :
+ 		cTexMapLoader_IndexedFullFile	(const char* szIndexFile,const char* szDat=
+aFile);
+-		virtual	cTexMap*	GetTexMap	(const int iID); ///&lt; result of Get is only v=
+alid until next Get call
++		virtual	cTexMap*		GetTexMap	(const int iID); ///&lt; result of Get is only =
+valid until next Get call
++		virtual unsigned int	GetCount	() { return mIndexFile.miFullFileSize / 12=
+; }
+ 	};
+ 	=
+
+ 	/// loads data only on demand
+ 	class cTexMapLoader_IndexedOnDemand : public cTexMapLoader, public cIndex=
+edRawDataLoader_IndexedOnDemand&lt;cTexMap&gt; { public :
+ 		cTexMapLoader_IndexedOnDemand	(const char* szIndexFile,const char* szDat=
+aFile);
+-		virtual	cTexMap*	GetTexMap	(const int iID); ///&lt; result of Get is only v=
+alid until next Get call
++		virtual	cTexMap*		GetTexMap	(const int iID); ///&lt; result of Get is only =
+valid until next Get call
++		virtual unsigned int	GetCount	() { return mIndexFile.miFullFileSize / 12=
+; }
+ 	};
+ 	=
+
+ 	=
+
+
+Modified: trunk/src/builder.cpp
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/src/builder.cpp (original)
++++ trunk/src/builder.cpp Tue Dec 11 20:02:03 2007
+@@ -324,6 +324,44 @@
+ 	bool bClamp =3D false;
+ 	GenerateMaterial_16Bit(szMatName,pImgRaw,iTexW,iTexH,bPixelExact,bHasAlph=
+a,bEnableLighting,bEnableDepthWrite,bClamp);
+ 	=
+
++	delete [] pImgRaw;
++	=
+
++	return true;
++}
++
++bool	WriteTexMapToFile	(cTexMapLoader&amp; oTexMapLoader,const char* szFilePat=
+h,const int iID,cHueLoader* pHueLoader,const short iHue) { PROFILE
++	//~ printf(&quot;WriteTexMapToFile path=3D%s id=3D%d hueloader=3D0x%x hue=3D%d=
+\n&quot;,szFilePath,iID,(int)pHueLoader,iHue);
++	cTexMap *texmap =3D oTexMapLoader.GetTexMap(iID);
++	if (texmap =3D=3D 0) return false;
++	int iImgW =3D texmap-&gt;GetWidth();
++	int iImgH =3D texmap-&gt;GetHeight();
++	//~ printf(&quot;WriteTexMapToFile w=3D%d h=3D%d texmap=3D0x%x\n&quot;,iImgW,iImgH,=
+texmap);
++	//~ printf(&quot;WriteTexMapToFile mpRawData=3D0x%x mpRawIndex=3D0x%x\n &quot;,(int=
+)texmap-&gt;mpRawData,(int)texmap-&gt;mpRawIndex);
++	//~ if (texmap-&gt;mpRawIndex) {
++		//~ RawIndex* p =3D texmap-&gt;mpRawIndex;	=
+
++		//~ printf(&quot;WriteTexMapToFile miOffset=3D0x%x miLength=3D0x%x miExtra=3D=
+0x%x\n &quot;,(int)p-&gt;miOffset,(int)p-&gt;miLength,(int)p-&gt;miExtra);
++	//~ }
++	=
+
++	short *pImgRaw =3D new short[iImgW*iImgH] ;
++	memset(pImgRaw,0,2*iImgW*iImgH); // not really needed here, as the format=
+ does not allow empty pixels, but safe is safe
++	if( iHue &amp;&amp; pHueLoader ) {
++		cHueFilter Filter;
++		short* ColorTable =3D pHueLoader-&gt;GetHue( iHue-1 )-&gt;GetColors();
++		texmap-&gt;Decode(pImgRaw,Filter,ColorTable);
++	} else {
++		cSetHighBitFilter Filter;
++		texmap-&gt;Decode(pImgRaw,Filter,0);
++	}
++
++	uint32	*pBuf32 =3D new uint32[iImgW*iImgH];
++	ColorBuffer16To32(iImgW,iImgH,(uint16*)pImgRaw,(uint32*)pBuf32);
++	Ogre::DataStreamPtr imgstream(new Ogre::MemoryDataStream(pBuf32,iImgW*iIm=
+gH*sizeof(uint32)));
++	=
+
++	Ogre::Image image;
++	image.loadRawData(imgstream, iImgW, iImgH, Ogre::PF_A8R8G8B8 ); // long :=
+ PF_A8R8G8B8 short : PF_A1R5G5B5
++	image.save(szFilePath);
++	=
+
++	delete [] pBuf32;
+ 	delete [] pImgRaw;
+ 	=
+
+ 	return true;
+
+Modified: trunk/src/data_L.cpp
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/src/data_L.cpp (original)
++++ trunk/src/data_L.cpp Tue Dec 11 20:02:03 2007
+@@ -35,6 +35,7 @@
+ 			REGISTER_METHOD(GetTile);
+ 			REGISTER_METHOD(GetNormals);
+ 			REGISTER_METHOD(GetHeightMap);
++			REGISTER_METHOD(CountTileTypes);
+ 			#undef REGISTER_METHOD
+ 		}
+ =
+
+@@ -106,6 +107,34 @@
+ 			return 1;
+ 		}
+ =
+
++		/// for lua : map&lt;tiletypeid,count&gt; CountTileTypes ()
++		static int	CountTileTypes (lua_State *L) { PROFILE
++			cGroundBlockLoader* pGroundBlockLoader =3D checkudata_alive(L);
++			std::map&lt;int,int&gt; myTileTypeCounter;
++			=
+
++			// iterate over the whole map, counting tiletypes
++			for (int x=3D0;x&lt;pGroundBlockLoader-&gt;miMapW;++x)
++			for (int y=3D0;y&lt;pGroundBlockLoader-&gt;miMapH;++y) {
++				cGroundBlock* pGroundBlock =3D pGroundBlockLoader-&gt;GetGroundBlock(x,y);
++				if (!pGroundBlock) continue;
++				RawGroundBlock* pChunk =3D pGroundBlock-&gt;mpRawGroundBlock;
++				if (!pChunk) continue;
++					=
+
++				for (int tx=3D0;tx&lt;7;++tx)
++				for (int ty=3D0;ty&lt;7;++ty) {
++					++myTileTypeCounter[pChunk-&gt;mTiles[ty][tx].miTileType];
++				}
++			}
++			=
+
++			lua_newtable(L);
++			for (std::map&lt;int,int&gt;::iterator itor=3DmyTileTypeCounter.begin();itor!=
+=3DmyTileTypeCounter.end();++itor) {
++				lua_pushnumber( L, (*itor).second );
++				lua_rawseti( L, -2, (*itor).first );
++			}
++			return 1;
++		}
++			=
+
++			=
+
+ 		static int	GetHeightMap (lua_State *L) { PROFILE
+ 			cGroundBlockLoader* pGroundBlockLoader =3D checkudata_alive(L);
+ 			=
+
+@@ -395,7 +424,9 @@
+ 			=
+
+ 			#define REGISTER_METHOD(methodname) mlMethod.push_back(make_luaL_reg(#m=
+ethodname,&amp;cTexMapLoader_L::methodname));
+ 			REGISTER_METHOD(Destroy);
++			REGISTER_METHOD(GetCount);
+ 			REGISTER_METHOD(CreateMaterial);
++			REGISTER_METHOD(ExportToFile);
+ 			#undef REGISTER_METHOD
+ 		}
+ =
+
+@@ -413,6 +444,14 @@
+ 	// object methods exported to lua
+ =
+
+ 		static int	Destroy			(lua_State *L) { PROFILE delete checkudata_alive(L)=
+; return 0; }
++		=
+
++		/// for lua : int GetCount()
++		static int	GetCount			(lua_State *L) { PROFILE =
+
++			lua_pushnumber(L,checkudata_alive(L)-&gt;GetCount()); =
+
++			return 1; =
+
++		}
++		=
+
++		/// for lua : sMatName	CreateMaterial	(iTexMapID,bHasAlpha,bEnableLighti=
+ng,bEnableDepthWrite,bPixelExact,pHueLoader=3Dnil,iHue=3D0)
+ 		static int	CreateMaterial	(lua_State *L) { PROFILE =
+
+ 			int i=3D2;
+ 			bool bHasAlpha=3D			(lua_gettop(L) &gt;=3D ++i &amp;&amp; !lua_isnil(L,i)) ? lua_t=
+oboolean(L,i) : true;
+@@ -427,6 +466,19 @@
+ 				bHasAlpha,bEnableLighting,bEnableDepthWrite,bPixelExact,pHueLoader,bHu=
+e))
+ 				myname =3D &quot;&quot;;
+ 			lua_pushstring(L,myname.c_str()); =
+
++			return 1; =
+
++		}
++		=
+
++		/// for lua : bSuccess	ExportToFile (sFilePath,iTexMapID,pHueLoader=3Dni=
+l,iHue=3D0)
++		/// exports the texmap to the filepath, e.g. myfile.png, returns true on=
+ successs
++		static int	ExportToFile	(lua_State *L) { PROFILE =
+
++			std::string	sFilePath =3D luaL_checkstring(L,2);
++			int			iTexMapID =3D luaL_checkint(L,3);
++			cHueLoader* pHueLoader=3D (lua_gettop(L) &gt;=3D 4 &amp;&amp; !lua_isnil(L,4)) ? c=
+LuaBind&lt;cHueLoader&gt;::checkudata(L,4) : 0;
++			short 		iHue=3D		(lua_gettop(L) &gt;=3D 5 &amp;&amp; !lua_isnil(L,5)) ? luaL_check=
+int(L,5) : 0;
++			=
+
++			if (!WriteTexMapToFile(*checkudata_alive(L),sFilePath.c_str(),iTexMapID=
+,pHueLoader,iHue)) return 0;
++			lua_pushboolean(L,true); =
+
+ 			return 1; =
+
+ 		}
+ 		=
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000439.html">[Iris-commit] [IRIS] r1623 - /trunk/data/lua/lib.macrolist.lua
+</A></li>
+	<LI>Next message: <A HREF="000441.html">[Iris-commit] [IRIS] r1625 - /trunk/data/lua/lib.3d.renderer.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#440">[ date ]</a>
+              <a href="thread.html#440">[ thread ]</a>
+              <a href="subject.html#440">[ subject ]</a>
+              <a href="author.html#440">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

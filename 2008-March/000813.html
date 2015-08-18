@@ -1,0 +1,510 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2002 - in /trunk/lua: filter/filter.art.lua lib.3d.dynamic.lua lib.3d.map.lua lib.3d.renderer.lua lib.debugmenu.lua lib.pathfind.lua lib.walking2.lua main.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-March/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2002%20-%20in%20/trunk/lua%3A%20filter/filter.art.lua%0A%20lib.3d.dynamic.lua%20lib.3d.map.lua%20lib.3d.renderer.lua%20lib.debugmenu.lua%0A%20lib.pathfind.lua%20lib.walking2.lua%20main.lua&In-Reply-To=%3C20080329023542.3E9D61C18787%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000812.html">
+   <LINK REL="Next"  HREF="000814.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2002 - in /trunk/lua: filter/filter.art.lua lib.3d.dynamic.lua lib.3d.map.lua lib.3d.renderer.lua lib.debugmenu.lua lib.pathfind.lua lib.walking2.lua main.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2002%20-%20in%20/trunk/lua%3A%20filter/filter.art.lua%0A%20lib.3d.dynamic.lua%20lib.3d.map.lua%20lib.3d.renderer.lua%20lib.debugmenu.lua%0A%20lib.pathfind.lua%20lib.walking2.lua%20main.lua&In-Reply-To=%3C20080329023542.3E9D61C18787%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2002 - in /trunk/lua: filter/filter.art.lua lib.3d.dynamic.lua lib.3d.map.lua lib.3d.renderer.lua lib.debugmenu.lua lib.pathfind.lua lib.walking2.lua main.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat Mar 29 03:35:41 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000812.html">[Iris-commit] [IRIS] r2001 - /trunk/lua/lib.keybinds.lua
+</A></li>
+        <LI>Next message: <A HREF="000814.html">[Iris-commit] [IRIS] r2003 - /trunk/lua/lib.walking3.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#813">[ date ]</a>
+              <a href="thread.html#813">[ thread ]</a>
+              <a href="subject.html#813">[ subject ]</a>
+              <a href="author.html#813">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: hagish
+Date: Sat Mar 29 03:35:41 2008
+New Revision: 2002
+
+Log:
+minor walking speedups, faster pathfinding, config files gets loaded again =
+after profile to overwrite profile settings, disabled quite slow water bord=
+er code
+
+Modified:
+    trunk/lua/filter/filter.art.lua
+    trunk/lua/lib.3d.dynamic.lua
+    trunk/lua/lib.3d.map.lua
+    trunk/lua/lib.3d.renderer.lua
+    trunk/lua/lib.debugmenu.lua
+    trunk/lua/lib.pathfind.lua
+    trunk/lua/lib.walking2.lua
+    trunk/lua/main.lua
+
+Modified: trunk/lua/filter/filter.art.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/filter/filter.art.lua (original)
++++ trunk/lua/filter/filter.art.lua Sat Mar 29 03:35:41 2008
+@@ -30,23 +30,14 @@
+ 	end
+ 	return nil
+ end
+-function FilterPositionX(iTranslatedTileTypeID)
+-	if (gArtFilter[iTranslatedTileTypeID]) then
+-		return gArtFilter[iTranslatedTileTypeID].xadd
+-	end
+-	return nil
+-end
+-function FilterPositionY(iTranslatedTileTypeID)
+-	if (gArtFilter[iTranslatedTileTypeID]) then
+-		return gArtFilter[iTranslatedTileTypeID].yadd
+-	end
+-	return nil
+-end
+-function FilterPositionZ(iTranslatedTileTypeID)
+-	if (gArtFilter[iTranslatedTileTypeID]) then
+-		return gArtFilter[iTranslatedTileTypeID].zadd
+-	end
+-	return nil
++
++function FilterPositionXYZ(iTranslatedTileTypeID)
++	local x =3D gArtFilter[iTranslatedTileTypeID] =
+
++	if x then
++		return x.xadd or 0, x.yadd or 0, x.zadd or 0
++	else
++		return 0,0,0
++	end
+ end
+ =
+
+ -- checks if the given tiletype is a water tile
+@@ -199,6 +190,8 @@
+ gArtFilter[2264]=3D{maptoid=3D2269}
+ gArtFilter[2261]=3D{maptoid=3D2269}
+ gArtFilter[2258]=3D{maptoid=3D2269}
++gArtFilter[2262]=3D{skip=3Dtrue}
++gArtFilter[2257]=3D{skip=3Dtrue}
+ gArtFilter[2268]=3D{skip=3Dtrue}
+ =
+
+ -- portrait
+
+Modified: trunk/lua/lib.3d.dynamic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.dynamic.lua (original)
++++ trunk/lua/lib.3d.dynamic.lua Sat Mar 29 03:35:41 2008
+@@ -78,9 +78,7 @@
+ -- rebuilds the graphic of the dynamics
+ function Renderer3D:RebuildDynamic ( dynamic )
+ 	-- update position adjustments
+-	dynamic.xadd =3D FilterPositionX(dynamic.artid) or 0
+-	dynamic.yadd =3D FilterPositionY(dynamic.artid) or 0
+-	dynamic.zadd =3D FilterPositionZ(dynamic.artid) or 0
++	dynamic.xadd,dynamic.yadd,dynamic.zadd =3D FilterPositionXYZ(dynamic.arti=
+d)
+ =
+
+ 	if gFastBatchDynamics then
+ 		Renderer3D.gFastBatchDynamicsUpdateNeeded =3D true
+@@ -110,9 +108,7 @@
+ 	-- item.artid=3DCheckIfCorpse(item.artid)
+ =
+
+ 	-- FILTER: get correction
+-	item.xadd =3D FilterPositionX(item.artid) or 0
+-	item.yadd =3D FilterPositionY(item.artid) or 0
+-	item.zadd =3D FilterPositionZ(item.artid) or 0
++	item.xadd,item.yadd,item.zadd =3D FilterPositionXYZ(item.artid)
+ =
+
+ 	-- Detect Multis
+ 	if item.artid &gt;=3D gMulti_ID then
+
+Modified: trunk/lua/lib.3d.map.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.map.lua (original)
++++ trunk/lua/lib.3d.map.lua Sat Mar 29 03:35:41 2008
+@@ -266,9 +266,7 @@
+ 	local entity =3D {}
+ =
+
+ 	-- FILTER: correction
+-	entity.xadd =3D FilterPositionX(iTileTypeID) or 0
+-	entity.yadd =3D FilterPositionY(iTileTypeID) or 0
+-	entity.zadd =3D FilterPositionZ(iTileTypeID) or 0
++	entity.xadd,entity.yadd,entity.zadd =3D FilterPositionXYZ(iTileTypeID)
+ =
+
+ 	entity.xloc =3D iXLoc + entity.xadd
+ 	entity.yloc =3D iYLoc + entity.yadd
+@@ -369,6 +367,7 @@
+ 	end
+ =
+
+ 	self:UpdateStaticVisibility(entity)
++
+ end
+ =
+
+ -- coords in chunks
+@@ -388,12 +387,15 @@
+ 		chunk.mWaterZMap =3D {}		-- local z height [x..&quot;_&quot;..y]
+ 		chunk.SetWaterZWithoutBorder =3D function(self, tx, ty, z)
+ 			if (tx &gt;=3D 0 and ty &gt;=3D 0 and tx &lt; Renderer3D.ROBMAP_CHUNK_SIZE * 8 a=
+nd ty &lt; Renderer3D.ROBMAP_CHUNK_SIZE * 8) then
+-				self.mWaterZMap[tx..&quot;_&quot;..ty] =3D math.max(self.mWaterZMap[tx..&quot;_&quot;..ty]=
+ or z, z)
++				Array2DSet(self.mWaterZMap, tx,ty, math.max(Array2DGet(self.mWaterZMap=
+, tx,ty) or z, z))
++				-- self.mWaterZMap[tx..&quot;_&quot;..ty] =3D math.max(self.mWaterZMap[tx..&quot;_&quot;..=
+ty] or z, z)
+ 			end
+ 		end
+ 		chunk.SetWaterZ =3D function(self, tx, ty, z)
+ 			self:SetWaterZWithoutBorder(tx,ty,z)
+ 			-- set border of 1 tile
++			-- TODO this is slow!!!
++			--[[
+ 			self:SetWaterZWithoutBorder(tx+1,ty+0,z)
+ 			self:SetWaterZWithoutBorder(tx-1,ty+0,z)
+ 			self:SetWaterZWithoutBorder(tx+0,ty+1,z)
+@@ -403,6 +405,7 @@
+ 			self:SetWaterZWithoutBorder(tx-1,ty-1,z)
+ 			self:SetWaterZWithoutBorder(tx+1,ty-1,z)
+ 			self:SetWaterZWithoutBorder(tx-1,ty+1,z)
++			]]--
+ 		end
+ 	end
+ 	=
+
+@@ -436,6 +439,7 @@
+ 			end
+ 		end
+ 	end
++
+ =
+
+ 	-- GROUNDMAP
+ 	if (gGroundBlockLoader) then -- probably needs gTexMapLoader
+@@ -532,12 +536,11 @@
+ =
+
+ 	-- WATER
+ 	if gEnableMultiTexTerrain and (not gDisableMultiTexWater) then
+-		local count =3D countarr(chunk.mWaterZMap) -- might be slow
+-		=
+
++		local count =3D Array2DGetElementCount(chunk.mWaterZMap) -- might be slow
++		=
+
++		local tiles =3D self.ROBMAP_CHUNK_SIZE * 8
++
+ 		if (gEnableMultiTexTerrain and count and count &gt; 0) then
+-		=
+
+-			local tiles =3D self.ROBMAP_CHUNK_SIZE * 8
+-			=
+
+ 			-- print(&quot;DEBUG&quot;,chunk,&quot;mostz&quot;,mostz)
+ 			=
+
+ 			-- create water
+@@ -552,9 +555,11 @@
+ 			-- print(&quot;DEBUG&quot;,&quot;WATERSTART&quot;,count,vc,ic)
+ 			local index =3D 0
+ 			local x,y,z
+-			for k,v in pairs(chunk.mWaterZMap) do
+-				x,y =3D unpack(strsplit(&quot;_&quot;,k))
+-				z =3D chunk.mWaterZMap[x..&quot;_&quot;..y] * 0.1
++
++			-- k,v in pairs(chunk.mWaterZMap) do
++			Array2DForAll(chunk.mWaterZMap, function(z, x,y)
++				--x,y =3D unpack(strsplit(&quot;_&quot;,k))
++				z =3D z * 0.1
+ =
+
+ 				-- print(&quot;DEBUG&quot;,&quot;water tile&quot;,x,y,z,k,v)
+ =
+
+@@ -567,7 +572,7 @@
+ 				gfx:RenderableIndex3(index+1, index+2, index+3)
+ 				=
+
+ 				index =3D index + 4
+-			end
++			end)
+ =
+
+ 			gfx:RenderableEnd()
+ =
+
+
+Modified: trunk/lua/lib.3d.renderer.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.renderer.lua (original)
++++ trunk/lua/lib.3d.renderer.lua Sat Mar 29 03:35:41 2008
+@@ -326,9 +326,7 @@
+ 		effect.gfx:SetRenderingDistance(self.gDynamicMaxRenderDist)
+ =
+
+ 		-- position adjustment for statics and dynamics
+-		effect.xadd =3D FilterPositionX(effect.itemid) or 0
+-		effect.yadd =3D FilterPositionY(effect.itemid) or 0
+-		effect.zadd =3D FilterPositionZ(effect.itemid) or 0
++		effect.xadd,effect.yadd,effect.zadd =3D FilterPositionXYZ(effect.itemid)
+ =
+
+ 		effect.gfx:SetPosition(self:UOPosToLocal(effect.current_locx + relx,
+ 												 effect.current_locy + rely,
+
+Modified: trunk/lua/lib.debugmenu.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.debugmenu.lua (original)
++++ trunk/lua/lib.debugmenu.lua Sat Mar 29 03:35:41 2008
+@@ -413,7 +413,7 @@
+ =
+
+ 	-- llamas_llama_pack - broken (crash) -&gt; mapped to id: 220 (grannyfilter)
+ 	{artid=3D 292 , content=3D{}},
+-	-- k=C3=A4fer - broken animation
++	-- k=C3=83=C2=A4fer - broken animation
+ 	{artid=3D hex2num(&quot;0xA9&quot;) , content=3D{}},
+ 	--791 broken horse
+ 	{artid=3D hex2num(&quot;0x317&quot;), content=3D{}},
+@@ -590,9 +590,7 @@
+ 				HueMeshEntity(gDebugRootGfx,r,g,b,r,g,b)
+ 			end
+ 			-- position adjustment for statics and dynamics
+-			xadd =3D FilterPositionX(iTileType) or 0
+-			yadd =3D FilterPositionY(iTileType) or 0
+-			zadd =3D FilterPositionZ(iTileType) or 0
++			xadd,yadd,zadd =3D FilterPositionXYZ(iTileType)
+ 		end
+ 		Renderer3D:CreateArtBillBoard(gDebugRootGfx2,iTileType+16384,iHue)
+ 	end
+
+Modified: trunk/lua/lib.pathfind.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.pathfind.lua (original)
++++ trunk/lua/lib.pathfind.lua Sat Mar 29 03:35:41 2008
+@@ -144,6 +144,8 @@
+ =
+
+ 		local finish =3D false
+ =
+
++		local count =3D 10
++
+ 		while not finish and countarr(lOpen) &gt; 0 do
+ 			-- print(&quot;OPEN&quot;,countarr(lOpen))
+ 			-- print(&quot;CLOSE&quot;,countarr(lClose))
+@@ -156,7 +158,11 @@
+ 			=
+
+ 			-- print(&quot;BEST&quot;,bestid,len,best.g,best.h,best.g+best.h)
+ 			=
+
+-			job.yield()
++			if count &gt; 0 then count =3D count - 1 end
++			if count =3D=3D 0 then
++				job.yield()
++				if OgreAvgFPS() &gt; 15 then count =3D 15 else count =3D 1 end
++			end
+ =
+
+ 			--add new valid points around it to the open list and calc the costs of=
+ the new ones and add parent link
+ 			local n =3D Pathfinding_GetNeighbours(x,y,z,dx,dy,dz,best[&quot;g&quot;])
+
+Modified: trunk/lua/lib.walking2.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.walking2.lua (original)
++++ trunk/lua/lib.walking2.lua Sat Mar 29 03:35:41 2008
+@@ -106,6 +106,10 @@
+ 	end
+ end
+ =
+
++gStaticCache =3D nil
++gStaticCacheBlockX =3D nil
++gStaticCacheBlockY =3D nil
++gStaticCacheHits =3D 0
+ -- returns an array of flags (impassable, surface, maptile)
+ -- array might contain empty entries (meaning on the specific z level is n=
+either something blocking nor a surface/maptile)
+ function GetWalkingBlockFlags(bx, by, tx, ty)
+@@ -134,28 +138,61 @@
+ 		--~ printwalkdebug(&quot;----Map Name=3D&quot; .. msName ..&quot;  Heigt=3D&quot; .. iMapTil=
+eZ ..&quot;   bSurface=3Dtrue  bImpassable=3D&quot; .. tostring(flaglist[iMapTileZ].b=
+Impassable))
+ 	end
+ 	=
+
+-	=
+
+ 	-- statics
+ 	--~ printwalkdebug(&quot;---Statics&quot;)
++
++	local iTileTypeID,iX,iY,iZ,iHue
+ 	=
+
+ 	local iStaticCount
+-	if (gStaticBlockLoader) then
++	if (gStaticBlockLoader and (bx ~=3D gStaticCacheBlockX or by ~=3D gStatic=
+CacheBlockY) ) then
+ 		gStaticBlockLoader:Load(bx,by)
+ 		iStaticCount =3D gStaticBlockLoader:Count() -- operates on the block tha=
+t was last loaded using :Load()
++
++		gStaticCache =3D {}
++		gStaticCacheBlockX =3D bx
++		gStaticCacheBlockY =3D by
++
++		gStaticCacheHits =3D 0
++
++		-- optimize block
++		for i =3D 0,iStaticCount-1 do
++			iTileTypeID,iX,iY,iZ,iHue =3D gStaticBlockLoader:GetStatic(i)
++			local l =3D Array2DGet(gStaticCache, iX,iY)
++			if not l then l =3D {} end
++			table.insert(l, {iTileTypeID,iX,iY,iZ,iHue})
++			Array2DSet(gStaticCache, iX,iY, l)
++		end
+ 	else
+ 		iStaticCount =3D 0
+ 	end
+ 	-- TODO : maybe include Seasonal translation for Statics also here!?
+ 	=
+
+-	local iTileTypeID,iX,iY,iZ,iHue
+-	for i =3D 0,iStaticCount-1 do
+-		iTileTypeID,iX,iY,iZ,iHue =3D gStaticBlockLoader:GetStatic(i)
+-		if (iX =3D=3D tx and iY =3D=3D ty) then
+-			--~ printwalkdebug(&quot;----new Static ID=3D&quot; .. iTileTypeID)
+-			GetWalkingBlockFlagsHelper(iZ,iTileTypeID,flaglist)
+-		end
+-	end
+-
++	-- TODO very very very slow
++
++	if gStaticCache then
++		--print(&quot;OPTIMIZED STATIC START&quot;)
++		local l =3D Array2DGet(gStaticCache, tx,ty)
++		if l then
++			for k,v in pairs(l) do
++				iTileTypeID,iX,iY,iZ,iHue =3D unpack(v)
++				--print(&quot;X&quot;,iX,&quot;Y&quot;,iY,&quot;Z&quot;,iZ)
++				GetWalkingBlockFlagsHelper(iZ,iTileTypeID,flaglist)
++			end
++		end
++		gStaticCacheHits =3D gStaticCacheHits + 1
++		--print(&quot;OPTIMIZED STATIC END&quot;,gStaticCacheHits)
++	else
++		--print(&quot;STATIC START&quot;)
++		for i =3D 0,iStaticCount-1 do
++			iTileTypeID,iX,iY,iZ,iHue =3D gStaticBlockLoader:GetStatic(i)
++			--print(&quot;X&quot;,iX,&quot;Y&quot;,iY,&quot;Z&quot;,iZ)
++			if (iX =3D=3D tx and iY =3D=3D ty) then
++				--~ printwalkdebug(&quot;----new Static ID=3D&quot; .. iTileTypeID)
++				GetWalkingBlockFlagsHelper(iZ,iTileTypeID,flaglist)
++			end
++		end
++		--print(&quot;STATIC END&quot;)
++	end
+ =
+
+ 	local xloc=3Dbx*8+tx
+ 	local yloc=3Dby*8+ty
+@@ -170,7 +207,7 @@
+ 		end
+ 	end
+ 	end
+-	=
+
++
+ 	-- dynamics
+ 	--~ printwalkdebug(&quot;---Dynamics&quot;)
+ 	=
+
+
+Modified: trunk/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/main.lua (original)
++++ trunk/lua/main.lua Sat Mar 29 03:35:41 2008
+@@ -151,6 +151,11 @@
+ 	end
+ end
+ =
+
++-- reparse config to overwrite profile settings
++if (file_exists(gConfigPath)) then
++	-- execute local config
++	dofile(gConfigPath)
++end
+ =
+
+ --###############################
+ --##  OGRE RESOURCE LOCATIONS  ##
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000812.html">[Iris-commit] [IRIS] r2001 - /trunk/lua/lib.keybinds.lua
+</A></li>
+	<LI>Next message: <A HREF="000814.html">[Iris-commit] [IRIS] r2003 - /trunk/lua/lib.walking3.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#813">[ date ]</a>
+              <a href="thread.html#813">[ thread ]</a>
+              <a href="subject.html#813">[ subject ]</a>
+              <a href="author.html#813">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

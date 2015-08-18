@@ -1,0 +1,135 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2995 - /trunk/plugins/loot.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2009-April/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2995%20-%20/trunk/plugins/loot.lua&In-Reply-To=%3C20090412184004.58CBF1C18659%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001793.html">
+   <LINK REL="Next"  HREF="001795.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2995 - /trunk/plugins/loot.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2995%20-%20/trunk/plugins/loot.lua&In-Reply-To=%3C20090412184004.58CBF1C18659%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2995 - /trunk/plugins/loot.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sun Apr 12 20:40:03 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001793.html">[Iris-commit] [IRIS] r2994 - in /trunk: lua/lib.uotooltip.lua plugins/loot.lua plugins/moblist.lua
+</A></li>
+        <LI>Next message: <A HREF="001795.html">[Iris-commit] [IRIS] r2996 - in /trunk: installdeps.ubuntu.sh	lua/net/net.mobile.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1794">[ date ]</a>
+              <a href="thread.html#1794">[ thread ]</a>
+              <a href="subject.html#1794">[ subject ]</a>
+              <a href="author.html#1794">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sun Apr 12 20:40:01 2009
+New Revision: 2995
+
+Log:
+small imrpovements to loot plugin
+
+Modified:
+    trunk/plugins/loot.lua
+
+Modified: trunk/plugins/loot.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/plugins/loot.lua (original)
++++ trunk/plugins/loot.lua Sun Apr 12 20:40:01 2009
+@@ -35,7 +35,18 @@
+ 	}
+ for k,v in pairs(gLootPluginWantedWords) do gLootPluginWantedWords[k] =3D =
+string.lower(v) end
+ =
+
+-
++gLootPluginWantedProps =3D {}
++function LootPluginEval_AddProp (minvalue,name) gLootPluginWantedProps[str=
+ing.lower(string.gsub(name,&quot;_&quot;,&quot; &quot;))] =3D minvalue end
++LootPluginEval_AddProp(    15     ,&quot;lower_reagent_cost&quot;)
++LootPluginEval_AddProp(    8      ,&quot;lower_mana_cost&quot;)
++--~ LootPluginEval_AddProp(    2      ,&quot;mana_regeneration&quot;)
++LootPluginEval_AddProp(    2      ,&quot;faster_casting&quot;)
++LootPluginEval_AddProp(    3      ,&quot;faster_cast_recovery&quot;)
++--~ LootPluginEval_AddProp(    10     ,&quot;hit_chance_increase&quot;)
++--~ LootPluginEval_AddProp(    10     ,&quot;defense_chance_increase&quot;)
++--~ LootPluginEval_AddProp(    5      ,&quot;strength_bonus&quot;)
++LootPluginEval_AddProp(    90     ,&quot;luck&quot;)
++LootPluginEval_AddProp(    40     ,&quot;mana_leech&quot;)
+ =
+
+ =
+
+ =
+
+@@ -58,6 +69,11 @@
+ 	local socket =3D max(maxsocket or 0,cursocket or 0)
+ 	print(&quot;lootplugin:sockets&quot;,socket,maxsocket,cursocket)
+ 	if (socket &gt;=3D 3) then return true end
++	=
+
++	for name,minvalue in pairs(gLootPluginWantedProps) do =
+
++		local a,b,val =3D string.find(tooltip,name..&quot;[ ]+(%d+)&quot;)
++		if (val and tonumber(val) &gt;=3D minvalue) then print(&quot;looteval:found&quot;,nam=
+e,val) return true end
++	end
+ end
+ =
+
+ gLastLootLogTime =3D 0
+@@ -106,7 +122,7 @@
+ 	local xloc,yloc =3D GetPlayerPos()
+ 	local t =3D Client_GetTicks()
+ 	for k,dynamic in pairs(GetDynamicList()) do =
+
+-		if (DynamicIsInWorld(dynamic) and dynamic.artid_base =3D=3D kCorpseDynam=
+icArtID) then =
+
++		if (DynamicIsInWorld(dynamic) and IsCorpseArtID(dynamic.artid_base) and =
+(not IsContainerAlreadyOpen(dynamic))) then =
+
+ 			if (gLoot_TrashCorpseTypesByID[dynamic.amount]) then
+ 				LootPlugin_HideCorpse(dynamic)
+ 			elseif (dist2(xloc,yloc,dynamic.xloc,dynamic.yloc) &lt;=3D maxdist) then
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001793.html">[Iris-commit] [IRIS] r2994 - in /trunk: lua/lib.uotooltip.lua plugins/loot.lua plugins/moblist.lua
+</A></li>
+	<LI>Next message: <A HREF="001795.html">[Iris-commit] [IRIS] r2996 - in /trunk: installdeps.ubuntu.sh	lua/net/net.mobile.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1794">[ date ]</a>
+              <a href="thread.html#1794">[ thread ]</a>
+              <a href="subject.html#1794">[ subject ]</a>
+              <a href="author.html#1794">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

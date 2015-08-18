@@ -1,0 +1,264 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2575 - in /trunk/lua: lib.2d.dynamic.lua lib.2d.mobile.lua lib.macrolist.lua net/net.other.lua obj/obj.mobile.lua widgets/widget.uoquickcasticon.lua widgets/widget.widget.uoquickcasticon.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-October/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2575%20-%20in%20/trunk/lua%3A%20lib.2d.dynamic.lua%0A%20lib.2d.mobile.lua%20lib.macrolist.lua%20net/net.other.lua%20obj/obj.mobile.lua%0A%20widgets/widget.uoquickcasticon.lua%0A%20widgets/widget.widget.uoquickcasticon.lua&In-Reply-To=%3C20081015010311.710A71C18656%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001379.html">
+   <LINK REL="Next"  HREF="001381.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2575 - in /trunk/lua: lib.2d.dynamic.lua lib.2d.mobile.lua lib.macrolist.lua net/net.other.lua obj/obj.mobile.lua widgets/widget.uoquickcasticon.lua widgets/widget.widget.uoquickcasticon.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2575%20-%20in%20/trunk/lua%3A%20lib.2d.dynamic.lua%0A%20lib.2d.mobile.lua%20lib.macrolist.lua%20net/net.other.lua%20obj/obj.mobile.lua%0A%20widgets/widget.uoquickcasticon.lua%0A%20widgets/widget.widget.uoquickcasticon.lua&In-Reply-To=%3C20081015010311.710A71C18656%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2575 - in /trunk/lua: lib.2d.dynamic.lua lib.2d.mobile.lua lib.macrolist.lua net/net.other.lua obj/obj.mobile.lua widgets/widget.uoquickcasticon.lua widgets/widget.widget.uoquickcasticon.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Wed Oct 15 03:03:11 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001379.html">[Iris-commit] [IRIS] r2574 - /trunk/lua/lib.desktop.lua
+</A></li>
+        <LI>Next message: <A HREF="001381.html">[Iris-commit] [IRIS] r2576 - in /trunk: data/config.lua.dist lua/net.walk.lua lua/net/net.partysystem.lua lua/obj/obj.mobile.lua lua/widgets/widget.uotext.lua plugins/lib.spellbar.lua plugins/moblist.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1380">[ date ]</a>
+              <a href="thread.html#1380">[ thread ]</a>
+              <a href="subject.html#1380">[ subject ]</a>
+              <a href="author.html#1380">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Wed Oct 15 03:03:10 2008
+New Revision: 2575
+
+Log:
+config option for hiding non-human corpses, a few hooks for detecting mobna=
+me in text messages, healthbars are no longer closed when mobile is out of =
+sight, 2d:mobileequipment only drawn for real human forms, not for all anim=
+s in that detail level (lich,wraith..), added MacroCmd_Item_UseByArtID
+
+Added:
+    trunk/lua/widgets/widget.uoquickcasticon.lua
+      - copied, changed from r2571, trunk/lua/widgets/widget.widget.uoquick=
+casticon.lua
+Removed:
+    trunk/lua/widgets/widget.widget.uoquickcasticon.lua
+Modified:
+    trunk/lua/lib.2d.dynamic.lua
+    trunk/lua/lib.2d.mobile.lua
+    trunk/lua/lib.macrolist.lua
+    trunk/lua/net/net.other.lua
+    trunk/lua/obj/obj.mobile.lua
+
+Modified: trunk/lua/lib.2d.dynamic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.dynamic.lua (original)
++++ trunk/lua/lib.2d.dynamic.lua Wed Oct 15 03:03:10 2008
+@@ -66,7 +66,6 @@
+ 		local sortty =3D yloc-byloc
+ 		local sorttz =3D zloc
+ 		local bVisible =3D (not (zloc and iBlendOutMinZ and iBlendOutMaxZ)) or (=
+zloc &gt;=3D iBlendOutMinZ and zloc &lt;=3D iBlendOutMaxZ)
+-		=
+
+ 	=
+
+ 		if (bVisible) then
+ 			-- corpse
+@@ -76,8 +75,13 @@
+ 				local iDirAdd,bMirrorX =3D GetAnimDirAdd(DirWrap(item.corpsedir))  -- =
+some param ? last known dir ?
+ 				=
+
+ 				local bodyid =3D item.amount
+-				table.insert(parts,{bodyid,item.hue,13}) -- fallback=3D13=3Devortex
+-				-- TODO : later : add clothing&amp;equip for human corpses ?
++				local hiddenCorpse =3D false
++				if (gHideCorpses and (not self:MobileHasVisibleEquip(bodyid))) then hi=
+ddenCorpse =3D true end
++				=
+
++				if (not hiddenCorpse) then =
+
++					table.insert(parts,{bodyid,item.hue,13}) -- fallback=3D13=3Devortex
++					-- TODO : later : add clothing&amp;equip for human corpses ?
++				end
+ 				=
+
+ 				for k,v in pairs(parts) do =
+
+ 					local iModelID,iHue,iFallBackModel =3D unpack(v)
+
+Modified: trunk/lua/lib.2d.mobile.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.mobile.lua (original)
++++ trunk/lua/lib.2d.mobile.lua Wed Oct 15 03:03:10 2008
+@@ -44,6 +44,11 @@
+ 	end
+ end
+ =
+
++function Renderer2D:MobileHasVisibleEquip		(mobile_artid) =
+
++	return 	mobile_artid =3D=3D 400 or mobile_artid =3D=3D 401 or
++			mobile_artid =3D=3D 744 or mobile_artid =3D=3D 745 -- vamp form
++end
++
+ function Renderer2D:UpdateMobileGfx				(mobile) =
+
+ 	local spriteblock =3D mobile.gfx2d
+ 	if (not spriteblock) then return end
+@@ -63,8 +68,9 @@
+ 	=
+
+ 	if (mobile.artid ~=3D 402 and
+ 		mobile.artid ~=3D 403) then table.insert(parts,{mobile.artid,mobile.hue,=
+13}) end -- fallback=3D13=3Devortex  402=3Dghost
++		=
+
+ 	--~ print(&quot;######### mobart&quot;,mobile.artid)
+-	if (Anim_GetModelCategory(mobile.artid) =3D=3D 3) then -- only humans hav=
+e equip
++	if (self:MobileHasVisibleEquip(mobile.artid)) then -- only humans have eq=
+uip
+ 		for index,layer in pairs(gLayerOrder) do =
+
+ 			local item =3D GetMobileEquipmentItem(mobile,layer)
+ 			if (item) then =
+
+
+Modified: trunk/lua/lib.macrolist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.macrolist.lua (original)
++++ trunk/lua/lib.macrolist.lua Wed Oct 15 03:03:10 2008
+@@ -143,6 +143,16 @@
+ 	for k,item in pairs(backpack_container:GetContent()) do =
+
+ 		local name =3D GetStaticTileTypeName(item.artid)
+ 		if (name and string.find(name,itemnamepart)) then
++			Send_DoubleClick(item.serial)
++			return true
++		end
++	end
++end
++function MacroCmd_Item_UseByArtID	(artid) -- equals easyuo type
++	local backpack_container =3D GetPlayerBackPackContainer()
++	if (not backpack_container) then return end
++	for k,item in pairs(backpack_container:GetContent()) do =
+
++		if (item.artid =3D=3D artid) then
+ 			Send_DoubleClick(item.serial)
+ 			return true
+ 		end
+
+Modified: trunk/lua/net/net.other.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.other.lua (original)
++++ trunk/lua/net/net.other.lua Wed Oct 15 03:03:10 2008
+@@ -523,6 +523,7 @@
+ 	if (mobilespeaker) then mobilespeaker:DisplayTextOverHead(string.gsub(tex=
+t_message,&quot;&lt;br&gt;&quot;,&quot;\n&quot;),Uo16Color2Rgb(text_color)) end
+ 	-- TODO : text_item ?!?
+ 	NotifyListener(&quot;Hook_Packet_Text&quot;,mobile_serial,plaintext)
++	NotifyListener(&quot;Hook_MobName&quot;,mobile_serial,text_charname)
+ end
+ =
+
+ =
+
+@@ -617,6 +618,7 @@
+ 	end
+ 	JournalAddText(name,plaintext)
+ 	NotifyListener(&quot;Hook_Text&quot;,name,plaintext)
++	NotifyListener(&quot;Hook_MobName&quot;,data.speaker_serial,name)
+ 	=
+
+ 	--~ print(&quot;kPacket_Localized_Text_Plus_String&quot;)
+ 	--~ for k,v in pairs(data) do print(&quot;++&quot;,k,v) end
+@@ -678,6 +680,7 @@
+ 	=
+
+ 	NotifyListener(&quot;Hook_Text&quot;,text_charname,plaintext)
+ 	NotifyListener(&quot;Hook_Packet_Localized_Text&quot;,text_item_serial,plaintext,te=
+xt_messagenum)
++	NotifyListener(&quot;Hook_MobName&quot;,text_item_serial,plaintext,text_messagenum)
+ 	=
+
+ 	-- print(&quot;###&quot;,text_item_serial,text_item_model,text_type,text_color,text=
+_charname,text_params,text_terminator)
+ end
+@@ -741,6 +744,7 @@
+ 	NotifyListener(&quot;Hook_Text&quot;,unitext_name,unitext_message)
+ 	=
+
+ 	NotifyListener(&quot;Hook_Packet_Text_Unicode&quot;,mobile_serial,unitext_message)
++	NotifyListener(&quot;Hook_MobName&quot;,mobile_serial,unitext_name)
+ =
+
+ 	-- check if player -&gt; then show text over player head
+ 	local mobilespeaker=3DGetMobile(mobile_serial)
+
+Modified: trunk/lua/obj/obj.mobile.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/obj/obj.mobile.lua (original)
++++ trunk/lua/obj/obj.mobile.lua Wed Oct 15 03:03:10 2008
+@@ -351,7 +351,7 @@
+ 	NotifyListener(&quot;Hook_Object_DestroyMobile&quot;,self)
+ 	=
+
+ 	-- destroy Status Gump from NPC
+-	CloseHealthbar(self)
++	--~ CloseHealthbar(self)
+ 	=
+
+ 	self:DestroyContent() -- warning, triggers self:Update()
+ 	=
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001379.html">[Iris-commit] [IRIS] r2574 - /trunk/lua/lib.desktop.lua
+</A></li>
+	<LI>Next message: <A HREF="001381.html">[Iris-commit] [IRIS] r2576 - in /trunk: data/config.lua.dist lua/net.walk.lua lua/net/net.partysystem.lua lua/obj/obj.mobile.lua lua/widgets/widget.uotext.lua plugins/lib.spellbar.lua plugins/moblist.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1380">[ date ]</a>
+              <a href="thread.html#1380">[ thread ]</a>
+              <a href="subject.html#1380">[ subject ]</a>
+              <a href="author.html#1380">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

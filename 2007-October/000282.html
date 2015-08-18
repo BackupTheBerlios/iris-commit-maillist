@@ -1,0 +1,216 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1467 - in /trunk: README data/lua/lib.mainmenu.lua data/lua/lib.tilefreewalk.lua data/lua/net.walk.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2007-October/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1467%20-%20in%20/trunk%3A%20README%0A%20data/lua/lib.mainmenu.lua%20data/lua/lib.tilefreewalk.lua%0A%20data/lua/net.walk.lua&In-Reply-To=%3C20071010174648.DFEED1C18165%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000281.html">
+   <LINK REL="Next"  HREF="000283.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1467 - in /trunk: README data/lua/lib.mainmenu.lua data/lua/lib.tilefreewalk.lua data/lua/net.walk.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1467%20-%20in%20/trunk%3A%20README%0A%20data/lua/lib.mainmenu.lua%20data/lua/lib.tilefreewalk.lua%0A%20data/lua/net.walk.lua&In-Reply-To=%3C20071010174648.DFEED1C18165%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1467 - in /trunk: README data/lua/lib.mainmenu.lua data/lua/lib.tilefreewalk.lua data/lua/net.walk.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Wed Oct 10 19:46:48 CEST 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000281.html">[Iris-commit] [IRIS] r1466 - /trunk/src/builder_L.cpp
+</A></li>
+        <LI>Next message: <A HREF="000283.html">[Iris-commit] [IRIS] r1468 - in /trunk/data: config.lua.dist	lua/lib.tilefreewalk.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#282">[ date ]</a>
+              <a href="thread.html#282">[ thread ]</a>
+              <a href="subject.html#282">[ subject ]</a>
+              <a href="author.html#282">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Wed Oct 10 19:46:48 2007
+New Revision: 1467
+
+Log:
+fixed offline mode with tilefree, you can now toggle cam mode with c in off=
+line mode, you can now teleport using f6 in offline mode
+
+Modified:
+    trunk/README
+    trunk/data/lua/lib.mainmenu.lua
+    trunk/data/lua/lib.tilefreewalk.lua
+    trunk/data/lua/net.walk.lua
+
+Modified: trunk/README
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/README (original)
++++ trunk/README Wed Oct 10 19:46:48 2007
+@@ -70,6 +70,7 @@
+ =
+
+ shift-click : simulates doubleclick (temporary, helpful for low framerates)
+ =
+
++f6 : in offline mode : teleport to position under mouse
+ f10 : show dev tool
+ f11 : fallbacktool : developer tool used for removing static-part-fallback=
+s (billboards) for which a model exists (important for combos)
+ f12 : take highresscreenshot
+
+Modified: trunk/data/lua/lib.mainmenu.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.mainmenu.lua (original)
++++ trunk/data/lua/lib.mainmenu.lua Wed Oct 10 19:46:48 2007
+@@ -248,8 +248,13 @@
+ 	-- Binds key and Inits all InGame-Data
+ 	StartInGame() -- otherwise handled by the serverpacket (kPacket_Login_Com=
+plete)
+ =
+
++	-- offline : tilefree walk teleport
++	BindDown(&quot;f6&quot;,function ()
++		gTileFreeWalk:SetPos_All(gTileFreeWalk:RoundPos(gTileFreeWalk:MousePickP=
+os()))
++	end)
++	=
+
+ 	-- Unbind some keys only for offline mode (rest is the same as InGame)
+-	UnBindArr({&quot;u&quot;,&quot;q&quot;,&quot;e&quot;,&quot;tab&quot;,&quot;r&quot;,&quot;c&quot;,&quot;t&quot;,&quot;k&quot;,&quot;j&quot;,&quot;b&quot;,&quot;p&quot;,&quot;g&quot;,&quot;h&quot;,&quot;y&quot;})
++	UnBindArr({&quot;u&quot;,&quot;q&quot;,&quot;e&quot;,&quot;tab&quot;,&quot;r&quot;,&quot;t&quot;,&quot;k&quot;,&quot;j&quot;,&quot;b&quot;,&quot;p&quot;,&quot;g&quot;,&quot;h&quot;,&quot;y&quot;})
+ end
+ =
+
+ function StartMainMenu ()
+
+Modified: trunk/data/lua/lib.tilefreewalk.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.tilefreewalk.lua (original)
++++ trunk/data/lua/lib.tilefreewalk.lua Wed Oct 10 19:46:48 2007
+@@ -42,7 +42,8 @@
+ function gTileFreeWalk:OnStartInGame ()
+ 	if (gStartGameWithoutNetwork) then
+ 		Renderer3D:ChangeCamMode(Renderer3D.kCamMode_Third)
+-		self:SetPos_All(-1675.5,284.5,5.0)
++		--~ self:SetPos_All(-1675.5,284.5,5.0)
++		self:SetPos_All(-1548.5,326.5,5.0)
+ 	end
+ 	RegisterStepper(function () gTileFreeWalk:Step() end) =
+
+ end
+@@ -87,7 +88,6 @@
+ 	-- read input and calculate desired movement
+ 	if (bWalkInMouseDir) then
+ 		local dx,dy,pixel_dist_from_center =3D self:GetCurrentMouseDir() =
+
+-		--local x,y,z =3D self:MousePickPos()
+ 		=
+
+ 		local slowarea_pixels =3D kFreeWalkMouseSlowArea
+ 		bRunRequested =3D pixel_dist_from_center &gt; slowarea_pixels
+@@ -384,7 +384,13 @@
+ 	if (self.bSkipWalkStep) then return end -- skip this step if movement has=
+ finished
+ 	=
+
+ 	-- self confirm here if there is no server, debug/offline mode only
+-	if (gStartGameWithoutNetwork) then self:SetPos_LastConfirmed(self:RoundPo=
+s(self:GetPos_ClientSide())) return end
++	if (gStartGameWithoutNetwork) then =
+
++		local rx,ry,rz =3D self:RoundPos(self:GetPos_ClientSide())
++		self:PathPoint_ReachPos(rx,ry,rz)
++		self:SetPos_LastConfirmed(rx,ry,rz) =
+
++		self:SetPos_LastRequested(rx,ry,rz) =
+
++		return =
+
++	end
+ 	=
+
+ 	if (not Walk_RequestTimeOk()) then return end
+ 	=
+
+@@ -488,7 +494,9 @@
+ =
+
+ -- world-units (tiles for uo) per second
+ -- todo : depends on conditions(stamina,spells,buffs,debuffs...) and on mo=
+unt/horse ?
+-function gTileFreeWalk:Impl_GetMaxAllowedSpeed		() return 1000 / WalkGetIn=
+terval(true) end
++function gTileFreeWalk:Impl_GetMaxAllowedSpeed		() =
+
++	return 1000 / (gStartGameWithoutNetwork and gWalkTimeout_MountRunningSpee=
+d or WalkGetInterval(true))
++end
+ function gTileFreeWalk:Impl_GetMaxAllowedTurnRate	() return 45*gfDeg2Rad e=
+nd
+ =
+
+ -- feedback for thirdpersoncam
+
+Modified: trunk/data/lua/net.walk.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/net.walk.lua (original)
++++ trunk/data/lua/net.walk.lua Wed Oct 10 19:46:48 2007
+@@ -144,8 +144,7 @@
+ =
+
+ function WalkGetInterval (bRunFlag)
+ 	local playermobile =3D GetPlayerMobile()
+-	if (not playermobile) then return end
+-	local bMount =3D playermobile:GetEquipmentAtLayer(kLayer_Mount)
++	local bMount =3D playermobile and playermobile:GetEquipmentAtLayer(kLayer=
+_Mount)
+ 	return	 bMount and	(	bRunFlag and gWalkTimeout_MountRunningSpeed	or gWalk=
+Timeout_MountMovingSpeed) or =
+
+ 						(	bRunFlag and gWalkTimeout_RunningSpeed		or gWalkTimeout_MovingSpee=
+d)
+ end
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000281.html">[Iris-commit] [IRIS] r1466 - /trunk/src/builder_L.cpp
+</A></li>
+	<LI>Next message: <A HREF="000283.html">[Iris-commit] [IRIS] r1468 - in /trunk/data: config.lua.dist	lua/lib.tilefreewalk.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#282">[ date ]</a>
+              <a href="thread.html#282">[ thread ]</a>
+              <a href="subject.html#282">[ subject ]</a>
+              <a href="author.html#282">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

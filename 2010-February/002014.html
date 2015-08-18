@@ -1,0 +1,303 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r3254 - in /trunk/lua: lib.2d.mobile.lua	widgets/widget.uotooltip.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2010-February/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3254%20-%20in%20/trunk/lua%3A%20lib.2d.mobile.lua%0A%09widgets/widget.uotooltip.lua&In-Reply-To=%3C20100213225529.98FBE7A9806F%40simon%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="002013.html">
+   <LINK REL="Next"  HREF="002015.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r3254 - in /trunk/lua: lib.2d.mobile.lua	widgets/widget.uotooltip.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3254%20-%20in%20/trunk/lua%3A%20lib.2d.mobile.lua%0A%09widgets/widget.uotooltip.lua&In-Reply-To=%3C20100213225529.98FBE7A9806F%40simon%3E"
+       TITLE="[Iris-commit] [IRIS] r3254 - in /trunk/lua: lib.2d.mobile.lua	widgets/widget.uotooltip.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat Feb 13 23:55:29 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="002013.html">[Iris-commit] [IRIS] r3253 - /trunk/lua/gui/gui.healthbar.lua
+</A></li>
+        <LI>Next message: <A HREF="002015.html">[Iris-commit] [IRIS] r3255 - /trunk/bin/iris2.exe
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2014">[ date ]</a>
+              <a href="thread.html#2014">[ thread ]</a>
+              <a href="subject.html#2014">[ subject ]</a>
+              <a href="author.html#2014">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sat Feb 13 23:55:28 2010
+New Revision: 3254
+
+Log:
+2d : server side anims for mobiles
+
+Modified:
+    trunk/lua/lib.2d.mobile.lua
+    trunk/lua/widgets/widget.uotooltip.lua
+
+Modified: trunk/lua/lib.2d.mobile.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.mobile.lua (original)
++++ trunk/lua/lib.2d.mobile.lua Sat Feb 13 23:55:28 2010
+@@ -1,8 +1,8 @@
+ -- mobiles (animals,players,monsters,npcs..)
+ -- TODO : Equipconv.def ?
+ =
+
+-Renderer2D.gStepMobiles =3D {}
+-Renderer2D.gStepMobilesSmoothWalk =3D {}
++Renderer2D.gStepMobiles =3D Renderer2D.gStepMobiles or {}
++Renderer2D.gStepMobilesSmoothWalk =3D Renderer2D.gStepMobilesSmoothWalk or=
+ {}
+ =
+
+ -- main updater, create, position ...
+ function Renderer2D:MobileSetVisible			(mobile,bVisible) =
+
+@@ -114,6 +114,7 @@
+ 			mobile_artid =3D=3D 744 or mobile_artid =3D=3D 745 -- vamp form
+ end
+ =
+
++
+ function Renderer2D:UpdateMobileGfx				(mobile) =
+
+ 	local spriteblock =3D mobile.gfx2d
+ 	if (not spriteblock) then return end
+@@ -128,8 +129,19 @@
+ 	local fTimeSinceLastMove =3D gMyTicks - (mobile.r2d_lastmoved or 0)
+ 	local bRun =3D TestBit(mobile.dir or 0,0x80)
+ 	local bMoving =3D fTimeSinceLastMove &lt;=3D (mobile.r2d_iMoveInterval or 20=
+0) + 50
++	=
+
++	local ticks_per_frame =3D 100
++	local iServerSideAnimID =3D nil
++	local iServerSideAnimID =3D gForcedServerSideAnim or (mobile.serveranim2d=
+_id and (mobile.serveranim2d_id*5))
++	local startt =3D 0
++	if (iServerSideAnimID) then startt =3D mobile.serveranim2d_startt or 0 end
++	=
+
++	-- crossbow : dismounted:19 mounted:28 independent of dir   soll: dismoun=
+ted:95 mounted:141
++	=
+
+ 	if (bSimpleMob) then bMoving =3D false end
+-	self.gStepMobiles[mobile] =3D bMoving and (gMyTicks + 10) or (gMyTicks + =
+500)
++	local interval =3D 500
++	if (bMoving or iServerSideAnimID) then interval =3D ticks_per_frame end
++	self.gStepMobiles[mobile] =3D gMyTicks + interval
+ =
+
+ 	local xloc,yloc,zloc =3D mobile.xloc,mobile.yloc,mobile.zloc
+ 	local tx,ty,tz,iIndex,fIndexRel =3D 0,0,0,0
+@@ -140,7 +152,7 @@
+ 	local iDirAdd,bMirrorX =3D GetAnimDirAdd(DirWrap(mobile.dir))
+ 	=
+
+ 	--~ table.insert(parts,{self:GetMobileMountModelAndHue(mobile)}) -- kLaye=
+r_Mount
+-	if (mount) then table.insert(parts,{gMountTranslate2D[mount.artid],mount.=
+hue,gStandardHorse}) end
++	if (mount) then table.insert(parts,{gMountTranslate2D[mount.artid],mount.=
+hue,gStandardHorse,nil,true}) end
+ 	=
+
+ 	local main_spritearr =3D mobile.r2d_main_spritearr
+ 	if (not main_spritearr) then main_spritearr =3D {} mobile.r2d_main_sprite=
+arr =3D main_spritearr end
+@@ -150,7 +162,6 @@
+ 	if (mobile.artid =3D=3D 608) then mobile.artid =3D 403 end
+ 	local bIsGhost =3D mobile.artid =3D=3D 402 or mobile.artid =3D=3D 403
+ 	if (not bIsGhost) then table.insert(parts,{mobile.artid,mobile.hue,13,mai=
+n_spritearr}) end -- fallback=3D13=3Devortex  402=3Dghost
+-	=
+
+ 	=
+
+ 	--~ print(&quot;######### mobart&quot;,mobile.artid)
+ 	gProfiler_R2D_MobileStep:Section(&quot;UpdateMobileGfx:human&quot;)
+@@ -172,7 +183,7 @@
+ 	end
+ 	=
+
+ 	for k,v in pairs(parts) do =
+
+-		local iModelID,iHue,iFallBackModel,spritearr =3D unpack(v)
++		local iModelID,iHue,iFallBackModel,spritearr,bIsMount =3D unpack(v)
+ 		if (bSimpleMob) then iHue =3D 0 if (iModelID =3D=3D 400 or iModelID =3D=
+=3D 401) then iModelID =3D 469 end end -- robe
+ 		if iModelID then =
+
+ 			gProfiler_R2D_MobileStep:Section(&quot;UpdateMobileGfx:UOAnimTranslateBodyID=
+&quot;)
+@@ -187,14 +198,15 @@
+ 			iIndex =3D iIndex + 1 =
+
+ 			fIndexRel =3D 200 * (1 - 1/iIndex) -- dirty hack to avoid zbuffer flick=
+er
+ 			=
+
+-			local iAnimID =3D		bMoving and	(Anim_GetMoveAnim(iModelID,iLoaderIndex,=
+mount,bRun) + iDirAdd) or
+-											(Anim_GetIdleAnim(iModelID,iLoaderIndex,mount) + iDirAdd)
++			local overrideanim =3D (not bIsMount) and iServerSideAnimID and (iServe=
+rSideAnimID + iDirAdd)
++			local iAnimID =3D		overrideanim or (bMoving and (Anim_GetMoveAnim(iMode=
+lID,iLoaderIndex,mount,bRun) + iDirAdd) or
++																  (Anim_GetIdleAnim(iModelID,iLoaderIndex,mount) + iDirAdd=
+))
+ 			=
+
+ 			--~ if (iOldModelID =3D=3D 0x114) then iHue=3D0 print(&quot;chim anim&quot;,iAnim=
+ID-iDirAdd) iAnimID =3D 55 + iDirAdd end
+ 			=
+
+ 			=
+
+-			local iFallBackAnim =3D iFallBackModel and (bMoving and	(Anim_GetMoveAn=
+im(iFallBackModel,1,mount,bRun) + iDirAdd) or
+-																	(Anim_GetIdleAnim(iFallBackModel,1,mount) + iDirAdd))
++			local iFallBackAnim =3D iFallBackModel and (overrideanim or (bMoving an=
+d	(Anim_GetMoveAnim(iFallBackModel,1,mount,bRun) + iDirAdd) or
++																					(Anim_GetIdleAnim(iFallBackModel,1,mount) + iDirAdd)))
+ 																	=
+
+ 			if (gMy2DMobileDebugAnim) then iAnimID =3D gMy2DMobileDebugAnim end
+ 			=
+
+@@ -204,12 +216,21 @@
+ 									(iFallBackModel and Anim2D_GetFrameCount(Anim_GetRealID(iFallBack=
+Model,iFallBackAnim,1),1)) or =
+
+ 									1
+ 			if (iFrameCount &lt; 1) then iFrameCount =3D 1 end
++			if (iServerSideAnimID and iFrameCount &gt; (mobile.serveranim2d_frames or =
+0)) then mobile.serveranim2d_frames =3D iFrameCount end
+ 			--~ local iFrame =3D floor((gMy2DDebugFrame or 0) / 15) % iFrameCount
+-			local iFrame =3D (floor(gMyTicks/100)) % iFrameCount
++			local iFrame =3D (floor((gMyTicks-startt)/ticks_per_frame)) % iFrameCou=
+nt
+ 			gProfiler_R2D_MobileStep:Section(&quot;UpdateMobileGfx:AddAnimModel (start:L=
+oadAtlasPiece)&quot;)
+ 			spriteblock:AddAnimModel(tx,ty,tz,iModelID,iHue,iLoaderIndex,iFallBackM=
+odel,iFallBackAnim,iAnimID,iFrame,bMirrorX,CalcSortBonus(nil,sorttx,sortty,=
+sorttz,fIndexRel,4),mobile,	spritearr) =
+
+ 		end
+ 	end
++	=
+
++	=
+
++	if (iServerSideAnimID) then =
+
++		local endt =3D (mobile.serveranim2d_startt or gMyTicks) + ticks_per_fram=
+e * (mobile.serveranim2d_frames or 0) * ( 1 + (mobile.serveranim2d_repeat o=
+r 0))
++		if (gMyTicks &gt; endt) then mobile.serveranim2d_id =3D nil end
++	end
++	=
+
++	=
+
+ 	gProfiler_R2D_MobileStep:Section(&quot;UpdateMobileGfx:Build&quot;)
+ 	spriteblock:Build(Renderer2D.kSpriteBaseMaterial,false)
+ 	gProfiler_R2D_MobileStep:Section(&quot;UpdateMobileGfx:UpdateMobilePos&quot;)
+@@ -228,10 +249,22 @@
+ function Renderer2D:UpdateMobileModel			() end -- check equipment change e=
+tc ?? called every time when UpdateMobile() is called ..
+ =
+
+ function Renderer2D:MobileAnimStep				() end -- from mainstep
+-function Renderer2D:MobileStartServerSideAnim	(animdata) end
+-
+-
+-gProfiler_R2D_MobileStep =3D CreateRoughProfiler(&quot;  2D:MobileStep&quot;)
++function Renderer2D:MobileStartServerSideAnim	(animdata) =
+
++    local mobile =3D GetMobile(animdata.mobileserial)
++    if (not mobile) then return end
++    local iRepeatCount =3D 0 -- 0 =3D play once, -1 =3D loop infinity,  1:=
+playtwice=3Drepeatonce 2:play3times...
++    if (animdata.m_repeatFlag =3D=3D 1) then iRepeatCount =3D (animdata.m_=
+repeat =3D=3D 0) and -1 or animdata.m_repeat end
++    --~ if (mobile.bodygfx) then mobile.bodygfx:StartAnim(animdata.m_anima=
+tion,iRepeatCount) end
++	mobile.serveranim2d_repeat		=3D iRepeatCount
++	mobile.serveranim2d_id			=3D animdata.m_animation
++	mobile.serveranim2d_startt		=3D gMyTicks
++	mobile.serveranim2d_frames		=3D 0 -- set during anim
++	=
+
++	self:UpdateMobileGfx(mobile)
++end
++
++
++gProfiler_R2D_MobileStep =3D gProfiler_R2D_MobileStep or CreateRoughProfil=
+er(&quot;  2D:MobileStep&quot;)
+ =
+
+ function Renderer2D:MobileStep()
+ 	gProfiler_R2D_MobileStep:Start(gEnableProfiler_R2D_MobileStep)
+
+Modified: trunk/lua/widgets/widget.uotooltip.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/widgets/widget.uotooltip.lua (original)
++++ trunk/lua/widgets/widget.uotooltip.lua Sat Feb 13 23:55:28 2010
+@@ -77,7 +77,7 @@
+ 	self.text =3D self:CreateChild(&quot;UOText&quot;,{x=3D0,y=3D0,text=3D&quot;???&quot;,html=3D=
+true,bold=3Dtrue})
+ =
+
+ 	self:SetPos(params.x,params.y)
+-	gUOToolTipWidgets[self.params.serial] =3D self
++	gUOToolTipWidgets[self.params.serial or 0] =3D self
+ 	self:RefreshText()
+ end
+ =
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="002013.html">[Iris-commit] [IRIS] r3253 - /trunk/lua/gui/gui.healthbar.lua
+</A></li>
+	<LI>Next message: <A HREF="002015.html">[Iris-commit] [IRIS] r3255 - /trunk/bin/iris2.exe
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2014">[ date ]</a>
+              <a href="thread.html#2014">[ thread ]</a>
+              <a href="subject.html#2014">[ subject ]</a>
+              <a href="author.html#2014">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

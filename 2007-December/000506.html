@@ -1,0 +1,174 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1690 - /trunk/lua/lib.3d.map.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2007-December/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1690%20-%20/trunk/lua/lib.3d.map.lua&In-Reply-To=%3C20071226233417.A6B971C186BB%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000505.html">
+   <LINK REL="Next"  HREF="000507.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1690 - /trunk/lua/lib.3d.map.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1690%20-%20/trunk/lua/lib.3d.map.lua&In-Reply-To=%3C20071226233417.A6B971C186BB%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1690 - /trunk/lua/lib.3d.map.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Thu Dec 27 00:34:13 CET 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000505.html">[Iris-commit] [IRIS] r1689 - in /trunk/data/models/models: generate_alpha_tex_atlas.php generate_tex_atlas.php tomesh.sh toxml.sh
+</A></li>
+        <LI>Next message: <A HREF="000507.html">[Iris-commit] [IRIS] r1691 - /trunk/lua/lib.terrain.multitex.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#506">[ date ]</a>
+              <a href="thread.html#506">[ thread ]</a>
+              <a href="subject.html#506">[ subject ]</a>
+              <a href="author.html#506">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: hagish
+Date: Thu Dec 27 00:34:12 2007
+New Revision: 1690
+
+Log:
+increased the layer size of the static geom layers
+
+Modified:
+    trunk/lua/lib.3d.map.lua
+
+Modified: trunk/lua/lib.3d.map.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.map.lua (original)
++++ trunk/lua/lib.3d.map.lua Thu Dec 27 00:34:12 2007
+@@ -13,6 +13,13 @@
+ -- the whole map cache consists of (ROBMAP_RECENTER_DIST*2)*(ROBMAP_RECENT=
+ER_DIST*2)  chunks
+ -- every chunk consists of ROBMAP_CHUNK_SIZE*ROBMAP_CHUNK_SIZE blocks
+ -- every block is equivalent to one MapBlock3D
++
++function Renderer3D:ZToLayer(zloc)
++	return math.floor(zloc / Renderer3D.giBlendOutPlayerHeight)
++end
++function Renderer3D:LayerToZ(zlayer)
++	return zlayer * Renderer3D.giBlendOutPlayerHeight
++end
+ =
+
+ function Renderer3D:UpdateMap ()
+ 	if (not self.gbActive) then return end
+@@ -168,7 +175,7 @@
+ 		entity.sy =3D sy
+ 		entity.sz =3D sz
+ =
+
+-		local myLayer =3D entity.zloc
++		local myLayer =3D Renderer3D:ZToLayer(entity.zloc)
+ 		local myLayerStaticGeom =3D chunk.pStaticGeometryLayers[myLayer]
+ 		if (not myLayerStaticGeom) then
+ 			myLayerStaticGeom =3D CreateStaticGeometry()
+@@ -321,12 +328,13 @@
+ 	=
+
+ 	for layerZ,layerStaticGeom in pairs(chunk.pStaticGeometryLayers) do =
+
+ 		layerStaticGeom:SetCastShadows(gStaticsCastShadows)
+-		layerStaticGeom:SetVisible(self:IsZLayerVisible(layerZ))
++		layerStaticGeom:SetVisible(self:IsZLayerVisible(Renderer3D:LayerToZ(laye=
+rZ)))
+ 		layerStaticGeom:Build()
+ 	end
+ 	return chunk
+ end
+ =
+
++-- NOTE: layerZ is a uo zloc not the layer index in pStaticGeometryLayers
+ function Renderer3D:IsZLayerVisible (layerZ)
+ 	return (not self.giBlendOutCurZ) or layerZ &lt;=3D self.giBlendOutCurZ
+ end
+@@ -370,14 +378,16 @@
+ 		end
+ =
+
+ 		-- check multis
+-		for k,v in pairs(gMultis) do
+-			local multi =3D k
+-			if multi.lparts then
+-				for k,v in pairs(multi.lparts) do
+-
+-					local iTileTypeID,iX,iY,iZ,iHue =3D unpack(v)
+-					if	iX =3D=3D x and iY =3D=3D y  and iZ &gt; playerheadpos then
+-						playerIsInside =3D true
++		if (not playerIsInside) then
++			for k,v in pairs(gMultis) do
++				local multi =3D k
++				if multi.lparts then
++					for k,v in pairs(multi.lparts) do
++
++						local iTileTypeID,iX,iY,iZ,iHue =3D unpack(v)
++						if	iX =3D=3D x and iY =3D=3D y  and iZ &gt; playerheadpos then
++							playerIsInside =3D true
++						end
+ 					end
+ 				end
+ 			end
+@@ -401,7 +411,7 @@
+ 	-- only update if changed
+ 	if (self.giBlendOutCurZ ~=3D myLayer or self.gbBlendOutTerrainVisible ~=
+=3D bTerrainVisible) then
+ 		self.giBlendOutCurZ =3D myLayer
+-		=
+
++	=
+
+ 		-- skybox not visible underground
+ 		if (self.gbBlendOutTerrainVisible ~=3D bTerrainVisible) then
+ 			self:SetMapEnvironment(not bTerrainVisible)
+@@ -414,7 +424,7 @@
+ 				if (not chunk.bIsDead) then
+ 					-- update statics
+ 					for layerZ,layerStaticGeom in pairs(chunk.pStaticGeometryLayers) do
+-						layerStaticGeom:SetVisible(self:IsZLayerVisible(layerZ))
++						layerStaticGeom:SetVisible(self:IsZLayerVisible(Renderer3D:LayerToZ(=
+layerZ + 1)))
+ 					end
+ 					for k,entity in pairs(chunk.lStaticEntities) do =
+
+ 						self:UpdateStaticVisibility(entity) =
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000505.html">[Iris-commit] [IRIS] r1689 - in /trunk/data/models/models: generate_alpha_tex_atlas.php generate_tex_atlas.php tomesh.sh toxml.sh
+</A></li>
+	<LI>Next message: <A HREF="000507.html">[Iris-commit] [IRIS] r1691 - /trunk/lua/lib.terrain.multitex.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#506">[ date ]</a>
+              <a href="thread.html#506">[ thread ]</a>
+              <a href="subject.html#506">[ subject ]</a>
+              <a href="author.html#506">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

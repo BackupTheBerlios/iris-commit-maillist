@@ -1,0 +1,290 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1890 - in /trunk/lua: lib.3d.renderer.lua lib.granny.lua lib.mainmenu.lua lib.test.lua main.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-February/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1890%20-%20in%20/trunk/lua%3A%20lib.3d.renderer.lua%0A%20lib.granny.lua%20lib.mainmenu.lua%20lib.test.lua%20main.lua&In-Reply-To=%3C20080209231351.D4E0C1C1873B%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000701.html">
+   <LINK REL="Next"  HREF="000703.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1890 - in /trunk/lua: lib.3d.renderer.lua lib.granny.lua lib.mainmenu.lua lib.test.lua main.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1890%20-%20in%20/trunk/lua%3A%20lib.3d.renderer.lua%0A%20lib.granny.lua%20lib.mainmenu.lua%20lib.test.lua%20main.lua&In-Reply-To=%3C20080209231351.D4E0C1C1873B%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1890 - in /trunk/lua: lib.3d.renderer.lua lib.granny.lua lib.mainmenu.lua lib.test.lua main.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sun Feb 10 00:13:51 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000701.html">[Iris-commit] [IRIS] r1888 - /trunk/lua/net/net.securetrade.lua
+</A></li>
+        <LI>Next message: <A HREF="000703.html">[Iris-commit] [IRIS] r1891 - in /trunk/staticompile: ./ iris
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#702">[ date ]</a>
+              <a href="thread.html#702">[ thread ]</a>
+              <a href="subject.html#702">[ subject ]</a>
+              <a href="author.html#702">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: sience
+Date: Sun Feb 10 00:13:50 2008
+New Revision: 1890
+
+Log:
+-some functions moved from main.lua to preload
+-some functions moved to lib.test.lua
+-some comments added
+
+Modified:
+    trunk/lua/lib.3d.renderer.lua
+    trunk/lua/lib.granny.lua
+    trunk/lua/lib.mainmenu.lua
+    trunk/lua/lib.test.lua
+    trunk/lua/main.lua
+
+Modified: trunk/lua/lib.3d.renderer.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.renderer.lua (original)
++++ trunk/lua/lib.3d.renderer.lua Sun Feb 10 00:13:50 2008
+@@ -12,7 +12,11 @@
+ Renderer3D.gDynamicMaxRenderDist =3D 128 -- 0 means always rendered  -- TO=
+DO : make this dependant on bounding sphere size, e.g. in pixel size ?
+ Renderer3D.gDynamicZAdd =3D 0.2 -- add a bit to make sure all dynamics can=
+ be clicked and none are below the floor, todo : improve this by detecting =
+floor height and model bbox
+ =
+
+-function Renderer3D:PreInit ()  end
++function Renderer3D:PreInit ()
++	-- load texture atlas
++	LoadTexAtlas()
++	MultiTexTerrainInit()
++end
+ =
+
+ -- warning !you still have to do 0.1 z factor seperately
+ function Renderer3D:UOPosToLocal (xloc,yloc,z) =
+
+
+Modified: trunk/lua/lib.granny.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.granny.lua (original)
++++ trunk/lua/lib.granny.lua Sun Feb 10 00:13:50 2008
+@@ -204,14 +204,11 @@
+ 	local texname =3D GetGrannyTextureName(mygranny)
+ 	local matname =3D gGrannyMaterialCache[texname..&quot;_&quot;..hue]
+ 	if (not matname) then
+-		--printf(&quot;hue %04x\n&quot;,hue)
+-		=
+
+ 		local texmaskname =3D GetGrannyTextureMaskName(texname)
+ 		local texturepath =3D CorrectGrannyPath(&quot;Maps/&quot;..texname)
+ 		local texturemaskpath =3D CorrectGrannyPath(&quot;Maps/&quot;..texmaskname)
+ 		-- texturepath will usually be an absolute path such as &quot;/cavern/uostuff=
+/uo/Models/Maps/UT256_Armor_Ring_V2.tga&quot;
+ =
+
+-		--use skinshader for characters male/female, all other stuff uses granny=
+base plain
+ 		local modelinfo =3D GetGrannyModelInfo(modelid)
+ 		if (modelinfo) then
+ 			if (modelinfo.typeid=3D=3D4) then
+@@ -223,6 +220,7 @@
+ 					matname =3D CloneMaterial(&quot;grannybase&quot;)
+ 				end
+ 			else
++				--use skinshader for characters male/female, all other stuff uses gran=
+nybase plain
+ 				if (IsBodyIDHuman(modelid) and gUseHumanSkinShader) then
+ 					matname =3D CloneMaterial(&quot;grannybase_humanshader&quot;)
+ 				else
+
+Modified: trunk/lua/lib.mainmenu.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mainmenu.lua (original)
++++ trunk/lua/lib.mainmenu.lua Sun Feb 10 00:13:50 2008
+@@ -1,22 +1,6 @@
+ -- handles the menu before starting the game
+ =
+
+ gMainMenuCamAng =3D 0
+-
+-function SetLoadingBackground ()
+---[[
+-	if (not(gLoadingBackground)) then
+-		gLoadingBackground=3DCreateGumpDlgFromGfm(datapath..&quot;gfm/loading.gfm&quot;)
+-		local dialog =3D gLoadingBackground
+-		for k,v in pairs(dialog.childs) do v.mbIgnoreMouseOver =3D false end
+-		-- TODO: check screensize and center
+-		local vw,vh =3D GetViewportSize()
+-		dialog.rootwidget.gfx:SetPos(vw/2-320,vh/2-240)
+-		dialog.onMouseUp =3D function (widget,mousebutton)
+-			if (mousebutton =3D=3D 1) then end
+-		end
+-	end
+-]]--
+-end
+ =
+
+ function StopLoadingBackground ()
+ 	if (gLoadingBackground) then
+@@ -274,21 +258,6 @@
+ 	UnBindArr({&quot;u&quot;,&quot;q&quot;,&quot;e&quot;,&quot;tab&quot;,&quot;r&quot;,&quot;t&quot;,&quot;k&quot;,&quot;j&quot;,&quot;b&quot;,&quot;p&quot;,&quot;g&quot;,&quot;h&quot;,&quot;y&quot;})
+ end
+ =
+
+-function StartMeshLoaderTest ()
+-	if (gDialog_IrisLogo) then gDialog_IrisLogo:SetVisible(false) end
+-	local mymeshbuffer =3D LoadMeshBufferFromFile(&quot;../data/models/models/to_0=
+02000/mdl_001909.mesh&quot;) -- load directly
+-	--~ local mymeshbuffer =3D GetMeshBuffer(&quot;../data/models/models/to_002000=
+/mdl_001909.mesh&quot;) -- load to vram and read back to ram
+-	local fastbatch =3D CreateRootGfx3D()
+-	fastbatch:SetFastBatch()
+-	local x,y,z =3D 0,2,40-0.5 -- +x=3Dright,+y=3Ddepth,+z :top (camz=3D40)
+-	local qw,qx,qy,qz =3D 1,0,0,0
+-	local sx,sy,sz =3D 1,1,1
+-	local r,g,b,a =3D 1,1,1,1
+-	local orderval =3D 0 -- not used here
+-	fastbatch:FastBatch_AddMeshBuffer(mymeshbuffer, orderval, x,y,z, qw,qx,qy=
+,qz, sx,sy,sz, r,g,b,a)
+-	fastbatch:FastBatch_Build()
+-end
+-
+ function StartMainMenu ()
+ 	if (gTestNoMainMenu) then return end
+ 	if (gCommandLineSwitches[&quot;-meshload&quot;]) then StartMeshLoaderTest() end -- =
+journaltest
+
+Modified: trunk/lua/lib.test.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.test.lua (original)
++++ trunk/lua/lib.test.lua Sun Feb 10 00:13:50 2008
+@@ -325,3 +325,18 @@
+ 	l:Destroy()
+ 	Crash()
+ end
++
++function StartMeshLoaderTest ()
++	if (gDialog_IrisLogo) then gDialog_IrisLogo:SetVisible(false) end
++	local mymeshbuffer =3D LoadMeshBufferFromFile(&quot;../data/models/models/to_0=
+02000/mdl_001909.mesh&quot;) -- load directly
++	--~ local mymeshbuffer =3D GetMeshBuffer(&quot;../data/models/models/to_002000=
+/mdl_001909.mesh&quot;) -- load to vram and read back to ram
++	local fastbatch =3D CreateRootGfx3D()
++	fastbatch:SetFastBatch()
++	local x,y,z =3D 0,2,40-0.5 -- +x=3Dright,+y=3Ddepth,+z :top (camz=3D40)
++	local qw,qx,qy,qz =3D 1,0,0,0
++	local sx,sy,sz =3D 1,1,1
++	local r,g,b,a =3D 1,1,1,1
++	local orderval =3D 0 -- not used here
++	fastbatch:FastBatch_AddMeshBuffer(mymeshbuffer, orderval, x,y,z, qw,qx,qy=
+,qz, sx,sy,sz, r,g,b,a)
++	fastbatch:FastBatch_Build()
++end
+
+Modified: trunk/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/main.lua (original)
++++ trunk/lua/main.lua Sun Feb 10 00:13:50 2008
+@@ -285,6 +285,7 @@
+ 	CollectOgreResLocs()
+ 	SetCursorBaseOffset(0,0)
+ =
+
++	------------------------------------------ obsolete, just for testing ---=
+--------------------------------
+ 	-- Lua test because Lua50 should not be compiled full-optimized with VS20=
+05 Express (maybe also other compilers)
+ 	if (true) then LuaBitwiseTest() end
+ 	-- if (gHuffmanCompression) then LuaHuffmanTest() end
+@@ -294,6 +295,7 @@
+ 	-- if (false) then TestMultiLoader() end
+ 	-- if (false) then TestZLib() end
+ 	-- if (false) then TestUniFontLoader() end
++	-------------------------------------------------------------------------=
+---------------------------------
+ =
+
+ 	-- maybe we should check here if in offline or online mode!?
+ 	InitNet()
+@@ -302,12 +304,7 @@
+ 	gui.StartLoading()
+ =
+
+ 	LoadBasicData()
+-	=
+
+-	-- only for 3DRenderer
+-	LoadTexAtlas()
+-	=
+
+-	-- show loading screen
+-	SetLoadingBackground()
++
+ 	Client_RenderOneFrame() -- first frame rendered with ogre, needed for ini=
+t of viewport size
+ =
+
+ 	NotifyListener(&quot;Hook_PreLoad&quot;)
+@@ -347,8 +344,6 @@
+ =
+
+ 	gCurrentRenderer:Init()
+ 	=
+
+-	MultiTexTerrainInit()
+-	=
+
+ 	-- set fadelines font
+ 	gFadeLinesFont =3D gFontNameDefault
+ 	gFadeLineTextH =3D gFontChatSize
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000701.html">[Iris-commit] [IRIS] r1888 - /trunk/lua/net/net.securetrade.lua
+</A></li>
+	<LI>Next message: <A HREF="000703.html">[Iris-commit] [IRIS] r1891 - in /trunk/staticompile: ./ iris
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#702">[ date ]</a>
+              <a href="thread.html#702">[ thread ]</a>
+              <a href="subject.html#702">[ subject ]</a>
+              <a href="author.html#702">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

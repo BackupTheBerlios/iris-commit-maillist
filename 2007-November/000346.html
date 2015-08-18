@@ -1,0 +1,157 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1530 - /trunk/src/builder_L.cpp
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2007-November/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1530%20-%20/trunk/src/builder_L.cpp&In-Reply-To=%3C20071124142102.BACC11C18272%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000345.html">
+   <LINK REL="Next"  HREF="000347.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1530 - /trunk/src/builder_L.cpp</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1530%20-%20/trunk/src/builder_L.cpp&In-Reply-To=%3C20071124142102.BACC11C18272%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1530 - /trunk/src/builder_L.cpp">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat Nov 24 15:21:01 CET 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000345.html">[Iris-commit] [IRIS] r1529 - /trunk/README.lua
+</A></li>
+        <LI>Next message: <A HREF="000347.html">[Iris-commit] [IRIS] r1531 - in /trunk: README.lua README.ogre README.tinyxml bin/iris2.exe data/lua/lib.data.lua license_lua.txt license_ogre.txt license_tinyxml.txt vs8/iris.sln vs8/iris.vcproj
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#346">[ date ]</a>
+              <a href="thread.html#346">[ thread ]</a>
+              <a href="subject.html#346">[ subject ]</a>
+              <a href="author.html#346">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sat Nov 24 15:21:00 2007
+New Revision: 1530
+
+Log:
+added staticgeom:SetCustomParameter (iParam,x,y,z,w)
+
+Modified:
+    trunk/src/builder_L.cpp
+
+Modified: trunk/src/builder_L.cpp
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/src/builder_L.cpp (original)
++++ trunk/src/builder_L.cpp Sat Nov 24 15:21:00 2007
+@@ -147,6 +147,7 @@
+ 			REGISTER_METHOD(AddEntity);
+ 			REGISTER_METHOD(SetVisible);
+ 			REGISTER_METHOD(SetCastShadows);
++			REGISTER_METHOD(SetCustomParameter);
+ 			#undef REGISTER_METHOD
+ 		}
+ =
+
+@@ -159,6 +160,41 @@
+ 		=
+
+ 	// object methods exported to lua
+ =
+
++		/// not yet implemented ? testme !
++		/// for lua : void staticgeom:SetCustomParameter (iParam,x,y,z,w)
++		/// see also gfx3D:SetMeshSubEntityCustomParameter
++		/// <A HREF="http://www.ogre3d.org/phpBB2/viewtopic.php?t=3D36614&amp;highlight=3Dcus=">http://www.ogre3d.org/phpBB2/viewtopic.php?t=3D36614&amp;highlight=3Dcus=</A>
+tom+parameter
++		static int	SetCustomParameter		(lua_State *L) { PROFILE =
+
++			//~ printf(&quot;static geom : SetCustomParameter : not yet implemented\n&quot;);
++			Ogre::StaticGeometry* pOgreStaticGeom =3D checkudata_alive(L)-&gt;mpOgreSt=
+aticGeom;
++			if (!pOgreStaticGeom) return 0;
++			int iParam =3D luaL_checkint(L,2);
++			float x =3D luaL_checknumber(L,3);
++			float y =3D luaL_checknumber(L,4);
++			float z =3D luaL_checknumber(L,5);
++			float w =3D luaL_checknumber(L,6);
++			// iterate through the static geometry down to the deepest level and ch=
+ange the
++			// renderables' shader parameter
++			Ogre::StaticGeometry::RegionIterator regIt =3D pOgreStaticGeom-&gt;getRegi=
+onIterator();
++			while (regIt.hasMoreElements()) {
++				Ogre::StaticGeometry::Region* region =3D regIt.getNext();
++				Ogre::StaticGeometry::Region::LODIterator lodIt =3D region-&gt;getLODIter=
+ator();
++				while (lodIt.hasMoreElements()) {
++					Ogre::StaticGeometry::LODBucket* bucket =3D lodIt.getNext();
++					Ogre::StaticGeometry::LODBucket::MaterialIterator matIt =3D bucket-&gt;g=
+etMaterialIterator();
++					while (matIt.hasMoreElements()) {
++						Ogre::StaticGeometry::MaterialBucket* mat =3D matIt.getNext();
++						Ogre::StaticGeometry::MaterialBucket::GeometryIterator geomIt =3D ma=
+t-&gt;getGeometryIterator();
++						while (geomIt.hasMoreElements()) {
++							Ogre::StaticGeometry::GeometryBucket* geom =3D geomIt.getNext();
++							// set the custom shader parameter to the desired player colour
++							geom-&gt;setCustomParameter(iParam,Ogre::Vector4(x,y,z,w));
++						}
++					}
++				}
++			} =
+
++			return 0; =
+
++		}
+ 		=
+
+ 		/// void		SetCastShadows		(bool shadow)
+ 		static int		SetCastShadows		(lua_State *L) { PROFILE
+@@ -195,6 +231,8 @@
+ 			return 0; =
+
+ 		}
+ 		=
+
++		=
+
++		=
+
+ 		virtual const char* GetLuaTypeName () { return &quot;iris.staticgeometry&quot;; }
+ };
+ =
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000345.html">[Iris-commit] [IRIS] r1529 - /trunk/README.lua
+</A></li>
+	<LI>Next message: <A HREF="000347.html">[Iris-commit] [IRIS] r1531 - in /trunk: README.lua README.ogre README.tinyxml bin/iris2.exe data/lua/lib.data.lua license_lua.txt license_ogre.txt license_tinyxml.txt vs8/iris.sln vs8/iris.vcproj
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#346">[ date ]</a>
+              <a href="thread.html#346">[ thread ]</a>
+              <a href="subject.html#346">[ subject ]</a>
+              <a href="author.html#346">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,191 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r3095 - in /trunk/lua: gui/gui.paperdoll.lua gui/gui.skill.lua net/net.login.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2009-August/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3095%20-%20in%20/trunk/lua%3A%20gui/gui.paperdoll.lua%0A%20gui/gui.skill.lua%20net/net.login.lua&In-Reply-To=%3C20090809212153.95DB87A980F8%40simon%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001857.html">
+   <LINK REL="Next"  HREF="001859.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r3095 - in /trunk/lua: gui/gui.paperdoll.lua gui/gui.skill.lua net/net.login.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3095%20-%20in%20/trunk/lua%3A%20gui/gui.paperdoll.lua%0A%20gui/gui.skill.lua%20net/net.login.lua&In-Reply-To=%3C20090809212153.95DB87A980F8%40simon%3E"
+       TITLE="[Iris-commit] [IRIS] r3095 - in /trunk/lua: gui/gui.paperdoll.lua gui/gui.skill.lua net/net.login.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sun Aug  9 23:21:53 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001857.html">[Iris-commit] [IRIS] r3094 - in /trunk/bin: OgreMain.dll Plugin_CgProgramManager.dll Plugin_ParticleFX.dll RenderSystem_Direct3D9.dll RenderSystem_GL.dll iris2.exe
+</A></li>
+        <LI>Next message: <A HREF="001859.html">[Iris-commit] [IRIS] r3096 - /trunk/lua/lib.macrolist.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1858">[ date ]</a>
+              <a href="thread.html#1858">[ thread ]</a>
+              <a href="subject.html#1858">[ subject ]</a>
+              <a href="author.html#1858">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: sience
+Date: Sun Aug  9 23:21:53 2009
+New Revision: 3095
+
+Log:
+-bugfix for opening skill windows (before has to be a skillrequest packet)
+-bugfix skillrequest where not called during login
+
+Modified:
+    trunk/lua/gui/gui.paperdoll.lua
+    trunk/lua/gui/gui.skill.lua
+    trunk/lua/net/net.login.lua
+
+Modified: trunk/lua/gui/gui.paperdoll.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.paperdoll.lua (original)
++++ trunk/lua/gui/gui.paperdoll.lua Sun Aug  9 23:21:53 2009
+@@ -63,7 +63,11 @@
+ 			end
+ 		  end,
+  -- skills
+- [5]	=3D function (widget,mousebutton) if (mousebutton =3D=3D 1) then Togg=
+leSkill() end end,
++ [5]	=3D function (widget,mousebutton)
++ 			if (mousebutton =3D=3D 1) then
++ 				ToggleSkill()
++ 		  	end
++ 		  end,
+  -- guild
+  [6]	=3D function (widget,mousebutton)
+ 			if (mousebutton =3D=3D 1) then
+
+Modified: trunk/lua/gui/gui.skill.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.skill.lua (original)
++++ trunk/lua/gui/gui.skill.lua Sun Aug  9 23:21:53 2009
+@@ -206,12 +206,17 @@
+ gSkillDialog_LastPositionY =3D nil
+ gSkillDialog_LastPositionScrollIndex =3D nil
+ function ToggleSkill ()
++	--OSI does so; Request Skills and stats if gPlayerSkills is already nil
++	if (gPlayerSkills=3D=3Dnil) then
++		Send_ClientQuery(gRequest_Skills,GetPlayerSerial())
++	end
++
+ 	if (gSkillDialog) then
+ 		-- store current position
+ 		gSkillDialog_LastPositionX, gSkillDialog_LastPositionY =3D gSkillDialog.=
+rootwidget.gfx:GetPos()
+ 		-- and close
+ 		gSkillDialog:Close()
+-	elseif gPlayerSkills then
++	elseif (gPlayerSkills) then
+ 		-- scrollbar middle part hardcoded positions
+ 		local scrollbar_x =3D 256
+ 		local scrollbar_y_start =3D 74
+
+Modified: trunk/lua/net/net.login.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.login.lua (original)
++++ trunk/lua/net/net.login.lua Sun Aug  9 23:21:53 2009
+@@ -277,18 +277,16 @@
+ 	=
+
+ 	mobiledata.hue	=3D 0
+ 	local playerid =3D mobiledata.serial
+-	=
+
+-	=
+
++
+ 	gLoginConfirmPlayerSerial =3D mobiledata.serial
+ 	print(&quot;#########!!!!!!!!!gLoginConfirmPlayerSerial&quot;,gLoginConfirmPlayerSe=
+rial)
+ =
+
+-	--Request Skills and stats
+-	Send_ClientQuery(gRequest_Skills,playerid)
+-
+ 	--Send Client ident string
+-	if (gAltenatePostLoginHandling) then =
+
++	if (gAltenatePostLoginHandling) then
++		-- this is only for special shards =
+
+ 		InvokeLater(1000,SendLoginConfirmSpecials)
+ 	else
++		-- normally call this
+ 		SendLoginConfirmSpecials()
+ 	end
+ 	--~ Send_UpdateRangeRequest(gUpdateRange_Base)
+@@ -302,7 +300,9 @@
+ =
+
+ function SendLoginConfirmSpecials ()
+ 	print(&quot;#########!!!!!!!!!SendLoginConfirmSpecials&quot;,gAltenatePostLoginHand=
+ling,gLoginConfirmPlayerSerial)
+-	if (gAltenatePostLoginHandling and gLoginConfirmPlayerSerial) then Send_C=
+lientQuery(0x05,gLoginConfirmPlayerSerial,true) end
++	if (gLoginConfirmPlayerSerial) then
++		Send_ClientQuery(gRequest_Skills,gLoginConfirmPlayerSerial,true)
++	end
+ 	Send_ClientVersion(gClientVersion or &quot;4.0.11c5 3D&quot;) =
+
+ 	Send_Screensize()
+ 	Send_ClientLanguage(gLanguage or &quot;ENU&quot;) =
+
+@@ -311,7 +311,7 @@
+ 	if (gPlayerBackPack) then Send_DoubleClick(gPlayerBackPack.serial) end
+ 	gSendSelfDoubleClickAtNextContainerContents =3D true
+ 	--~ if (gLoginConfirmPlayerSerial) then Send_DoubleClick(BitwiseOR(gLogin=
+ConfirmPlayerSerial,0x80000000)) end -- 0x800... : prevents dismount, and o=
+nly opens paperdoll
+-	Send_ClientQuery(0x04,gLoginConfirmPlayerSerial,true)
++	Send_ClientQuery(gRequest_States,gLoginConfirmPlayerSerial,true)
+ 	if (gAltenatePostLoginHandling) then =
+
+ 		gNet_AlternatePostLogin_UnknownSESenderRevision =3D (gNet_AlternatePostL=
+ogin_UnknownSESenderRevision or 0) + 1
+ 		local myrev =3D gNet_AlternatePostLogin_UnknownSESenderRevision
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001857.html">[Iris-commit] [IRIS] r3094 - in /trunk/bin: OgreMain.dll Plugin_CgProgramManager.dll Plugin_ParticleFX.dll RenderSystem_Direct3D9.dll RenderSystem_GL.dll iris2.exe
+</A></li>
+	<LI>Next message: <A HREF="001859.html">[Iris-commit] [IRIS] r3096 - /trunk/lua/lib.macrolist.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1858">[ date ]</a>
+              <a href="thread.html#1858">[ thread ]</a>
+              <a href="subject.html#1858">[ subject ]</a>
+              <a href="author.html#1858">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

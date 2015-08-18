@@ -1,0 +1,320 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2855 - in /trunk: lua/lib.2d.mousepick.lua lua/lib.3d.mousepick.lua lua/lib.mapblock.2d.terrain.lua lua/lib.mapblock.base.lua src/terrain_multitex.cpp
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2009-January/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2855%20-%20in%20/trunk%3A%20lua/lib.2d.mousepick.lua%0A%20lua/lib.3d.mousepick.lua%20lua/lib.mapblock.2d.terrain.lua%0A%20lua/lib.mapblock.base.lua%20src/terrain_multitex.cpp&In-Reply-To=%3C20090111003519.C35CF1C18808%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001656.html">
+   <LINK REL="Next"  HREF="001658.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2855 - in /trunk: lua/lib.2d.mousepick.lua lua/lib.3d.mousepick.lua lua/lib.mapblock.2d.terrain.lua lua/lib.mapblock.base.lua src/terrain_multitex.cpp</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2855%20-%20in%20/trunk%3A%20lua/lib.2d.mousepick.lua%0A%20lua/lib.3d.mousepick.lua%20lua/lib.mapblock.2d.terrain.lua%0A%20lua/lib.mapblock.base.lua%20src/terrain_multitex.cpp&In-Reply-To=%3C20090111003519.C35CF1C18808%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2855 - in /trunk: lua/lib.2d.mousepick.lua lua/lib.3d.mousepick.lua lua/lib.mapblock.2d.terrain.lua lua/lib.mapblock.base.lua src/terrain_multitex.cpp">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sun Jan 11 01:35:19 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001656.html">[Iris-commit] [IRIS] r2854 - in /trunk: include/data_groundblock.h lua/lib.2d.mousepick.lua lua/lib.2d.renderer.lua lua/lib.charcreate.lua lua/lib.mapblock.2d.terrain.lua lua/main.lua plugins/itemcounter.lua src/data_groundblock.cpp src/terrain_multitex.cpp
+</A></li>
+        <LI>Next message: <A HREF="001658.html">[Iris-commit] [IRIS] r2856 - in /trunk/lua: lib.3d.dynamicspawner.lua lib.mapblock.3d.water.lua lib.tilefreewalk.lua lib.walking3.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1657">[ date ]</a>
+              <a href="thread.html#1657">[ thread ]</a>
+              <a href="subject.html#1657">[ subject ]</a>
+              <a href="author.html#1657">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sun Jan 11 01:35:19 2009
+New Revision: 2855
+
+Log:
+fixed parameter used for terrain mousepick that caused a far too large area=
+ to be scanned, and removed a broken bbox check. added new, finer bbox chec=
+ks in terrain mousepick code.  terrain mousepick is now several orders of m=
+agnitude faster, 24 hours ago average dt : 70msec,  now: 1msec
+
+Modified:
+    trunk/lua/lib.2d.mousepick.lua
+    trunk/lua/lib.3d.mousepick.lua
+    trunk/lua/lib.mapblock.2d.terrain.lua
+    trunk/lua/lib.mapblock.base.lua
+    trunk/src/terrain_multitex.cpp
+
+Modified: trunk/lua/lib.2d.mousepick.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.mousepick.lua (original)
++++ trunk/lua/lib.2d.mousepick.lua Sun Jan 11 01:35:19 2009
+@@ -49,8 +49,7 @@
+ 	=
+
+ 	-- RayPickTerrain
+ 	--~ print(&quot;mousepick terrain&quot;)
+-	local t0 =3D Client_GetTicks()
+-	gProfiler_R2D_MousePick:Section(&quot;terrain&quot;,true) -- this eats most
++	gProfiler_R2D_MousePick:Section(&quot;terrain&quot;)
+ 	local dist,xloc,yloc =3D self:RayPickTerrain(rx,ry,rz, rvx,rvy,rvz)
+ 	if (dist and ((not founddist) or dist &lt; founddist)) then =
+
+ 		founddist =3D dist =
+
+@@ -62,14 +61,15 @@
+ 		gMousePickFoundHit.hit_zloc =3D ground.zloc
+ 		--~ print(&quot;RayPickTerrain&quot;,xloc,yloc)
+ 	end
+-	local t1 =3D Client_GetTicks()
+-	gTerrainMousePickProfileAvgSum =3D (gTerrainMousePickProfileAvgSum or 0) =
++ (t1-t0)
+-	gTerrainMousePickProfileAvgC =3D (gTerrainMousePickProfileAvgC or 0) + 1
+-	if (gTerrainMousePickProfileAvgC =3D=3D 10) then =
+
+-		printf(&quot;mousepick terrain avg=3D%0.1f\n&quot;,gTerrainMousePickProfileAvgSum/=
+gTerrainMousePickProfileAvgC)
+-		gTerrainMousePickProfileAvgSum =3D 0
+-		gTerrainMousePickProfileAvgC =3D 0
+-	end
++	--~ local t0 =3D Client_GetTicks()
++	--~ local t1 =3D Client_GetTicks()
++	--~ gTerrainMousePickProfileAvgSum =3D (gTerrainMousePickProfileAvgSum or=
+ 0) + (t1-t0)
++	--~ gTerrainMousePickProfileAvgC =3D (gTerrainMousePickProfileAvgC or 0) =
++ 1
++	--~ if (gTerrainMousePickProfileAvgC =3D=3D 10) then =
+
++		--~ printf(&quot;mousepick terrain avg=3D%0.1f\n&quot;,gTerrainMousePickProfileAvg=
+Sum/gTerrainMousePickProfileAvgC)
++		--~ gTerrainMousePickProfileAvgSum =3D 0
++		--~ gTerrainMousePickProfileAvgC =3D 0
++	--~ end
+ 	=
+
+ 	-- RayPickDynamics
+ 	gProfiler_R2D_MousePick:Section(&quot;dynamics&quot;)
+
+Modified: trunk/lua/lib.3d.mousepick.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.mousepick.lua (original)
++++ trunk/lua/lib.3d.mousepick.lua Sun Jan 11 01:35:19 2009
+@@ -86,9 +86,11 @@
+ 				local iBlockUO_X,iBlockUO_Y =3D math.floor(x/8), math.floor(y/8)
+ 				local bx,by =3D iBlockUO_X,iBlockUO_Y
+ 				local tx,ty
+-
+-				if block:BBRayPick(rx, ry, rz, rvx, rvy, rvz) then
+-					bHit,fHitDist,tx,ty =3D TerrainMultiTex_RayPick(gGroundBlockLoader,bx=
+,by,w,h,0.1, rx-gfx.x,ry-gfx.y,rz-gfx.z, rvx,rvy,rvz)
++				local bs =3D 2
++
++				=
+
++				if true then -- don't bbox check here manually as TerrainMultiTex_RayP=
+ick does internal bbox checks for blocks
++					bHit,fHitDist,tx,ty =3D TerrainMultiTex_RayPick(gGroundBlockLoader,bx=
+,by,bs,bs,0.1, rx-gfx.x,ry-gfx.y,rz-gfx.z, rvx,rvy,rvz)
+ =
+
+ 					if (bHit) then
+ 						if (tx &gt;=3D 8) then bx =3D bx + 1   tx =3D tx - 8 end
+@@ -133,7 +135,7 @@
+ 	local numcustomquads =3D 0
+ 	if self.map3d_spawners and self.map3d_spawners.statics then
+ 		self.map3d_spawners.statics:ForAllBlocks(function(block)
+-			if block:BBRayPick(rx, ry, rz, rvx, rvy, rvz) then
++			if block:BBRayPick(rx, ry, rz, rvx, rvy, rvz) then -- if 3d static mous=
+epicking is strange, look here, xmirror maybe.. no longer used for terrain,=
+ only here
+ 				block:ForAllEntities(function(entity)
+ 					if (not entity.bLoaded) then return end
+ 					if (not entity.zloc) then print(&quot;mousepick warning, static entity has=
+ no zloc&quot;,entity.serial,entity.artid) end
+
+Modified: trunk/lua/lib.mapblock.2d.terrain.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mapblock.2d.terrain.lua (original)
++++ trunk/lua/lib.mapblock.2d.terrain.lua Sun Jan 11 01:35:19 2009
+@@ -16,8 +16,7 @@
+ function cMapBlock_2D_Terrain:RayPick (rx,ry,rz, rvx,rvy,rvz) =
+
+ 	local gfx =3D self.gfx_terrain =
+
+ 	if (not gfx) then return end
+-	local bx,by,bs =3D self.bx * 2, self.by * 2, self.iBlockSize
+-	if (not self:BBRayPick(rx, ry, rz, rvx, rvy, rvz)) then return end
++	local bx,by,bs =3D self.bx * 2, self.by * 2, 2
+ 	local bHit,fHitDist,tx,ty =3D TerrainMultiTex_RayPick(gGroundBlockLoader,=
+bx,by,bs,bs,kRenderer2D_ZScale, rx-gfx.x,ry-gfx.y,rz-gfx.z, rvx,rvy,rvz)
+ 	if (not bHit) then return end
+ 	return fHitDist,bx * 8 + tx,by*8 + ty
+
+Modified: trunk/lua/lib.mapblock.base.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mapblock.base.lua (original)
++++ trunk/lua/lib.mapblock.base.lua Sun Jan 11 01:35:19 2009
+@@ -22,6 +22,7 @@
+ -- returns hit and distance
+ function cMapBlock:BBRayPick	(rx, ry, rz, rvx, rvy, rvz)
+ 	local x,y,w,h =3D self:GetAABB()
++	-- if 3d static mousepicking is strange, look here, xmirror maybe.. no lo=
+nger used for terrain, only here
+ 	local hit,dist =3D RayAABBQuery( rx, ry, rz, rvx, rvy, rvz, -x,y,-10000, =
+w, h, 10000 )
+ 	return hit,dist
+ end
+
+Modified: trunk/src/terrain_multitex.cpp
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/src/terrain_multitex.cpp (original)
++++ trunk/src/terrain_multitex.cpp Sun Jan 11 01:35:19 2009
+@@ -260,17 +260,24 @@
+ 		pRobRenderOp.End();
+ 	}
+ 	=
+
+-	inline Ogre::Vector3 GetVertexPos	(const int x,const int y) {
++	inline Ogre::Vector3 GetVertexPosOverrideZ	(const int x,const int y,const=
+ float z) {
+ 		#ifdef XMIRROR
+-		return Ogre::Vector3(-(mfAddX+float(x)),mfAddY+float(y),GetZF(x,y));
++		return Ogre::Vector3(-(mfAddX+float(x)),mfAddY+float(y),z);
+ 		#else
+-		return Ogre::Vector3(  mfAddX+float(x) ,mfAddY+float(y),GetZF(x,y));
++		return Ogre::Vector3(  mfAddX+float(x) ,mfAddY+float(y),z);
+ 		#endif
+ 	}
++	inline Ogre::Vector3 GetVertexPos	(const int x,const int y) { return GetV=
+ertexPosOverrideZ(x,y,GetZF(x,y)); }
+ 	=
+
+ 	/// don't call before WriteToVertexBuffer has been called at least once t=
+o set up lookup tables
+ 	bool	RayPick		(cGroundBlockLoader* pGroundBlockLoader,const int iBlockX,c=
+onst int iBlockY,const int iDX,const int iDY,const float fZUnit,const Ogre:=
+:<i>Vector3&amp; vRayPos,const Ogre::Vector3&amp; vRayDir,float&amp; pfHitDist,int&amp; pTX,in=
+</I>t&amp; pTY) {
+ 		mfZUnit =3D fZUnit;
++	=
+
++		//~ printf(&quot;TerrainMultiTexWrite iDX,iDY=3D%d,%d\n&quot;,iDX,iDY); // started=
+ with 2 =
+
++		//~ int iVertexCountPerBlock	=3D T*T*4;
++		//~ int iVertexCount			=3D iDX*iDY*iVertexCountPerBlock;
++		//~ int iIndexCount				=3D iDX*iDY*T*T*6;
++	=
+
+ 	=
+
+ 		//~ printf(&quot;mulittex_terrain_raypick %p %d,%d,%d,%d\n&quot;,pGroundBlockLoade=
+r,iBlockX,iBlockY,iDX,iDY);
+ 		=
+
+@@ -288,6 +295,14 @@
+ 			int bx =3D iBlockX + ax;
+ 			int by =3D iBlockY + ay;
+ 			=
+
++			Ogre::Vector3 p1 =3D GetVertexPosOverrideZ(0,0,-1000);
++			Ogre::Vector3 p2 =3D GetVertexPosOverrideZ(T,T,+1000);
++			Ogre::Vector3 aabbsize =3D Ogre::Vector3(mymax(p1.x-p2.x,p2.x-p1.x),mym=
+ax(p1.y-p2.y,p2.y-p1.y), 2000);
++			Ogre::AxisAlignedBox aabb(	Ogre::Vector3(mymin(p1.x,p2.x),mymin(p1.y,p2=
+.y),-1000),aabbsize);
++			float fHitDist;
++			bool hit =3D cOgreWrapper::GetSingleton().RayAABBQuery(vRayPos, vRayDir=
+, aabb, &amp;fHitDist);
++			//~ printf(&quot;multitexterrain:RayPick(bxy=3D%d,%d iDXY=3D%d,%d T=3D%d aab=
+bhit=3D%s)\n&quot;,bx,by,iDX,iDY,T,hit ? &quot;hit&quot; : &quot;miss&quot;);
++			if (!hit) continue;
+ 			=
+
+ 			// needed for GetZF() and GetVertexPos() to work...
+ 			LoadNearbyData(pGroundBlockLoader,bx,by);
+@@ -306,9 +321,12 @@
+ 					}
+ 				}
+ 			}
+-		}
+-		=
+
+-		//~ printf(&quot;multitexterrain:RayPick(bxy=3D%d,%d  iDXY=3D%d,%d T=3D%d  t=
+=3D%d)\n&quot;,iBlockX,iBlockY,iDX,iDY,T,cShell::GetTicks()-t0);
++			=
+
++			//~ Ogre::Vector3 v =3D GetVertexPos(0,0);
++			//~ printf(&quot;multitex terrain mousepick block %d,%d  xy=3D%0.0f,%0.0f iD=
+X,iDY=3D%d,%d\n&quot;,bx,by,v.x,v.y,iDX,iDY);
++		}
++		=
+
++		//~ printf(&quot;multitexterrain:RayPick(bxy=3D%d,%d  iDXY=3D%d,%d T=3D%d)\n&quot;=
+,iBlockX,iBlockY,iDX,iDY,T);
+ 		=
+
+ 		return !bNothingFoundYet;
+ 	}
+@@ -518,6 +536,7 @@
+ =
+
+ void	 TerrainMultiTexWrite	(cGroundBlockLoader* pGroundBlockLoader,const i=
+nt iBlockX,const int iBlockY,const int iDX,const int iDY,const float fZUnit=
+,cRobRenderOp&amp; pRobRenderOp) {
+ 	gTiledMultiTexTerrain.WriteToRobRenderOp(pGroundBlockLoader,iBlockX,iBloc=
+kY,iDX,iDY,fZUnit,pRobRenderOp);
++	//~ printf(&quot;TerrainMultiTexWrite iDX,iDY=3D%d,%d\n&quot;,iDX,iDY); // started =
+with 2 =
+
+ }
+ =
+
+ void	 TerrainMultiTex_SetZModTable	(const std::map&lt;int,int&gt;&amp; myZModTable) {
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001656.html">[Iris-commit] [IRIS] r2854 - in /trunk: include/data_groundblock.h lua/lib.2d.mousepick.lua lua/lib.2d.renderer.lua lua/lib.charcreate.lua lua/lib.mapblock.2d.terrain.lua lua/main.lua plugins/itemcounter.lua src/data_groundblock.cpp src/terrain_multitex.cpp
+</A></li>
+	<LI>Next message: <A HREF="001658.html">[Iris-commit] [IRIS] r2856 - in /trunk/lua: lib.3d.dynamicspawner.lua lib.mapblock.3d.water.lua lib.tilefreewalk.lua lib.walking3.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1657">[ date ]</a>
+              <a href="thread.html#1657">[ thread ]</a>
+              <a href="subject.html#1657">[ subject ]</a>
+              <a href="author.html#1657">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

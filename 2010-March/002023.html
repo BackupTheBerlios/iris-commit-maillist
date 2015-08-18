@@ -1,0 +1,1174 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r3263 - in /trunk/lua: ./ gui/ net/ widgets/
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2010-March/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3263%20-%20in%20/trunk/lua%3A%20./%20gui/%20net/%20widgets/&In-Reply-To=%3C20100301230942.3F3A47A98072%40simon%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   <LINK REL="Next"  HREF="002024.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r3263 - in /trunk/lua: ./ gui/ net/ widgets/</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3263%20-%20in%20/trunk/lua%3A%20./%20gui/%20net/%20widgets/&In-Reply-To=%3C20100301230942.3F3A47A98072%40simon%3E"
+       TITLE="[Iris-commit] [IRIS] r3263 - in /trunk/lua: ./ gui/ net/ widgets/">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Tue Mar  2 00:09:41 CET 2010</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="002024.html">[Iris-commit] [IRIS] r3264 - in /trunk/lua:	lib.configdialog.hotkeys.lua lib.macrolist.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2023">[ date ]</a>
+              <a href="thread.html#2023">[ thread ]</a>
+              <a href="subject.html#2023">[ subject ]</a>
+              <a href="author.html#2023">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Tue Mar  2 00:09:38 2010
+New Revision: 3263
+
+Log:
+experimental hotkey dialog and system, only minimal so far
+
+Added:
+    trunk/lua/lib.configdialog.macro.lua
+Modified:
+    trunk/lua/gui/gui.helper.lua
+    trunk/lua/lib.configdialog.hotkeys.lua
+    trunk/lua/lib.configdialog.lua
+    trunk/lua/lib.desktop.lua
+    trunk/lua/lib.macrolist.lua
+    trunk/lua/lib.walking3.lua
+    trunk/lua/main.lua
+    trunk/lua/net/net.text.lua
+    trunk/lua/widgets/widget.uocheckbox.lua
+    trunk/lua/widgets/widget.uoedittext.lua
+
+Modified: trunk/lua/gui/gui.helper.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.helper.lua (original)
++++ trunk/lua/gui/gui.helper.lua Tue Mar  2 00:09:38 2010
+@@ -133,7 +133,7 @@
+ function Client_SetBottomLine (text) if (not gDisableBottomLine) then SetB=
+ottomLine(text) end end -- from lugre
+ =
+
+ -- function is called by Lugre (lib.chatline.lua) from IrisChatLine_Repeat=
+Last and IrisChatLine_Init
+-function SendChat (text_plain,text_unicode,bIgnoreSpecials) =
+
++function SendChat (text_plain,text_unicode,bIgnoreSpecials,textmode) =
+
+ 	IrisCharLine_SetLast(text_plain)
+ 	print(&quot;SendChat&quot;,text_plain)
+ 	local bParseSpecials =3D not bIgnoreSpecials
+@@ -184,7 +184,7 @@
+ 		elseif (gPlaintextTextEntryRequest) then =
+
+ 			Send_Plain_Text_Entry(text_plain,text_unicode) =
+
+ 		else
+-			Send_UnicodeSpeech(text_plain,nil,nil,nil,text_unicode) =
+
++			Send_UnicodeSpeech(text_plain,textmode,nil,nil,text_unicode) =
+
+ 		end
+ 	end
+ end =
+
+
+Modified: trunk/lua/lib.configdialog.hotkeys.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.configdialog.hotkeys.lua (original)
++++ trunk/lua/lib.configdialog.hotkeys.lua Tue Mar  2 00:09:38 2010
+@@ -1,192 +1,179 @@
+-
+--- ***** ***** ***** ***** ***** ConfigDialogPage_HotKey
+-
++-- hotkey config dialog
++
++gHotKeyData =3D gHotKeyData or {}
++gHotKeyDialog_CurrentKeyIdx =3D 1
++
++-- ***** ***** ***** ***** ***** load save
++
++function HotKeys_LoadData    		() gHotKeyData =3D	SimpleXMLLoad(HotKeys_Ge=
+tDataFilePath()) or {} end
++function HotKeys_SaveData    		()              	SimpleXMLSave(HotKeys_GetD=
+ataFilePath(),gHotKeyData) end
++function HotKeys_GetDataFilePath	() return GetConfigDirPath()..&quot;hotkeys.xm=
+l&quot; end
++
++
++-- ***** ***** ***** ***** ***** ConfigDialogPage_HotKey  (main)
+ =
+
+ function ConfigDialogPage_HotKey(page)
+-    local group =3D page:AddWidget(CreateWidgetFromXMLString(nil,&quot;&lt;UOText =
+bold=3D1 text=3D'not yet implemented'&gt;&quot;))
+-    =
+
+-    =
+
++    --~ page:AddWidget(CreateWidgetFromXMLString(nil,&quot;&lt;UOText bold=3D1 tex=
+t=3D'not yet implemented'&gt;&quot;))
++    =
+
++    local hbox =3D page:AddChild(&quot;HBox&quot;,{spacer=3D3})
++    hbox:AddChild(&quot;Button&quot;,{label=3D&quot;Prev&quot;,on_button_click=3Dfunction () p=
+rint(&quot;show prev key&quot;) HotKeyDialog_ShowKeyIdx(gHotKeyDialog_CurrentKeyIdx -=
+ 1) end})
++    hbox:AddChild(&quot;Button&quot;,{label=3D&quot;Next&quot;,on_button_click=3Dfunction () p=
+rint(&quot;show next key&quot;) HotKeyDialog_ShowKeyIdx(gHotKeyDialog_CurrentKeyIdx +=
+ 1) end})
++    hbox:AddChild(&quot;Button&quot;,{label=3D&quot;Add&quot; ,on_button_click=3Dfunction () p=
+rint(&quot;add key&quot;) table.insert(gHotKeyData,{}) HotKeyDialog_ShowKeyIdx(#gHotK=
+eyData) end})
++    hbox:AddChild(&quot;Button&quot;,{label=3D&quot;Del&quot; ,on_button_click=3Dfunction () p=
+rint(&quot;del key&quot;) =
+
++		if (gHotKeyDialog_CurrentKeyIdx &lt;=3D #gHotKeyData) then
++			table.remove(gHotKeyData,gHotKeyDialog_CurrentKeyIdx) =
+
++			HotKeyDialog_ShowKeyIdx(gHotKeyDialog_CurrentKeyIdx) =
+
++			HotKeys_SaveData()
++		end
++		end})
++	=
+
+     -- GetMacroKeyComboName (keycode,char,bCtrl,bAlt,bShift) =
+
+     =
+
++	=
+
+     local hbox =3D page:AddChild(&quot;HBox&quot;,{spacer=3D3})
+-    hbox:AddChild(&quot;Button&quot;,{label=3D&quot;test key combo&quot;,on_button_click=3Dfun=
+ction (widget)  =
+
+-            PollNextKey(function(keycode,char) =
+
+-                print(&quot;ConfigDialogPage_HotKey:keystroke&quot;,keycode,char) =
+
+-                local keyname =3D (keycode &gt; 0) and GetKeyName(keycode) or=
+ (&quot;0&quot;..char)
+-                widget:SetText(keyname)
+-                --~ widget:UpdateContent()
+-            end)
+-        end})
++    page.key =3D hbox:AddChild(&quot;Button&quot;,{label=3D&quot;???&quot;,w=3D260,on_button_c=
+lick=3Dfunction () =
+
++		PollNextKey(function(keycode,char) HotKeyDialog_SetKey(ConfigHotKey_GetK=
+eyName(keycode,char)) end) end})
++		=
+
+     local hbox =3D page:AddChild(&quot;HBox&quot;,{spacer=3D3})
+         =
+
+     hbox:AddWidget(CreateWidgetFromXMLString(nil,&quot;&lt;UOText bold=3D1 text=3D=
+'shift'&gt;&quot;))
+-    page.bShift     =3D hbox:AddChild(&quot;UOCheckBox&quot;,{gump_id_normal=3D210,g=
+ump_id_pressed=3D211})
++    page.bShift     =3D hbox:AddChild(&quot;UOCheckBox&quot;,{gump_id_normal=3D210,g=
+ump_id_pressed=3D211,on_change=3Dfunction (self,bState) HotKeyDialog_SetFla=
+g(&quot;bShift&quot;,bState) end})
+     =
+
+     hbox:AddWidget(CreateWidgetFromXMLString(nil,&quot;&lt;UOText bold=3D1 text=3D=
+'alt'&gt;&quot;))
+-    page.bAlt       =3D hbox:AddChild(&quot;UOCheckBox&quot;,{gump_id_normal=3D210,g=
+ump_id_pressed=3D211})
++    page.bAlt       =3D hbox:AddChild(&quot;UOCheckBox&quot;,{gump_id_normal=3D210,g=
+ump_id_pressed=3D211,on_change=3Dfunction (self,bState) HotKeyDialog_SetFla=
+g(&quot;bAlt&quot;,bState) end})
+     =
+
+     hbox:AddWidget(CreateWidgetFromXMLString(nil,&quot;&lt;UOText bold=3D1 text=3D=
+'ctrl'&gt;&quot;))
+-    page.bCtrl      =3D hbox:AddChild(&quot;UOCheckBox&quot;,{gump_id_normal=3D210,g=
+ump_id_pressed=3D211})
+-    =
+
+-    =
+
++    page.bCtrl      =3D hbox:AddChild(&quot;UOCheckBox&quot;,{gump_id_normal=3D210,g=
+ump_id_pressed=3D211,on_change=3Dfunction (self,bState) HotKeyDialog_SetFla=
+g(&quot;bCtrl&quot;,bState) end})
++    =
+
++	=
+
+     gConfigDialogPage_HotKeys =3D page
+     local hbox =3D page:AddChild(&quot;HBox&quot;,{spacer=3D3})
+-    gConfigDialogPage_HotKeys.btn_action =3D hbox:AddChild(&quot;Button&quot;,{label=
+=3D&quot;--select action--&quot;,w=3D260,on_button_click=3Dfunction (widget)  =
+
++    gConfigDialogPage_HotKeys.btn_action =3D hbox:AddChild(&quot;Button&quot;,{label=
+=3D&quot;???&quot;,w=3D260,on_button_click=3Dfunction (widget)  =
+
+             local x,y =3D widget:GetDerivedLeftTop()
+             ConfigDialogShowMenu(x,y,gConfigDialogHotkeyActionGroups,
+                 function (group) return group.name end,
+                 function (group) =
+
+                     ConfigDialogShowMenu(x,y,group.list,
+                         function (actiondata) return actiondata.callback a=
+nd actiondata.name end,
+-                        function (actiondata) ConfigDialog_HotKey_SetActio=
+n(actiondata) end)
++                        function (actiondata) HotKeyDialog_SetAction(actio=
+ndata and actiondata.actionid) end)
+                 end)
+         end})
+-    page:AddChild(&quot;Button&quot;,{label=3D&quot;--selector--&quot;,w=3D260,on_button_click=
+=3Dfunction (widget)  =
+
+-            local x,y =3D widget:GetDerivedLeftTop()
+-            ConfigDialogShowMenu(x,y,gMobListSelectors.list,
+-                function (selector) return selector.name end,
+-                function (selector) widget:SetText(&quot;selector:&quot;..selector.n=
+ame) end)
+-        end})
+-    for i=3D1,4 do
+-        local hbox =3D page:AddChild(&quot;HBox&quot;,{spacer=3D3})
+-        hbox:AddChild(&quot;Button&quot;,{label=3D&quot;+&quot;,w=3D21,h=3D15,on_button_click=
+=3Dfunction (self) self.bState =3D not self.bState self:SetText(self.bState=
+ and &quot;not&quot; or &quot;+&quot;) end})
+-        hbox:AddChild(&quot;Button&quot;,{label=3D&quot;--filter--&quot;,w=3D230,on_button_cli=
+ck=3Dfunction (widget)  =
+
+-                local x,y =3D widget:GetDerivedLeftTop()
+-                ConfigDialogShowMenu(x,y,gMobListFilters.list,
+-                    function (filter) return filter.name end,
+-                    function (filter) widget:SetText(&quot;filter:&quot;..filter.nam=
+e) end)
+-            end})
+-    end
+-end
+-
+-function ConfigDialog_HotKey_SetAction(actiondata)
+-    print(&quot;action&quot;,actiondata.name)
+-    local group =3D actiondata.group
+-    gConfigDialogPage_HotKeys.btn_action:SetText(group.name..&quot;:&quot;..actionda=
+ta.name)
+-end
+-
+-
+-
+--- ***** ***** ***** ***** ***** target : selector
+-
+-local function MyDualList() return {
+-    list =3D {},
+-    listByName =3D {},
+-    Register =3D function (self,name,o)
+-        o.name =3D name
+-        table.insert(self.list,o)
+-        self.listByName[name] =3D o
+-    end,
+-    } =
+
+-end
+-gMobListSelectors =3D MyDualList()
+-gMobListSelectors:Register(&quot;random&quot;         ,{fun=3Dfunction (moblist) ret=
+urn GetRandomArrayElement(moblist) end}) -- needs array, e.g. not serial as=
+ key
+-gMobListSelectors:Register(&quot;weakest(hp)&quot;    ,{fun=3Dfunction (moblist) ret=
+urn MobListSelectorUtil_Min(moblist,function (mobile) return  (mobile:GetRe=
+lHP() or 1) end) end})
+-gMobListSelectors:Register(&quot;strongest(hp)&quot;  ,{fun=3Dfunction (moblist) ret=
+urn MobListSelectorUtil_Min(moblist,function (mobile) return -(mobile:GetRe=
+lHP() or 1) end) end})
+-gMobListSelectors:Register(&quot;nearest&quot;        ,{fun=3Dfunction (moblist) =
+
+-    return MobListSelectorUtil_Min(moblist,function (mobile) =
+
+-        local xloc,yloc =3D GetPlayerPos()
+-        return dist2(xloc,yloc,mobile.xloc,mobile.yloc)
+-        end) =
+
+-end})
+-function MobListSelectorUtil_Min    (moblist,evaluation) =
+
+-    local foundvalue,foundmob
+-    for k,mobile in pairs(moblist) do =
+
+-        local value =3D evaluation(mobile)
+-        if ((not foundvalue) or value &lt; foundvalue) then =
+
+-            foundvalue =3D value =
+
+-            foundmob =3D mobile
+-        end
+-    end
+-    return foundmob
+-end
+-
+--- ***** ***** ***** ***** ***** target : category
+-
+-gMobListFilters =3D MyDualList()
+-gMobListFilters:Register(&quot;self&quot;                     ,{fun=3Dfunction (mobi=
+le) return IsPlayerMobile(mobile) end})
+-gMobListFilters:Register(&quot;selected&quot;                 ,{fun=3Dfunction (mobi=
+le) return mobile.serial =3D=3D MobListGetMainTargetSerial() end})
+-gMobListFilters:Register(&quot;last&quot;                     ,{fun=3Dfunction (mobi=
+le) return mobile.serial =3D=3D MacroGetLastTargetSerial() end})
+-gMobListFilters:Register(&quot;party&quot;                    ,{fun=3Dfunction (mobi=
+le) return IsMobileInParty(mobile.serial) end})
+-gMobListFilters:Register(&quot;friend(party+rep)&quot;        ,{fun=3Dfunction (mobi=
+le) return IsMobileInParty(mobile.serial) or mobile.notoriety =3D=3D kNotor=
+iety_Friend end})
+-gMobListFilters:Register(&quot;rep:friend&quot;               ,{fun=3Dfunction (mobi=
+le) return mobile.notoriety =3D=3D kNotoriety_Friend    end})
+-gMobListFilters:Register(&quot;rep:blue&quot;                 ,{fun=3Dfunction (mobi=
+le) return mobile.notoriety =3D=3D kNotoriety_Blue      end})
+-gMobListFilters:Register(&quot;rep:red&quot;                  ,{fun=3Dfunction (mobi=
+le) return mobile.notoriety =3D=3D kNotoriety_Red       end})
+-gMobListFilters:Register(&quot;rep:neutral&quot;              ,{fun=3Dfunction (mobi=
+le) return mobile.notoriety =3D=3D kNotoriety_Neutral   end})
+-gMobListFilters:Register(&quot;rep:crime&quot;                ,{fun=3Dfunction (mobi=
+le) return mobile.notoriety =3D=3D kNotoriety_Crime     end})
+-gMobListFilters:Register(&quot;rep:orange(enemy)&quot;        ,{fun=3Dfunction (mobi=
+le) return mobile.notoriety =3D=3D kNotoriety_Orange    end})
+-gMobListFilters:Register(&quot;poisoned&quot;                 ,{fun=3Dfunction (mobi=
+le) return IsMobilePoisoned(mobile)    end})
+-gMobListFilters:Register(&quot;healable&quot;                 ,{fun=3Dfunction (mobi=
+le) return ((mobile:GetRelHP() or 1) &lt; 1) and (not IsMobilePoisoned(mobile)=
+) and (not IsMobileMortaled(mobile)) end}) =
+
+-gMobListFilters:Register(&quot;inrange&quot;                  ,{fun=3Dfunction (mobi=
+le) return not IsOutsideRange(mobile.xloc,mobile.yloc,gPlayerXLoc,gPlayerYL=
+oc,gSpellCastRange) end})
+---~ gMobListFilters:Register(&quot;insight&quot;                  ,{fun=3Dfunction (=
+mobile) return TODO(mobile.xloc,mobile.yloc,mobile.zloc) end})
+-gMobListFilters:Register(&quot;fullhp&quot;                   ,{fun=3Dfunction (mobi=
+le) return ((mobile:GetRelHP() or 1) &gt;=3D 1) end})
+-gMobListFilters:Register(&quot;wounded(hp&lt;90%)&quot;          ,{fun=3Dfunction (mobi=
+le) return ((mobile:GetRelHP() or 1) &lt; 0.9) end})
+-gMobListFilters:Register(&quot;weak(hp&lt;50%)&quot;             ,{fun=3Dfunction (mobi=
+le) return ((mobile:GetRelHP() or 1) &lt; 0.5) end})
+-gMobListFilters:Register(&quot;human&quot;                    ,{fun=3Dfunction (mobi=
+le) return mobile.artid =3D=3D 400 or mobile.artid =3D=3D 401 end})
+-gMobListFilters:Register(&quot;vendor(preaos-name-hue)&quot;  ,{fun=3Dfunction (mobi=
+le) return GetItemLabelHue(mobile.serial) =3D=3D kPlayerVendorLabelHue end})
+-gMobListFilters:Register(&quot;tamable(aos)&quot;             ,{fun=3Dfunction (mobi=
+le) return StringContains(GetItemTooltipOrLabel(mobile.serial),&quot;gender&quot;) an=
+d (not StringContains(GetItemTooltipOrLabel(mobile.serial),&quot;(tame)&quot;)) end})
+-gMobListFilters:Register(&quot;(summoned)&quot;               ,{fun=3Dfunction (mobi=
+le) return StringContains(GetItemTooltipOrLabel(mobile.serial),&quot;(summoned)&quot;=
+) end})
+-gMobListFilters:Register(&quot;(tame)&quot;                   ,{fun=3Dfunction (mobi=
+le) return StringContains(GetItemTooltipOrLabel(mobile.serial),&quot;(tame)&quot;) en=
+d})
+-gMobListFilters:Register(&quot;blade,evortex,revenant&quot;   ,{fun=3Dfunction (mobi=
+le) return
+-        (mobile.artid =3D=3D 574 and mobile.hue =3D=3D 0) or -- blade spir=
+it
+-        (mobile.artid =3D=3D 164 and mobile.hue =3D=3D 0) or -- energy vor=
+tex
+-        StringContains(GetItemTooltipOrLabel(mobile.serial),&quot;revenant&quot;) --=
+ revenant
+-        end})
+--- todo : npc(name:cliloc)
+--- todo : player(moblist)
+-
+-gConfigDialogTipps =3D { list=3D{}, Add=3Dfunction(self,tipp) table.insert=
+(self.list,tipp) end }
+-gConfigDialogTipps:Add(&quot;use spell:cure/acure + selector:weakest + filter:p=
+oisoned + filter:party to quickly cure friends in battle&quot;)
+-gConfigDialogTipps:Add(&quot;use spell:heal/gheal + selector:weakest + filter:h=
+ealable + filter:party to quickly heal friends in battle&quot;)
+-gConfigDialogTipps:Add(&quot;use spell:dispel + selector:nearest + filter:blade=
+,evortex,revenant to quickly target dispell&quot;)
+-gConfigDialogTipps:Add(&quot;use misc:Select + selector:random + filter:not-fri=
+end + filter:not-vendor + filter:not-pet to cycle targets&quot;)
+-gConfigDialogTipps:Add(&quot;bind wheelup   : misc:Target + selector:self to tr=
+igger spells/precast&quot;)
+-gConfigDialogTipps:Add(&quot;bind wheeldown : misc:Target + selector:selected t=
+o trigger spells/precast&quot;)
+-gConfigDialogTipps:Add(&quot;use skill:taming + selector:random + filter:tamabl=
+e for training&quot;)
+-gConfigDialogTipps:Add(&quot;use misc:LastSpell + selector:last for spamming bo=
+ssmonsters&quot;)
+-gConfigDialogTipps:Add(&quot;spam chat:say:'all kill' + selector:random + filte=
+r:not-friend for tamer aggro&quot;)
+-
+---[[
+-        humanoid
+-        friendlist (party+self+rep:green+manually set
+-        =
+
+-        *smart (heal/cure or selected, only works with spells)
+-        *any
+-        friendly   (party?guild?options)
+-        attackable/enemy (orange,red or crime)
+-        hostile (battleflagged?)
+-        summons (dispel: bladespirit,evortex,revenant) =
+
+-        byname  (tooltip scan)
+-        bytype  (bodyid)
+-        ?gate (item! dispel)
+-        ?field (item! dispel:next to self or under selected target(when ef=
+ielding in group fights))
+-        ?ground near self   (summons : free tile, insight,inrange)
+-        ?ground near target (summons : free tile, insight,inrange)
+-        ?BackpackObjectByType (retrap pouch)
+-        ?BackpackObjectByID
+-        =
+
+-    filters :  (and-combined)
+-        [human]
+-        [human or transform](human or human transform forms and non-npc)
+-        [player](moblist : smart human detection?)
+-        [npc](moblist : smart npc detection?)
+-        [pet] : tame
+-        [tamable] (postaos-tooltip contains gender, and not tame)
+-]]--
++		=
+
++		=
+
++    local ew,eh =3D 200,24
++    local row =3D page:AddChild(&quot;HBox&quot;)
++    row:AddWidget(CreateWidgetFromXMLString(nil,&quot;&lt;UOText bold=3D1 text=3D'=
+Text:'&gt;&quot;))
++    page.box_hotkey_param_text =3D row:AddChild(&quot;UOEditText&quot;,{width=3Dew,h=
+eight=3Deh,text=3D&quot;&quot;,name=3D&quot;hotkey_param_text&quot;,hue=3D0,bHasBackPane=3Dtrue=
+})
++	page.box_hotkey_param_text.on_change_text =3D function (self,text) HotKey=
+Dialog_SetParamText(text) end
++    page.box_hotkey_param_text:SetVisible(false)
++	=
+
++	HotKeyDialog_ShowKeyIdx(1)
++end
++
++
++-- ***** ***** ***** ***** ***** HotKeyDialog_ShowKeyIdx
++
++function HotKeyDialog_ShowKeyIdx (idx) =
+
++	if (#gHotKeyData =3D=3D 0) then table.insert(gHotKeyData,{}) end
++	gHotKeyDialog_CurrentKeyIdx =3D max(1,min(#gHotKeyData,idx))
++	print(&quot;HotKeyDialog_ShowKeyIdx&quot;,gHotKeyDialog_CurrentKeyIdx)
++	=
+
++	local cur =3D HotKeyDialog_GetCur()
++	=
+
++	HotKeyDialog_SetKey(cur.keyname)
++	HotKeyDialog_SetAction(cur.actionid)
++	HotKeyDialog_SetFlag(&quot;bShift&quot;	,cur.bShift	,true)
++	HotKeyDialog_SetFlag(&quot;bAlt&quot;		,cur.bAlt	,true)
++	HotKeyDialog_SetFlag(&quot;bCtrl&quot;	,cur.bCtrl	,true)
++	HotKeyDialog_SetParamText(cur.param_text,true)
++end
++
++function HotKeyDialog_GetCur () return gHotKeyData[gHotKeyDialog_CurrentKe=
+yIdx] end
++
++function HotKeyDialog_SetData(fieldname,value)
++	print(&quot;HotKeyDialog_SetData&quot;,fieldname,value)
++	local cur =3D HotKeyDialog_GetCur()
++	if (cur[fieldname] =3D=3D value) then return end -- no change
++	cur[fieldname] =3D value
++	HotKeys_SaveData()
++end
++
++-- ***** ***** ***** ***** ***** data update
++
++function HotKeyDialog_SetKey(keyname)
++	HotKeyDialog_SetData(&quot;keyname&quot;,keyname)
++	gConfigDialogPage_HotKeys.key:SetText(keyname or &quot;-- select key --&quot;)
++end
++function ConfigHotKey_GetKeyName (keycode,char) return (keycode &gt; 0) and G=
+etKeyName(keycode) or (&quot;0&quot;..char) end
++
++function HotKeyDialog_SetFlag (flagname,bState,bUpdateControl)
++	HotKeyDialog_SetData(flagname,bState)
++	if (bUpdateControl) then gConfigDialogPage_HotKeys[flagname]:SetState(bSt=
+ate) end
++end
++
++function HotKeyDialog_SetAction(actionid)
++	local actiondata =3D GetHotKeyActionDataByID(actionid)
++	HotKeyDialog_SetData(&quot;actionid&quot;,actionid)
++    print(&quot;action&quot;,actiondata and actiondata.name)
++    local group =3D actiondata and actiondata.group
++    gConfigDialogPage_HotKeys.btn_action:SetText(actiondata and (group.nam=
+e..&quot;:&quot;..actiondata.name) or &quot;--select action--&quot;)
++    gConfigDialogPage_HotKeys.box_hotkey_param_text:SetVisible(actiondata =
+and actiondata.bHasTextParam)
++end
++
++function HotKeyDialog_SetParamText(param_text,bUpdateControl)
++	HotKeyDialog_SetData(&quot;param_text&quot;,param_text)
++	if (bUpdateControl) then gConfigDialogPage_HotKeys.box_hotkey_param_text:=
+SetText(param_text or &quot;&quot;) end
++end
++
++
++
++-- ***** ***** ***** ***** ***** TriggerConfigHotkey
++
++-- called from listener:keydown via lib.macrolist.lua:TriggerMacros()
++function TriggerConfigHotkey (keycode,char,bCtrl,bAlt,bShift)
++	local keyname =3D ConfigHotKey_GetKeyName(keycode,char)
++	bCtrl =3D not not bCtrl
++	bAlt =3D not not bAlt
++	bShift =3D not not bShift
++	--~ print(&quot;TriggerConfigHotkey1&quot;,keyname,bCtrl,bAlt,bShift)
++	for k,hotkey in ipairs(gHotKeyData) do =
+
++		if (hotkey.keyname =3D=3D keyname and (not not keyname.bCtrl) =3D=3D bCt=
+rl and (not not keyname.bAlt) =3D=3D bAlt and (not not keyname.bShift) =3D=
+=3D bShift) then
++			local actiondata =3D GetHotKeyActionDataByID(hotkey.actionid)
++			print(&quot;TriggerConfigHotkey2&quot;,keyname,bCtrl,bAlt,bShift,&quot;action:&quot;,action=
+data)
++			if (actiondata and actiondata.callback) then =
+
++				local param =
+
++				if (actiondata.bHasTextParam) then param =3D hotkey.param_text end
++				job.create(function () actiondata:callback(param) end) =
+
++			end
++			return true
++		end
++	end
++end
+ =
+
+ -- ***** ***** ***** ***** ***** hotkey actions
+ =
+
+-function HotkeyAction_Spell (info,target)
+-    -- info.spellid
+-end
+-function HotkeyAction_Skill (info,target)
+-    -- info.skillid_onebased
+-end
+-function HotkeyAction_Chat (info,text)
+-
+-end
++function HotkeyAction_Spell (actiondata)
++	print(&quot;HotkeyAction_Spell&quot;,actiondata.spellid)
++	if (actiondata.spellid) then MacroCmd_Spell(actiondata.spellid) end
++end
++function HotkeyAction_Skill (actiondata)
++	print(&quot;HotkeyAction_Skill&quot;,actiondata.skillid_onebased)
++	local skillname =3D actiondata.skillid_onebased and glSkillNames[actionda=
+ta.skillid_onebased]
++	if (skillname) then MacroCmd_Skill(skillname) end
++end
++function HotkeyAction_Chat (actiondata,text)
++	print(&quot;HotkeyAction_Chat&quot;,text,actiondata.texttype)
++	if (text) then =
+
++		if (actiondata.bIsPartChat) then text =3D &quot;/&quot;..text end =
+
++		MacroCmd_Say(text,actiondata.texttype) -- see SendChat
++	end
++end
++
++gHotKeyActionDataByID =3D gHotKeyActionDataByID or {}
++function GetHotKeyActionDataByID(actionid) return gHotKeyActionDataByID[ac=
+tionid] end -- returns actiondata
+ =
+
+ function InitConfigDialogHotkeyActions ()
++	gHotKeyActionDataByID =3D {}
+     gConfigDialogHotkeyActionGroups         =3D {}
+     gConfigDialogHotkeyActionGroupsByName   =3D {}
+     function MyAddHotkeyAction (groupname,actiondata)
+@@ -198,7 +185,9 @@
+             --~ print(&quot;group:&quot;,groupname)
+         end
+         actiondata.group =3D group
++		actiondata.actionid =3D (groupname or &quot;???&quot;)..&quot;:&quot;..(actiondata.name or &quot;=
+???&quot;)
+         table.insert(group.list,actiondata)
++		gHotKeyActionDataByID[actiondata.actionid] =3D actiondata
+         --~ print(&quot; +&quot;,actiondata.skillid_onebased or actiondata.spellid,a=
+ctiondata.name)
+     end
+     =
+
+@@ -239,29 +228,30 @@
+         table.insert(gUOActions,action)
+         gUOActionByName[action.name] =3D action
+     end
+-    RegisterUOAction({name=3D&quot;WeaponSkill:Primary&quot;    ,callback=3DMacroCmd=
+_WeaponAbilityPrimary}) =
+
+-    RegisterUOAction({name=3D&quot;WeaponSkill:Secondary&quot;  ,callback=3DMacroCmd=
+_WeaponAbilitySecondary})
+-    RegisterUOAction({name=3D&quot;Dismount&quot;               ,callback=3DMacroCmd=
+_Dismount})
+-    RegisterUOAction({name=3D&quot;ToggleWarmode&quot;          ,callback=3DMacroCmd=
+_ToggleWarmode})
+-    RegisterUOAction({name=3D&quot;LastSpell&quot;              ,callback=3DMacroCmd=
+_RepeatLastSpell}) -- todo : targetlast option ?
+-    RegisterUOAction({name=3D&quot;LastChat&quot;               ,callback=3DMacroCmd=
+_RepeatLastChat})
+-    RegisterUOAction({name=3D&quot;LastObject&quot;             ,callback=3DMacroCmd=
+_RepeatLastDoubleClick})
++    RegisterUOAction({name=3D&quot;WeaponSkill:Primary&quot;    ,callback=3Dfunction=
+ () MacroCmd_WeaponAbilityPrimary() end})
++    RegisterUOAction({name=3D&quot;WeaponSkill:Secondary&quot;  ,callback=3Dfunction=
+ () MacroCmd_WeaponAbilitySecondary() end})
++    RegisterUOAction({name=3D&quot;Dismount&quot;               ,callback=3Dfunction=
+ () MacroCmd_Dismount() end})
++    RegisterUOAction({name=3D&quot;ToggleWarmode&quot;          ,callback=3Dfunction=
+ () MacroCmd_ToggleWarmode() end})
++    RegisterUOAction({name=3D&quot;LastSpell&quot;              ,callback=3Dfunction=
+ () MacroCmd_RepeatLastSpell() end}) -- todo : targetlast option ?
++    RegisterUOAction({name=3D&quot;LastChat&quot;               ,callback=3Dfunction=
+ () MacroCmd_RepeatLastChat() end})
++    RegisterUOAction({name=3D&quot;LastObject&quot;             ,callback=3Dfunction=
+ () MacroCmd_RepeatLastDoubleClick() end})
+     RegisterUOAction({name=3D&quot;SelfInterrupt(hat)&quot;     ,callback=3Dfunction=
+ () InterruptOwnSpell(MacroCmd_GetPlayerEquipment(kLayer_Helm)) end})
+     RegisterUOAction({name=3D&quot;SelfInterrupt(robe)&quot;    ,callback=3Dfunction=
+ () InterruptOwnSpell(MacroCmd_GetPlayerEquipment(kLayer_TorsoOuter)) end})
+-    RegisterUOAction({name=3D&quot;OpenDoor(new)&quot;          ,callback=3DMacroCmd=
+_OpenDoors})
+-    RegisterUOAction({name=3D&quot;UseNearestGate&quot;         ,callback=3DMacroCmd=
+_UseNearbyGate})
+-    RegisterUOAction({name=3D&quot;UseObjectByType&quot;        ,bHasObjectTypeParam=
+=3Dtrue}) -- {potions,fukija,shuriken,bandage(old)}
+-    RegisterUOAction({name=3D&quot;UseObjectByID&quot;          ,bHasObjectIDParam=
+=3Dtrue})
+-    RegisterUOAction({name=3D&quot;UseItemInHand(Wands)&quot;   })
+-    RegisterUOAction({name=3D&quot;OpenDoor(old/preaos)&quot;   })
+-    RegisterUOAction({name=3D&quot;Select&quot;                 ,bHasTargetOption=3D=
+true})
+-    RegisterUOAction({name=3D&quot;Attack&quot;                 ,bHasTargetOption=3D=
+true})
+-    RegisterUOAction({name=3D&quot;Target&quot;                 ,bHasTargetOption=3D=
+true})
+-    RegisterUOAction({name=3D&quot;Mini Heal/Cure&quot;         ,bHasTargetOption=3D=
+true})
+-    RegisterUOAction({name=3D&quot;Big Heal/Cure&quot;          ,bHasTargetOption=3D=
+true})
+-    RegisterUOAction({name=3D&quot;Bandage&quot;                ,bHasTargetOption=3D=
+true})
+-    RegisterUOAction({name=3D&quot;ReloadFukija&quot;})
+-    RegisterUOAction({name=3D&quot;ReloadShuriken&quot;})
++    RegisterUOAction({name=3D&quot;OpenDoor(new)&quot;          ,callback=3Dfunction=
+ () MacroCmd_OpenDoors() end})
++    RegisterUOAction({name=3D&quot;UseNearestGate&quot;         ,callback=3Dfunction=
+ () MacroCmd_UseNearbyGate() end})
++    --~ RegisterUOAction({name=3D&quot;MyTest&quot;       		    ,bHasTextParam=3Dtru=
+e,callback=3Dfunction (actiondata,param) print(&quot;mytest&quot;,actiondata,param) e=
+nd})
++    --~ RegisterUOAction({name=3D&quot;UseObjectByType&quot;        ,callback=3DHotk=
+eyAction_Object,bHasObjectTypeParam=3Dtrue}) -- {potions,fukija,shuriken,ba=
+ndage(old)}
++    --~ RegisterUOAction({name=3D&quot;UseObjectByID&quot;          ,callback=3DHotk=
+eyAction_Object,bHasObjectIDParam=3Dtrue})
++    --~ RegisterUOAction({name=3D&quot;UseItemInHand(Wands)&quot;   })
++    --~ RegisterUOAction({name=3D&quot;OpenDoor(old/preaos)&quot;   })
++    --~ RegisterUOAction({name=3D&quot;Select&quot;                 ,bHasTargetOptio=
+n=3Dtrue})
++    --~ RegisterUOAction({name=3D&quot;Attack&quot;                 ,bHasTargetOptio=
+n=3Dtrue})
++    --~ RegisterUOAction({name=3D&quot;Target&quot;                 ,bHasTargetOptio=
+n=3Dtrue})
++    --~ RegisterUOAction({name=3D&quot;Mini Heal/Cure&quot;         ,bHasTargetOptio=
+n=3Dtrue})
++    --~ RegisterUOAction({name=3D&quot;Big Heal/Cure&quot;          ,bHasTargetOptio=
+n=3Dtrue})
++    --~ RegisterUOAction({name=3D&quot;Bandage&quot;                ,bHasTargetOptio=
+n=3Dtrue})
++    --~ RegisterUOAction({name=3D&quot;ReloadFukija&quot;})
++    --~ RegisterUOAction({name=3D&quot;ReloadShuriken&quot;})
+     --~ RegisterUOAction({name=3D&quot;ScavengerStep&quot;})
+     --~ RegisterUOAction({name=3D&quot;ScavengerReset&quot;})
+     --~ RegisterUOAction({name=3D&quot;Looter&quot;})
+@@ -276,6 +266,7 @@
+     --~ RegisterUOAction({name=3D&quot;Mover/Organizer(items)&quot;})  -- move betwe=
+en containers, or to grid positions
+     --~ RegisterUOAction({name=3D&quot;UseOnce(Pouches)&quot;}) -- saves a list, whe=
+n an item is used, it is removed from list, when list is empty, it is refil=
+led ?
+     -- (razor:add/remove friend (targetting))
++	-- todo: screenshot/vid
+     =
+
+     -- misc
+     local groupname =3D &quot;misc&quot;
+@@ -283,23 +274,23 @@
+     =
+
+     -- chat
+     local groupname =3D &quot;chat&quot;
+-    MyAddHotkeyAction(groupname,{name=3D&quot;Say&quot;,        bHasTextParam=3Dtrue=
+,bHasTargetOption=3Dtrue,   callback=3DHotkeyAction_Chat})  =
+
+-    MyAddHotkeyAction(groupname,{name=3D&quot;Yell&quot;,       bHasTextParam=3Dtrue=
+,bHasTargetOption=3Dtrue,   callback=3DHotkeyAction_Chat, texttype=3DkTextT=
+ype_Yell})  =
+
+-    MyAddHotkeyAction(groupname,{name=3D&quot;Wisper&quot;,     bHasTextParam=3Dtrue=
+,bHasTargetOption=3Dtrue,   callback=3DHotkeyAction_Chat, texttype=3DkTextT=
+ype_Whisper})  =
+
+-    MyAddHotkeyAction(groupname,{name=3D&quot;Emote&quot;,      bHasTextParam=3Dtrue=
+,                         callback=3DHotkeyAction_Chat, texttype=3DkTextTyp=
+e_Emote})  =
+
+-    MyAddHotkeyAction(groupname,{name=3D&quot;Guild&quot;,      bHasTextParam=3Dtrue=
+,                         callback=3DHotkeyAction_Chat, texttype=3DkTextTyp=
+e_Guild})  =
+
+-    MyAddHotkeyAction(groupname,{name=3D&quot;Alliance&quot;,   bHasTextParam=3Dtrue=
+,                         callback=3DHotkeyAction_Chat, texttype=3DkTextTyp=
+e_Alliance})  =
+
+-    MyAddHotkeyAction(groupname,{name=3D&quot;Party&quot;,      bHasTextParam=3Dtrue=
+,                         callback=3DHotkeyAction_Chat, bIsPartChat=3Dtrue}=
+)  =
+
++    MyAddHotkeyAction(groupname,{name=3D&quot;Say&quot;,        bHasTextParam=3Dtrue=
+, callback=3DHotkeyAction_Chat})  =
+
++    MyAddHotkeyAction(groupname,{name=3D&quot;Yell&quot;,       bHasTextParam=3Dtrue=
+, callback=3DHotkeyAction_Chat, texttype=3DkTextType_Yell})  =
+
++    MyAddHotkeyAction(groupname,{name=3D&quot;Wisper&quot;,     bHasTextParam=3Dtrue=
+, callback=3DHotkeyAction_Chat, texttype=3DkTextType_Whisper})  =
+
++    MyAddHotkeyAction(groupname,{name=3D&quot;Emote&quot;,      bHasTextParam=3Dtrue=
+, callback=3DHotkeyAction_Chat, texttype=3DkTextType_Emote})  =
+
++    MyAddHotkeyAction(groupname,{name=3D&quot;Guild&quot;,      bHasTextParam=3Dtrue=
+, callback=3DHotkeyAction_Chat, texttype=3DkTextType_Guild})  =
+
++    MyAddHotkeyAction(groupname,{name=3D&quot;Alliance&quot;,   bHasTextParam=3Dtrue=
+, callback=3DHotkeyAction_Chat, texttype=3DkTextType_Alliance})  =
+
++    MyAddHotkeyAction(groupname,{name=3D&quot;Party&quot;,      bHasTextParam=3Dtrue=
+, callback=3DHotkeyAction_Chat, bIsPartChat=3Dtrue})  =
+
+     =
+
+     -- macros
+-    local groupname =3D &quot;macros&quot;
++    --~ local groupname =3D &quot;macros&quot;
+     -- todo =
+
+     =
+
+     -- dress
+-    local groupname =3D &quot;dress&quot;
+-    MyAddHotkeyAction(groupname,{name=3D&quot;Toggle Left-Hand&quot;})
+-    MyAddHotkeyAction(groupname,{name=3D&quot;Toggle Right-Hand&quot;})
+-    MyAddHotkeyAction(groupname,{name=3D&quot;Redress(after death)&quot;})
++    --~ local groupname =3D &quot;dress&quot;
++    --~ MyAddHotkeyAction(groupname,{name=3D&quot;Toggle Left-Hand&quot;})
++    --~ MyAddHotkeyAction(groupname,{name=3D&quot;Toggle Right-Hand&quot;})
++    --~ MyAddHotkeyAction(groupname,{name=3D&quot;Redress(after death)&quot;})
+     -- todo =
+
+     =
+
+     --~ todo : party/guild : treat as friend : options
+@@ -307,7 +298,7 @@
+     --~ todo : target : instant(nodelay:only works when targetcursor is al=
+ready there),auto,specified
+     --  spellparam : target + target-delay (delay/timeout : auto? hardcode=
+?)
+ end
+-
++InitConfigDialogHotkeyActions()
+ =
+
+ --[[
+ --~ gCharCreateSkillIDs[&quot;Anatomy&quot;]                  =3D 1
+
+Modified: trunk/lua/lib.configdialog.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.configdialog.lua (original)
++++ trunk/lua/lib.configdialog.lua Tue Mar  2 00:09:38 2010
+@@ -11,30 +11,29 @@
+ end
+ =
+
+ function OpenConfigDialog ()
+-	print(&quot;mesadebug:OpenConfigDialog 1&quot;)
++	--~ print(&quot;mesadebug:OpenConfigDialog 1&quot;)
+ 	ConfigDialog_Close()
+-	print(&quot;mesadebug:OpenConfigDialog 2&quot;)
+-    if (not gConfigDialogHotkeyActionGroups) then InitConfigDialogHotkeyAc=
+tions() end
+-
+-	print(&quot;mesadebug:OpenConfigDialog 3&quot;)
++	--~ print(&quot;mesadebug:OpenConfigDialog 2&quot;)
++
++	--~ print(&quot;mesadebug:OpenConfigDialog 3&quot;)
+     local texname,w,h,xoff,yoff =3D &quot;simplebutton.png&quot;,80,80,0,0
+     local u0,v0,w0,w1,w2,h0,h1,h2, tcx,tcy =3D 0,0, 4,8,4, 4,8,4, 32,32
+     local gfxparam_white =3D MakeSpritePanelParam_BorderPartMatrix(GetPlai=
+nTextureGUIMat(texname),w,h,xoff,yoff, u0,v0,w0,w1,w2,h0,h1,h2, tcx,tcy, 1,=
+1, false, false)
+     =
+
+-	print(&quot;mesadebug:OpenConfigDialog 4&quot;)
++	--~ print(&quot;mesadebug:OpenConfigDialog 4&quot;)
+     -- sience_window.png 64x64      w=3D16,24,24 h=3D16,16,32
+     local texname,w,h,xoff,yoff =3D &quot;sience_window.png&quot;,80,80,0,0
+     local u0,v0,w0,w1,w2,h0,h1,h2, tcx,tcy =3D 0,0, 16,24,24, 16,16,32, 64=
+,64
+     local gfxparam_window =3D MakeSpritePanelParam_BorderPartMatrix(GetPla=
+inTextureGUIMat(texname),w,h,xoff,yoff, u0,v0,w0,w1,w2,h0,h1,h2, tcx,tcy, 1=
+,1, false, false)
+     =
+
+-	print(&quot;mesadebug:OpenConfigDialog 5&quot;)
++	--~ print(&quot;mesadebug:OpenConfigDialog 5&quot;)
+     -- sience_button.png 128x128 128x25 w=3D6,116,6 h=3D6,13,6  (only one =
+highlight state?)
+     local texname,w,h,xoff,yoff =3D &quot;sience_button.png&quot;,80,80,0,0
+     local u0,v0,w0,w1,w2,h0,h1,h2, tcx,tcy =3D 0,0, 6,116,6, 6,13,6, 128,1=
+28
+     local gfxparam_border =3D MakeSpritePanelParam_BorderPartMatrix(GetPla=
+inTextureGUIMat(texname),w,h,xoff,yoff, u0,v0,w0,w1,w2,h0,h1,h2, tcx,tcy, 1=
+,1, false, false)
+     =
+
+     =
+
+-	print(&quot;mesadebug:OpenConfigDialog 6&quot;)
++	--~ print(&quot;mesadebug:OpenConfigDialog 6&quot;)
+     local b =3D 3
+     GuiThemeSetDefaultParam(&quot;Button&quot;,{  gfxparam_init       =3D gfxparam_w=
+hite,
+                                         gfxparam_in_down    =3D MakeSprite=
+PanelParam_Mod_TexTransform(0.0,0.5,1,1,0),
+@@ -63,22 +62,22 @@
+     GuiThemeSetDefaultParam(&quot;Pane&quot;,{    gfxparam_init       =3D gfxparam_w=
+hite,
+                                     })
+     =
+
+-	print(&quot;mesadebug:OpenConfigDialog 7&quot;)
++	--~ print(&quot;mesadebug:OpenConfigDialog 7&quot;)
+     =
+
+     -- bla
+     local kConfigDialogW =3D 400
+     local kConfigDialogH =3D 300
+     local dialog =3D GetDesktopWidget():CreateChild(&quot;Window&quot;,{w=3DkConfigD=
+ialogW,h=3DkConfigDialogH})
+-	print(&quot;mesadebug:OpenConfigDialog 8&quot;)
++	--~ print(&quot;mesadebug:OpenConfigDialog 8&quot;)
+     gConfigDialog =3D dialog
+     dialog:SetPos(200,100)
+-	print(&quot;mesadebug:OpenConfigDialog 9&quot;)
++	--~ print(&quot;mesadebug:OpenConfigDialog 9&quot;)
+     --~ local btn =3D dialog:CreateContentChild(&quot;Button&quot;,{x=3D10,y=3D10,la=
+bel=3D&quot;testbutton&quot;})
+     --~ local txt =3D dialog:CreateContentChild(&quot;UOText&quot;,{bold=3Dtrue,text=
+=3D&quot;bla&quot;,x=3D10,y=3D50})
+     local list      =3D dialog:CreateContentChild(&quot;List&quot;,{x=3D10,y=3D10,w=
+=3D100,h=3D280})
+     local pagelist  =3D dialog:CreateContentChild(&quot;PageList&quot;,{x=3D120,y=3D=
+10})
+     =
+
+-	print(&quot;mesadebug:OpenConfigDialog 10&quot;)
++	--~ print(&quot;mesadebug:OpenConfigDialog 10&quot;)
+     =
+
+     function MyAddPage (name) =
+
+         local pagenum =3D dialog.nextpagenum or 1
+@@ -87,18 +86,18 @@
+         return pagelist:GetOrCreatePage(pagenum):CreateContentChild(&quot;VBox&quot;)
+     end
+     =
+
+-	print(&quot;mesadebug:OpenConfigDialog 11&quot;)
++	--~ print(&quot;mesadebug:OpenConfigDialog 11&quot;)
+     ConfigDialogPage_Config(        MyAddPage(&quot;Config&quot;))
+-	print(&quot;mesadebug:OpenConfigDialog 12&quot;)
++	--~ print(&quot;mesadebug:OpenConfigDialog 12&quot;)
+     ConfigDialogPage_Graphics(      MyAddPage(&quot;Graphics&quot;))
+-	print(&quot;mesadebug:OpenConfigDialog 14&quot;)
+-    --~ ConfigDialogPage_HotKey(        MyAddPage(&quot;HotKey&quot;))
++	--~ print(&quot;mesadebug:OpenConfigDialog 14&quot;)
+     --~ ConfigDialogPage_Macro(         MyAddPage(&quot;Macro&quot;))
+     ConfigDialogPage_UOAM(          MyAddPage(&quot;UOAM&quot;))
+-	print(&quot;mesadebug:OpenConfigDialog 15&quot;)
++	--~ print(&quot;mesadebug:OpenConfigDialog 15&quot;)
+     ConfigDialogPage_PacketVideo(   MyAddPage(&quot;PacketVideo&quot;))
+-	print(&quot;mesadebug:OpenConfigDialog 16&quot;)
++	--~ print(&quot;mesadebug:OpenConfigDialog 16&quot;)
+     --~ ConfigDialogPage_Misc(          MyAddPage(&quot;Misc&quot;))
++    ConfigDialogPage_HotKey(        MyAddPage(&quot;HotKey&quot;))
+     =
+
+     =
+
+     --[[
+@@ -121,19 +120,19 @@
+                                                                 --~ &quot;&lt;/Win=
+dow&gt;&quot;)    =
+
+ =
+
+ 																=
+
+-	print(&quot;mesadebug:OpenConfigDialog 17&quot;)
++	--~ print(&quot;mesadebug:OpenConfigDialog 17&quot;)
+     local alignbox  =3D dialog:CreateContentChild(&quot;AlignBox&quot;,{x=3D120,y=3D=
+10,w=3DkConfigDialogW-120-10,h=3DkConfigDialogH-10-10})
+-	print(&quot;mesadebug:OpenConfigDialog 18&quot;)
++	--~ print(&quot;mesadebug:OpenConfigDialog 18&quot;)
+     local hbox      =3D alignbox:AddChild(&quot;HBox&quot;,{halign=3D&quot;right&quot;,valign=
+=3D&quot;bottom&quot;,spacer=3D10})
+     hbox:AddChild(&quot;Button&quot;,{label=3D&quot;OK&quot;,     on_button_click=3Dfunction (=
+) ConfigDialog_Close() end})
+     alignbox:UpdateLayout()
+     =
+
+-	print(&quot;mesadebug:OpenConfigDialog 19&quot;)
++	--~ print(&quot;mesadebug:OpenConfigDialog 19&quot;)
+     list:SetSelectedIndex(1)
+-	print(&quot;mesadebug:OpenConfigDialog 20&quot;)
+-end
+-
+-function ConfigDialog_Close () if (gConfigDialog) then gConfigDialog:Destr=
+oy() gConfigDialog =3D nil end end
++	--~ print(&quot;mesadebug:OpenConfigDialog 20&quot;)
++end
++
++function ConfigDialog_Close () if (gConfigDialog) then HotKeys_SaveData() =
+gConfigDialog:Destroy() gConfigDialog =3D nil end end
+ =
+
+ =
+
+ -- ***** ***** ***** ***** ***** xml
+
+Modified: trunk/lua/lib.desktop.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.desktop.lua (original)
++++ trunk/lua/lib.desktop.lua Tue Mar  2 00:09:38 2010
+@@ -225,7 +225,7 @@
+ =
+
+ -- stores the current desktop into a file, if file is nil the current open=
+ed file will be used
+ function SaveDesktop    (file)
+-	print(&quot;#####SaveDesktop&quot;,debug.traceback())
++	--~ print(&quot;#####SaveDesktop&quot;,debug.traceback())
+     file =3D file or gDesktopFile
+     if file then
+         local path =3D gDesktopDir..file
+
+Modified: trunk/lua/lib.macrolist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.macrolist.lua (original)
++++ trunk/lua/lib.macrolist.lua Tue Mar  2 00:09:38 2010
+@@ -164,7 +164,7 @@
+     return false
+ end
+ =
+
+-function MacroCmd_Say                   (text)  if (gInGameStarted) then S=
+endChat(text) end end
++function MacroCmd_Say                   (text,textmode)  if (gInGameStarte=
+d) then SendChat(text,nil,nil,textmode) end end
+ function MacroCmd_NextCamMode           ()      gCurrentRenderer:ChangeCam=
+Mode() end
+ function MacroCmd_BandageSelf           ()      SendBandageSelf() end
+ function MacroCmd_Quit                  ()      Terminate() end
+@@ -828,7 +828,7 @@
+ end
+ function MacroCmd_Spell                 (spellname,targetserial,targetcall=
+back,targetwaitadd)
+     if (not gInGameStarted) then return end
+-    local spellid =3D GetSpellIDByName(spellname)
++    local spellid =3D (type(spellname) =3D=3D &quot;number&quot;) and spellname or G=
+etSpellIDByName(spellname)
+     if (not spellid) then return MacroErrorNameMismatch(&quot;MacroCmd_Spell&quot;,s=
+pellname,gSpellIDByName) end
+     Send_Spell(spellid)
+     =
+
+@@ -979,12 +979,13 @@
+     local bAlt      =3D gKeyPressed[key_lalt]     or gKeyPressed[key_ralt]=
+    =
+
+     local bShift    =3D gKeyPressed[key_lshift]   or gKeyPressed[key_rshif=
+t]
+     local name =3D GetMacroKeyComboName(keycode,char,bCtrl,bAlt,bShift)
++	if (TriggerConfigHotkey(keycode,char,bCtrl,bAlt,bShift)) then return end
+     local macrofun =3D gMacroList[name]
+     if (gMacroPrintAllKeyCombos) then print('to use this macro keycombo : =
+SetMacro(&quot;'..name..'&quot;,function() MacroCmd_Say(&quot;test&quot;) end)') end
+     if (not macrofun) then return end -- no macro mapped to this keycode
+     =
+
+     -- protected macro call
+-    local success,errormsg_or_result =3D lugrepcall(macrofun)
++    local success,errormsg_or_result =3D lugrepcall(function () job.create=
+(macrofun) end)
+     if (not success) then
+         local myErrorText =3D &quot;ERROR executing MACRO for keycombo &quot;..name.=
+.&quot; :\n&quot;..tostring(errormsg_or_result)
+         print(myErrorText)
+
+Modified: trunk/lua/lib.walking3.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.walking3.lua (original)
++++ trunk/lua/lib.walking3.lua Tue Mar  2 00:09:38 2010
+@@ -30,6 +30,7 @@
+ 	local posx,posy,posz,d =3D xloc,yloc,iStartZ,iDir
+ 	=
+
+ 	local bMoveIsOk,newZ =3D W3_CheckMovement( mobile, posx,posy,posz, d)
++	if ((not bMoveIsOk) and (gWalkDebugOverrideActive and gKeyPressed[key_lsh=
+ift] and gKeyPressed[key_lalt])) then return gPlayerZLoc end
+ 	--~ print(&quot;GetNearestGroundLevel&quot;,posx,posy,posz,&quot;d&quot;..d,bMoveIsOk and &quot;ok=
+&quot; or &quot;blocked&quot;,newZ)
+ 	return bMoveIsOk and newZ or nil
+ end
+
+Modified: trunk/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/main.lua (original)
++++ trunk/lua/main.lua Tue Mar  2 00:09:38 2010
+@@ -221,6 +221,7 @@
+ =
+
+ -- Load new XML Config-Data
+ ConfigDialog_LoadData()
++HotKeys_LoadData()
+ =
+
+ --###############################
+ --###        MACROS           ###
+
+Modified: trunk/lua/net/net.text.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.text.lua (original)
++++ trunk/lua/net/net.text.lua Tue Mar  2 00:09:38 2010
+@@ -622,7 +622,7 @@
+ 	=
+
+ 	local hue			=3D hex2num(&quot;0x34&quot;)
+ 	local font			=3D 0 -- ignored by runuo 1
+-	local msgtype		=3D kTextType_Normal + (bEncoded and kTextType_Encoded or =
+0)
++	local msgtype		=3D (mode or kTextType_Normal) + (bEncoded and kTextType_E=
+ncoded or 0)
+ 	local packetlen		=3D 1+2+1+2+2+4+ (bEncoded and (2+0+ascilen+1) or (ascil=
+en*2+2))
+ 	for i =3D 0,keywordcount-1 do packetlen =3D packetlen + ((math.mod(i,2) =
+=3D=3D 0) and 1 or 2) end -- calc packetlength for encoding
+ 	=
+
+
+Modified: trunk/lua/widgets/widget.uocheckbox.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/widgets/widget.uocheckbox.lua (original)
++++ trunk/lua/widgets/widget.uocheckbox.lua Tue Mar  2 00:09:38 2010
+@@ -15,7 +15,7 @@
+ 	=
+
+ 	local dialog =3D parentwidget:GetDialog()
+ 	if (dialog and dialog.uo_check) then table.insert(dialog.uo_check,self) e=
+nd
+-
++	if (params.on_change) then self.on_change =3D params.on_change end
+ 	self:SetState(params.status)
+ 	self:UpdateGfx()
+ end
+
+Modified: trunk/lua/widgets/widget.uoedittext.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/widgets/widget.uoedittext.lua (original)
++++ trunk/lua/widgets/widget.uoedittext.lua Tue Mar  2 00:09:38 2010
+@@ -52,7 +52,7 @@
+ =
+
+ function gWidgetPrototype.UOEditText:UpdateTextDisplay () =
+
+ 	self.textwidget:SetUOHtml(self.text) =
+
+-	self:on_change_text()
++	self:on_change_text(self.text)
+ end
+ =
+
+ function gWidgetPrototype.UOEditText:RemoveLastChar		()
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="002024.html">[Iris-commit] [IRIS] r3264 - in /trunk/lua:	lib.configdialog.hotkeys.lua lib.macrolist.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2023">[ date ]</a>
+              <a href="thread.html#2023">[ thread ]</a>
+              <a href="subject.html#2023">[ subject ]</a>
+              <a href="author.html#2023">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

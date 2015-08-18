@@ -1,0 +1,173 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2634 - /trunk/lua/lib.objectpicker.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-October/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2634%20-%20/trunk/lua/lib.objectpicker.lua&In-Reply-To=%3C20081023024759.5AC1F1C1863F%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001438.html">
+   <LINK REL="Next"  HREF="001440.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2634 - /trunk/lua/lib.objectpicker.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2634%20-%20/trunk/lua/lib.objectpicker.lua&In-Reply-To=%3C20081023024759.5AC1F1C1863F%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2634 - /trunk/lua/lib.objectpicker.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Thu Oct 23 04:47:58 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001438.html">[Iris-commit] [IRIS] r2633 - in /trunk/lua: lib.objectpicker.lua	main.lua
+</A></li>
+        <LI>Next message: <A HREF="001440.html">[Iris-commit] [IRIS] r2635 - /trunk/lua/lib.packetvideo.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1439">[ date ]</a>
+              <a href="thread.html#1439">[ thread ]</a>
+              <a href="subject.html#1439">[ subject ]</a>
+              <a href="author.html#1439">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Thu Oct 23 04:47:58 2008
+New Revision: 2634
+
+Log:
+implemented 0xAB and 0xAC(String_Query + response) for pre-aos, but respons=
+e doesn't seem to work yet
+
+Modified:
+    trunk/lua/lib.objectpicker.lua
+
+Modified: trunk/lua/lib.objectpicker.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.objectpicker.lua (original)
++++ trunk/lua/lib.objectpicker.lua Thu Oct 23 04:47:58 2008
+@@ -86,3 +86,82 @@
+ 	out:PushNetUint16(hue)
+ 	out:SendPacket()
+ end
++
++
++
++
++--~ gPacketType.kPacket_String_Query									=3D { id=3D0xAB }
++--~ gPacketType.kPacket_String_Response									=3D { id=3D0xAC }
++-- text entry dialog ? comes at the end of pre-aos crafter gump ?
++-- response =3D 0xAC
++function gPacketHandler.kPacket_String_Query() -- 0xAB
++	local input =3D GetRecvFIFO()
++	local popped_start =3D input:GetTotalPopped()
++	local id =3D input:PopNetUint8()
++	local size =3D input:PopNetUint16()
++	local data =3D {}
++	data.id			=3D input:PopNetUint32()
++	data.parentid	=3D input:PopNetUint8()
++	data.buttonid	=3D input:PopNetUint8()
++	data.textlen	=3D input:PopNetUint16() -- ??? not quite sure about the mea=
+ning, but one byte was too few
++	data.text		=3D input:PopFilledString(data.textlen)
++	--~ local datalenleft2 =3D size-1-2-4-1-1-1-data.textlen
++	--~ for i=3D0,datalenleft2-1 do local v =3D input:PeekNetUint8(i) print(&quot;=
++&quot;,i,v,sprintf(&quot;%c&quot;,v)) end
++	=
+
++	data.cancel		=3D input:PopNetUint8() -- (0=3Ddisable, 1=3Denable)
++	data.style		=3D input:PopNetUint8() -- (0=3Ddisable, 1=3Dnormal, 2=3Dnume=
+rical)
++	data.format		=3D input:PopNetUint32() -- (if style 1, max text len, if st=
+yle2, max numeric value)
++	data.text2len	=3D input:PopNetUint8()
++	=
+
++	data.datalenleft =3D size-1-2-4-1-1-2-data.textlen-1-1-4-1
++	data.text2		=3D (data.datalenleft &gt; 0) and input:PopFilledString(data.dat=
+alenleft) or &quot;&quot;
++	HandleStringQuery(data)
++	--~ print(&quot;kPacket_String_Query&quot;,SmartDump(data))
++	--[[
++	kPacket_String_Query    {
++		datalenleft=3D2
++		id=3D0x00039bcb
++		parentid=3D0
++		buttonid=3D0
++		textlen=3D24=3D0x18
++		text=3D&quot;How many loops? [0-100]&quot;
++		cancel=3D1
++		style=3D1
++		format=3D4
++		text2=3D&quot;&quot;
++		text2len=3D0
++		}
++	]]--
++end
++
++function HandleStringQuery (data)
++	print(&quot;HandleStringQuery&quot;,data.id,data.parentid,data.buttonid)
++	local rows =3D {
++		{ {data.text} },
++		{ {type=3D&quot;EditText&quot;,controlname=3D&quot;entry&quot;,w=3D200,h=3D24,text=3Ddata.te=
+xt2} },
++		{ {&quot;OK&quot;,function (widget) =
+
++				local txt =3D widget.dialog.controls[&quot;entry&quot;]:GetText() or &quot;&quot;
++				print(&quot;HandleStringQuery&quot;,txt)
++				Send_String_Query_Response(data.id,data.parentid,data.buttonid,txt)
++				widget.dialog:Destroy()
++			end} },
++		}
++	local dialog =3D guimaker.MakeTableDlg(rows,100,100,false,true,gGuiDefaul=
+tStyleSet,&quot;window&quot;)
++end
++
++-- response to 0xAB
++function Send_String_Query_Response (id,mytype,myidx,response) -- 0xAC
++	local responselen =3D string.len(response)
++	local out =3D GetSendFIFO()
++	out:PushNetUint8(kPacket_String_Response)
++	out:PushNetUint16(responselen+3+1+1+4+2+1)
++	out:PushNetUint32(id)
++	out:PushNetUint8(mytype)
++	out:PushNetUint8(myidx)
++	out:PushNetUint8(0) -- unknown
++	out:PushNetUint8(0) -- unknown
++	out:PushNetUint8(0) -- unknown
++	out:PushFilledString(response,responselen)
++	out:SendPacket()
++	-- doesn't seemt to work yet =3D(
++end
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001438.html">[Iris-commit] [IRIS] r2633 - in /trunk/lua: lib.objectpicker.lua	main.lua
+</A></li>
+	<LI>Next message: <A HREF="001440.html">[Iris-commit] [IRIS] r2635 - /trunk/lua/lib.packetvideo.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1439">[ date ]</a>
+              <a href="thread.html#1439">[ thread ]</a>
+              <a href="subject.html#1439">[ subject ]</a>
+              <a href="author.html#1439">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

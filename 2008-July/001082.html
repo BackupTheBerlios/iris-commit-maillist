@@ -1,0 +1,353 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2274 - in /trunk: data/base/main.material lua/gui/gui.gumpparser.lua lua/lib.gump.samples.lua widgets/widget.uoimage.lua widgets/widget.uotext.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-July/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2274%20-%20in%20/trunk%3A%20data/base/main.material%0A%20lua/gui/gui.gumpparser.lua%20lua/lib.gump.samples.lua%0A%20widgets/widget.uoimage.lua%20widgets/widget.uotext.lua&In-Reply-To=%3C20080630234321.7BA5F1524030%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   <LINK REL="Next"  HREF="001083.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2274 - in /trunk: data/base/main.material lua/gui/gui.gumpparser.lua lua/lib.gump.samples.lua widgets/widget.uoimage.lua widgets/widget.uotext.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2274%20-%20in%20/trunk%3A%20data/base/main.material%0A%20lua/gui/gui.gumpparser.lua%20lua/lib.gump.samples.lua%0A%20widgets/widget.uoimage.lua%20widgets/widget.uotext.lua&In-Reply-To=%3C20080630234321.7BA5F1524030%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2274 - in /trunk: data/base/main.material lua/gui/gui.gumpparser.lua lua/lib.gump.samples.lua widgets/widget.uoimage.lua widgets/widget.uotext.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Tue Jul  1 01:43:21 CEST 2008</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="001083.html">[Iris-commit] [IRIS] r2275 - /trunk/widgets/widget.uotext.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1082">[ date ]</a>
+              <a href="thread.html#1082">[ thread ]</a>
+              <a href="subject.html#1082">[ subject ]</a>
+              <a href="author.html#1082">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Tue Jul  1 01:43:21 2008
+New Revision: 2274
+
+Log:
+uoimage : checker-workaround, uotext : startet html-parser
+
+Modified:
+    trunk/data/base/main.material
+    trunk/lua/gui/gui.gumpparser.lua
+    trunk/lua/lib.gump.samples.lua
+    trunk/widgets/widget.uoimage.lua
+    trunk/widgets/widget.uotext.lua
+
+Modified: trunk/data/base/main.material
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/base/main.material (original)
++++ trunk/data/base/main.material Tue Jul  1 01:43:21 2008
+@@ -30,10 +30,34 @@
+ 				filtering point point none
+ 				tex_address_mode clamp
+ 				=
+
+-				texture guibase.png 2d 0
++				//texture guibase.png 2d 0
+ 				//colour_op_ex modulate src_texture src_diffuse =
+
+ 				//alpha_op_ex  source1 src_texture src_texture
+ 			}
++		}
++	}
++}
++
++material guibasemat_plaincolor
++{
++	technique
++	{
++		pass
++		{
++			ambient  1.0 1.0 1.0 1.0
++			specular 0.0 0.0 0.0 1.0
++			=
+
++			// ambient vertexcolour
++			// diffuse vertexcolour
++			=
+
++			cull_hardware none
++			cull_software none
++
++			scene_blend alpha_blend
++			=
+
++			// lighting off
++			depth_write off
++			depth_check off
+ 		}
+ 	}
+ }
+
+Modified: trunk/lua/gui/gui.gumpparser.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.gumpparser.lua (original)
++++ trunk/lua/gui/gui.gumpparser.lua Tue Jul  1 01:43:21 2008
+@@ -33,9 +33,10 @@
+ 	kClientSideGump_Skill			=3D skillGump			-- the big skill list dialog with=
+ up/down/lock boxes, grab icons and scrollbar
+ 	kClientSideGump_Journal			=3D journalGump	-- a very simple message log in=
+ papyrus-scroll look
+ 	]]--
+-	-- kGumpSample_RuneBook kGumpSample_ChangeLog kGumpSample_Reward
++	local testgump,x,y =3D kGumpSample_ChangeLog,400,00
++	--~ local testgump,x,y =3D kGumpSample_ChangeLog_Text,400,00
+ 	--~ local testgump,x,y =3D kGumpSample_RuneBook,0,240
+-	local testgump,x,y =3D kGumpSample_Reward,0,140
++	--~ local testgump,x,y =3D kGumpSample_Reward,0,140
+ 	local profiler =3D MakeProfiler(&quot;gumpparser&quot;)
+ 	profiler:StartSection(&quot;font:preload&quot;)
+ 	GetUOFont(gUniFontLoaderList[1],true):PreLoad()
+@@ -378,13 +379,13 @@
+ kGumpParser_CommandTypes[&quot;page&quot;]				=3D {paramformat=3D&quot;pagenum&quot;}
+ kGumpParser_CommandTypes[&quot;xmfhtmlgump&quot;]			=3D {paramformat=3D&quot;x,y,width,he=
+ight,cliloc_id,background,scrollbar,[ctrlname]&quot;}
+ kGumpParser_CommandTypes[&quot;xmfhtmlgumpcolor&quot;]	=3D {paramformat=3D&quot;x,y,width=
+,height,cliloc_id,background,scrollbar,hue,[ctrlname]&quot;}
+-kGumpParser_CommandTypes[&quot;croppedtext&quot;]			=3D {paramformat=3D&quot;x,y,width,he=
+ight,hue,textline_id,[ctrlname]&quot;,paramadd=3D{bold =3D true}}
++kGumpParser_CommandTypes[&quot;croppedtext&quot;]			=3D {paramformat=3D&quot;x,y,width,he=
+ight,hue,textline_id,[ctrlname]&quot;,paramadd=3D{bold=3Dtrue,crop=3Dtrue}}
+ kGumpParser_CommandTypes[&quot;htmlgump&quot;]			=3D {paramformat=3D&quot;x,y,width,heigh=
+t,textline_id,background,scrollbar,[ctrlname]&quot;}
+ kGumpParser_CommandTypes[&quot;text&quot;]				=3D {paramformat=3D&quot;x,y,hue,textline_i=
+d,[ctrlname]&quot;}
+ kGumpParser_CommandTypes[&quot;tooltip&quot;]				=3D {paramformat=3D&quot;cliloc_id,[ctrl=
+name]&quot;}
+-kGumpParser_CommandTypes[&quot;resizepic&quot;]			=3D {paramformat=3D&quot;x,y,gump_id,wi=
+dth,height,[ctrlname]&quot;,paramadd=3D{multipart =3D true}}
+-kGumpParser_CommandTypes[&quot;gumppictiled&quot;]		=3D {paramformat=3D&quot;x,y,width,he=
+ight,gump_id,[ctrlname]&quot;,paramadd=3D{tiled =3D true}}
+-kGumpParser_CommandTypes[&quot;checkertrans&quot;]		=3D {paramformat=3D&quot;x,y,width,he=
+ight,[ctrlname]&quot;,paramadd=3D{checker =3D true}}
++kGumpParser_CommandTypes[&quot;resizepic&quot;]			=3D {paramformat=3D&quot;x,y,gump_id,wi=
+dth,height,[ctrlname]&quot;,paramadd=3D{multipart=3Dtrue}}
++kGumpParser_CommandTypes[&quot;gumppictiled&quot;]		=3D {paramformat=3D&quot;x,y,width,he=
+ight,gump_id,[ctrlname]&quot;,paramadd=3D{tiled=3Dtrue}}
++kGumpParser_CommandTypes[&quot;checkertrans&quot;]		=3D {paramformat=3D&quot;x,y,width,he=
+ight,[ctrlname]&quot;,paramadd=3D{checker=3Dtrue}}
+ kGumpParser_CommandTypes[&quot;tilepic&quot;]				=3D {paramformat=3D&quot;x,y,art_id,[ctr=
+lname]&quot;}
+ kGumpParser_CommandTypes[&quot;tilepichue&quot;]			=3D {paramformat=3D&quot;x,y,art_id,hu=
+e,[ctrlname]&quot;}
+ kGumpParser_CommandTypes[&quot;button&quot;]				=3D {paramformat=3D&quot;x,y,gump_id_norm=
+al,gump_id_pressed,quit,page_id,[return_value],[ctrlname]&quot;}
+
+Modified: trunk/lua/lib.gump.samples.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.gump.samples.lua (original)
++++ trunk/lua/lib.gump.samples.lua Tue Jul  1 01:43:21 2008
+@@ -9,6 +9,7 @@
+ 	Data=3D&quot;{ page 0 }{ resizepic 0 0 9270 350 272 }{ resizepic 10 35 9270 33=
+0 227 }{ button 298 15 22153 22155 1 0 1 }{ button 319 15 22150 22152 1 0 0=
+ }{ resizepic 81 10 9270 188 35 }{ text 91 17 2101 0 }{ resizepic 91 45 927=
+0 168 35 }{ croppedtext 160 52 29 16 2101 1 }{ gumppictiled 30 81 290 162 2=
+624 }{ checkertrans 30 81 290 162 }{ button 30 55 5603 5607 1 0 11 }{ butto=
+n 304 55 5601 5605 1 0 11 }{ htmlgump 30 81 290 162 2 0 1 }&quot;,
+ 	textline=3D{
+ 		[1]=3D&quot;News&quot;,
++		--~ [2]=3D&quot;A\n\nB\nC&quot;,
+ 		[2]=3D&quot;&lt;CENTER&gt;&lt;BIG&gt;28.06.2008 by Lumberman&lt;BR&gt;-------------------------=
+---------&lt;/BIG&gt;&lt;/CENTER&gt;Patch eingespielt.&lt;BR&gt;mehr siehe im Forum unter www=
+.vetus-mundus.de oder im Changelog (Pfeil rechts)&lt;BR&gt;&lt;CENTER&gt;&lt;BIG&gt;23.06.200=
+8 by Lumberman&lt;BR&gt;----------------------------------&lt;/BIG&gt;&lt;/CENTER&gt;Patch ei=
+ngespielt.&lt;BR&gt;mehr siehe im Forum unter www.vetus-mundus.de oder im Changel=
+og (Pfeil rechts)&lt;BR&gt;&lt;CENTER&gt;&lt;BIG&gt;15.06.2008 by Lumberman&lt;BR&gt;--------------=
+--------------------&lt;/BIG&gt;&lt;/CENTER&gt;Patch eingespielt.&lt;BR&gt;mehr siehe im Foru=
+m unter www.vetus-mundus.de oder im Changelog (Pfeil rechts)&lt;BR&gt;&lt;CENTER&gt;&lt;BI=
+G&gt;14.06.2008 by Lumberman&lt;BR&gt;----------------------------------&lt;/BIG&gt;&lt;/CENT=
+ER&gt;Patch eingespielt.&lt;BR&gt;mehr siehe im Forum unter www.vetus-mundus.de oder=
+ im Changelog (Pfeil rechts)&quot;,
+ 		[0]=3D&quot;Message of the Day - Main&quot;,
+ 		}
+
+Modified: trunk/widgets/widget.uoimage.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/widgets/widget.uoimage.lua (original)
++++ trunk/widgets/widget.uoimage.lua Tue Jul  1 01:43:21 2008
+@@ -44,7 +44,7 @@
+ 	else
+ 		local matname,u0,v0,uvw,uvh,origw,origh,bitmask
+ 		if (params.gump_id	) then matname,u0,v0,uvw,uvh,origw,origh,bitmask =3D =
+LoadGump(	&quot;guibasemat&quot;,params.gump_id			,params.hue) end
+-		if (params.art_id	) then matname,u0,v0,uvw,uvh,origw,origh,bitmask =3D L=
+oadArt(	&quot;guibasemat&quot;,params.art_id + 0x4000	,params.hue) end
++		if (params.art_id	) then matname,u0,v0,uvw,uvh,origw,origh,bitmask =3D L=
+oadArt(		&quot;guibasemat&quot;,params.art_id + 0x4000	,params.hue) end
+ 		if (params.checker	) then matname,u0,v0,uvw,uvh,origw,origh,bitmask =3D =
+self:LoadChecker() end
+ 		self.origw =3D origw
+ 		self.origh =3D origh
+@@ -83,9 +83,9 @@
+ function gWidgetPrototype.UOImage:LoadChecker 	() =
+
+ 	local matname =3D gWidgetPrototype.UOImage.checker_matname
+ 	if (not matname) then =
+
+-		local g =3D 0.3 -- grey
+-		local r,g,b,a =3D g,g,g,0.5
+-		matname =3D GetHuedMat(&quot;guibasemat&quot;,r,g,b,r,g,b,a)
++		local gray =3D 0.3 -- grey
++		local r,g,b,a =3D gray,gray,gray,0.5
++		matname =3D GetHuedMat(&quot;guibasemat_plaincolor&quot;,r,g,b,r,g,b,a)
+ 		gWidgetPrototype.UOImage.checker_matname =3D matname
+ 	end
+ 	return matname,0,0,1,1,32,32
+
+Modified: trunk/widgets/widget.uotext.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/widgets/widget.uotext.lua (original)
++++ trunk/widgets/widget.uotext.lua Tue Jul  1 01:43:21 2008
+@@ -4,11 +4,12 @@
+ =
+
+ RegisterWidgetClass(&quot;UOText&quot;,&quot;Text&quot;)
+ =
+
+--- param : x,y,width,height,cliloc_id/textline_id,background=3D0/1=3Dtrans=
+parent?,scrollbar=3D0/1=3Ddisplayed,hue,bold=3Dfalse
++-- param : x,y,width,height,cliloc_id/textline_id,background=3D0/1=3Dtrans=
+parent?,scrollbar=3D0/1=3Ddisplayed,hue,bold=3Dfalse,crop=3Dfalse
+ -- bold=3Doutlined_font: false for xmfhtmlgump,htmlgump, true for croppedt=
+ext, example : runebook gump : kGumpSample_RuneBook
++-- crop : disables autowrap
+ function gWidgetPrototype.UOText:Init (parentwidget, params, textlines)
+ 	--~ print(&quot;TODO:widget.UOText  : height,w/h-clip,background,scrollbar&quot;,pa=
+rentwidget:GetClassName(),parentwidget.pagenum)
+-	params.autowrap_w =3D params.width
++	if (not params.crop) then params.autowrap_w =3D params.width end
+ 	gWidgetPrototype.Text.Init(self,parentwidget,params)
+ 	self:SetUOHtml(params.textline_id and textlines[params.textline_id] or (g=
+ClilocLoader and gClilocLoader:Get(params.cliloc_id) or &quot;no_cliloc&quot;))
+ 	self:SetLeftTop(params.x-1,params.y-22)
+@@ -18,20 +19,54 @@
+ 	self.uohtml =3D uohtml
+ 	local font =3D GetUOFont(gUniFontLoaderList[1],self.params.bold)
+ 	local fontsize =3D nil
+-	local textparam =3D {}
+-	textparam.r,textparam.g,textparam.b =3D 1,1,1
+-	if (not self.params.bold) then textparam.r,textparam.g,textparam.b =3D 0,=
+0,0 end -- default:black
++	local textparam_white =3D {r=3D1,g=3D1,b=3D1}
++	local textparam_black =3D {r=3D0,g=3D0,b=3D0}
++	local textparam =3D textparam_black
++	if (not self.params.bold) then textparam =3D textparam_white end -- defau=
+lt:black
+ 	if (self.params.hue) then textparam.r,textparam.g,textparam.b =3D gHueLoa=
+der:GetColor(self.params.hue,31) end
+ 	-- uohtml =3D UnicodeFix(uohtml)  =C3=B6 -&gt; oe  hack =
+
+ 	-- warning, uohtml might be an array of ints for unicode (textline) inste=
+ad of text
+ 	-- see also HtmlParser in lib.gumpparser.lua
+ 	-- TODO : font hueing ? or just rgb vertexcolor
+ 	=
+
++	local bBig =3D false
++	local bCenter =3D false
++	local glyphlist =3D self.glyphlist
+ 	=
+
+-	local text =3D uohtml
+-	self.glyphlist:AddText(font,fontsize,text,textparam)
++	glyphlist:Clear()
++	=
+
++	print(&quot;uohtml start&quot;)
++	for plaintext,tag in string.gfind(uohtml, &quot;([^&lt;]*)(&lt;?[^&gt;]*&gt;?)&quot;) do =
+
++		if (plaintext ~=3D &quot;&quot;) then =
+
++			-- plain text
++			print(&quot;uohtml plain&quot;,plaintext)
++			glyphlist:AddText(font,fontsize,plaintext,textparam)
++		end
++		if (tag ~=3D &quot;&quot;) then
++			-- html-tag
++			if (tag =3D=3D &quot;&lt;CENTER&gt;&quot;) then end -- todo =
+
++			if (tag =3D=3D &quot;&lt;/CENTER&gt;&quot;) then end -- todo =
+
++			if (tag =3D=3D &quot;&lt;BIG&gt;&quot;) then font =3D GetUOFont(gUniFontLoaderList[1],t=
+rue) textparam =3D textparam_white glyphlist:AddNewLine() end
++			if (tag =3D=3D &quot;&lt;/BIG&gt;&quot;) then font =3D GetUOFont(gUniFontLoaderList[1],=
+false) textparam =3D textparam_black glyphlist:AddNewLine() end
++			if (tag =3D=3D &quot;&lt;BR&gt;&quot;) then glyphlist:AddNewLine() end
++			=
+
++			--~ part =3D string.sub(part,2,-2) -- cut away one char from each side
++			--~ for token in string.gfind(textstring, &quot;%w+&quot;) do table.insert(bToken=
+,token) end
++			--~ local iStart,iEnd,a,b,c =3D string.match(part,&quot;&quot;)
++			=
+
++			print(&quot;uohtml tag&quot;,tag)
++		end
++	end
+ 	self:UpdateGeometry()
+ end
++--[[
++&lt;CENTER&gt;&lt;/CENTER&gt;
++&lt;BIG&gt;&lt;/BIG&gt;
++&lt;b&gt;&lt;/b&gt;  // =3D big=3Dbold
++&lt;BR&gt;
++?basefont color size
++]]--
++
+ --[[
+ --xmfhtmlgump	&lt;x&gt; &lt;y&gt; &lt;width&gt; &lt;height&gt; &lt;cliloc_id&gt; &lt;background&gt; &lt;scrollbar&gt;
+ --HtmlGump		&lt;x&gt; &lt;y&gt; &lt;width&gt; &lt;height&gt; &lt;textline_id&gt; &lt;background&gt; &lt;scrollbar&gt;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="001083.html">[Iris-commit] [IRIS] r2275 - /trunk/widgets/widget.uotext.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1082">[ date ]</a>
+              <a href="thread.html#1082">[ thread ]</a>
+              <a href="subject.html#1082">[ subject ]</a>
+              <a href="author.html#1082">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

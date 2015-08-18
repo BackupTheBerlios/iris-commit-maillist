@@ -1,0 +1,174 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1773 - in /trunk: data/config.lua.dist lua/lib.loading.lua lua/lib.macrolist.lua lua/lib.terrain.multitex.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-January/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1773%20-%20in%20/trunk%3A%20data/config.lua.dist%0A%20lua/lib.loading.lua%20lua/lib.macrolist.lua%20lua/lib.terrain.multitex.lua&In-Reply-To=%3C20080115185433.61CD21C1804C%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000586.html">
+   <LINK REL="Next"  HREF="000589.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1773 - in /trunk: data/config.lua.dist lua/lib.loading.lua lua/lib.macrolist.lua lua/lib.terrain.multitex.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1773%20-%20in%20/trunk%3A%20data/config.lua.dist%0A%20lua/lib.loading.lua%20lua/lib.macrolist.lua%20lua/lib.terrain.multitex.lua&In-Reply-To=%3C20080115185433.61CD21C1804C%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1773 - in /trunk: data/config.lua.dist lua/lib.loading.lua lua/lib.macrolist.lua lua/lib.terrain.multitex.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Tue Jan 15 19:54:33 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000586.html">[Iris-commit] [IRIS] r1772 - in /trunk: bin/ data/ data/terrain/materials/ data/terrain/programs/ data/terrain/textures/ lua/ lua/filter/ vs8/
+</A></li>
+        <LI>Next message: <A HREF="000589.html">[Iris-commit] [IRIS] r1774 - /trunk/lua/lib.debugmenu.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#588">[ date ]</a>
+              <a href="thread.html#588">[ thread ]</a>
+              <a href="subject.html#588">[ subject ]</a>
+              <a href="author.html#588">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Tue Jan 15 19:54:32 2008
+New Revision: 1773
+
+Log:
+added map-reload macro : MacroCmd_ReloadMap
+
+Modified:
+    trunk/data/config.lua.dist
+    trunk/lua/lib.loading.lua
+    trunk/lua/lib.macrolist.lua
+    trunk/lua/lib.terrain.multitex.lua
+
+Modified: trunk/data/config.lua.dist
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/config.lua.dist (original)
++++ trunk/data/config.lua.dist Tue Jan 15 19:54:32 2008
+@@ -48,7 +48,7 @@
+ 	gHudNamesFontSize	=3D 26
+ end
+ =
+
+--- GUI Styles : sience,iris,ray  (see data\lua\gui\gui.styles.lua)
++-- GUI Styles : sience,iris,ray  (see lua\gui\gui.styles.lua)
+ gGuiDefaultStyleSet =3D &quot;sience&quot;
+ =
+
+ -- loader types, FullFile is faster, but uses more ram, OnDemand is slower=
+, but uses almost no ram
+
+Modified: trunk/lua/lib.loading.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.loading.lua (original)
++++ trunk/lua/lib.loading.lua Tue Jan 15 19:54:32 2008
+@@ -198,14 +198,16 @@
+ end
+ =
+
+ -- destroys old items, and cleans up old static,ground loaders
+-function UnloadOldMap ()
++function UnloadOldMap (bDoNotClearObjects)
+ 	if (not gMapLoaded) then return end
+ 	gMapLoaded =3D false
+ 	-- destroy all objects
+-	DestroyAllObjects()
++	if (not bDoNotClearObjects) then DestroyAllObjects() end
+ 	-- destroy old ground and static loaders
+ 	if (gGroundBlockLoader) then gGroundBlockLoader:Destroy() gGroundBlockLoa=
+der =3D nil end
+ 	if (gStaticBlockLoader) then gStaticBlockLoader:Destroy() gStaticBlockLoa=
+der =3D nil end
++	MultiTexTerrain_UnloadAll()
++	Renderer3D:ClearMapCache()
+ end
+ =
+
+ -- Loads Maps+Statics+Diff Files (only pre 6.0.0)
+
+Modified: trunk/lua/lib.macrolist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.macrolist.lua (original)
++++ trunk/lua/lib.macrolist.lua Tue Jan 15 19:54:32 2008
+@@ -94,6 +94,13 @@
+ 	ToggleCompass()
+ 	Client_TakeGridScreenshot(gMainWorkingDir..&quot;screenshots/&quot;)
+ 	ToggleCompass()
++end
++
++function MacroCmd_ReloadMap		() 			=
+
++	if (not gInGameStarted) then return end
++	local mapindex =3D gMapIndex
++	UnloadOldMap(true) -- do not clear objects
++	LoadMap(gMapIndex)
+ end
+ =
+
+ =
+
+
+Modified: trunk/lua/lib.terrain.multitex.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.terrain.multitex.lua (original)
++++ trunk/lua/lib.terrain.multitex.lua Tue Jan 15 19:54:32 2008
+@@ -190,6 +190,13 @@
+ end
+ =
+
+ =
+
++function MultiTexTerrain_UnloadAll ()
++	for k,gfx in pairs(gMultiTexTerrain_GfxList) do gfx:Destroy() end
++	gMultiTexTerrain_GfxList =3D {}
++	gMultiTexTerrain_BX =3D nil
++	gMultiTexTerrain_BY =3D nil
++end
++
+ function MultiTexTerrainStep ()
+ 	if (not gEnableMultiTexTerrain) then return end
+ 	if (gMultiTexTerrain_NextStep &gt; gMyTicks) then return end
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000586.html">[Iris-commit] [IRIS] r1772 - in /trunk: bin/ data/ data/terrain/materials/ data/terrain/programs/ data/terrain/textures/ lua/ lua/filter/ vs8/
+</A></li>
+	<LI>Next message: <A HREF="000589.html">[Iris-commit] [IRIS] r1774 - /trunk/lua/lib.debugmenu.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#588">[ date ]</a>
+              <a href="thread.html#588">[ thread ]</a>
+              <a href="subject.html#588">[ subject ]</a>
+              <a href="author.html#588">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

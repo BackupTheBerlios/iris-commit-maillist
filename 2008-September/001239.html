@@ -1,0 +1,500 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2434 - in /trunk/lua: lib.3d.renderer.lua lib.mainmenu.lua net/net.effect.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-September/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2434%20-%20in%20/trunk/lua%3A%20lib.3d.renderer.lua%0A%20lib.mainmenu.lua%20net/net.effect.lua&In-Reply-To=%3C20080902000004.43C771C1867E%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001238.html">
+   <LINK REL="Next"  HREF="001241.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2434 - in /trunk/lua: lib.3d.renderer.lua lib.mainmenu.lua net/net.effect.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2434%20-%20in%20/trunk/lua%3A%20lib.3d.renderer.lua%0A%20lib.mainmenu.lua%20net/net.effect.lua&In-Reply-To=%3C20080902000004.43C771C1867E%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2434 - in /trunk/lua: lib.3d.renderer.lua lib.mainmenu.lua net/net.effect.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Tue Sep  2 01:10:21 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001238.html">[Iris-commit] [IRIS] r2433 - /trunk/lua/lib.mainmenu.lua
+</A></li>
+        <LI>Next message: <A HREF="001241.html">[Iris-commit] [IRIS] r2435 - /trunk/lua/lib.3d.renderer.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1239">[ date ]</a>
+              <a href="thread.html#1239">[ thread ]</a>
+              <a href="subject.html#1239">[ subject ]</a>
+              <a href="author.html#1239">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: hagish
+Date: Tue Sep  2 01:10:20 2008
+New Revision: 2434
+
+Log:
+improved effect handling and added some missing specialcases in the effect =
+packet
+
+Modified:
+    trunk/lua/lib.3d.renderer.lua
+    trunk/lua/lib.mainmenu.lua
+    trunk/lua/net/net.effect.lua
+
+Modified: trunk/lua/lib.3d.renderer.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.renderer.lua (original)
++++ trunk/lua/lib.3d.renderer.lua Tue Sep  2 01:10:20 2008
+@@ -278,8 +278,8 @@
+ =
+
+ 	if ((strShadowTechnique =3D=3D &quot;stencil_modulative&quot;) or (strShadowTechniq=
+ue =3D=3D &quot;stencil_additive&quot;)) then
+ 		----- currently doesn't work with Fastbatch
+-		--OgreSetShadowFarDistance(shadowfardist)
+-		--OgreShadowTechnique(strShadowTechnique)
++		OgreSetShadowFarDistance(shadowfardist)
++		OgreShadowTechnique(strShadowTechnique)
+ 	elseif ((strShadowTechnique =3D=3D &quot;texture_modulative&quot;) or (strShadowTec=
+hnique =3D=3D &quot;texture_additive&quot;)) then
+ 		OgreSetShadowTextureCount(8)				-- first mention the count (one texture =
+for one lightsource)
+ 		OgreSetShadowTextureSize(1024)				-- then the texsize
+@@ -405,7 +405,8 @@
+ =
+
+ -- effects can have a ttl (time-to-live, effect.ttl in milliseconds, defau=
+lt is gParticleEffectDefaultTTL in ms)
+ gParticleEffectDefaultTTL =3D 10 * 1000
+-gParticleEffectDefaultSpeed =3D 0.1
++-- time that an effect needs to move from source to destination inseconds
++gParticleEffectDefaultMoveDuration =3D 0.5
+ gParticleEffects =3D {}
+ gParticleEffects[StandardEffect]=3D { etype=3D0, name=3D&quot;bluering&quot;, relx=
+=3D0.5, rely=3D0.5, relz=3D0.1, scalex=3D1, scaley=3D1, scalez=3D1 }
+ gParticleEffects[Fireball]		=3D { etype=3D0, name=3D&quot;Large Fireball&quot;, relx=
+=3D0.5, rely=3D0.5, relz=3D1, scalex=3D0.2, scaley=3D0.2, scalez=3D0.2}
+@@ -435,7 +436,7 @@
+ 								gParticleEffects[effect.itemid].relx, gParticleEffects[effect.item=
+id].rely, gParticleEffects[effect.itemid].relz,
+ 								gParticleEffects[effect.itemid].scalex, gParticleEffects[effect.it=
+emid].scaley, gParticleEffects[effect.itemid].scalez)
+ 	elseif ( effect.huedeffect ) then
+-		workingeffect =3D Renderer3D:AddHuedEffect( effect, 1, 0, 0 )
++		workingeffect =3D Renderer3D:AddHuedMeshEffect( effect, 1, 0, 0 )
+ 	end
+ =
+
+ 	-- if it's no huedeffect or no particle effect is defined, use a standard=
+ particle effect
+@@ -446,9 +447,76 @@
+ 	end
+ end
+ =
+
++function Renderer3D:ParticleEffectHelper	(effect, relx, rely, relz)
++	local sx,sy,sz =3D self:UOPosToLocal(effect.current_locx + relx,effect.cu=
+rrent_locy + rely,effect.current_locz * 0.1 + relz)
++	local dx,dy,dz =3D self:UOPosToLocal(effect.target_locx + relx,effect.tar=
+get_locy + rely,effect.target_locz * 0.1 + relz)
++
++	effect.gfx:SetPosition(sx,sy,sz)
++
++	InvokeLater(effect.ttl or gParticleEffectDefaultTTL, function ()
++		-- destroy effect after timeout
++		printdebug(&quot;effect&quot;,&quot;destroy effect&quot;)
++		if effect and effect.gfx:IsAlive() then
++			effect.gfx:Destroy()
++			effect =3D nil
++		end
++	end)
++	=
+
++	printdebug(&quot;effect&quot;,vardump(effect))
++
++	if effect.effect_type =3D=3D kEffectType_FromSourceToDest then
++		local t =3D gParticleEffectDefaultMoveDuration
++		local startt =3D gMyTicks
++	=
+
++		--~ ...SetPath(totaltime,looped,linear,{t,{p=3D{x,y,z},s=3D{x,y,z},r=3D{=
+w,x,y,z}}, ...})   =
+
++		effect.gfx:SetPath(t,false,true,{0,{p=3D{sx,sy,sz}},t,{p=3D{dx,dy,dz}}})
++		=
+
++		-- add stepper to handle effect movement
++		RegisterStepper(function()
++			if not effect or not effect.gfx:IsAlive() then
++				-- i am dead so stop this
++				return true
++			end
++			=
+
++			effect.gfx:SetAnimTimePos((gMyTicks-startt) / 1000)
++		end)
++	elseif effect.effect_type =3D=3D kEffectType_LightningStrikeAtSource then
++		-- TODO
++	elseif effect.effect_type =3D=3D kEffectType_FollowSource then
++		-- add stepper to handle effect movement
++		=
+
++		local m =3D GetMobile(effect.sourceserial)
++		local dx,dy,dz =3D self:UOPosToLocal(m.xloc + relx,m.yloc + rely,m.zloc =
+* 0.1 + relz)
++		local px,py,pz =3D self:UOPosToLocal(effect.current_locx + relx,effect.c=
+urrent_locy + rely,effect.current_locz * 0.1 + relz)
++		=
+
++		RegisterStepper(function()
++			if not effect or not effect.gfx:IsAlive() then
++				-- i am dead so stop this
++				return true
++			end
++			=
+
++			local m =3D GetMobile(effect.sourceserial)
++			if m then
++				local dx,dy,dz =3D self:UOPosToLocal(m.xloc + relx,m.yloc + rely,m.zlo=
+c * 0.1 + relz)
++				effect.gfx:SetPosition(dx,dy,dz)
++			end
++		end)
++	end
++	=
+
++	return true
++end
++
++--~ kEffectType_FromSourceToDest =3D 0
++--~ kEffectType_LightningStrikeAtSource =3D 1
++--~ kEffectType_StayAtCurrentPosition =3D 2
++--~ kEffectType_FollowSource =3D 3
++
+ -- Hued Effect : to display Meshes as instant Effects
+-function Renderer3D:AddHuedEffect( effect, relx, rely, relz )
++function Renderer3D:AddHuedMeshEffect( effect, relx, rely, relz )
+ 	local meshname =3D GetMeshName(effect.itemid)
++
++	printdebug(&quot;effect&quot;,sprintf(&quot;Create ParticleEffect with Meshname=3D%s Par=
+ticleID=3D0x%04x.\n&quot;,meshname,effect.itemid) )
++
+ 	if (meshname and meshname ~=3D false) then
+ 		effect.gfx =3D CreateRootGfx3D()
+ 		effect.gfx:SetMesh(meshname)
+@@ -466,184 +534,25 @@
+ 		-- position adjustment for statics and dynamics
+ 		effect.xadd,effect.yadd,effect.zadd =3D FilterPositionXYZ(effect.itemid)
+ =
+
+-		effect.gfx:SetPosition(self:UOPosToLocal(effect.current_locx + relx,
+-												 effect.current_locy + rely,
+-												 effect.current_locz * 0.1 + relz))
+-
+-		printdebug(&quot;effect&quot;,sprintf(&quot;Create HuedEffect with Mesh=3D%s MeshID=3D0=
+x%04x.\n&quot;,meshname,effect.itemid) )
+-
+-		InvokeLater(effect.ttl or gParticleEffectDefaultTTL, function ()
+-			-- destroy effect after timeout
+-			printdebug(&quot;effect&quot;,&quot;destroy effect&quot;)
+-			if effect and effect.gfx:IsAlive() then
+-				effect.gfx:Destroy()
+-				effect =3D nil
+-			end
+-		end)
+-
+-		printdebug(&quot;effect&quot;,vardump(effect))
+-
+-		if =
+
+-			effect.current_locx ~=3D effect.target_locx or
+-			effect.current_locy ~=3D effect.target_locy or
+-			effect.current_locz ~=3D effect.target_locz
+-		then
+-			-- add stepper to handle effect movement
+-			RegisterStepper(function()
+-				if not effect or not effect.gfx:IsAlive() then
+-					-- i am dead so stop this
+-					return true
+-				end
+-				=
+
+-				if =
+
+-					-- distance from current position to target lower then 0.1
+-					math.abs(effect.current_locx - effect.target_locx) &lt; 0.1 and
+-					math.abs(effect.current_locy - effect.target_locy) &lt; 0.1 and
+-					math.abs(effect.current_locz - effect.target_locz) &lt; 0.1
+-				then
+-					-- stop moving
+-					printdebug(&quot;effect&quot;,&quot;DEBUG STOP&quot;)
+-					effect.gfx:Destroy()
+-					effect =3D nil
+-					return true
+-				else
+-					-- move
+-					=
+
+-					-- current -&gt; target
+-					local dx =3D effect.target_locx - effect.current_locx
+-					local dy =3D effect.target_locy - effect.current_locy
+-					local dz =3D effect.target_locz - effect.current_locz
+-					-- to target
+-					local len =3D math.sqrt(dx*dx + dy*dy + dz*dz)
+-					=
+
+-					local speed =3D effect.speed or gParticleEffectDefaultSpeed
+-					=
+
+-					local fps_factor =3D 1 / OgreAvgFPS()
+-					local uo_speed_factor =3D 5
+-					=
+
+-					-- adjust movement vector
+-					dx =3D dx / len * speed * fps_factor * uo_speed_factor
+-					dy =3D dy / len * speed * fps_factor * uo_speed_factor
+-					dz =3D dz / len * speed * fps_factor * uo_speed_factor
+-					-- new motified len
+-					local len2 =3D math.sqrt(dx*dx + dy*dy + dz*dz)
+-				=
+
+-					if ( len2 &gt; len ) then
+-						-- reached the end or &quot;missed&quot;
+-						effect.current_locx =3D effect.target_locx
+-						effect.current_locy =3D effect.target_locy
+-						effect.current_locz =3D effect.target_locz
+-					else 			=
+
+-						-- move
+-						effect.current_locx =3D effect.current_locx + dx =
+
+-						effect.current_locy =3D effect.current_locy + dy
+-						effect.current_locz =3D effect.current_locz + dz
+-					end
+-					=
+
+-					--~ print(&quot;=3D=3D=3D=3D=3D DEBUG =3D=3D=3D=3D=3D&quot;)
+-					--~ print(&quot;DEBUG dx,dy,dz&quot;,dx,dy,dz)
+-					--~ print(&quot;DEBUG len,speed,fps&quot;,len,speed,fps_factor)
+-					--~ print(&quot;DEBUG current&quot;,effect.current_locx,effect.current_locy,eff=
+ect.current_locz)
+-					=
+
+-					effect.gfx:SetPosition(self:UOPosToLocal(effect.current_locx + relx,e=
+ffect.current_locy + rely,effect.current_locz * 0.1 + relz))
+-				end
+-			end)
+-		end
+-		return true
+-	else
+-		printdebug(&quot;effect&quot;,sprintf(&quot;Hued Paricle effect failed MeshID=3D0x%04x =
+not found.\n&quot;,effect.itemid) )
+-	end
+-	return nil
++		--~ effect.gfx:SetPosition(self:UOPosToLocal(effect.current_locx + relx,
++												 --~ effect.current_locy + rely,
++												 --~ effect.current_locz * 0.1 + relz))
++
++		return self:ParticleEffectHelper(effect, relx, rely, relz)
++	end
+ end
+ =
+
+ -- Particle Effect : to display Particles as instant Effects
+ function Renderer3D:AddParticleEffect( effect, particlename, relx, rely, r=
+elz, scalex, scaley, scalez)
+ 	printdebug(&quot;effect&quot;,sprintf(&quot;Create ParticleEffect with Particlename=3D%s=
+ ParticleID=3D0x%04x.\n&quot;,particlename,effect.itemid) )
++
+ 	effect.gfx=3DCreateRootGfx3D()
+ 	effect.gfx:SetParticleSystem(particlename)
+ 	effect.gfx:SetRenderingDistance(self.gDynamicMaxRenderDist)
+-	effect.gfx:SetPosition(self:UOPosToLocal(effect.current_locx + relx,effec=
+t.current_locy + rely,effect.current_locz * 0.1 + relz))
+ 	effect.gfx:SetScale( scalex or 1, scaley or 1, scalez or 1)
+ 	effect.gfx:SetNormaliseNormals(true)
+ =
+
+-	InvokeLater(effect.ttl or gParticleEffectDefaultTTL, function ()
+-		-- destroy effect after timeout
+-		printdebug(&quot;effect&quot;,&quot;destroy effect&quot;)
+-		if effect and effect.gfx:IsAlive() then
+-			effect.gfx:Destroy()
+-			effect =3D nil
+-		end
+-	end)
+-	=
+
+-	printdebug(&quot;effect&quot;,vardump(effect))
+-
+-	if =
+
+-		effect.current_locx ~=3D effect.target_locx or
+-		effect.current_locy ~=3D effect.target_locy or
+-		effect.current_locz ~=3D effect.target_locz
+-	then
+-		-- add stepper to handle effect movement
+-		RegisterStepper(function()
+-			if not effect or not effect.gfx:IsAlive() then
+-				-- i am dead so stop this
+-				return true
+-			end
+-			=
+
+-			if =
+
+-				-- distance from current position to target lower then 0.1
+-				math.abs(effect.current_locx - effect.target_locx) &lt; 0.1 and
+-				math.abs(effect.current_locy - effect.target_locy) &lt; 0.1 and
+-				math.abs(effect.current_locz - effect.target_locz) &lt; 0.1
+-			then
+-				-- stop moving
+-				printdebug(&quot;effect&quot;,&quot;DEBUG STOP&quot;)
+-				effect.gfx:Destroy()
+-				effect =3D nil
+-				return true
+-			else
+-				-- move
+-				=
+
+-				-- current -&gt; target
+-				local dx =3D effect.target_locx - effect.current_locx
+-				local dy =3D effect.target_locy - effect.current_locy
+-				local dz =3D effect.target_locz - effect.current_locz
+-				-- to target
+-				local len =3D math.sqrt(dx*dx + dy*dy + dz*dz)
+-				=
+
+-				local speed =3D effect.speed or gParticleEffectDefaultSpeed
+-				=
+
+-				local fps_factor =3D 1 / OgreAvgFPS()
+-				local uo_speed_factor =3D 5
+-				=
+
+-				-- adjust movement vector
+-				dx =3D dx / len * speed * fps_factor * uo_speed_factor
+-				dy =3D dy / len * speed * fps_factor * uo_speed_factor
+-				dz =3D dz / len * speed * fps_factor * uo_speed_factor
+-				-- new motified len
+-				local len2 =3D math.sqrt(dx*dx + dy*dy + dz*dz)
+-			=
+
+-				if ( len2 &gt; len ) then
+-					-- reached the end or &quot;missed&quot;
+-					effect.current_locx =3D effect.target_locx
+-					effect.current_locy =3D effect.target_locy
+-					effect.current_locz =3D effect.target_locz
+-				else 			=
+
+-					-- move
+-					effect.current_locx =3D effect.current_locx + dx =
+
+-					effect.current_locy =3D effect.current_locy + dy
+-					effect.current_locz =3D effect.current_locz + dz
+-				end
+-				=
+
+-				--~ print(&quot;=3D=3D=3D=3D=3D DEBUG =3D=3D=3D=3D=3D&quot;)
+-				--~ print(&quot;DEBUG dx,dy,dz&quot;,dx,dy,dz)
+-				--~ print(&quot;DEBUG len,speed,fps&quot;,len,speed,fps_factor)
+-				--~ print(&quot;DEBUG current&quot;,effect.current_locx,effect.current_locy,effe=
+ct.current_locz)
+-				=
+
+-				effect.gfx:SetPosition(self:UOPosToLocal(effect.current_locx + relx,ef=
+fect.current_locy + rely,effect.current_locz * 0.1 + relz))
+-			end
+-		end)
+-	end
+-	return true
++	return self:ParticleEffectHelper(effect, relx, rely, relz)
+ end
+ =
+
+ =
+
+
+Modified: trunk/lua/lib.mainmenu.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mainmenu.lua (original)
++++ trunk/lua/lib.mainmenu.lua Tue Sep  2 01:10:20 2008
+@@ -119,7 +119,7 @@
+ 	-- set z position to terrainheight at starting location
+ 	local tt,zz =3D GetGroundAtAbsPos(-x,y)
+ 	if zz then
+-		print(&quot;#&quot;,x,y,tt,z,zz) =
+
++		--~ print(&quot;#&quot;,x,y,tt,z,zz) =
+
+ 		z =3D zz
+ 	end
+ =
+
+
+Modified: trunk/lua/net/net.effect.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.effect.lua (original)
++++ trunk/lua/net/net.effect.lua Tue Sep  2 01:10:20 2008
+@@ -1,3 +1,8 @@
++kEffectType_FromSourceToDest =3D 0
++kEffectType_LightningStrikeAtSource =3D 1
++kEffectType_StayAtCurrentPosition =3D 2
++kEffectType_FollowSource =3D 3
++
+ =
+
+ -- Graphical Effect (Hued Art-Gfx / see Tiledata for Animation) - Billboar=
+d or 3d Statics?
+ function gPacketHandler.kPacket_Hued_FX()	--0xC0
+@@ -17,7 +22,7 @@
+ 	effect.target_locy =3D input:PopNetUint16()
+ 	effect.target_locz =3D input:PopNetUint8()
+ =
+
+-	effect.speed =3D input:PopNetUint8()
++	effect.speed =3D input:PopNetUint8()	-- animation speed?
+ 	effect.duration =3D input:PopNetUint8()
+ 	effect.unkown =3D input:PopNetUint16()
+ 	effect.fixeddirection =3D input:PopNetUint8()		-- fixed duration ??
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001238.html">[Iris-commit] [IRIS] r2433 - /trunk/lua/lib.mainmenu.lua
+</A></li>
+	<LI>Next message: <A HREF="001241.html">[Iris-commit] [IRIS] r2435 - /trunk/lua/lib.3d.renderer.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1239">[ date ]</a>
+              <a href="thread.html#1239">[ thread ]</a>
+              <a href="subject.html#1239">[ subject ]</a>
+              <a href="author.html#1239">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

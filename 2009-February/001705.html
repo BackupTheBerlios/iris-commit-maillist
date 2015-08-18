@@ -1,0 +1,877 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2903 - in /trunk: config/ config/chars/ lua/lib.macrolist.lua lua/lib.net.lua lua/lib.protocol.lua lua/lib.shardlist.lua lua/main.lua lua/net/net.login.lua lua/net/net.mobile.lua lua/net/net.skill.lua plugins/moblist.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2009-February/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2903%20-%20in%20/trunk%3A%20config/%20config/chars/%0A%20lua/lib.macrolist.lua%20lua/lib.net.lua%20lua/lib.protocol.lua%0A%20lua/lib.shardlist.lua%20lua/main.lua%20lua/net/net.login.lua%0A%20lua/net/net.mobile.lua%20lua/net/net.skill.lua%20plugins/moblist.lua&In-Reply-To=%3C20090208030903.BBC081C1884D%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001704.html">
+   <LINK REL="Next"  HREF="001706.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2903 - in /trunk: config/ config/chars/ lua/lib.macrolist.lua lua/lib.net.lua lua/lib.protocol.lua lua/lib.shardlist.lua lua/main.lua lua/net/net.login.lua lua/net/net.mobile.lua lua/net/net.skill.lua plugins/moblist.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2903%20-%20in%20/trunk%3A%20config/%20config/chars/%0A%20lua/lib.macrolist.lua%20lua/lib.net.lua%20lua/lib.protocol.lua%0A%20lua/lib.shardlist.lua%20lua/main.lua%20lua/net/net.login.lua%0A%20lua/net/net.mobile.lua%20lua/net/net.skill.lua%20plugins/moblist.lua&In-Reply-To=%3C20090208030903.BBC081C1884D%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2903 - in /trunk: config/ config/chars/ lua/lib.macrolist.lua lua/lib.net.lua lua/lib.protocol.lua lua/lib.shardlist.lua lua/main.lua lua/net/net.login.lua lua/net/net.mobile.lua lua/net/net.skill.lua plugins/moblist.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sun Feb  8 04:09:03 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001704.html">[Iris-commit] [IRIS] r2902 - in /trunk/lua: lib.mainmenu.lua lib.shardlist.lua net/net.login.lua
+</A></li>
+        <LI>Next message: <A HREF="001706.html">[Iris-commit] [IRIS] r2904 - in /trunk/lua: lib.shardlist.lua	net/net.login.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1705">[ date ]</a>
+              <a href="thread.html#1705">[ thread ]</a>
+              <a href="subject.html#1705">[ subject ]</a>
+              <a href="author.html#1705">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sun Feb  8 04:09:02 2009
+New Revision: 2903
+
+Log:
+startingame : removed execmapchange, since the facet is not yet known at th=
+at point, so it's usually wasted time, so login should be a few secs faster=
+ now. ping can now be sent before ingame, might be needed for char creation=
+ menu later, but doesn't work during charlist. account+char memory, now use=
+rnames,charnames and the equip+skills of chars that are logged in are store=
+d, these infos will later be used for displaying 3d or 2d images of the cha=
+rs, and skillinfos, before logging in.  moblist : blue arrow indicating Mac=
+roCmd_GetSmartTargetForLastSpell
+
+Added:
+    trunk/config/chars/   (with props)
+Modified:
+    trunk/config/   (props changed)
+    trunk/lua/lib.macrolist.lua
+    trunk/lua/lib.net.lua
+    trunk/lua/lib.protocol.lua
+    trunk/lua/lib.shardlist.lua
+    trunk/lua/main.lua
+    trunk/lua/net/net.login.lua
+    trunk/lua/net/net.mobile.lua
+    trunk/lua/net/net.skill.lua
+    trunk/plugins/moblist.lua
+
+Modified: trunk/lua/lib.macrolist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.macrolist.lua (original)
++++ trunk/lua/lib.macrolist.lua Sun Feb  8 04:09:02 2009
+@@ -54,17 +54,18 @@
+ kSmartSpellHealBig		=3D 29
+ kSmartSpellCureSmall	=3D 11
+ kSmartSpellCureBig		=3D 25
++-- returns serial,bIsFriendly
+ function MacroCmd_GetSmartTargetForLastSpell () -- smart targets for frien=
+dly spells (heal,cure)
+ 	if (gSmartLastSpellID) then =
+
+ 		if (gSmartLastSpellID =3D=3D kSmartSpellHealSmall or gSmartLastSpellID =
+=3D=3D kSmartSpellHealBig) then
+ 			local target =3D MobileList_GetWeakestFromList(MobileList_HealableParty=
+Members())
+ 			--~ print(&quot;healtarget&quot;,target)
+-			return target and target.serial or GetPlayerSerial()
++			return target and target.serial or GetPlayerSerial(),true
+ 		end
+ 		if (gSmartLastSpellID =3D=3D kSmartSpellCureSmall or gSmartLastSpellID =
+=3D=3D kSmartSpellCureBig) then
+ 			local target =3D MobileList_GetWeakestFromList(MobileList_CurablePartyM=
+embers())
+ 			--~ print(&quot;curetarget&quot;,target)
+-			return target and target.serial or GetPlayerSerial()
++			return target and target.serial or GetPlayerSerial(),true
+ 		end
+ 	end
+ 	-- gLastSpellID
+
+Modified: trunk/lua/lib.net.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.net.lua (original)
++++ trunk/lua/lib.net.lua Sun Feb  8 04:09:02 2009
+@@ -68,6 +68,8 @@
+ 	gHuffmanDecode =3D true
+ end
+ =
+
++function IsNetConnected () return gMainConnection and gMainConnection:IsCo=
+nnected() end
++
+ -- only sending, receiving and decoding, no packet handling triggered
+ function NetTrafficStep ()
+ 	if (not gMainConnection) then return end
+
+Modified: trunk/lua/lib.protocol.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.protocol.lua (original)
++++ trunk/lua/lib.protocol.lua Sun Feb  8 04:09:02 2009
+@@ -2,10 +2,6 @@
+ =
+
+ -- register packet types
+ dofile(libpath .. &quot;lib.packet.lua&quot;)
+-
+-
+-gCharacterList =3D {}
+-gCities =3D {}
+ =
+
+ -- register packet handlers
+ gPacketHandler =3D {}
+
+Modified: trunk/lua/lib.shardlist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.shardlist.lua (original)
++++ trunk/lua/lib.shardlist.lua Sun Feb  8 04:09:02 2009
+@@ -1,3 +1,14 @@
++
++-- paths
++
++function GetConfigDirPath				() return gMainWorkingDir..&quot;config/&quot; end
++function GetShardListDirPath			() return GetConfigDirPath()..&quot;shards/&quot; end
++function GetShardMemoryFilePath			() return GetConfigDirPath()..&quot;shardmemo=
+ry.xml&quot; end
++function GetCharFilePath				() return GetConfigDirPath()..&quot;chars/&quot;..gLogin=
+ServerIP..&quot;.&quot;..gLoginServerPort..&quot;.&quot;..gLoginname..&quot;.&quot;..gCharID..&quot;.xml&quot; end
++function GetShardConfigFilePath 		(shardname) return GetShardListDirPath()=
+..string.gsub(shardname,&quot;[^0-9a-zA-Z_%-%(%) ]&quot;,&quot;.&quot;)..&quot;.xml&quot; end
++
++
++-- notes
+ =
+
+ --[[
+ shard=3D{
+@@ -7,22 +18,87 @@
+ 			charname,skills,body(male,female,skintone),equip(hair,armor,weap,mount)
+ 		}
+ 	}
++
++shardclick : =
+
++	acclist + charlist soweit bekannt. =
+
++		charlist nach shardlogin updaten
++
+ ]]--
+ =
+
++
++
++
+ function InitShardList () =
+
++	LoadShardMemory()
++	LoadShardList()
+ 	--~ for shardname,shard in pairs(gShardList) do
+ 		--~ local filepath =3D GetShardConfigFilePath(shardname)
+ 		--~ print(&quot;InitShardList&quot;,shardname,shard,filepath)
+ 		--~ SimpleXMLSave(filepath,shard)
+ 	--~ end
+ 	--~ SimpleXML_Test()
+-	LoadShardList()
+ 	--~ os.exit(0)
+ end
+ =
+
+-function GetConfigDirPath				() return gMainWorkingDir..&quot;config/&quot; end
+-function GetShardListDirPath			() return GetConfigDirPath()..&quot;shards/&quot; end
+-function GetShardConfigFilePath 		(shardname) return GetShardListDirPath()=
+..string.gsub(shardname,&quot;[^0-9a-zA-Z_%-%(%) ]&quot;,&quot;.&quot;)..&quot;.xml&quot; end
++
++
++
++-- ***** ***** ***** ***** ***** chars
++
++
++RegisterListener(&quot;Hook_Packet_Character_List&quot;,function (charlist) =
+
++	-- gLoginname,gPassword,gLoginServerIP,gLoginServerPort
++	local plaincharlist =3D {}
++	for k,v in pairs(charlist.chars) do plaincharlist[k] =3D v.name end
++	ShardMemorySet(&quot;charlist&quot;,gLoginServerIP..&quot;:&quot;..gLoginServerPort..&quot;:&quot;..gLo=
+ginname,plaincharlist)
++end)
++
++RegisterListener(&quot;Hook_Player_Full_equip&quot;,function (mobiledata,equipmentda=
+ta) =
+
++	if (gShardListPlayerEquipAlreadySaved) then return end
++	gShardListPlayerEquipAlreadySaved =3D true
++	ShardListSavePlayerMobile()
++	RegisterIntervalStepper(30*1000,ShardListSavePlayerMobile) =
+
++end)
++
++RegisterListener(&quot;Hook_Player_Skills&quot;,function (skills) =
+
++	if (gShardListPlayerSkillAlreadySaved) then return end
++	gShardListPlayerSkillAlreadySaved =3D true
++	ShardListSavePlayerMobile()
++end)
++
++-- stores body,equip,mount       todo : skills, but change too often for x=
+ml
++function ShardListSavePlayerMobile ()
++	local mobile =3D GetPlayerMobile()
++	print(&quot;###ShardListSavePlayerMobile&quot;,mobile,gPlayerSkills)
++	if (not mobile) then return end
++	if (not gPlayerSkills) then return end
++	local charname =3D gCharName
++	=
+
++	-- calc and check has, no need to save if nothing changed
++	local hash =3D {mobile.artid,mobile.hue}
++	for k,layer in pairs(gLayerType) do =
+
++		local item =3D mobile:GetEquipmentAtLayer(layer) =
+
++		if (item) then table.insert(hash,item.serial) end
++	end
++	for skillid,skill in pairs(gPlayerSkills) do table.insert(hash,skill.base=
+_value) end
++	hash =3D table.concat(hash,&quot;#&quot;)
++	if (hash =3D=3D gShardListSavePlayerMobile_LastHash) then return end
++	gShardListSavePlayerMobile_LastHash =3D hash
++	=
+
++	-- save the data
++	print(&quot;saving data...&quot;,hash)
++	local data =3D {	charname=3Dcharname, artid=3Dmobile.artid, hue=3Dmobile.=
+hue, xloc=3Dmobile.xloc, yloc=3Dmobile.yloc, map=3DgMapIndex, equip=3D{},sk=
+ills=3D{} }
++	for k,layer in pairs(gLayerType) do =
+
++		local item =3D mobile:GetEquipmentAtLayer(layer) =
+
++		if (item) then data.equip[layer] =3D {artid=3Ditem.artid,hue=3Ditem.hue}=
+ end
++	end
++	for skillid,skill in pairs(gPlayerSkills) do =
+
++		data.skills[skillid] =3D {value=3Dskill.value,base_value=3Dskill.base_va=
+lue,lockstate=3Dskill.lockstate,name=3DglSkillNames[skillid]} =
+
++	end
++	SimpleXMLSave(GetCharFilePath(),data)
++end
++
++-- ***** ***** ***** ***** ***** shard list =
+
+ =
+
+ function LoadShardList () =
+
+ 	local path_folder =3D GetShardListDirPath()
+@@ -37,8 +113,25 @@
+ 		end
+ 	end
+ end
++ =
+
++-- ***** ***** ***** ***** ***** shard memory =
+
+ =
+
+--- stored passwords
++function LoadShardMemory	() gShardMemory =3D	SimpleXMLLoad(GetShardMemoryF=
+ilePath()) or {} end
++function SaveShardMemory	()					SimpleXMLSave(GetShardMemoryFilePath(),gSh=
+ardMemory) end
++
++function ShardMemoryGet		(listname,key) =
+
++	local list =3D gShardMemory[listname]
++	return list and list[key]
++end
++function ShardMemorySet		(listname,key,value)
++	local list =3D gShardMemory[listname]
++	if (not list) then list =3D {} gShardMemory[listname] =3D list end
++	list[key] =3D value
++	SaveShardMemory()
++	print(&quot;ShardMemorySet&quot;,listname,key)
++end
++
++-- ***** ***** ***** ***** ***** stored passwords
+ =
+
+ gStoredPasswords =3D {}
+ function GetStoredPasswordsFilePath () return GetConfigDirPath()..&quot;passwor=
+ds.xml&quot; end
+
+Modified: trunk/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/main.lua (original)
++++ trunk/lua/main.lua Sun Feb  8 04:09:02 2009
+@@ -522,8 +522,6 @@
+ =
+
+ 	gCurrentRenderer:Init()
+ =
+
+-	ExecuteMapChangeIfNeeded()
+-
+ 	gCurrentRenderer:BlendOutLayersAbovePlayer()
+ 	=
+
+ 	-- Binds all InGame-Keys
+@@ -583,6 +581,11 @@
+ =
+
+ 	gProfiler_MainStep:Section(&quot;StepDebugMenu&quot;)
+ 	StepDebugMenu()
++	=
+
++	if (IsNetConnected() and gPingActive) then -- ping needed during characte=
+r selection and char create also
++		gProfiler_MainStep:Section(&quot;PingStep&quot;)
++		PingStep()
++	end
+ =
+
+ 	if (gInGameStarted) then
+ 		gProfiler_MainStep:Section(&quot;StepUODragDrop&quot;)
+@@ -593,8 +596,6 @@
+ 		if (not gNoOgre) then DisplayMemoryUsage(OgreMemoryUsage(&quot;all&quot;)) end
+ 		gProfiler_MainStep:Section(&quot;DisplayLoadingState&quot;)
+ 		DisplayLoadingState()
+-		gProfiler_MainStep:Section(&quot;PingStep&quot;)
+-		PingStep()
+ 		gProfiler_MainStep:Section(&quot;gCurrentRenderer:MainStep&quot;,true)
+ 		gCurrentRenderer:MainStep()
+ 	else
+
+Modified: trunk/lua/net/net.login.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.login.lua (original)
++++ trunk/lua/net/net.login.lua Sun Feb  8 04:09:02 2009
+@@ -4,8 +4,16 @@
+ gTooltipSupport =3D false
+ gPWReplace =3D &quot;??????&quot; -- prevent username/password appearing in debug du=
+mp
+ =
+
++gCities =3D {}
++gCharacterList =3D {}
++
++function LoginDebug2 (txt) =
+
++	--~ print(&quot;#&gt;--&lt;#LoginDebug2:&quot;..os.date(&quot;%H:%M:%S&quot;)..&quot;:&quot;..txt)
++end
++
+ -- TODO : write Set_ClientFeatures function !!
+-function gPacketHandler.kPacket_Server_List () --0xa8 - Recieve Serverlist=
+ from LoginServer
++function gPacketHandler.kPacket_Server_List ()  -- 0x5E  --0xa8 - Recieve =
+Serverlist from LoginServer
++	LoginDebug2(&quot;r:0x5E kPacket_Server_List&quot;)
+ 	local input =3D GetRecvFIFO()
+ 	local id =3D input:PopNetUint8()
+ 	local serverlist =3D {}
+@@ -34,7 +42,8 @@
+ end
+ =
+
+ -- len: 0x10C
+-function Send_SystemSpecs()
++function Send_SystemSpecs() -- 0xD9
++	LoginDebug2(&quot;s:0xD9 Send_SystemSpecs&quot;)
+ 	printdebug(&quot;login&quot;,&quot;NET: Send_SystemSpecs:&quot;)
+ 	local out =3D GetSendFIFO()
+ 	out:PushNetUint8(kPacket_Metrics)
+@@ -72,7 +81,8 @@
+ end
+ =
+
+ -- Recieve Serverredirect from LoginServer (0x8c)
+-function gPacketHandler.kPacket_Server_Redirect ()
++function gPacketHandler.kPacket_Server_Redirect () -- 0x8c
++	LoginDebug2(&quot;r:0x8c kPacket_Server_Redirect&quot;)
+ 	local input =3D GetRecvFIFO()
+ 	local id =3D input:PopNetUint8()
+ 	=
+
+@@ -96,6 +106,8 @@
+ 		NetDisconnect()
+ 		--connect to gameserver
+ 		printdebug(&quot;login&quot;,&quot;NET: connect to gameserver&quot;)
++		gPingActive =3D true
++		gNextPingTime =3D 0
+ 		local res =3D NetConnectWithKey(gameserverip,gameserverport,gameserverac=
+count)
+ 		if (not res) then
+ 			FatalErrorMessage(&quot;kPacket_Server_Redirect : login server redirect fail=
+ed&quot;)
+@@ -120,7 +132,8 @@
+ 0x0080 =3D Enable ML Features: new race, spells
+ ]]--
+ --NET: Client features received: 0x80fb
+-function gPacketHandler.kPacket_Features ()
++function gPacketHandler.kPacket_Features () -- 0xB9
++	LoginDebug2(&quot;r:0xB9 kPacket_Features&quot;)
+ 	local input =3D GetRecvFIFO()
+ 	local id =3D input:PopNetUint8()
+ 	local clientfeatures =3D input:PopNetUint16()
+@@ -129,6 +142,7 @@
+ =
+
+ -- Receive Character List from GameServer
+ function gPacketHandler.kPacket_Character_List() -- 0xA9
++	LoginDebug2(&quot;r:0xA9 kPacket_Character_List&quot;)
+ 	local characterslots =3D 5
+ 	local input =3D GetRecvFIFO()
+ 	local id =3D input:PopNetUint8()
+@@ -210,11 +224,13 @@
+ 	0x400 =3D KR support flag2
+ 	]]--
+ 	=
+
++	NotifyListener(&quot;Hook_Packet_Character_List&quot;,charlist)
+ 	MainMenuShowCharList(charlist)
+ end
+ =
+
+ -- Receive Login Confirm from GameServer
+-function gPacketHandler.kPacket_Login_Confirm()
++function gPacketHandler.kPacket_Login_Confirm() -- 0x1B
++	LoginDebug2(&quot;r:0x1B kPacket_Login_Confirm&quot;)
+ 	local input =3D GetRecvFIFO()
+ 	local id =3D input:PopNetUint8()
+ =
+
+@@ -224,8 +240,7 @@
+ 	mobiledata.artid	=3D input:PopNetUint16()
+ 	mobiledata.xloc	=3D input:PopNetUint16()
+ 	mobiledata.yloc	=3D input:PopNetUint16()
+-	mobiledata.unknown0 =3D input:PopNetUint8()
+-	mobiledata.zloc	=3D input:PopInt8()
++	mobiledata.zloc	=3D input:PopInt16()
+ 	mobiledata.dir	=3D input:PopNetUint8()
+ =
+
+ 	mobiledata.unknown2 =3D input:PopNetUint16()
+@@ -265,6 +280,7 @@
+ -- works on RunUO...don't know if all servers send this !?
+ -- StartGame Packet
+ function gPacketHandler.kPacket_Login_Complete()
++	LoginDebug2(&quot;r:0x55 kPacket_Login_Complete&quot;)
+ 	local input =3D GetRecvFIFO()
+ 	local id =3D input:PopNetUint8()
+ 	printdebug(&quot;login&quot;,sprintf(&quot;NET: Login_Complete with id: %i\n&quot;,id))
+@@ -283,6 +299,7 @@
+ =
+
+ -- Loginserver Login rejected - Errorcode returned
+ function gPacketHandler.kPacket_Login_Reject() -- 0x53
++	LoginDebug2(&quot;r:0x53 kPacket_Login_Reject&quot;)
+ 	local input =3D GetRecvFIFO()
+ 	local id =3D input:PopNetUint8()
+ 	local value =3D input:PopNetUint8()
+@@ -303,6 +320,7 @@
+ 		=
+
+ -- GameServer Login failed - Errorcode returned
+ function gPacketHandler.kPacket_Account_Login_Failed() -- 0x82
++	LoginDebug2(&quot;r:0x82 kPacket_Account_Login_Failed&quot;)
+ 	local input =3D GetRecvFIFO()
+ 	local id =3D input:PopNetUint8()
+ 	local value =3D input:PopNetUint8()
+@@ -315,7 +333,8 @@
+ end
+ =
+
+ -- Server requests Clientversion (NEW?)
+-function gPacketHandler.kPacket_Client_Version()
++function gPacketHandler.kPacket_Client_Version() -- 0xBD
++	LoginDebug2(&quot;r:0xBD kPacket_Client_Version&quot;)
+ 	local input =3D GetRecvFIFO()
+ 	local id =3D input:PopNetUint8()
+ 	local value =3D input:PopNetUint16()
+@@ -330,10 +349,11 @@
+ =
+
+ -- send login server request 0x80
+ -- answered by 0xA8 kPacket_Server_List which calls MainMenuShowServerList
+-function Send_Account_Login_Request	(sName,sPassword,iSeed)
++function Send_Account_Login_Request	(sName,sPassword,iSeed) -- 0x80
++	LoginDebug2(&quot;s:0x80 Send_Account_Login_Request&quot;)
+ 	printdebug(&quot;login&quot;,sprintf(&quot;NET: Account_Login_Request: Name: %s Password=
+:<i> %s\n&quot;,gPWReplace or sName,gPWReplace or sPassword))
+</I> 	local out =3D GetSendFIFO()
+-	out:PushNetUint8(kPacket_Account_Login_Request)
++	out:PushNetUint8(kPacket_Account_Login_Request) -- 0x80
+ 	out:PushFilledString(sName,30)
+ 	out:PushFilledString(sPassword,30)
+ 	out:PushNetUint8(iSeed or hex2num(&quot;0x5D&quot;))
+@@ -343,10 +363,11 @@
+ -- send gameserverselect to loginserver : kPacket_Server_Select 0xA0
+ -- answered by kPacket_Server_Redirect 0x8C
+ -- which calls Send_GameServer_PostLogin kPacket_Post_Login 0x91 =
+
+-function Send_GameServer_Select(iGameServerID)
++function Send_GameServer_Select(iGameServerID) -- 0xA0
++	LoginDebug2(&quot;s:0xA0 Send_GameServer_Select&quot;)
+ 	printdebug(&quot;login&quot;,sprintf(&quot;NET: GameServer_Select: %i\n&quot;,iGameServerID))
+ 	local out =3D GetSendFIFO()
+-	out:PushNetUint8(kPacket_Server_Select)
++	out:PushNetUint8(kPacket_Server_Select) -- 0xA0
+ 	out:PushNetUint16(iGameServerID)
+ 	out:SendPacket()
+ end
+@@ -354,10 +375,11 @@
+ -- send postlogin to gameserver  kPacket_Post_Login 0x91
+ -- something is wrong...runuo &amp; wolfpack detects invalid client
+ -- answered by kPacket_Features 0xB9 and  kPacket_Character_List 0xA9
+-function Send_GameServer_PostLogin(sName,sPassword,iAccount)
++function Send_GameServer_PostLogin(sName,sPassword,iAccount) -- 0x91
++	LoginDebug2(&quot;s:0x91 Send_GameServer_PostLogin&quot;)
+ 	printdebug(&quot;login&quot;,sprintf(&quot;NET: GameServer_PostLogin: Name: %s Password:=
+ %s AccountNr.: 0x%08x\n&quot;,gPWReplace or sName,gPWReplace or sPassword,iAcco=
+unt))
+ 	local out =3D GetSendFIFO()
+-	out:PushNetUint8(kPacket_Post_Login)
++	out:PushNetUint8(kPacket_Post_Login) -- 0x91
+ 	out:PushNetUint32(iAccount)
+ 	out:PushFilledString(sName,30)
+ 	out:PushFilledString(sPassword,30)
+@@ -410,16 +432,21 @@
+ 	out:SendPacket()
+ end
+ =
+
+--- send characterselect to gameserver
++-- send characterselect to gameserver  0x5D
+ function Send_Character_Select(iCharacterID,iAccount)
++	LoginDebug2(&quot;s:0x5D Send_Character_Select&quot;)
+ 	printdebug(&quot;login&quot;,sprintf(&quot;NET: Character_Select: %i Name: %s Password: =
+%s AccountNr.:%x\n&quot;,
+ 			iCharacterID,gCharacterList[iCharacterID].name,gCharacterList[iCharacte=
+rID].pw,iAccount))
+-	local out =3D GetSendFIFO()
+-	out:PushNetUint8(kPacket_Pre_Login)
++			=
+
++	gCharName =3D gCharacterList[iCharacterID].name
++	gCharID =3D iCharacterID
++	=
+
++	local out =3D GetSendFIFO()
++	out:PushNetUint8(kPacket_Pre_Login) -- 0x5D
+ 	out:PushNetUint32(hex2num(&quot;0xedededed&quot;))
+-	out:PushFilledString(gCharacterList[iCharacterID].name,30)
+-
+---	out:PushFilledString(gCharacterList[iCharacterID].pw,30)
++	out:PushFilledString(gCharName,30)
++
++	--	out:PushFilledString(gCharacterList[iCharacterID].pw,30)
+ =
+
+ 	out:PushNetUint16(0)
+ 	out:PushNetUint32(hex2num(&quot;0x0000001F&quot;))	-- RunUO uses this unknown flags=
+ (maybe for map 3,4 support)
+@@ -433,10 +460,12 @@
+ 	out:SendPacket()
+ end
+ =
+
+--- client identification
++-- client identification  0x34
+ function Send_ClientQuery(iMode,iCharacterID)
+-	local out =3D GetSendFIFO()
+-	out:PushNetUint8(kPacket_Client_Query)
++	LoginDebug2(&quot;s:0x34 Send_ClientQuery&quot;..iMode..sprintf(&quot;:0x%08x&quot;,iCharacte=
+rID))
++	--~ print(_TRACEBACK())
++	local out =3D GetSendFIFO()
++	out:PushNetUint8(kPacket_Client_Query) -- 0x34
+ 	out:PushNetUint32(hex2num(&quot;0xedededed&quot;))
+ 	out:PushNetUint8(iMode)
+ 	out:PushNetUint32(iCharacterID)
+@@ -445,10 +474,11 @@
+ =
+
+ -- Submits ClientVersion to Server
+ function Send_ClientVersion(sClientVersion)
++	LoginDebug2(&quot;s:0xBD Send_ClientVersion&quot;)
+ 	printdebug(&quot;login&quot;,sprintf(&quot;NET: Client_Version: Client identified as %s.=
+\n&quot;, sClientVersion))
+ 	local out =3D GetSendFIFO()
+ 	local size =3D string.len(sClientVersion)
+-	out:PushNetUint8(kPacket_Client_Version)
++	out:PushNetUint8(kPacket_Client_Version) -- 0xBD
+ 	out:PushNetUint16(4+size)
+ 	out:PushFilledString(sClientVersion,size)
+ 	out:PushNetUint8(0)
+@@ -457,9 +487,10 @@
+ =
+
+ -- Submits Client Language to Server
+ function Send_ClientLanguage(lang)
++	LoginDebug2(&quot;s:0xBF Send_ClientLanguage&quot;)
+ 	printdebug(&quot;login&quot;,sprintf(&quot;NET: Client submits ClientLanguage=3D%s\n&quot;,la=
+ng))
+ 	local out =3D GetSendFIFO()
+-	out:PushNetUint8(kPacket_Generic_Command)
++	out:PushNetUint8(kPacket_Generic_Command) -- 0xBF
+ 	out:PushNetUint16(hex2num(&quot;0x09&quot;))
+ 	out:PushNetUint16(kPacket_Generic_SubCommand_ClientLanguage)
+ 	out:PushFilledString(lang, 3)
+@@ -469,9 +500,10 @@
+ =
+
+ -- Submits Screensize
+ function Send_Screensize()
++	LoginDebug2(&quot;s:0xBF Send_Screensize&quot;)
+ 	printdebug(&quot;login&quot;,sprintf(&quot;NET: Client submits Screensize=3D%s\n&quot;,&quot;x,y&quot;))
+ 	local out =3D GetSendFIFO()
+-	out:PushNetUint8(kPacket_Generic_Command)
++	out:PushNetUint8(kPacket_Generic_Command) -- 0xBF
+ 	out:PushNetUint16(hex2num(&quot;0x0D&quot;))
+ 	out:PushNetUint16(kPacket_Generic_SubCommand_Screensize)
+ 	out:PushNetUint32(hex2num(&quot;0x00000320&quot;))
+@@ -481,9 +513,10 @@
+ =
+
+ -- Submits Unknown Cmd2
+ function Send_UnknownCommand()
++	LoginDebug2(&quot;s:0xBF Send_UnknownCommand&quot;)
+ 	printdebug(&quot;login&quot;,sprintf(&quot;NET: Client submits Unknowncmd=3D%s\n&quot;,&quot;0x0A0=
+000001F&quot;))
+ 	local out =3D GetSendFIFO()
+-	out:PushNetUint8(kPacket_Generic_Command)
++	out:PushNetUint8(kPacket_Generic_Command) -- 0xBF
+ 	out:PushNetUint16(hex2num(&quot;0x0A&quot;))
+ 	out:PushNetUint16(hex2num(&quot;0x000F&quot;))
+ 	out:PushNetUint32(hex2num(&quot;0x0A000000&quot;))
+@@ -493,9 +526,10 @@
+ =
+
+ -- Submits UnknownSE
+ function Send_UnknownSE()
++	LoginDebug2(&quot;s:0xBF Send_UnknownSE&quot;)
+ 	printdebug(&quot;login&quot;,sprintf(&quot;NET: Client submits UnknownSE%s\n&quot;,&quot;&quot;))
+ 	local out =3D GetSendFIFO()
+-	out:PushNetUint8(kPacket_Generic_Command)
++	out:PushNetUint8(kPacket_Generic_Command) -- 0xBF
+ 	out:PushNetUint16(hex2num(&quot;0x06&quot;))
+ 	out:PushNetUint16(kPacket_Generic_SubCommand_UnknownSE)
+ 	out:PushNetUint8(hex2num(&quot;0x83&quot;))
+
+Modified: trunk/lua/net/net.mobile.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.mobile.lua (original)
++++ trunk/lua/net/net.mobile.lua Sun Feb  8 04:09:02 2009
+@@ -14,13 +14,14 @@
+ 	mobiledata.flag			=3D input:PopNetUint8()
+ 	mobiledata.notoriety	=3D input:PopNetUint8()
+ 	=
+
+-	local xloc,yloc =3D GetPlayerPos()
+-	local dist =3D dist2max(xloc,yloc,mobiledata.xloc,mobiledata.yloc)
++	--~ print(&quot;#&gt;--&lt;#kPacket_Naked_MOB&quot;,sprintf(&quot;0x%08x&quot;,mobiledata.serial),m=
+obiledata.xloc,mobiledata.yloc)
++	--~ local xloc,yloc =3D GetPlayerPos()
++	--~ local dist =3D dist2max(xloc,yloc,mobiledata.xloc,mobiledata.yloc)
+ 	--~ if (dist &gt; gUpdateRange_MobileDestroy) then print(&quot;kPacket_Naked_MOB =
+:<i> dist &gt;=3D &quot;,dist) end
+</I> 	=
+
+-	if (mobiledata.serial =3D=3D 0x001b5369) then
+-		printdebug(&quot;corpse&quot;,&quot;CORPSECODE kPacket_Naked_MOB&quot;,mobiledata.artid,mobi=
+ledata.flag,mobiledata.notoriety)
+-	end
++	--~ if (mobiledata.serial =3D=3D 0x001b5369) then
++		--~ printdebug(&quot;corpse&quot;,&quot;CORPSECODE kPacket_Naked_MOB&quot;,mobiledata.artid,=
+mobiledata.flag,mobiledata.notoriety)
++	--~ end
+ 	=
+
+ 	local mobile =3D CreateOrUpdateMobile(mobiledata)
+ end
+@@ -80,7 +81,9 @@
+ 		equipmentdata[dynamicdata.layer] =3D dynamicdata
+ 	end
+ 	=
+
++	--~ print(&quot;#&gt;--&lt;#kPacket_Equipped_MOB&quot;,sprintf(&quot;0x%08x&quot;,mobiledata.serial=
+),mobiledata.xloc,mobiledata.yloc)
+ 	CreateOrUpdateMobile(mobiledata,equipmentdata)
++	if (mobiledata.serial =3D=3D GetPlayerSerial()) then NotifyListener(&quot;Hook=
+_Player_Full_equip&quot;,mobiledata,equipmentdata) end
+ end
+ =
+
+ -- 0x20 Teleport packet (also known as ProtocolRecv_Draw_Player)
+@@ -102,6 +105,7 @@
+ 	mobiledata.dir 					=3D input:PopNetUint8()
+ 	mobiledata.zloc 				=3D input:PopInt8()
+ 	=
+
++	--~ print(&quot;#&gt;--&lt;#kPacket_Teleport&quot;,sprintf(&quot;0x%08x&quot;,mobiledata.serial),mo=
+biledata.xloc,mobiledata.yloc)
+ 	NotifyTeleport(mobiledata) -- calls CreateOrUpdateMobile and assigns play=
+erid
+ end
+ =
+
+
+Modified: trunk/lua/net/net.skill.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.skill.lua (original)
++++ trunk/lua/net/net.skill.lua Sun Feb  8 04:09:02 2009
+@@ -69,6 +69,8 @@
+ 		printdebug(&quot;skill&quot;,sprintf(&quot;NET (todo): skill: %s [id=3D%i] skill_value:=
+ %i skill_base_value: %i locked?: %i\n&quot;,skill_name,skill_id,skill_value,ski=
+ll_base_value,skill_lock_state))
+ 		SkillUpdate(skill_id,skill_value,skill_base_value,skill_lock_state,skill=
+_name)
+ 	end
++	=
+
++	NotifyListener(&quot;Hook_Player_Skills&quot;,gPlayerSkills)
+ end
+ =
+
+ =
+
+
+Modified: trunk/plugins/moblist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/plugins/moblist.lua (original)
++++ trunk/plugins/moblist.lua Sun Feb  8 04:09:02 2009
+@@ -26,9 +26,6 @@
+ RegisterWidgetClass(&quot;UOMobListItem&quot;)
+ =
+
+ =
+
+-function gWidgetPrototype.UOMobList:UpdateSmartTargetIndicator ()
+-	local serial =3D MacroCmd_GetSmartTargetForLastSpell()
+-end
+ 	=
+
+ function gWidgetPrototype.UOMobList:Init (parentwidget,params)
+ 	self:InitAsGroup(parentwidget,params)
+@@ -40,6 +37,8 @@
+ 	=
+
+ 	self.gfx_maintarget_listmarker =3D self:CreateChild(&quot;UOText&quot;,{x=3D0,y=3D0=
+,text=3D&quot;&gt;&quot;,col=3D{r=3D1,g=3D0,b=3D0},bold=3Dtrue})
+ 	self.gfx_maintarget_listmarker:SetVisible(false)
++	self.gfx_maintarget_listmarker2 =3D self:CreateChild(&quot;UOText&quot;,{x=3D0,y=3D=
+0,text=3D&quot;&gt;&quot;,col=3D{r=3D0,g=3D0,b=3D1},bold=3Dtrue})
++	self.gfx_maintarget_listmarker2:SetVisible(false)
+ 	self.gfx_maintarget =3D gRootWidget.tooltip:CreateChild(&quot;UOText&quot;,{x=3D0,y=
+=3D0,text=3D&quot;&quot;,col=3D{r=3D1,g=3D0,b=3D0},bold=3Dtrue,html=3Dtrue})
+ 	self.gfx_maintarget_line =3D gRootWidget.tooltip:CreateChild(&quot;LineList&quot;,{=
+matname=3D&quot;BaseWhiteNoLighting&quot;,bDynamic=3Dtrue,r=3D1,g=3D0,b=3D0})
+ 	=
+
+@@ -188,6 +187,31 @@
+ 		end
+ 	else
+ 		self.gfx_maintarget_listmarker:SetVisible(false)
++	end
++end
++
++function gWidgetPrototype.UOMobList:UpdateSmartTargetIndicator ()
++	local serial =3D MacroCmd_GetSmartTargetForLastSpell()
++	local ypos =3D nil
++	=
+
++	if (serial) then
++		local mobile =3D GetMobile(serial)
++		local moblist_item =3D mobile and mobile.moblist_item
++		if (moblist_item) then =
+
++			local ax,ay =3D moblist_item:GetDerivedPos()
++			local bx,by =3D self:GetDerivedPos()
++			ypos =3D ay-by
++		end
++	end
++	-- only update if changed
++	if (self.mySmartTargetIndicator_lastypos ~=3D ypos) then
++		self.mySmartTargetIndicator_lastypos  =3D ypos
++		if (ypos) then
++			self.gfx_maintarget_listmarker2:SetVisible(true)
++			self.gfx_maintarget_listmarker2:SetPos(kMainTargetListMarkerOffX-5,kMai=
+nTargetListMarkerOffY+ypos)
++		else =
+
++			self.gfx_maintarget_listmarker2:SetVisible(false)
++		end
+ 	end
+ end
+ =
+
+@@ -237,6 +261,7 @@
+ 	-- uoam-name-widgets
+ 	self:UOAMStep()
+ 	self:StepPartyMarkers()
++	self:UpdateSmartTargetIndicator()
+ 	=
+
+ 	-- maintarget text : update position on screen
+ 	if (self.maintarget_serial) then
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001704.html">[Iris-commit] [IRIS] r2902 - in /trunk/lua: lib.mainmenu.lua lib.shardlist.lua net/net.login.lua
+</A></li>
+	<LI>Next message: <A HREF="001706.html">[Iris-commit] [IRIS] r2904 - in /trunk/lua: lib.shardlist.lua	net/net.login.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1705">[ date ]</a>
+              <a href="thread.html#1705">[ thread ]</a>
+              <a href="subject.html#1705">[ subject ]</a>
+              <a href="author.html#1705">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,729 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r3025 - in /trunk: lua/ lua/widgets/ plugins/
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2009-May/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3025%20-%20in%20/trunk%3A%20lua/%20lua/widgets/%20plugins/&In-Reply-To=%3C20090519222243.AB8D41C188D1%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001823.html">
+   <LINK REL="Next"  HREF="001825.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r3025 - in /trunk: lua/ lua/widgets/ plugins/</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3025%20-%20in%20/trunk%3A%20lua/%20lua/widgets/%20plugins/&In-Reply-To=%3C20090519222243.AB8D41C188D1%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r3025 - in /trunk: lua/ lua/widgets/ plugins/">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Wed May 20 00:22:43 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001823.html">[Iris-commit] [IRIS] r3024 - in /trunk/lua: lib.cursor.lua lib.mainmenu.charlist.lua net/net.cursor.lua
+</A></li>
+        <LI>Next message: <A HREF="001825.html">[Iris-commit] [IRIS] r3026 - /trunk/plugins/loot.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1824">[ date ]</a>
+              <a href="thread.html#1824">[ thread ]</a>
+              <a href="subject.html#1824">[ subject ]</a>
+              <a href="author.html#1824">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Wed May 20 00:22:43 2009
+New Revision: 3025
+
+Log:
+charcreate:randomname : two part names, UOButton:GetUOWidgetInfo for bottom=
+ of screen info on mouseover(2d mode), Hook_Tooltip_RefreshText which can m=
+odify the tooltip,e.g. debug, coloring... moblist : reposition on window re=
+size,  lootplugin modfied a bit, acclist : city info for stored position,  =
+uoam : improved error handling,   objectpicker code secured a bit, related =
+to help-request reopen while pending. couldn't test yet.
+
+Modified:
+    trunk/lua/lib.2d.mousepick.lua
+    trunk/lua/lib.macrolist.lua
+    trunk/lua/lib.mainmenu.accountlist.lua
+    trunk/lua/lib.mainmenu.charcreate.lua
+    trunk/lua/lib.objectpicker.lua
+    trunk/lua/lib.pathfind.lua
+    trunk/lua/lib.uoam.lua
+    trunk/lua/widgets/widget.uobutton.lua
+    trunk/lua/widgets/widget.uoedittext.lua
+    trunk/lua/widgets/widget.uotooltip.lua
+    trunk/plugins/loot.lua
+    trunk/plugins/moblist.lua
+
+Modified: trunk/lua/lib.2d.mousepick.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.mousepick.lua (original)
++++ trunk/lua/lib.2d.mousepick.lua Wed May 20 00:22:43 2009
+@@ -163,9 +163,12 @@
+ 		hitinfo =3D hitinfo..sprintf(&quot;mouserel(%d,%d)&quot;,x-xd,y-yd) =
+
+ 		local widget =3D GetWidgetUnderMouse()
+ 		if (widget) then =
+
+-			hitinfo =3D hitinfo..&quot;,&quot;..(widget.GetClassName and widget:GetClassName(=
+) or &quot;?&quot;)
++			local wx,wy =3D widget:GetPos()
++			hitinfo =3D hitinfo..&quot;,&quot;..(widget.GetClassName and widget:GetClassName(=
+) or &quot;?&quot;)..&quot;(&quot;..wx..&quot;,&quot;..wy..&quot;)&quot;
+ 			local p =3D widget.params
+ 			if (p) then hitinfo =3D hitinfo..&quot;,&quot;..(p.gumpcommand or &quot;?&quot;)..&quot;:&quot;..(p.g=
+ump_id or p.art_id or &quot;?&quot;) end
++			local uowidgetinfo =3D widget.GetUOWidgetInfo and widget:GetUOWidgetInf=
+o()
++			if (uowidgetinfo) then hitinfo =3D hitinfo .. &quot;,&quot; ..  uowidgetinfo end
+ 		end
+ 	end
+ 	=
+
+
+Modified: trunk/lua/lib.macrolist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.macrolist.lua (original)
++++ trunk/lua/lib.macrolist.lua Wed May 20 00:22:43 2009
+@@ -215,6 +215,7 @@
+ end)
+ gMacroJobsWaitingForTarget =3D {}
+ function MacroCmd_JobWaitForTarget(timeout) -- returns true if IsTargetMod=
+eActive
++	if (IsTargetModeActive()) then return true end
+     gMacroJobsWaitingForTarget[job.running_id()] =3D true
+     job.wait(timeout or 30000)
+     gMacroJobsWaitingForTarget[job.running_id()] =3D nil
+@@ -488,6 +489,7 @@
+     local playermobile =3D GetPlayerMobile()
+     return playermobile and GetMobileEquipmentItem(playermobile,layer)
+ end
++function MacroCmd_GetItemInHand () return MacroCmd_GetPlayerEquipment(kLay=
+er_OneHanded) end
+ function MacroCmd_IsMounted () return MacroCmd_GetPlayerEquipment(kLayer_M=
+ount) ~=3D nil end
+ function MacroCmd_Dismount ()
+     if (MacroCmd_IsMounted()) then Send_DoubleClick(GetPlayerSerial()) ret=
+urn true end -- todo : check if mounted
+@@ -512,6 +514,8 @@
+     Send_Drop_Object(takeserial,xloc,yloc,zloc,0xFFFFFFFF)
+ end
+ =
+
++-- 0x0c9e : ohii tree not hackable
++function MacroCmd_IsHackableTrees (artid) return 0x0c9e ~=3D artid and Str=
+ingContains(string.lower(GetStaticTileTypeName(artid)),&quot;tree&quot;) end
+ function MacroCmd_FindNearbyTrees (r) return MacroCmd_FindNearbyStatics(r,=
+&quot;tree&quot;,{0x0c9e}) end -- ohii tree not hackable
+ function MacroCmd_FindNearbyStatics (r,namepart,skipartidlist)
+     local res =3D {}
+
+Modified: trunk/lua/lib.mainmenu.accountlist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mainmenu.accountlist.lua (original)
++++ trunk/lua/lib.mainmenu.accountlist.lua Wed May 20 00:22:43 2009
+@@ -63,6 +63,34 @@
+                 if (chardata) then
+                     local timediff =3D os.time() - (chardata.time or 0)
+                     charinfo =3D charinfo .. floor(timediff/3600/24)..&quot;d.&quot;
++					=
+
++					local places =3D { -- map,xloc,yloc,radius
++						moonglow	=3D{1,4470,1170,200},
++						jhelom		=3D{1,1410,3810,200},
++						yew			=3D{1,540,980,200},
++						minoc		=3D{1,2520,580,200},
++						vesper		=3D{1,2890,670,200},
++						scarabrae	=3D{1,600,2130,200},
++						magincia	=3D{1,3720,2160,200},
++						haven		=3D{1,3490,2560,200},
++						trinsic		=3D{1,1810,2820,200},
++						brit		=3D{1,1500,1620,200},
++						nujelm		=3D{1,3760,1300,200},
++						cove		=3D{1,2230,1210,200},
++						serp		=3D{1,2890,3470,200},
++						bucs		=3D{1,2700,2160,200},
++						prison		=3D{1,1715,1064,100},
++					}
++					local placename
++					local mymap =3D chardata.map or 1
++					if (mymap =3D=3D 0) then mymap =3D 1 end -- same places on fellu as o=
+n tram
++					for k,v in pairs(places) do =
+
++						local map,xloc,yloc,radius =3D unpack(v)
++						if (mymap =3D=3D map and GetUODistToPos(xloc,yloc,chardata.xloc or 0=
+,chardata.yloc or 0) &lt;=3D radius) then placename =3D k break end
++					end =
+
++					if (placename) then charinfo =3D charinfo .. &quot;[&quot;..placename..&quot;]&quot;..&quot;.&quot;=
+ end
++						=
+
++					=
+
+                     =
+
+                     -- glSkillNamesShort
+                     =
+
+@@ -70,12 +98,13 @@
+                     local arr =3D {}
+                     for k,skill in pairs(chardata.skills) do skill.id =3D =
+k end
+                     local skills2 =3D SortedArrayFromAssocTable(chardata.s=
+kills,function (a,b) return a.value &gt; b.value end)
+-                    for k,skill in ipairs(skills2) do =
+
+-                        table.insert(arr,glSkillNamesShort[skill.id]..&quot;:&quot;.=
+.(valname[skill.value] or sprintf(&quot;%0.1f&quot;,skill.value/10)))
++                    for k,skill in ipairs(skills2) do  -- skill.value &gt;=3D=
+ 50 -&gt; 5.0 skillpoints
++						if (skill.value &gt;=3D 50) then table.insert(arr,glSkillNamesShort[ski=
+ll.id]..&quot;:&quot;..(valname[skill.value] or sprintf(&quot;%0.1f&quot;,skill.value/10))) end
+                         if (k &gt;=3D 7) then break end
+                     end
+                     charinfo =3D charinfo .. table.concat(arr,&quot;,&quot;)
+                 end
++				print(&quot;charinfo:&quot;,user,char.name,charinfo)
+                 =
+
+                 table.insert(myrow,{char.name,fun_char})
+                 table.insert(myrow,{&quot;3D&quot;,function () gCurrentRenderer =3D =
+Renderer3D fun_char() end})
+
+Modified: trunk/lua/lib.mainmenu.charcreate.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mainmenu.charcreate.lua (original)
++++ trunk/lua/lib.mainmenu.charcreate.lua Wed May 20 00:22:43 2009
+@@ -4,7 +4,7 @@
+         see also kPacket_CharacterCreation -- 0x00
+ ]]--
+ =
+
+-function MainMenu_CharCreate_GetRandomName () return CapitalizeName(RndNam=
+eGenerate(6,10)) end  -- minsize,maxsize
++function MainMenu_CharCreate_GetRandomName () return CapitalizeName(RndNam=
+eGenerate(4,6)) .. &quot; &quot;..CapitalizeName(RndNameGenerate(4,8)) end  -- minsiz=
+e,maxsize
+ function MainMenu_CharCreate_Start ()
+     local forbiddenskills =3D {   gCharCreateSkillIDs[&quot;Stealth&quot;],
+                                 gCharCreateSkillIDs[&quot;Remove Trap&quot;],
+
+Modified: trunk/lua/lib.objectpicker.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.objectpicker.lua (original)
++++ trunk/lua/lib.objectpicker.lua Wed May 20 00:22:43 2009
+@@ -17,18 +17,27 @@
+ 	if (data.questionlen &gt; 0) then =
+
+ 		data.questiontxt =3D input:PopFilledString(data.questionlen)
+ 	end
++	local sizeleft =3D size - 1 - 2 - 4 - 2 - 1 - data.questionlen
+ 	data.entrynum		=3D input:PopNetUint8()
+ 	print(&quot;kPacket_Object_Picker&quot;,SmartDump(data))
+ 	data.entrylist =3D {}
+-	for i =3D 1,data.entrynum do =
+
++	for i =3D 1,data.entrynum do
++		if (sizeleft &lt;=3D 0) then break end
+ 		local entry =3D {}
+ 		entry.artid		=3D input:PopNetUint16() -- (e.ItemID &amp; 0x3FFF)
+ 		entry.hue		=3D 0
++		sizeleft =3D sizeleft - 2
+ 		if (entry.artid &gt; 0) then =
+
+ 			entry.hue		=3D input:PopNetUint16()
++			sizeleft =3D sizeleft - 2
+ 		end
+ 		entry.namelen	=3D input:PopNetUint8()
+ 		entry.name		=3D &quot;&quot;
++		sizeleft =3D sizeleft - 1
++		entry.namelen =3D min(entry.namelen,sizeleft)
++		sizeleft =3D sizeleft - entry.namelen
++		--~ print()
++		=
+
+ 		if (entry.namelen &gt; 0) then entry.name =3D input:PopFilledString(entry.n=
+amelen) end
+ 		print(&quot;kPacket_Object_Picker entry&quot;,SmartDump(entry))
+ 		table.insert(data.entrylist,entry)
+
+Modified: trunk/lua/lib.pathfind.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.pathfind.lua (original)
++++ trunk/lua/lib.pathfind.lua Wed May 20 00:22:43 2009
+@@ -48,7 +48,7 @@
+ 				local dist =3D GetUODistToPos(newxloc,newyloc,xloc1,yloc1)
+ 				if (dist &lt;=3D tolerance) then return self:CreateResult(pos,newxloc,new=
+yloc,newzloc,newdir) end -- target reached !
+ 				local t2 =3D t + walktime + ((newdir ~=3D dir) and turntime or 0)
+-				local heuristic =3D dist + t2/1000
++				local heuristic =3D dist -- + t2/1000
+ 				self:PushPos(newxloc,newyloc,newzloc,newdir,t2,heuristic,pos)
+ 			end
+ 		end
+
+Modified: trunk/lua/lib.uoam.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.uoam.lua (original)
++++ trunk/lua/lib.uoam.lua Wed May 20 00:22:43 2009
+@@ -86,6 +86,7 @@
+ =
+
+ =
+
+ RegisterStepper(function ()
++	if (gUOAMConnectionError) then return end
+ 	if (not gUOAMName) then return end
+ 	if (not gInGameStarted) then return end
+ 	local t =3D Client_GetTicks()
+@@ -102,6 +103,7 @@
+ 		gUOAMRecvFIFO =3D CreateFIFO()
+ 		=
+
+ 		UOAM_SendHandShake()
++		if (gUOAMConnectionError) then return end
+ 		UOAM_SendPosUpdate(gUOAMName,gUOAMPass,0x00,facetbyte,xloc,yloc) =
+
+ 	end
+ 	=
+
+@@ -266,6 +268,7 @@
+ function UOAM_TrafficStep ()
+ 	if ((not gUOAMConnection) or (not gUOAMConnection:IsConnected())) then =
+
+ 		print(&quot;uoam connection dead&quot;)
++		gUOAMConnectionError =3D true
+ 		return
+ 	end
+ 	gUOAMConnection:Push(gUOAMSendFIFO)
+
+Modified: trunk/lua/widgets/widget.uobutton.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/widgets/widget.uobutton.lua (original)
++++ trunk/lua/widgets/widget.uobutton.lua Wed May 20 00:22:43 2009
+@@ -50,6 +50,16 @@
+ =
+
+ function gWidgetPrototype.UOButton:GetReturnVal	() return self.params.retu=
+rn_value end
+ =
+
++function gWidgetPrototype.UOButton:GetUOWidgetInfo	()
++	local info =3D &quot;[gumpid=3D&quot;..self.params.gump_id_normal..&quot;]&quot;
++	if (self.params.uoclass =3D=3D kGumpClassName_VirtueGumpItem) then return=
+ info..&quot;virtue:&quot;..self.params.return_value end
++	local dialog =3D self:GetDialog()
++	local page_id =3D self.params.page_id
++	local return_value =3D self.params.return_value
++	if (page_id and page_id &gt; 0 and dialog.pages[page_id]) then return info..=
+&quot;PageChange:&quot;..page_id end
++	if (dialog.bClientSideMode) then return info..&quot;response(clientside):&quot;..re=
+turn_value end
++	return info..&quot;response:&quot;..return_value
++end
+ function gWidgetPrototype.UOButton:on_button_click	()
+ 	if (self.params.uoclass =3D=3D kGumpClassName_VirtueGumpItem) then
+ 		GumpReturnMsg(GetPlayerSerial(),kGumpTypeVirtue,self.params.return_value=
+) -- send virtue request
+
+Modified: trunk/lua/widgets/widget.uoedittext.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/widgets/widget.uoedittext.lua (original)
++++ trunk/lua/widgets/widget.uoedittext.lua Wed May 20 00:22:43 2009
+@@ -15,6 +15,7 @@
+ function gWidgetPrototype.UOEditText:InitTextWidget ()
+ 	local p =3D self.params
+ 	local textlines =3D p.textlines
++	--~ p.text =3D MainMenu_CharCreate_GetRandomName()
+ 	self.textwidget =3D self:CreateChild(&quot;UOText&quot;,{x=3D0,y=3D0,width=3Dp.widt=
+h,height=3Dp.height,text=3Dp.text,textline_id=3Dp.textline_id_default,hue=
+=3Dp.hue},textlines)
+ 	self:SetSize(p.width,p.height)
+ 	if (p.x) then self:SetPos(p.x,p.y) end
+
+Modified: trunk/lua/widgets/widget.uotooltip.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/widgets/widget.uotooltip.lua (original)
++++ trunk/lua/widgets/widget.uotooltip.lua Wed May 20 00:22:43 2009
+@@ -110,11 +110,17 @@
+ 	local r,g,b =3D 1,1,0
+ 	if (mobile) then r,g,b =3D GetNotorietyColor(mobile.notoriety) end
+ 	=
+
++	=
+
+ 	tooltiptext =3D sprintf(&quot;&lt;BASEFONT COLOR=3D#%02X%02X%02X&gt;&quot;,floor(r*255),f=
+loor(g*255),floor(b*255))..string.gsub(tooltiptext,&quot;\n&quot;,&quot;&lt;/BASEFONT&gt;\n&quot;,1)
+ 	tooltiptext =3D string.gsub(tooltiptext,&quot;durability (%d+) / (%d+)&quot;,ToolTi=
+pColDura)
+ 	for keyword,color in pairs(gMyToolTipColors) do =
+
+ 		tooltiptext =3D string.gsub(tooltiptext,keyword,&quot;&lt;BASEFONT COLOR=3D&quot;..co=
+lor..&quot;&gt;%0&lt;/BASEFONT&gt;&quot;)
+ 	end
++	local dataholder =3D {}
++	dataholder.tooltiptext =3D tooltiptext
++	NotifyListener(&quot;Hook_Tooltip_RefreshText&quot;,dataholder,serial) =
+
++	=
+
++	tooltiptext =3D dataholder.tooltiptext
+ 	=
+
+ 	--~ print(&quot;tooltiptext&quot;,tooltiptext)
+ 	self.text:SetUOHtml(tooltiptext,true)
+
+Modified: trunk/plugins/loot.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/plugins/loot.lua (original)
++++ trunk/plugins/loot.lua Wed May 20 00:22:43 2009
+@@ -3,11 +3,13 @@
+ if (not gDisabledPlugins.loot) then =
+
+ gLootPluginCutCorspes =3D false =
+
+ --~ gLootPluginCutCorspes =3D true =
+
+-gLootPluginMinGoldAmount =3D 100
+-
+-kLootPlugin_RecentlyClickedInterval =3D 15*1000
++gLootPluginMinGoldAmount =3D 150
++
++kLootPlugin_RecentlyClickedInterval =3D 4*1000
++kLootPluginHideCorpseWithoutContentChangeTimeout =3D false -- if corpse do=
+es not contain interesting item and hasn't changed contents, hide it
+ kLootPluginHideCorpseWithoutContentChangeTimeout =3D 2*1000 -- if corpse d=
+oes not contain interesting item and hasn't changed contents, hide it
+ gLootPlugin_LastContainerUpdateTime =3D {}
++gLootPlugin_HiddenContainers =3D {}
+ =
+
+ function LootSetBackPackFullCallBack (fun) gLootBPFullCallBack =3D fun end
+ =
+
+@@ -30,9 +32,10 @@
+ --~ Send_DoubleClick(..) : UseReq : NextActionTime =3D now + 0.5 s   =
+
+ =
+
+ gLootPluginWantedWords =3D {
+-	&quot;mage armor&quot;, -- mage armor , mage weap
+-	&quot;mage weapon&quot;, -- mage armor , mage weap
+-	&quot;slayer&quot;,
++	--~ &quot;mage armor&quot;, -- mage armor , mage weap
++	--~ &quot;mage weapon&quot;, -- mage armor , mage weap
++	--~ &quot;slayer&quot;,
++	&quot;Origami&quot;, -- paper
+ 	&quot;ancient&quot;,
+ 	&quot;legendary&quot;,
+ 	&quot;mythic&quot;, &quot;mystic&quot;, &quot;mystiq&quot;, -- i don't know how it is written exactly
+@@ -61,7 +64,9 @@
+ gLootPluginWantedProps =3D {}
+ function LootPluginEval_AddProp (minvalue,name) gLootPluginWantedProps[str=
+ing.lower(string.gsub(name,&quot;_&quot;,&quot; &quot;))] =3D minvalue end
+ --~ LootPluginEval_AddProp(    5     ,&quot;lower_reagent_cost&quot;)
++--~ LootPluginEval_AddProp(    10     ,&quot;lower_reagent_cost&quot;)
+ LootPluginEval_AddProp(    15     ,&quot;lower_reagent_cost&quot;)
++--~ LootPluginEval_AddProp(    15     ,&quot;lower_reagent_cost&quot;)
+ LootPluginEval_AddProp(    10     ,&quot;reflect_physical&quot;) -- cap 15 per item ?
+ LootPluginEval_AddProp(    8      ,&quot;lower_mana_cost&quot;)
+ LootPluginEval_AddProp(    2      ,&quot;mana_regeneration&quot;)
+@@ -93,6 +98,16 @@
+ 	if (artid =3D=3D 3909 and hue =3D=3D 2419) then return true end -- gargy =
+axe
+ 	if (artid =3D=3D 0x1bfb and item.amount &gt;=3D 30) then return true end -- =
+bolts
+ 	if (artid =3D=3D 0x0f3f and item.amount &gt;=3D 30) then return true end -- =
+arrows
++	if (1 =3D=3D 2) then -- jewels
++		if (artid =3D=3D 0xf21) then return true end -- star saphire
++		if (artid =3D=3D 0xf26) then return true end -- star diamond
++		if (artid =3D=3D 0xf13) then return true end -- ruby
++		if (artid =3D=3D 0xf19) then return true end -- saphire
++		if (artid =3D=3D 0xf16) then return true end -- amethy
++		if (artid =3D=3D 0xf10) then return true end -- emeral
++		if (artid =3D=3D 0xf15) then return true end -- citrin
++		if (artid =3D=3D 0xf2d) then return true end -- turmaline
++	end
+ 	if (artid =3D=3D 0x1bd1) then return true end -- feathers
+ 	if (artid =3D=3D 0x26b7) then return true end -- fungus
+ 	if (artid =3D=3D 0x0e2e) then return true end -- petball
+@@ -105,10 +120,12 @@
+ 		if string.find(tooltip,v) then print(&quot;LOOT : loot because&quot;,v) return tru=
+e end =
+
+ 	end
+ 	=
+
++	if (string.find(tooltip,&quot;mage weapon&quot;) and string.find(tooltip,&quot;spellchan=
+nel&quot;)) then return true end
++	=
+
+ 	local a,b,maxsocket =3D string.find(tooltip,&quot;maximum sockets allowed is (=
+%d+)&quot;)
+ 	local a,b,cursocket =3D string.find(tooltip,&quot;(%d+) sockets&quot;)
+ 	local socket =3D max(maxsocket or 0,cursocket or 0)
+-	print(&quot;lootplugin:sockets&quot;,socket,maxsocket,cursocket)
++	--~ print(&quot;lootplugin:sockets&quot;,socket,maxsocket,cursocket)
+ 	if (socket &gt;=3D 2) then print(&quot;LOOT : loot because&quot;,v) return true end
+ 	=
+
+ 	for name,minvalue in pairs(gLootPluginWantedProps) do =
+
+@@ -139,6 +156,7 @@
+ -- warning, might disrupt item listing, especially detection if an item is=
+ still inside a corpse
+ function LootPlugin_HideCorpse (dynamic)
+ 	dynamic:Destroy()
++	gLootPlugin_HiddenContainers[dynamic.serial] =3D gMyTicks
+ 	--~ gCurrentRenderer:RemoveDynamicItem(dynamic) -- hide corpse... doesn't=
+ work, becomes visible again on update
+ end
+ =
+
+@@ -167,8 +185,8 @@
+ 	local xloc,yloc =3D GetPlayerPos()
+ 	local t =3D Client_GetTicks()
+ 	for k,dynamic in pairs(GetDynamicList()) do =
+
+-		if (DynamicIsInWorld(dynamic) and IsCorpseArtID(dynamic.artid_base) and =
+((bAlsoListOpenCorpses) or (not IsContainerAlreadyOpen(dynamic)))) then =
+
+-			if (gLoot_TrashCorpseTypesByID[dynamic.amount]) then
++		if (DynamicIsInWorld(dynamic) and IsCorpseArtID(dynamic.artid_base) and =
+(not IsContainerAlreadyOpen(dynamic))) then =
+
++			if (gLoot_TrashCorpseTypesByID[dynamic.amount] or gLootPlugin_HiddenCon=
+tainers[dynamic.serial]) then
+ 				LootPlugin_HideCorpse(dynamic)
+ 			elseif (dist2(xloc,yloc,dynamic.xloc,dynamic.yloc) &lt;=3D maxdist) then
+ 			--~ elseif (abs(dynamic.xloc-xloc) + abs(dynamic.yloc-yloc) &lt;=3D maxdis=
+t) then
+@@ -212,9 +230,42 @@
+ 	MacroCmd_QueueTargetSerial(targetserial,1000)
+ end
+ =
+
++-- add debug info to tooltip
++function LootPluginNotify_Tooltip_RefreshText (dataholder,serial)
++	if (gLootPlugin_LastContainerUpdateTime[serial]) then
++		dataholder.tooltiptext =3D dataholder.tooltiptext .. sprintf(&quot;\nlootplug=
+in:lastupdatetime=3D%d&quot;,
++			gMyTicks - gLootPlugin_LastContainerUpdateTime[serial]
++			)
++	end
++	local dynamic =3D GetDynamic(serial)
++	if (dynamic and IsContainerAlreadyOpen(dynamic)) then
++		dataholder.tooltiptext =3D dataholder.tooltiptext .. sprintf(&quot;\nlootplug=
+in:IsContainerAlreadyOpen=3Dtrue&quot;)
++	else =
+
++		if (gLootPlugin_RecentlyDoubleClickedCorpses[serial]) then
++			dataholder.tooltiptext =3D dataholder.tooltiptext .. sprintf(&quot;\nlootplu=
+gin:notopen,but clicked:=3D%d&quot;,
++				gMyTicks - gLootPlugin_RecentlyDoubleClickedCorpses[serial]
++				)
++		end
++	end
++	local interesting =3D LootPlugin_ContainerContainsInterestingThing(serial)
++	if (interesting) then
++		local info =3D (AosToolTip_GetText(interesting) or &quot;???&quot;)
++		dataholder.tooltiptext =3D dataholder.tooltiptext .. sprintf(&quot;\nlootplug=
+in:&lt;b&gt;CONTAINS STH INTERESTING : &quot;..info..&quot;&lt;/b&gt;&quot;)
++	end
++end
++
++-- only works on already open containers
++function LootPlugin_ContainerContainsInterestingThing (serial) =
+
++	for serial,lootinfo in pairs(gLootPluginMarkedItems) do =
+
++		if (lootinfo.containerserial =3D=3D serial) then return serial end =
+
++	end =
+
++end
++	=
+
+ function LootPluginStep ()
+ 	local t =3D Client_GetTicks()
+ 	if (t &lt; gLootPluginNextStep) then return end
++	=
+
++	if (not gAutoLoot) then return end
+ 	=
+
+ 	-- hide corpses
+ 	if (kLootPluginHideCorpseWithoutContentChangeTimeout) then
+@@ -229,11 +280,7 @@
+ 				end =
+
+ 				if (updatet &lt; minupt and IsContainerAlreadyOpen(corpse)) then =
+
+ 					-- corpse didn't change for a long time, check to see if it's open an=
+d if there's anything interesting inside  =
+
+-					local bContainsInterestingThing =3D false
+-					for k,lootinfo in pairs(gLootPluginMarkedItems) do =
+
+-						if (lootinfo.containerserial =3D=3D corpse.serial) then bContainsInt=
+erestingThing =3D true break end =
+
+-					end =
+
+-					if (not bContainsInterestingThing) then =
+
++					if (not LootPlugin_ContainerContainsInterestingThing(corpse.serial)) =
+then =
+
+ 						-- nothing interesting left, and wasn't updated lately (loot-drag-fa=
+il causes update),
+ 						-- so we can savely remove it
+ 						LootPlugin_HideCorpse(corpse)
+@@ -257,7 +304,6 @@
+ 	end
+ 	=
+
+ 	=
+
+-	if (not gAutoLoot) then return end
+ 	=
+
+ 	-- take items
+ 	local forgett =3D t - 30*1000 -- forget items after 30sek
+@@ -324,11 +370,14 @@
+ 	end
+ end
+ =
+
++
++
+ if (not gLootPluginHooksRegistered) then
+ 	gLootPluginHooksRegistered =3D true -- only done once in case this file i=
+s reloaded
+ 	RegisterIntervalStepper(gStepperInterval,function () LootPluginStep() end=
+) =
+
+ 	RegisterListener(&quot;Hook_Container_Contents&quot;,function (serial) LootPluginNo=
+tifyContainerContentChange(serial) end)
+ 	RegisterListener(&quot;Hook_Dynamic_UpdateContent&quot;,function (serial) LootPlugi=
+nNotifyContainerContentChange(serial,true) end)
++	RegisterListener(&quot;Hook_Tooltip_RefreshText&quot;,function (...) LootPluginNoti=
+fy_Tooltip_RefreshText(...) end)
+ end
+ =
+
+ end
+
+Modified: trunk/plugins/moblist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/plugins/moblist.lua (original)
++++ trunk/plugins/moblist.lua Wed May 20 00:22:43 2009
+@@ -30,7 +30,19 @@
+ 	[&quot;DeathWatch Beetle hatchling&quot;] =3D &quot;DWB-Hatchling&quot;,
+ }
+ =
+
+-	=
+
++RegisterIntervalStepper(100,function () =
+
++	if (not gMobList) then return end
++	gMobList:Reposition(GetViewportSize())
++end)
++	=
+
++function gWidgetPrototype.UOMobList:Reposition (vw,vh)
++	if (self.last_vw =3D=3D vw and =
+
++		self.last_vh =3D=3D vh) then return end -- no change
++	self:SetPos(vw-kMobList_CatW,230)
++	self.last_vw =3D vw
++	self.last_vh =3D vh
++end
++
+ function gWidgetPrototype.UOMobList:Init (parentwidget,params)
+ 	self:InitAsGroup(parentwidget,params)
+ 	self.items =3D {}
+@@ -47,7 +59,7 @@
+ 	self.gfx_maintarget_line =3D gRootWidget.tooltip:CreateChild(&quot;LineList&quot;,{=
+matname=3D&quot;BaseWhiteNoLighting&quot;,bDynamic=3Dtrue,r=3D1,g=3D0,b=3D0})
+ 	=
+
+ 	local vw,vh =3D GetViewportSize()
+-	self:SetPos(vw-kMobList_CatW,230)
++	self:Reposition(vw,vh)
+ 	=
+
+ 	RegisterListener(&quot;Hook_HUDStep&quot;,				function () 		self:Step() end)
+ 	RegisterListener(&quot;Hook_MobName&quot;,				function (serial,name,clilocid) self:=
+MobName(serial,name,clilocid) end) -- from several text/speak packets..
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001823.html">[Iris-commit] [IRIS] r3024 - in /trunk/lua: lib.cursor.lua lib.mainmenu.charlist.lua net/net.cursor.lua
+</A></li>
+	<LI>Next message: <A HREF="001825.html">[Iris-commit] [IRIS] r3026 - /trunk/plugins/loot.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1824">[ date ]</a>
+              <a href="thread.html#1824">[ thread ]</a>
+              <a href="subject.html#1824">[ subject ]</a>
+              <a href="author.html#1824">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

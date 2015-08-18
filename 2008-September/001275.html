@@ -1,0 +1,144 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2470 - /trunk/lua/lib.2d.dynamic.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-September/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2470%20-%20/trunk/lua/lib.2d.dynamic.lua&In-Reply-To=%3C20080922141117.8EB9F1524030%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001274.html">
+   <LINK REL="Next"  HREF="001276.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2470 - /trunk/lua/lib.2d.dynamic.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2470%20-%20/trunk/lua/lib.2d.dynamic.lua&In-Reply-To=%3C20080922141117.8EB9F1524030%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2470 - /trunk/lua/lib.2d.dynamic.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Mon Sep 22 16:11:17 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001274.html">[Iris-commit] [IRIS] r2469 - in /trunk/lua: lib.2d.dynamic.lua	lib.2d.spriteblock.lua
+</A></li>
+        <LI>Next message: <A HREF="001276.html">[Iris-commit] [IRIS] r2471 - in /trunk/lua: lib.2d.spriteblock.lua lib.mapblock.2d.statics.lua lib.mapblock.2d.terrain.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1275">[ date ]</a>
+              <a href="thread.html#1275">[ thread ]</a>
+              <a href="subject.html#1275">[ subject ]</a>
+              <a href="author.html#1275">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Mon Sep 22 16:11:16 2008
+New Revision: 2470
+
+Log:
+2d : fixed sorting for dynamic vs multi
+
+Modified:
+    trunk/lua/lib.2d.dynamic.lua
+
+Modified: trunk/lua/lib.2d.dynamic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.dynamic.lua (original)
++++ trunk/lua/lib.2d.dynamic.lua Mon Sep 22 16:11:16 2008
+@@ -1,8 +1,4 @@
+ -- dynamics (items,doors,...)
+-
+-function Renderer2D:UpdateMultiData					(item) =
+
+-	print(&quot;TODO:Renderer2D:UpdateMultiData&quot;)
+-end
+ =
+
+ function Renderer2D:RemoveDynamicItem				(item) =
+
+ 	if (item.gfx2d) then item.gfx2d:Destroy() item.gfx2d =3D nil end
+@@ -30,8 +26,11 @@
+ 		local tx =3D xloc-itemxloc
+ 		local ty =3D yloc-itemyloc
+ 		local tz =3D zloc-itemzloc
++		local sorttx =3D xloc-floor(xloc/8)*8
++		local sortty =3D yloc-floor(yloc/8)*8
++		local sorttz =3D zloc
+ 		local fIndexRel =3D k / totalpartnum
+-		spriteblock:AddSprite(tx,ty,tz,iTileTypeID,iHue,CalcSortBonus(iTileTypeI=
+D,tx,ty,tz,fIndexRel)+1,item)
++		spriteblock:AddSprite(tx,ty,tz,iTileTypeID,iHue,CalcSortBonus(iTileTypeI=
+D,sorttx,sortty,sorttz,fIndexRel)+1,item)
+ 	end
+ 	spriteblock:Build(Renderer2D.kSpriteBaseMaterial)
+ 	local x,y,z =3D gCurrentRenderer:UOPosToLocal(itemxloc,itemyloc,itemzloc*=
+kRenderer2D_ZScale)
+@@ -51,12 +50,18 @@
+ 		local spriteblock =3D cUOSpriteBlock:New()
+ 		item.gfx2d =3D spriteblock
+ 		=
+
++		local xloc =3D item.xloc
++		local yloc =3D item.yloc
++		local zloc =3D item.zloc
+ 		local tx,ty,tz,fIndexRel =3D 0,0,0,0
++		local sorttx =3D xloc-floor(xloc/8)*8
++		local sortty =3D yloc-floor(yloc/8)*8
++		local sorttz =3D zloc
+ 		local iTileTypeID	=3D item.artid
+ 		local iHue			=3D item.hue
+-		spriteblock:AddSprite(tx,ty,tz,iTileTypeID,iHue,CalcSortBonus(iTileTypeI=
+D,tx,tz,tz,fIndexRel)+1,item)
++		spriteblock:AddSprite(tx,ty,tz,iTileTypeID,iHue,CalcSortBonus(iTileTypeI=
+D,sorttx,sortty,sorttz,fIndexRel)+1,item)
+ 		spriteblock:Build(Renderer2D.kSpriteBaseMaterial,true)
+-		local x,y,z =3D gCurrentRenderer:UOPosToLocal(item.xloc,item.yloc,item.z=
+loc*kRenderer2D_ZScale)
++		local x,y,z =3D gCurrentRenderer:UOPosToLocal(xloc,yloc,zloc*kRenderer2D=
+_ZScale)
+ 		spriteblock:SetPosition(x,y,z)
+ 	end
+ end
+@@ -66,5 +71,5 @@
+ 		Renderer2D.bDebugWarnUpdateDynamicItemPos =3D true
+ 		print(&quot;todo : 2dmode : UpdateDynamicItemPos&quot;)
+ 	end
+-	--~ if (item.gfx2d) then print(&quot;Renderer2D:UpdateDynamicItemPos: fixme, z=
+scale !=3D 0.1&quot;) item.gfx2d:SetPosition(self:UOPosToLocal(item.xloc,item.yl=
+oc,item.zloc * 0.1)) end
++	--~ if (item.gfx2d) then print(&quot;Renderer2D:UpdateDynamicItemPos: fixme, z=
+scale !=3D 0.1&quot;) item.gfx2d:SetPosition(self:UOPosToLocal(item.xloc,item.yl=
+oc,item.zloc * kRenderer2D_ZScale)) end
+ end
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001274.html">[Iris-commit] [IRIS] r2469 - in /trunk/lua: lib.2d.dynamic.lua	lib.2d.spriteblock.lua
+</A></li>
+	<LI>Next message: <A HREF="001276.html">[Iris-commit] [IRIS] r2471 - in /trunk/lua: lib.2d.spriteblock.lua lib.mapblock.2d.statics.lua lib.mapblock.2d.terrain.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1275">[ date ]</a>
+              <a href="thread.html#1275">[ thread ]</a>
+              <a href="subject.html#1275">[ subject ]</a>
+              <a href="author.html#1275">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

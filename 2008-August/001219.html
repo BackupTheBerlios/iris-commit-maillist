@@ -1,0 +1,178 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2414 - in /trunk/lua: lib.3d.map.lua lib.mapblock.3d.dynamics.lua lib.mapblock.3d.multis.lua lib.mapblock.3d.statics.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-August/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2414%20-%20in%20/trunk/lua%3A%20lib.3d.map.lua%0A%20lib.mapblock.3d.dynamics.lua%20lib.mapblock.3d.multis.lua%0A%20lib.mapblock.3d.statics.lua&In-Reply-To=%3C20080827100036.26BD61C18689%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001218.html">
+   <LINK REL="Next"  HREF="001220.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2414 - in /trunk/lua: lib.3d.map.lua lib.mapblock.3d.dynamics.lua lib.mapblock.3d.multis.lua lib.mapblock.3d.statics.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2414%20-%20in%20/trunk/lua%3A%20lib.3d.map.lua%0A%20lib.mapblock.3d.dynamics.lua%20lib.mapblock.3d.multis.lua%0A%20lib.mapblock.3d.statics.lua&In-Reply-To=%3C20080827100036.26BD61C18689%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2414 - in /trunk/lua: lib.3d.map.lua lib.mapblock.3d.dynamics.lua lib.mapblock.3d.multis.lua lib.mapblock.3d.statics.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Wed Aug 27 12:00:35 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001218.html">[Iris-commit] [IRIS] r2413 - in /trunk: data/profiles/gfx_high.lua data/profiles/gfx_low.lua data/profiles/gfx_med.lua data/profiles/gfx_ultrahigh.lua data/profiles/gfx_ultralow.lua lua/config_declarations.lua lua/main.lua
+</A></li>
+        <LI>Next message: <A HREF="001220.html">[Iris-commit] [IRIS] r2415 - in /trunk:	data/terrain/multitex/parts/ lua/
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1219">[ date ]</a>
+              <a href="thread.html#1219">[ thread ]</a>
+              <a href="subject.html#1219">[ subject ]</a>
+              <a href="author.html#1219">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: hagish
+Date: Wed Aug 27 12:00:34 2008
+New Revision: 2414
+
+Log:
+bugfix: upper floors not correctly blended out if you teleport into a build=
+ing
+
+Modified:
+    trunk/lua/lib.3d.map.lua
+    trunk/lua/lib.mapblock.3d.dynamics.lua
+    trunk/lua/lib.mapblock.3d.multis.lua
+    trunk/lua/lib.mapblock.3d.statics.lua
+
+Modified: trunk/lua/lib.3d.map.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.map.lua (original)
++++ trunk/lua/lib.3d.map.lua Wed Aug 27 12:00:34 2008
+@@ -60,21 +60,11 @@
+ 	end
+ end
+ =
+
+-function Renderer3D:BlendOutCheckNeeded		()
+-	self.mbUpdateBlendOut =3D true
+-end
+-
+ function Renderer3D:MapStep		()
+ 	local t =3D Client_GetTicks()
+ 	local xloc,yloc,zloc =3D self:GetCamPos()
+ 	for k,spawner in pairs(self.map3d_spawners) do spawner:Step(t,xloc,yloc,z=
+loc) end
+ 	self.map3d_scheduler:Step(xloc,yloc,zloc)
+-	=
+
+-	-- redo blend out check?
+-	if self.mbUpdateBlendOut then
+-		self:BlendOutLayersAbovePlayer()
+-		self.mbUpdateBlendOut =3D false
+-	end
+ end
+ =
+
+ function Renderer3D:MapClear	()
+@@ -184,11 +174,13 @@
+ 			self.gbBlendOutTerrainVisible =3D bTerrainVisible
+ 		end
+ 		=
+
++		local a,b =3D self:BlendoutGetVisibleRange()
++		=
+
+ 		if self.map3d_spawners then
+ 			for k,v in pairs(self.map3d_spawners) do
+ 				v:ForAllBlocks(function(block)
+ 					if block.SetDisplayRange then
+-						block:SetDisplayRange(self:BlendoutGetVisibleRange())
++						block:SetDisplayRange(a,b)
+ 					end
+ 				end)
+ 			end
+
+Modified: trunk/lua/lib.mapblock.3d.dynamics.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mapblock.3d.dynamics.lua (original)
++++ trunk/lua/lib.mapblock.3d.dynamics.lua Wed Aug 27 12:00:34 2008
+@@ -125,6 +125,6 @@
+ 		=
+
+ 		--~ print(&quot;count&quot;,self,countarr(self.lDynamics))
+ =
+
+-		gCurrentRenderer:BlendOutCheckNeeded()
++		self:SetDisplayRange(gCurrentRenderer:BlendoutGetVisibleRange())
+ 	end
+ end
+
+Modified: trunk/lua/lib.mapblock.3d.multis.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mapblock.3d.multis.lua (original)
++++ trunk/lua/lib.mapblock.3d.multis.lua Wed Aug 27 12:00:34 2008
+@@ -87,5 +87,5 @@
+ =
+
+ 	self.mTileBatch:Build()
+ =
+
+-	gCurrentRenderer:BlendOutCheckNeeded()
++	self:SetDisplayRange(gCurrentRenderer:BlendoutGetVisibleRange())
+ end
+
+Modified: trunk/lua/lib.mapblock.3d.statics.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mapblock.3d.statics.lua (original)
++++ trunk/lua/lib.mapblock.3d.statics.lua Wed Aug 27 12:00:34 2008
+@@ -100,5 +100,5 @@
+ =
+
+ 	self.mTileBatch:Build()
+ 	=
+
+-	gCurrentRenderer:BlendOutCheckNeeded()
++	self:SetDisplayRange(gCurrentRenderer:BlendoutGetVisibleRange())
+ end
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001218.html">[Iris-commit] [IRIS] r2413 - in /trunk: data/profiles/gfx_high.lua data/profiles/gfx_low.lua data/profiles/gfx_med.lua data/profiles/gfx_ultrahigh.lua data/profiles/gfx_ultralow.lua lua/config_declarations.lua lua/main.lua
+</A></li>
+	<LI>Next message: <A HREF="001220.html">[Iris-commit] [IRIS] r2415 - in /trunk:	data/terrain/multitex/parts/ lua/
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1219">[ date ]</a>
+              <a href="thread.html#1219">[ thread ]</a>
+              <a href="subject.html#1219">[ subject ]</a>
+              <a href="author.html#1219">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

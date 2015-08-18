@@ -1,0 +1,748 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2508 - in /trunk: data/ lua/ lua/net/
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-October/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2508%20-%20in%20/trunk%3A%20data/%20lua/%20lua/net/&In-Reply-To=%3C20081004020008.5CC141C1877B%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001312.html">
+   <LINK REL="Next"  HREF="001314.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2508 - in /trunk: data/ lua/ lua/net/</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2508%20-%20in%20/trunk%3A%20data/%20lua/%20lua/net/&In-Reply-To=%3C20081004020008.5CC141C1877B%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2508 - in /trunk: data/ lua/ lua/net/">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat Oct  4 03:21:52 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001312.html">[Iris-commit] [IRIS] r2507 - in /trunk/lua: config_declarations.lua lib.2d.renderer.lua lib.3d.renderer.lua lib.keybinds.lua lib.null.renderer.lua lib.renderer.lua main.lua
+</A></li>
+        <LI>Next message: <A HREF="001314.html">[Iris-commit] [IRIS] r2509 -	/trunk/data/base/ui/ray_border_black.png
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1313">[ date ]</a>
+              <a href="thread.html#1313">[ thread ]</a>
+              <a href="subject.html#1313">[ subject ]</a>
+              <a href="author.html#1313">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: hagish
+Date: Sat Oct  4 03:21:51 2008
+New Revision: 2508
+
+Log:
+switching renderer during runtime starts to work -&gt; ctrl+r
+
+Modified:
+    trunk/data/mymacros.lua.dist
+    trunk/lua/lib.2d.map.lua
+    trunk/lua/lib.2d.renderer.lua
+    trunk/lua/lib.3d.map.lua
+    trunk/lua/lib.3d.mobile.lua
+    trunk/lua/lib.3d.multispawner.lua
+    trunk/lua/lib.3d.renderer.lua
+    trunk/lua/lib.mapblock.scheduler.lua
+    trunk/lua/lib.mapblock.spawner.lua
+    trunk/lua/lib.null.renderer.lua
+    trunk/lua/lib.renderer.lua
+    trunk/lua/lib.terrain.multitex.lua
+    trunk/lua/lib.tilefreewalk.lua
+    trunk/lua/main.lua
+    trunk/lua/net/net.login.lua
+
+Modified: trunk/data/mymacros.lua.dist
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/mymacros.lua.dist (original)
++++ trunk/data/mymacros.lua.dist Sat Oct  4 03:21:51 2008
+@@ -56,7 +56,7 @@
+ SetMacro(&quot;q&quot;,			function() MacroCmd_SelectNearestMobile() end)
+ SetMacro(&quot;e&quot;,			function() MacroCmd_SelectNextMobile() end)
+ --SetMacro(&quot;space&quot;,		function() MacroCmd_AttackSelectedMobile() end) -- cu=
+rrently broken
+---SetMacro(&quot;z&quot;,			function() MacroCmd_ActivateNextRenderer() end) -- curre=
+ntly broken
++SetMacro(&quot;ctrl+r&quot;,			function() MacroCmd_ActivateNextRenderer() end)
+ =
+
+ SetMacro(&quot;ctrl+f1&quot;,		function() MacroCmd_ItemSlot_Set(1) end)
+ SetMacro(&quot;ctrl+f2&quot;,		function() MacroCmd_ItemSlot_Set(2) end)
+
+Modified: trunk/lua/lib.2d.map.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.map.lua (original)
++++ trunk/lua/lib.2d.map.lua Sat Oct  4 03:21:51 2008
+@@ -32,6 +32,16 @@
+ cMapBlock_2D_Terrain.kLOD_Rough			=3D kMapLoad_2D_Terrain_Rough
+ cMapBlock_2D_Statics.kLOD_Detail		=3D kMapLoad_2D_Statics_Detail
+ cMapBlock_2D_Statics.kLOD_Rough			=3D kMapLoad_2D_Statics_Rough
++
++function Renderer2D:DeInitMap	()
++	for k,v in pairs(self.map2d_spawners) do
++		v:Destroy()
++	end
++	self.map2d_spawners =3D nil
++	self.map2d_scheduler:Destroy()
++	self.map2d_scheduler =3D nil
++	self.bMapLoadSystemInitialized =3D false
++end
+ =
+
+ function Renderer2D:InitMap	()
+ 	if (not self.bMapLoadSystemInitialized) then
+@@ -87,7 +97,6 @@
+ =
+
+ function Renderer2D:MapStep		()
+ 	self:MobileTestStep()
+-	=
+
+ 	local t =3D Client_GetTicks()
+ 	local x,y,z =3D self:GetCamPos()
+ 	for k,spawner in pairs(self.map2d_spawners) do spawner:Step(t,x,y,z) end
+
+Modified: trunk/lua/lib.2d.renderer.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.renderer.lua (original)
++++ trunk/lua/lib.2d.renderer.lua Sat Oct  4 03:21:51 2008
+@@ -32,20 +32,22 @@
+ 	if (self.bFirstInitDone) then return end
+ 	self.bFirstInitDone =3D true
+ 	RegisterListener(&quot;Hook_MainWindowResized&quot;,function () Renderer2D.gbNeedCo=
+rrectAspectRatio =3D true end)
+-	MultiTexTerrainInit()
+-	self:InitMap()	=
+
+ end
+ =
+
+ function Renderer2D:Init ()
+ 	self:FirstInit()
++	MultiTexTerrainInit()
++	self:InitMap()
+ 	self.gbActive =3D true
++	=
+
++	self:StartWorld()
+ end
+ =
+
+ function Renderer2D:DeInit ()
+-	-- todo: MultiTexTerrainInit() deinit ?!?
+-	=
+
++	MultiTexTerrainDeInit()
+ 	-- if 2d is stopped, stop also World
+ 	self:StopWorld()
++	self:DeInitMap()	=
+
+ 	self.gbActive =3D false
+ end
+ =
+
+@@ -54,7 +56,7 @@
+ 	-- for 2D/3D renderer switching
+ 	self:CamInit()
+ 	=
+
+-	Client_ClearLights()  -- this has to be verified, this couses a seg fault=
+ with caelum (sience)
++	Client_ClearLights()  -- this has to be verified, this causes a seg fault=
+ with caelum (sience)
+ 	-- initialize Worldlight
+ 	SetupWorldLight_Default()
+ 	=
+
+@@ -62,8 +64,8 @@
+ 	self:SetMapEnvironment()
+ =
+
+ 	-- switch renderer : create all object visuals
+-	--	for k,dynamic in pairs(GetDynamicList()) do if (DynamicIsInWorld(dynam=
+ic)) then self:AddDynamicItem(dynamic) end end
+-	--	for k,mobile in pairs(GetMobileList()) do self:CreateMobileGfx(mobile)=
+ end
++	for k,dynamic in pairs(GetDynamicList()) do if (DynamicIsInWorld(dynamic)=
+) then self:AddDynamicItem(dynamic) end end
++	for k,mobile in pairs(GetMobileList()) do self:CreateMobileGfx(mobile) end
+ end
+ =
+
+ function Renderer2D:StopWorld ()
+
+Modified: trunk/lua/lib.3d.map.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.map.lua (original)
++++ trunk/lua/lib.3d.map.lua Sat Oct  4 03:21:51 2008
+@@ -44,6 +44,16 @@
+ cMapBlock_3D_Water.kLOD_Rough			=3D kMapLoad_3D_Water_Rough
+ cMapBlock_3D_Multis.kLOD_Detail			=3D kMapLoad_3D_Multis_Detail
+ cMapBlock_3D_Multis.kLOD_Rough			=3D kMapLoad_3D_Multis_Rough
++
++function Renderer3D:DeInitMap	()
++	for k,v in pairs(self.map3d_spawners) do
++		v:Destroy()
++	end
++	self.map3d_spawners =3D nil
++	self.map3d_scheduler:Destroy()
++	self.map3d_scheduler =3D nil
++	self.bMapLoadSystemInitialized =3D false
++end
+ =
+
+ function Renderer3D:InitMap	()
+ 	if (not self.bMapLoadSystemInitialized) then
+
+Modified: trunk/lua/lib.3d.mobile.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.mobile.lua (original)
++++ trunk/lua/lib.3d.mobile.lua Sat Oct  4 03:21:51 2008
+@@ -268,7 +268,7 @@
+ 	if (mobile.bar) 		then mobile.bar:SetPosition(		x-0.5,y+0.5,z + 2.0) end
+ 	if (mobile.nametext) 	then mobile.nametext:SetPosition(	x-0.5,y+0.5,z + 2=
+.0) end
+ 	=
+
+-	mobile.gfx:SetPosition(x,y,z)
++	if mobile.gfx then mobile.gfx:SetPosition(x,y,z) end
+ end
+ =
+
+ -- called every frame from mainloop : MobileAnimStep
+
+Modified: trunk/lua/lib.3d.multispawner.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.multispawner.lua (original)
++++ trunk/lua/lib.3d.multispawner.lua Sat Oct  4 03:21:51 2008
+@@ -83,3 +83,9 @@
+ 		self.lMulti[serial] =3D nil
+ 	end
+ end
++
++function cMultiSpawner:Destroy	()
++	for k,multi in pairs(self.lMulti) do
++		self:RemoveMulti(k)
++	end
++end
+
+Modified: trunk/lua/lib.3d.renderer.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.renderer.lua (original)
++++ trunk/lua/lib.3d.renderer.lua Sat Oct  4 03:21:51 2008
+@@ -30,23 +30,33 @@
+ 	self.bFirstInitDone =3D true
+ 	-- load texture atlas
+ 	LoadTexAtlas()
+-	MultiTexTerrainInit()
+ 	RegisterListener(&quot;Hook_MainWindowResized&quot;,function () Renderer3D.gbNeedCo=
+rrectAspectRatio =3D true end)
+-	self:InitMap()
+ end
+ =
+
+ function Renderer3D:Init ()
+ 	self:FirstInit()
++	=
+
++	MultiTexTerrainInit()
++	=
+
++	self:InitMap()
++	self:StartWorld()
++	=
+
++	gTileFreeWalk:Init()
++		=
+
+ 	self.gbActive =3D true
+ end
+ =
+
+ function Renderer3D:DeInit ()
+ 	--print(&quot;deactivating Renderer3D&quot;)
+ 	-- todo: LoadTexAtlas()  deinit ?!?
+-	-- todo: MultiTexTerrainInit() deinit ?!?
+-	=
+
++	MultiTexTerrainDeInit()
++	=
+
++	gTileFreeWalk:DeInit()
++
+ 	-- if 3d is stopped, stop also World
+-	self:StopWorld ()
++	self:StopWorld()
++	self:DeInitMap()
++		=
+
+ 	self.gbActive =3D false
+ end
+ =
+
+@@ -68,9 +78,9 @@
+ 	print(gShadowTechnique)
+ 	self:SetupShadows(gShadowTechnique)
+ =
+
+--- sience: not needed anymore? bring up and assertion failure (it seems wi=
+thout, everything is correct)
+-	--	for k,dynamic in pairs(GetDynamicList()) do if (DynamicIsInWorld(dynam=
+ic)) then self:AddDynamicItem(dynamic) end end
+-	--	for k,mobile in pairs(GetMobileList()) do self:CreateMobileGfx(mobile)=
+ end
++	-- sience: not needed anymore? bring up and assertion failure (it seems w=
+ithout, everything is correct)
++	for k,dynamic in pairs(GetDynamicList()) do if (DynamicIsInWorld(dynamic)=
+) then self:AddDynamicItem(dynamic) end end
++	for k,mobile in pairs(GetMobileList()) do self:CreateMobileGfx(mobile) end
+ end
+ =
+
+ function Renderer3D:StopWorld ()
+@@ -80,12 +90,6 @@
+ 	Client_ClearLights()
+ 	self:ClearMapCache()
+ 	self:DeleteMapEnvironment()
+-	-- DeInit Caelum here (doesn't seem to work)
+-	if (gCaelumSystem) then
+-		print(&quot;deinit caelum&quot;)
+-		gCaelumSystem:Shutdown(true)
+-		gCaelumSystem =3D nil
+-	end
+ end
+ =
+
+ function Renderer3D:SetOfflineStartPos (x,y,z)
+@@ -162,6 +166,15 @@
+ 	--print(&quot;TranslateOsiWalkAngle&quot;,-x,camangdeg)
+ 	--return -x + camangdeg - 3*45
+ 	return x - camangdeg + 5*45
++end
++
++function Renderer3D:DeleteMapEnvironment ()
++	-- DeInit Caelum here (doesn't seem to work)
++	if (gCaelumSystem) then
++		print(&quot;deinit caelum&quot;)
++		gCaelumSystem:Shutdown(true)
++		gCaelumSystem =3D nil
++	end
+ end
+ =
+
+ function Renderer3D:SetMapEnvironment (bUnderGround)
+
+Modified: trunk/lua/lib.mapblock.scheduler.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mapblock.scheduler.lua (original)
++++ trunk/lua/lib.mapblock.scheduler.lua Sat Oct  4 03:21:51 2008
+@@ -52,3 +52,9 @@
+ =
+
+ -- true when the first is less than the second       (NOT less-equal)
+ function cScheduler.CmpProcess	(a,b) return a.prio &lt; b.prio end
++
++function cScheduler:Destroy ()
++	for k,v in pairs(self.pProcessList) do
++		self:RemoveProcess(v)
++	end
++end
+
+Modified: trunk/lua/lib.mapblock.spawner.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mapblock.spawner.lua (original)
++++ trunk/lua/lib.mapblock.spawner.lua Sat Oct  4 03:21:51 2008
+@@ -80,3 +80,5 @@
+ 	for block,v in pairs(self.pMapBlocks) do self:DestroyMapBlock(block) end
+ 	self.pMapBlocks =3D {}
+ end
++
++function cMapBlockSpawner:Destroy () self:Clear() end
+
+Modified: trunk/lua/lib.null.renderer.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.null.renderer.lua (original)
++++ trunk/lua/lib.null.renderer.lua Sat Oct  4 03:21:51 2008
+@@ -2,53 +2,61 @@
+ =
+
+ gRendererList[ &quot;RendererNull&quot; ] =3D RendererNull
+ =
+
+-function RendererNull:DeInit () end
++function RendererNull_Print(...) print(&quot;&lt;NULL&gt;&quot;,...) end
++function RendererNull_PrintOften(...) --[[ print(&quot;&lt;NULL&gt;&quot;,...) ]] end
++
++function RendererNull:DeInit () RendererNull_Print(&quot;DeInit&quot;) end
+ function RendererNull:Init () =
+
++	RendererNull_Print(&quot;Init&quot;) =
+
+ 	self.fCamPosXLoc =3D 0
+ 	self.fCamPosYLoc =3D 0
+ 	self.fCamPosZLoc =3D 0
+ end
+ =
+
+-function RendererNull:SetMapEnvironment () end
++function RendererNull:SetMapEnvironment () RendererNull_Print(&quot;SetMapEnvir=
+onment&quot;) end
+ =
+
+-function RendererNull:MousePick_ShowHits () end
++function RendererNull:MousePick_ShowHits () RendererNull_Print(&quot;MousePick_=
+ShowHits&quot;) end
+ =
+
+-function RendererNull:UpdateMobileModel () end
+-function RendererNull:UpdateMobile () end
+-function RendererNull:NotifyPlayerTeleported () end
+-function RendererNull:StartWorld () end
+-function RendererNull:UpdateMapEnvironment (hour,minute,second) end
++function RendererNull:UpdateMobileModel (mobile) RendererNull_Print(&quot;Updat=
+eMobileModel&quot;,mobile) end
++function RendererNull:UpdateMobile (mobile) RendererNull_Print(&quot;UpdateMobi=
+le&quot;,mobile) end
++function RendererNull:NotifyPlayerTeleported () RendererNull_Print(&quot;Notify=
+PlayerTeleported&quot;) end
++--~ function RendererNull:StartWorld () RendererNull_Print(&quot;StartWorld&quot;) e=
+nd
++function RendererNull:UpdateMapEnvironment (hour,minute,second) RendererNu=
+ll_Print(&quot;UpdateMapEnvironment&quot;,hour,minute,second) end
+ =
+
+-function RendererNull:AddDynamicItem (item) end
+-function RendererNull:RemoveDynamicItem (item) end
+-function RendererNull:UpdateDynamicItemPos (item) end
+-function RendererNull:MainStep () end
+-function RendererNull:MobileStartServerSideAnim (animdata) end
+-function RendererNull:MousePick_Scene () end
+-function RendererNull:CamChangeZoom (f) end
++function RendererNull:AddDynamicItem (item) RendererNull_Print(&quot;AddDynamic=
+Item&quot;,item) end
++function RendererNull:RemoveDynamicItem (item) RendererNull_Print(&quot;RemoveD=
+ynamicItem&quot;,item) end
++function RendererNull:UpdateDynamicItemPos (item) RendererNull_Print(&quot;Upda=
+teDynamicItemPos&quot;,item) end
++function RendererNull:MainStep () RendererNull_PrintOften(&quot;MainStep&quot;) end
++function RendererNull:MobileStartServerSideAnim (animdata) RendererNull_Pr=
+int(&quot;MobileStartServerSideAnim&quot;,animdata) end
++function RendererNull:MousePick_Scene () RendererNull_Print(&quot;MousePick_Sce=
+ne&quot;) end
++function RendererNull:CamChangeZoom (f) RendererNull_Print(&quot;CamChangeZoom&quot;=
+,f) end
+ =
+
+-function RendererNull:DestroyMobileGfx (mobile) end
+-function RendererNull:SelectMobile (serial) end
+-function RendererNull:DeselectMobile () end
++function RendererNull:DestroyMobileGfx (mobile) RendererNull_Print(&quot;Destro=
+yMobileGfx&quot;,mobile) end
++function RendererNull:SelectMobile (serial) RendererNull_Print(&quot;SelectMobi=
+le&quot;,serial) end
++function RendererNull:DeselectMobile () RendererNull_Print(&quot;DeselectMobile=
+&quot;) end
+ =
+
+-function RendererNull:DestroyMousePickItemBySerial (serial) end
++function RendererNull:DestroyMousePickItemBySerial (serial) RendererNull_P=
+rint(&quot;DestroyMousePickItemBySerial&quot;,serial) end
+ =
+
+ -- sets the global sunlight level, intensity=3D0 -&gt; dark, intensity=3D1 -&gt;=
+ bright
+-function RendererNull:SetSunLight (intensity) end
++function RendererNull:SetSunLight (intensity) RendererNull_Print(&quot;SetSunLi=
+ght&quot;,intensity) end
+ -- sets the personal light level, intensity=3D0 -&gt; dark, intensity=3D1 -&gt; =
+bright
+-function RendererNull:SetPersonalLight (mobile, intensity) end
++function RendererNull:SetPersonalLight (mobile, intensity) RendererNull_Pr=
+int(&quot;SetPersonalLight&quot;,mobile, intensity) end
+ =
+
+-function RendererNull:CamKeyDown (key) end
+-function RendererNull:CamKeyUp (key) end
++function RendererNull:CamKeyDown (key) RendererNull_Print(&quot;CamKeyDown&quot;,key=
+) end
++function RendererNull:CamKeyUp (key) RendererNull_Print(&quot;CamKeyUp&quot;,key) end
+ =
+
+ -- returns ax,xloc,yloc  (ax =3D angle, constant for iso cam)
+ function RendererNull:GetCompassInfo				() =
+
+ 	local ax =3D (180+45)*gfDeg2Rad
+ 	local xloc,yloc =3D self:GetCamPos()
++	RendererNull_PrintOften(&quot;GetCompassInfo&quot;,ax,xloc,yloc)
+ 	return ax,xloc,yloc
+ end
+ =
+
+ -- returns xloc,yloc in uo coords
+-function RendererNull:GetCamPos () return self.fCamPosXLoc, self.fCamPosYL=
+oc, self.fCamPosZLoc end
++function RendererNull:GetCamPos () =
+
++	RendererNull_PrintOften(&quot;GetCamPos&quot;) =
+
++	return self.fCamPosXLoc, self.fCamPosYLoc, self.fCamPosZLoc =
+
++end
+ =
+
+-function RendererNull:BlendOutLayersAbovePlayer () end
++function RendererNull:BlendOutLayersAbovePlayer () RendererNull_Print(&quot;Ble=
+ndOutLayersAbovePlayer&quot;) end
+
+Modified: trunk/lua/lib.renderer.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.renderer.lua (original)
++++ trunk/lua/lib.renderer.lua Sat Oct  4 03:21:51 2008
+@@ -12,8 +12,7 @@
+ 	local takenext =3D false
+ 	for k,v in pairs(gRendererList) do
+ 		if takenext then
+-			gCurrentRenderer =3D v
+-			ActivateRenderer(gCurrentRenderer)
++			ActivateRenderer(v)
+ 			return
+ 		end
+ 		=
+
+@@ -24,15 +23,14 @@
+ 	=
+
+ 	-- no next found so take the first one
+ 	for k,v in pairs(gRendererList) do
+-		gCurrentRenderer =3D v
+-		ActivateRenderer(gCurrentRenderer)
++		ActivateRenderer(v)
+ 		return
+ 	end
+ end
+ =
+
+ function ActivateRenderer (newrenderer)
+ 	if (gCurrentRenderer =3D=3D newrenderer) then return end
+-	printf(&quot;########## gCurrentRenderer:DeInit\n&quot;)
++	printf(&quot;########## gCurrentRenderer:DeInit : %s\n&quot;,GetRendererName(gCurre=
+ntRenderer))
+ 	gCurrentRenderer:DeInit()
+ 	gCurrentRenderer =3D newrenderer
+ 	printf(&quot;########## activating renderer : %s\n&quot;,GetRendererName(gCurrentRe=
+nderer))
+
+Modified: trunk/lua/lib.terrain.multitex.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.terrain.multitex.lua (original)
++++ trunk/lua/lib.terrain.multitex.lua Sat Oct  4 03:21:51 2008
+@@ -115,6 +115,11 @@
+ 	return unpack(coords)
+ end
+ =
+
++function MultiTexTerrainDeInit ()
++	if (not gMultiTexTerrainInitDone) then return end
++	-- todo: currently this just does nothing
++end
++
+ function MultiTexTerrainInit ()
+ 	if (not gEnableMultiTexTerrain) then return end
+ 	if (gMultiTexTerrainInitDone) then return end
+
+Modified: trunk/lua/lib.tilefreewalk.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.tilefreewalk.lua (original)
++++ trunk/lua/lib.tilefreewalk.lua Sat Oct  4 03:21:51 2008
+@@ -69,6 +69,11 @@
+ =
+
+ -- ##### ##### ##### ##### ##### init
+ =
+
++
++function gTileFreeWalk:DeInit ()
++	-- TODO
++	self.mbActive =3D false
++end
+ =
+
+ function gTileFreeWalk:Init ()
+ 	if (gCurrentRenderer ~=3D Renderer3D) then return end
+@@ -84,10 +89,14 @@
+ 	self.pos_lastrequested =3D {0,0,0}
+ 	self:SetPos_All(self:LocalToUOPos(0,0,0))
+ 	=
+
++	self.mbActive =3D true
++	=
+
+ 	if (true) then
+ 		self.sDebugMarkerMeshName_Big	=3D MakeSphereMesh(11,11,0.2,0.2,0.2)
+ 		self.sDebugMarkerMeshName_Dir	=3D MakeSphereMesh(11,11,0.1,0.1,0.1)
+ 	end
++
++	gTileFreeWalk:OnStartInGame()
+ end
+ =
+
+ function gTileFreeWalk:OnStartInGame ()
+@@ -98,11 +107,11 @@
+ 		--~ self:SetPos_All(self:LocalToUOPos(-1482.5,1527.5, 2.0))  -- osi-brit=
+annia  -- set in startofflinemode in lib.mainmenu.lua
+ 		--~ self:SetPos_All(self:LocalToUOPos(-1482.5,1527.5, 2.0))  -- osi-brit=
+annia  -- set in startofflinemode in lib.mainmenu.lua
+ 	end
+-	RegisterStepper(function () gTileFreeWalk:Step() end) =
+
+-end
+-
+-RegisterListener(&quot;Hook_StartInGame&quot;,function () gTileFreeWalk:OnStartInGam=
+e() end)
+-RegisterListener(&quot;Hook_PreLoad&quot;,function () gTileFreeWalk:Init() end)
++	RegisterStepper(function () if not self.mbActive then return true else gT=
+ileFreeWalk:Step() end end) =
+
++end
++
++--~ RegisterListener(&quot;Hook_StartInGame&quot;,function () gTileFreeWalk:OnStartI=
+nGame() end)
++--~ RegisterListener(&quot;Hook_PreLoad&quot;,function () gTileFreeWalk:Init() end)
+ =
+
+ =
+
+ -- ##### ##### ##### ##### ##### step
+
+Modified: trunk/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/main.lua (original)
++++ trunk/lua/main.lua Sat Oct  4 03:21:51 2008
+@@ -343,8 +343,6 @@
+ 	InvokeExporters()
+ =
+
+ 	MainMenuFinishedPreLoading()
+-
+-	gCurrentRenderer:Init()
+ 	=
+
+ 	-- set fadelines font
+ 	gFadeLinesFont =3D gFontDefs[&quot;Chat&quot;].name
+@@ -372,7 +370,8 @@
+ 	print(&quot;##################################&quot;)
+ 	print(&quot;######      START INGAME     #####&quot;)
+ 	print(&quot;##################################&quot;)
+-	gCurrentRenderer:StartWorld()
++
++	gCurrentRenderer:Init()
+ =
+
+ 	ExecuteMapChangeIfNeeded()
+ =
+
+
+Modified: trunk/lua/net/net.login.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.login.lua (original)
++++ trunk/lua/net/net.login.lua Sat Oct  4 03:21:51 2008
+@@ -252,6 +252,8 @@
+ 	Send_ClientLanguage(gLanguage or &quot;ENU&quot;)
+ 	Send_UnknownCommand()
+ 	Send_UnknownSE()
++
++	StartInGame()
+ 	=
+
+ 	-- TODO : HintStartPosition(mobiledata.xloc, mobiledata.yloc, mobiledata.=
+zloc) hint for campos ?
+ 	UpdatePlayerBodySerial(mobiledata.serial)
+@@ -268,7 +270,7 @@
+ 	GuiAddChatLine(&quot;NET: Login_Complete with id: &quot; .. id) =
+
+ =
+
+ 	--Start World
+-	StartInGame()
++	--~ StartInGame()
+ end
+ =
+
+ -- Loginserver Login rejected - Errorcode returned
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001312.html">[Iris-commit] [IRIS] r2507 - in /trunk/lua: config_declarations.lua lib.2d.renderer.lua lib.3d.renderer.lua lib.keybinds.lua lib.null.renderer.lua lib.renderer.lua main.lua
+</A></li>
+	<LI>Next message: <A HREF="001314.html">[Iris-commit] [IRIS] r2509 -	/trunk/data/base/ui/ray_border_black.png
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1313">[ date ]</a>
+              <a href="thread.html#1313">[ thread ]</a>
+              <a href="subject.html#1313">[ subject ]</a>
+              <a href="author.html#1313">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

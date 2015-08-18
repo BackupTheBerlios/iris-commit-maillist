@@ -1,0 +1,222 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1246 - in /trunk/data: lua/ models/materials/ models/models/to_003000/ models/textures/
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2007-June/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1246%20-%20in%20/trunk/data%3A%20lua/%20models/materials/%0A%20models/models/to_003000/%20models/textures/&In-Reply-To=%3C20070627232309.09C2AB1466D%40localhost.localdomain%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000061.html">
+   <LINK REL="Next"  HREF="000063.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1246 - in /trunk/data: lua/ models/materials/ models/models/to_003000/ models/textures/</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1246%20-%20in%20/trunk/data%3A%20lua/%20models/materials/%0A%20models/models/to_003000/%20models/textures/&In-Reply-To=%3C20070627232309.09C2AB1466D%40localhost.localdomain%3E"
+       TITLE="[Iris-commit] [IRIS] r1246 - in /trunk/data: lua/ models/materials/ models/models/to_003000/ models/textures/">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Thu Jun 28 01:23:08 CEST 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000061.html">[Iris-commit] [IRIS] r1245 - in /trunk/data: base/ skybox/
+</A></li>
+        <LI>Next message: <A HREF="000063.html">[Iris-commit] [IRIS] r1247 - /trunk/README
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#62">[ date ]</a>
+              <a href="thread.html#62">[ thread ]</a>
+              <a href="subject.html#62">[ subject ]</a>
+              <a href="author.html#62">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: sience
+Date: Thu Jun 28 01:23:07 2007
+New Revision: 1246
+
+Log:
+-filter added for art models (statics, dynamics can be mapped to another me=
+sh or rotated or x,y,z positioned)
+-two new models added (armoire-2637 and armoire-2639 to show this new featu=
+re)
+-filterfile is named: filter.art.lua
+
+Added:
+    trunk/data/lua/filter.art.lua
+    trunk/data/models/materials/armoire.material
+    trunk/data/models/models/to_003000/mdl_002637.mesh   (with props)
+    trunk/data/models/models/to_003000/mdl_002639.mesh   (with props)
+    trunk/data/models/textures/armoire-2637.tga   (with props)
+    trunk/data/models/textures/armoire-2639.tga   (with props)
+Modified:
+    trunk/data/lua/lib.3d.renderer.lua
+    trunk/data/lua/lib.static.lua
+    trunk/data/lua/main.lua
+
+Modified: trunk/data/lua/lib.3d.renderer.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.3d.renderer.lua (original)
++++ trunk/data/lua/lib.3d.renderer.lua Thu Jun 28 01:23:07 2007
+@@ -576,9 +576,10 @@
+ =
+
+ 	assert(not item.gfx)
+ =
+
+-	item.xadd =3D 0
+-	item.yadd =3D 0
+-	item.zadd =3D 0
++	item.xadd =3D FilterPositionX(item.artid) or 0
++	item.yadd =3D FilterPositionY(item.artid) or 0
++	item.zadd =3D FilterPositionZ(item.artid) or 0
++
+ 	-- Detect Multis
+ 	if item.artid &gt;=3D gMulti_ID then
+ 		-- Check if Serverside Multi (Custom Multi)
+@@ -644,6 +645,7 @@
+ 			item.mbIsMulti =3D true
+ 			=
+
+ 			item.gfx =3D rootgfx
++			for k,v in pairs(item.lMultiChildGfx) do item.gfx:SetOrientation(GetSta=
+ticMeshOrientation(v.artid)) end
+ 			self:UpdateDynamicItemPos(item)
+ 			-- item.gfx:SetRenderingDistance(self.gDynamicMaxRenderDist)
+ 		else =
+
+@@ -678,14 +680,15 @@
+ 			-- fallback to billboard with original art or =
+
+ 			if (not IsArtBillboardFallBackSkipped(item.artid)) then
+ 				item.gfx.billboard =3D item.gfx:CreateChild()
+-				item.xadd =3D 0.5
+-				item.yadd =3D 0.5
+-				item.zadd =3D 0.5
++				item.xadd =3D item.xadd + 0.5
++				item.yadd =3D item.yadd + 0.5
++				item.zadd =3D item.zadd + 0.5
+ 				self:CreateArtBillBoard(item.gfx.billboard,iTranslatedTileTypeID,item.=
+hue)
+ 				printdebug(&quot;missing&quot;,sprintf(&quot;Renderer3D:CreateDynamicGfx: failed load=
+ing mesh for dynamic: artid=3D%i z_typename=3D%s\n&quot;,item.artid or -1,item.z=
+_typename or &quot;&quot;))
+ 			end
+ 		end
+ 		item.gfx:SetRenderingDistance(self.gDynamicMaxRenderDist)
++		item.gfx:SetOrientation(GetStaticMeshOrientation(item.artid))
+ 		self:UpdateDynamicItemPos(item)
+ 	end
+ 	self:UpdateDynamicVisibility(item)
+
+Modified: trunk/data/lua/lib.static.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.static.lua (original)
++++ trunk/data/lua/lib.static.lua Thu Jun 28 01:23:07 2007
+@@ -67,9 +67,9 @@
+ -- TODO : not flexible enough, what if model should be skipped, or multipl=
+e models set ? or model depending on surrounding ?
+ gLegacyModelCache =3D {}
+ function GetStaticMeshName (iTileTypeID,iHue)
+-	--Seasonal Translation
++	--1st: Seasonal Translation
+ 	local iTranslatedTileTypeID =3D TranslateTileTypeID(iTileTypeID, gSeasonS=
+etting)
+-
++	=
+
+ 	-- hue default value is 0
+ 	iHue =3D iHue or 0
+ =
+
+@@ -92,7 +92,12 @@
+ 	if (meshname =3D=3D nil) then
+ 		-- try to load the new models
+ 		if gUseNewModelLoader then
+-			meshname =3D GetModelName(iTranslatedTileTypeID) -- &quot;mdl_&quot;..iTileTypeID=
+..&quot;.mesh&quot;
++			-- Apply Filter
++			meshname =3D FilterMeshname(iTranslatedTileTypeID)
++
++			if (not meshname) then
++				meshname =3D GetModelName(iTranslatedTileTypeID) -- &quot;mdl_&quot;..iTileTypeI=
+D..&quot;.mesh&quot;
++			end
+ 			-- mesh available?
+ 			printdebug(&quot;static&quot;,&quot;query model&quot;,meshname)
+ 			if not OgreMeshAvailable(meshname) then =
+
+@@ -149,13 +154,15 @@
+ end
+ =
+
+ function GetStaticMeshOrientation (iTileTypeID)
+-	local w,x,y,z =3D Quaternion.identity()
++	local w,x,y,z =3D FilterOrientation(iTileTypeID)
+ =
+
+ 	-- custom Ogre Mesh Test
+ 	--if (iTileTypeID =3D=3D hex2num(&quot;0x0cd3&quot;)) then
+ 	--	w,x,y,z =3D Quaternion.fromAngleAxis (gfDeg2Rad * 90.0,1,0,0)  -- ang,=
+x,y,z
+ 	--end
+-
++	if (not w or not x or not y or not z) then
++		w,x,y,z =3D Quaternion.identity()
++	end
+ 	return w,x,y,z
+ end
+ =
+
+
+Modified: trunk/data/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/main.lua (original)
++++ trunk/data/lua/main.lua Thu Jun 28 01:23:07 2007
+@@ -79,6 +79,7 @@
+ dofile(libpath .. &quot;lib.3d.mobileanim.lua&quot;)
+ dofile(libpath .. &quot;lib.mount.lua&quot;)
+ dofile(libpath .. &quot;lib.corpse.lua&quot;)
++dofile(libpath .. &quot;filter.art.lua&quot;)
+ =
+
+ --can be removed with gamerelease
+ dofile(libpath .. &quot;lib.meshexporter.lua&quot;)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000061.html">[Iris-commit] [IRIS] r1245 - in /trunk/data: base/ skybox/
+</A></li>
+	<LI>Next message: <A HREF="000063.html">[Iris-commit] [IRIS] r1247 - /trunk/README
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#62">[ date ]</a>
+              <a href="thread.html#62">[ thread ]</a>
+              <a href="subject.html#62">[ subject ]</a>
+              <a href="author.html#62">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

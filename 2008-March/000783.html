@@ -1,0 +1,147 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1971 - in /trunk: lua/lib.plugin.lua lua/main.lua plugins/ plugins/example.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-March/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1971%20-%20in%20/trunk%3A%20lua/lib.plugin.lua%0A%20lua/main.lua%20plugins/%20plugins/example.lua&In-Reply-To=%3C20080318025833.737E6152402A%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000782.html">
+   <LINK REL="Next"  HREF="000784.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1971 - in /trunk: lua/lib.plugin.lua lua/main.lua plugins/ plugins/example.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1971%20-%20in%20/trunk%3A%20lua/lib.plugin.lua%0A%20lua/main.lua%20plugins/%20plugins/example.lua&In-Reply-To=%3C20080318025833.737E6152402A%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1971 - in /trunk: lua/lib.plugin.lua lua/main.lua plugins/ plugins/example.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Tue Mar 18 03:58:33 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000782.html">[Iris-commit] [IRIS] r1970 - in /tools/archiv: gfm/ gui_varan/
+</A></li>
+        <LI>Next message: <A HREF="000784.html">[Iris-commit] [IRIS] r1972 - in /trunk/lua: gui/gui.journal.lua lib.macrolist.lua lib.walking3.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#783">[ date ]</a>
+              <a href="thread.html#783">[ thread ]</a>
+              <a href="subject.html#783">[ subject ]</a>
+              <a href="author.html#783">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Tue Mar 18 03:58:32 2008
+New Revision: 1971
+
+Log:
+added plugin system
+
+Added:
+    trunk/lua/lib.plugin.lua
+    trunk/plugins/
+    trunk/plugins/example.lua
+Modified:
+    trunk/lua/main.lua
+
+Modified: trunk/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/main.lua (original)
++++ trunk/lua/main.lua Tue Mar 18 03:58:32 2008
+@@ -10,6 +10,7 @@
+ gConfigPathFallback	=3D datapath..&quot;config.lua.dist&quot;
+ gMacroPath 			=3D datapath..&quot;mymacros.lua&quot;
+ gMacroPathFallback	=3D datapath..&quot;mymacros.lua.dist&quot;
++gMainPluginDir 		=3D gMainWorkingDir..&quot;plugins/&quot;
+ gSecondsSinceLastFrame =3D 0
+ =
+
+ gInGameStarted =3D false
+@@ -80,6 +81,7 @@
+ dofile(libpath .. &quot;lib.bugreport.lua&quot;)
+ dofile(libpath .. &quot;lib.buff.lua&quot;)
+ dofile(libpath .. &quot;lib.unifont.lua&quot;)
++dofile(libpath .. &quot;lib.plugin.lua&quot;)
+ =
+
+ dofile(libpath .. &quot;gui/gui.main.lua&quot;)
+ dofile(libpath .. &quot;obj/obj.main.lua&quot;)
+@@ -265,6 +267,9 @@
+ 	=
+
+ 	CheckUODir()
+ 	=
+
++	LoadPlugins_Iris()
++	NotifyListener(&quot;Hook_PluginsLoaded&quot;)
++	=
+
+ 	gMyTicks =3D Client_GetTicks()
+ 	=
+
+ 	LoadingProfile(&quot;initializing Ogre&quot;,true)
+@@ -395,6 +400,9 @@
+ -- called every frame, after all timer-steppers, see Step() in lib.time.lua
+ function MainStep ()
+ 	LugreStep()
++	=
+
++	NotifyListener(&quot;Hook_MainStep&quot;) -- should called before physstep, so obje=
+ct position changes affect the gfx correctly
++	=
+
+ 	NetStep()
+ =
+
+ 	if (gInGameStarted) then
+@@ -415,6 +423,9 @@
+ 	=
+
+ =
+
+ 	StepDebugMenu()
++	=
+
++	NotifyListener(&quot;Hook_HUDStep&quot;) -- updates special hud elements dependant =
+on object positions that don't have auto-tracking
++	=
+
+ 	InputStep() -- generate mouse_left_drag_* and mouse_left_click_single eve=
+nts =
+
+ 	GUIStep() -- generate mouse_enter, mouse_leave events (might adjust curso=
+r -&gt; before CursorStep)
+ 	ToolTipStep() -- needs mouse_enter, should be after GUIStep
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000782.html">[Iris-commit] [IRIS] r1970 - in /tools/archiv: gfm/ gui_varan/
+</A></li>
+	<LI>Next message: <A HREF="000784.html">[Iris-commit] [IRIS] r1972 - in /trunk/lua: gui/gui.journal.lua lib.macrolist.lua lib.walking3.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#783">[ date ]</a>
+              <a href="thread.html#783">[ thread ]</a>
+              <a href="subject.html#783">[ subject ]</a>
+              <a href="author.html#783">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

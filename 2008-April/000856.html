@@ -1,0 +1,225 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2045 - in /trunk: lua/gui/gui.skill.lua lua/net/net.skill.lua plugins/hudenemylist.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-April/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2045%20-%20in%20/trunk%3A%20lua/gui/gui.skill.lua%0A%20lua/net/net.skill.lua%20plugins/hudenemylist.lua&In-Reply-To=%3C20080408235352.4C9641C187B2%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000855.html">
+   <LINK REL="Next"  HREF="000857.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2045 - in /trunk: lua/gui/gui.skill.lua lua/net/net.skill.lua plugins/hudenemylist.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2045%20-%20in%20/trunk%3A%20lua/gui/gui.skill.lua%0A%20lua/net/net.skill.lua%20plugins/hudenemylist.lua&In-Reply-To=%3C20080408235352.4C9641C187B2%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2045 - in /trunk: lua/gui/gui.skill.lua lua/net/net.skill.lua plugins/hudenemylist.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Wed Apr  9 01:53:51 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000855.html">[Iris-commit] [IRIS] r2044 - /trunk/lua/filter/filter.art.lua
+</A></li>
+        <LI>Next message: <A HREF="000857.html">[Iris-commit] [IRIS] r2046 - in /trunk/lua: gui/gui.status.lua	net/net.mobile.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#856">[ date ]</a>
+              <a href="thread.html#856">[ thread ]</a>
+              <a href="subject.html#856">[ subject ]</a>
+              <a href="author.html#856">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: hagish
+Date: Wed Apr  9 01:53:47 2008
+New Revision: 2045
+
+Log:
+small enemylist improvements, skill changes gets displayed in fadelines
+
+Modified:
+    trunk/lua/gui/gui.skill.lua
+    trunk/lua/net/net.skill.lua
+    trunk/plugins/hudenemylist.lua
+
+Modified: trunk/lua/gui/gui.skill.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.skill.lua (original)
++++ trunk/lua/gui/gui.skill.lua Wed Apr  9 01:53:47 2008
+@@ -59,13 +59,23 @@
+ =
+
+ -- sets a skill value and lock state
+ -- lockstate: (0=3Dup, 1=3Ddown, 2=3Dlocked)
+-function SkillUpdate(skillid, value, base_value, lockstate)
++function SkillUpdate(skillid, value, base_value, lockstate, name)
+ 	if not gPlayerSkills then
+ 		gPlayerSkills =3D {}
+ 	end
+ 	=
+
+ 	-- add an empty entry if none present
+ 	if not gPlayerSkills[skillid] then gPlayerSkills[skillid] =3D {} end
++	=
+
++	-- is there and old entry?
++	local last_value =3D gPlayerSkills and gPlayerSkills[skillid] and gPlayer=
+Skills[skillid].value or nil
++	local last_base_value =3D gPlayerSkills and gPlayerSkills[skillid] and gP=
+layerSkills[skillid].last_base_value or nil
++	-- print(&quot;SKILL DEBUG&quot;,value,last_value,base_value,last_base_value)
++	if value and last_value and (last_value ~=3D value) then
++		-- display change
++		AddFadeLines(&quot;Skill &quot;..name..&quot; is now &quot;..sprintf(&quot;%3.1f&quot;,value / 10)..&quot; =
+-&gt; &quot;..sprintf(&quot;%3.1f&quot;,(value-last_value) / 10))
++	end
++	=
+
+ 	-- update entry
+ 	gPlayerSkills[skillid].value =3D value
+ 	gPlayerSkills[skillid].base_value =3D base_value
+@@ -75,8 +85,8 @@
+ 	if gSkillDialog then
+ 		for k,skill in pairs(gSkillDialog.lSkill) do
+ 			if skill.skillid =3D=3D skillid then
++				-- print(&quot;skillupdate&quot;,k,skillid,skill.skillid,value,base_value,lockst=
+ate)
+ 				-- skill found, so update
+-				--print(&quot;skillupdate&quot;,k,skillid,skill.skillid,value,base_value,locksta=
+te)
+ 				skill.button_lock.gfx:SetVisible(lockstate =3D=3D 2)
+ 				skill.button_up.gfx:SetVisible(lockstate =3D=3D 0)
+ 				skill.button_down.gfx:SetVisible(lockstate =3D=3D 1)
+
+Modified: trunk/lua/net/net.skill.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.skill.lua (original)
++++ trunk/lua/net/net.skill.lua Wed Apr  9 01:53:47 2008
+@@ -35,7 +35,7 @@
+ 	local id =3D input:PopNetUint8()
+ 	local size =3D input:PopNetUint16()
+ 	local skill_type =3D input:PopNetUint8()	--0x00=3D full list, 0x01 GodVie=
+w, 0x02 full list with skillcap, 0x03 GodView+SkillCap, 0xDF single skill u=
+pdate with cap, 0xFF =3D single skill update
+-	printf(&quot;NET (todo): Skills id: %i Size: %i Loop_Value: %i\n&quot;,id,size,skil=
+l_type)
++	-- printf(&quot;NET (todo): Skills id: %i Size: %i Loop_Value: %i\n&quot;,id,size,s=
+kill_type)
+ =
+
+ 	local bHasCap =3D skill_type =3D=3D hex2num(&quot;0x02&quot;) or skill_type =3D=3D =
+hex2num(&quot;0x03&quot;) or skill_type =3D=3D hex2num(&quot;0xdf&quot;)
+ 	if (skill_type =3D=3D hex2num(&quot;0xFF&quot;)) then gSkillNumber =3D (size-4)/7 e=
+nd
+@@ -51,7 +51,7 @@
+ 			local skill_name =3D glSkillNames[skill_id] or &quot;unknown&quot;
+ 			if (bHasCap) then	local skill_cap =3D input:PopNetUint16() end
+ 			printdebug(&quot;skill&quot;,sprintf(&quot;NET (todo): skill: %s [id=3D%i] skill_value=
+:<i> %i skill_base_value: %i locked?: %i\n&quot;,skill_name,skill_id,skill_value,sk=
+</I>ill_base_value,skill_lock_state))
+-			SkillUpdate(skill_id,skill_value,skill_base_value,skill_lock_state)
++			SkillUpdate(skill_id,skill_value,skill_base_value,skill_lock_state,skil=
+l_name)
+ 		end
+ 		-- TODO : check for other Emus (RunUO sends always 0x0000)
+ 		--if (skill_type =3D=3D hex2num(&quot;0x00&quot;)) then
+@@ -66,7 +66,7 @@
+ 		local skill_name =3D glSkillNames[skill_id] or &quot;unknown&quot;
+ 		if (bHasCap) then local skill_cap =3D input:PopNetUint16() end
+ 		printdebug(&quot;skill&quot;,sprintf(&quot;NET (todo): skill: %s [id=3D%i] skill_value:=
+ %i skill_base_value: %i locked?: %i\n&quot;,skill_name,skill_id,skill_value,ski=
+ll_base_value,skill_lock_state))
+-		SkillUpdate(skill_id,skill_value,skill_base_value,skill_lock_state)
++		SkillUpdate(skill_id,skill_value,skill_base_value,skill_lock_state,skill=
+_name)
+ 	end
+ end
+ =
+
+
+Modified: trunk/plugins/hudenemylist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/plugins/hudenemylist.lua (original)
++++ trunk/plugins/hudenemylist.lua Wed Apr  9 01:53:47 2008
+@@ -70,15 +70,26 @@
+ 	bar.widget_bg =3D guimaker.MakePlane(parent, GetPlainTextureMat(&quot;sd_pd_en=
+emylist_bar_bg.png&quot;,true), x, y, 32, 16)
+ 	bar.widget_bg.mbClipChildsHitTest =3D false
+ 	bar.widget_bg.mbIgnoreMouseOver =3D false
++	=
+
++	bar.widget_bg.on_mouse_left_click		=3D function () =
+
++		if not IsTargetModeActive() then =
+
++			gCurrentRenderer:SelectMobile(body.serial) =
+
++		end
++	end
+ 	bar.widget_bg.on_mouse_left_down		=3D function (widget) =
+
+ 		if IsTargetModeActive() then =
+
+ 			CompleteTargetModeWithTargetMobile(body) =
+
+-		else =
+
+-			gCurrentRenderer:SelectMobile(body.serial) =
+
+ 		end =
+
+ 	end
+ 	bar.widget_bg.on_mouse_right_down		=3D function (widget) =
+
+ 		OpenHealthbarAtMouse(body)
++	end
++	bar.widget_bg.on_mouse_left_click_double =3D function ()
++		if (gActWarmode =3D=3D gWarmode_Combat) then
++			Send_AttackReq(body.serial)
++		else
++			Send_DoubleClick(body.serial)
++		end
+ 	end
+ 	=
+
+ =
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000855.html">[Iris-commit] [IRIS] r2044 - /trunk/lua/filter/filter.art.lua
+</A></li>
+	<LI>Next message: <A HREF="000857.html">[Iris-commit] [IRIS] r2046 - in /trunk/lua: gui/gui.status.lua	net/net.mobile.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#856">[ date ]</a>
+              <a href="thread.html#856">[ thread ]</a>
+              <a href="subject.html#856">[ subject ]</a>
+              <a href="author.html#856">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

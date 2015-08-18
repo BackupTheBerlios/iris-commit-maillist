@@ -1,0 +1,210 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2475 - in /trunk/lua: lib.test.lua main.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-September/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2475%20-%20in%20/trunk/lua%3A%20lib.test.lua%20main.lua&In-Reply-To=%3C20080927192606.1C0FA1524030%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001279.html">
+   <LINK REL="Next"  HREF="001281.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2475 - in /trunk/lua: lib.test.lua main.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2475%20-%20in%20/trunk/lua%3A%20lib.test.lua%20main.lua&In-Reply-To=%3C20080927192606.1C0FA1524030%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2475 - in /trunk/lua: lib.test.lua main.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat Sep 27 21:26:05 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001279.html">[Iris-commit] [IRIS] r2474 - /trunk/lua/gui/gui.trade.lua
+</A></li>
+        <LI>Next message: <A HREF="001281.html">[Iris-commit] [IRIS] r2476 - in /trunk/lua: lib.2d.dynamic.lua lib.2d.renderer.lua lib.2d.spriteblock.lua net.walk.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1280">[ date ]</a>
+              <a href="thread.html#1280">[ thread ]</a>
+              <a href="subject.html#1280">[ subject ]</a>
+              <a href="author.html#1280">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sat Sep 27 21:26:03 2008
+New Revision: 2475
+
+Log:
+textdump/fifo write speed test (for registry)
+
+Modified:
+    trunk/lua/lib.test.lua
+    trunk/lua/main.lua
+
+Modified: trunk/lua/lib.test.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.test.lua (original)
++++ trunk/lua/lib.test.lua Sat Sep 27 21:26:03 2008
+@@ -45,6 +45,86 @@
+ 	]]--
+ 	-------------------------------------------------------------------------=
+---------------------------------
+ end
++
++function FileWriteSpeedTest ()
++	local function luadump	(name,data)
++		local t =3D type(data)
++		if t =3D=3D &quot;table&quot; then
++			local s =3D &quot;[&quot;..name..&quot;]&quot;..&quot;=3D{&quot;
++			for k,v in pairs(data) do
++				s =3D s..luadump(k,v)..&quot;,&quot;
++			end
++			return s..&quot;}&quot;
++		else
++			return &quot;[&quot;..name..&quot;]&quot;..&quot;=3D&quot;..tostring(data)..&quot;&quot;
++		end
++	end
++ =
+
++	local entry =3D {id=3D1,x=3D100,y=3D-200,z=3D4}
++
++	local t =3D {}
++	for i=3D0,100 do
++		table.insert(t,entry)
++	end
++	=
+
++	local startt =3D Client_GetTicks()
++	for i=3D0,1000 do
++		local fp =3D io.open(&quot;test.txt&quot;,&quot;w&quot;)
++		if (fp) then
++			fp:write(luadump(&quot;data&quot;,t))
++			fp:close()
++		end
++	end
++	local endt =3D Client_GetTicks()
++	print(&quot;dt text save=3D&quot;,(endt-startt)/1000)
++	=
+
++	=
+
++	local f =3D CreateFIFO()
++	local startt =3D Client_GetTicks()
++	for i=3D0,1000 do
++		f:Clear()
++		=
+
++		for k,v in pairs(t) do
++			f:PushU(v.id)
++			f:PushU(v.x)
++			f:PushU(v.y)
++			f:PushU(v.z)
++		end
++		f:WriteToFile(&quot;test.bin&quot;)
++		=
+
++	end
++	f:Destroy()
++	local endt =3D Client_GetTicks()
++	print(&quot;dt bin save=3D&quot;,(endt-startt)/1000)
++	=
+
++	=
+
++	local f =3D CreateFIFO()
++	local startt =3D Client_GetTicks()
++	for i=3D0,1000 do
++		f:Clear()
++		=
+
++		FIFO_Open(f)
++		for k,v in pairs(t) do
++			FIFO_PushNetUint32(v.id)
++			FIFO_PushNetUint32(v.x)
++			FIFO_PushNetUint32(v.y)
++			FIFO_PushNetUint32(v.z)
++		end
++		FIFO_Close()
++		f:WriteToFile(&quot;test.bin&quot;)
++		=
+
++	end
++	f:Destroy()
++	local endt =3D Client_GetTicks()
++	print(&quot;dt bin2 save=3D&quot;,(endt-startt)/1000)
++
++	--~ dt text save=3D   1.355
++	--~ dt bin save=3D    0.552
++	--~ dt bin2 save=3D    0.086
++
++	os.exit(0) =
+
++end
++
+ =
+
+ function TestZLib()
+ 	local c =3D CreateFIFO()
+
+Modified: trunk/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/main.lua (original)
++++ trunk/lua/main.lua Sat Sep 27 21:26:03 2008
+@@ -33,7 +33,6 @@
+ dofile(libpath .. &quot;lib.keybinds.lua&quot;)
+ dofile(libpath .. &quot;lib.xml.lua&quot;)
+ dofile(libpath .. &quot;lib.net.lua&quot;)
+- =
+
+ =
+
+ -- renderer second
+ gRendererList =3D {}
+@@ -99,6 +98,7 @@
+ =
+
+ dofile(libpath .. &quot;config_declarations.lua&quot;)
+ =
+
++
+ if (LugreActivateGlobalVarChecking) then LugreActivateGlobalVarChecking() =
+end
+ =
+
+ --###############################
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001279.html">[Iris-commit] [IRIS] r2474 - /trunk/lua/gui/gui.trade.lua
+</A></li>
+	<LI>Next message: <A HREF="001281.html">[Iris-commit] [IRIS] r2476 - in /trunk/lua: lib.2d.dynamic.lua lib.2d.renderer.lua lib.2d.spriteblock.lua net.walk.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1280">[ date ]</a>
+              <a href="thread.html#1280">[ thread ]</a>
+              <a href="subject.html#1280">[ subject ]</a>
+              <a href="author.html#1280">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

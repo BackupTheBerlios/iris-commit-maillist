@@ -1,0 +1,150 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2030 - in /trunk/lua: gui/gui.healthbar.lua gui/gui.status.lua lib.uodragdrop.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-April/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2030%20-%20in%20/trunk/lua%3A%20gui/gui.healthbar.lua%0A%20gui/gui.status.lua%20lib.uodragdrop.lua&In-Reply-To=%3C20080406153940.D4B1C1C18117%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000840.html">
+   <LINK REL="Next"  HREF="000842.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2030 - in /trunk/lua: gui/gui.healthbar.lua gui/gui.status.lua lib.uodragdrop.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2030%20-%20in%20/trunk/lua%3A%20gui/gui.healthbar.lua%0A%20gui/gui.status.lua%20lib.uodragdrop.lua&In-Reply-To=%3C20080406153940.D4B1C1C18117%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2030 - in /trunk/lua: gui/gui.healthbar.lua gui/gui.status.lua lib.uodragdrop.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sun Apr  6 17:39:38 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000840.html">[Iris-commit] [IRIS] r2029 - /trunk/plugins/hudenemylist.lua
+</A></li>
+        <LI>Next message: <A HREF="000842.html">[Iris-commit] [IRIS] r2031 - /trunk/lua/gui/gui.healthbar.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#841">[ date ]</a>
+              <a href="thread.html#841">[ thread ]</a>
+              <a href="subject.html#841">[ subject ]</a>
+              <a href="author.html#841">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: hagish
+Date: Sun Apr  6 17:39:38 2008
+New Revision: 2030
+
+Log:
+its possible to drop items on healthbars
+
+Modified:
+    trunk/lua/gui/gui.healthbar.lua
+    trunk/lua/gui/gui.status.lua
+    trunk/lua/lib.uodragdrop.lua
+
+Modified: trunk/lua/gui/gui.healthbar.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.healthbar.lua (original)
++++ trunk/lua/gui/gui.healthbar.lua Sun Apr  6 17:39:38 2008
+@@ -123,6 +123,14 @@
+ 	gHealthbarDialogs[mobile.serial] =3D nil
+ end
+ =
+
++
++-- open healdbar at mouse pos
++function OpenHealthbarAtMouse (mobile)
++	local iMouseX,iMouseY =3D GetMousePos()
++	-- -50,-30 to place the dialog beneath the mouse
++	OpenHealthbar(mobile,iMouseX - 50,iMouseY - 30)
++end
++
+ -- Open Healthbar Gump
+ function OpenHealthbar (mobile,x,y)
+ 	if mobile =3D=3D nil then return end
+@@ -161,6 +169,9 @@
+ =
+
+ 	gHealthbarDialogs[mobile.serial] =3D dialog
+ =
+
++	-- store mobile serial for item drop
++	dialog.dropOnMobileSerial =3D mobile.serial
++	=
+
+ 	if x and y then
+ 		if dialog.rootwidget and dialog.rootwidget.gfx then dialog.rootwidget.gf=
+x:SetPos(x,y) end
+ 	end
+
+Modified: trunk/lua/gui/gui.status.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.status.lua (original)
++++ trunk/lua/gui/gui.status.lua Sun Apr  6 17:39:38 2008
+@@ -88,6 +88,9 @@
+ 			gStatusAosDialog =3D nil
+ 		end
+ 		=
+
++		-- store mobile serial for item drop
++		dialog.dropOnMobileSerial =3D gPlayerBodySerial
++		=
+
+ 		-- overwrite the onMouseDown function from gumpparser
+ 		dialog.onMouseDown =3D function (widget,mousebutton)
+ 			if (mousebutton =3D=3D 2) then widget.dialog:Close() end
+
+Modified: trunk/lua/lib.uodragdrop.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.uodragdrop.lua (original)
++++ trunk/lua/lib.uodragdrop.lua Sun Apr  6 17:39:38 2008
+@@ -363,6 +363,9 @@
+ 		end
+ 		=
+
+ 		Send_Drop_Object(item.serial,x,y,z,target)
++	elseif (dialog_under_mouse and dialog_under_mouse.dropOnMobileSerial) then
++		-- support drop of stuff onto dialogs
++		Send_Drop_Object(item.serial,x,y,z,dialog_under_mouse.dropOnMobileSerial)
+ 	elseif (dialog_under_mouse and dialog_under_mouse.uoSecureTrade) then
+ 		-- drop on secure trade container
+ 		local mysectrade =3D dialog_under_mouse.uoSecureTrade
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000840.html">[Iris-commit] [IRIS] r2029 - /trunk/plugins/hudenemylist.lua
+</A></li>
+	<LI>Next message: <A HREF="000842.html">[Iris-commit] [IRIS] r2031 - /trunk/lua/gui/gui.healthbar.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#841">[ date ]</a>
+              <a href="thread.html#841">[ thread ]</a>
+              <a href="subject.html#841">[ subject ]</a>
+              <a href="author.html#841">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

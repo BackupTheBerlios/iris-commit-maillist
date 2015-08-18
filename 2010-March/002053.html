@@ -1,0 +1,283 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r3293 - /trunk/lua/lib.thread.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2010-March/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3293%20-%20/trunk/lua/lib.thread.lua&In-Reply-To=%3C20100320142424.3E01A7A98079%40simon%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="002052.html">
+   <LINK REL="Next"  HREF="002054.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r3293 - /trunk/lua/lib.thread.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3293%20-%20/trunk/lua/lib.thread.lua&In-Reply-To=%3C20100320142424.3E01A7A98079%40simon%3E"
+       TITLE="[Iris-commit] [IRIS] r3293 - /trunk/lua/lib.thread.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat Mar 20 15:24:24 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="002052.html">[Iris-commit] [IRIS] r3292 - /trunk/lua/lib.thread.lua
+</A></li>
+        <LI>Next message: <A HREF="002054.html">[Iris-commit] [IRIS] r3294 - /trunk/lua/lib.thread.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2053">[ date ]</a>
+              <a href="thread.html#2053">[ thread ]</a>
+              <a href="subject.html#2053">[ subject ]</a>
+              <a href="author.html#2053">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: hagish
+Date: Sat Mar 20 15:24:23 2010
+New Revision: 3293
+
+Log:
+* small thread api changes for easier using
+
+Modified:
+    trunk/lua/lib.thread.lua
+
+Modified: trunk/lua/lib.thread.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.thread.lua (original)
++++ trunk/lua/lib.thread.lua Sat Mar 20 15:24:23 2010
+@@ -73,9 +73,18 @@
+ end
+ =
+
+ --[[
++
++-- example
++
+ local t =3D CreateExtendedLuaThread(&quot;bla.lua&quot;)
+-t:queueCall(&quot;ack&quot;, 3,3)
+-local id,ok,ret =3D t:pickupResult()
++local id =3D t:queueCall(&quot;ack&quot;, 3,3)
++local id,ok,ret =3D t:pickupResultEx(id)
++id =3D t:queueCall(&quot;ack&quot;, 3,3)
++local ret =3D t:pickupResult(id)
++local id =3D t:queueCallWithCallback(function(ack_ret)
++	print(&quot;RESULT&quot;, ack_ret)
++end, &quot;ack&quot;, 3,3)
++
+ ]]
+ function CreateExtendedLuaThread(file)
+ 	local thread =3D CreateLuaThread(file)
+@@ -83,7 +92,7 @@
+ 	thread.fifo_send		=3D thread:CreateFifoParent2ChildHandle()
+ 	thread.fifo_recv		=3D thread:CreateFifoChild2ParentHandle()
+ 	thread.nextCallId		=3D 1
+-	thread.callsRunning 	=3D 0
++	thread.callsQueued 	=3D 0
+ 	thread.callbackTable	=3D {}
+ 	thread.resultTable		=3D {}
+ 	=
+
+@@ -131,10 +140,38 @@
+ 		return id
+ 	end
+ 	=
+
++	-- callback_success : function(...), [callback_error : function()]
++	thread.queueCallWithCallback =3D function(self, callback_success, callbac=
+k_error, funName, ...)
++		if type(callback_error) =3D=3D &quot;function&quot; then
++		=
+
++			-- normal call with error handler
++			self:queueCallWithCallbackEx(function(id,ok,ret)
++				if ok =3D=3D 0 then
++					if callback_error then callback_error() end
++				else
++					if callback_success then callback_success(unpack(ret)) end
++				end
++			end, funName, ...)
++			=
+
++		else
++		=
+
++			-- shortened call without error handler
++			-- therefore funName is the first parameter
++			self:queueCallWithCallbackEx(function(id,ok,ret)
++				if ok =3D=3D 1 then
++					if callback_success then callback_success(unpack(ret)) end
++				end
++			end, callback_error, unpack({funName, ...}))
++		=
+
++		end
++	end
++	=
+
+ 	-- callback : function(id,ok,ret)
+-	thread.queueCallWithCallback =3D function(self, callback, funName, ...)
+-		local id =3D self:queueCall(funName, ...)
+-		self.callbackTable[id] =3D callback
++	thread.queueCallWithCallbackEx =3D function(self, callback, funName, ...)
++		if callback then
++			local id =3D self:queueCall(funName, ...)
++			self.callbackTable[id] =3D callback
++		end
+ 	end
+ 	=
+
+ 	thread.queueCall =3D function(self, funName, ...)
+@@ -149,7 +186,7 @@
+ 		fifo:PushS(funName)
+ 		FIFOPushNetSimpleTable({...}, fifo)
+ 	=
+
+-		self.callsRunning =3D self.callsRunning + 1
++		self.callsQueued =3D self.callsQueued + 1
+ 	=
+
+ 		self:UnLockMutex()
+ 		=
+
+@@ -158,9 +195,13 @@
+ 		return id
+ 	end
+ 	=
+
++	thread.countQueuedCalls =3D function(self)
++		return self.callsQueued
++	end
++	=
+
+ 	thread.waitForAllBlocking =3D function(self)
+-		while self.callsRunning &gt; 0 do
+-			--~ print(&quot;still running&quot;, self.callsRunning)
++		while self.callsQueued &gt; 0 do
++			--~ print(&quot;still running&quot;, self.callsQueued)
+ 			self:_step()
+ 			Client_USleep(1000 / 100)
+ 		end
+@@ -168,6 +209,15 @@
+ 	end
+ 	=
+
+ 	thread.pickupResult =3D function(self, id)
++		local ok, ret =3D self:pickupResult(id) =
+
++		if ok =3D=3D 0 then
++			return nil
++		else
++			return unpack(ret)
++		end
++	end
++	=
+
++	thread.pickupResultEx =3D function(self, id)
+ 		if self:isIdValid(id) then
+ 			while not self:isResultAvailable(id) do
+ 				Client_USleep(1000 / 100)
+@@ -193,7 +243,7 @@
+ 			id =3D fifo:PopU()
+ 			ok =3D fifo:PopU()
+ 			ret =3D FIFOPopNetSimpleTable(fifo)
+-			self.callsRunning =3D self.callsRunning - 1
++			self.callsQueued =3D self.callsQueued - 1
+ 		end
+ 		=
+
+ 		self:UnLockMutex()
+@@ -209,25 +259,40 @@
+ 	print(&quot;main: Threads_GetHardwareConcurrency:&quot;, Threads_GetHardwareConcurr=
+ency())
+ 	=
+
+ 	local t =3D CreateExtendedLuaThread(&quot;../mythread.lua&quot;)
++	=
+
++	t:queueCallWithCallback(
++	function(ack) =
+
++		print(&quot;CALLBACK ack&quot;, ack)
++	end,
++	&quot;ack&quot;, 3,1)
++		=
+
++	t:waitForAllBlocking()
++	print(&quot;all finished&quot;)
++	=
+
+ 	t:queueCall(&quot;ack&quot;, 3,3)
+ 	t:queueCall(&quot;stupidCounter&quot;, 5)
+ 	t:queueCall(&quot;ack&quot;, 2,2)
+ 	t:queueCall(&quot;ack&quot;, 2,1)
+ 	=
+
+-	t:queueCallWithCallback(
++	t:queueCallWithCallbackEx(
+ 		function(id, ok, ret) =
+
+ 			print(&quot;CALLBACK&quot;, id, ok, unpack(ret))
+ 		end, =
+
+ 		&quot;ack&quot;, 3,1)
+-	=
+
+-	local ok,ret =3D t:pickupResult(1)
++		=
+
++	t:queueCallWithCallback(
++		function(ack) =
+
++			print(&quot;CALLBACK ack&quot;, ack)
++		end,
++		&quot;ack&quot;, 3,1)
++	=
+
++	local ok,ret =3D t:pickupResultEx(1)
+ 	print(&quot;RESULT&quot;,1,ok,unpack(ret))
+ 	=
+
+-	local ok,ret =3D t:pickupResult(2)
++	local ok,ret =3D t:pickupResultEx(2)
+ 	print(&quot;RESULT&quot;,2,ok,unpack(ret))
+ 	=
+
+-	local ok,ret =3D t:pickupResult(3)
+-	print(&quot;RESULT&quot;,3,ok,unpack(ret))
++	--~ print(&quot;RESULT&quot;,3,t:pickupResult(3))
+ 	=
+
+ 	t:waitForAllBlocking()
+ 	print(&quot;all finished&quot;)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="002052.html">[Iris-commit] [IRIS] r3292 - /trunk/lua/lib.thread.lua
+</A></li>
+	<LI>Next message: <A HREF="002054.html">[Iris-commit] [IRIS] r3294 - /trunk/lua/lib.thread.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2053">[ date ]</a>
+              <a href="thread.html#2053">[ thread ]</a>
+              <a href="subject.html#2053">[ subject ]</a>
+              <a href="author.html#2053">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

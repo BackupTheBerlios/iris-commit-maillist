@@ -1,0 +1,274 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2595 - in /trunk: lua/lib.macrolist.lua	plugins/moblist.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-October/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2595%20-%20in%20/trunk%3A%20lua/lib.macrolist.lua%0A%09plugins/moblist.lua&In-Reply-To=%3C20081017191111.444F01C1879D%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001399.html">
+   <LINK REL="Next"  HREF="001401.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2595 - in /trunk: lua/lib.macrolist.lua	plugins/moblist.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2595%20-%20in%20/trunk%3A%20lua/lib.macrolist.lua%0A%09plugins/moblist.lua&In-Reply-To=%3C20081017191111.444F01C1879D%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2595 - in /trunk: lua/lib.macrolist.lua	plugins/moblist.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Fri Oct 17 21:11:11 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001399.html">[Iris-commit] [IRIS] r2594 - in /trunk: lua/lib.equipment.lua lua/lib.macrolist.lua lua/lib.spellbooks.lua lua/main.lua lua/net/net.object.lua plugins/lib.spellbar.lua plugins/loot.lua
+</A></li>
+        <LI>Next message: <A HREF="001401.html">[Iris-commit] [IRIS] r2596 - in /trunk: lua/net.walk.lua	plugins/lib.spellbar.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1400">[ date ]</a>
+              <a href="thread.html#1400">[ thread ]</a>
+              <a href="subject.html#1400">[ subject ]</a>
+              <a href="author.html#1400">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Fri Oct 17 21:11:10 2008
+New Revision: 2595
+
+Log:
+macro utils for targetqueue
+
+Modified:
+    trunk/lua/lib.macrolist.lua
+    trunk/plugins/moblist.lua
+
+Modified: trunk/lua/lib.macrolist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.macrolist.lua (original)
++++ trunk/lua/lib.macrolist.lua Fri Oct 17 21:11:10 2008
+@@ -67,6 +67,57 @@
+ 	f() =
+
+ end
+ =
+
++
++
++
++
++
++
++
++
++
++function MacroCmd_SendTargetSerial	(serial) =
+
++	local mobile =3D GetMobile(serial)
++	if mobile then return CompleteTargetMode({ hittype =3D kMousePickHitType_=
+Mobile,  mobile =3D mobile }) end
++	local dynamic =3D GetMobile(serial)
++	if dynamic then return CompleteTargetMode({ hittype =3D kMousePickHitType=
+_Dynamic,  dynamic =3D dynamic }) end
++end
++
++-- timeout : in ms
++-- bFailBySpellInterrupt : if true, then it will be aborted if a message i=
+ndicating spell interruption is received
++function MacroCmd_QueueTargetSerial		(serial,timeout,callback,bFailBySpell=
+Interrupt)
++	gMacroQueuedTarget_Serial =3D serial
++	gMacroQueuedTarget_Timeout =3D Client_GetTicks() + timeout
++	gMacroQueuedTarget_CallBack =3D callback
++	gMacroQueuedTarget_FailBySpellInterrupt =3D bFailBySpellInterrupt
++	if (IsTargetModeActive()) then
++		MacroCmd_SendTargetSerial(serial)
++		MacroCmd_QueuedTargetEnd(true)
++	end
++end
++function MacroCmd_QueuedTargetEnd	(bSuccess,sFailureReason) =
+
++	if (gMacroQueuedTarget_CallBack) then gMacroQueuedTarget_CallBack(bSucces=
+s,sFailureReason) end
++	gMacroQueuedTarget_CallBack =3D nil
++	gMacroQueuedTarget_Serial =3D nil
++	gMacroQueuedTarget_Timeout =3D nil
++	gMacroQueuedTarget_FailBySpellInterrupt =3D nil
++end
++
++RegisterStepper(function () =
+
++	if (gMacroQueuedTarget_Timeout and Client_GetTicks() &gt; gMacroQueuedTarget=
+_Timeout) then MacroCmd_QueuedTargetEnd(false,&quot;timeout&quot;) end
++end)
++RegisterListener(&quot;Hook_Spell_Interrupt&quot;,	function ()
++	if (gMacroQueuedTarget_FailBySpellInterrupt) then MacroCmd_QueuedTargetEn=
+d(false,&quot;spell-interrupt&quot;) end
++end)
++RegisterListener(&quot;Hook_TargetMode_Start&quot;,	function () =
+
++	if (gMacroQueuedTarget_Serial) then MacroCmd_SendTargetSerial(gMacroQueue=
+dTarget_Serial) MacroCmd_QueuedTargetEnd(true) end
++end)
++
++
++
++
++
++
+ gMacroLastTargetMemory =3D nil
+ gMacroTargetLastRunning =3D false
+ function MacroRememberTarget (hitobject)
+@@ -91,6 +142,7 @@
+ 		return dynamic ~=3D nil
+ 	end
+ end
++
+ =
+
+ -- timeout in ms, defaults to 30 seconds
+ function MacroCmd_TargetLast	(completefun,timeout) 		-- repeat the last ta=
+rget	=
+
+@@ -230,7 +282,7 @@
+ 	for k,mobile in pairs(GetMobileList()) do =
+
+ 		local dist =3D dist2(xloc,yloc,mobile.xloc,mobile.yloc)
+ 		if ((not founddist) or dist &lt; founddist) then =
+
+-			if (StringContains(AosToolTip_GetText(mobile.serial) or mobile.name,nam=
+epart)) then
++			if (StringContains(AosToolTip_GetText(mobile.serial) or mobile.name or =
+&quot;&quot;,namepart)) then
+ 				founddist =3D dist
+ 				foundmob =3D mobile
+ 			end
+@@ -268,12 +320,16 @@
+ 	Send_Request_SkillUse(skillid)
+ end
+ =
+
+-function MacroCmd_Spell					(spellname,target)
++function MacroCmd_Spell					(spellname,targetserial,targetcallback,targetw=
+aitadd)
+ 	if (not gInGameStarted) then return end
+ 	local spellid =3D GetSpellIDByName(spellname)
+ 	if (not spellid) then return MacroErrorNameMismatch(&quot;MacroCmd_Spell&quot;,spel=
+lname,gSpellIDByName) end
+ 	Send_Spell(spellid)
+-	--~ if (target) then        TODO
++	=
+
++	if (targetserial) then =
+
++		local timeout =3D GetSpellCastTimeForPlayer(spellid) + kSpellTimeLatency=
+ + (targetwaitadd or 1000)
++		MacroCmd_QueueTargetSerial(targetserial,timeout,targetcallback,true) =
+
++	end
+ end
+ =
+
+ =
+
+@@ -350,8 +406,8 @@
+ end
+ =
+
+ =
+
+-function GetMacroKeyComboName (keycode,bCtrl,bAlt,bShift) =
+
+-	local text =3D GetKeyName(keycode)
++function GetMacroKeyComboName (keycode,char,bCtrl,bAlt,bShift) =
+
++	local text =3D (keycode &gt; 0) and GetKeyName(keycode) or (&quot;0&quot;..char)
+ 	if (bCtrl	) then text =3D &quot;ctrl+&quot;..text end
+ 	if (bAlt	) then text =3D &quot;alt+&quot;..text end
+ 	if (bShift	) then text =3D &quot;shift+&quot;..text end
+@@ -362,11 +418,11 @@
+ =
+
+ function SetMacro (keycomboname,fun) gMacroList[string.gsub(string.lower(k=
+eycomboname),&quot; &quot;,&quot;&quot;)] =3D fun end
+ =
+
+-function TriggerMacros (keycode) =
+
++function TriggerMacros (keycode,char) =
+
+ 	local bCtrl		=3D gKeyPressed[key_lcontrol]	or gKeyPressed[key_rcontrol]
+ 	local bAlt		=3D gKeyPressed[key_lalt]		or gKeyPressed[key_ralt]	=
+
+ 	local bShift	=3D gKeyPressed[key_lshift]	or gKeyPressed[key_rshift]
+-	local name =3D GetMacroKeyComboName(keycode,bCtrl,bAlt,bShift)
++	local name =3D GetMacroKeyComboName(keycode,char,bCtrl,bAlt,bShift)
+ 	local macrofun =3D gMacroList[name]
+ 	if (gMacroPrintAllKeyCombos) then print('to use this macro keycombo : Set=
+Macro(&quot;'..name..'&quot;,function() MacroCmd_Say(&quot;test&quot;) end)') end
+ 	if (not macrofun) then return end -- no macro mapped to this keycode
+@@ -381,7 +437,7 @@
+ end
+ =
+
+ RegisterListener(&quot;keydown&quot;,function (keycode,char,bConsumed) =
+
+-	if (not bConsumed) then TriggerMacros(keycode) end
++	if (not bConsumed) then TriggerMacros(keycode,char) end
+ end)
+ =
+
+ =
+
+
+Modified: trunk/plugins/moblist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/plugins/moblist.lua (original)
++++ trunk/plugins/moblist.lua Fri Oct 17 21:11:10 2008
+@@ -280,6 +280,8 @@
+ =
+
+ -- ***** ***** ***** ***** ***** rest
+ =
+
++function MobListGetMainTargetSerial() return gMobList.maintarget_serial end
++
+ RegisterListener(&quot;Hook_PostLoad&quot;,function () gMobList =3D GetDesktopWidget=
+():CreateChild(&quot;UOMobList&quot;) end)
+ =
+
+ end
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001399.html">[Iris-commit] [IRIS] r2594 - in /trunk: lua/lib.equipment.lua lua/lib.macrolist.lua lua/lib.spellbooks.lua lua/main.lua lua/net/net.object.lua plugins/lib.spellbar.lua plugins/loot.lua
+</A></li>
+	<LI>Next message: <A HREF="001401.html">[Iris-commit] [IRIS] r2596 - in /trunk: lua/net.walk.lua	plugins/lib.spellbar.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1400">[ date ]</a>
+              <a href="thread.html#1400">[ thread ]</a>
+              <a href="subject.html#1400">[ subject ]</a>
+              <a href="author.html#1400">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

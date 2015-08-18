@@ -1,0 +1,285 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2770 - in /trunk/lua: lib.uotooltip.lua net/net.generic.lua net/net.text.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-December/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2770%20-%20in%20/trunk/lua%3A%20lib.uotooltip.lua%0A%20net/net.generic.lua%20net/net.text.lua&In-Reply-To=%3C20081203030047.9F1DF1C187F2%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001573.html">
+   <LINK REL="Next"  HREF="001575.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2770 - in /trunk/lua: lib.uotooltip.lua net/net.generic.lua net/net.text.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2770%20-%20in%20/trunk/lua%3A%20lib.uotooltip.lua%0A%20net/net.generic.lua%20net/net.text.lua&In-Reply-To=%3C20081203030047.9F1DF1C187F2%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2770 - in /trunk/lua: lib.uotooltip.lua net/net.generic.lua net/net.text.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Wed Dec  3 04:00:47 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001573.html">[Iris-commit] [IRIS] r2769 - in /trunk: lua/lib.macrolist.lua lua/lib.mousepick.lua plugins/moblist.lua
+</A></li>
+        <LI>Next message: <A HREF="001575.html">[Iris-commit] [IRIS] r2771 - in /trunk: lua/config_declarations.lua lua/gui/gui.paperdoll.lua lua/lib.configdialog.lua lua/lib.macrolist.lua lua/main.lua lua/net/net.text.lua lua/widgets/widget.uotext.lua plugins/itemcounter.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1574">[ date ]</a>
+              <a href="thread.html#1574">[ thread ]</a>
+              <a href="subject.html#1574">[ subject ]</a>
+              <a href="author.html#1574">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Wed Dec  3 04:00:46 2008
+New Revision: 2770
+
+Log:
+pre aos tooltips/attributes implemented : 0xBF subcmd 0x10
+
+Modified:
+    trunk/lua/lib.uotooltip.lua
+    trunk/lua/net/net.generic.lua
+    trunk/lua/net/net.text.lua
+
+Modified: trunk/lua/lib.uotooltip.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.uotooltip.lua (original)
++++ trunk/lua/lib.uotooltip.lua Wed Dec  3 04:00:46 2008
+@@ -92,8 +92,8 @@
+ --endloop	- Item Info
+ function Send_AosToolTipRequest(objserial)
+ 	local out =3D GetSendFIFO()
+-	out:PushNetUint8(kPacket_Mega_Cliloc)
+-	out:PushNetUint16(hex2num(&quot;0x0007&quot;))
++	out:PushNetUint8(kPacket_Mega_Cliloc) -- 0xD6 runuo : BatchQueryProperties
++	out:PushNetUint16(7) -- packetsize
+ 	out:PushNetUint32(objserial)
+ 	out:SendPacket()
+ end
+
+Modified: trunk/lua/net/net.generic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.generic.lua (original)
++++ trunk/lua/net/net.generic.lua Wed Dec  3 04:00:46 2008
+@@ -78,7 +78,7 @@
+ =
+
+ =
+
+ -- TODO : implement all subpackets
+-function gPacketHandler.kPacket_Generic_Command()
++function gPacketHandler.kPacket_Generic_Command() -- 0xBF
+ 	local input =3D GetRecvFIFO()
+ 	local popped_start =3D input:GetTotalPopped()
+ 	local id =3D input:PopNetUint8()
+@@ -136,12 +136,40 @@
+ 	end
+ =
+
+ 	-- AOSTooltip
+-	if (subcmd =3D=3D kPacket_Generic_SubCommand_AOSTooltip) then -- 0x10
+-		local objserial =3D input:PopNetUint32()
+-		local listID =3D input:PopNetUint32()
+-		printdebug(&quot;net&quot;, sprintf(&quot;0xbf sub: kPacket_Generic_SubCommand_AOSToolt=
+ip objserial=3D0x%08x listID=3D0x%08x\n&quot;,
+-									objserial,listID) )
+-		Send_AosToolTipRequest(objserial)
++	if (subcmd =3D=3D kPacket_Generic_SubCommand_AOSTooltip) then -- 0x10  Di=
+splayEquipmentInfo in runuo
++		local data =3D {}
++		data.itemserial		=3D input:PopNetUint32()
++		data.infonumber		=3D input:PopNetUint32()
++		local sizeleft =3D size - (1+2+2+4+4)
++		printdebug(&quot;net&quot;, sprintf(&quot;0xbf sub: kPacket_Generic_SubCommand_AOSToolt=
+ip itemserial=3D0x%08x infonumber=3D0x%08x\n&quot;,
++									data.itemserial,data.infonumber) )
++		data.attributes =3D {}
++		local bHasPreAosAttributes =3D false
++		local myPreAosAttributeLines =3D {}
++		while (sizeleft &gt; 0) do =
+
++			local iAttributeID =3D input:PopNetInt32()
++			sizeleft =3D sizeleft - 4
++			if (iAttributeID =3D=3D -1) then break
++			elseif (iAttributeID =3D=3D -3) then =
+
++				-- crafter
++				local len		=3D input:PopNetUint16()
++				data.crafter	=3D input:PopFilledString(len)
++				sizeleft =3D sizeleft - (2+len)
++				table.insert(myPreAosAttributeLines,&quot;crafted by:&quot;..data.crafter)
++			elseif (iAttributeID =3D=3D -4) then =
+
++				-- unidentified
++				data.bUnidentified =3D true
++				table.insert(myPreAosAttributeLines,&quot;(unidentified)&quot;)
++			else =
+
++				local iAttributeCharges =3D input:PopNetInt16()
++				data.attributes[iAttributeID] =3D iAttributeCharges
++				local cliloctxt =3D gClilocLoader and gClilocLoader:Get(iAttributeID) =
+or (&quot;unknown_cliloc_&quot;..iAttributeID)
++				table.insert(myPreAosAttributeLines,((iAttributeCharges &gt; 0) and (iAtt=
+ributeCharges..&quot;:&quot;) or &quot;&quot;)..cliloctxt)
++			end
++		end
++		if (#myPreAosAttributeLines &gt; 0) then SetPreAOSAttributes(data.itemseria=
+l,myPreAosAttributeLines) end
++		--~ print(&quot;kPacket_Generic_SubCommand_AOSTooltip&quot;,SmartDump(data))
++		Send_AosToolTipRequest(data.itemserial)
+ 	end
+ =
+
+ 	-- display popup
+
+Modified: trunk/lua/net/net.text.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.text.lua (original)
++++ trunk/lua/net/net.text.lua Wed Dec  3 04:00:46 2008
+@@ -10,6 +10,42 @@
+ 	return labelcache and labelcache.final
+ end
+ =
+
++function SetPreAOSAttributes (serial,lines) =
+
++	local labelcache =3D GetOrCreateLabelCache(serial)
++	for k,text in pairs(lines) do
++		text =3D string.gsub(text,&quot;Ruin&quot;,&quot;Ruin(1/5:dmg+1 &lt;gm)&quot;)
++		text =3D string.gsub(text,&quot;Might&quot;,&quot;Might(2/5:dmg+3 &lt;gm)&quot;)
++		text =3D string.gsub(text,&quot;Force&quot;,&quot;Force(3/5:dmg+5)&quot;)
++		text =3D string.gsub(text,&quot;Power&quot;,&quot;Power(4/5:dmg+6)&quot;)
++		text =3D string.gsub(text,&quot;Vanquishing&quot;,&quot;Vanquishing(5/5:dmg+7)&quot;)
++		=
+
++		text =3D string.gsub(text,&quot;Durable&quot;,&quot;Durable(1/5:dur+5)&quot;)
++		text =3D string.gsub(text,&quot;Substantial&quot;,&quot;Substantial(2/5:dur+10)&quot;)
++		text =3D string.gsub(text,&quot;Massive&quot;,&quot;Massive(3/5:dur+15)&quot;)
++		text =3D string.gsub(text,&quot;Fortified&quot;,&quot;Fortified(4/5:dur+20)&quot;)
++		text =3D string.gsub(text,&quot;Indestructible&quot;,&quot;Indestructible(5/5:dur+25)&quot;)
++	 =
+
++		text =3D string.gsub(text,&quot;Defense&quot;,&quot;Defense(1/5:ar+5)&quot;)
++		text =3D string.gsub(text,&quot;Guarding&quot;,&quot;Guarding(2/5:ar+10)&quot;)
++		text =3D string.gsub(text,&quot;Hardening&quot;,&quot;Hardening(3/5:ar+15)&quot;)
++		text =3D string.gsub(text,&quot;Fortification&quot;,&quot;Fortification(4/5:ar+20)&quot;)
++		text =3D string.gsub(text,&quot;Invulnerability&quot;,&quot;Invulnerability(5/5:ar+25)&quot;)
++		=
+
++		text =3D string.gsub(text,&quot;Supremely Accurate&quot;,&quot;Supremely Accurate(5/5)&quot;)
++		text =3D string.gsub(text,&quot;Exceedingly Accurate&quot;,&quot;Exceedingly Accurate(4=
+/5)&quot;)
++		text =3D string.gsub(text,&quot;Eminently Accurate&quot;,&quot;Eminently Accurate(3/5)&quot;)
++		text =3D string.gsub(text,&quot;Surpassingly Accurate&quot;,&quot;Surpassingly Accurate=
+(2/5)&quot;)
++		text =3D string.gsub(text,&quot;^Accurate&quot;,&quot;Accurate(1/5)&quot;)
++		=
+
++		GuiAddChatLine(text,{1,1,1,1})
++		lines[k] =3D text
++	end
++	local text =3D strjoin(&quot;\n&quot;,lines)
++	labelcache.attr =3D text
++	UpdateLabelCache(serial)
++	print(&quot;SetPreAOSAttributesLabel&quot;,serial,attr)
++end
++
+ function UpdateLabelCache (serial)
+ 	local labelcache =3D GetLabelCacheNoCreate(serial)
+ 	if (not labelcache) then return end
+@@ -17,9 +53,10 @@
+ 	local bNameInText =3D false
+ 	local bNewline =3D false
+ 	local name =3D labelcache.name
+-	local nameLord =3D &quot;Lord &quot;..name
+-	local nameLady =3D &quot;Lady &quot;..name
+-	labelcache.final =3D &quot;&quot;
++	local nameLord =3D name and &quot;Lord &quot;..name
++	local nameLady =3D name and &quot;Lady &quot;..name
++	local final =3D &quot;&quot;
++	=
+
+ 	=
+
+ 	local lines =3D labelcache.lines
+ 	if (IsOrWasMobile(serial)) then lines =3D RevertArray(lines) end
+@@ -30,20 +67,23 @@
+ 	end
+ 	for k,line in ipairs(lines) do =
+
+ 		local text,hue,clilocid =3D unpack(line)
+-		if (beginswith(text,name) or beginswith(text,nameLord) or beginswith(tex=
+t,nameLady)) then bNameInText =3D true end
+-		if (bNewline) then labelcache.final =3D labelcache.final .. &quot;\n&quot; end
++		if (name and (beginswith(text,name) or beginswith(text,nameLord) or begi=
+nswith(text,nameLady))) then bNameInText =3D true end
++		if (bNewline) then final =3D final .. &quot;\n&quot; end
+ 		--~ if (hue &gt; 0) then =
+
+ 			--~ local r,g,b =3D GetHueColor(hue-1)
+ 			--~ text =3D sprintf(&quot;&lt;BASEFONT COLOR=3D#%02X%02X%02X&gt;&quot;,floor(r*255),fl=
+oor(g*255),floor(b*255))..text..&quot;&lt;/BASEFONT&gt;&quot;
+ 		--~ end
+-		labelcache.final =3D labelcache.final .. text
++		final =3D final .. text
+ 		bNewline =3D true
+ 	end
+ 	-- name=3Dmina plaintext=3Dmina the banker =
+
+ 	-- name=3Dmandrake plaintext=3D15  ??? =
+
+-	if (not bNameInText) then labelcache.final =3D name .. &quot; &quot; .. labelcache.=
+final end
++	if (name and (not bNameInText)) then final =3D name .. &quot; &quot; .. final end
+ 	local guildlabel =3D gItemGuildLabelCache[serial]
+-	if (guildlabel) then labelcache.final =3D labelcache.final .. guildlabel =
+end
++	if (guildlabel) then final =3D final .. guildlabel end
++	if (labelcache.attr) then final =3D final .. &quot;\n&quot; .. labelcache.attr end
++	=
+
++	labelcache.final =3D final
+ 	NotifyListener(&quot;Hook_LabelUpdate&quot;,serial) -- see also Hook_ToolTipUpdate
+ end
+ =
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001573.html">[Iris-commit] [IRIS] r2769 - in /trunk: lua/lib.macrolist.lua lua/lib.mousepick.lua plugins/moblist.lua
+</A></li>
+	<LI>Next message: <A HREF="001575.html">[Iris-commit] [IRIS] r2771 - in /trunk: lua/config_declarations.lua lua/gui/gui.paperdoll.lua lua/lib.configdialog.lua lua/lib.macrolist.lua lua/main.lua lua/net/net.text.lua lua/widgets/widget.uotext.lua plugins/itemcounter.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1574">[ date ]</a>
+              <a href="thread.html#1574">[ thread ]</a>
+              <a href="subject.html#1574">[ subject ]</a>
+              <a href="author.html#1574">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,269 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2982 - /trunk/premake.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2009-April/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2982%20-%20/trunk/premake.lua&In-Reply-To=%3C20090405152749.726571C18832%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001780.html">
+   <LINK REL="Next"  HREF="001782.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2982 - /trunk/premake.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2982%20-%20/trunk/premake.lua&In-Reply-To=%3C20090405152749.726571C18832%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2982 - /trunk/premake.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sun Apr  5 17:27:41 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001780.html">[Iris-commit] [IRIS] r2981 - in /trunk/lua: lib.proxy.lua main.lua	net/net.login.lua
+</A></li>
+        <LI>Next message: <A HREF="001782.html">[Iris-commit] [IRIS] r2983 - /trunk/lib.premake.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1781">[ date ]</a>
+              <a href="thread.html#1781">[ thread ]</a>
+              <a href="subject.html#1781">[ subject ]</a>
+              <a href="author.html#1781">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: hagish
+Date: Sun Apr  5 17:27:19 2009
+New Revision: 2982
+
+Log:
+bugfix: popen problem
+
+Modified:
+    trunk/premake.lua
+
+Modified: trunk/premake.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/premake.lua (original)
++++ trunk/premake.lua Sun Apr  5 17:27:19 2009
+@@ -1,5 +1,7 @@
+ -- this is a premake sample script to compile lugre/linux programs. =
+
+ -- you need to put this file next to the lugre directory.
++
++dofile(&quot;lib.premake.lua&quot;)
+ =
+
+ gName =3D &quot;iris&quot;
+ =
+
+@@ -24,15 +26,6 @@
+ -- ------------------------------------------------------------------
+ -- ------------------------------------------------------------------
+ =
+
+--- removes the nil entries from tables like {nil,nil,a,b,c}, that were cre=
+ated using (bBlaEnabled and &quot;Bla&quot; or nil)
+-function RemoveNilsFromArray (arr) =
+
+-	local res =3D {}
+-	for k,v in pairs(arr) do -- pairs lists all non-nil entries, whereas ipai=
+rs only lists the first n numerical ones until a nil is encountered
+-		table.insert(res,v) =
+
+-	end
+-	return res
+-end
+-
+ -- build options
+ addoption(&quot;wall&quot;,&quot;very verbose report, most warnings enabled&quot;)
+ addoption(&quot;nooptimize&quot;,&quot;don't use optmize compile flags&quot;)
+@@ -78,18 +71,16 @@
+ 	&quot;caelum&quot;,
+ }
+ =
+
+--- returns true if the needle(value) is in the haystack-array
+-function in_array (needle,haystack) =
+
+-	assert(type(haystack) =3D=3D &quot;table&quot;)
+-	for k,v in pairs(haystack) do if (v =3D=3D needle) then return true end e=
+nd
+-	return false
+-end
+-
+ -- display used sound system
+ nosound =3D true
+ if gbUseSoundOpenAl then print(&quot;sound: openal&quot;) nosound =3D false end
+ if gbUseSoundFmod then print(&quot;sound: fmod&quot;) nosound =3D false end
+ if nosound then print(&quot;sound: NO sound system defined&quot;) end
++
++-- lua platform defines
++gLuaPlatform =3D nil
++if linux then gLuaPlatform =3D &quot;LUA_USE_LINUX&quot; end
++if macosx then gLuaPlatform =3D &quot;LUA_USE_MACOSX&quot; end
+ =
+
+ -- lugre dependencies, ie. ogre
+ function AddLugreDeps(package)
+@@ -103,7 +94,7 @@
+  		&quot;ENABLE_THREADS&quot;,
+ 		gbDisableProfiling and &quot;DISABLE_PROFILING&quot; or nil,
+ 		gbDisableAssert and &quot;NDEBUG&quot; or nil,
+-		&quot;LUA_USE_POSIX&quot;, -- execute shellcommands
++		gLuaPlatform,
+ 	})
+ =
+
+ 	addpkgconfiglib(package, &quot;OGRE&quot;)
+@@ -157,76 +148,9 @@
+ 	package.defines =3D RemoveNilsFromArray({ =
+
+ 		gbDisableProfiling and &quot;DISABLE_PROFILING&quot; or nil,
+ 		gbDisableAssert and &quot;NDEBUG&quot; or nil,
++		gLuaPlatform,
+ 	})
+ end
+-
+--- add libs the linux way
+-function addpkgconfiglib (package, libname)
+-    if options.target =3D=3D &quot;gnu&quot; and os.execute(&quot;pkg-config --exists &quot;..=
+libname) =3D=3D 0 then
+-      tinsert (package.buildoptions, &quot;`pkg-config --cflags &quot;..libname..&quot;`&quot;)
+-      tinsert (package.linkoptions, &quot;`pkg-config --libs &quot;..libname..&quot;`&quot;)
+-    else
+-      tinsert (package.linkoptions, findlib (libname))
+-    end
+-  end
+-
+-function addcustomconfiglib (package, configcommand)
+-    if options.target =3D=3D &quot;gnu&quot; and os.execute(configcommand..&quot; --versi=
+on&quot;) =3D=3D 0 then
+-      tinsert (package.buildoptions, &quot;`&quot;..configcommand..&quot; --cflags`&quot;)
+-      tinsert (package.linkoptions, &quot;`&quot;..configcommand..&quot; --libs`&quot;)
+-    else
+-      -- TODO tinsert (package.linkoptions, findlib (libname))
+-    end
+-  end
+-
+-function addcustomlib (package, libname)
+-	local path =3D os.findlib(libname)
+-	local lbase =3D {
+-		&quot;/usr/local/lib64/&quot;,
+-		&quot;/usr/local/lib/&quot;,
+-		&quot;/usr/lib64/&quot;,
+-		&quot;/usr/lib/&quot;,
+-	}
+-	local ibase =3D {
+-		&quot;/usr/local/include/%s&quot;,
+-		&quot;/usr/include/%s&quot;,
+-	}
+-	--~ print(&quot;addcustomlib start&quot;,package, libname,path)
+-	=
+
+-	-- brute force try
+-	if not path then
+-		for k,v in pairs(lbase) do
+-			local p =3D string.format(v, libname)
+-			local b =3D p..&quot;/lib&quot;..libname
+-			print(&quot;searching for &quot;,b..&quot;.so/.a&quot;,os.fileexists(b..&quot;.so&quot;),os.fileexist=
+s(b..&quot;.a&quot;))
+-			if os.fileexists(b..&quot;.so&quot;) or os.fileexists(b..&quot;.a&quot;) then
+-				tinsert (package.libpaths, p)
+-				tinsert (package.links, libname)		=
+
+-				path =3D p
+-				print(&quot;custom lib &quot;..libname..&quot; found at &quot;..p)
+-				break
+-			end
+-		end
+-	end
+-	=
+
+-    if path then
+-		tinsert (package.libpaths,path)
+-		tinsert (package.links, libname)
+-	else
+-		print(&quot;WARNING:addcustomlib&quot;,libname,&quot; libfile not found&quot;)
+-		print(&quot;if you installed the 64 bit version, please try installing the 32=
+ bit version instead&quot;)
+-    end
+-	=
+
+-	-- search for include path even if lib itself wasn't found, so 64 users w=
+ho have the headers but the wrong lib don't get confused
+-	for k,v in pairs(ibase) do
+-		local x =3D string.format(v, libname)
+-		--~ print(&quot;addcustomlib&quot;,libname,&quot;searching&quot;,v,x,os.direxists(x))
+-		if os.direxists(x) then
+-			tinsert (package.includepaths, x)
+-			print(&quot;using &quot;..x..&quot; as &quot;..libname..&quot; include path&quot;)
+-		end
+-	end
+- end
+ =
+
+ -- ---------------------------------------------
+ -- LUA
+@@ -240,9 +164,16 @@
+ package.buildoptions =3D {}
+ package.includepaths =3D { gLugreLuaSrcDir..&quot;/src&quot;, gLugreLuaSrcDir..&quot;/dyn=
+asm&quot; } -- dynasm is used for luajit
+ package.defines =3D RemoveNilsFromArray({ =
+
+-	&quot;LUA_USE_POSIX&quot;, -- execute shellcommands
++	gLuaPlatform,
+ 	gbDisableAssert and &quot;NDEBUG&quot; or nil,
++	gLuaPlatform,
+ })
++
++--~ for k,v in pairs(package.defines) do
++	--~ print(&quot;###&quot;,k,v)
++--~ end
++
++
+ package.files =3D {
+   matchfiles(gLugreLuaSrcDir..&quot;/src/*.h&quot;, gLugreLuaSrcDir..&quot;/src/*.c&quot;, gLu=
+greLuaSrcDir..&quot;/dynasm/*.h&quot;),	-- dynasm is used for luajit
+ }
+@@ -262,7 +193,7 @@
+ 	package.buildoptions =3D {}
+ 	package.includepaths =3D { unpack(glOisIncludeList) }
+ 	package.defines =3D RemoveNilsFromArray({ =
+
+-		&quot;LUA_USE_POSIX&quot;, -- execute shellcommands
++		gLuaPlatform,
+ 		gbDisableAssert and &quot;NDEBUG&quot; or nil,
+ 	})
+ 	package.files =3D {
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001780.html">[Iris-commit] [IRIS] r2981 - in /trunk/lua: lib.proxy.lua main.lua	net/net.login.lua
+</A></li>
+	<LI>Next message: <A HREF="001782.html">[Iris-commit] [IRIS] r2983 - /trunk/lib.premake.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1781">[ date ]</a>
+              <a href="thread.html#1781">[ thread ]</a>
+              <a href="subject.html#1781">[ subject ]</a>
+              <a href="author.html#1781">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

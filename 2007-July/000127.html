@@ -1,0 +1,200 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1311 - in /trunk/data: lua/lib.3d.renderer.lua particles/particles/fireballs.particle
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2007-July/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1311%20-%20in%20/trunk/data%3A%0A%20lua/lib.3d.renderer.lua%20particles/particles/fireballs.particle&In-Reply-To=%3C20070729152705.8286EB140B5%40localhost.localdomain%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000126.html">
+   <LINK REL="Next"  HREF="000128.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1311 - in /trunk/data: lua/lib.3d.renderer.lua particles/particles/fireballs.particle</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1311%20-%20in%20/trunk/data%3A%0A%20lua/lib.3d.renderer.lua%20particles/particles/fireballs.particle&In-Reply-To=%3C20070729152705.8286EB140B5%40localhost.localdomain%3E"
+       TITLE="[Iris-commit] [IRIS] r1311 - in /trunk/data: lua/lib.3d.renderer.lua particles/particles/fireballs.particle">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sun Jul 29 17:27:05 CEST 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000126.html">[Iris-commit] [IRIS] r1310 -	/trunk/data/particles/particles/fireballs.particle
+</A></li>
+        <LI>Next message: <A HREF="000128.html">[Iris-commit] [IRIS] r1312 - in /trunk: bin/iris2.exe data/lua/lib.3d.map.lua data/lua/lib.data.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#127">[ date ]</a>
+              <a href="thread.html#127">[ thread ]</a>
+              <a href="subject.html#127">[ subject ]</a>
+              <a href="author.html#127">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: hagish
+Date: Sun Jul 29 17:27:04 2007
+New Revision: 1311
+
+Log:
+bugfix: moveable effects dont move
+probably some effect scripts need to adjust local_space
+a moveable effect moves the particle system towards the target
+
+Modified:
+    trunk/data/lua/lib.3d.renderer.lua
+    trunk/data/particles/particles/fireballs.particle
+
+Modified: trunk/data/lua/lib.3d.renderer.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.3d.renderer.lua (original)
++++ trunk/data/lua/lib.3d.renderer.lua Sun Jul 29 17:27:04 2007
+@@ -212,10 +212,14 @@
+ 	-- effect.speed =3D input:PopNetUint8()
+ 	-- effect.duration =3D input:PopNetUint8()
+ 	=
+
+-	print(&quot;DEBUG&quot;,effect.speed,effect.duration)
+-	print(&quot;##################################&quot;)
+-	print(vardump(effect))
+-	print(&quot;##################################&quot;)
++	--~ print(&quot;DEBUG&quot;,effect.speed,effect.duration)
++	--~ print(&quot;##################################&quot;)
++	printdebug(&quot;effect&quot;,vardump(effect))
++	--~ print(&quot;##################################&quot;)
++	--~ print(&quot;DEBUG current&quot;,effect.current_locx,effect.current_locy,effect.=
+current_locz)
++	--~ print(&quot;DEBUG source&quot;,effect.source_locx,effect.source_locy,effect.sou=
+rce_locz)
++	--~ print(&quot;DEBUG target&quot;,effect.target_locx,effect.target_locy,effect.tar=
+get_locz)
++	--~ print(&quot;##################################&quot;)
+ =
+
+ 	if =
+
+ 		effect.current_locx ~=3D effect.target_locx or
+@@ -236,23 +240,49 @@
+ 				math.abs(effect.current_locz - effect.target_locz) &lt; 0.1
+ 			then
+ 				-- stop moving
++				printdebug(&quot;effect&quot;,&quot;DEBUG STOP&quot;)
++				effect.gfx:Destroy()
++				effect =3D nil
+ 				return true
+ 			else
+ 				-- move
+-				local dx =3D effect.current_locx - effect.target_locx
+-				local dy =3D effect.current_locy - effect.target_locy
+-				local dz =3D effect.current_locz - effect.target_locz
+-				=
+
++				=
+
++				-- current -&gt; target
++				local dx =3D effect.target_locx - effect.current_locx
++				local dy =3D effect.target_locy - effect.current_locy
++				local dz =3D effect.target_locz - effect.current_locz
++				-- to target
+ 				local len =3D math.sqrt(dx*dx + dy*dy + dz*dz)
+ 				=
+
+ 				local speed =3D effect.speed or gParticleEffectDefaultSpeed
+ 				=
+
+ 				local fps_factor =3D 1 / OgreAvgFPS()
+-				=
+
+-				effect.current_locx =3D effect.current_locx + dx / len * speed * fps_f=
+actor
+-				effect.current_locy =3D effect.current_locy + dy / len * speed * fps_f=
+actor
+-				effect.current_locz =3D effect.current_locz + dz / len * speed * fps_f=
+actor
+-
++				local uo_speed_factor =3D 5
++				=
+
++				-- adjust movement vector
++				dx =3D dx / len * speed * fps_factor * uo_speed_factor
++				dy =3D dy / len * speed * fps_factor * uo_speed_factor
++				dz =3D dz / len * speed * fps_factor * uo_speed_factor
++				-- new motified len
++				local len2 =3D math.sqrt(dx*dx + dy*dy + dz*dz)
++			=
+
++				if ( len2 &gt; len ) then
++					-- reached the end or &quot;missed&quot;
++					effect.current_locx =3D effect.target_locx
++					effect.current_locy =3D effect.target_locy
++					effect.current_locz =3D effect.target_locz
++				else 			=
+
++					-- move
++					effect.current_locx =3D effect.current_locx + dx =
+
++					effect.current_locy =3D effect.current_locy + dy
++					effect.current_locz =3D effect.current_locz + dz
++				end
++				=
+
++				--~ print(&quot;=3D=3D=3D=3D=3D DEBUG =3D=3D=3D=3D=3D&quot;)
++				--~ print(&quot;DEBUG dx,dy,dz&quot;,dx,dy,dz)
++				--~ print(&quot;DEBUG len,speed,fps&quot;,len,speed,fps_factor)
++				--~ print(&quot;DEBUG current&quot;,effect.current_locx,effect.current_locy,effe=
+ct.current_locz)
++				=
+
+ 				effect.gfx:SetPosition(self:UOPosToLocal(effect.current_locx + relx,ef=
+fect.current_locy + rely,effect.current_locz * 0.1 + relz))
+ 			end
+ 		end)
+
+Modified: trunk/data/particles/particles/fireballs.particle
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/particles/particles/fireballs.particle (original)
++++ trunk/data/particles/particles/fireballs.particle Sun Jul 29 17:27:04 2=
+007
+@@ -50,7 +50,7 @@
+ 	cull_each	false
+ 	renderer	billboard
+ 	sorted	false
+-	local_space	false
++	local_space	true
+ 	iteration_interval	0
+ 	nonvisible_update_timeout	0
+ 	billboard_type	point
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000126.html">[Iris-commit] [IRIS] r1310 -	/trunk/data/particles/particles/fireballs.particle
+</A></li>
+	<LI>Next message: <A HREF="000128.html">[Iris-commit] [IRIS] r1312 - in /trunk: bin/iris2.exe data/lua/lib.3d.map.lua data/lua/lib.data.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#127">[ date ]</a>
+              <a href="thread.html#127">[ thread ]</a>
+              <a href="subject.html#127">[ subject ]</a>
+              <a href="author.html#127">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

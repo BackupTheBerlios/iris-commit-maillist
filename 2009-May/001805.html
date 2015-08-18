@@ -1,0 +1,596 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r3006 - in /trunk: lua/gui/gui.trade.lua lua/lib.loading.lua lua/lib.uoids.lua lua/net.walk.lua lua/net/net.dynamic.lua lua/obj/obj.dynamic.lua lua/widgets/widget.uotooltip.lua plugins/loot.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2009-May/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3006%20-%20in%20/trunk%3A%20lua/gui/gui.trade.lua%0A%20lua/lib.loading.lua%20lua/lib.uoids.lua%20lua/net.walk.lua%0A%20lua/net/net.dynamic.lua%20lua/obj/obj.dynamic.lua%0A%20lua/widgets/widget.uotooltip.lua%20plugins/loot.lua&In-Reply-To=%3C20090502022855.D73AA1C18843%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001804.html">
+   <LINK REL="Next"  HREF="001806.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r3006 - in /trunk: lua/gui/gui.trade.lua lua/lib.loading.lua lua/lib.uoids.lua lua/net.walk.lua lua/net/net.dynamic.lua lua/obj/obj.dynamic.lua lua/widgets/widget.uotooltip.lua plugins/loot.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3006%20-%20in%20/trunk%3A%20lua/gui/gui.trade.lua%0A%20lua/lib.loading.lua%20lua/lib.uoids.lua%20lua/net.walk.lua%0A%20lua/net/net.dynamic.lua%20lua/obj/obj.dynamic.lua%0A%20lua/widgets/widget.uotooltip.lua%20plugins/loot.lua&In-Reply-To=%3C20090502022855.D73AA1C18843%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r3006 - in /trunk: lua/gui/gui.trade.lua lua/lib.loading.lua lua/lib.uoids.lua lua/net.walk.lua lua/net/net.dynamic.lua lua/obj/obj.dynamic.lua lua/widgets/widget.uotooltip.lua plugins/loot.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat May  2 04:28:55 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001804.html">[Iris-commit] [IRIS] r3005 - /trunk/lua/lib.macrolist.lua
+</A></li>
+        <LI>Next message: <A HREF="001806.html">[Iris-commit] [IRIS] r3007 - /trunk/plugins/lib.spellbar.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1805">[ date ]</a>
+              <a href="thread.html#1805">[ thread ]</a>
+              <a href="subject.html#1805">[ subject ]</a>
+              <a href="author.html#1805">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sat May  2 04:28:53 2009
+New Revision: 3006
+
+Log:
+shop hook, tooltip coloring for blessed and slayer, Hook_Dynamic_UpdateCont=
+ent , comments for preload code,  netwalk : Walk_GetTimeUntilNextStep, kMap=
+Index_Felucca constants for current map index meanings, gContainerUpdateInP=
+rogress var : true during container update batch, lootplugin internal redes=
+ign
+
+Modified:
+    trunk/lua/gui/gui.trade.lua
+    trunk/lua/lib.loading.lua
+    trunk/lua/lib.uoids.lua
+    trunk/lua/net.walk.lua
+    trunk/lua/net/net.dynamic.lua
+    trunk/lua/obj/obj.dynamic.lua
+    trunk/lua/widgets/widget.uotooltip.lua
+    trunk/plugins/loot.lua
+
+Modified: trunk/lua/gui/gui.trade.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.trade.lua (original)
++++ trunk/lua/gui/gui.trade.lua Sat May  2 04:28:53 2009
+@@ -214,6 +214,9 @@
+ -- see also old iris trade.csl : net_buywindow
+ -- used for both buy and sell  npc-shop
+ function OpenShopDialog (shop) =
+
++
++	if (gLastShop and gLastShop.dialog_bill and gLastShop.dialog_bill:IsAlive=
+()) then gLastShop:Cancel() end
++
+ 	-- create shop dialog
+ 	gLastShop =3D shop
+ 	local dialog_list	=3D guimaker.MakeSortedDialog()
+@@ -286,4 +289,5 @@
+ 	dialog_bill:ShowPage(0)
+ 	dialog_bill.NextPage =3D function (dialog_bill) dialog_bill:ShowPage(dial=
+og_bill.curpage + 1)	end
+ 	dialog_bill.PrevPage =3D function (dialog_bill) dialog_bill:ShowPage(dial=
+og_bill.curpage - 1) end
+-end
++	NotifyListener(&quot;Hook_Open_Shop_Dialog&quot;,shop)
++end
+
+Modified: trunk/lua/lib.loading.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.loading.lua (original)
++++ trunk/lua/lib.loading.lua Sat May  2 04:28:53 2009
+@@ -321,12 +321,15 @@
+ =
+
+     local left =3D 65
+     local to =3D 16085
++    --~ local to =3D 32768
++	local bDontGenerateFallback =3D true
++	--~ local bDontGenerateFallback =3D false -- would take hours...
+ =
+
+     if gPreloadStaticMesh and gCurrentRenderer =3D=3D Renderer3D then
+         LoadingProfile(&quot;preload static meshes&quot;)
+         =
+
+         for i =3D 0,to do
+-            local name =3D GetMeshName(i, true)
++            local name =3D GetMeshName(i, bDontGenerateFallback)
+             if name then
+                 GetMeshBuffer(name)
+             end
+
+Modified: trunk/lua/lib.uoids.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.uoids.lua (original)
++++ trunk/lua/lib.uoids.lua Sat May  2 04:28:53 2009
+@@ -223,6 +223,12 @@
+ 	[gLayerType.kLayer_Ring		] =3D {14,95 + 23*3},
+ 	[gLayerType.kLayer_Bracelet	] =3D {14,95 + 23*4},
+ }
++
++kMapIndex_Felucca	=3D 0
++kMapIndex_Trammel	=3D 1
++kMapIndex_Ilshenar	=3D 2
++kMapIndex_Malas		=3D 3
++kMapIndex_Tokuno	=3D 4
+ =
+
+ -- Tiledata Flags
+ kTileDataFlag_Background		=3D hex2num(&quot;0x00000001&quot;)
+
+Modified: trunk/lua/net.walk.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net.walk.lua (original)
++++ trunk/lua/net.walk.lua Sat May  2 04:28:53 2009
+@@ -132,6 +132,7 @@
+ =
+
+ -- checks if enough time has passed since the last request
+ function Walk_RequestTimeOk () return gMyTicks &gt;=3D gNextWalkRequestTime e=
+nd
++function Walk_GetTimeUntilNextStep () return max(0,gNextWalkRequestTime - =
+gMyTicks) end
+ =
+
+ -- just look in dir, don't start walking, doesn't need clientside collisio=
+n detection
+ function WalkStep_TurnToDir		(iDir) if (DirWrap(iDir) ~=3D gPlayerDir) the=
+n return ExecWalkRequestIfPossible(iDir,false) end end
+
+Modified: trunk/lua/net/net.dynamic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.dynamic.lua (original)
++++ trunk/lua/net/net.dynamic.lua Sat May  2 04:28:53 2009
+@@ -115,6 +115,7 @@
+ 	if (size_per_entry ~=3D 19 and itemcount &gt; 0 and
+ 		size_per_entry ~=3D 20) then print(&quot;ERROR in packet 0x3c sizeleft,itemco=
+unt,size_per_entry&quot;,sizeleft,itemcount,size_per_entry) Crash() end
+ 	=
+
++	gContainerUpdateInProgress =3D true
+ 	for i=3D1,itemcount do
+ 		local dynamicdata =3D {}
+ 		dynamicdata.container_content_order =3D i
+@@ -139,6 +140,7 @@
+ 		--~ printf(&quot;kPacket_Container_Contents %d/%d %s\n&quot;,i,itemcount,SmartDump=
+(dynamicdata))
+ 		CreateOrUpdateDynamic(dynamicdata)
+ 	end
++	gContainerUpdateInProgress =3D false
+ 	--~ print(&quot;######### kPacket_Container_Contents&quot;,iLastSerial,oldcount,ite=
+mcount)
+ 	=
+
+ 	=
+
+
+Modified: trunk/lua/obj/obj.dynamic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/obj/obj.dynamic.lua (original)
++++ trunk/lua/obj/obj.dynamic.lua Sat May  2 04:28:53 2009
+@@ -169,7 +169,7 @@
+ 	DynamicUpdatePosCache(self)
+ end
+ =
+
+-function gDynamicPrototype:UpdateContent () self:Update() end
++function gDynamicPrototype:UpdateContent () self:Update() NotifyListener(&quot;=
+Hook_Dynamic_UpdateContent&quot;,self.serial) end
+ =
+
+ function gDynamicPrototype:GetUODistToPlayer () return GetUODistToPlayer(s=
+elf.xloc,self.yloc) end =
+
+ =
+
+
+Modified: trunk/lua/widgets/widget.uotooltip.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/widgets/widget.uotooltip.lua (original)
++++ trunk/lua/widgets/widget.uotooltip.lua Sat May  2 04:28:53 2009
+@@ -74,6 +74,8 @@
+ 	=
+
+ 	tooltiptext =3D sprintf(&quot;&lt;BASEFONT COLOR=3D#%02X%02X%02X&gt;&quot;,floor(r*255),f=
+loor(g*255),floor(b*255))..string.gsub(tooltiptext,&quot;\n&quot;,&quot;&lt;/BASEFONT&gt;\n&quot;,1)
+ 	tooltiptext =3D string.gsub(tooltiptext,&quot;&lt;b&gt;Insured&lt;/b&gt;&quot;,&quot;&lt;b&gt;&lt;BASEFONT CO=
+LOR=3D#00FF00&gt;Insured&lt;/BASEFONT&gt;&lt;/b&gt;&quot;)
++	tooltiptext =3D string.gsub(tooltiptext,&quot;blessed&quot;,&quot;&lt;BASEFONT COLOR=3D#00F=
+F00&gt;blessed&lt;/BASEFONT&gt;&quot;)
++	tooltiptext =3D string.gsub(tooltiptext,&quot;slayer&quot;,&quot;&lt;BASEFONT COLOR=3D#00FF=
+00&gt;slayer&lt;/BASEFONT&gt;&quot;)
+ 	tooltiptext =3D string.gsub(tooltiptext,&quot;durability (%d+) / (%d+)&quot;,ToolTi=
+pColDura)
+ 	=
+
+ 	--~ print(&quot;tooltiptext&quot;,tooltiptext)
+
+Modified: trunk/plugins/loot.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/plugins/loot.lua (original)
++++ trunk/plugins/loot.lua Sat May  2 04:28:53 2009
+@@ -1,6 +1,10 @@
+ -- TODO : detect server rejects item move (wait for object-to-object or ob=
+ject destroy message of the item being moved?)
+ =
+
+ if (not gDisabledPlugins.loot) then =
+
++gLootPluginCutCorspes =3D false =
+
++--~ gLootPluginCutCorspes =3D true =
+
++gLootPluginMinGoldAmount =3D 100
++
+ =
+
+ function LootSetBackPackFullCallBack (fun) gLootBPFullCallBack =3D fun end
+ =
+
+@@ -23,40 +27,67 @@
+ --~ Send_DoubleClick(..) : UseReq : NextActionTime =3D now + 0.5 s   =
+
+ =
+
+ gLootPluginWantedWords =3D {
++	&quot;slayer&quot;,
+ 	&quot;ancient&quot;,
+ 	&quot;legendary&quot;,
+ 	&quot;mythic&quot;, &quot;mystic&quot;, &quot;mystiq&quot;, -- i don't know how it is written exactly
+ 	&quot;crystal&quot;,
+ 	&quot;rune&quot;,
+-	&quot;maze&quot;,
++	&quot;maze&quot;, -- vm:relvinian
+ 	&quot;Ingeniously&quot;, 	-- tmap:6
+ 	&quot;Deviously&quot;,	-- tmap:5
+ 	&quot;+15&quot;,
++	&quot;255&quot;, 		-- arti dura
++	&quot;artefact&quot;, -- artis
++	&quot;rarity&quot;, 	-- artis
++	&quot;talisman&quot;, -- peerless loot
++	&quot;totem&quot;, -- labyrinth loot ? artefact
++	&quot;imprisoned&quot;, -- imprisoned squirrel/dog , peerless loot
++	&quot;oil&quot;, -- bomberoil ?
++	&quot;lifespan&quot;, -- bomberoil =
+
++	&quot;seconds&quot;, -- bomberoil =
+
++	&quot;gargoyle&quot;,
++	--~ &quot;channeling&quot;, -- spellchannel =
+
++	-- todo : timer (bomberoil,shimmering effusion,paroxysm rope)
+ 	}
+ for k,v in pairs(gLootPluginWantedWords) do gLootPluginWantedWords[k] =3D =
+string.lower(v) end
+ =
+
+ gLootPluginWantedProps =3D {}
+ function LootPluginEval_AddProp (minvalue,name) gLootPluginWantedProps[str=
+ing.lower(string.gsub(name,&quot;_&quot;,&quot; &quot;))] =3D minvalue end
+ LootPluginEval_AddProp(    15     ,&quot;lower_reagent_cost&quot;)
++LootPluginEval_AddProp(    10     ,&quot;reflect_physical&quot;) -- cap 15 per item ?
+ LootPluginEval_AddProp(    8      ,&quot;lower_mana_cost&quot;)
+---~ LootPluginEval_AddProp(    2      ,&quot;mana_regeneration&quot;)
++LootPluginEval_AddProp(    2      ,&quot;mana_regeneration&quot;)
+ LootPluginEval_AddProp(    2      ,&quot;faster_casting&quot;)
+ LootPluginEval_AddProp(    3      ,&quot;faster_cast_recovery&quot;)
+---~ LootPluginEval_AddProp(    10     ,&quot;hit_chance_increase&quot;)
+---~ LootPluginEval_AddProp(    10     ,&quot;defense_chance_increase&quot;)
++LootPluginEval_AddProp(    12     ,&quot;hit_chance_increase&quot;)
++LootPluginEval_AddProp(    12     ,&quot;defense_chance_increase&quot;)
++LootPluginEval_AddProp(    10     ,&quot;enhance_potions&quot;)
++LootPluginEval_AddProp(    10     ,&quot;swing_speed&quot;)
+ --~ LootPluginEval_AddProp(    5      ,&quot;strength_bonus&quot;)
+ LootPluginEval_AddProp(    90     ,&quot;luck&quot;)
+ LootPluginEval_AddProp(    40     ,&quot;mana_leech&quot;)
+ =
+
+-
++function LootEvaluateScavengeItem (item)
++	local artid	=3D item.artid
++	local hue	=3D item.hue
++	if (artid =3D=3D 0x26ac) then return true end -- bola
++end
+ =
+
+ function LootEvaluateItem (item)
+ 	local artid	=3D item.artid
+ 	local hue	=3D item.hue
++	if (artid =3D=3D 0x170b) then return true end -- kobold schuhe
+ 	if (artid =3D=3D 5110 and hue =3D=3D 2419) then return true end -- gargy =
+knife
+ 	if (artid =3D=3D 3718 and hue =3D=3D 2419) then return true end -- gargy =
+pickaxe
+ 	if (artid =3D=3D 3909 and hue =3D=3D 2419) then return true end -- gargy =
+axe
+-	if (artid =3D=3D kLootArtID_Gold) then return true end -- gold
++	if (artid =3D=3D 0x1bfb and item.amount &gt;=3D 30) then return true end -- =
+bolts
++	if (artid =3D=3D 0x0f3f and item.amount &gt;=3D 30) then return true end -- =
+arrows
++	if (artid =3D=3D 0x1bd1) then return true end -- feathers
++	if (artid =3D=3D 0x26b7) then return true end -- fungus
++	if (artid =3D=3D 0x0e2e) then return true end -- petball
++	--~ if (artid =3D=3D 0x1079) then return true end -- raw leather
++	if (artid =3D=3D kLootArtID_Gold and item.amount &gt;=3D gLootPluginMinGoldA=
+mount) then return true end -- gold
+ 	local tooltip =3D AosToolTip_GetText(item.serial,true)
+ 	if (not tooltip) then return end
+ 	tooltip =3D string.lower(tooltip)
+@@ -68,10 +99,10 @@
+ 	local a,b,cursocket =3D string.find(tooltip,&quot;(%d+) sockets&quot;)
+ 	local socket =3D max(maxsocket or 0,cursocket or 0)
+ 	print(&quot;lootplugin:sockets&quot;,socket,maxsocket,cursocket)
+-	if (socket &gt;=3D 3) then return true end
++	if (socket &gt;=3D 2) then return true end
+ 	=
+
+ 	for name,minvalue in pairs(gLootPluginWantedProps) do =
+
+-		local a,b,val =3D string.find(tooltip,name..&quot;[ ]+(%d+)&quot;)
++		local a,b,val =3D string.find(tooltip,name..&quot;[^0-9\n]+[ ]+(%d+)&quot;)
+ 		if (val and tonumber(val) &gt;=3D minvalue) then print(&quot;looteval:found&quot;,nam=
+e,val) return true end
+ 	end
+ end
+@@ -100,8 +131,11 @@
+ 	--~ gCurrentRenderer:RemoveDynamicItem(dynamic) -- hide corpse... doesn't=
+ work, becomes visible again on update
+ end
+ =
+
+-RegisterListener(&quot;Hook_Container_Contents&quot;,function (serial) =
+
++
++
++function LootPluginNotifyContainerContentChange (serial,bIgnoreDuringCompl=
+eteContentUpdate) =
+
+ 	if (not gAutoLoot) then return end
++	if (bIgnoreDuringCompleteContentUpdate and gContainerUpdateInProgress) th=
+en return end
+ 	MyLootLog(&quot;Hook_Container_Contents&quot;,serial)
+ 	if (not serial) then return end
+ 	local container =3D GetContainer(serial)
+@@ -111,9 +145,7 @@
+ 	for k,item in pairs(container:GetContent()) do =
+
+ 		if (LootEvaluateItem(item)) then LootPluginMarkItem(item,container) end
+ 	end
+-end)
+-
+-
++end
+ =
+
+ gLootPlugin_RecentlyDoubleClickedCorpses =3D {}
+ function LootPlugin_FindNearbyCorpses ()
+@@ -159,10 +191,33 @@
+ end
+ =
+
+ gLootPluginNextStep =3D 0
++gLootPluginCutCorpses =3D {}
++gLootPluginCutBladeTypes =3D {0x13ff,0x0f52,0x13f6} -- 0x13ff=3Dkatana 0x0=
+f52=3Ddagger 0x13f6=3Dgargyknife
++
++function LootPluginUseItemOnTarget (itemserial,targetserial)
++	Send_DoubleClick(itemserial)
++	MacroCmd_QueueTargetSerial(targetserial,1000)
++end
++
+ function LootPluginStep ()
+-	if (not gAutoLoot) then return end
+ 	local t =3D Client_GetTicks()
+ 	if (t &lt; gLootPluginNextStep) then return end
++	=
+
++	-- scavenge items =
+
++	local items =3D {}
++    for k,item in pairs(GetDynamicList()) do =
+
++        if (DynamicIsInWorld(item) and item:GetUODistToPlayer() &lt;=3D 2 and=
+ LootEvaluateScavengeItem(item)) then
++            table.insert(items,item)
++        end
++    end
++	if (#items &gt; 0) then
++		local item =3D GetRandomArrayElement(items)
++		LootPlugin_TakeItem(item)
++		return =
+
++	end
++	=
+
++	=
+
++	if (not gAutoLoot) then return end
+ 	=
+
+ 	-- take items
+ 	local forgett =3D t - 30*1000 -- forget items after 30sek
+@@ -174,7 +229,7 @@
+ 			local item =3D GetDynamic(serial)
+ 			if (item and item.iContainerSerial ~=3D GetPlayerBackPackSerial()) then
+ 				local container =3D GetContainer(item.iContainerSerial)
+-				if (container.gumpid =3D=3D kCorpseContainerGumpID) then -- in case it=
+em ends up in bankbox or so
++				if (container and container.gumpid =3D=3D kCorpseContainerGumpID) then=
+ -- in case item ends up in bankbox or so
+ 					table.insert(items,item)
+ 				end
+ 			end
+@@ -207,8 +262,82 @@
+ 		MyLootLog(&quot;Send_DoubleClick&quot;,corpse.serial)
+ 		Send_DoubleClick(corpse.serial)
+ 		gLootPlugin_RecentlyDoubleClickedCorpses[corpse.serial] =3D t
+-	end
+-end
+-RegisterIntervalStepper(gStepperInterval,LootPluginStep) =
+
+-
+-end
++		return
++	end
++	=
+
++	-- cut corpses (feathers, leather etc)
++	if (gLootPluginCutCorspes) then
++		local blade =3D MacroCmd_Item_FindFirstByArtID(gLootPluginCutBladeTypes)
++		if (blade) then =
+
++			local corpses =3D MacroCmd_Item_FindNearCorpses(2)
++			for k,corpse in pairs(corpses) do =
+
++				print(&quot;lootscript:cut,corpse=3D&quot;,k,corpse)
++				if (not gLootPluginCutCorpses[corpse.serial]) then =
+
++					gLootPluginCutCorpses[corpse.serial] =3D true
++					MacroCmd_RiseText(1,1,1,&quot;cut corpse&quot;)
++					LootPluginUseItemOnTarget(blade.serial,corpse.serial) =
+
++					return
++				end =
+
++			end
++		end
++	end
++end
++
++if (not gLootPluginHooksRegistered) then
++	gLootPluginHooksRegistered =3D true -- only done once in case this file i=
+s reloaded
++	RegisterIntervalStepper(gStepperInterval,function () LootPluginStep() end=
+) =
+
++	RegisterListener(&quot;Hook_Container_Contents&quot;,function (serial) LootPluginNo=
+tifyContainerContentChange(serial) end)
++	RegisterListener(&quot;Hook_Dynamic_UpdateContent&quot;,function (serial) LootPlugi=
+nNotifyContainerContentChange(serial,true) end)
++end
++
++end
++
++--[[
++notes for easyuo typcode transform...
++
++
++gosub TypeTake		bomberoil      		OTK_     ; crimson dragon
++gosub TypeTake		gold      		POF_
++gosub TypeTake		fertiledirt   NZF_
++gosub TypeTake		organicmat 		PLF_
++gosub TypeTake		diamond       UVF
++;gosub TypeTake		jewels    		HVF_UVF_FVF_EVF_OVF_VUF_GVF_RVF_BVF_VVF_NVF_Z=
+VF_
++gosub TypeIgnore	regsMage  		KUF_JUF_KZF_JZF_MZF_WZF_SZF_RZF_ ; perl,moss,=
+garlic,ginseng,mandrake,night,sulfur,silk
++gosub TypeIgnore	regsNecro 		IUF_TZF_YZF_DUF_UZF_ ; bat,dust,iron,demon,nox
++gosub TypeIgnore	regsTamer 		WLF_IND_PLF_ ; springwater,petrawood,destroyi=
+ngangel
++gosub TypeIgnore	potion    		OUF_NUF_WUF_UUF_TUF_ ; gconfla/gmaskofdeath,g=
+cure,emptybottle,gheal,explopot
++gosub TypeIgnore	bandages  		AMF_ZLF_ ; bloody,normal
++gosub TypeIgnore	scrolls   		AUL_BUL_CUL_DUL_EUL_FUL_GUL_HUL_IUL_JUL_KUL_L=
+UL_MUL_NUL_OUL_PUL_QUL_RUL_SUL_TUL_UUL_VUL_WUL_XUL_YUL_ZUL_AVL_GVL_FVL_IVL_=
+HVL_CVL_NTL_OTL_PTL_QTL_RTL_STL_TTL_UTL_VTL_WTL_XTL_YTL_ZTL_QXL_PXL_ZXL_NXL=
+_WXL_VXL_YXL_XXL_ZFJ_BYL_CYL_DYL_EYL_FYL_GYL_HYL_IYL_JYL_KYL_KYM_PYM_SYM_TY=
+M_WYM_UYM_GCR_ZBR_NCR_ACR_HCR_LCR_ICR_CCR_UCR_OCR_KCR_DCR_JCR_FCR_
++gosub TypeTake   	arrowsbolts		RWF_LNK_FKF_
++gosub TypeTake		biokrams      TDJ_WLF ; TDJ=3Dvialset WLF=3Demptyvial
++gosub TypeTake		solenloot 		GMF_OKF_TTO_  ; TTO:fungus GMF:petball IJG_ :b=
+racelet
++gosub TypeTake		jukaloot 		  JSL_USL_YWL_ ;JSL:arkane gem  WOH:bow
++gosub TypeTake		paragonloot 	IIF_IKF_BUD_HIF_  ; BUD:parachest
++gosub TypeTake		peerlesskeys 	QCK_FIL_XVK_OWK_MIG_YWK_ZFM_LZF_XOF_OXM_DXM_=
+RBN_IXM_UBN_BXM_CGM
++gosub TypeTake		questloot 		YJM_MSG_GHH_UVH_WLI_YWK_RY_QY_SY_PY_ ; _VRD : =
+meat
++gosub TypeTake    firehorn      ZWF
++gosub TypeTake        keys           SEG_
++
++; ?!?! (from badmaniacs) Book of Truth, Plate of Cookies, Tribal Mask,Mask=
+ of Orcish Kin, Evil Orc Helm, Fire Horn
++;gosub TypeTake		unknownstuff	SLI_PZH_VSH_NWL_IWL_ZWF_FWL_NPF_FTK_  =
+
++;gosub TypeTake		jewelry    		CWL_LWL_UJG_IJG_ ; schmuck
++
++gosub TypeTake	  leather			  EEG_GED_DEG_JJG_
++gosub TypeIgnore	feather			  VLK_
++gosub TypeIgnore	wool	        HFG_OFF_
++gosub TypeIgnore	scale		      STO_ ; schuppen
++gosub TypeIgnore	meat	        PUD_
++gosub TypeIgnore	RawRibs			  VRD_
++gosub TypeIgnore	bones		      OJK_XIK_SJK_IJK_TJK_BJK_UJK_DJK_MJK_AJK_LJK_=
+FJK_RJK_EJK_ZIK_YIK_JJK_GJK_KJK_HJK_
++gosub TypeIgnore	cutresources	JJG_GUF_ ;Itemtypes for bones and leather af=
+ter cutting with scissor
++gosub TypeIgnore	seed			    PDF_
++;gosub TypeTake		tmap			    XVH_
++gosub TypeTake		demonbone		  OZF_
++gosub TypeTake		tribalberry		QQD_
++gosub TypeTake		rare	        QIP_NWK_ ; Origami Paper, Healthy Gland
++gosub TypeTake		sockelsteine  UZF_MCK_QWL_UVF ; UZF:kalcrystal MCK:skull Q=
+WL:mefrune UVF:leg.diamnond
++
++
++
++
++]]--
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001804.html">[Iris-commit] [IRIS] r3005 - /trunk/lua/lib.macrolist.lua
+</A></li>
+	<LI>Next message: <A HREF="001806.html">[Iris-commit] [IRIS] r3007 - /trunk/plugins/lib.spellbar.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1805">[ date ]</a>
+              <a href="thread.html#1805">[ thread ]</a>
+              <a href="subject.html#1805">[ subject ]</a>
+              <a href="author.html#1805">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

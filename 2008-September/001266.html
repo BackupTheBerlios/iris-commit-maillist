@@ -1,0 +1,253 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2461 - in /trunk/lua: lib.2d.map.lua lib.2d.spriteblock.lua lib.mapblock.2d.statics.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-September/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2461%20-%20in%20/trunk/lua%3A%20lib.2d.map.lua%0A%20lib.2d.spriteblock.lua%20lib.mapblock.2d.statics.lua&In-Reply-To=%3C20080919221853.2B80C1C1807F%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001265.html">
+   <LINK REL="Next"  HREF="001267.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2461 - in /trunk/lua: lib.2d.map.lua lib.2d.spriteblock.lua lib.mapblock.2d.statics.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2461%20-%20in%20/trunk/lua%3A%20lib.2d.map.lua%0A%20lib.2d.spriteblock.lua%20lib.mapblock.2d.statics.lua&In-Reply-To=%3C20080919221853.2B80C1C1807F%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2461 - in /trunk/lua: lib.2d.map.lua lib.2d.spriteblock.lua lib.mapblock.2d.statics.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat Sep 20 00:18:53 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001265.html">[Iris-commit] [IRIS] r2460 - in /trunk/lua: lib.2d.spriteblock.lua	lib.artatlas.lua
+</A></li>
+        <LI>Next message: <A HREF="001267.html">[Iris-commit] [IRIS] r2462 - in /trunk: data/base/ui/process-working.png lua/gui/gui.helper.lua lua/lib.mapblock.base.lua lua/main.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1266">[ date ]</a>
+              <a href="thread.html#1266">[ thread ]</a>
+              <a href="subject.html#1266">[ subject ]</a>
+              <a href="author.html#1266">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sat Sep 20 00:18:52 2008
+New Revision: 2461
+
+Log:
+2d mousepick for statics works
+
+Modified:
+    trunk/lua/lib.2d.map.lua
+    trunk/lua/lib.2d.spriteblock.lua
+    trunk/lua/lib.mapblock.2d.statics.lua
+
+Modified: trunk/lua/lib.2d.map.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.map.lua (original)
++++ trunk/lua/lib.2d.map.lua Sat Sep 20 00:18:52 2008
+@@ -45,6 +45,19 @@
+ 	end
+ end
+ =
+
++-- returns dist,sprite   if hit, or nil if not hit.    sprite=3D{artid=3D?=
+,hue=3D?,static=3D?}
++function Renderer2D:RayPickStatics (rx,ry,rz, rvx,rvy,rvz)
++	local founddist,foundsprite
++	for block,v in pairs(self.map2d_spawners.statics.pMapBlocks) do  -- spawn=
+er:ForAllBlocks()
++		local dist,sprite =3D block:RayPick (rx,ry,rz, rvx,rvy,rvz) =
+
++		if (dist and ((not founddist) or dist &lt; founddist)) then
++			founddist =3D dist
++			foundsprite =3D sprite
++		end
++	end
++	return founddist,foundsprite
++end
++
+ function Renderer2D:MapStep		()
+ 	self:MobileTestStep()
+ 	=
+
+@@ -52,6 +65,14 @@
+ 	local x,y,z =3D self:GetCamPos()
+ 	for k,spawner in pairs(self.map2d_spawners) do spawner:Step(t,x,y,z) end
+ 	self.map2d_scheduler:Step(x,y,z)
++	=
+
++	=
+
++	-- raypick test : =
+
++	local rx,ry,rz, rvx,rvy,rvz =3D GetMouseRay()
++	local dist,sprite =3D self:RayPickStatics(rx,ry,rz, rvx,rvy,rvz)
++	if (dist) then
++		print(&quot;Renderer2D raypick&quot;,dist,sprite,GetStaticTileTypeName(sprite.arti=
+d))
++	end
+ end
+ =
+
+ function Renderer2D:MapClear	()
+
+Modified: trunk/lua/lib.2d.spriteblock.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.spriteblock.lua (original)
++++ trunk/lua/lib.2d.spriteblock.lua Sat Sep 20 00:18:52 2008
+@@ -24,6 +24,58 @@
+ 	return	tx *  22 + ty * -22,
+ 			tx *  22 + ty *  22
+ end
++
++function ArtCheckBitMask(artid,px,py)
++	local bitmask =3D GetArtBitMask(artid)
++	if (not bitmask) then return true end -- no bitmask -&gt; always hit
++	return bitmask:TestBit(floor(px),floor(py))
++end
++
++-- returns dist,sprite   if hit, or nil if not hit.    sprite=3D{artid=3D?=
+,hue=3D?,static=3D?}
++function cUOSpriteBlock:RayPick (rx,ry,rz, rvx,rvy,rvz)
++	local bx,by =3D self.bx,self.by
++	if (not bx) then return end
++	local x,y,z =3D gCurrentRenderer:UOPosToLocal(bx*8,by*8,0)  -- self.pGrou=
+pGfx position
++	rx =3D rx - x
++	ry =3D ry - y
++	rz =3D rz - z
++	=
+
++	local founddist,foundsprite
++	=
+
++	for atlas,group in pairs(self.pSpritesByAtlas) do
++		for k,sprite in pairs(group) do
++			local x 		=3D sprite.x
++			local y 		=3D sprite.y
++			local z 		=3D sprite.z
++			local pw 		=3D sprite.pw
++			local ph 		=3D sprite.ph
++			local xa 		=3D sprite.xa
++			local za 		=3D sprite.za
++			local ax,ay,az =3D x-xa,y-xa,z  	--, u1,v1 -- right,bottom
++			local bx,by,bz =3D x+xa,y+xa,z  	--, u0,v1 -- left ,bottom =
+
++			local cx,cy,cz =3D x-xa,y-xa,z+za	--, u1,v0 -- right,top
++			local dx,dy,dz =3D x+xa,y+xa,z+za	--, u0,v0 -- left ,top
++			local px,py
++			local dist,fa,fc,fb =3D TriangleRayPickEx(ax,ay,az, cx,cy,cz, bx,by,bz,=
+ rx,ry,rz, rvx,rvy,rvz) -- (vc+0,vc+2,vc+1)
++			if (dist) then =
+
++				px,py =3D pw * (fa + fc),ph * (fb + fa) =
+
++			else
++				local fd
++				dist,fb,fc,fd =3D TriangleRayPickEx(bx,by,bz, cx,cy,cz, dx,dy,dz, rx,r=
+y,rz, rvx,rvy,rvz) -- (vc+1,vc+2,vc+3)
++				if (dist) then
++					px,py =3D pw * fc,ph * fb
++				end
++			end
++			if (dist and ((not founddist) or dist &lt; founddist) and ArtCheckBitMask(=
+sprite.artid+0x4000,px,py)) then
++				founddist =3D dist
++				foundsprite =3D sprite
++			end
++		end
++	end
++	return founddist,foundsprite
++end
++
++
+ =
+
+ -- load textures to atlas, artid-hue
+ -- static comes from MapGetBlockStatics(bx,by)
+@@ -103,6 +155,7 @@
+ 			--~ py =3D floor(py - ph	 - 4*static.zloc ), -- 1 z-unit =3D 4 pixels u=
+pwards in the original client
+ 			hue =3D static.hue,
+ 			artid =3D static.artid, -- for mousepicking
++			static =3D static
+ 		}
+ 		table.insert(group,sprite)
+ 	else
+@@ -147,8 +200,8 @@
+ 			local v0 		=3D sprite.v0
+ 			local u1 		=3D sprite.u1
+ 			local v1 		=3D sprite.v1
+-			gfx:RenderableVertex(x-xa,y-xa,z  		, u1,v1)
+-			gfx:RenderableVertex(x+xa,y+xa,z  		, u0,v1)
++			gfx:RenderableVertex(x-xa,y-xa,z  	, u1,v1)
++			gfx:RenderableVertex(x+xa,y+xa,z  	, u0,v1)
+ 			gfx:RenderableVertex(x-xa,y-xa,z+za	, u1,v0)
+ 			gfx:RenderableVertex(x+xa,y+xa,z+za	, u0,v0)
+ 			gfx:RenderableIndex3(vc+0,vc+2,vc+1)
+
+Modified: trunk/lua/lib.mapblock.2d.statics.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mapblock.2d.statics.lua (original)
++++ trunk/lua/lib.mapblock.2d.statics.lua Sat Sep 20 00:18:52 2008
+@@ -9,6 +9,13 @@
+ =
+
+ function cMapBlock_2D_Statics:ClearDetail ()
+ 	if (self.spriteblock) then self.spriteblock:Destroy() self.spriteblock =
+=3D nil end
++end
++
++-- returns dist,sprite   if hit, or nil if not hit.    sprite=3D{artid=3D?=
+,hue=3D?,static=3D?}
++function cMapBlock_2D_Statics:RayPick (rx,ry,rz, rvx,rvy,rvz) =
+
++	local spriteblock =3D self.spriteblock =
+
++	if (not spriteblock) then return end
++	return spriteblock:RayPick(rx,ry,rz, rvx,rvy,rvz) =
+
+ end
+ =
+
+ function cMapBlock_2D_Statics:WorkStep_LoadDetail ()
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001265.html">[Iris-commit] [IRIS] r2460 - in /trunk/lua: lib.2d.spriteblock.lua	lib.artatlas.lua
+</A></li>
+	<LI>Next message: <A HREF="001267.html">[Iris-commit] [IRIS] r2462 - in /trunk: data/base/ui/process-working.png lua/gui/gui.helper.lua lua/lib.mapblock.base.lua lua/main.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1266">[ date ]</a>
+              <a href="thread.html#1266">[ thread ]</a>
+              <a href="subject.html#1266">[ subject ]</a>
+              <a href="author.html#1266">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

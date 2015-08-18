@@ -1,0 +1,328 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2567 - in /trunk: data/base/menu_bg.jpg lua/gui/gui.helper.lua lua/lib.desktop.lua lua/lib.mainmenu.lua lua/lib.mapblock.base.lua lua/lib.mapblock.scheduler.lua lua/lib.mapblock.spawner.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-October/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2567%20-%20in%20/trunk%3A%20data/base/menu_bg.jpg%0A%20lua/gui/gui.helper.lua%20lua/lib.desktop.lua%20lua/lib.mainmenu.lua%0A%20lua/lib.mapblock.base.lua%20lua/lib.mapblock.scheduler.lua%0A%20lua/lib.mapblock.spawner.lua&In-Reply-To=%3C20081014120012.CDC6E1C1832E%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001371.html">
+   <LINK REL="Next"  HREF="001373.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2567 - in /trunk: data/base/menu_bg.jpg lua/gui/gui.helper.lua lua/lib.desktop.lua lua/lib.mainmenu.lua lua/lib.mapblock.base.lua lua/lib.mapblock.scheduler.lua lua/lib.mapblock.spawner.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2567%20-%20in%20/trunk%3A%20data/base/menu_bg.jpg%0A%20lua/gui/gui.helper.lua%20lua/lib.desktop.lua%20lua/lib.mainmenu.lua%0A%20lua/lib.mapblock.base.lua%20lua/lib.mapblock.scheduler.lua%0A%20lua/lib.mapblock.spawner.lua&In-Reply-To=%3C20081014120012.CDC6E1C1832E%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2567 - in /trunk: data/base/menu_bg.jpg lua/gui/gui.helper.lua lua/lib.desktop.lua lua/lib.mainmenu.lua lua/lib.mapblock.base.lua lua/lib.mapblock.scheduler.lua lua/lib.mapblock.spawner.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Tue Oct 14 13:16:31 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001371.html">[Iris-commit] [IRIS] r2566 - in /trunk/lua: lib.2d.map.lua	lib.mapblock.2d.terrain.lua
+</A></li>
+        <LI>Next message: <A HREF="001373.html">[Iris-commit] [IRIS] r2568 - /trunk/lua/gui/gui.chat.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1372">[ date ]</a>
+              <a href="thread.html#1372">[ thread ]</a>
+              <a href="subject.html#1372">[ subject ]</a>
+              <a href="author.html#1372">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: hagish
+Date: Tue Oct 14 13:16:31 2008
+New Revision: 2567
+
+Log:
+*bugfix: quick cast icons do not save their position
+*new menu background (should we keep something like this?)
+*mapblock spawner handles unfinished blocks and calls them if idle
+
+Added:
+    trunk/data/base/menu_bg.jpg   (with props)
+Modified:
+    trunk/lua/gui/gui.helper.lua
+    trunk/lua/lib.desktop.lua
+    trunk/lua/lib.mainmenu.lua
+    trunk/lua/lib.mapblock.base.lua
+    trunk/lua/lib.mapblock.scheduler.lua
+    trunk/lua/lib.mapblock.spawner.lua
+
+Modified: trunk/lua/gui/gui.helper.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.helper.lua (original)
++++ trunk/lua/gui/gui.helper.lua Tue Oct 14 13:16:31 2008
+@@ -12,11 +12,12 @@
+ 	local texname =3D &quot;process-working.png&quot;
+ 	local x,y =3D 50,50
+ 	local fps =3D 5
++	local frames =3D w / tilew * h / tileh
+ 	=
+
+ 	-- calculate frame number
+ 	local f =3D 0
+ 	if giShowLoading &gt; 0 then
+-		f =3D 1 + math.floor(gMyTicks / 1000 * fps)
++		f =3D 1 + math.mod(math.floor(gMyTicks / 1000 * fps), frames-1)
+ 	end
+ 	=
+
+ 	-- on demand create icon
+@@ -39,7 +40,7 @@
+ 		gMemStats_NextUpdate =3D gMyTicks + 1000
+ 		local mem_dyn =3D gcinfo()
+ 		mem_dyn =3D mem_dyn or 0
+-		local text =3D sprintf(&quot;%5.1ffps %0.1fmb %dt %db OGRE | %0.fmb LUA | %i =
+jobs&quot;,OgreAvgFPS(),memoryusage / 1024 / 1024, OgreTriangleCount(), OgreBatc=
+hCount(), mem_dyn / 1024, job.count())
++		local text =3D sprintf(&quot;%5.1ffps %0.1fmb %dt %db OGRE | %0.fmb LUA | %i =
+j %i l&quot;,OgreAvgFPS(),memoryusage / 1024 / 1024, OgreTriangleCount(), OgreBa=
+tchCount(), mem_dyn / 1024, job.count(), giShowLoading)
+ 		if (not gMemoryUsageField) then
+ 			local vw,vh =3D GetViewportSize()
+ 			local w,h =3D 0,12
+
+Modified: trunk/lua/lib.desktop.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.desktop.lua (original)
++++ trunk/lua/lib.desktop.lua Tue Oct 14 13:16:31 2008
+@@ -53,7 +53,8 @@
+ 	open =3D function(x,y,param) CreateQuickCastButtonSpell(x,y,param) end, =
+
+ 	checkpos =3D function(e, widget) =
+
+ 		local d =3D widget.dialog
+-		if d and d.spellid and d.spellid =3D=3D e.param then
++		local id =3D d and d.spellid or widget.spellid
++		if id =3D=3D e.param then
+ 			e.x,e.y =3D widget:GetPos() =
+
+ 			return true
+ 		end
+@@ -76,7 +77,8 @@
+ 	open =3D function(x,y,param) CreateQuickCastButtonSkill(x,y,param) end, =
+
+ 	checkpos =3D function(e, widget) =
+
+ 		local d =3D widget.dialog
+-		if d and d.skillid and d.skillid =3D=3D e.param then
++		local id =3D d and d.skillid or widget.skillid
++		if id =3D=3D e.param then
+ 			e.x,e.y =3D widget.gfx:GetPos() =
+
+ 			return true
+ 		end
+
+Modified: trunk/lua/lib.mainmenu.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mainmenu.lua (original)
++++ trunk/lua/lib.mainmenu.lua Tue Oct 14 13:16:31 2008
+@@ -331,6 +331,19 @@
+ end
+ =
+
+ function StartMainMenu ()
++	local vp =3D GetMainViewport()
++	local w =3D vp:GetActualWidth()
++	local h =3D vp:GetActualHeight()
++	local gfxparam_init =3D MakeSpritePanelParam_SingleSpriteSimple(GetPlainT=
+extureGUIMat(&quot;menu_bg.jpg&quot;), 1024, 768)
++	gMenuBgImage =3D GetDesktopWidget():CreateChild(&quot;Image&quot;,{gfxparam_init=3D=
+gfxparam_init})
++	gMenuBgImage:SetPos(0,0)
++	gMenuBgImage:SetSize(w,h)
++	RegisterListener(&quot;Hook_StartInGame&quot;	,function () =
+
++		DestroyIfAlive(gMenuBgImage)
++		gMenuBgImage =3D nil
++	end)
++	gDialog_IrisLogo:SetVisible(false)
++
+ 	if (gTestNoMainMenu) then return end
+ 	if (gCommandLineSwitches[&quot;-meshload&quot;]) then StartMeshLoaderTest() end -- =
+journaltest
+ 	if (gCommandLineSwitches[&quot;-jt&quot;]) then ToggleJournal() return end -- journ=
+altest
+
+Modified: trunk/lua/lib.mapblock.base.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mapblock.base.lua (original)
++++ trunk/lua/lib.mapblock.base.lua Tue Oct 14 13:16:31 2008
+@@ -1,4 +1,6 @@
+ -- ***** ***** ***** ***** ***** block baseclass
++-- NOTE: block loading thread should check ShouldBlockTerminate after each=
+ yield
++-- to interrupt the current loading process
+ =
+
+ cMapBlock =3D CreateClass()
+ cMapBlock.kLOD_Detail			=3D nil -- set to something with .prio =3D value
+@@ -54,14 +56,26 @@
+ 	end
+ end
+ =
+
++-- internal function for the stepper to stop during building process
++function cMapBlock:ShouldBlockTerminate ()
++	return self.bWorkTerminated
++end
++
++-- the sheduler/spawner use this to check if the block is dead
++-- this is used to keep destroyed but unfinished blocks alive until they
++-- are dead
++function cMapBlock:IsDead ()
++	return (coroutine.status(self.co) =3D=3D &quot;dead&quot;)
++end
++
+ -- executes coroutine until it terminates, cannot be restarted
++-- if the coroutine is still running the sheduler will resume is later to =
+finish the work
++-- but the normal case should be that the thread checks with ShouldBlockTe=
+rminate()
++-- and stopps
+ function cMapBlock:TerminateWork() =
+
+ 	self.bWorkTerminated =3D true
+-	for i =3D 1,5 do
+-		self:Resume()
+-		if (not coroutine.running(self.co)) then return end
+-	end
+-	print(&quot;cMapBlock:TerminateWork warning: work timeout&quot;,debug.traceback())
++	self:Resume()
++	self:SetPriority(kSchedulerUnfinishedPriority)
+ end
+ =
+
+ function cMapBlock:Destroy () self:TerminateWork() self:Clear() end
+
+Modified: trunk/lua/lib.mapblock.scheduler.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mapblock.scheduler.lua (original)
++++ trunk/lua/lib.mapblock.scheduler.lua Tue Oct 14 13:16:31 2008
+@@ -1,7 +1,8 @@
+ -- ***** ***** ***** ***** ***** scheduler
+ =
+
+ cScheduler =3D CreateClass()
+-kSchedulerIdlePriority =3D 9999
++kSchedulerUnfinishedPriority =3D 9999
++kSchedulerIdlePriority =3D 10000
+ =
+
+ function CreateScheduler	() local o =3D CreateClassInstance(cScheduler) re=
+turn o end
+ =
+
+@@ -30,8 +31,8 @@
+ 		--~ print(&quot;procs&quot;,table.getn(self.pProcessList))
+ 	--~ end
+ =
+
+-	local t =3D gMyTicks
+-	local t_end =3D t + self.kAllowedTicksPerFrame
++	local t =3D Client_GetTicks()
++	local t_end =3D gMyTicks + self.kAllowedTicksPerFrame
+ 	=
+
+ 	-- shortsteps, re-evaluate prio, release gfx
+ 	for k,process in ipairs(self.pProcessList) do process:ShortStep(t,x,y,z) =
+end =
+
+
+Modified: trunk/lua/lib.mapblock.spawner.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mapblock.spawner.lua (original)
++++ trunk/lua/lib.mapblock.spawner.lua Tue Oct 14 13:16:31 2008
+@@ -11,6 +11,7 @@
+ 	self.iLoadRadius	=3D pBlockClass.iLoadRadius
+ 	self.pBlockClass	=3D pBlockClass
+ 	self.pScheduler		=3D pScheduler
++	self.mlUnfinishedBlock =3D {}
+ end
+ =
+
+ -- calls fun(block) for all blocks
+@@ -48,6 +49,15 @@
+ 		end
+ 		end
+ 	end
++	=
+
++	-- check unfinished jobs and remove them if finished
++	for k,v in pairs(self.mlUnfinishedBlock) do
++		if k:IsDead() then
++			--~ print(&quot;REMOVE UNFINISHED JOB&quot;)
++			self.pScheduler:RemoveProcess(k)
++			self.mlUnfinishedBlock[k] =3D nil
++		end
++	end
+ end
+ =
+
+ -- creates new block if needed
+@@ -72,7 +82,13 @@
+ function cMapBlockSpawner:DestroyMapBlock	(block)
+ 	block:Destroy()
+ 	self.pMapBlocks[block] =3D nil
+-	self.pScheduler:RemoveProcess(block)
++	=
+
++	if block:IsDead() then
++		self.pScheduler:RemoveProcess(block)
++	else
++		self.mlUnfinishedBlock[block] =3D true
++		--~ print(&quot;UNFINISHED JOB&quot;)
++	end
+ end
+ =
+
+ -- destroy all blocks
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001371.html">[Iris-commit] [IRIS] r2566 - in /trunk/lua: lib.2d.map.lua	lib.mapblock.2d.terrain.lua
+</A></li>
+	<LI>Next message: <A HREF="001373.html">[Iris-commit] [IRIS] r2568 - /trunk/lua/gui/gui.chat.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1372">[ date ]</a>
+              <a href="thread.html#1372">[ thread ]</a>
+              <a href="subject.html#1372">[ subject ]</a>
+              <a href="author.html#1372">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

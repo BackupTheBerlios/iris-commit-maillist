@@ -1,0 +1,698 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1641 - in /trunk/data/lua: lib.3d.dynamic.lua lib.3d.map.lua lib.gui.iris.lua main.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2007-December/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1641%20-%20in%20/trunk/data/lua%3A%20lib.3d.dynamic.lua%0A%20lib.3d.map.lua%20lib.gui.iris.lua%20main.lua&In-Reply-To=%3C20071218045244.321561C186FB%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000456.html">
+   <LINK REL="Next"  HREF="000458.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1641 - in /trunk/data/lua: lib.3d.dynamic.lua lib.3d.map.lua lib.gui.iris.lua main.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1641%20-%20in%20/trunk/data/lua%3A%20lib.3d.dynamic.lua%0A%20lib.3d.map.lua%20lib.gui.iris.lua%20main.lua&In-Reply-To=%3C20071218045244.321561C186FB%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1641 - in /trunk/data/lua: lib.3d.dynamic.lua lib.3d.map.lua lib.gui.iris.lua main.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Tue Dec 18 05:52:43 CET 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000456.html">[Iris-commit] [IRIS] r1640 - /trunk/data/lua/lib.3d.renderer.lua
+</A></li>
+        <LI>Next message: <A HREF="000458.html">[Iris-commit] [IRIS] r1642 - in /trunk: include/data.h include/terrain.h include/tiledterrain.h src/scripting.iris.cpp src/terrain_multitex.cpp
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#457">[ date ]</a>
+              <a href="thread.html#457">[ thread ]</a>
+              <a href="subject.html#457">[ subject ]</a>
+              <a href="author.html#457">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: hagish
+Date: Tue Dec 18 05:52:43 2007
+New Revision: 1641
+
+Log:
+improved multis
+
+Modified:
+    trunk/data/lua/lib.3d.dynamic.lua
+    trunk/data/lua/lib.3d.map.lua
+    trunk/data/lua/lib.gui.iris.lua
+    trunk/data/lua/main.lua
+
+Modified: trunk/data/lua/lib.3d.dynamic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.3d.dynamic.lua (original)
++++ trunk/data/lua/lib.3d.dynamic.lua Tue Dec 18 05:52:43 2007
+@@ -34,76 +34,72 @@
+ =
+
+ 		if (item.lTile) then
+ 			printdebug(&quot;multi&quot;,&quot;Serverside Multi detected&quot;)
+-			local rootgfx =3D CreateRootGfx3D()
+-			item.lMultiChildGfx =3D {}
++
++			local multi =3D {}
++			multi.lparts =3D {}
++			=
+
+ 			for k,v in pairs(item.lTile) do
+-				-- create model part
+-				local child =3D rootgfx:CreateChild()
+-				local meshname =3D GetStaticMeshName(v.artid)
+-				if (meshname and meshname ~=3D false) then
+-					child:SetMesh(meshname)
+-					child:SetRenderingDistance(self.gDynamicMaxRenderDist)
+-					child:SetPosition(-v.x,v.y,v.z*0.1)
+-					child:SetScale(-1,1,1)		-- (-1) thats because xmirror bug and wrong m=
+irrored mashes
+-					child:SetNormaliseNormals(true)
+-					child.xloc =3D -v.x
+-					child.yloc =3D v.y
+-					child.zloc =3D v.z
+-					child.artid =3D v.artid
+-					table.insert(item.lMultiChildGfx, child)
+-				end
+-			end
+-			item.gfx =3D rootgfx
+-
+-			-- FILTER: correction : TODO needed??
+-			for k,v in pairs(item.lMultiChildGfx) do item.gfx:SetOrientation(GetSta=
+ticMeshOrientation(v.artid)) end
+-
+-			self:UpdateDynamicItemPos(item)
++				-- create part
++				local iTileTypeID =3D v.artid
++				=
+
++				local iX =3D -v.x
++				local iY =3D v.y
++				local iZ =3D v.z
++
++				-- generate absolute coords
++				iX =3D item.xloc + iX + item.xadd
++				iY =3D item.yloc + iY + item.yadd
++				iZ =3D item.zloc + iZ + item.zadd
++				=
+
++				local iHue =3D 0
++
++				-- add part
++				table.insert(multi.lparts, {iTileTypeID,iX,iY,iZ,iHue})
++			end
++
++			item.multi =3D multi
++			item.gfx =3D nil
++			Renderer3D.gMultis[multi] =3D true
++			Renderer3D:RebuildChunkAtUOPos(item.xloc, item.yloc)
++			=
+
+ 		-- otherwise ist a Clientside Multi
+ 		elseif gMultiLoader then
+ 			printdebug(&quot;multi&quot;,&quot;Clientside Multi detected&quot;)
+-			local rootgfx =3D CreateRootGfx3D()
+-			local id =3D item.artid - gMulti_ID
+-			=
+
+-			item.lMultiChildGfx =3D {}
+-			=
+
+-			-- read out parts and connect them into one scene node
+-			local parts =3D gMultiLoader:CountMultiParts(id)
+-			printdebug(&quot;multi&quot;,&quot;Renderer3D:CreateDynamicGfx: multi id&quot;,id,&quot;parts&quot;,p=
+arts)
++			=
+
++			local multi =3D {}
++			=
+
++			multi.id =3D item.artid - gMulti_ID
++			local parts =3D gMultiLoader:CountMultiParts(multi.id)
++			multi.lparts =3D {}
++			=
+
++			-- read out parts
++			printdebug(&quot;multi&quot;,&quot;Renderer3D:CreateDynamicGfx: multi id&quot;,multi.id,&quot;pa=
+rts&quot;,parts)
+ 			for p =3D 0, parts-1 do
+-				local blocknum,xloc,yloc,zloc,flags =3D gMultiLoader:GetMultiParts(id,=
+p)
+-				=
+
+-				printdebug(&quot;multi&quot;,&quot;part&quot;,p,&quot;:&quot;,blocknum,xloc,yloc,zloc,flags)
++				local iTileTypeID,iX,iY,iZ,iFlags =3D gMultiLoader:GetMultiParts(multi=
+.id,p)
++				local iHue =3D item.hue
++				=
+
++				-- generate absolute coords
++				iX =3D item.xloc + iX + item.xadd
++				iY =3D item.yloc + iY + item.yadd
++				iZ =3D item.zloc + iZ + item.zadd
++				=
+
++				printdebug(&quot;multi&quot;,&quot;part&quot;,p,&quot;:&quot;,iTileTypeID,iX,iY,iZ,iFlags)
+ 				=
+
+ 				-- skip invisible parts
+-				if flags =3D=3D 1 then
+-					-- create model part
+-					local child =3D rootgfx:CreateChild()
+-					local meshname =3D GetStaticMeshName(blocknum,item.hue)
+-					if (meshname and meshname ~=3D false) then
+-						child:SetMesh(meshname)
+-						child:SetRenderingDistance(self.gDynamicMaxRenderDist)
+-						local x,y,z =3D Renderer3D:UOPosToLocal(xloc,yloc,zloc * 0.1)
+-						child:SetPosition(x,y,z)
+-						child:SetScale(-1,1,1)			-- (-1) thats because xmirror bug and wrong=
+ mirrored mashes
+-						child:SetNormaliseNormals(true)
+-						child.xloc =3D xloc
+-						child.yloc =3D yloc
+-						child.zloc =3D zloc
+-						child.artid =3D blocknum
+-						table.insert(item.lMultiChildGfx, child)
+-					else
+-						printdebug(&quot;multi&quot;,sprintf(&quot;Renderer3D:CreateDynamicGfx: failed load=
+ing sub mesh for dynamic (multi): artid=3D%i\n&quot;,blocknum or -1))
+-					end
++				if iFlags =3D=3D 1 then
++					-- add part
++					table.insert(multi.lparts, {iTileTypeID,iX,iY,iZ,iHue})
++					=
+
++					--print(&quot;DEBUG&quot;,iTileTypeID,iX,iY,iZ,iHue)
+ 				end
+ 			end
+-			--item.mbIsMulti =3D true
+-			item.gfx =3D rootgfx
+-
+-			-- FILTER: correction : TODO needed??
+-			for k,v in pairs(item.lMultiChildGfx) do item.gfx:SetOrientation(GetSta=
+ticMeshOrientation(v.artid)) end
+-
+-			self:UpdateDynamicItemPos(item)
++			=
+
++			--print(&quot;DEBUG&quot;,&quot;minmax&quot;,multi.minx,multi.maxx,multi.miny,multi.maxy)
++			=
+
++			item.multi =3D multi
++			item.gfx =3D nil
++			Renderer3D.gMultis[multi] =3D true
++			Renderer3D:RebuildChunkAtUOPos(item.xloc, item.yloc)
+ 		else =
+
+ 			printdebug(&quot;missing&quot;,sprintf(&quot;Renderer3D:CreateDynamicGfx: failed loadi=
+ng mesh for dynamic (multi): artid=3D%i z_typename=3D%s\n&quot;,item.artid or -1=
+,item.z_typename or &quot;&quot;))
+ 		end
+@@ -203,4 +199,10 @@
+ 	end
+ 	-- if gfx has an assigned lightsource, delete it
+ 	if (dynamic.lightname) then Client_RemoveLight(dynamic.lightname) dynamic=
+.lightname =3D nil end
+-end
++	-- remove multi entry
++	if (dynamic.multi) then =
+
++		local multi =3D dynamic.multi
++		Renderer3D:RebuildChunkAtUOPos(dynamic.xloc,dynamic.yloc)
++		Renderer3D.gMultis[dynamic.multi] =3D nil =
+
++	end
++end
+
+Modified: trunk/data/lua/lib.3d.map.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.3d.map.lua (original)
++++ trunk/data/lua/lib.3d.map.lua Tue Dec 18 05:52:43 2007
+@@ -9,6 +9,7 @@
+ Renderer3D.gbBlendOutTerrainVisible =3D true
+ Renderer3D.gMapUpdateInterval =3D 100 -- update the map not every frame, d=
+ecrease for fly-videos
+ Renderer3D.gMaxMapBlocksLoadedPerUpdate =3D 1 -- increase for fly-videos
++Renderer3D.gMultis =3D {} -- list of all multis currently available
+ =
+
+ -- the whole map cache consists of (ROBMAP_RECENTER_DIST*2)*(ROBMAP_RECENT=
+ER_DIST*2)  chunks
+ -- every chunk consists of ROBMAP_CHUNK_SIZE*ROBMAP_CHUNK_SIZE blocks
+@@ -84,6 +85,24 @@
+ 		end end end
+ end
+ =
+
++-- rebuild chunk at uo pos
++function Renderer3D:RebuildChunkAtUOPos (x,y)
++	local chunkx =3D math.floor(x / self.ROBMAP_CHUNK_SIZE / 8)
++	local chunky =3D math.floor(y / self.ROBMAP_CHUNK_SIZE / 8)
++	=
+
++	--print(&quot;DEBUG&quot;,&quot;rebuild&quot;,x,y,chunkx,chunky,self.ROBMAP_CHUNK_SIZE)
++	=
+
++	for y,row in pairs(self.gMapChunks) do
++		for x,chunk in pairs(row) do
++			if (chunk.miX =3D=3D chunkx and chunk.miY =3D=3D chunky)  then
++				--print(&quot;DEBUG&quot;,&quot;chunk&quot;,x,y,chunk.miX,chunk.miY)
++				self:DestroyMapChunk(x,y,chunk)
++				self:LoadMapChunk(x,y)
++			end
++		end
++	end
++end
++
+ -- coords in chunks
+ function Renderer3D:LoadMapChunk (x,y)
+ 	local bDidLoad =3D false
+@@ -106,6 +125,100 @@
+ 	self.gMapChunks =3D {}
+ end
+ =
+
++
++-- handles the entity creation for CreateMapChunk
++function Renderer3D:CreateMapChunkEntity (chunk,iTileTypeID,iXLoc,iYLoc,iZ=
+Loc,iHue)
++	local entity =3D {}
++
++	-- FILTER: correction
++	entity.xadd =3D FilterPositionX(iTileTypeID) or 0
++	entity.yadd =3D FilterPositionY(iTileTypeID) or 0
++	entity.zadd =3D FilterPositionZ(iTileTypeID) or 0
++
++	entity.xloc =3D iXLoc + entity.xadd
++	entity.yloc =3D iYLoc + entity.yadd
++	entity.zloc =3D iZLoc + entity.zadd -- in tilecoords from uo
++
++	entity.x,entity.y,entity.z =3D self:UOPosToLocal(entity.xloc,entity.yloc,=
+entity.zloc*0.1)
++	=
+
++	entity.iBlockX =3D math.floor(entity.xloc / 8)
++	entity.iBlockY =3D math.floor(entity.yloc / 8)
++	-- TODO not needed?
++	-- entity.id =3D i
++	entity.iTileTypeID =3D iTileTypeID
++	entity.iHue =3D iHue
++	=
+
++	meshname =3D (not gForceFallBackBillboards_Statics) and GetStaticMeshName=
+(iTileTypeID,entity.iHue)
++	=
+
++	-- create Mesh
++	if (meshname and meshname ~=3D false) then 	--and (not MeshIsPseudoBillBo=
+ard(iTileTypeID))) then	--currently disabled
++		entity.staticentity =3D CreateMeshEntity(meshname)
++		local qw,qx,qy,qz =3D GetStaticMeshOrientation(iTileTypeID)
++		local sx,sy,sz =3D -1,1,1 -- scale
++		entity.qw =3D qw
++		entity.qx =3D qx
++		entity.qy =3D qy
++		entity.qz =3D qz
++		entity.sx =3D sx
++		entity.sy =3D sy
++		entity.sz =3D sz
++
++		local myLayer =3D entity.zloc
++		local myLayerStaticGeom =3D chunk.pStaticGeometryLayers[myLayer]
++		if (not myLayerStaticGeom) then
++			myLayerStaticGeom =3D CreateStaticGeometry()
++			chunk.pStaticGeometryLayers[myLayer] =3D myLayerStaticGeom
++		end
++
++		-- apply x mirror
++		myLayerStaticGeom:AddEntity(entity.staticentity,entity.x,entity.y,entity=
+.z,qw,qx,qy,qz,sx,sy,sz)
++		table.insert(chunk.lStaticEntities,entity)
++--[[
++--------------------------------------------------------------------------=
+---------------------------------------------------
++	elseif (gEnableCanduneTreegeneration_Statics) then
++		if (iTileTypeID =3D=3D 3296) then
++			print(&quot;generate tree&quot;)
++			local p =3D CreateCaduneTreeParameters()
++			local s =3D CreateCaduneTreeStem(p)
++			s:Grow()
++			entity.gfx =3D s:CreateGeometry()
++
++			entity.x,entity.y,entity.z =3D self:UOPosToLocal(entity.xloc+1,entity.y=
+loc+0.5,entity.zloc*0.1)
++			entity.gfx:SetOrientation( QuaternionFromString(&quot;x:90,y:0,z:0&quot;) )
++			entity.gfx:SetPosition(entity.x,entity.y,entity.z)
++			entity.gfx:SetScale(0.4,0.4,0.5)
++			entity.gfx:SetNormaliseNormals(true)
++		end
++--------------------------------------------------------------------------=
+---------------------------------------------------
++]]--
++	-- if no *.mesh is available, a fallback billboard with original uo_art i=
+s generated
++	elseif (gEnableFallBackBillboards_Statics) then
++		local iTranslatedTileTypeID =3D SeasonalStaticTranslation(iTileTypeID, g=
+SeasonSetting)
++		if (not IsArtBillboardFallBackSkipped(iTileTypeID)) then
++			entity.x,entity.y,entity.z =3D self:UOPosToLocal(entity.xloc+0.5,entity=
+.yloc+0.5,entity.zloc*0.1 + 0.5)
++			entity.gfx =3D CreateRootGfx3D()
++			entity.gfx:SetPosition(entity.x,entity.y,entity.z)
++			entity.gfx.billboard =3D entity.gfx:CreateChild()
++			-- we have to add 16384 for fallbacks
++			self:CreateArtBillBoard(entity.gfx.billboard,iTranslatedTileTypeID + 16=
+384,iHue)
++			table.insert(chunk.lStaticEntities,entity)
++			printdebug(&quot;missing&quot;,sprintf(&quot;Fallback: generated : iTranslatedTileType=
+ID=3D%i\n&quot;, iTranslatedTileTypeID))
++		end
++	end
++
++	-- creates a light if lights are enabled and static is a lightsource
++	-- note! lights don't cast shadows
++	if (gLightsources) then
++		local arrtiletype =3D {}
++		arrtiletype =3D GetStaticTileType(iTileTypeID)
++		if( TestBit(arrtiletype.miFlags or 0,kTileDataFlag_LightSource) ) then
++			local x,y,z =3D Renderer3D:UOPosToLocal(entity.x,entity.y,entity.z * 0.=
+1)
++			entity.lightname=3DClient_AddPointLight(entity.x-0.5,entity.y-0.5,entit=
+y.z+arrtiletype.miHeight, 0.3,0.3,0.0, 0.3,0.3,0.0, 5.0,0.1,0.1,0.0)
++		end
++	end
++
++	self:UpdateStaticVisibility(entity)
++end
+ =
+
+ -- coords in chunks
+ function Renderer3D:CreateMapChunk (x,y)
+@@ -163,98 +276,60 @@
+ =
+
+ 				for i =3D 0,iStaticCount-1 do
+ 					iTileTypeID,iX,iY,iZ,iHue =3D gStaticBlockLoader:GetStatic(i) -- oper=
+ates on the block that was last loaded using :Load()
+-					local entity =3D {}
+-
+-					-- FILTER: correction
+-					entity.xadd =3D FilterPositionX(iTileTypeID) or 0
+-					entity.yadd =3D FilterPositionY(iTileTypeID) or 0
+-					entity.zadd =3D FilterPositionZ(iTileTypeID) or 0
+-
+-					entity.xloc =3D (iBlockUO_X+x)*8 + iX + entity.xadd
+-					entity.yloc =3D (iBlockUO_Y+y)*8 + iY + entity.yadd
+-					entity.zloc =3D iZ + entity.zadd -- in tilecoords from uo
+-
+-					entity.x,entity.y,entity.z =3D self:UOPosToLocal(entity.xloc,entity.y=
+loc,entity.zloc*0.1)
+-					entity.iBlockX =3D iBlockUO_X+x
+-					entity.iBlockY =3D iBlockUO_Y+y
+-					entity.id =3D i
+-					entity.iTileTypeID =3D iTileTypeID
+-					entity.iHue =3D iHue
+ 					=
+
+-					meshname =3D (not gForceFallBackBillboards_Statics) and GetStaticMesh=
+Name(iTileTypeID,entity.iHue)
++					xloc =3D (iBlockUO_X+x)*8 + iX
++					yloc =3D (iBlockUO_Y+y)*8 + iY
+ 					=
+
+-					-- create Mesh
+-					if (meshname and meshname ~=3D false) then 	--and (not MeshIsPseudoBi=
+llBoard(iTileTypeID))) then	--currently disabled
+-						entity.staticentity =3D CreateMeshEntity(meshname)
+-						local qw,qx,qy,qz =3D GetStaticMeshOrientation(iTileTypeID)
+-						local sx,sy,sz =3D -1,1,1 -- scale
+-						entity.qw =3D qw
+-						entity.qx =3D qx
+-						entity.qy =3D qy
+-						entity.qz =3D qz
+-						entity.sx =3D sx
+-						entity.sy =3D sy
+-						entity.sz =3D sz
+-
+-						local myLayer =3D iZ
+-						local myLayerStaticGeom =3D chunk.pStaticGeometryLayers[myLayer]
+-						if (not myLayerStaticGeom) then
+-							myLayerStaticGeom =3D CreateStaticGeometry()
+-							chunk.pStaticGeometryLayers[myLayer] =3D myLayerStaticGeom
+-						end
+-
+-						-- apply x mirror
+-						myLayerStaticGeom:AddEntity(entity.staticentity,entity.x,entity.y,en=
+tity.z,qw,qx,qy,qz,sx,sy,sz)
+-						table.insert(chunk.lStaticEntities,entity)
+---[[
+---------------------------------------------------------------------------=
+---------------------------------------------------
+-					elseif (gEnableCanduneTreegeneration_Statics) then
+-						if (iTileTypeID =3D=3D 3296) then
+-							print(&quot;generate tree&quot;)
+-							local p =3D CreateCaduneTreeParameters()
+-							local s =3D CreateCaduneTreeStem(p)
+-							s:Grow()
+-							entity.gfx =3D s:CreateGeometry()
+-
+-							entity.x,entity.y,entity.z =3D self:UOPosToLocal(entity.xloc+1,enti=
+ty.yloc+0.5,entity.zloc*0.1)
+-							entity.gfx:SetOrientation( QuaternionFromString(&quot;x:90,y:0,z:0&quot;) )
+-							entity.gfx:SetPosition(entity.x,entity.y,entity.z)
+-							entity.gfx:SetScale(0.4,0.4,0.5)
+-							entity.gfx:SetNormaliseNormals(true)
+-						end
+---------------------------------------------------------------------------=
+---------------------------------------------------
+-]]--
+-					-- if no *.mesh is available, a fallback billboard with original uo_a=
+rt is generated
+-					elseif (gEnableFallBackBillboards_Statics) then
+-						local iTranslatedTileTypeID =3D SeasonalStaticTranslation(iTileTypeI=
+D, gSeasonSetting)
+-						if (not IsArtBillboardFallBackSkipped(iTileTypeID)) then
+-							entity.x,entity.y,entity.z =3D self:UOPosToLocal(entity.xloc+0.5,en=
+tity.yloc+0.5,entity.zloc*0.1 + 0.5)
+-							entity.gfx =3D CreateRootGfx3D()
+-							entity.gfx:SetPosition(entity.x,entity.y,entity.z)
+-							entity.gfx.billboard =3D entity.gfx:CreateChild()
+-							-- we have to add 16384 for fallbacks
+-							self:CreateArtBillBoard(entity.gfx.billboard,iTranslatedTileTypeID =
++ 16384,iHue)
+-							table.insert(chunk.lStaticEntities,entity)
+-							printdebug(&quot;missing&quot;,sprintf(&quot;Fallback: generated : iTranslatedTile=
+TypeID=3D%i\n&quot;, iTranslatedTileTypeID))
+-						end
+-					end
+-
+-					-- creates a light if lights are enabled and static is a lightsource
+-					-- note! lights don't cast shadows
+-					if (gLightsources) then
+-						local arrtiletype =3D {}
+-						arrtiletype =3D GetStaticTileType(iTileTypeID)
+-						if( TestBit(arrtiletype.miFlags or 0,kTileDataFlag_LightSource) ) th=
+en
+-							local x,y,z =3D Renderer3D:UOPosToLocal(entity.x,entity.y,entity.z =
+* 0.1)
+-							entity.lightname=3DClient_AddPointLight(entity.x-0.5,entity.y-0.5,e=
+ntity.z+arrtiletype.miHeight, 0.3,0.3,0.0, 0.3,0.3,0.0, 5.0,0.1,0.1,0.0)
+-						end
+-					end
+-
+-					self:UpdateStaticVisibility(entity)
++					--print(&quot;DEBUG&quot;,&quot;STATIC&quot;,iTileTypeID,xloc,yloc,iZ,iHue)
++					self:CreateMapChunkEntity(chunk,iTileTypeID,xloc,yloc,iZ,iHue)
+ 				end =
+
+ 		end end
+ 	end
+ 	=
+
++	-- add multis as statics
++	if (Renderer3D.gMultis) then -- probably needs gArtMapLoader
++		local iTileTypeID,iX,iY,iZ,iHue
++		local entity,meshname
++		=
+
++		for k,v in pairs(Renderer3D.gMultis) do
++			local multi =3D k
++			=
+
++			if multi.lparts then
++				for k,v in pairs(multi.lparts) do
++					local UO_X =3D x * self.ROBMAP_CHUNK_SIZE * 8
++					local UO_Y =3D y * self.ROBMAP_CHUNK_SIZE * 8
++
++					iTileTypeID,iX,iY,iZ,iHue =3D unpack(v)
++					--print(&quot;DEBUG&quot;,&quot;TILE&quot;,iTileTypeID,iX,iY,iZ,iHue,&quot;:&quot;,UO_X,UO_Y,self.R=
+OBMAP_CHUNK_SIZE*8)
++					if	iX &gt;=3D UO_X and iX &lt; UO_X+self.ROBMAP_CHUNK_SIZE*8 and =
+
++						iY &gt;=3D UO_Y and iY &lt; UO_Y+self.ROBMAP_CHUNK_SIZE*8 then
++						=
+
++						self:CreateMapChunkEntity(chunk,iTileTypeID,iX,iY,iZ,iHue)
++					end
++				end
++			end
++		end
++		=
+
++		for x =3D 0,self.ROBMAP_CHUNK_SIZE-1 do
++			for y =3D 0,self.ROBMAP_CHUNK_SIZE-1 do
++				gStaticBlockLoader:Load(iBlockUO_X+x,iBlockUO_Y+y)
++				local iStaticCount =3D gStaticBlockLoader:Count() -- operates on the b=
+lock that was last loaded using :Load()
++
++				--printdebug(&quot;static&quot;,&quot;iStaticCount=3D&quot;..iStaticCount)
++				--printdebug(&quot;static&quot;,&quot;iBlockUO_X=3D&quot;..iBlockUO_X..&quot; iBlockUO_Y=3D&quot;..i=
+BlockUO_Y)
++				--printdebug(&quot;static&quot;,&quot;BlockX=3D&quot;..x..&quot; BlockY=3D&quot;..y)
++
++				for i =3D 0,iStaticCount-1 do
++					iTileTypeID,iX,iY,iZ,iHue =3D gStaticBlockLoader:GetStatic(i) -- oper=
+ates on the block that was last loaded using :Load()
++
++					xloc =3D (iBlockUO_X+x)*8 + iX
++					yloc =3D (iBlockUO_Y+y)*8 + iY
++					=
+
++					self:CreateMapChunkEntity(chunk,iTileTypeID,xloc,yloc,iZ,iHue)
++				end =
+
++		end end
++	end
++
+ 	-- TODO : fish in water ? other gimiks ?
+ 	=
+
+ 	for layerZ,layerStaticGeom in pairs(chunk.pStaticGeometryLayers) do =
+
+
+Modified: trunk/data/lua/lib.gui.iris.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.gui.iris.lua (original)
++++ trunk/data/lua/lib.gui.iris.lua Tue Dec 18 05:52:43 2007
+@@ -36,7 +36,7 @@
+ 	if (gMyTicks &gt; gMemStats_NextUpdate) then
+ 		gMemStats_NextUpdate =3D gMyTicks + 1000
+ 		local mem_dyn, mem_tresh =3D gcinfo()
+-		local text =3D sprintf(&quot;%0.2fmb OGRE %0.2fmb / %0.2fmb LUA&quot;,memoryusage =
+/ 1024 / 1024, mem_dyn / 1024, mem_tresh / 1024)
++		local text =3D sprintf(&quot;%0.1fmb %dt %db OGRE %0.fmb / %0.1fmb LUA&quot;,memor=
+yusage / 1024 / 1024, OgreTriangleCount(), OgreBatchCount(), mem_dyn / 1024=
+, mem_tresh / 1024)
+ 		if (not gMemoryUsageField) then
+ 			local vw,vh =3D GetViewportSize()
+ 			local w,h =3D 0,12
+
+Modified: trunk/data/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/main.lua (original)
++++ trunk/data/lua/main.lua Tue Dec 18 05:52:43 2007
+@@ -318,7 +318,47 @@
+ 	if (gStartInDebugMode) then StopMainMenu() StartDebugMenu() end
+ =
+
+ 	-- mainloop
+-	while (Client_IsAlive()) do MainStep() end
++	while (Client_IsAlive()) do =
+
++		--[[	=
+
++		if gGrass and gStaticLoader then =
+
++			gGrass:Update() =
+
++		elseif GetMainCam() and gStaticBlockLoader then
++			gGrass =3D CreatePagedGeometry(GetMainCam(), 50)
++			gGrass:AddDetailLevel(&quot;batch&quot;,100,50)
++			--gGrass:AddDetailLevel(&quot;impostor&quot;,500,50)
++
++			local x,y,z =3D gCurrentRenderer:LocalToUOPos(GetMainCam():GetPos())
++			gStaticLoader =3D CreatePagedGeometryStaticLoader(gGrass, gStaticBlockL=
+oader, -1,1,10, x,y,z)
++			gStaticLoader:AssignToPagedGeometry(gGrass)
++			=
+
++			--[[
++			gGrassLoader =3D CreateGrassLoader(gGrass)
++			gGrassLoader:AssignToPagedGeometry(gGrass)
++
++			gGrassLoader:SetHeightFunction(function(x,z)
++				return x+z
++			end)
++
++			local l =3D gGrassLoader:AddLayer(&quot;grass&quot;)
++
++			l:SetMinimumSize(2.0, 2.0)
++			l:SetMaximumSize(2.5, 2.5)
++			l:SetAnimationEnabled(true)
++			l:SetSwayDistribution(10.0)
++			l:SetSwayLength(0.5)
++			l:SetSwaySpeed(0.5)
++			l:SetDensity(1.5)
++			l:SetFadeTechnique(false,true)
++			=
+
++			l:SetColorMapFileColor(&quot;terrain_texture.jpg&quot;)
++			l:SetDensityMapFileAlpha(&quot;grass_density.png&quot;)
++			l:SetMapBounds(-1500, -1500, 1500, 1500)
++			]]--
++		end
++		]]--
++		=
+
++		MainStep() =
+
++	end
+ end
+ =
+
+ =
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000456.html">[Iris-commit] [IRIS] r1640 - /trunk/data/lua/lib.3d.renderer.lua
+</A></li>
+	<LI>Next message: <A HREF="000458.html">[Iris-commit] [IRIS] r1642 - in /trunk: include/data.h include/terrain.h include/tiledterrain.h src/scripting.iris.cpp src/terrain_multitex.cpp
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#457">[ date ]</a>
+              <a href="thread.html#457">[ thread ]</a>
+              <a href="subject.html#457">[ subject ]</a>
+              <a href="author.html#457">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,160 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2895 - in /trunk: lua/lib.macrolist.lua plugins/moblist.lua premakelinux.sh
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2009-February/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2895%20-%20in%20/trunk%3A%20lua/lib.macrolist.lua%0A%20plugins/moblist.lua%20premakelinux.sh&In-Reply-To=%3C20090202200009.03D5A1C18662%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001696.html">
+   <LINK REL="Next"  HREF="001698.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2895 - in /trunk: lua/lib.macrolist.lua plugins/moblist.lua premakelinux.sh</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2895%20-%20in%20/trunk%3A%20lua/lib.macrolist.lua%0A%20plugins/moblist.lua%20premakelinux.sh&In-Reply-To=%3C20090202200009.03D5A1C18662%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2895 - in /trunk: lua/lib.macrolist.lua plugins/moblist.lua premakelinux.sh">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Mon Feb  2 20:22:51 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001696.html">[Iris-commit] [IRIS] r2894 - /trunk/lua/lib.cliloc.lua
+</A></li>
+        <LI>Next message: <A HREF="001698.html">[Iris-commit] [IRIS] r2896 - /trunk/premakelinux.sh
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1697">[ date ]</a>
+              <a href="thread.html#1697">[ thread ]</a>
+              <a href="subject.html#1697">[ subject ]</a>
+              <a href="author.html#1697">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Mon Feb  2 20:22:51 2009
+New Revision: 2895
+
+Log:
+premakelinux.sh improvement by idl0r : switch to avoid broken luajit on 64 =
+bit systems, number of parallel compiling jobs determined by number of proc=
+essors.
+
+Modified:
+    trunk/lua/lib.macrolist.lua
+    trunk/plugins/moblist.lua
+    trunk/premakelinux.sh
+
+Modified: trunk/lua/lib.macrolist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.macrolist.lua (original)
++++ trunk/lua/lib.macrolist.lua Mon Feb  2 20:22:51 2009
+@@ -58,12 +58,12 @@
+ 	if (gSmartLastSpellID) then =
+
+ 		if (gSmartLastSpellID =3D=3D kSmartSpellHealSmall or gSmartLastSpellID =
+=3D=3D kSmartSpellHealBig) then
+ 			local target =3D MobileList_GetWeakestFromList(MobileList_HealableParty=
+Members())
+-			print(&quot;healtarget&quot;,target)
++			--~ print(&quot;healtarget&quot;,target)
+ 			return target and target.serial or GetPlayerSerial()
+ 		end
+ 		if (gSmartLastSpellID =3D=3D kSmartSpellCureSmall or gSmartLastSpellID =
+=3D=3D kSmartSpellCureBig) then
+ 			local target =3D MobileList_GetWeakestFromList(MobileList_CurablePartyM=
+embers())
+-			print(&quot;curetarget&quot;,target)
++			--~ print(&quot;curetarget&quot;,target)
+ 			return target and target.serial or GetPlayerSerial()
+ 		end
+ 	end
+
+Modified: trunk/plugins/moblist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/plugins/moblist.lua (original)
++++ trunk/plugins/moblist.lua Mon Feb  2 20:22:51 2009
+@@ -25,6 +25,11 @@
+ RegisterWidgetClass(&quot;UOMobList&quot;)
+ RegisterWidgetClass(&quot;UOMobListItem&quot;)
+ =
+
++
++function gWidgetPrototype.UOMobList:UpdateSmartTargetIndicator ()
++	local serial =3D MacroCmd_GetSmartTargetForLastSpell()
++end
++	=
+
+ function gWidgetPrototype.UOMobList:Init (parentwidget,params)
+ 	self:InitAsGroup(parentwidget,params)
+ 	self.items =3D {}
+
+Modified: trunk/premakelinux.sh
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/premakelinux.sh (original)
++++ trunk/premakelinux.sh Mon Feb  2 20:22:51 2009
+@@ -1,5 +1,20 @@
+ #!/bin/bash
++
++# use multi-core/multi-processor correctly
++JOBS=3D$(($(grep -c 'processor' /proc/cpuinfo) + 1))
++
++
+ ./premake --clean
+-./premake --useluajit --noassert --target gnu &amp;&amp; make CXX=3D&quot;ccache gcc&quot; C=
+ONFIG=3DRelease
+-#~ ./premake --target gnu &amp;&amp; make CONFIG=3DRelease
+-# tipp : try &quot;make -j 2&quot; : start 2 jobs in parallel, to avoid wait-for-io =
+and use multi-cpu processors efficiently during compile
++
++echo ${JOBS}
++if [ &quot;$(uname -m)&quot; =3D=3D &quot;x86_64&quot; ]; # luajit doesn't work on 64 bit
++then
++	./premake --noassert --target gnu
++else
++	./premake --useluajit --noassert --target gnu
++fi
++
++#~  old : -./premake --useluajit --noassert --target gnu &amp;&amp; make CXX=3D&quot;cc=
+ache gcc&quot; CONFIG=3DRelease
++
++make -j${JOBS} CONFIG=3DRelease
++
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001696.html">[Iris-commit] [IRIS] r2894 - /trunk/lua/lib.cliloc.lua
+</A></li>
+	<LI>Next message: <A HREF="001698.html">[Iris-commit] [IRIS] r2896 - /trunk/premakelinux.sh
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1697">[ date ]</a>
+              <a href="thread.html#1697">[ thread ]</a>
+              <a href="subject.html#1697">[ subject ]</a>
+              <a href="author.html#1697">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

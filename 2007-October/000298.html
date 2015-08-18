@@ -1,0 +1,711 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1483 - in /trunk/data/lua: lib.protocol.lua lib.uodragdrop.lua main.lua net.uodragdrop.lua net/net.main.lua obj/obj.mobile.lua obj/obj.player.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2007-October/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1483%20-%20in%20/trunk/data/lua%3A%20lib.protocol.lua%0A%20lib.uodragdrop.lua%20main.lua%20net.uodragdrop.lua%20net/net.main.lua%0A%20obj/obj.mobile.lua%20obj/obj.player.lua&In-Reply-To=%3C20071021115954.2BC861C18169%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000297.html">
+   <LINK REL="Next"  HREF="000299.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1483 - in /trunk/data/lua: lib.protocol.lua lib.uodragdrop.lua main.lua net.uodragdrop.lua net/net.main.lua obj/obj.mobile.lua obj/obj.player.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1483%20-%20in%20/trunk/data/lua%3A%20lib.protocol.lua%0A%20lib.uodragdrop.lua%20main.lua%20net.uodragdrop.lua%20net/net.main.lua%0A%20obj/obj.mobile.lua%20obj/obj.player.lua&In-Reply-To=%3C20071021115954.2BC861C18169%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1483 - in /trunk/data/lua: lib.protocol.lua lib.uodragdrop.lua main.lua net.uodragdrop.lua net/net.main.lua obj/obj.mobile.lua obj/obj.player.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sun Oct 21 13:59:53 CEST 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000297.html">[Iris-commit] [IRIS] r1482 - in /trunk/data: config.lua.dist lua/lib.3d.map.lua lua/lib.loading.lua lua/lib.static.lua
+</A></li>
+        <LI>Next message: <A HREF="000299.html">[Iris-commit] [IRIS] r1484 - in /trunk/data/lua: lib.uodragdrop.lua net.other.lua net/net.object.lua obj/obj.dynamic.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#298">[ date ]</a>
+              <a href="thread.html#298">[ thread ]</a>
+              <a href="subject.html#298">[ subject ]</a>
+              <a href="author.html#298">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: sience
+Date: Sun Oct 21 13:59:53 2007
+New Revision: 1483
+
+Log:
+-all content from net.uodragdrop.lua moved to lib.uodragdrop.lua (because o=
+f two net.uodragdrop.lua files)
+-old net. filereferences moved to net/main.lua
+-PlayerEquipmentUpdate() renamed to PlayerBackpackItemUpdated()
+
+Removed:
+    trunk/data/lua/net.uodragdrop.lua
+Modified:
+    trunk/data/lua/lib.protocol.lua
+    trunk/data/lua/lib.uodragdrop.lua
+    trunk/data/lua/main.lua
+    trunk/data/lua/net/net.main.lua
+    trunk/data/lua/obj/obj.mobile.lua
+    trunk/data/lua/obj/obj.player.lua
+
+Modified: trunk/data/lua/lib.protocol.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.protocol.lua (original)
++++ trunk/data/lua/lib.protocol.lua Sun Oct 21 13:59:53 2007
+@@ -2,6 +2,9 @@
+ =
+
+ gCharacterList =3D {}
+ gCities =3D {}
++
++-- register packet handlers
++gPacketHandler =3D {}
+ =
+
+ -- changed NecroPacketData - (0x0B oldsize=3D&quot;0x010A&quot; , damage packet)
+ -- packet sizes from necrotoolz.sourceforge.net/kairpacketguide/index.html=
+ (0 means dynamic) contains all sizes from 0x00 to 0xDB
+@@ -31,22 +34,6 @@
+ 	for k,v in pairs(gPacketType) do gPacketTypeId2Name[v.id] =3D k end
+ 	for k,v in pairs(gPacketType) do _G[k] =3D v.id end -- make names availab=
+le as global constants, like kPacket_Account_Login_Request, needed for send=
+ing
+ 	=
+
+--- register packet handlers
+-	gPacketHandler =3D {}
+-	dofile(libpath .. &quot;net.cursor.lua&quot;)
+-	dofile(libpath .. &quot;net.login.lua&quot;)
+-	dofile(libpath .. &quot;net.other.lua&quot;)
+-	dofile(libpath .. &quot;net.popup.lua&quot;)
+-	dofile(libpath .. &quot;net.skill.lua&quot;)
+-	dofile(libpath .. &quot;net.sound.lua&quot;)
+-	dofile(libpath .. &quot;net.trade.lua&quot;)
+-	dofile(libpath .. &quot;net.securetrade.lua&quot;)
+-	dofile(libpath .. &quot;net.uodragdrop.lua&quot;)
+-	dofile(libpath .. &quot;net.walk.lua&quot;)
+-	dofile(libpath .. &quot;net.world.lua&quot;)
+-	dofile(libpath .. &quot;net.corpse.lua&quot;)
+-
+-
+ --OldIrisPacketLenTest()
+ =
+
+ function DirWrap (iDir) -- wraps into [0,7]
+
+Modified: trunk/data/lua/lib.uodragdrop.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.uodragdrop.lua (original)
++++ trunk/data/lua/lib.uodragdrop.lua Sun Oct 21 13:59:53 2007
+@@ -1,3 +1,4 @@
++-- NEW DRAG &amp; DROP SYSTEM
+ gDragDropItem =3D nil
+ gLeftDownItem =3D nil
+ =
+
+@@ -103,3 +104,305 @@
+ 		end
+ 	end
+ end
++
++-- -----------------------------------------------------------------------=
+-----------------------------
++-- OLD DRAG &amp; DROP SYSTEM !!!
++
++-- TODO : generalise me ! (container,paperdoll,world)
++
++--[[
++
++TODO : mousedrag : snap dragged picture to tile centers (project 3d tile c=
+enter to 2d hud pixel coords)
++
++
++gPacketType.kPacket_Take_Object										=3D { id=3Dhex2num(&quot;0x07&quot;) } -- s=
+end by client ?
++gPacketType.kPacket_Drop_Object										=3D { id=3Dhex2num(&quot;0x08&quot;) }
++
++
++gPacketType.kPacket_Object_to_Object								=3D { id=3Dhex2num(&quot;0x25&quot;) }
++gPacketType.kPacket_Get_Item_Failed									=3D { id=3Dhex2num(&quot;0x27&quot;) }
++gPacketType.kPacket_Drop_Item_Failed								=3D { id=3Dhex2num(&quot;0x28&quot;) }
++gPacketType.kPacket_Drop_Item_OK									=3D { id=3Dhex2num(&quot;0x29&quot;) }
++
++gPacketType.kPacket_Destroy											=3D { id=3Dhex2num(&quot;0x1D&quot;) }
++gPacketType.kPacket_Equip_Item_Request								=3D { id=3Dhex2num(&quot;0x13&quot;) }
++gPacketType.kPacket_Equip_Item										=3D { id=3Dhex2num(&quot;0x2E&quot;) }
++
++Pick up Item(s) [0x07]  sent by client
++BYTE cmd
++BYTE[4] item id
++BYTE[2] # of items in stack
++
++Drop Item(s) [0x08]   sent by client
++BYTE cmd
++BYTE[4] item id
++BYTE[2] X Location
++BYTE[2] Y Location
++BYTE Z Location
++BYTE[4] Move Into Container ID (FF FF FF FF if normal world)
++
++0x23  	Drag Item ( send by server, displays animation ?)
++0x24  	Open Container  =C2=B7  0x003c =3D backpack =
+
++0x25  	Object to Object     This is sent by the server to add a single ite=
+m to a container.
++
++0x08 	Packet   Drop Item(s) (14 bytes)
++0x27  	Get Item Failed
++0x28  	Drop Item Failed
++0x29  	Drop Item OK ? Paperdoll Clothing Added ?
++
++0x7C  	Object Picker ? some sort of menu
++0x7D  	Picked Object ? some sort of menu, response
++
++
++TODO : =
+
++0x1D Packet   Delete object (5 bytes)   item/char id
++0x07 Packet   Pick Up Item(s) (7 bytes)
++
++]]--
++
++gDragStartDist =3D 5 -- in pixels
++gSquareDragStartDist =3D gDragStartDist * gDragStartDist
++
++gDragDrop =3D false
++
++function PrepareDragPaperdollItem (item) =
+
++	if (item.layer =3D=3D kLayer_Backpack) then return end
++	local widget =3D item.widget
++	local iArtID =3D item.artid + hex2num(&quot;0x4000&quot;)
++	local mat =3D GetArtMat(iArtID,item.hue)
++	local w,h =3D GetArtSize(iArtID)
++	offx =3D offx or (-w / 2)
++	offy =3D offy or (-h / 2)
++	=
+
++	--local iMouseX,iMouseY =3D GetMousePos()
++	--local offx =3D widget.gfx:GetDerivedLeft() - iMouseX =
+
++	--local offy =3D widget.gfx:GetDerivedTop() - iMouseY
++	--local mat =3D GetGumpMat(gumpid)
++	--local w,h =3D GetGumpSize(gumpid)
++	=
+
++	-- used fields of gDragDrop.item : 	.artid .serial .amount =
+
++	PrepareUODragDrop(item,widget,mat,w,h,offx,offy)
++end
++
++function PrepareDragContainerItem (item) =
+
++	local widget =3D item.widget or item.secwidget
++	if (not widget) then return end
++	local iArtID =3D item.artid + hex2num(&quot;0x4000&quot;)
++	local mat =3D GetArtMat(iArtID,item.hue)
++	local w,h =3D GetArtSize(iArtID)
++	local iMouseX,iMouseY =3D GetMousePos()
++	local offx =3D widget.gfx:GetDerivedLeft() - iMouseX =
+
++	local offy =3D widget.gfx:GetDerivedTop() - iMouseY
++	=
+
++	-- used fields of gDragDrop.item : 	.artid .serial .amount =
+
++	PrepareUODragDrop(item,widget,mat,w,h,offx,offy)
++end
++
++-- SiENcE: just skip Multis here
++-- Todo: Multi support
++function PrepareDragDynamic (dynamic)
++	if dynamic.artid &lt; gMulti_ID then
++		local iArtID =3D dynamic.artid + hex2num(&quot;0x4000&quot;)
++		local matname =3D GetArtMat(iArtID,dynamic.hue)
++		local w,h =3D GetArtSize(iArtID)
++		local offx,offy =3D -w/2,-h/2 =
+
++		-- TODO : correct offy would be : bottom of bitmask visible boundbox (NO=
+T -h !), but center looks good enough for most items for now
++		=
+
++		-- used fields of gDragDrop.item : 	.artid .serial .amount =
+
++		-- set fields of dynamic : 			.artid .serial .amount .flag  =
+
++		-- local t =3D GetStaticTileType(dynamic.artid)
++		PrepareUODragDrop(dynamic,nil,matname,w,h,offx,offy)
++	end
++end
++
++function PrepareUODragDrop (item,widget,matname,w,h,offx,offy)
++	--AddFadeLines(&quot;dragdrop : prepare&quot;)
++	CancelUODragDrop() -- cancel last ? shouldn't happen
++	gDragDrop =3D {}
++	gDragDrop.item =3D item
++	gDragDrop.widget =3D widget
++	gDragDrop.matname =3D matname
++	gDragDrop.w =3D w
++	gDragDrop.h =3D h
++	gDragDrop.offx =3D offx
++	gDragDrop.offy =3D offy
++	gDragDrop.iMouseX,gDragDrop.iMouseY =3D GetMousePos()
++	gDragDrop.started =3D false
++end
++
++function StepUODragDrop () =
+
++	-- start dragdrop if the mouse is dragged for a minimum distance
++	if (gDragDrop and (not gDragDrop.started)) then =
+
++		local iMouseX,iMouseY =3D GetMousePos()
++		local dx =3D gDragDrop.iMouseX - iMouseX
++		local dy =3D gDragDrop.iMouseY - iMouseY
++		local sqdist =3D dx*dx + dy*dy
++		if (sqdist &gt;=3D gSquareDragStartDist) then StartUODragDrop() end
++	end
++end
++
++function MouseDownUODragDrop () =
+
++	gCurrentRenderer:MousePick()
++	if (gMousePickFoundHit) then
++		if (gMousePickFoundHit.hittype =3D=3D kMousePickHitType_ContainerItem)	t=
+hen PrepareDragContainerItem(gMousePickFoundHit.item) end
++		if (gMousePickFoundHit.hittype =3D=3D kMousePickHitType_PaperdollItem)	t=
+hen PrepareDragPaperdollItem(gMousePickFoundHit.item) end
++		if (gMousePickFoundHit.hittype =3D=3D kMousePickHitType_Dynamic)		then P=
+repareDragDynamic(gMousePickFoundHit.dynamic) end
++	end
++end
++
++function MouseUpUODragDrop () =
+
++	if (not gDragDrop) then return end
++	if (gDragDrop.started) then
++		CompleteUODragDrop()
++	else
++		CancelUODragDrop()
++	end
++end
++
++function DestroyDragDropItemBySerial (serial)
++	if (gDragDrop and gDragDrop.item.serial =3D=3D serial) then
++		gDragDrop.bItemDestroyed =3D true
++		gDragDrop.widget =3D false		=
+
++		-- item is kept &quot;on the cursor&quot; even if it was removed from inventory af=
+ter Send_Take_Object()
++	end
++end
++
++function StartUODragDrop ()
++	AddFadeLines(&quot;dragdrop : start&quot;)
++	gDragDrop.started =3D true
++	if (gDragDrop.widget and gDragDrop.widget:IsAlive()) then gDragDrop.widge=
+t.gfx:SetVisible(false) end
++	SetDragIcon(gDragDrop.matname,gDragDrop.w,gDragDrop.h,gDragDrop.offx,gDra=
+gDrop.offy)
++
++	-- TODO better amount handling
++	local amount =3D gDragDrop.item.amount
++	-- take only half the amount if shift is pressed
++	if gKeyPressed[key_lalt] and amount then amount =3D math.floor(amount / 2=
+) end
++
++	Send_Take_Object(gDragDrop.item.serial,amount)
++	gui.bMouseBlocked =3D true
++end
++
++-- called in all cases at the end
++function CleanUpUODragDrop ()
++	if (not gDragDrop) then return end
++	=
+
++	if (gDragDrop.started) then
++		if (gDragDrop.widget and gDragDrop.widget:IsAlive()) then gDragDrop.widg=
+et.gfx:SetVisible(true) end
++		HideDragIcon()
++		gui.bMouseBlocked =3D false
++	end
++	=
+
++	gDragDrop.item =3D nil
++	gDragDrop.widget =3D nil
++	gDragDrop =3D false
++end
++
++-- end A : nothing happened, client side cancel
++function CancelUODragDrop ()
++	if (not gDragDrop) then return end
++	--AddFadeLines(&quot;dragdrop : cancel&quot;)
++	if (gDragDrop.started) then UODragDropToOldPosition() end
++	CleanUpUODragDrop()
++end
++
++-- drop onto old position and original container after take
++function UODragDropToOldPosition ()
++	local item =3D gDragDrop.item
++	local containerserial =3D item.iContainerSerial or hex2num(&quot;0xFFFFFFFF&quot;) =
+-- ffff... for drop world (dynamics)
++	Send_Drop_Object(item.serial,item.xloc or 0,item.yloc or 0,item.zloc or 0=
+,containerserial)
++end
++
++-- end B : something happened
++function CompleteUODragDrop () =
+
++	if (not gDragDrop) then return end
++	--AddFadeLines(&quot;dragdrop : complete&quot;)
++	=
+
++	gCurrentRenderer:MousePick()
++	=
+
++	local item =3D gDragDrop.item
++	local dialog_under_mouse =3D GetDialogUnderMouse()
++	local x,y,z =3D 0,0,0
++	=
+
++	print(&quot;MouseUpUODragDrop&quot;,dialog_under_mouse,dialog_under_mouse and dialo=
+g_under_mouse.debugname)
++	=
+
++	if (dialog_under_mouse) then
++		if (dialog_under_mouse.rootwidget) then
++			local iMouseX,iMouseY =3D GetMousePos()
++			x =3D iMouseX - dialog_under_mouse.rootwidget.gfx:GetDerivedLeft() + gD=
+ragDrop.offx
++			y =3D iMouseY - dialog_under_mouse.rootwidget.gfx:GetDerivedTop() + gDr=
+agDrop.offy
++		end
++	end
++	=
+
++	if (dialog_under_mouse and dialog_under_mouse.uoContainer) then
++		-- drop on container
++		local container =3D dialog_under_mouse.uoContainer
++		print(&quot;MouseUpUODragDrop: drop on container &quot;,item.serial,item.amount,x,=
+y,z,container.serial)
++		=
+
++		-- default target is container
++		local target =3D container.serial
++		=
+
++		-- stack this item with the same beneath?
++		if gMousePickFoundHit and gMousePickFoundHit.hittype =3D=3D kMousePickHi=
+tType_ContainerItem then
++			-- read out item infos
++			local flags,weight,quality,unkn1,unkn2,quantity,animid,unkn3,hue,unkn4,=
+height,name =3D gTileTypeLoader:GetStaticTileType(item.artid+32*512)
++
++			-- if the item beneath has the same artid and stackable, try to stack t=
+hem
++			if (TestBit(flags, kTileDataFlag_Generic_Stackable)) and gMousePickFoun=
+dHit.item.artid =3D=3D item.artid then =
+
++				target =3D gMousePickFoundHit.item.serial =
+
++			end
++		end
++		=
+
++		Send_Drop_Object(item.serial,x,y,z,target)
++	elseif (dialog_under_mouse and dialog_under_mouse.uoSecureTrade) then
++		-- drop on secure trade container
++		local mysectrade =3D dialog_under_mouse.uoSecureTrade
++		print(&quot;#### MouseUpUODragDrop: drop on secure trade container &quot;,item.ser=
+ial,item.amount,x,y,z,mysectrade.myContainerID)
++		=
+
++		-- default target is container
++		local target =3D mysectrade.myContainerID
++		=
+
++		-- todo : stack ?
++		Send_Drop_Object(item.serial,x-kSecureTradeContainerPos_LeftX,y-kSecureT=
+radeContainerPos_LeftY,z,target)
++	elseif (dialog_under_mouse and dialog_under_mouse.uoPaperdoll) then
++		-- drop on paperdoll
++		local paperdoll =3D dialog_under_mouse.uoPaperdoll
++		local iTileTypeID =3D item.artid -- can come from paperdoll or container=
+ or dynamic
++		local layer =3D GetPaperdollLayerFromTileType(iTileTypeID)
++		local mobileserial =3D paperdoll.mobileserial
++		local mobile =3D GetMobile(mobileserial)
++		print(&quot;MouseUpUODragDrop: drop on paperdoll &quot;,item.serial,item.amount,iT=
+ileTypeID,layer,paperdoll.mobileserial)
++		if (not layer) then
++			print(&quot;CompleteUODragDrop : item is not wearable&quot;,vardump(item))
++			CancelUODragDrop()
++		elseif (not mobile) then
++			print(&quot;CompleteUODragDrop : paperdoll mobile not found&quot;,vardump(item))
++			CancelUODragDrop()
++		elseif (GetMobileEquipmentItem(mobile,layer)) then
++			print(&quot;CompleteUODragDrop : layer already full&quot;,vardump(item))
++			-- TODO : if layer is not empty, drop dragged item to backpack, take it=
+em from layer to backpack, equip dragged item
++			-- NOTE : if layer is not empty and it's not possible to put item to ba=
+ckpack -&gt; check and solve this problem!
++			--		  (for now i added &quot;or 0&quot; for x and y to function &quot;UODragDropToOldP=
+osition()&quot; )
++			AddFadeLines(&quot;you already have something equipped there !&quot;)
++			CancelUODragDrop()
++		else
++			-- success ! (hopefully)
++			Send_Equip_Item_Request(item.serial,layer,paperdoll.mobileserial)
++		end
++	elseif (gMousePickFoundHit) then
++		x,y,z =3D gCurrentRenderer:GetMouseHitTileCoords()
++		local iSerial =3D gCurrentRenderer:GetMouseHitSerial()
++		if (iSerial and iSerial ~=3D 0) then =
+
++			-- drop on mobile,dynamic etc =
+
++			print(&quot;MouseUpUODragDrop: drop on worlobject : &quot;,item.serial,item.amoun=
+t,x,y,z,iSerial)
++			Send_Drop_Object(item.serial,x,y,z,iSerial)
++		else
++			-- drop on world
++			print(&quot;MouseUpUODragDrop: drop on world : &quot;,item.serial,item.amount,x,y=
+,z,hex2num(&quot;0xFFFFFFFF&quot;))
++			Send_Drop_Object(item.serial,x,y,z,hex2num(&quot;0xFFFFFFFF&quot;))
++		end
++	else
++		-- dragdrop to nowhere (sky?) : cancel
++		CancelUODragDrop()
++	end
++	CleanUpUODragDrop()
++end
+
+Modified: trunk/data/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/main.lua (original)
++++ trunk/data/lua/main.lua Sun Oct 21 13:59:53 2007
+@@ -86,7 +86,7 @@
+ dofile(libpath .. &quot;lib.3d.walksmooth.lua&quot;)
+ dofile(libpath .. &quot;lib.mount.lua&quot;)
+ dofile(libpath .. &quot;lib.debug.lua&quot;)
+--- dofile(libpath .. &quot;lib.uodragdrop.lua&quot;)  (new dragdrop system not yet u=
+sed in trunk, see net.uodragdrop.lua for old)
++dofile(libpath .. &quot;lib.uodragdrop.lua&quot;)  --(new dragdrop system not yet us=
+ed in trunk, see for old)
+ dofile(libpath .. &quot;gui/gui.main.lua&quot;)
+ dofile(libpath .. &quot;obj/obj.main.lua&quot;)
+ dofile(libpath .. &quot;net/net.main.lua&quot;)
+
+Modified: trunk/data/lua/net/net.main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/net/net.main.lua (original)
++++ trunk/data/lua/net/net.main.lua Sun Oct 21 13:59:53 2007
+@@ -8,5 +8,17 @@
+ -- only things that have at least 2 packets get its own file, everything e=
+lse is handled here:
+ dofile(libpath .. &quot;net/net.packethandlers.lua&quot;)
+ =
+
++dofile(libpath .. &quot;net.cursor.lua&quot;)
++dofile(libpath .. &quot;net.login.lua&quot;)
++dofile(libpath .. &quot;net.other.lua&quot;)
++dofile(libpath .. &quot;net.popup.lua&quot;)
++dofile(libpath .. &quot;net.skill.lua&quot;)
++dofile(libpath .. &quot;net.sound.lua&quot;)
++dofile(libpath .. &quot;net.trade.lua&quot;)
++dofile(libpath .. &quot;net.securetrade.lua&quot;)
++dofile(libpath .. &quot;net.walk.lua&quot;)
++dofile(libpath .. &quot;net.world.lua&quot;)
++dofile(libpath .. &quot;net.corpse.lua&quot;)
++
+ gLastDoubleClickSerial =3D 0
+ =
+
+
+Modified: trunk/data/lua/obj/obj.mobile.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/obj/obj.mobile.lua (original)
++++ trunk/data/lua/obj/obj.mobile.lua Sun Oct 21 13:59:53 2007
+@@ -100,11 +100,7 @@
+ end
+ =
+
+ =
+
+-
+-
+ -- ##### ##### ##### ##### ##### updates
+-
+-
+ =
+
+ =
+
+ function gMobilePrototype:UpdateContent () self:Update() end
+@@ -151,7 +147,7 @@
+ 	-- this can also have happened if equipmentdata=3Dnil, e.g. when an equip=
+ment item was destroyed directly
+ 	-- maybe only in UpdateContent and/or if equipmentdata is set ?
+ 	if (true) then
+-		if (bIsPlayer) then PlayerEquipmentUpdated() end
++		if (bIsPlayer) then PlayerBackpackItemUpdated() end
+ 		local paperdoll =3D gPaperdolls[self.serial]
+ 		if (paperdoll) then RebuildPaperdoll(paperdoll) end
+ 		=
+
+@@ -159,23 +155,22 @@
+ 		if (gCurrentRenderer =3D=3D Renderer3D) then UpdateMobileModel(self) end =
+
+ 		if (gCurrentRenderer =3D=3D Renderer2D) then assert(false,&quot;FIXME?&quot;) gCur=
+rentRenderer:UpdateMobileEquipment(self) end
+ 	end
+-		=
+
++
+ 	self:NotifyListener(&quot;Mobile_Update&quot;)
+-	=
+
+-	=
+
++
+ 	-- currently only for human (not elfs)
+ 	local bIsGhost =3D	in_array(self.artid,kMobileGhostArtIDs)
+ 	if (bIsGhost ~=3D self.bIsGhost) then
+ 		self.bIsGhost =3D bIsGhost
+-		if (bIsGhost) then =
+
+-			print(&quot;mobile is now ghost. isplayer,newartid =3D &quot;,bIsPlayer,self.arti=
+d) =
+
++		if (bIsGhost) then
++			printdebug(&quot;player&quot;,&quot;mobile is now ghost. isplayer,newartid =3D &quot;,bIsPl=
+ayer,self.artid) =
+
+ 		else
+-			print(&quot;mobile is not ghost anymore. isplayer,newartid =3D &quot;,bIsPlayer,s=
+elf.artid)
+-		end
+-	end
+-	=
+
++			printdebug(&quot;player&quot;,&quot;mobile is not ghost anymore. isplayer,newartid =3D=
+ &quot;,bIsPlayer,self.artid)
++		end
++	end
++
+ 	gCurrentRenderer:UpdateMobile( self )
+-	=
+
++
+ 	-- TODO : center Mobilename overhead, dont use fixed height - check heigh=
+t of mobiles (big dragons)
+ end
+ =
+
+
+Modified: trunk/data/lua/obj/obj.player.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/obj/obj.player.lua (original)
++++ trunk/data/lua/obj/obj.player.lua Sun Oct 21 13:59:53 2007
+@@ -1,6 +1,5 @@
+ -- stuff concerning player (body,backpack,equipment...)
+ -- see also net.mobile.lua net.paperdoll.lua net.container.lua
+-
+ =
+
+ gDestroyObjectDist =3D 40 -- TODO : adjust when requesting a different vie=
+wdist from server
+ gDestroyObjectDistSquare =3D gDestroyObjectDist*gDestroyObjectDist
+@@ -8,16 +7,13 @@
+ gPlayerBodySerial =3D 0
+ gPlayerBackPack =3D false
+ =
+
+-
+-
+ function IsPlayerMobile (mobile) =
+
+ 	return mobile and (mobile.serial =3D=3D gPlayerBodySerial)
+ end
+ =
+
+-
+ -- adjust backpack art and maybe paperdoll ?
+ -- called from kPacket_Equipped_MOB and UpdatePlayerBodySerial
+-function PlayerEquipmentUpdated ()
++function PlayerBackpackItemUpdated ()
+ 	-- warning ! don't trigger network send here
+ 	local backpack =3D GetPlayerBackPackItem()
+ 	if (backpack) then
+@@ -55,7 +51,7 @@
+ 	if (playermobile) then return GetMobileEquipmentItem(playermobile,kLayer_=
+Backpack) end
+ end
+ =
+
+--- only available some time after login, see PlayerEquipmentUpdated()
++-- only available some time after login, see PlayerBackpackItemUpdated()
+ function TogglePlayerBackpack ()
+ 	if (gPlayerBackPack) then
+ 		if (IsContainerAlreadyOpen(gPlayerBackPack.serial)) then
+@@ -94,7 +90,8 @@
+ 		print(&quot;WARNING ! playerbody serial changed old,new=3D&quot;,gPlayerBodySerial=
+,serial)
+ 	end
+ 	gPlayerBodySerial =3D serial
+-	PlayerEquipmentUpdated()
++
++	PlayerBackpackItemUpdated()
+ 	=
+
+ 	-- TODO this seems a bit like the wrong place for this stuff
+ 	-- create player status dialog and stuff like this
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000297.html">[Iris-commit] [IRIS] r1482 - in /trunk/data: config.lua.dist lua/lib.3d.map.lua lua/lib.loading.lua lua/lib.static.lua
+</A></li>
+	<LI>Next message: <A HREF="000299.html">[Iris-commit] [IRIS] r1484 - in /trunk/data/lua: lib.uodragdrop.lua net.other.lua net/net.object.lua obj/obj.dynamic.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#298">[ date ]</a>
+              <a href="thread.html#298">[ thread ]</a>
+              <a href="subject.html#298">[ subject ]</a>
+              <a href="author.html#298">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

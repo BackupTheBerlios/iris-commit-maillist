@@ -1,0 +1,147 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2398 - /trunk/lua/lib.2d.spriteblock.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-August/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2398%20-%20/trunk/lua/lib.2d.spriteblock.lua&In-Reply-To=%3C20080823130006.1D29E1C18032%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001203.html">
+   <LINK REL="Next"  HREF="001204.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2398 - /trunk/lua/lib.2d.spriteblock.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2398%20-%20/trunk/lua/lib.2d.spriteblock.lua&In-Reply-To=%3C20080823130006.1D29E1C18032%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2398 - /trunk/lua/lib.2d.spriteblock.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat Aug 23 14:31:00 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001203.html">[Iris-commit] [IRIS] r2397 - in /trunk/lua: lib.packet.lua net/net.main.lua net/net.other.lua net/net.partysystem.lua
+</A></li>
+        <LI>Next message: <A HREF="001204.html">[Iris-commit] [IRIS] r2399 - /trunk/lua/net/net.partysystem.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1202">[ date ]</a>
+              <a href="thread.html#1202">[ thread ]</a>
+              <a href="subject.html#1202">[ subject ]</a>
+              <a href="author.html#1202">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sat Aug 23 14:31:00 2008
+New Revision: 2398
+
+Log:
+small 2d load changes/prepartions
+
+Modified:
+    trunk/lua/lib.2d.spriteblock.lua
+
+Modified: trunk/lua/lib.2d.spriteblock.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.spriteblock.lua (original)
++++ trunk/lua/lib.2d.spriteblock.lua Sat Aug 23 14:31:00 2008
+@@ -3,19 +3,6 @@
+ -- TODO : generic 2d spritesystem : render, mousepick, zsort?
+ -- TODO : unify : terrainload-water,static-types : MapGetBlockStatics     =
+  ArtAtlasLoadAndLock : atlasgroup
+ =
+
+---[[
+-local rendergroup2d =3D TODO() -- needs extra layer
+-local bVertexBufferDynamic=3Dfalse
+-local bVertexCol=3Dfalse
+-local spritelist =3D CreateSpriteList(rendergroup2d,bVertexBufferDynamic,b=
+VertexCol)
+-table.insert(self.spritelists,spritelist)
+-spritelist:SetMaterial(matname)
+-spritelist:ResizeList(len)
+-SpriteList_Open(spritelist)
+-SpriteList_SetSprite		(iSpriteIndex, l,t,w,h, u0,v0, uvw, uvh, z)
+-SpriteList_Close()
+-]]--
+-		=
+
+ -- ***** ***** ***** ***** ***** cUOSpriteBlock
+ =
+
+ cUOSpriteBlock =3D CreateClass()
+@@ -23,10 +10,14 @@
+ function cUOSpriteBlock:Init ()
+ 	self.pStaticAtlasMats =3D {} -- self.pStaticAtlasMats[iTileTypeID][iHue] =
+=3D pAtlasPiece (see ArtAtlasLoadAndLock)
+ 	self.pStaticGroups =3D {}
++	self.spritelists =3D {}
++	self.rendergroup2d =3D CreateRenderGroup2D(GetGUILayer_Dialogs():CastToRe=
+nderGroup2D()) -- TODO : needs extra layer
+ end
+ =
+
+ function cUOSpriteBlock:CamStep(t,x,y,z)
+ 	--~ print(&quot;cUOSpriteBlock:CamStep&quot;,t,x,y,z)
++	local gx,gy,gz =3D 0,0,0
++	self.rendergroup2d:SetPos(gx,gy,gz)
+ end
+ =
+
+ function cUOSpriteBlock:Destroy ()
+@@ -60,6 +51,20 @@
+ =
+
+ =
+
+ function cUOSpriteBlock:Build 	(bx,by)
++	--[[
++	local bVertexBufferDynamic	=3Dfalse
++	local bVertexCol			=3Dfalse
++	local spritelist =3D CreateSpriteList(rendergroup2d,bVertexBufferDynamic,=
+bVertexCol)
++	table.insert(self.spritelists,spritelist)
++	spritelist:SetMaterial(matname)
++	spritelist:ResizeList(len)
++	SpriteList_Open(spritelist)
++	SpriteList_SetSprite(iSpriteIndex, l,t,w,h, u0,v0, uvw, uvh, z)
++	SpriteList_Close()
++	]]--
++
++
++
+ 	-- statics : create gfx
+ 	self.pStaticGroupGfx =3D {}
+ 	-- -so 1420,1550
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001203.html">[Iris-commit] [IRIS] r2397 - in /trunk/lua: lib.packet.lua net/net.main.lua net/net.other.lua net/net.partysystem.lua
+</A></li>
+	<LI>Next message: <A HREF="001204.html">[Iris-commit] [IRIS] r2399 - /trunk/lua/net/net.partysystem.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1202">[ date ]</a>
+              <a href="thread.html#1202">[ thread ]</a>
+              <a href="subject.html#1202">[ subject ]</a>
+              <a href="author.html#1202">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

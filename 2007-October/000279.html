@@ -1,0 +1,436 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1464 - /trunk/data/lua/lib.tilefreewalk.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2007-October/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1464%20-%20/trunk/data/lua/lib.tilefreewalk.lua&In-Reply-To=%3C20071010151101.C858B1C18165%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000278.html">
+   <LINK REL="Next"  HREF="000280.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1464 - /trunk/data/lua/lib.tilefreewalk.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1464%20-%20/trunk/data/lua/lib.tilefreewalk.lua&In-Reply-To=%3C20071010151101.C858B1C18165%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1464 - /trunk/data/lua/lib.tilefreewalk.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Wed Oct 10 17:11:01 CEST 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000278.html">[Iris-commit] [IRIS] r1463 - in /trunk/data/lua:	lib.tilefreewalk.lua net.walk.lua
+</A></li>
+        <LI>Next message: <A HREF="000280.html">[Iris-commit] [IRIS] r1465 - /trunk/data/lua/lib.tilefreewalk.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#279">[ date ]</a>
+              <a href="thread.html#279">[ thread ]</a>
+              <a href="subject.html#279">[ subject ]</a>
+              <a href="author.html#279">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Wed Oct 10 17:11:01 2007
+New Revision: 1464
+
+Log:
+freewalk more intelligent, breadcrumbs/pathpoints to avoid the serverpos ge=
+tting stuck
+
+Modified:
+    trunk/data/lua/lib.tilefreewalk.lua
+
+Modified: trunk/data/lua/lib.tilefreewalk.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.tilefreewalk.lua (original)
++++ trunk/data/lua/lib.tilefreewalk.lua Wed Oct 10 17:11:01 2007
+@@ -66,39 +66,6 @@
+ assert(InterpolateSquare(z00,z10,z01,z11, 1,1) =3D=3D z11)
+ =
+
+ =
+
+-function gTileFreeWalk:CollideWithWallMid (x,y)
+-	for k,wallarr in pairs(self.walls) do -- block straight
+-		local x1,y1,x2,y2,dx,dy,nx,ny,invsqlen =3D unpack(wallarr)
+-		local vx,vy =3D sub2(x,y,x1,y1)
+-		local pos =3D dot2(vx,vy,dx,dy) * invsqlen
+-		if (pos &gt;=3D 0 and pos &lt;=3D 1) then -- collide with wall itself
+-			local dist =3D dot2(vx,vy,nx,ny)
+-			local pushoutdist =3D gTileFreePlayerRad - dist
+-			if (dist &gt; -gTileFreePlayerRad and pushoutdist &gt; 0) then
+-				--self:DebugMarkerGroup_AddWall(&quot;touchwalls&quot;, 	x1,y1,z,   x2,y2,z, gTi=
+leFreeDebugWallH,	1,1,0)
+-				x,y =3D add2(x,y,nx*pushoutdist,ny*pushoutdist)
+-			end
+-		end
+-	end
+-	return x,y
+-end
+-
+-function gTileFreeWalk:CollideWithWallEdge (x,y)
+-	for k,wallarr in pairs(self.walls) do -- block edge
+-		local x1,y1,x2,y2,dx,dy,nx,ny,invsqlen =3D unpack(wallarr)
+-		local vx,vy =3D sub2(x,y,x1,y1)
+-		local pos =3D dot2(vx,vy,dx,dy) * invsqlen
+-		if (pos &lt;=3D 0) then -- collide with edge : x1,y1
+-			local pushoutdist =3D gTileFreePlayerRad - len2(vx,vy)
+-			if (pushoutdist &gt; 0) then x,y =3D add2(x,y,tolen2(vx,vy,pushoutdist)) e=
+nd
+-		elseif (pos &gt;=3D 1) then -- collide with edge : x2,y2
+-			vx,vy =3D sub2(x,y,x2,y2)
+-			local pushoutdist =3D gTileFreePlayerRad - len2(vx,vy)
+-			if (pushoutdist &gt; 0) then x,y =3D add2(x,y,tolen2(vx,vy,pushoutdist)) e=
+nd
+-		end
+-	end
+-	return x,y
+-end
+ =
+
+ =
+
+ function gTileFreeWalk:Step	()
+@@ -161,12 +128,12 @@
+ 	end
+ 	=
+
+ 	-- execute movement (and collision/block handling)
+-	if (bMoved) then
++	if (bMoved) then		=
+
+ 		-- block movement here
+ 		--self:DebugMarkerGroup_Clear(&quot;touchwalls&quot;)
+ 		local vx,vy =3D sub2(x,y,ox,oy)
+ 		local movedist =3D len2(vx,vy)
+-		local steps =3D math.ceil(movedist/(0.7*gTileFreePlayerRad)) =
+
++		local steps =3D math.ceil(movedist/(0.5*gTileFreePlayerRad)) =
+
+ 		if (steps &gt; 0) then
+ 			local sx,sy =3D vx/steps,vy/steps
+ 			x,y =3D ox,oy
+@@ -178,17 +145,18 @@
+ 				x,y =3D self:CollideWithWallEdge(x,y)
+ 				-- 3rd collision : with wall center again, to avoid the edge collision=
+s pushing the player slowly inside the walls
+ 				x,y =3D self:CollideWithWallMid(x,y)
++				self:PathPoint_Push(self:RoundPos(x,y,z))
+ 			end
+ 		end
+ 		=
+
+ 		-- get new rounded position
+ 		local rx,ry,rz =3D self:RoundPos(x,y,z)
+-		local lx,ly,lz =3D self:PathPoint_GetLast()
+ 		=
+
+ 		-- entered a new tile
+-		if (lx ~=3D rx or ly ~=3D ry) then =
+
+-			self.groundcache =3D self:Impl_ScanGround(rx,ry,rz) -- read surrounding=
+ height info
+-			self:PathPoint_Push(rx,ry,rz)
++		if (self.lastscanx ~=3D rx or self.lastscany ~=3D ry) then =
+
++			self.groundcache =3D self:Impl_ScanGround(rx,ry,rz,self.lastscanx,self.=
+lastscany) -- read surrounding height info
++			self.lastscanx =3D rx
++			self.lastscany =3D ry
+ 			=
+
+ 			self:DebugMarkerGroup_Clear(&quot;nearground&quot;)
+ 			function GetGround (x,y) local z =3D self.groundcache[x..&quot;,&quot;..y] return=
+ z end --  print(&quot;GetGround&quot;,x,y,z,rx,ry)
+@@ -267,9 +235,6 @@
+ 			local z01 =3D self.groundcache[(x00  )..&quot;,&quot;..(y00+1)]
+ 			local z11 =3D self.groundcache[(x00+1)..&quot;,&quot;..(y00+1)]
+ 			z =3D InterpolateSquare(z00 or zSelf,z10 or zSelf,z01 or zSelf,z11 or z=
+Self,fx,fy)
+-			--for k,v in pairs(self.groundcache) do print(k,v) end
+-			--print(&quot;zcorr&quot;,sprintf(&quot;%f,%f %+0.1f,%+0.1f %f %f %f %f&quot;,l,t,fx,fy,z00=
+,z10,z01,z11))
+-			--print(&quot;zcorr&quot;,z00,z10,z01,z11,zSelf,z)
+ 		end
+ 		=
+
+ 		self:SetPos_ClientSide(x,y,z)
+@@ -286,6 +251,45 @@
+ 	self:Impl_WalkRequestStep(bRunRequested)
+ 	=
+
+ 	self:Impl_StepPlayer(fRequestedSpeed,bRunRequested)
++end
++
++
++-- ##### ##### ##### ##### ##### collision
++
++
++function gTileFreeWalk:CollideWithWallMid (x,y)
++	for k,wallarr in pairs(self.walls) do -- block straight
++		local x1,y1,x2,y2,dx,dy,nx,ny,invsqlen =3D unpack(wallarr)
++		local vx,vy =3D sub2(x,y,x1,y1)
++		local pos =3D dot2(vx,vy,dx,dy) * invsqlen
++		if (pos &gt;=3D 0 and pos &lt;=3D 1) then -- collide with wall itself
++			local dist =3D dot2(vx,vy,nx,ny)
++			local pushoutdist =3D gTileFreePlayerRad - dist
++			if (dist &gt; -gTileFreePlayerRad and pushoutdist &gt; 0) then
++				--self:DebugMarkerGroup_AddWall(&quot;touchwalls&quot;, 	x1,y1,z,   x2,y2,z, gTi=
+leFreeDebugWallH,	1,1,0)
++				x,y =3D add2(x,y,nx*pushoutdist,ny*pushoutdist)
++			end
++		end
++	end
++	return x,y
++end
++
++
++function gTileFreeWalk:CollideWithWallEdge (x,y)
++	for k,wallarr in pairs(self.walls) do -- block edge
++		local x1,y1,x2,y2,dx,dy,nx,ny,invsqlen =3D unpack(wallarr)
++		local vx,vy =3D sub2(x,y,x1,y1)
++		local pos =3D dot2(vx,vy,dx,dy) * invsqlen
++		if (pos &lt;=3D 0) then -- collide with edge : x1,y1
++			local pushoutdist =3D gTileFreePlayerRad - len2(vx,vy)
++			if (pushoutdist &gt; 0) then x,y =3D add2(x,y,tolen2(vx,vy,pushoutdist)) e=
+nd
++		elseif (pos &gt;=3D 1) then -- collide with edge : x2,y2
++			vx,vy =3D sub2(x,y,x2,y2)
++			local pushoutdist =3D gTileFreePlayerRad - len2(vx,vy)
++			if (pushoutdist &gt; 0) then x,y =3D add2(x,y,tolen2(vx,vy,pushoutdist)) e=
+nd
++		end
++	end
++	return x,y
+ end
+ =
+
+ =
+
+@@ -345,16 +349,7 @@
+ 	--~ print(&quot;Impl_SetLastRequestedUOPos&quot;,xloc,yloc)
+ 	local x,y,z =3D self:UOPosToLocal(xloc,yloc,zloc)
+ 	self:SetPos_LastRequested(x,y,z)
+-	=
+
+-	local maxreached =3D 0
+-	for i =3D 1,self:PathPoint_Count() do =
+
+-		local px,py,pz =3D self:PathPoint_GetNth(i)
+-		--~ print(&quot;Impl_SetLastRequestedUOPos test=3D&quot;,px,py,x,y)
+-		if (px =3D=3D x and py =3D=3D y) then maxreached =3D i end
+-	end
+-	if (maxreached =3D=3D 0) then return end
+-	--~ print(&quot;Impl_SetLastRequestedUOPos maxreached=3D&quot;,maxreached)
+-	for i =3D 1,maxreached do self:PathPoint_Pop() end
++	self:PathPoint_ReachPos(x,y,z)
+ end
+ =
+
+ function gTileFreeWalk:Impl_SetLastConfirmedUOPos (xloc,yloc,zloc)
+@@ -384,50 +379,23 @@
+ =
+
+ function WalkLog2 (...) if (gKeyPressed[key_f]) then print(&quot;walklog2&quot;,unpa=
+ck(arg)) end end
+ =
+
+-function gTileFreeWalk:StuckCheck ()
+-	--~ local x,y,z =3D self:GetPos_ClientSide()
+-	--~ local rx,ry,rz =3D self:RoundPos(x,y,z)
+-	--~ local d =3D len2(x-rx,y-ry)
+-	--~ if (d &gt; 0.1) then return end
+-	=
+
+-	-- TODO...
+-	--~ print(&quot;StuckCheck&quot;)
+-	--~ local x,y,z =3D GetPos_LastConfirmed()
+-	--
+-end
+-
+-
+ function gTileFreeWalk:Impl_WalkRequestStep (bRunRequested)
+ 	-- self confirm here if there is no server, debug/offline mode only
+ 	if (gStartGameWithoutNetwork) then self:SetPos_LastConfirmed(self:RoundPo=
+s(self:GetPos_ClientSide())) return end
+ 	=
+
+-	--~ self:StuckCheck()
+-	self:PathPoint_Pop() -- pathpoints aren't currently used
+ 	if (not Walk_RequestTimeOk()) then return end
+-	=
+
+-	local rx,ry,rz =3D self:RoundPos(self:GetPos_ClientSide())
++	print(&quot;Impl_WalkRequestStep&quot;,gMyTicks)
++	=
+
++	local nx,ny,nz =3D self:PathPoint_GetNext()
++	if (not nx) then nx,ny,nz =3D self:RoundPos(self:GetPos_ClientSide()) end
+ 	local lx,ly,lz =3D self:GetPos_LastRequested()
+-	local dx,dy =3D rx-lx,ry-ly
++	local dx,dy =3D nx-lx,ny-ly
+ 	=
+
+ 	if (dx =3D=3D 0 and dy =3D=3D 0) then return end
+ 	local iDir =3D DirFromLocalDxDy(dx,dy)
+ 	if (not iDir) then return end
+ 	=
+
+ 	WalkStep_WalkInDir(iDir,bRunRequested,true)
+-	=
+
+-	=
+
+-	=
+
+-	--~ print(&quot;player&quot;,gPlayerXLoc,gPlayerYLoc,gPlayerDir)
+-	--~ self:Impl_SetToPlayerPos(GetPlayerMobile())
+-	--~ WalkLog2(&quot;Impl_WalkRequestStep timeok,haxnext&quot;,Walk_RequestTimeOk(),s=
+elf:PathPoint_HasNext())
+-	--~ local x1,y1,z1 =3D self:PathPoint_GetNth(1)
+-	--~ if (not x1) then return end
+-	--~ xloc1,yloc1,zloc1 =3D self:LocalToUOPos(x1,y1,z1)
+-	--~ if (xloc2 and WalkStep_WalkToPosSimple(xloc2,yloc2,bRunRequested,fals=
+e)) then return end
+-	--~ print(&quot;WalkStep_WalkToPosSimple&quot;,xloc1,yloc1,gPlayerXLoc,gPlayerYLoc)
+-	--~ WalkStep_WalkToPosSimple(xloc1,yloc1,bRunRequested,false)
+-	-- todo : pathpoints can be impassable, happens during diagonal walk, don=
+'t send walk requests to those
+-	-- determine the &quot;next&quot; position for the request, summarize as much into =
+one step as possible
+ end
+ 				=
+
+ =
+
+@@ -468,10 +436,11 @@
+ =
+
+ -- input : rounded
+ -- read new surrounding height info
+-function gTileFreeWalk:Impl_ScanGround (rx,ry,rz)
++function gTileFreeWalk:Impl_ScanGround (rx,ry,rz,ox,oy)
++	if (not ox) then ox,oy,oz =3D self:GetPos_LastConfirmed() end
++
+ 	local xloc,yloc,zloc =3D self:LocalToUOPos(rx,ry,rz)
+ 	=
+
+-	local ox,oy,oz =3D self:PathPoint_GetLast()
+ 	local iSelfZ =3D nil -- zloc
+ 	local iComingHereDir
+ 	local groundcache =3D {}
+@@ -535,11 +504,23 @@
+ -- ##### ##### ##### ##### ##### pathpoints
+ =
+
+ -- the system remembers which path was walked clientside, and approximates=
+ it for sending to the walk requests
+-
+-function gTileFreeWalk:PathPoint_SetLast	(x,y,z)		self.lastMarkedWalkPos =
+=3D {x,y,z} end
+-function gTileFreeWalk:PathPoint_GetLast	()			return unpack(self.lastMarke=
+dWalkPos) end
++-- note : pathpoints can be impassable, happens during diagonal walk, don'=
+t send walk requests to those
++
++	=
+
++-- mark position as &quot;reached&quot;, consuming neighboring pathpoints
++function gTileFreeWalk:PathPoint_ReachPos (x,y,z)
++	local maxreached =3D 0
++	local c =3D self:PathPoint_Count()
++	for i =3D 1,c do =
+
++		local px,py,pz =3D self:PathPoint_GetNth(i)
++		if (abs(px-x) &lt;=3D 1 and abs(py-y) &lt;=3D 1) then maxreached =3D i end
++	end
++	if (maxreached =3D=3D 0) then return end
++	for i =3D 1,maxreached do self:PathPoint_Pop() end
++end
++
++function gTileFreeWalk:PathPoint_Count		() 			return table.getn(self.pathp=
+oints) end
+ function gTileFreeWalk:PathPoint_GetNext	() return self:PathPoint_GetNth(1=
+) end
+-function gTileFreeWalk:PathPoint_Count		() return table.getn(self.pathpoin=
+ts) end
+ function gTileFreeWalk:PathPoint_GetNth		(n) -- n=3D1 for first =3D next
+ 	if (not self.pathpoints[n]) then return end
+ 	return unpack(self.pathpoints[n])
+@@ -548,17 +529,21 @@
+ function gTileFreeWalk:PathPoint_Has		(n) return table.getn(self.pathpoint=
+s) &gt;=3D n end
+ function gTileFreeWalk:PathPoint_Pop		() =
+
+ 	if (self:PathPoint_HasNext()) then =
+
+-		local x,y,z =3D self:PathPoint_GetNext()
++		local x,y,z =3D self:PathPoint_GetNth(1)
+ 		self:DelDebugMarker(&quot;path&quot;..x..&quot;,&quot;..y..&quot;,&quot;..z)
+ 		table.remove(self.pathpoints,1) =
+
+ 	end =
+
+ end
+ function gTileFreeWalk:PathPoint_Push		(x,y,z)
++	local c =3D self:PathPoint_Count()
++	if (c &gt; 0) then =
+
++		local lx,ly,lz =3D unpack(self.pathpoints[c])
++		if (lx =3D=3D x and ly =3D=3D y) then return end
++	end
++	local lx,ly,lz =3D self:GetPos_LastRequested()
++	if (abs(lx-x) &lt;=3D 1 and abs(ly-y) &lt;=3D 1) then return end
+ 	table.insert(self.pathpoints,{x,y,z})
+-	self:PathPoint_SetLast(x,y,z)
+ 	self:SetDebugMarker(&quot;path&quot;..x..&quot;,&quot;..y..&quot;,&quot;..z, x,y,z, 0,0,0, 0.5,0.5,0.5)
+-end
+-function gTileFreeWalk:PathPoint_SetCur		()
+ end
+ =
+
+ -- ##### ##### ##### ##### ##### position and coordinate system conversions
+@@ -593,7 +578,6 @@
+ 	self:SetPos_LastConfirmed(	x,y,z)
+ 	self:SetPos_LastRequested(	x,y,z)
+ 	self.pathpoints =3D {}
+-	self:PathPoint_SetLast(		x,y,z)
+ end
+ =
+
+ =
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000278.html">[Iris-commit] [IRIS] r1463 - in /trunk/data/lua:	lib.tilefreewalk.lua net.walk.lua
+</A></li>
+	<LI>Next message: <A HREF="000280.html">[Iris-commit] [IRIS] r1465 - /trunk/data/lua/lib.tilefreewalk.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#279">[ date ]</a>
+              <a href="thread.html#279">[ thread ]</a>
+              <a href="subject.html#279">[ subject ]</a>
+              <a href="author.html#279">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

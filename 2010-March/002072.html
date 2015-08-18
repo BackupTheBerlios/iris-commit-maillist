@@ -1,0 +1,1433 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r3312 - in /trunk/lua: lib.granny.anim.lua lib.granny.debug.lua lib.thread.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2010-March/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3312%20-%20in%20/trunk/lua%3A%20lib.granny.anim.lua%0A%20lib.granny.debug.lua%20lib.thread.lua&In-Reply-To=%3C20100328213952.6BBB97A980A7%40simon%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="002071.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r3312 - in /trunk/lua: lib.granny.anim.lua lib.granny.debug.lua lib.thread.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3312%20-%20in%20/trunk/lua%3A%20lib.granny.anim.lua%0A%20lib.granny.debug.lua%20lib.thread.lua&In-Reply-To=%3C20100328213952.6BBB97A980A7%40simon%3E"
+       TITLE="[Iris-commit] [IRIS] r3312 - in /trunk/lua: lib.granny.anim.lua lib.granny.debug.lua lib.thread.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sun Mar 28 23:39:51 CEST 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="002071.html">[Iris-commit] [IRIS] r3311 - /trunk/bin/iris2.exe
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2072">[ date ]</a>
+              <a href="thread.html#2072">[ thread ]</a>
+              <a href="subject.html#2072">[ subject ]</a>
+              <a href="author.html#2072">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sun Mar 28 23:39:51 2010
+New Revision: 3312
+
+Log:
+worked on granny lua loader : anim skeleton, not quite finished
+
+Modified:
+    trunk/lua/lib.granny.anim.lua
+    trunk/lua/lib.granny.debug.lua
+    trunk/lua/lib.thread.lua
+
+Modified: trunk/lua/lib.granny.anim.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.granny.anim.lua (original)
++++ trunk/lua/lib.granny.anim.lua Sun Mar 28 23:39:51 2010
+@@ -210,13 +210,13 @@
+ end
+ =
+
+ function	GetBoneDerivedRotation	(mpGrannyLoader,iBoneID)
+-	local pGrannyBone =3D mpGrannyLoader.mBones[iBoneID]
++	local pGrannyBone =3D mpGrannyLoader.mBones[iBoneID+1]
+ 	if ((not pGrannyBone) or (pGrannyBone.iParent =3D=3D iBoneID)) then retur=
+n GetBoneRotate(pGrannyBone) end
+ 	return QuatMult(GetBoneDerivedRotation(mpGrannyLoader,pGrannyBone.iParent=
+),GetBoneRotate(pGrannyBone))
+ end
+ =
+
+ function	GetBoneDerivedTranslate	(mpGrannyLoader,iBoneID)
+-	local pGrannyBone =3D mpGrannyLoader.mBones[iBoneID]
++	local pGrannyBone =3D mpGrannyLoader.mBones[iBoneID+1]
+ 	if ((not pGrannyBone) or (pGrannyBone.iParent =3D=3D iBoneID)) then retur=
+n GetBoneTranslate(pGrannyBone) end
+ 	return VectAdd(GetBoneDerivedTranslate(mpGrannyLoader,pGrannyBone.iParent=
+),QuadVectMult(GetBoneDerivedRotation(mpGrannyLoader,pGrannyBone.iParent),G=
+etBoneTranslate(pGrannyBone)))
+ end
+@@ -517,7 +517,7 @@
+ function cAnimationTotalTimeConstructor:Init (mfTotalTime)
+ 	self.mfTotalTime =3D mfTotalTime
+ end
+-function cAnimationTotalTimeConstructor:Exectute (pAnim) -- cGrannyLoader_=
+i2::cAnim
++function cAnimationTotalTimeConstructor:Execute (pAnim) -- cGrannyLoader_i=
+2::cAnim
+ 	if (self.mfTotalTime &lt; pAnim.mfTotalTime) then
+ 		self.mfTotalTime =3D pAnim.mfTotalTime
+ 	end
+@@ -537,7 +537,7 @@
+ function cAnimationConstructor:Init (pGrannyLoader,mpSkeleton,mpAnim,mlBod=
+ySamples)
+ 	self.mpGrannyLoader			=3D pGrannyLoader
+ 	self.mpSkeleton				=3D mpSkeleton
+-	self.mpAnim					=3D mpAnim
++	self.mpAnim					=3D mpAnim -- Ogre::Animation*
+ 	self.mlBodySamples			=3D mlBodySamples
+ 	self.miAnimDataCounter		=3D 0
+ 	self.miCurrentSubMesh		=3D 0
+@@ -547,7 +547,7 @@
+ function cAnimationConstructor:GetSampleBone	(sBoneName) -- returns Granny=
+Bone
+ 	for k,sample in ipairs(self.mlBodySamples) do =
+
+ 		local iBoneID =3D sample:FindBone(sBoneName)
+-		local bone =3D sample.mBones[iBoneID]
++		local bone =3D sample.mBones[iBoneID+1]
+ 		if (bone) then return bone end
+ 	end
+ end
+@@ -556,7 +556,7 @@
+ 			=
+
+ 	--- recursive : creates parent hierarchy if needed
+ function cAnimationConstructor:GetOrCreateBone	(iBoneID) -- returns Ogre::=
+Bone*
+-	if (iBoneID &lt; 0 or iBoneID &gt;=3D self.mpGrannyLoader.mBones:size()) then r=
+eturn 0 end
++	if (iBoneID &lt; 0 or iBoneID &gt;=3D #self.mpGrannyLoader.mBones) then return =
+0 end  -- TODO:LUA SIZE WRONG ??? =
+
+ 	local sName =3D self.mpGrannyLoader:GetBoneName(iBoneID)
+ 	if (sName =3D=3D &quot;&quot;) then
+ 		print(&quot;warning, unnamed bone id=3D%d\n&quot;,iBoneID)
+@@ -569,7 +569,7 @@
+ 	=
+
+ 	-- create bone
+ 	pBone =3D self.mpSkeleton:createBone(sName)
+-	local pGrannyBone =3D self.mpGrannyLoader.mBones[iBoneID] -- const Granny=
+Bone*
++	local pGrannyBone =3D self.mpGrannyLoader.mBones[iBoneID+1] -- const Gran=
+nyBone*
+ 	=
+
+ 	-- child bone : attach to parent
+ 	local iParent =3D pGrannyBone.iParent
+@@ -614,14 +614,14 @@
+ 	if (iTransformSpaceModeR =3D=3D 2) then iTransformSpaceR =3D TS_WORLD end
+ 	=
+
+ 	if (iBoneStartMode =3D=3D 1) then
+-		if (iRotateFirst ~=3D 0) then pBone:rotate(q,iTransformSpaceR) end
++		if (iRotateFirst ~=3D 0) then pBone:rotate2(q,iTransformSpaceR) end
+ 		pBone:translate(v,iTransformSpaceT)
+-		if (iRotateFirst =3D=3D 0) then pBone:rotate(q,iTransformSpaceR) end
++		if (iRotateFirst =3D=3D 0) then pBone:rotate2(q,iTransformSpaceR) end
+ 	end
+ 	if (iBoneStartMode =3D=3D 2) then
+-		if (iRotateFirst ~=3D 0) then pBone:rotate(Quaternion_Inverse(q),iTransf=
+ormSpaceR) end
++		if (iRotateFirst ~=3D 0) then pBone:rotate2(Quaternion_Inverse(q),iTrans=
+formSpaceR) end
+ 		pBone:translate(Vector_Invert(v),iTransformSpaceT)
+-		if (iRotateFirst =3D=3D 0) then pBone:rotate(Quaternion_Inverse(q),iTran=
+sformSpaceR) end
++		if (iRotateFirst =3D=3D 0) then pBone:rotate2(Quaternion_Inverse(q),iTra=
+nsformSpaceR) end
+ 	end
+ 	-- granny rotation is often (   0.000,   0.000,   0.000,   1.000) , so pr=
+obably x,y,z,w
+ 	-- void Ogre::Bone::setScale  	(   	const Vector3 &amp;   	 scale  	 )
+@@ -654,7 +654,7 @@
+ 		pTrack =3D self.mpAnim:createNodeTrack(iOgreBoneHandle,pBone)
+ 	end
+ 	=
+
+-	local pGrannyBone =3D self.mpGrannyLoader.mBones[iCurBoneNum] -- const Gr=
+annyBone*
++	local pGrannyBone =3D self.mpGrannyLoader.mBones[iCurBoneNum+1] -- const =
+GrannyBone*
+ 	assert(pGrannyBone)
+ 	local pOrigGrannyBone =3D pGrannyBone -- const GrannyBone*
+ 	local pSampleBone =3D self:GetSampleBone(pBone:getName()) -- const Granny=
+Bone*
+@@ -721,15 +721,17 @@
+ 		-- calc rotation at fCurTime
+ 		local qo =3D Make_Ogre_Quaternion_IDENTITY() -- Ogre::Quaternion
+ 		if (pAnim.mpAnim.iNumQuaternion &gt; 0) then
++			local i
+ 			for k,fTestTime in ipairs(pAnim.mpQuaternionTime) do -- pAnim.mpAnim.iN=
+umQuaternion
++				i =3D k
+ 				if (fTestTime &gt;=3D fCurTime) then break end
+ 				fBeforeTime =3D fTestTime
+ 			end
+-			if (bDebugHack_OnlyFirst) then i =3D 0 end
+-			if (i &gt;=3D pAnim.mpAnim.iNumQuaternion) then
++			if (bDebugHack_OnlyFirst) then i =3D 1 end
++			if (i &gt; pAnim.mpAnim.iNumQuaternion) then
+ 				-- after last frame
+ 				qo =3D GrannyToOgreQ(pAnim.mpQuaternion[pAnim.mpAnim.iNumQuaternion-1+=
+1])
+-			elseif (i =3D=3D 0 or fTestTime =3D=3D fCurTime) then
++			elseif (i =3D=3D 1 or fTestTime =3D=3D fCurTime) then
+ 				-- before first frame or exact time-match frame
+ 				qo =3D GrannyToOgreQ(pAnim.mpQuaternion[i+1])
+ 				--printf(&quot; bone=3D%02d t=3D%5.3f q=3D(x=3D%f y=3D%f z=3D%f w=3D%f)\n&quot;,=
+iCurBoneNum,fCurTime,q.x,q.y,q.z,q.w)
+@@ -743,15 +745,17 @@
+ 		-- calc translation at fCurTime
+ 		local vt0 =3D Make_Ogre_Vector3_ZERO()
+ 		if (pAnim.mpAnim.iNumTranslate &gt; 0) then
++			local i
+ 			for k,fTestTime in ipairs(pAnim.mpTranslateTime) do -- pAnim.mpAnim.iNu=
+mTranslate
++				i =3D k
+ 				if (fTestTime &gt;=3D fCurTime) then break end
+ 				fBeforeTime =3D fTestTime
+ 			end
+-			if (bDebugHack_OnlyFirst) then i =3D 0 end
+-			if (i &gt;=3D pAnim.mpAnim.iNumTranslate) then
++			if (bDebugHack_OnlyFirst) then i =3D 1 end
++			if (i &gt; pAnim.mpAnim.iNumTranslate) then
+ 				-- after last frame
+ 				vt0 =3D GrannyToOgreV(pAnim.mpTranslate[pAnim.mpAnim.iNumTranslate-1+1=
+])
+-			elseif (i =3D=3D 0 or fTestTime =3D=3D fCurTime) then
++			elseif (i =3D=3D 1 or fTestTime =3D=3D fCurTime) then
+ 				-- before first frame or exact time-match frame
+ 				vt0 =3D GrannyToOgreV(pAnim.mpTranslate[i+1])
+ 			else
+@@ -813,14 +817,14 @@
+ 	-- calc total time
+ 	local fTotalTime =3D 0
+ 	local o =3D cAnimationTotalTimeConstructor:New(fTotalTime)
+-	for k,anim in ipairs(pGrannyLoader.mAnims) do o:Exectute(anim) end
++	for k,anim in ipairs(pGrannyLoader.mAnims) do o:Execute(anim) end
+ 	fTotalTime =3D o.mfTotalTime
+ 	--printf(&quot;LoadGrannyAsOgreAnim name=3D%s total_bone_anims=3D%d totaltime=
+=3D%f samplebodyparts=3D%d\n&quot;,szAnimName,pGrannyLoader.mAnims.size(),fTotal=
+Time,lBodySamples.size())
+-	local pAnim =3D pSkeleton:createAnimation(szAnimName,fTotalTime) -- in se=
+conds	    Ogre::Animation*
++	local pOgreAnim =3D pSkeleton:createAnimation(szAnimName,fTotalTime) -- i=
+n seconds	    Ogre::Animation*
+ 	=
+
+ 	-- construct anims
+-	local o =3D cAnimationConstructor:New(pGrannyLoader,pSkeleton,pAnim,lBody=
+Samples)
+-	for k,anim in ipairs(pGrannyLoader.mAnims) do o:Exectute(anim) end
++	local o =3D cAnimationConstructor:New(pGrannyLoader,pSkeleton,pOgreAnim,l=
+BodySamples)
++	for k,anim in ipairs(pGrannyLoader.mAnims) do o:Execute(anim) end
+ 	--	pSkeleton.load()
+ 	=
+
+ 	--Ogre::Skeleton::BoneIterator itor =3D pSkeleton.getBoneIterator()
+
+Modified: trunk/lua/lib.granny.debug.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.granny.debug.lua (original)
++++ trunk/lua/lib.granny.debug.lua Sun Mar 28 23:39:51 2010
+@@ -160,9 +160,17 @@
+ 										&quot;Giant_Beetle_Run.grn&quot;,
+ 									}
+ =
+
+-									=
+
+-									=
+
+-									=
+
++
++function MyIterGranny (node,callback,path) =
+
++	path =3D (path or &quot;root&quot;) .. &quot;.&quot; .. tostring(cGrannyFile.kTypeNames[node.=
+iChunkType or &quot;&quot;])
++	local res =3D callback(node,path)
++	if (res) then return res end
++	for k,subnode in ipairs(node.childs or {}) do =
+
++		local res =3D MyIterGranny(subnode,callback,path)
++		if (res) then return res end
++	end
++end
++
+ function cDebugGrannyMenu:MakeNewGranny (artid,animid)
+ 	local folder =3D &quot;/cavern/uoml_freshinstall.4.x/Models/Animals/&quot;
+ 	local old_GetGrannyModelLoader =3D GetGrannyModelLoader(artid)
+@@ -170,9 +178,9 @@
+ 	=
+
+ 	function assert_warn (cond,msg) if (not cond) then print(&quot;assert_warn&quot;,ms=
+g) end end
+ 	=
+
+-	function LoadGrannyLua (artid)
++	function LoadGrannyLua (artid) return LoadGrannyLua_ByFilePath(GetGrannyF=
+ilePath(artid)) end
++	function LoadGrannyLua_ByFilePath (filepath)
+ 		local grn =3D cGrannyFile:New()
+-		local filepath =3D GetGrannyFilePath(artid)
+ 		grn:LoadFile(filepath)
+ 		return WrapGrannyLoaderNew(grn)
+ 	end
+@@ -229,7 +237,7 @@
+ 		=
+
+ 		=
+
+ 		-- granny wide bone infos
+-		if (bHasBoneWeights) then =
+
++		if (true) then =
+
+ 			pGrannyLoader.mBoneNameCache =3D {}
+ 			function pGrannyLoader:WeightBoneIndex2GrannyBoneID (iWeightBoneIndex)
+ 				local o =3D self.mBoneTies[iWeightBoneIndex+1]
+@@ -314,21 +322,12 @@
+ 				end
+ 			end
+ 				=
+
+-			--~ function MyIterGranny (node,callback,path) =
+
+-				--~ path =3D (path or &quot;root&quot;) .. &quot;.&quot; .. tostring(cGrannyFile.kTypeName=
+s[node.iChunkType or &quot;&quot;])
+-				--~ local res =3D callback(node,path)
+-				--~ if (res) then return res end
+-				--~ for k,subnode in ipairs(node.childs or {}) do =
+
+-					--~ local res =3D MyIterGranny(subnode,callback,path)
+-					--~ if (res) then return res end
+-				--~ end
+-			--~ end
+ 			--~ 0xca5e0c02	MyIterGranny    root.Object.boneTies2.boneties_container=
+.bone_objptrs_container.bone_objptr.bone_objptrs        {iChildren=3D0,iNum=
+=3D37=3D0x25,BoneTies2=3Dtable: 0x9bab008,iChunkType=3D0xca5e0c02,iOffset=
+=3D34572=3D0x870c,}
+ 			--~ 0xca5e0f04	MyIterGranny    Object.boneTies1.boneobject.id    {iChil=
+dren=3D0,iID=3D6,iChunkType=3D0xca5e0f04,iOffset=3D9992=3D0x2708,}
+ 			--~ 0xca5e0f04	MyIterGranny    Object.boneTies1.boneobject.id    {iChil=
+dren=3D0,iID=3D2,iChunkType=3D0xca5e0f04,iOffset=3D9996=3D0x270c,}
+ 			--~ 0xca5e0c0a	MyIterGranny    root.Object.boneTies2.boneties_container=
+.bonetie_container.bonetie_group.bonetie_list.bonetie   {iChildren=3D0,bone=
+tie=3Dtable: 0xa0f98a0,iChunkType=3D0xca5e0c0a,iOffset=3D34724=3D0x87a4,}
+ 			--~ 0xca5e0c0a	MyIterGranny    root.Object.boneTies2.boneties_container=
+.bonetie_container.bonetie_group.bonetie_list.bonetie   {iChildren=3D0,bone=
+tie=3Dtable: 0xa3bb478,iChunkType=3D0xca5e0c0a,iOffset=3D34756=3D0x87c4,}
+-			--~ MyIterGranny(Object,function (node,path) if (node.iChunkType =3D=3D=
+ 0XCA5E0C02) then print(&quot;MyIterGranny&quot;,path,SmartDump(node)) end end)
++			--~ MyIterGranny(Object,function (node,path) if (node.iChunkType =3D=3D=
+ 0XCA5E1204) then print(&quot;MyIterGranny&quot;,path,SmartDump(node)) end end)
+ 		=
+
+ 			pGrannyLoader.mBoneTies2 =3D Object.boneTies2.boneties_container.bone_o=
+bjptrs_container.bone_objptr.bone_objptrs.BoneTies2 -- 0xca5e0c02  only one=
+ hit
+ 			local mBoneTies1 =3D {}
+@@ -340,13 +339,16 @@
+ 				local id =3D child.childs[1].iID
+ 				table.insert(mBoneTies1,id)
+ 			end =
+
+-			local bone_tie_list =3D Object.boneTies2.boneties_container.bonetie_con=
+tainer.bonetie_group.bonetie_list.childs
++			local bonetie_group =3D Object.boneTies2.boneties_container.bonetie_con=
+tainer.bonetie_group
+ 			local mBoneTies =3D {}
+ 			pGrannyLoader.mBoneTies =3D mBoneTies
+-			for k,child in ipairs(bone_tie_list) do =
+
+-				assert(child.bonetie)
+-				assert(child.bonetie.iBone)
+-				table.insert(mBoneTies,child.bonetie)
++			if (bonetie_group) then =
+
++				local bone_tie_list =3D bonetie_group.bonetie_list.childs
++				for k,child in ipairs(bone_tie_list) do =
+
++					assert(child.bonetie)
++					assert(child.bonetie.iBone)
++					table.insert(mBoneTies,child.bonetie)
++				end
+ 			end
+ 			=
+
+ 			assert(pGrannyLoader.mBoneTies1)		-- std::vector&lt;uint32&gt;								mBoneTi=
+es1; // 0xCA5E0f04 &amp;&amp; bRootParent_BoneTies	VisitBoneTieID	&quot;id&quot;, parent=3D[0=
+xCA5E0b01] =3D &quot;boneTies1&quot; -- bone_name_list ?
+@@ -354,6 +356,97 @@
+ 			assert(pGrannyLoader.mBoneTies)		-- std::vector&lt;const GrannyBoneTie*&gt;		=
+		mBoneTies;  // 0xCA5E0c0a &amp;&amp; bRootParent_BoneTies2	VisitBoneTie							&quot;bo=
+netie&quot;
+ 			assert(pGrannyLoader.mMainParams)		-- std::map&lt;int,std::map&lt;std::string=
+,std::string&gt; &gt;	VisitEOF
+ 			--~ print(&quot;checkpoint one reached&quot;)
++		end
++		=
+
++		--~ local animbase =3D Object.animation_list.animation_sublist.animation=
+        =
+
++		--~ MyIterGranny    root.Object.animation_list.animation_sublist.animati=
+on.animdata {fTotalTime=3D0.616667,pScaleTime=3Dtable: 0x9e42720,pQuaternio=
+nTime=3Dtable: 0x9e42080,hexdump=3Dtable: 0x9e44af0,iOffset=3D29560=3D0x737=
+8,iChildren=3D0,pQuaternion=3Dtable: 0x9e42bf8,pAnim=3Dtable: 0x9e421a8,pRe=
+st=3Dtable: 0x9e44b18,pTranslateTime=3Dtable: 0x9e42450,pScale=3Dtable: 0x9=
+e43990,iChunkType=3D0xca5e1204,pTranslate=3Dtable: 0x9e42748,}
++
++		if (Object.animation_list.animation_sublist.animation.animdata) then -- =
+granny with animation tracks         =
+
++			--~ pGrannyLoader.mAnims =3D {} -- VisitGrannyAnim 0XCA5E1204
++			--~ for (
++			local mAnims =3D {}
++			pGrannyLoader.mAnims =3D mAnims
++			for k,grnanim in ipairs(Object.animation_list.animation_sublist.animati=
+on.childs) do =
+
++				local pAnim =3D {}
++				table.insert(mAnims,pAnim)
++				pAnim.mfTotalTime	=3D grnanim.fTotalTime
++				pAnim.mpAnim		=3D grnanim.pAnim
++				--~ print(&quot;pAnim.mpAnim&quot;,SmartDump(pAnim.mpAnim))
++				pAnim.mpQuaternionTime	=3D grnanim.pQuaternionTime
++				pAnim.mpQuaternion		=3D grnanim.pQuaternion
++				pAnim.mpTranslateTime	=3D grnanim.pTranslateTime
++				pAnim.mpTranslate		=3D grnanim.pTranslate
++				=
+
++				--~ print(&quot;pAnim.mpQuaternionTime&quot;,SmartDump(pAnim.mpQuaternionTime))
++				--~ print(&quot;pAnim.mpQuaternion&quot;,SmartDump(pAnim.mpQuaternion))
++				=
+
++				assert(pAnim.mpAnim.iNumTranslate)
++				assert(pAnim.mpAnim.iNumQuaternion)
++				assert(pAnim.mpAnim.iID)
++				assert(ipairs(pAnim.mpQuaternionTime))
++				assert(ipairs(pAnim.mpTranslateTime))
++				assert(pAnim.mpQuaternion)
++				assert(pAnim.mpTranslate)
++				     =
+
++				--[[
++				{
++				fTotalTime=3D0.616667
++				pAnim=3Dtable: 0xb308660
++				=
+
++				pQuaternionTime=3Dtable: 0xb308558
++				pQuaternion=3Dtable: 0xb308f60
++				=
+
++				pTranslateTime=3Dtable: 0xb308908
++				pTranslate=3Dtable: 0xb308ab0
++				=
+
++				pScaleTime=3Dtable: 0xb308a50
++				pScale=3Dtable: 0xb308968
++				=
+
++				pRest=3Dtable: 0xb309900
++				iChunkType=3D0xca5e1204
++				}
++				]]--
++			end
++			--~ MyIterGranny(Object,function (node,path) if (node.iChunkType =3D=3D=
+ 0XCA5E1204) then print(&quot;MyIterGranny&quot;,path,SmartDump(node)) end end)
++			--~ print(&quot;anim:boom&quot;)
++			--~ os.exit(0)
++			--~ assert(pGrannyLoader.mAnims) -- GrannyAnim*
++			--~ assert(pGrannyLoader.mBones) -- GrannyBone*
++		end
++		=
+
++		if (Object.bones.skeleton.bonelist) then	   =
+
++			local mBones =3D {}
++			pGrannyLoader.mBones =3D mBones
++			for k,grnbone in ipairs(Object.bones.skeleton.bonelist.childs) do
++				-- grnbone {iChildren=3D0,bone=3Dtable: 0x8fc8830,iChunkType=3D0xca5e0=
+506,iOffset=3D32020=3D0x7d14,}
++				table.insert(mBones,grnbone.bone)    =
+
++				--~ print(&quot;pGrannyBone&quot;,SmartDump(grnbone.bone,2)) -- {fTranslate=3Dta=
+ble: 0x9f664a0,fQuaternion=3Dtable: 0x9f66568,fMatrix=3Dtable: 0x9f65358,iP=
+arent=3D0,}
++			end
++			--~ MyIterGranny(Object,function (node,path) if (node.iChunkType =3D=3D=
+ 0XCA5E0506) then print(&quot;MyIterGranny&quot;,path,SmartDump(node)) end end)
++			=
+
++			print(&quot;TODO!!!!!!!!!! lib.granny.anim.lua:196: attempt to index field '=
+data' (a nil value)&quot;)
++			--[[     =
+
++				error running function `Main': ../lua/lib.granny.anim.lua:196: attempt=
+ to index field 'data' (a nil value)
++				LuaStackTrace:
++
++						../lua/lib.granny.anim.lua:196: in function `GrannyToOgreQ'
++						../lua/lib.granny.anim.lua:736: in function `Execute'
++						../lua/lib.granny.anim.lua:827: in function `LoadGrannyAsOgreAnim'
++						../lua/lib.granny.debug.lua:454: in function `MyLoadGrannyAnim'
++						../lua/lib.granny.debug.lua:488: in function `MyGetOrCreateSkeleton'
++						../lua/lib.granny.debug.lua:496: in function `MakeNewGranny'
++						../lua/lib.granny.debug.lua:66: in function `StartMenu'
++						../lua/lib.granny.debug.lua:45: in function `StartDebugGrannyMenu'
++						../lua/main.lua:536: in function &lt;../lua/main.lua:467&gt;
++			]]--
++			=
+
++			os.exit(0)
++			=
+
++			=
+
++			=
+
++			=
+
++			assert(pGrannyLoader.mBones) -- VisitBone 0XCA5E0506 &amp;&amp; bRootParent_Ske=
+letonList
++			--~ local pGrannyBone =3D mpGrannyLoader.mBones[iBoneID]       pGrannyB=
+one.iParent  GetBoneRotate(pGrannyBone) pGrannyBone.fTranslate[0]   pGranny=
+Bone.fQuaternion[3]
+ 		end
+ 		return pGrannyLoader
+ 	end
+@@ -370,7 +463,7 @@
+ 		local animname =3D GetAnimName(bodyid,animid) =
+
+ 		if (skeleton.anims[animname]) then return end -- already loaded
+ 		local animpath =3D GetAnimPath(bodyid,animid)
+-		local mygrannyanim =3D LoadGranny(animpath)
++		local mygrannyanim =3D LoadGrannyLua_ByFilePath(animpath)
+ 		if (not mygrannyanim) then =
+
+ 			print(&quot;ERROR LoadGrannyAnim&quot;,animpath,bodyid,animid,skeleton,bodypartsa=
+mples)
+ 			return false
+@@ -378,43 +471,45 @@
+ 		=
+
+ 		-- construct animation
+ 		printdebug(&quot;granny&quot;,&quot;LoadGrannyAnim&quot;,bodyid,animid,skeleton.name,animnam=
+e,animpath)
+-		mygrannyanim:AddAnimToSkeleton(skeleton.name,animname,bodypartsamples)
++		--~ mygrannyanim:AddAnimToSkeleton(skeleton.name,animname,bodypartsample=
+s)
++		LoadGrannyAsOgreAnim(mygrannyanim,skeleton.name,animname,bodypartsamples)
++		=
+
+ 		skeleton.anims[animname] =3D true
+ 	end
+ 	function MyGetOrCreateSkeleton(bodyid)
+-		return GetOrCreateSkeleton(bodyid)
+-		--~ local modelinfo =3D GetGrannyModelInfo(bodyid)
+-		=
+
+-		--~ if (not modelinfo) then GrannyShowNo3DDataError(bodyid) return end
+-		--~ assert(modelinfo,&quot;ERROR bodyinfo for skeleton not found &quot;..tostring(=
+bodyid))
+-
+-		--~ while (modelinfo.animid ~=3D 0) do modelinfo =3D GetGrannyModelInfo(=
+modelinfo.animid) end
+-		--~ local skeletonname =3D GetUniqueName() -- modelinfo.modelname -- exa=
+mple: &quot;deer_stag&quot;
+-		=
+
+-		--~ CreateSkeleton(skeletonname)
+-		--~ local skeleton =3D { name=3Dskeletonname, anims=3D{} }
+-		=
+
+-		--~ -- load sample bodyparts needed for animation (needed to assemble co=
+rrect granny skeleton)
+-		--~ local bodypartsamples =3D {}
+-		--~ if (IsBodyIDHuman(bodyid)) then =
+
+-			--~ if (IsBodyIDFemale(bodyid)) then
+-				--~ -- human female body parts, often (bodyid =3D=3D 401)
+-				--~ for k,v in pairs(kGrannyModelPartByNum) do table.insert(bodypartsa=
+mples,LoadGrannyLua(k+kGrannyModelPartAddFemale)) end -- GetGrannyModelLoad=
+er-&gt;LoadGrannyLua
+-			--~ else
+-				--~ -- human male body parts, often (bodyid =3D=3D 400)
+-				--~ for k,v in pairs(kGrannyModelPartByNum) do table.insert(bodypartsa=
+mples,LoadGrannyLua(k+kGrannyModelPartAddMale)) end -- GetGrannyModelLoader=
+-&gt;LoadGrannyLua
+-			--~ end
+-		--~ else
+-			--~ -- non-human model has komplete skeleton
+-			--~ table.insert(bodypartsamples,LoadGrannyLua(bodyid)) -- GetGrannyMod=
+elLoader-&gt;LoadGrannyLua
+-		--~ end
+-		=
+
+-		--~ -- load all animations so all entities created afterwards have the f=
+ull anim set
+-		--~ for k,v in pairs(gAnimInfoLists[modelinfo.typeid]) do
+-			--~ MyLoadGrannyAnim(bodyid,k,skeleton,bodypartsamples) =
+
+-		--~ end
+-	=
+
+-		--~ return skeleton
++		--~ return GetOrCreateSkeleton(bodyid)
++		local modelinfo =3D GetGrannyModelInfo(bodyid)
++		=
+
++		if (not modelinfo) then GrannyShowNo3DDataError(bodyid) return end
++		assert(modelinfo,&quot;ERROR bodyinfo for skeleton not found &quot;..tostring(body=
+id))
++
++		while (modelinfo.animid ~=3D 0) do modelinfo =3D GetGrannyModelInfo(mode=
+linfo.animid) end
++		local skeletonname =3D GetUniqueName() -- modelinfo.modelname -- example=
+:<i> &quot;deer_stag&quot;
+</I>+		=
+
++		CreateSkeleton(skeletonname)
++		local skeleton =3D { name=3Dskeletonname, anims=3D{} }
++		=
+
++		-- load sample bodyparts needed for animation (needed to assemble correc=
+t granny skeleton)
++		local bodypartsamples =3D {}
++		if (IsBodyIDHuman(bodyid)) then =
+
++			if (IsBodyIDFemale(bodyid)) then
++				-- human female body parts, often (bodyid =3D=3D 401)
++				for k,v in pairs(kGrannyModelPartByNum) do table.insert(bodypartsample=
+s,LoadGrannyLua(k+kGrannyModelPartAddFemale)) end -- GetGrannyModelLoader-&gt;=
+LoadGrannyLua
++			else
++				-- human male body parts, often (bodyid =3D=3D 400)
++				for k,v in pairs(kGrannyModelPartByNum) do table.insert(bodypartsample=
+s,LoadGrannyLua(k+kGrannyModelPartAddMale)) end -- GetGrannyModelLoader-&gt;Lo=
+adGrannyLua
++			end
++		else
++			-- non-human model has komplete skeleton
++			table.insert(bodypartsamples,LoadGrannyLua(bodyid)) -- GetGrannyModelLo=
+ader-&gt;LoadGrannyLua
++		end
++		=
+
++		-- load all animations so all entities created afterwards have the full =
+anim set
++		for k,v in pairs(gAnimInfoLists[modelinfo.typeid]) do
++			MyLoadGrannyAnim(bodyid,k,skeleton,bodypartsamples) =
+
++		end
++	=
+
++		return skeleton
+ 	end
+ 	=
+
+ 	=
+
+@@ -771,29 +866,7 @@
+ =
+
+ =
+
+ --[[
+-  cGrannyFile:LoadFile    /cavern/uoml_freshinstall.4.x/Models/Animals/Equ=
+ines_Horse_Dappled_Brown_Walk.grn                          =
+
+-text    1/42    &quot;__Standard&quot;                                              =
+                                                         =
+
+-text    2/42    &quot;__FileName&quot;                                              =
+                                                         =
+
+-text    3/42    &quot;R:\content\Game\Fauna\Creatures\Equines\Max\Anim\equines_=
+horse_dappled_brown_walk.max&quot;                            =
+
+-text    4/42    &quot;__ObjectName&quot;                                            =
+                                                         =
+
+-text    5/42    &quot;Bip01 L Finger0&quot;                                         =
+                                                         =
+
+-text    6/42    &quot;__Description&quot;                                           =
+                                                         =
+
+-text    7/42    &quot;Bip01 L Hand&quot;                                            =
+                                                         =
+
+-text    8/42    &quot;Bip01 R Clavicle&quot;                                        =
+                                                         =
+
+-text    9/42    &quot;Bip01 Tail&quot;                                              =
+                                                         =
+
+-text    10/42   &quot;Bip01 R UpperArm&quot;                                        =
+                                                         =
+
+-text    11/42   &quot;Bip01 R Calf&quot;                                            =
+                                                         =
+
+-boneTies1:boneobject    1/36    {childs=3D{[1]=3D{iID=3D3				},},}        =
+                                                                           =
+                            =
+
+-boneTies1:boneobject    2/36    {childs=3D{[1]=3D{iID=3D1				},},}        =
+                                                                           =
+                            =
+
+-boneTies1:boneobject    3/36    {childs=3D{[1]=3D{iID=3D2				},},}        =
+                                                                           =
+                            =
+
+-boneTies1:boneobject    4/36    {childs=3D{[1]=3D{iID=3D9=3D0x09		},},}   =
+                                                                           =
+                            =
+
+-boneTies1:boneobject    5/36    {childs=3D{[1]=3D{iID=3D21=3D0x15		},},}  =
+                                                                           =
+                            =
+
+-boneTies1:boneobject    6/36    {childs=3D{[1]=3D{iID=3D16=3D0x10		},},}  =
+                                                                           =
+                            =
+
+-boneTies1:boneobject    7/36    {childs=3D{[1]=3D{iID=3D6				},},}        =
+                                                                           =
+                            =
+
+-boneTies1:boneobject    8/36    {childs=3D{[1]=3D{iID=3D19=3D0x13		},},}  =
+                                                                           =
+                            =
+
+-boneTies1:boneobject    9/36    {childs=3D{[1]=3D{iID=3D8				},},}        =
+                                                                           =
+                            =
+
+-boneTies1:boneobject    10/36   {childs=3D{[1]=3D{iID=3D12=3D0x0c		},},}  =
+                                                                           =
+                            =
+
+-boneTies1:boneobject    11/36   {childs=3D{[1]=3D{iID=3D13=3D0x0d		},},}  =
+                                                                           =
+       =
+
++  cGrannyFile:LoadFile    /cavern/uoml_freshinstall.4.x/Models/Animals/Equ=
+ines_Horse_Dappled_Brown_Walk.grn        =
+
+ bone    1/36    {fTranslate=3D{[1]=3D0,[2]=3D0,[0]=3D0,},iParent=3D0,fMatr=
+ix=3D{[1]=3D0,[2]=3D0,[3]=3D0,[4]=3D1,[5]=3D0,[6]=3D0,[7]=3D0,[8]=3D1,[0]=
+=3D1,},fQuaternion=3D{[1]=3D0,[2]=3D0,[3]=3D1,[0]=3D0,},}                  =
+                                                                           =
+                                                           =
+
+ bone    2/36    {fTranslate=3D{[1]=3D-0.000461,[2]=3D0,[0]=3D0,},iParent=
+=3D0,fMatrix=3D{[1]=3D0,[2]=3D0,[3]=3D0,[4]=3D1,[5]=3D0,[6]=3D0,[7]=3D0,[8]=
+=3D1,[0]=3D1,},fQuaternion=3D{[1]=3D0,[2]=3D0,[3]=3D1,[0]=3D0,},}          =
+                                                                           =
+                                                           =
+
+ bone    3/36    {fTranslate=3D{[1]=3D0.473461,[2]=3D1.085400,[0]=3D-0.0089=
+64,},iParent=3D1,fMatrix=3D{[1]=3D0.000000,[2]=3D-0.000000,[3]=3D0.000000,[=
+4]=3D1,[5]=3D0.000000,[6]=3D0.000000,[7]=3D0.000000,[8]=3D1,[0]=3D1,},fQuat=
+ernion=3D{[1]=3D0.003099,[2]=3D-0.710178,[3]=3D0.704009,[0]=3D0.003072,},} =
+                                                         =
+
+@@ -805,93 +878,8 @@
+ bone    9/36    {fTranslate=3D{[1]=3D-0.000251,[2]=3D0.000001,[0]=3D0.2238=
+47,},iParent=3D7,fMatrix=3D{[1]=3D-0.000000,[2]=3D0.000000,[3]=3D-0.000000,=
+[4]=3D1,[5]=3D-0.000000,[6]=3D-0.000000,[7]=3D-0.000000,[8]=3D1.000000,[0]=
+=3D1.000000,},fQuaternion=3D{[1]=3D0.004809,[2]=3D0.141923,[3]=3D0.989864,[=
+0]=3D-0.001989,},}
+ bone    10/36   {fTranslate=3D{[1]=3D0.000000,[2]=3D-0.000000,[0]=3D0.3291=
+82,},iParent=3D8,fMatrix=3D{[1]=3D0.000000,[2]=3D0.000000,[3]=3D0.000000,[4=
+]=3D1,[5]=3D-0.000000,[6]=3D0.000000,[7]=3D-0.000000,[8]=3D1.000000,[0]=3D1=
+.000000,},fQuaternion=3D{[1]=3D-0.015708,[2]=3D-0.107925,[3]=3D0.993487,[0]=
+=3D-0.032989,},}
+ bone    11/36   {fTranslate=3D{[1]=3D0.007118,[2]=3D-0.078183,[0]=3D0.0431=
+31,},iParent=3D9=3D0x09,fMatrix=3D{[1]=3D0.000000,[2]=3D-0.000000,[3]=3D-0.=
+000000,[4]=3D1,[5]=3D-0.000000,[6]=3D-0.000000,[7]=3D-0.000000,[8]=3D1.0000=
+00,[0]=3D1,},fQuaternion=3D{[1]=3D-0.004665,[2]=3D-0.190827,[3]=3D0.981608,=
+[0]=3D-0.003001,},}
+-iBoneTie2ID=3D    1       bone_objptrs.iNum=3D      36
+-bt2:bone_objptr 1/36    24=3D0x18
+-bt2:bone_objptr 2/36    23=3D0x17
+-bt2:bone_objptr 3/36    22=3D0x16
+-bt2:bone_objptr 4/36    27=3D0x1b
+-bt2:bone_objptr 5/36    26=3D0x1a
+-bt2:bone_objptr 6/36    25=3D0x19
+-bt2:bone_objptr 7/36    30=3D0x1e
+-bt2:bone_objptr 8/36    29=3D0x1d
+-bt2:bone_objptr 9/36    28=3D0x1c
+-bt2:bone_objptr 10/36   33=3D0x21
+-bt2:bone_objptr 11/36   32=3D0x20
+-bt2:bonetie     !!NIL!!
+-iTextureID      1
+-obj     1/36    {[2]=3D3,[4]=3D5,[6]=3D0,}	-- 3=3D4/42 &quot;__ObjectName&quot;    	=
+5=3D6/42    &quot;__Description&quot; =
+
+-obj     2/36    {[2]=3D3,[4]=3D7,[6]=3D0,}    =
+
+-obj     3/36    {[2]=3D3,[4]=3D8,[6]=3D0,}
+-obj     4/36    {[2]=3D3,[4]=3D9=3D0x09,[6]=3D0,}
+-obj     5/36    {[2]=3D3,[4]=3D10=3D0x0a,[6]=3D0,}
+-obj     6/36    {[2]=3D3,[4]=3D11=3D0x0b,[6]=3D0,}
+-obj     7/36    {[2]=3D3,[4]=3D12=3D0x0c,[6]=3D0,}
+-obj     8/36    {[2]=3D3,[4]=3D13=3D0x0d,[6]=3D0,}
+-obj     9/36    {[2]=3D3,[4]=3D14=3D0x0e,[6]=3D0,}
+-obj     10/36   {[2]=3D3,[4]=3D15=3D0x0f,[6]=3D0,}
+-obj     11/36   {[2]=3D3,[4]=3D16=3D0x10,[6]=3D0,}
+-
+-
+-***************
+-
+-
+-cGrannyFile:LoadFile    /home/ghoul/Desktop/cavern/uoml/Models/Animals/Equ=
+ines_Horse_Dappled_Brown_Lod2.grn                                          =
+         =
+
+-text    1/46    &quot;__Standard&quot;                                              =
+                                                                           =
+         =
+
+-text    2/46    &quot;__FileName&quot;                                              =
+                                                                           =
+         =
+
+-text    3/46    &quot;r:\content\game\fauna\creatures\equines\max\equines_horse=
+_dappled_brown_lod2.max&quot;                                                   =
+         =
+
+-text    4/46    &quot;__ObjectName&quot;                                            =
+                                                                           =
+         =
+
+-text    5/46    &quot;Equines_Horse_Dappled_Brown&quot;                             =
+                                                                           =
+         =
+
+-text    6/46    &quot;__Description&quot;                                           =
+                                                                           =
+         =
+
+-text    7/46    &quot;Bip01 Spine1&quot;                                            =
+                                                                           =
+         =
+
+-text    8/46    &quot;master_equines_horse_dappled_brown&quot;                      =
+                                                                           =
+         =
+
+-text    9/46    &quot;__Root&quot;                                                  =
+                                                                           =
+         =
+
+-text    10/46   &quot;Bip01 Pelvis&quot;                                            =
+                                                                           =
+         =
+
+-text    11/46   &quot;Bip01&quot;                                                   =
+                                                                           =
+         =
+
+-point   1/223   {y=3D0.547549,x=3D-0.281395,z=3D1.035676,}                =
+                                                                           =
+               =
+
+-point   2/223   {y=3D0.341187,x=3D-0.279739,z=3D0.754919,}                =
+                                                                           =
+               =
+
+-point   3/223   {y=3D-0.344653,x=3D-0.253881,z=3D1.039981,}               =
+                                                                           =
+               =
+
+-point   4/223   {y=3D0.520265,x=3D-0.246531,z=3D1.201591,}                =
+                                                                           =
+               =
+
+-point   5/223   {y=3D0.243041,x=3D-0.243713,z=3D1.043599,}                =
+                                                                           =
+               =
+
+-point   6/223   {y=3D-0.604263,x=3D-0.233141,z=3D0.808763,}               =
+                                                                           =
+               =
+
+-point   7/223   {y=3D-0.345181,x=3D-0.222155,z=3D0.888647,}               =
+                                                                           =
+               =
+
+-point   8/223   {y=3D-0.638878,x=3D-0.220125,z=3D0.967547,}               =
+                                                                           =
+               =
+
+-point   9/223   {y=3D0.309630,x=3D-0.214871,z=3D1.149054,}                =
+                                                                           =
+               =
+
+-point   10/223  {y=3D-0.460259,x=3D-0.212234,z=3D0.739967,}               =
+                                                                           =
+               =
+
+-point   11/223  {y=3D0.311111,x=3D-0.222721,z=3D0.150869,}                =
+                                                                           =
+                                 =
+
+-weights:        {unknown_b=3D2,wnum=3D223=3D0xdf,unknown_a=3D32=3D0x20,lis=
+t_weightchunks=3Dtable: 0x952e858,}                                        =
+                     =
+
+-weight  1/223   {iNumBones=3D1,list_pairs=3D{[1]=3D{iWeightBoneIndex=3D0,f=
+Weight=3D1,},},}                                                           =
+                   =
+
+-weight  2/223   {iNumBones=3D1,list_pairs=3D{[1]=3D{iWeightBoneIndex=3D0,f=
+Weight=3D1,},},}                                                           =
+                   =
+
+-weight  3/223   {iNumBones=3D1,list_pairs=3D{[1]=3D{iWeightBoneIndex=3D1,f=
+Weight=3D1,},},}                                                           =
+                   =
+
+-weight  4/223   {iNumBones=3D1,list_pairs=3D{[1]=3D{iWeightBoneIndex=3D2,f=
+Weight=3D1,},},}                                                           =
+                   =
+
+-weight  5/223   {iNumBones=3D2,list_pairs=3D{[1]=3D{iWeightBoneIndex=3D0,f=
+Weight=3D0.500000,},[2]=3D{iWeightBoneIndex=3D2,fWeight=3D0.500000,},},}   =
+                         =
+
+-weight  6/223   {iNumBones=3D1,list_pairs=3D{[1]=3D{iWeightBoneIndex=3D3,f=
+Weight=3D1,},},}                                                           =
+                   =
+
+-weight  7/223   {iNumBones=3D2,list_pairs=3D{[1]=3D{iWeightBoneIndex=3D3,f=
+Weight=3D0.500000,},[2]=3D{iWeightBoneIndex=3D4,fWeight=3D0.500000,},},}   =
+                         =
+
+-weight  8/223   {iNumBones=3D1,list_pairs=3D{[1]=3D{iWeightBoneIndex=3D1,f=
+Weight=3D1,},},}                                                           =
+                   =
+
+-weight  9/223   {iNumBones=3D1,list_pairs=3D{[1]=3D{iWeightBoneIndex=3D2,f=
+Weight=3D1,},},}                                                           =
+                   =
+
+-weight  10/223  {iNumBones=3D2,list_pairs=3D{[1]=3D{iWeightBoneIndex=3D3,f=
+Weight=3D0.500000,},[2]=3D{iWeightBoneIndex=3D5,fWeight=3D0.500000,},},}   =
+                         =
+
+-weight  11/223  {iNumBones=3D1,list_pairs=3D{[1]=3D{iWeightBoneIndex=3D6,f=
+Weight=3D1,},},}                                                           =
+                   =
+
+-polygon 1/442   {iVertex=3D{[1]=3D83=3D0x53,[2]=3D72=3D0x48,[0]=3D82=3D0x5=
+2,},iNormal=3D{[1]=3D83=3D0x53,[2]=3D72=3D0x48,[0]=3D82=3D0x52,},}         =
+                                     =
+
+-polygon 2/442   {iVertex=3D{[1]=3D134=3D0x86,[2]=3D148=3D0x94,[0]=3D140=3D=
+0x8c,},iNormal=3D{[1]=3D134=3D0x86,[2]=3D148=3D0x94,[0]=3D140=3D0x8c,},}   =
+                                     =
+
+-polygon 3/442   {iVertex=3D{[1]=3D158=3D0x9e,[2]=3D139=3D0x8b,[0]=3D148=3D=
+0x94,},iNormal=3D{[1]=3D158=3D0x9e,[2]=3D139=3D0x8b,[0]=3D148=3D0x94,},}   =
+                                     =
+
+-polygon 4/442   {iVertex=3D{[1]=3D82=3D0x52,[2]=3D72=3D0x48,[0]=3D87=3D0x5=
+7,},iNormal=3D{[1]=3D82=3D0x52,[2]=3D72=3D0x48,[0]=3D87=3D0x57,},}         =
+                                     =
+
+-polygon 5/442   {iVertex=3D{[1]=3D87=3D0x57,[2]=3D84=3D0x54,[0]=3D121=3D0x=
+79,},iNormal=3D{[1]=3D87=3D0x57,[2]=3D84=3D0x54,[0]=3D121=3D0x79,},}       =
+                                     =
+
+-polygon 6/442   {iVertex=3D{[1]=3D134=3D0x86,[2]=3D121=3D0x79,[0]=3D138=3D=
+0x8a,},iNormal=3D{[1]=3D134=3D0x86,[2]=3D121=3D0x79,[0]=3D138=3D0x8a,},}   =
+                                     =
+
+-polygon 7/442   {iVertex=3D{[1]=3D84=3D0x54,[2]=3D119=3D0x77,[0]=3D121=3D0=
+x79,},iNormal=3D{[1]=3D84=3D0x54,[2]=3D119=3D0x77,[0]=3D121=3D0x79,},}     =
+                                     =
+
+-polygon 8/442   {iVertex=3D{[1]=3D138=3D0x8a,[2]=3D159=3D0x9f,[0]=3D148=3D=
+0x94,},iNormal=3D{[1]=3D138=3D0x8a,[2]=3D159=3D0x9f,[0]=3D148=3D0x94,},}   =
+                                     =
+
+-polygon 9/442   {iVertex=3D{[1]=3D138=3D0x8a,[2]=3D119=3D0x77,[0]=3D144=3D=
+0x90,},iNormal=3D{[1]=3D138=3D0x8a,[2]=3D119=3D0x77,[0]=3D144=3D0x90,},}   =
+                                     =
+
+-polygon 10/442  {iVertex=3D{[1]=3D120=3D0x78,[2]=3D134=3D0x86,[0]=3D140=3D=
+0x8c,},iNormal=3D{[1]=3D120=3D0x78,[2]=3D134=3D0x86,[0]=3D140=3D0x8c,},}   =
+                                     =
+
+-polygon 11/442  {iVertex=3D{[1]=3D148=3D0x94,[2]=3D139=3D0x8b,[0]=3D140=3D=
+0x8c,},iNormal=3D{[1]=3D148=3D0x94,[2]=3D139=3D0x8b,[0]=3D140=3D0x8c,},}   =
+                                            =
+
+-boneTies1:boneobject    1/37    {childs=3D{[1]=3D{iID=3D6,		},},}         =
+                                          =
+
+-boneTies1:boneobject    2/37    {childs=3D{[1]=3D{iID=3D2,		},},}         =
+                                          =
+
+-boneTies1:boneobject    3/37    {childs=3D{[1]=3D{iID=3D7,		},},}         =
+                                         =
+
+-boneTies1:boneobject    4/37    {childs=3D{[1]=3D{iID=3D4,		},},}         =
+                                         =
+
+-boneTies1:boneobject    5/37    {childs=3D{[1]=3D{iID=3D3,		},},}         =
+                                         =
+
+-boneTies1:boneobject    6/37    {childs=3D{[1]=3D{iID=3D8,		},},}         =
+                                         =
+
+-boneTies1:boneobject    7/37    {childs=3D{[1]=3D{iID=3D5,		},},}         =
+                                         =
+
+-boneTies1:boneobject    8/37    {childs=3D{[1]=3D{iID=3D15=3D0x0f,	},},}  =
+                                          =
+
+-boneTies1:boneobject    9/37    {childs=3D{[1]=3D{iID=3D9=3D0x09,	},},}   =
+                                          =
+
+-boneTies1:boneobject    10/37   {childs=3D{[1]=3D{iID=3D10=3D0x0a,	},},}  =
+                                          =
+
+-boneTies1:boneobject    11/37   {childs=3D{[1]=3D{iID=3D11=3D0x0b,	},},}  =
+                                                                           =
+                    =
+
++
++cGrannyFile:LoadFile    /home/ghoul/Desktop/cavern/uoml/Models/Animals/Equ=
+ines_Horse_Dappled_Brown_Lod2.grn                                          =
+                                                        =
+
+ bone    1/37    {fTranslate=3D{[1]=3D0,[2]=3D0,[0]=3D0,},iParent=3D0,fMatr=
+ix=3D{[1]=3D0,[2]=3D0,[3]=3D0,[4]=3D1,[5]=3D0,[6]=3D0,[7]=3D0,[8]=3D1,[0]=
+=3D1,},fQuaternion=3D{[1]=3D0,[2]=3D0,[3]=3D1,[0]=3D0,},}                  =
+                                                                           =
+                                                           =
+
+ bone    2/37    {fTranslate=3D{[1]=3D-0.000461,[2]=3D0,[0]=3D0,},iParent=
+=3D0,fMatrix=3D{[1]=3D0,[2]=3D0,[3]=3D0,[4]=3D1,[5]=3D0,[6]=3D0,[7]=3D0,[8]=
+=3D1,[0]=3D1,},fQuaternion=3D{[1]=3D0,[2]=3D0,[3]=3D1,[0]=3D0,},}          =
+                                                                           =
+                                                           =
+
+ bone    3/37    {fTranslate=3D{[1]=3D0.473461,[2]=3D1.060614,[0]=3D-0.0000=
+00,},iParent=3D1,fMatrix=3D{[1]=3D0.000000,[2]=3D0.000000,[3]=3D0.000000,[4=
+]=3D1,[5]=3D0.000000,[6]=3D-0.000000,[7]=3D0.000000,[8]=3D1,[0]=3D1.000000,=
+},fQuaternion=3D{[1]=3D0.003085,[2]=3D-0.707100,[3]=3D0.707101,[0]=3D0.0030=
+85,},}                                                   =
+
+@@ -903,149 +891,13 @@
+ bone    9/37    {fTranslate=3D{[1]=3D-0.142090,[2]=3D-0.112536,[0]=3D-0.02=
+4633,},iParent=3D7,fMatrix=3D{[1]=3D0.000000,[2]=3D0.000000,[3]=3D0.000000,=
+[4]=3D1.000000,[5]=3D0.000000,[6]=3D0.000000,[7]=3D0.000000,[8]=3D1.000000,=
+[0]=3D1.000000,},fQuaternion=3D{[1]=3D0.536666,[2]=3D-0.535021,[3]=3D-0.426=
+220,[0]=3D0.494044,},}                                   =
+
+ bone    10/37   {fTranslate=3D{[1]=3D-0.000000,[2]=3D0.000000,[0]=3D0.3523=
+91,},iParent=3D8,fMatrix=3D{[1]=3D0.000000,[2]=3D-0.000000,[3]=3D0.000000,[=
+4]=3D1,[5]=3D-0.000000,[6]=3D0.000000,[7]=3D-0.000000,[8]=3D1.000000,[0]=3D=
+1.000000,},fQuaternion=3D{[1]=3D-0.525638,[2]=3D0.472182,[3]=3D0.501046,[0]=
+=3D0.499702,},}                                          =
+
+ bone    11/37   {fTranslate=3D{[1]=3D-0.000000,[2]=3D0.000000,[0]=3D0.2616=
+71,},iParent=3D9=3D0x09,fMatrix=3D{[1]=3D0.000000,[2]=3D0.000000,[3]=3D-0.0=
+00000,[4]=3D1.000000,[5]=3D0.000000,[6]=3D0.000000,[7]=3D0.000000,[8]=3D1,[=
+0]=3D1,},fQuaternion=3D{[1]=3D-0.000000,[2]=3D-0.498851,[3]=3D0.866688,[0]=
+=3D0.000000,},}                                             =
+
+-iBoneTie2ID=3D    1       bone_objptrs.iNum=3D      37                    =
+                                                                           =
+             =
+
+-bt2:bone_objptr 1/37    4                                                 =
+                                                                           =
+         =
+
+-bt2:bone_objptr 2/37    5                                                 =
+                                                                           =
+         =
+
+-bt2:bone_objptr 3/37    1                                                 =
+                                                                           =
+         =
+
+-bt2:bone_objptr 4/37    7                                                 =
+                                                                           =
+         =
+
+-bt2:bone_objptr 5/37    12=3D0x0c                                         =
+                                                                           =
+           =
+
+-bt2:bone_objptr 6/37    34=3D0x22                                         =
+                                                                           =
+           =
+
+-bt2:bone_objptr 7/37    2                                                 =
+                                                                           =
+         =
+
+-bt2:bone_objptr 8/37    3                                                 =
+                                                                           =
+         =
+
+-bt2:bone_objptr 9/37    22=3D0x16                                         =
+                                                                           =
+           =
+
+-bt2:bone_objptr 10/37   20=3D0x14                                         =
+                                                                           =
+           =
+
+-bt2:bone_objptr 11/37   21=3D0x15                                         =
+                                                                           =
+           =
+
+-bt2:bonetie     1/33    {iBone=3D5,iUnknown=3D{[1]=3D-0.058629,[2]=3D-0.23=
+7984,[3]=3D-0.162302,[4]=3D0.358194,[5]=3D0.183488,[6]=3D0.102694,[0]=3D0.3=
+67406,},}                  =
+
+-bt2:bonetie     2/33    {iBone=3D8,iUnknown=3D{[1]=3D-0.040035,[2]=3D0.008=
+894,[3]=3D-0.147809,[4]=3D0.371476,[5]=3D0.125108,[6]=3D0.136732,[0]=3D0.38=
+6154,},}                   =
+
+-bt2:bonetie     3/33    {iBone=3D4,iUnknown=3D{[1]=3D-0.261872,[2]=3D-0.08=
+0894,[3]=3D-0.246581,[4]=3D0.385943,[5]=3D0.416525,[6]=3D0.246485,[0]=3D0.5=
+00515,},}                  =
+
+-bt2:bonetie     4/33    {iBone=3D9=3D0x09,iUnknown=3D{[1]=3D-0.053002,[2]=
+=3D-0.150285,[3]=3D-0.092842,[4]=3D0.289619,[5]=3D0.132025,[6]=3D0.142190,[=
+0]=3D0.291440,},}             =
+
+-bt2:bonetie     5/33    {iBone=3D6,iUnknown=3D{[1]=3D-0.022146,[2]=3D-0.10=
+0626,[3]=3D-0.221972,[4]=3D0.312453,[5]=3D0.468180,[6]=3D0.222517,[0]=3D0.5=
+55906,},}
+-bt2:bonetie     6/33    {iBone=3D10=3D0x0a,iUnknown=3D{[1]=3D-0.013907,[2]=
+=3D-0.233039,[3]=3D-0.070689,[4]=3D0.381548,[5]=3D0.056935,[6]=3D0.074321,[=
+0]=3D0.383907,},}
+-bt2:bonetie     7/33    {iBone=3D12=3D0x0c,iUnknown=3D{[1]=3D-0.027222,[2]=
+=3D-0.101896,[3]=3D-0.065225,[4]=3D0.337428,[5]=3D0.090531,[6]=3D0.068422,[=
+0]=3D0.346670,},}
+-bt2:bonetie     8/33    {iBone=3D14=3D0x0e,iUnknown=3D{[1]=3D-0.090859,[2]=
+=3D-0.000313,[3]=3D-0.060973,[4]=3D-0.007980,[5]=3D-0.000094,[6]=3D0.062011=
+,[0]=3D0.091001,},}
+-bt2:bonetie     9/33    {iBone=3D11=3D0x0b,iUnknown=3D{[1]=3D0.023739,[2]=
+=3D-0.177858,[3]=3D-0.053214,[4]=3D0.344609,[5]=3D0.098641,[6]=3D0.038090,[=
+0]=3D0.344661,},}
+-bt2:bonetie     10/33   {iBone=3D13=3D0x0d,iUnknown=3D{[1]=3D-0.009283,[2]=
+=3D-0.102775,[3]=3D-0.044248,[4]=3D0.176347,[5]=3D0.125947,[6]=3D0.049843,[=
+0]=3D0.216987,},}
+-bt2:bonetie     11/33   {iBone=3D15=3D0x0f,iUnknown=3D{[1]=3D-0.033795,[2]=
+=3D-0.111544,[3]=3D-0.066103,[4]=3D0.275743,[5]=3D0.054734,[6]=3D0.055887,[=
+0]=3D0.285613,},}
+-iTextureID      1
+-iElementSize    16
+-iNum    442
+-list_texpoly_normal     1/442   {iUnknown=3D0,iTexCoord=3D{[1]=3D45=3D0x2d=
+,[2]=3D43=3D0x2b,[0]=3D29=3D0x1d,},}
+-list_texpoly_normal     2/442   {iUnknown=3D1,iTexCoord=3D{[1]=3D31=3D0x1f=
+,[2]=3D43=3D0x2b,[0]=3D29=3D0x1d,},}
+-list_texpoly_normal     3/442   {iUnknown=3D2,iTexCoord=3D{[1]=3D57=3D0x39=
+,[2]=3D45=3D0x2d,[0]=3D43=3D0x2b,},}
+-list_texpoly_normal     4/442   {iUnknown=3D3,iTexCoord=3D{[1]=3D29=3D0x1d=
+,[2]=3D43=3D0x2b,[0]=3D31=3D0x1f,},}
+-list_texpoly_normal     5/442   {iUnknown=3D4,iTexCoord=3D{[1]=3D31=3D0x1f=
+,[2]=3D42=3D0x2a,[0]=3D33=3D0x21,},}
+-list_texpoly_normal     6/442   {iUnknown=3D5,iTexCoord=3D{[1]=3D31=3D0x1f=
+,[2]=3D33=3D0x21,[0]=3D42=3D0x2a,},}
+-list_texpoly_normal     7/442   {iUnknown=3D6,iTexCoord=3D{[1]=3D48=3D0x30=
+,[2]=3D69=3D0x45,[0]=3D34=3D0x22,},}
+-list_texpoly_normal     8/442   {iUnknown=3D7,iTexCoord=3D{[1]=3D48=3D0x30=
+,[2]=3D53=3D0x35,[0]=3D43=3D0x2b,},}
+-list_texpoly_normal     9/442   {iUnknown=3D8,iTexCoord=3D{[1]=3D48=3D0x30=
+,[2]=3D69=3D0x45,[0]=3D75=3D0x4b,},}
+-list_texpoly_normal     10/442  {iUnknown=3D9=3D0x09,iTexCoord=3D{[1]=3D17=
+=3D0x11,[2]=3D31=3D0x1f,[0]=3D29=3D0x1d,},}
+-list_texpoly_normal     11/442  {iUnknown=3D10=3D0x0a,iTexCoord=3D{[1]=3D4=
+3=3D0x2b,[2]=3D45=3D0x2d,[0]=3D29=3D0x1d,},}
+-obj     1/40    {[2]=3D3,[4]=3D5,[6]=3D0,}
+-obj     2/40    {[2]=3D3,[4]=3D7,[6]=3D0,}
+-obj     3/40    {[2]=3D3,[4]=3D8,[6]=3D0,}
+-obj     4/40    {	   [4]=3D9=3D0x09,}
+-obj     5/40    {[2]=3D3,[4]=3D10=3D0x0a,[6]=3D0,}
+-obj     6/40    {[2]=3D3,[4]=3D11=3D0x0b,[6]=3D0,}
+-obj     7/40    {[2]=3D3,[4]=3D12=3D0x0c,[6]=3D0,}
+-obj     8/40    {[2]=3D3,[4]=3D5,[6]=3D0,}
+-obj     9/40    {[2]=3D3,[4]=3D13=3D0x0d,[6]=3D0,}
+-obj     10/40   {[2]=3D3,[4]=3D14=3D0x0e,[6]=3D0,}
+-obj     11/40   {[2]=3D3,[4]=3D15=3D0x0f,[6]=3D0,}
+-	=
+
+-	point   				1/557   {y=3D-0.710749,x=3D-0.767177,z=3D1.416132,}          =
+                                                                           =
+                                                                   =
+
+-	normal 					1/553   {y=3D0,x=3D0,z=3D0,}                                 =
+                                                                           =
+                                     =
+
+-	texcoord   				1/2286  {y=3D0.082323,x=3D0.089491,z=3D0.418126,}         =
+    2286/6/3 =3D 127                                                       =
+                                         =
+
+-	polygon 				1/1102  {iVertex1=3D3,iNormal2=3D4,iVertex2=3D4,iNormal3=3D14=
+0=3D0x8c,iNormal1=3D3,iVertex3=3D140=3D0x8c,}     =
+
+-	polygon 				1/1102  {iVertex=3D{[1]=3D4,[2]=3D140=3D0x8c,[0]=3D3,},iNorma=
+l=3D{[1]=3D4,[2]=3D140=3D0x8c,[0]=3D3,},}      =
+
+-	list_texpoly_normal     1/1102  {iUnknown=3D0,iTexCoord=3D{[1]=3D724=3D0x=
+02d4,[2]=3D736=3D0x02e0,[0]=3D723=3D0x02d3,},}
+-
+-
+--- animation : =
+
+--- GetOrCreateSkeleton : load all bodyparts, load all anims, add to skelet=
+on : (single CreateSkeleton(skeletonname))   mygrannyanim:AddAnimToSkeleton=
+(skeleton.name,animname,bodypartsamples)
+--- grannyogreloader.cpp : int iCurBoneNum =3D mpGrannyLoader-&gt;FindBone(mpG=
+rannyLoader-&gt;GetBoneName2(pAnim.mpAnim-&gt;iID-1));
++
+ -- beetle : walk hat eigenes mesh ?!? (MEHRERE SUBMESHES!)    /cavern/uoml=
+_freshinstall.4.x/Models/Animals/Giant_Beetle_Walk.grn   ne, nur so hilfobj=
+ekte krams oder sowas...
+-
+--- bones
+-
+-
+ =
+
+ -- comparison beetle vs horse =
+
+ beetle...meshlist.mesh	: &lt;id iID=3D&quot;5&quot; /&gt;
+ horse...meshlist.mesh	: &lt;id iID=3D&quot;1&quot; /&gt;
+ one anim per file!
+-
+-horse : =
+
+-	text    				1/46    &quot;__Standard&quot;
+-	point   				1/223   {y=3D0.547549,x=3D-0.281395,z=3D1.035676,}
+-	normal  				1/223   {y=3D0.281497,x=3D-0.956108,z=3D-0.081349,}
+-	texcoord        		1/222   {y=3D0.689825,x=3D-0.101103,z=3D1,}
+-	list_texpoly_normal     1/442   {iUnknown=3D0,iTexCoord=3D{[1]=3D45=3D0x2=
+d,[2]=3D43=3D0x2b,[0]=3D29=3D0x1d,},}
+-	polygon 				1/442   {iVertex=3D{[1]=3D83=3D0x53,[2]=3D72=3D0x48,[0]=3D82=
+=3D0x52,},iNormal=3D{[1]=3D83=3D0x53,[2]=3D72=3D0x48,[0]=3D82=3D0x52,},}
+-	=
+
+-	weights:        		{unknown_b=3D2,wnum=3D223=3D0xdf,unknown_a=3D32=3D0x20,=
+list_weights=3Dtable: 0xa6208c8,}                                          =
+                   =
+
+-	weight  1/223   {iNumBones=3D1,list_pairs=3D{[1]=3D{iWeightBoneIndex=3D0,=
+fWeight=3D1,},},}     =
+
+-	boneTies1:boneobject    1/37    {childs=3D{[1]=3Dtable: 0xa762850,},}
+-	bone    				1/37    {fTranslate=3D{[1]=3D0,[2]=3D0,[0]=3D0,},iParent=3D0,=
+fMatrix=3D{[1]=3D0,[2]=3D0,[3]=3D0,[4]=3D1,[5]=3D0,[6]=3D0,[7]=3D0,[8]=3D1,=
+[0]=3D1,},fQuaternion=3D{[1]=3D0,[2]=3D0,[3]=3D1,[0]=3D0,},}
+-	bt2:bone_objptr 		1/37    4
+-	bt2:bonetie     		1/33    {iBone=3D5,iUnknown=3D{[1]=3D-0.058629,[2]=3D-0=
+.237984,[3]=3D-0.162302,[4]=3D0.358194,[5]=3D0.183488,[6]=3D0.102694,[0]=3D=
+0.367406,},}
+-	obj     				1/40    {[2]=3D3,[4]=3D5,[6]=3D0,}
+-
+-	weights : =
+
+-		&lt;weights unknown_b=3D&quot;2&quot; unknown_a=3D&quot;32&quot; wnum=3D&quot;223&quot;&gt;
+-		case 0XCA5E0702: VisitWeights(pInts[0],pInts[1],pInts[2],pData+3*4,iSize=
+-3*4); ... mpLastSubMesh-&gt;mWeights =3D std::make_pair(pData,iNum);
+-	=
+
+-		// prepare bone-weight data
+-		if (bUseSkeleton) {
+-			sub-&gt;clearBoneAssignments();
+-			myBoneWeights.reserve(pLoaderSubMesh.mWeights.second);
+-			=
+
+-			// WARNING ! buffersize not checked, but as long as the granny files ar=
+e intakt thats ok
+-			// foreach point : bonenum, index,weight, index,weight,... =
+
+-			const ::uint32* p =3D (::uint32*)pLoaderSubMesh.mWeights.first;   -----=
+----- pData
+-			for (int i=3D0;i&lt;pLoaderSubMesh.mWeights.second;++i) {
+-				::uint32 iNumBones =3D *(p++);
+-				=
+
+-				tMyBoneWeightList* pBoneList =3D new tMyBoneWeightList();
+-				myBoneWeights.push_back(pBoneList);
+-				pBoneList-&gt;reserve(iNumBones);
+-				=
+
+-				for (int k=3D0;k&lt;iNumBones;++k) {
+-					::uint32	iWeightBoneIndex =3D *(p++);
+-					float		fWeight =3D *(float*)(p++);
+-					pBoneList-&gt;push_back(std::make_pair(iWeightBoneIndex,fWeight));
+-				}
+-			}
+-		}
+-
+-unknown : =
+
+-																															  =
+
+-point  					1/223   {y=3D0.547549,x=3D-0.281395,z=3D1.035676,}            =
+                                                                 =
+
+-texcoord        		1/222   {y=3D0.689825,x=3D-0.101103,z=3D1,}   =
+
+-polygon 				1/442   {iVertex=3D{[1]=3D83=3D0x53,[2]=3D72=3D0x48,[0]=3D82=
+=3D0x52,},iNormal=3D{[1]=3D83=3D0x53,[2]=3D72=3D0x48,[0]=3D82=3D0x52,},}   =
+
+-list_texpoly_normal     1/442   {iUnknown=3D0,iTexCoord=3D{[1]=3D45=3D0x2d=
+,[2]=3D43=3D0x2b,[0]=3D29=3D0x1d,},}
+-
+-
+-	=
+
+-
+-weights:       					 {unknown_b=3D2,wnum=3D223=3D0xdf,unknown_a=3D32=3D0x2=
+0,list_weights=3Dtable: 0xaf93098,}  =
+
+-weight  				1/809   {w=3D0.000000,}            =
+
+-boneTies1:boneobject    1/37    {childs=3D{[1]=3Dtable: 0xa538fd0,},} =
+
+-bone   					1/37    {fTranslate=3D{[1]=3D0,[2]=3D0,[0]=3D0,},iParent=3D0,f=
+Matrix=3D{[1]=3D0,[2]=3D0,[3]=3D0,[4]=3D1,[5]=3D0,[6]=3D0,[7]=3D0,[8]=3D1,[=
+0]=3D1,},fQuaternion=3D{[1]=3D0,[2]=3D0,[3]=3D1,[0]=3D0,},}
+-iBoneTie2ID=3D    				1       bone_objptrs.iNum=3D      37
+-bt2:bone_objptr 		1/37    4
+-bt2:bonetie     		1/33    {iBone=3D5,iUnknown=3D{[1]=3D-0.058629,[2]=3D-0.=
+237984,[3]=3D-0.162302,[4]=3D0.358194,[5]=3D0.183488,[6]=3D0.102694,[0]=3D0=
+.367406,},}
+-obj    					1/40    {[2]=3D3,[4]=3D5,[6]=3D0,}
+-
+-Ogre::Quaternion	GetBoneRotate		(const GrannyBone* pGrannyBone) {
+-	return Ogre::Quaternion(pGrannyBone ? pGrannyBone-&gt;fQuaternion[3]:1, // o=
+gre:w,x,y,z  granny:x,y,z,w
+-							pGrannyBone ? pGrannyBone-&gt;fQuaternion[0]:0,
+-							pGrannyBone ? pGrannyBone-&gt;fQuaternion[1]:0,
+-							pGrannyBone ? pGrannyBone-&gt;fQuaternion[2]:0);
+-
+-							=
+
+-							=
+
+-}
+-			=
+
+ ]]--
+ =
+
+ function GrannyTest_PreOgreInit2 ()
+
+Modified: trunk/lua/lib.thread.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.thread.lua (original)
++++ trunk/lua/lib.thread.lua Sun Mar 28 23:39:51 2010
+@@ -1,5 +1,23 @@
+ function RunThreadTest () RunThreadTest_Main() end  --  -threadtest
+ -- idea hagish : helper-class to create message-handling thread that can b=
+e serialized as option for easier debugging (decide at create if a real thr=
+ead is started or a thread-object that handles messages directly)
++--[[
++	notes : =
+
++	&lt;ghouly&gt; hi all, question about threading,  is it technically possible to=
+ transfer data to vram in a threaded way ? =
+
++	for example  HardwareVertexBuffer::writeData(...)  etc. looked in the ogr=
+e-opengl source and saw it calls glBufferDataARB(...) directly without usin=
+g any thread mutex  etc.    i don't want to access the same buffer from dif=
+ferent threads,  just wondering if threads other than the mainthread are al=
+lowed to call opengl functions
++	<A HREF="http://www.ogre3d.org/forums/viewtopic.php?f=3D2&amp;t=3D56421">http://www.ogre3d.org/forums/viewtopic.php?f=3D2&amp;t=3D56421</A>
++	OGRE_THREAD_CREATE()  -- register with rendersystem
++		Root::getSingleton().getRenderSystem()-&gt;postExtraThreadsStarted();
++		workqueue : virtual void setWorkersCanAccessRenderSystem(bool access);  =
+    otherwise : response handler executed in mainthread transfers data to r=
+endersystem
++		Root::getWorkQueue
++		set(OGRE_CONFIG_THREADS 2 CACHE STRING =
+
++			&quot;Enable Ogre thread support for background loading. Possible values:
++			0 - Threading off.
++			1 - Full background loading.
++			2 - Background resource preparation.&quot;
++		)
++		=
+
++	/// bhit,fHitDist,iFaceNum =3D FIFO_RayPickTri_Ex(fifoVertexBuf,fifoIndex=
+Buf,iNumFaces,iVertexPosOffset,iVertexStride,fBoundRad,rx,ry,rz, rvx,rvy,rv=
+z, x,y,z, qw,qx,qy,qz, sx,sy,sz) -- mainly for mousepicking
++]]--
+ =
+
+ function ack(n, m)
+ 	--~ print(&quot;ack&quot;,n,m)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="002071.html">[Iris-commit] [IRIS] r3311 - /trunk/bin/iris2.exe
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2072">[ date ]</a>
+              <a href="thread.html#2072">[ thread ]</a>
+              <a href="subject.html#2072">[ subject ]</a>
+              <a href="author.html#2072">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

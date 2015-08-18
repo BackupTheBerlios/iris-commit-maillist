@@ -1,0 +1,465 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2843 - in /trunk: lua/lib.2d.renderer.lua lua/lib.charcreate.lua lua/lib.macrolist.lua lua/lib.net.lua lua/lib.protocol.lua lua/main.lua lua/net/net.mobile.lua lua/net/net.text.lua plugins/itemcounter.lua plugins/lib.spellbar.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2009-January/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2843%20-%20in%20/trunk%3A%20lua/lib.2d.renderer.lua%0A%20lua/lib.charcreate.lua%20lua/lib.macrolist.lua%20lua/lib.net.lua%0A%20lua/lib.protocol.lua%20lua/main.lua%20lua/net/net.mobile.lua%0A%20lua/net/net.text.lua%20plugins/itemcounter.lua%20plugins/lib.spellbar.lua&In-Reply-To=%3C20090107175736.C595B1C18807%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001644.html">
+   <LINK REL="Next"  HREF="001647.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2843 - in /trunk: lua/lib.2d.renderer.lua lua/lib.charcreate.lua lua/lib.macrolist.lua lua/lib.net.lua lua/lib.protocol.lua lua/main.lua lua/net/net.mobile.lua lua/net/net.text.lua plugins/itemcounter.lua plugins/lib.spellbar.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2843%20-%20in%20/trunk%3A%20lua/lib.2d.renderer.lua%0A%20lua/lib.charcreate.lua%20lua/lib.macrolist.lua%20lua/lib.net.lua%0A%20lua/lib.protocol.lua%20lua/main.lua%20lua/net/net.mobile.lua%0A%20lua/net/net.text.lua%20plugins/itemcounter.lua%20plugins/lib.spellbar.lua&In-Reply-To=%3C20090107175736.C595B1C18807%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2843 - in /trunk: lua/lib.2d.renderer.lua lua/lib.charcreate.lua lua/lib.macrolist.lua lua/lib.net.lua lua/lib.protocol.lua lua/main.lua lua/net/net.mobile.lua lua/net/net.text.lua plugins/itemcounter.lua plugins/lib.spellbar.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Wed Jan  7 18:57:36 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001644.html">[Iris-commit] [IRIS] r2842 - /trunk/scripts/ogre16_shadow.patch
+</A></li>
+        <LI>Next message: <A HREF="001647.html">[Iris-commit] [IRIS] r2844 - in /trunk/lua: gui/gui.helper.lua	main.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1645">[ date ]</a>
+              <a href="thread.html#1645">[ thread ]</a>
+              <a href="subject.html#1645">[ subject ]</a>
+              <a href="author.html#1645">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Wed Jan  7 18:57:35 2009
+New Revision: 2843
+
+Log:
+profiling code (disabled by default, gEnableProfiler_.. to activate) =
+
+
+Modified:
+    trunk/lua/lib.2d.renderer.lua
+    trunk/lua/lib.charcreate.lua
+    trunk/lua/lib.macrolist.lua
+    trunk/lua/lib.net.lua
+    trunk/lua/lib.protocol.lua
+    trunk/lua/main.lua
+    trunk/lua/net/net.mobile.lua
+    trunk/lua/net/net.text.lua
+    trunk/plugins/itemcounter.lua
+    trunk/plugins/lib.spellbar.lua
+
+Modified: trunk/lua/lib.2d.renderer.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.renderer.lua (original)
++++ trunk/lua/lib.2d.renderer.lua Wed Jan  7 18:57:35 2009
+@@ -84,21 +84,29 @@
+ 	return DirWrap( floor(1.5+math.atan2(my-cy,mx-cx) * 8 / (2*kPi)) ),dist2(=
+mx,my,cx,cy)
+ end
+ =
+
++gProfiler_R2D_MainStep =3D CreateRoughProfiler(&quot;MainStep&quot;)
++
+ -- called from mainstep while ingame
+ function Renderer2D:MainStep ()
++	gProfiler_R2D_MainStep:Start(gEnableProfiler_R2D_MainStep)
++	gProfiler_R2D_MainStep:Section(&quot;CamStep&quot;)
+ 	self:CamStep()
++	gProfiler_R2D_MainStep:Section(&quot;MobileAnimStep&quot;)
+ 	self:MobileAnimStep()
+ 	=
+
++	gProfiler_R2D_MainStep:Section(&quot;walk&quot;)
+ 	local uodir,pixeldist =3D Get2DMouseDirAndDist()
+ 	=
+
+ 	local xloc,yloc,zloc =3D GetPlayerPos()
+ 	local bOfflineMode =3D xloc =3D=3D nil
++	local bMousePickBlockedByWalk =3D false
+ 	if (not bOfflineMode) then
+ 		if (gKeyPressed[key_mouse_right] and (not gLastMouseDownWidget)) then =
+
+ 			local bRunFlag =3D pixeldist &gt; 200
+ 			if (gAlwaysRun) then bRunFlag =3D true end
+ 			--~ print(&quot;Get2DMouseDirAndDist&quot;,uodir,pixeldist)
+ 			WalkStep_WalkInDir(uodir,bRunFlag,true)
++			bMousePickBlockedByWalk =3D true
+ 		end
+ 		=
+
+ 		=
+
+@@ -117,8 +125,11 @@
+ 		]]--
+ 	end
+ 	=
+
++	gProfiler_R2D_MainStep:Section(&quot;MobileStep&quot;)
+ 	-- TODO : self:CombatGuiStep() ?
+ 	self:MobileStep() -- bevore cam pos so cam is exactly on player
++	=
+
++	gProfiler_R2D_MainStep:Section(&quot;SetCamPos&quot;)
+ 	local xloc,yloc,zloc =3D GetPlayerPos()
+ 	if (xloc and (not g2DCamMove)) then =
+
+ 		self:SetCamPos(self:GetExactMobilePos(GetPlayerMobile())) -- after Mobil=
+eStep so cam is exactly on player
+@@ -136,11 +147,13 @@
+ 		if (dx ~=3D 0 or dy ~=3D 0) then self:SetCamPos(xloc+dx,yloc+dy) end
+ 	end
+ =
+
+-	self:EffectAnimStep() -- should be after player pos is updated, for effec=
+ts moving with player
+-	self:MapStep()
+-	self:HUDFX_MainStep()
+-	self:Dynamics_MainStep()
+-	self:MousePickStep()
++	=
+
++	gProfiler_R2D_MainStep:Section(&quot;EffectAnimStep&quot;)		self:EffectAnimStep() -=
+- should be after player pos is updated, for effects moving with player
++	gProfiler_R2D_MainStep:Section(&quot;MapStep&quot;)				self:MapStep()
++	gProfiler_R2D_MainStep:Section(&quot;HUDFX_MainStep&quot;)		self:HUDFX_MainStep()
++	gProfiler_R2D_MainStep:Section(&quot;Dynamics_MainStep&quot;)		self:Dynamics_MainSt=
+ep()
++	gProfiler_R2D_MainStep:Section(&quot;MousePickStep&quot;,true)	if (not bMousePickBl=
+ockedByWalk) then self:MousePickStep() end
++	gProfiler_R2D_MainStep:End()
+ end
+ =
+
+ function Renderer2D:CamKeyDown						(key) end
+
+Modified: trunk/lua/lib.charcreate.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.charcreate.lua (original)
++++ trunk/lua/lib.charcreate.lua Wed Jan  7 18:57:35 2009
+@@ -77,7 +77,7 @@
+ 	chardata.hairColor		=3D hex2num(&quot;0x044E&quot;) -- 0x044E(human) 0x0034(elf)
+ 	chardata.facialHair		=3D hex2num(&quot;0x0000&quot;)
+ 	chardata.facialHairColor=3D hex2num(&quot;0x0000&quot;)
+-	chardata.location		=3D hex2num(&quot;0x0000&quot;) -- uogamers: 0=3Dyew,1=3Dminoc,2=
+=3Dbrit,3=3Dmoonglow,4=3Dtrinsik,5=3DMagincia,6=3Djhelom,7=3D
++	chardata.location		=3D hex2num(&quot;0x0000&quot;) -- uogamers: 0=3Dyew,1=3Dminoc,2=
+=3Dbrit,3=3Dmoonglow,4=3Dtrinsik,5=3DMagincia,6=3Djhelom,7=3Dscara,8=3D
+ 	chardata.slot			=3D hex2num(&quot;0x0003&quot;)
+ 	chardata.shirtColor		=3D hex2num(&quot;0x036F&quot;) --hex2num(&quot;0x0083&quot;)
+ 	chardata.pantsColor		=3D hex2num(&quot;0x0111&quot;) --hex2num(&quot;0x01AC&quot;)
+
+Modified: trunk/lua/lib.macrolist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.macrolist.lua (original)
++++ trunk/lua/lib.macrolist.lua Wed Jan  7 18:57:35 2009
+@@ -37,6 +37,8 @@
+ function GetPlayerStamMax() return GetMobileStat(GetPlayerMobile(),&quot;maxSta=
+mina&quot;) end =
+
+ function GetPlayerHitsCur() return GetMobileStat(GetPlayerMobile(),&quot;curHit=
+s&quot;) end =
+
+ function GetPlayerHitsMax() return GetMobileStat(GetPlayerMobile(),&quot;maxHit=
+s&quot;) end =
+
++
++function GetMobileRelHP(serial) local mobile =3D GetMobile(serial) return =
+mobile and mobile:GetRelHP() end =
+
+ =
+
+ function MacroCmd_MiniHealCureSelf () =
+
+ 	local mobile =3D GetPlayerMobile()
+
+Modified: trunk/lua/lib.net.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.net.lua (original)
++++ trunk/lua/lib.net.lua Wed Jan  7 18:57:35 2009
+@@ -97,5 +97,4 @@
+ function NetStep ()
+ 	NetTrafficStep()
+ 	--if (gRecvFifo:Size() &gt; 0) then print(&quot;NetStep &quot;,gRecvFifo:Size()) end
+-	HandlePackets()
+ end
+
+Modified: trunk/lua/lib.protocol.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.protocol.lua (original)
++++ trunk/lua/lib.protocol.lua Wed Jan  7 18:57:35 2009
+@@ -47,7 +47,7 @@
+ 	if (not gNoLogPackets_ByPacket) then gNoLogPackets_ByPacket =3D {} for k,=
+v in pairs(gNoLogPackets) do gNoLogPackets_ByPacket[v] =3D true end end
+ 	local input =3D GetRecvFIFO()
+ 	=
+
+-	local profile =3D MakeProfiler(&quot;HandlePackets&quot;,nil,true)
++	local profile =3D gEnableProfiler_Packets and MakeProfiler(&quot;HandlePackets=
+&quot;,nil,true)
+ 	=
+
+ 	while (input:Size() &gt;=3D 1) do
+ 		local iId =3D input:PeekNetUint8(0)
+@@ -70,11 +70,11 @@
+ 			--~ Crash()
+ 		end
+ 		=
+
+-		profile:StartSection(gPacketTypeId2Name[iId])
++		if (profile) then profile:StartSection(gPacketTypeId2Name[iId]) end
+ 		HandlePacket(input,iId,iPacketSize)
+ 	end
+ 	=
+
+-	profile:FinishAndPrintSectionIfOver(100,300*1024,300*1024)
++	if (profile) then profile:FinishAndPrintSectionIfOverDefault() end
+ end
+ =
+
+ function HandlePacket (input,iId,iPacketSize)
+
+Modified: trunk/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/main.lua (original)
++++ trunk/lua/main.lua Wed Jan  7 18:57:35 2009
+@@ -415,6 +415,7 @@
+ 	end
+ =
+
+ 	-- mainloop
++	if (gEnableGlobalProfiler) then StartGlobalProfiler2() end
+ 	while (Client_IsAlive()) do =
+
+ 		MainStep() =
+
+ 	end
+@@ -457,44 +458,75 @@
+ 	NotifyListener(&quot;Hook_StartInGame&quot;)
+ end
+ =
+
++
++gProfiler_MainStep =3D CreateRoughProfiler(&quot;MainStep&quot;)
++
+ -- called every frame, after all timer-steppers, see Step() in lib.time.lua
+ function MainStep ()
++	gProfiler_MainStep:Start(gEnableProfiler_MainStep)
++	gProfiler_MainStep:Section(&quot;LugreStep&quot;)
++		=
+
+ 	gViewportW,gViewportH =3D GetViewportSize()
+ 	LugreStep()
+ 	=
+
++	gProfiler_MainStep:Section(&quot;Hook_MainStep&quot;)
++	=
+
+ 	NotifyListener(&quot;Hook_MainStep&quot;) -- should called before physstep, so obje=
+ct position changes affect the gfx correctly
+ 	=
+
++	gProfiler_MainStep:Section(&quot;NetStep&quot;)
+ 	NetStep()
++	gProfiler_MainStep:Section(&quot;HandlePackets&quot;,true) -- anaylsed inside
++	HandlePackets()
++	=
+
++	gProfiler_MainStep:Section(&quot;SoundStep&quot;)
+ 	SoundStep()
+ =
+
++	gProfiler_MainStep:Section(&quot;InputStep&quot;)
+ 	InputStep() -- generate mouse_left_drag_* and mouse_left_click_single eve=
+nts =
+
++	gProfiler_MainStep:Section(&quot;GUIStep&quot;)
+ 	GUIStep() -- generate mouse_enter, mouse_leave events (might adjust curso=
+r -&gt; before CursorStep)
++	gProfiler_MainStep:Section(&quot;ToolTipStep&quot;)
+ 	ToolTipStep() -- needs mouse_enter, should be after GUIStep
++	gProfiler_MainStep:Section(&quot;CursorStep&quot;)
+ 	CursorStep()
+ =
+
++	gProfiler_MainStep:Section(&quot;StepDebugMenu&quot;)
+ 	StepDebugMenu()
+ =
+
+ 	if (gInGameStarted) then
++		gProfiler_MainStep:Section(&quot;StepUODragDrop&quot;)
+ 		StepUODragDrop()
++		gProfiler_MainStep:Section(&quot;UpdateCompass&quot;)
+ 		UpdateCompass()
++		gProfiler_MainStep:Section(&quot;DisplayMemoryUsage&quot;)
+ 		if (not gNoOgre) then DisplayMemoryUsage(OgreMemoryUsage(&quot;all&quot;)) end
++		gProfiler_MainStep:Section(&quot;DisplayLoadingState&quot;)
+ 		DisplayLoadingState()
++		gProfiler_MainStep:Section(&quot;PingStep&quot;)
+ 		PingStep()
++		gProfiler_MainStep:Section(&quot;gCurrentRenderer:MainStep&quot;,true)
+ 		gCurrentRenderer:MainStep()
+ 	else
+ 		StepMainMenu()
+ 	end
+ 	=
+
++	gProfiler_MainStep:Section(&quot;SetToolTipSubject&quot;)
+ 	local gObjectUnderMouse =3D nil -- todo : mousepick every frame ?
+ 	SetToolTipSubject(GetWidgetUnderMouse() or gObjectUnderMouse)
+ 	=
+
++	gProfiler_MainStep:Section(&quot;Hook_HUDStep&quot;)
+ 	NotifyListener(&quot;Hook_HUDStep&quot;) -- updates special hud elements dependant =
+on object positions that don't have auto-tracking
+ 	=
+
++	gProfiler_MainStep:Section(&quot;EveryFrame&quot;)
+ 	NotifyListener(&quot;EveryFrame&quot;)
+ 	=
+
++	gProfiler_MainStep:Section(&quot;Hook_PreRenderOneFrame&quot;)
+ 	NotifyListener(&quot;Hook_PreRenderOneFrame&quot;)
++	=
+
++	gProfiler_MainStep:End()
+ =
+
+ 	Client_RenderOneFrame()
++	=
+
+ 	=
+
+ 	if (gMaxFPS) then =
+
+ 		local t =3D Client_GetTicks()
+
+Modified: trunk/lua/net/net.mobile.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.mobile.lua (original)
++++ trunk/lua/net/net.mobile.lua Wed Jan  7 18:57:35 2009
+@@ -16,7 +16,7 @@
+ 	=
+
+ 	local xloc,yloc =3D GetPlayerPos()
+ 	local dist =3D dist2max(xloc,yloc,mobiledata.xloc,mobiledata.yloc)
+-	if (dist &gt; gUpdateRange_MobileDestroy) then print(&quot;kPacket_Naked_MOB : di=
+st &gt;=3D &quot;,dist) end
++	--~ if (dist &gt; gUpdateRange_MobileDestroy) then print(&quot;kPacket_Naked_MOB =
+:<i> dist &gt;=3D &quot;,dist) end
+</I> 	=
+
+ 	if (mobiledata.serial =3D=3D 0x001b5369) then
+ 		printdebug(&quot;corpse&quot;,&quot;CORPSECODE kPacket_Naked_MOB&quot;,mobiledata.artid,mobi=
+ledata.flag,mobiledata.notoriety)
+
+Modified: trunk/lua/net/net.text.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.text.lua (original)
++++ trunk/lua/net/net.text.lua Wed Jan  7 18:57:35 2009
+@@ -180,6 +180,7 @@
+ 		end
+ 	end
+ 	=
+
++	if show_journal or show_below then print(&quot;HandleUOText&quot;,plaintext,data.cl=
+ilocid) end
+ 	if show_journal then
+ 		JournalAddText(data.name,plaintext)
+ 	end
+
+Modified: trunk/plugins/itemcounter.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/plugins/itemcounter.lua (original)
++++ trunk/plugins/itemcounter.lua Wed Jan  7 18:57:35 2009
+@@ -32,6 +32,8 @@
+ 		{name=3D&quot;gcure&quot;		,artid=3D3847},
+ 		{name=3D&quot;refresh&quot;		,artid=3D3851},
+ 		{name=3D&quot;explo&quot;		,artid=3D3853},
++		{name=3D&quot;dexpot&quot;		,artid=3D0xF08},
++		{name=3D&quot;strpot&quot;		,artid=3D0xF09},
+ 	},
+ 	{ -- crafter
+ 		{name=3D&quot;cloth&quot;			,artid=3D0x1766},
+
+Modified: trunk/plugins/lib.spellbar.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/plugins/lib.spellbar.lua (original)
++++ trunk/plugins/lib.spellbar.lua Wed Jan  7 18:57:35 2009
+@@ -200,7 +200,7 @@
+ gSpellbarShortMessages[1060757] =3D {r=3D1.0,g=3D0.0,b=3D0.0,txt=3D&quot;bleeds=
+tart&quot; 		} -- You are bleeding profusely  (serial=3Dself=3D899675)
+ gSpellbarShortMessages[1060167] =3D {r=3D0.0,g=3D0.5,b=3D0.0,txt=3D&quot;bleeds=
+top&quot; 		} -- The bleeding wounds have healed, you are no longer bleeding!
+ gSpellbarShortMessages[1042809] =3D {r=3D1,g=3D0.5,b=3D0.0,txt=3D&quot;EscortDo=
+ne&quot;			} -- We have arrived! I thank thee, CHARNAME! I have no further need =
+of thy services. Here is thy pay.
+-
++gSpellbarShortMessages[500969] =3D {r=3D0,g=3D1,b=3D0.0,txt=3D&quot;BandaDone&quot;	=
+			} -- You finish applying the bandages.
+ =
+
+ =
+
+ --[[
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001644.html">[Iris-commit] [IRIS] r2842 - /trunk/scripts/ogre16_shadow.patch
+</A></li>
+	<LI>Next message: <A HREF="001647.html">[Iris-commit] [IRIS] r2844 - in /trunk/lua: gui/gui.helper.lua	main.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1645">[ date ]</a>
+              <a href="thread.html#1645">[ thread ]</a>
+              <a href="subject.html#1645">[ subject ]</a>
+              <a href="author.html#1645">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

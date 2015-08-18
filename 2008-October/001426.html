@@ -1,0 +1,244 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2621 - in /trunk/lua: lib.desktop.lua	widgets/widget.uocontainer.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-October/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2621%20-%20in%20/trunk/lua%3A%20lib.desktop.lua%0A%09widgets/widget.uocontainer.lua&In-Reply-To=%3C20081021152526.24D0D1C185B2%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001425.html">
+   <LINK REL="Next"  HREF="001427.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2621 - in /trunk/lua: lib.desktop.lua	widgets/widget.uocontainer.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2621%20-%20in%20/trunk/lua%3A%20lib.desktop.lua%0A%09widgets/widget.uocontainer.lua&In-Reply-To=%3C20081021152526.24D0D1C185B2%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2621 - in /trunk/lua: lib.desktop.lua	widgets/widget.uocontainer.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Tue Oct 21 17:25:26 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001425.html">[Iris-commit] [IRIS] r2620 - /trunk/lua/lib.mousepick.lua
+</A></li>
+        <LI>Next message: <A HREF="001427.html">[Iris-commit] [IRIS] r2622 - /trunk/data/mymacros.lua.dist
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1426">[ date ]</a>
+              <a href="thread.html#1426">[ thread ]</a>
+              <a href="subject.html#1426">[ subject ]</a>
+              <a href="author.html#1426">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: hagish
+Date: Tue Oct 21 17:25:25 2008
+New Revision: 2621
+
+Log:
+healthbar and container store position and open state
+
+Modified:
+    trunk/lua/lib.desktop.lua
+    trunk/lua/widgets/widget.uocontainer.lua
+
+Modified: trunk/lua/lib.desktop.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.desktop.lua (original)
++++ trunk/lua/lib.desktop.lua Tue Oct 21 17:25:25 2008
+@@ -101,15 +101,18 @@
+ gDesktopElementFactory.healthbar =3D {
+ 	open =3D function(x,y,param) OpenHealthbar(GetMobile(param),x,y) end, =
+
+ 	checkpos =3D function(e, widget) =
+
+-		local d =3D widget.dialog
+-		local p =3D gHealthbarDialogs[e.param]
+-		if p and d and p =3D=3D d then e.x,e.y =3D widget:GetPos() return true e=
+nd
+-	end,
+-}
+-RegisterListener(&quot;Hook_CloseHealthbar&quot;,function(dialog,serial) RemoveDeskt=
+opElement(&quot;healthbar&quot;,serial) SaveDesktop() end)
+-RegisterListener(&quot;Hook_OpenHealthbar&quot;,function(dialog,serial) =
+
+-	if dialog and dialog.rootwidget and dialog.rootwidget.gfx then
+-		local x,y =3D dialog:GetPos()
++		local serial =3D (widget.mobile and widget.mobile.serial) or 0
++		if e.param =3D=3D serial then e.x,e.y =3D widget:GetPos() return true end
++	end,
++}
++RegisterListener(&quot;Hook_CloseHealthbar&quot;,function(widget,serial) =
+
++	RemoveDesktopElement(&quot;healthbar&quot;,serial) =
+
++	SaveDesktop() =
+
++end)
++RegisterListener(&quot;Hook_OpenHealthbar&quot;,function(widget,serial) =
+
++	local serial =3D widget.mobile.serial
++	if widget and serial then
++		local x,y =3D widget:GetPos()
+ 		ReplaceDesktopElement(&quot;healthbar&quot;,x,y,serial) 	=
+
+ 		SaveDesktop()
+ 	end
+@@ -120,15 +123,19 @@
+ gDesktopElementFactory.container =3D {
+ 	open =3D function(x,y,param) OpenContainer(param,x,y) end, =
+
+ 	checkpos =3D function(e, widget) =
+
+-		local d =3D widget.dialog
+-		local p =3D GetContainer(e.param)
+-		if p and p.dialog and d and p.dialog =3D=3D d then e.x,e.y =3D widget.gf=
+x:GetPos() return true end
+-	end,
+-}
+-RegisterListener(&quot;Hook_CloseContainer&quot;,function(dialog,serial) RemoveDeskt=
+opElement(&quot;container&quot;,serial) SaveDesktop() end)
+-RegisterListener(&quot;Hook_OpenContainer&quot;,function(dialog,serial) =
+
+-	if dialog and dialog.rootwidget and dialog.rootwidget.gfx then
+-		local x,y =3D dialog.rootwidget.gfx:GetPos()
++		local serial =3D (widget.uoContainer and widget.uoContainer.serial) or 0
++		if e.param =3D=3D serial then e.x,e.y =3D widget:GetPos() return true end
++	end,
++}
++RegisterListener(&quot;Hook_CloseContainer&quot;,function(widget) =
+
++	local serial =3D widget.uoContainer.serial
++	RemoveDesktopElement(&quot;container&quot;,serial) =
+
++	SaveDesktop() =
+
++end)
++RegisterListener(&quot;Hook_OpenContainer&quot;,function(widget) =
+
++	local serial =3D widget.uoContainer.serial
++	if widget and serial then
++		local x,y =3D widget:GetPos()
+ 		ReplaceDesktopElement(&quot;container&quot;,x,y,serial) 	=
+
+ 		SaveDesktop()
+ 	end
+@@ -254,6 +261,20 @@
+ end
+ =
+
+ RegisterListener(&quot;Gui_StopMouseMoveWidget&quot;,function(widget,x,y) -- new gui=
+ system
++	local nx,ny =3D widget:GetPos()
++	print(&quot;Gui_StopMouseMoveWidget&quot;,widget,x,y,nx,ny)
++	for k,v in pairs(gDesktop) do
++		if gDesktopElementFactory[v.name] and gDesktopElementFactory[v.name].che=
+ckpos then
++			if gDesktopElementFactory[v.name].checkpos(v,widget) then =
+
++				print(&quot;REPLACE&quot;,nx,ny)
++				ReplaceDesktopElementIn(v.name,nx,ny,v.param,gDesktopPositions)
++				SaveDesktop() =
+
++			end
++		end
++	end
++end)
++
++RegisterListener(&quot;Gui_StopMoveDialog&quot;,function(widget,x,y) -- old gui syst=
+em
+ 	for k,v in pairs(gDesktop) do
+ 		if gDesktopElementFactory[v.name] and gDesktopElementFactory[v.name].che=
+ckpos then
+ 			if gDesktopElementFactory[v.name].checkpos(v,widget) then =
+
+@@ -264,17 +285,6 @@
+ 	end
+ end)
+ =
+
+-RegisterListener(&quot;Gui_StopMoveDialog&quot;,function(widget,x,y) -- old gui syst=
+em
+-	for k,v in pairs(gDesktop) do
+-		if gDesktopElementFactory[v.name] and gDesktopElementFactory[v.name].che=
+ckpos then
+-			if gDesktopElementFactory[v.name].checkpos(v,widget) then =
+
+-				ReplaceDesktopElementIn(v.name,x,y,v.param,gDesktopPositions)
+-				SaveDesktop() =
+
+-			end
+-		end
+-	end
+-end)
+-
+ RegisterListener(&quot;Hook_StartInGame&quot;,function() =
+
+ 	gSelectedShardName =3D gSelectedShardName or &quot;unknown&quot;
+ 	gSelectedCharName =3D gSelectedCharName or &quot;unknown&quot;
+
+Modified: trunk/lua/widgets/widget.uocontainer.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/widgets/widget.uocontainer.lua (original)
++++ trunk/lua/widgets/widget.uocontainer.lua Tue Oct 21 17:25:25 2008
+@@ -23,6 +23,8 @@
+ 	local x,y =3D GetDesktopElementPosition(&quot;container&quot;,container.serial)
+ 	self:SetPos(x or 200,y or 100)
+ 	self:RefreshItems()
++	=
+
++	NotifyListener(&quot;Hook_OpenContainer&quot;,self)
+ end
+ =
+
+ --~ function gWidgetPrototype.UOContainerDialog:on_destroy ()
+@@ -44,4 +46,7 @@
+ function gWidgetPrototype.UOContainerDialog:on_mouse_left_down	() self:Bri=
+ngToFront() self:StartMouseMove() end
+ function gWidgetPrototype.UOContainerDialog:on_mouse_right_down	() self:Cl=
+ose() end
+ =
+
+-function gWidgetPrototype.UOContainerDialog:Close	() CloseContainer(self.u=
+oContainer.serial) end -- triggers destroy
++function gWidgetPrototype.UOContainerDialog:Close	() =
+
++	NotifyListener(&quot;Hook_CloseContainer&quot;,self)
++	CloseContainer(self.uoContainer.serial) =
+
++end -- triggers destroy
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001425.html">[Iris-commit] [IRIS] r2620 - /trunk/lua/lib.mousepick.lua
+</A></li>
+	<LI>Next message: <A HREF="001427.html">[Iris-commit] [IRIS] r2622 - /trunk/data/mymacros.lua.dist
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1426">[ date ]</a>
+              <a href="thread.html#1426">[ thread ]</a>
+              <a href="subject.html#1426">[ subject ]</a>
+              <a href="author.html#1426">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

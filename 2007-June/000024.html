@@ -1,0 +1,276 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1208 - in /trunk: include/data.h	src/scripting.cpp
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2007-June/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1208%20-%20in%20/trunk%3A%20include/data.h%0A%09src/scripting.cpp&In-Reply-To=%3C20070617195446.00702B1466D%40localhost.localdomain%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000023.html">
+   <LINK REL="Next"  HREF="000025.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1208 - in /trunk: include/data.h	src/scripting.cpp</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1208%20-%20in%20/trunk%3A%20include/data.h%0A%09src/scripting.cpp&In-Reply-To=%3C20070617195446.00702B1466D%40localhost.localdomain%3E"
+       TITLE="[Iris-commit] [IRIS] r1208 - in /trunk: include/data.h	src/scripting.cpp">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sun Jun 17 21:54:44 CEST 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000023.html">[Iris-commit] [IRIS] r1207 - in /trunk/data/lua: lib.compass.lua lib.static.lua lib.terrain.lua
+</A></li>
+        <LI>Next message: <A HREF="000025.html">[Iris-commit] [IRIS] r1209 - in /trunk/data/lua: lib.3d.map.lua	main.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#24">[ date ]</a>
+              <a href="thread.html#24">[ thread ]</a>
+              <a href="subject.html#24">[ subject ]</a>
+              <a href="author.html#24">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sun Jun 17 21:54:38 2007
+New Revision: 1208
+
+Log:
+added security to huefilters and HueMesh
+
+Modified:
+    trunk/include/data.h
+    trunk/src/scripting.cpp
+
+Modified: trunk/include/data.h
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/include/data.h (original)
++++ trunk/include/data.h Sun Jun 17 21:54:38 2007
+@@ -552,12 +552,12 @@
+ 	class cSetHighBitFilter { public : inline short operator () (short value,=
+ short* ColorTable) { return value | 0x8000; } }; =
+
+ =
+
+ 	class cHueFilter { public : inline short operator () (short value, short*=
+ ColorTable) {
+-		return ColorTable[(value &gt;&gt; 10) &amp; 0x1F] | 0x8000; =
+
++		return ColorTable[mymax(0,mymin(31,(value &gt;&gt; 10) &amp; 0x1F))] | 0x8000; =
+
+ 	} };
+ =
+
+ 	class cPartialHueFilter { public : inline short operator () (short value,=
+ short* ColorTable) { =
+
+ 		if ((value &gt;&gt; 10) &amp; 0x1F =3D=3D (value &gt;&gt; 5) &amp; 0x1F &amp;&amp; (value &gt;&gt; 10) &amp; 0=
+x1F =3D=3D value &amp; 0x1F) {
+-			return ColorTable[(value &gt;&gt; 10) &amp; 0x1F] | 0x8000;
++			return ColorTable[mymax(0,mymin(31,(value &gt;&gt; 10) &amp; 0x1F))] | 0x8000;
+ 		} else {
+ 			return value | 0x8000;
+ 		}
+
+Modified: trunk/src/scripting.cpp
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/src/scripting.cpp (original)
++++ trunk/src/scripting.cpp Sun Jun 17 21:54:38 2007
+@@ -457,18 +457,23 @@
+ 	=
+
+ /// void HueMesh(meshname, hueloader, hue)
+ static int l_HueMesh (lua_State *L) { PROFILE
+-	const char *meshname =3D luaL_checkstring(L,1);
++	std::string sMeshName =3D luaL_checkstring(L,1);
++	const char *meshname =3D sMeshName.c_str();
+ 	cHueLoader *hueLoader =3D cLuaBind&lt;cHueLoader&gt;::checkudata(L,2);
+ 	int hue =3D luaL_checkint(L,3);
+ =
+
+ 	//printf(&quot;HueMesh(%s,%i,%i)\n&quot;,meshname,hueLoader,hue);
+ 	if(hueLoader &amp;&amp; hue &amp;&amp; meshname){
+ 		try	{
+-			cHueFilter Filter;
+-			short* ColorTable =3D hueLoader-&gt;GetHue( hue-1 )-&gt;GetColors();
+-		=
+
++			cHueFilter Filter;
++			cHue* pMyHue =3D hueLoader-&gt;GetHue( hue-1 );
++			if (!pMyHue) return 0;
++			short* ColorTable =3D pMyHue-&gt;GetColors();
++			if (!ColorTable) return 0;
++				=
+
+ 			// data seem ok, so read out the mesh
+ 			Ogre::MeshPtr mesh =3D Ogre::MeshManager::getSingleton().load(meshname,=
+Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME);
++			if (mesh.isNull()) return 0;
+ 			=
+
+ 			//printf(&quot;mesh=3D%s\n&quot;,mesh-&gt;getName().c_str());
+ =
+
+@@ -478,6 +483,7 @@
+ 				Ogre::SubMesh *submesh =3D sit.getNext();
+ 				//printf(&quot;submesh=3D%i\n&quot;,submesh);
+ 				=
+
++				if(!submesh) continue;
+ 				if(!submesh-&gt;isMatInitialised())continue;
+ 				=
+
+ 				//printf(&quot;matname=3D%s\n&quot;,submesh-&gt;getMaterialName().c_str());
+@@ -493,6 +499,7 @@
+ 				std::string newname =3D cOgreWrapper::GetSingleton().GetUniqueName();
+ 				Ogre::MaterialPtr mat_hue =3D Ogre::MaterialManager::getSingleton().cr=
+eate(newname, mat-&gt;getGroup());
+ 				//printf(&quot;mat=3D%s mat_hue=3D%s\n&quot;,mat-&gt;getName().c_str(),mat_hue-&gt;get=
+Name().c_str());
++				if (mat_hue.isNull()) return 0;
+ 				mat-&gt;copyDetailsTo(mat_hue);
+ =
+
+ 				// iterate over all techniques
+@@ -500,27 +507,32 @@
+ 				Ogre::Material::TechniqueIterator tit_hue =3D mat_hue-&gt;getTechniqueIte=
+rator();
+ 				while(tit.hasMoreElements()){
+ 					Ogre::Technique *tech =3D tit.getNext();
+-					Ogre::Technique *tech_hue =3D tit_hue.getNext();
++					Ogre::Technique *tech_hue =3D tit_hue.getNext();
++					if (!tech || !tech_hue) continue;
+ 					=
+
+ 					// iterate over all passes
+ 					Ogre::Technique::PassIterator pit =3D tech-&gt;getPassIterator();
+ 					Ogre::Technique::PassIterator pit_hue =3D tech_hue-&gt;getPassIterator();
+ 					while(pit.hasMoreElements()){
+ 						Ogre::Pass *pass =3D pit.getNext();
+-						Ogre::Pass *pass_hue =3D pit_hue.getNext();
++						Ogre::Pass *pass_hue =3D pit_hue.getNext();
++						if (!pass || !pass_hue) continue;
+ 						=
+
+ 						// iterate over all tex units
+ 						Ogre::Pass::TextureUnitStateIterator uit =3D pass-&gt;getTextureUnitSta=
+teIterator();
+ 						Ogre::Pass::TextureUnitStateIterator uit_hue =3D pass_hue-&gt;getTextur=
+eUnitStateIterator();
+ 						while(uit.hasMoreElements()){
+ 							Ogre::TextureUnitState *unit =3D uit.getNext();
+-							Ogre::TextureUnitState *unit_hue =3D uit_hue.getNext();
++							Ogre::TextureUnitState *unit_hue =3D uit_hue.getNext();
++							if (!unit || !unit_hue) continue;
+ =
+
+ 							// current texture
+ 							Ogre::TexturePtr tex =3D Ogre::TextureManager::getSingleton().load(=
+unit-&gt;getTextureName(),Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_N=
+AME);
+-
++							if (tex.isNull()) continue;
++							=
+
+ 							// lock and read access buffer
+-							Ogre::HardwarePixelBufferSharedPtr b =3D tex-&gt;getBuffer();
++							Ogre::HardwarePixelBufferSharedPtr b =3D tex-&gt;getBuffer();
++							if (b.isNull()) continue;
+ 							// calc size of complete texture
+ 							Ogre::Image::Box area(0, 0, b-&gt;getWidth(), b-&gt;getHeight());
+ 							// and lock (ro)
+@@ -531,14 +543,15 @@
+ 							// texture size in bytes
+ 							unsigned int size =3D box.getConsecutiveSize();
+ 							=
+
+-							char *dst =3D new char[size];
++							char *dst =3D new char[size+1024*32]; // add a little security over=
+size
+ 							char *src =3D static_cast&lt;char *&gt;(box.data);
+ =
+
+ 							char *dst_start =3D dst;
+ 							char *src_start =3D src;
+ =
+
+ 							uint8 cr,cg,cb,ca1,ca2;
+-							short col;
++							short col;
++							int dummy =3D 0;
+ 							=
+
+ 							// colorize the pixels
+ 							for(unsigned int y =3D 0; y &lt; box.getHeight(); y++){
+@@ -563,22 +576,23 @@
+ 							Ogre::DataStreamPtr texstream(new Ogre::MemoryDataStream(dst_start,=
+ size));
+ 							Ogre::TexturePtr tex_hue =3D Ogre::TextureManager::getSingleton().c=
+reate(cOgreWrapper::GetSingleton().GetUniqueName(),
+ 								Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME);
+-							=
+
++							assert(!tex_hue.isNull() &amp;&amp; &quot;HueMesh bug&quot;);
+ 							tex_hue-&gt;loadRawData(texstream,box.getWidth(),box.getHeight(),box.f=
+ormat);
+ 							=
+
+ 							// release the lock
+ 							b-&gt;unlock();
+-
+-							// free memory
+-							delete [] dst_start;
+ 		=
+
+ 							// set the texture
+-							unit_hue-&gt;setTextureName(tex_hue-&gt;getName());
++							unit_hue-&gt;setTextureName(tex_hue-&gt;getName());
++
++							// free memory
++							delete [] dst_start;
+ 						}
+ 					}
+ 				}
+ =
+
+-				// set new material
++				// set new material
++				if (mat_hue.isNull()) continue;
+ 				submesh-&gt;setMaterialName(mat_hue-&gt;getName());
+ 			}
+ 		} catch (Ogre::FileNotFoundException e){
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000023.html">[Iris-commit] [IRIS] r1207 - in /trunk/data/lua: lib.compass.lua lib.static.lua lib.terrain.lua
+</A></li>
+	<LI>Next message: <A HREF="000025.html">[Iris-commit] [IRIS] r1209 - in /trunk/data/lua: lib.3d.map.lua	main.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#24">[ date ]</a>
+              <a href="thread.html#24">[ thread ]</a>
+              <a href="subject.html#24">[ subject ]</a>
+              <a href="author.html#24">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

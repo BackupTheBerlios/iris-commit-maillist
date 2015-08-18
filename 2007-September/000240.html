@@ -1,0 +1,183 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1425 - /trunk/data/lua/lib.tilefreewalk.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2007-September/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1425%20-%20/trunk/data/lua/lib.tilefreewalk.lua&In-Reply-To=%3C20070930140735.8E1A01C181BA%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000239.html">
+   <LINK REL="Next"  HREF="000241.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1425 - /trunk/data/lua/lib.tilefreewalk.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1425%20-%20/trunk/data/lua/lib.tilefreewalk.lua&In-Reply-To=%3C20070930140735.8E1A01C181BA%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1425 - /trunk/data/lua/lib.tilefreewalk.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sun Sep 30 16:07:35 CEST 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000239.html">[Iris-commit] [IRIS] r1424 - in /trunk/data/lua: lib.protocol.lua	net/net.mobile.lua
+</A></li>
+        <LI>Next message: <A HREF="000241.html">[Iris-commit] [IRIS] r1426 - /trunk/data/lua/lib.tilefreewalk.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#240">[ date ]</a>
+              <a href="thread.html#240">[ thread ]</a>
+              <a href="subject.html#240">[ subject ]</a>
+              <a href="author.html#240">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sun Sep 30 16:07:35 2007
+New Revision: 1425
+
+Log:
+tilefree experiments : control via arrow keys
+
+Modified:
+    trunk/data/lua/lib.tilefreewalk.lua
+
+Modified: trunk/data/lua/lib.tilefreewalk.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.tilefreewalk.lua (original)
++++ trunk/data/lua/lib.tilefreewalk.lua Sun Sep 30 16:07:35 2007
+@@ -40,6 +40,8 @@
+ 	self.pathpoints =3D {}
+ 	self.debugmarkers =3D {}
+ 	self.debugmarkergroups =3D {}
++	self.movedirx =3D 0
++	self.movediry =3D 1
+ 	=
+
+ 	if (true) then
+ 		self.sDebugMarkerMeshName_Big	=3D MakeSphereMesh(11,11,0.2,0.2,0.2)
+@@ -80,16 +82,46 @@
+ 	local bTurnRight		=3D gKeyPressed[key_right]	-- WalkTurn( 1) end
+ 	=
+
+ 	-- hold rightmouse button to walk in mouse direction (depends on center o=
+f screen, works good for 3rd person cam)
++	local bMoved =3D false
++	local x,y,z =3D self:GetPos_ClientSide()
++	=
+
++	-- read input and calculate desired movement
+ 	if (bWalkInMouseDir) then
+ 		local dx,dy,pixel_dist_from_center =3D self:GetCurrentMouseDir() =
+
+ 		--local x,y,z =3D self:MousePickPos()
+ 		=
+
+-		local x,y,z =3D self:GetPos_ClientSide()
+ 		local slowarea_pixels =3D 50
+-		local speed =3D self:GetClientSideSpeed(dx,dy,0) * gSecondsSinceLastFram=
+e * math.min(1.0,pixel_dist_from_center / slowarea_pixels)
+-		x =3D x + dx * speed
+-		y =3D y + dy * speed
+-		=
+
++		local slowarea_factor =3D math.min(1.0,pixel_dist_from_center / slowarea=
+_pixels) -- mouse near center : move slow
++		self.movedirx =3D dx
++		self.movediry =3D dy
++		local maxspeed =3D self:GetClientSideSpeed(self.movedirx,self.movediry,0=
+) * gSecondsSinceLastFrame
++		x =3D x + self.movedirx * maxspeed * slowarea_factor
++		y =3D y + self.movediry * maxspeed * slowarea_factor
++		bMoved =3D true
++	else
++		local angadd =3D 0
++		if (bTurnLeft ) then  angadd =3D angadd + 240 * gfDeg2Rad * gSecondsSinc=
+eLastFrame end
++		if (bTurnRight) then  angadd =3D angadd - 240 * gfDeg2Rad * gSecondsSinc=
+eLastFrame end
++		if (angadd ~=3D 0) then =
+
++			local dx,dy =3D self.movedirx,self.movediry
++			self.movedirx =3D dx*cos(angadd) - dy*sin(angadd)
++			self.movediry =3D dx*sin(angadd) + dy*cos(angadd)
++			bMoved =3D true
++		end
++		local maxspeed =3D self:GetClientSideSpeed(self.movedirx,self.movediry,0=
+) * gSecondsSinceLastFrame
++		if (bWalkForward) then
++			x =3D x + self.movedirx * maxspeed
++			y =3D y + self.movediry * maxspeed
++			bMoved =3D true
++		elseif (bWalkBackwards) then
++			x =3D x - self.movedirx * maxspeed
++			y =3D y - self.movediry * maxspeed
++			bMoved =3D true
++		end
++	end
++	=
+
++	-- execute movement (and collision/block handling)
++	if (bMoved) then
+ 		local rx,ry,rz =3D self:RoundPos(x,y,z)
+ 		local lx,ly,lz =3D self:PathPoint_GetLast()
+ 		if (lx ~=3D rx or ly ~=3D ry) then =
+
+@@ -103,7 +135,9 @@
+ 			for dy =3D -1,1 do =
+
+ 				local x,y,z =3D rx+dx,ry+dy,GetGround(dx,dy)
+ 				if (z) then =
+
+-					self:DebugMarkerGroup_AddSphere(&quot;nearground&quot;, x,y,z, 0.1, 0,1,0)
++					local h =3D 1
++					self:DebugMarkerGroup_AddCylinder(&quot;nearground&quot;,	x,y,z, 		0.01,h, 		0,=
+1,0)
++					--self:DebugMarkerGroup_AddSphere(&quot;nearground&quot;, x,y,z, 0.1, 0,1,0)
+ 				else	=
+
+ 					z =3D rz
+ 					local colr,colg,colb =3D 1,0,0
+@@ -168,7 +202,7 @@
+ 		end
+ 		=
+
+ 		self:SetPos_ClientSide(x,y,z)
+-		self:SetDebugMarker(&quot;GetPos_ClientSide&quot;, x,y,z, dx,dy,0, 1,1,0)
++		self:SetDebugMarker(&quot;GetPos_ClientSide&quot;, x,y,z, self.movedirx,self.moved=
+iry,0, 1,1,0)
+ 	end
+ 	=
+
+ 	-- debug markers
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000239.html">[Iris-commit] [IRIS] r1424 - in /trunk/data/lua: lib.protocol.lua	net/net.mobile.lua
+</A></li>
+	<LI>Next message: <A HREF="000241.html">[Iris-commit] [IRIS] r1426 - /trunk/data/lua/lib.tilefreewalk.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#240">[ date ]</a>
+              <a href="thread.html#240">[ thread ]</a>
+              <a href="subject.html#240">[ subject ]</a>
+              <a href="author.html#240">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

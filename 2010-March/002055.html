@@ -1,0 +1,683 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r3295 - in /trunk/lua: ./ gui/ net/ widgets/
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2010-March/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3295%20-%20in%20/trunk/lua%3A%20./%20gui/%20net/%20widgets/&In-Reply-To=%3C20100320170310.0ADEB54D0007%40simon%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="002054.html">
+   <LINK REL="Next"  HREF="002056.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r3295 - in /trunk/lua: ./ gui/ net/ widgets/</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3295%20-%20in%20/trunk/lua%3A%20./%20gui/%20net/%20widgets/&In-Reply-To=%3C20100320170310.0ADEB54D0007%40simon%3E"
+       TITLE="[Iris-commit] [IRIS] r3295 - in /trunk/lua: ./ gui/ net/ widgets/">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat Mar 20 18:03:09 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="002054.html">[Iris-commit] [IRIS] r3294 - /trunk/lua/lib.thread.lua
+</A></li>
+        <LI>Next message: <A HREF="002056.html">[Iris-commit] [IRIS] r3296 - /trunk/lua/gui/gui.helper.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2055">[ date ]</a>
+              <a href="thread.html#2055">[ thread ]</a>
+              <a href="subject.html#2055">[ subject ]</a>
+              <a href="author.html#2055">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: hagish
+Date: Sat Mar 20 18:03:09 2010
+New Revision: 3295
+
+Log:
+* mega_cliloc speed improvements
+
+Added:
+    trunk/lua/worker_thread.lua
+Modified:
+    trunk/lua/gui/gui.gumpparser.lua
+    trunk/lua/gui/gui.helper.lua
+    trunk/lua/gui/gui.popup.lua
+    trunk/lua/lib.3d.mousepick.lua
+    trunk/lua/lib.cliloc.lua
+    trunk/lua/lib.razorpacketvideo.lua
+    trunk/lua/lib.thread.lua
+    trunk/lua/main.lua
+    trunk/lua/net/net.generic.lua
+    trunk/lua/net/net.tooltips.lua
+    trunk/lua/net/net.trade.lua
+    trunk/lua/widgets/widget.gumpdialog.lua
+    trunk/lua/widgets/widget.uotext.lua
+
+Modified: trunk/lua/gui/gui.gumpparser.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.gumpparser.lua (original)
++++ trunk/lua/gui/gui.gumpparser.lua Sat Mar 20 18:03:09 2010
+@@ -716,7 +716,7 @@
+ 			--				a scrollbar s displayed.
+ 			-- TODO : width, height, background, scrollbar
+ 			elseif ((command =3D=3D &quot;xmfhtmlgump&quot;) and (table.getn(bToken) &gt;=3D 8))=
+ then
+-				local msg =3D HtmlParser( gClilocLoader and gClilocLoader:Get(bToken[6=
+]) or &quot;no_cliloc&quot; )
++				local msg =3D HtmlParser( GetCliloc(bToken[6]) )
+ 				printdebug(&quot;gump&quot;,&quot;Cliloc Msg (&quot;..bToken[6]..&quot;): &quot;..msg.text)
+ 				local widget =3D guimaker.MakeWrappedClippedText (curparent, bToken[2]=
+, bToken[3]+htext_correction,
+ 																bToken[4], bToken[5], UnicodeFix(msg.text), msg.charh, gFo=
+ntDefs[&quot;Gump&quot;].col,
+@@ -728,7 +728,7 @@
+ 			--				a scrollbar s displayed.
+ 			-- TODO : background, scrollbar, HUE-color
+ 			elseif ((command =3D=3D &quot;xmfhtmlgumpcolor&quot;) and (table.getn(bToken) &gt;=
+=3D 9)) then
+-				local msg =3D HtmlParser(  gClilocLoader and gClilocLoader:Get(bToken[=
+6]) or &quot;no_cliloc&quot; )
++				local msg =3D HtmlParser(  GetCliloc(bToken[6]) )
+ 				printdebug(&quot;gump&quot;,&quot;Cliloc Msg (&quot;..bToken[6]..&quot;): &quot;..msg.text)
+ 				local widget =3D guimaker.MakeWrappedClippedText (curparent, bToken[2]=
+, bToken[3]+htext_correction,
+ 																bToken[4], bToken[5], UnicodeFix(msg.text), msg.charh, gFo=
+ntDefs[&quot;Gump&quot;].col,
+@@ -965,7 +965,7 @@
+ 			--Description:  Adds to the previous layoutarray entry a Tooltip with t=
+he in [cliloc-nr] defined Cliloc entry.
+ 			-- TODO : display tooltip
+ 			elseif ((command =3D=3D &quot;tooltip&quot;) and (table.getn(bToken)&gt;=3D 2)) then
+-				local msg =3D HtmlParser( gClilocLoader and gClilocLoader:Get(bToken[2=
+]) or &quot;no_cliloc&quot; )
++				local msg =3D HtmlParser( GetCliloc(bToken[2]) )
+ 				GuiAddChatLine(&quot;HtmlGumpparser - tooltip (TODO):&quot;..msg.text)
+ 			else
+ 				printdebug(&quot;gump&quot;,&quot;UNKNOWN Generic Gump Command: &quot;..command)
+
+Modified: trunk/lua/gui/gui.helper.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.helper.lua (original)
++++ trunk/lua/gui/gui.helper.lua Sat Mar 20 18:03:09 2010
+@@ -58,6 +58,8 @@
+ 		local l =3D giShowLoading
+ 		local lu =3D giShowLoadingUnfinished
+ 		local fps =3D OgreAvgFPS()
++		local gfx3d =3D GetGfx3DCount()
++		local gfx2d =3D GetGfx2DCount()
+ 	=
+
+ 		if gConfig:Get(&quot;gLogStatsToFile&quot;) then
+ 			-- write to file
+@@ -89,13 +91,18 @@
+ 			end
+ 		end
+ 					=
+
+-		local text =3D sprintf(&quot;%5.1ffps %dt %db gfx | OGRE:%s LUA:%s C:%s | cpu=
+/(cpu+gpu):%d%% | job:%d | blockload:%d/%d&quot;,
++		local cpu =3D floor((gFrameTimeCPUFraction or 0)*100)
++		local gpu =3D 100 - cpu
++					=
+
++		local text =3D sprintf(&quot;%5.1ffps %dt %db gfx | OGRE:%s LUA:%s C:%s | cpu=
+:<i>%d%% gpu:%d%% | job:%d/%d | blockload:%d/%d | %d/%d gfx&quot;,
+</I> 			fps, t, b, =
+
+ 			DisplayMemoryUsageFormatHelper(memoryusage),
+ 			DisplayMemoryUsageFormatHelper(mem_dyn), =
+
+ 			DisplayMemoryUsageFormatHelper(Client_GetMemoryUsage and Client_GetMemo=
+ryUsage() or 0), =
+
+-			floor((gFrameTimeCPUFraction or 0)*100),
+-			j, l, lu   -- #&quot;job.create()-jobs&quot;    blockloader: working/killme
++			cpu, gpu,
++			j, (gWorkerThread and gWorkerThread:countQueuedCalls()) or 0,
++			l, lu,   -- #&quot;job.create()-jobs&quot;    blockloader: working/killme
++			gfx3d, gfx2d
+ 		)
+ 		if (not gMemoryUsageField) then
+ 			local vw,vh =3D GetViewportSize()
+
+Modified: trunk/lua/gui/gui.popup.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.popup.lua (original)
++++ trunk/lua/gui/gui.popup.lua Sat Mar 20 18:03:09 2010
+@@ -145,7 +145,7 @@
+ =
+
+ function GetPopupEntryText (textid) =
+
+ 	-- return GetIntLocText(math.floor(textid / 1000),math.mod(textid,1000)) =
+-- doesn't work
+-	return gClilocLoader and gClilocLoader:Get(3000000 + textid) or &quot;Not Defi=
+ned&quot;
++	return GetCliloc(3000000 + textid)
+ end
+ --[[
+ -- the packet description doesn't work on my installation
+
+Modified: trunk/lua/lib.3d.mousepick.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.mousepick.lua (original)
++++ trunk/lua/lib.3d.mousepick.lua Sat Mar 20 18:03:09 2010
+@@ -160,9 +160,6 @@
+ 	local static_block_num =3D 0
+     if self.map3d_spawners and self.map3d_spawners.statics then
+         self.map3d_spawners.statics:ForAllBlocks(function(block)
+-			-- OLD NOTE/COMMENT
+-            -- bbox raypick disabled, as it seems broken. model raypick co=
+ntains bounding sphere precheck already.
+-            -- block:BBRayPick(rx, ry, rz, rvx, rvy, rvz) -- if 3d static =
+mousepicking is strange, look here, xmirror maybe.. no longer used for terr=
+ain, only here
+ 			static_block_num =3D static_block_num + 1
+ 			gProfiler_R3D_MousePick:Section(&quot;statics:BBRayPick&quot;)
+             if block:BBRayPick(rx, ry, rz, rvx, rvy, rvz) then
+@@ -228,7 +225,7 @@
+             end
+         end)
+     end
+-	print(&quot;mousepick : static_mesh_buffer_num=3D&quot;,static_mesh_buffer_num,&quot;sta=
+tic_block_num=3D&quot;,static_block_num)
++	--~ print(&quot;mousepick : static_mesh_buffer_num=3D&quot;,static_mesh_buffer_num,=
+&quot;static_block_num=3D&quot;,static_block_num)
+     =
+
+     if ((not gCustomQuadInfoWritten) and numcustomquads &gt; 300) then
+         gCustomQuadInfoWritten =3D true
+
+Modified: trunk/lua/lib.cliloc.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.cliloc.lua (original)
++++ trunk/lua/lib.cliloc.lua Sat Mar 20 18:03:09 2010
+@@ -88,6 +88,34 @@
+     return loader
+ end
+ =
+
++
++function ClilocTextContainsParameters(text)
++	if string.find (text, &quot;~([1-9]+)_[^~]+~&quot;) =3D=3D nil then
++		return false
++	else
++		return true
++	end
++end
++
++gClilocCache =3D {}
++function GetClilocFromCache(id)
++	if not gClilocLoader then return &quot;???&quot;, false end
++	=
+
++	if not gClilocCache[id] then
++		local text =3D gClilocLoader:Get(id)
++		local hasParams =3D ClilocTextContainsParameters(text)
++		gClilocCache[id] =3D {text, hasParams}
++		return text, hasParams
++	else =
+
++		return unpack(gClilocCache[id])
++	end
++end
++
++function GetCliloc(id)
++	local text, hasParams =3D GetClilocFromCache(id)
++	return text
++end
++
+ -- replaces #1231231 by cliloc entry
+ function ParseClilocParam (param)
+     if (string.sub(param,1,1) ~=3D &quot;#&quot;) then return param end -- first char
+@@ -97,11 +125,18 @@
+ end
+ =
+
+ -- replaces ~1_BLA~ by param_arr[1]
+-function ParameterizedClilocText (cliloc_id,param_arr) =
+
+-    local text_base =3D gClilocLoader and gClilocLoader:Get(cliloc_id) or =
+(&quot;unknown_cliloc_&quot;..cliloc_id)
+-    local res =3D string.gsub(text_base,&quot;~([1-9]+)_[^~]+~&quot;,function (num) =
+return ParseClilocParam(param_arr[tonumber(num)]) end)
+-    return res
+-end
++function ParameterizedClilocText(id, params)
++	local text, hasParams =3D GetClilocFromCache(id)
++	if hasParams then
++		local res =3D string.gsub(text, &quot;~([1-9]+)_[^~]+~&quot;,
++			function (num) return ParseClilocParam(params[tonumber(num)]) end)
++		return res
++	else
++		return text	=
+
++	end
++end
++
++
+ =
+
+ --[[
+ -- TODO : port old iris code :  --- see also function gPacketHandler.kPack=
+et_Localized_Text () in net.other.lua
+
+Modified: trunk/lua/lib.razorpacketvideo.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.razorpacketvideo.lua (original)
++++ trunk/lua/lib.razorpacketvideo.lua Sat Mar 20 18:03:09 2010
+@@ -380,7 +380,7 @@
+ 	while true do =
+
+ 		local cliloc_id =3D input:PopNetUint32()
+ 		if (cliloc_id =3D=3D 0x00000000) then break end
+-		local cliloctext =3D gClilocLoader and gClilocLoader:Get(cliloc_id) or &quot;&quot;
++		local cliloctext =3D GetCliloc(cliloc_id)
+ 		=
+
+ 		local number_of_unicode_chars =3D input:PopNetUint16() / 2
+ 		local text =3D &quot;&quot;
+
+Modified: trunk/lua/lib.thread.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.thread.lua (original)
++++ trunk/lua/lib.thread.lua Sat Mar 20 18:03:09 2010
+@@ -105,7 +105,7 @@
+ 	end
+ 	=
+
+ 	thread.isResultAvailable =3D function(self, id)
+-		self:_step()
++		self:checkForResults()
+ 		=
+
+ 		if self.resultTable[id] and type(self.resultTable[id]) =3D=3D &quot;table&quot; th=
+en =
+
+ 			return true =
+
+@@ -114,7 +114,7 @@
+ 		end
+ 	end
+ 	=
+
+-	thread._step =3D function(self)
++	thread.checkForResults =3D function(self)
+ 		while true do
+ 			local id,ok,ret =3D self:_getResult()
+ 			=
+
+@@ -206,7 +206,7 @@
+ 	thread.waitForAllBlocking =3D function(self)
+ 		while self.callsQueued &gt; 0 do
+ 			--~ print(&quot;still running&quot;, self.callsQueued)
+-			self:_step()
++			self:checkForResults()
+ 			Client_USleep(1000 / 100)
+ 		end
+ 		--~ print(&quot;all finished&quot;)
+
+Modified: trunk/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/main.lua (original)
++++ trunk/lua/main.lua Sat Mar 20 18:03:09 2010
+@@ -32,6 +32,8 @@
+ gSecondsSinceLastFrame =3D 0
+ gInGameStarted =3D false
+ gNet_State =3D false
++
++gFrameCounter =3D 0
+ =
+
+ function GetStackTrace () return _TRACEBACK() end
+ =
+
+@@ -501,6 +503,7 @@
+     =
+
+     gMyTicks =3D Client_GetTicks()
+     =
+
++    =
+
+     LoadingProfile(&quot;initializing Ogre&quot;,true)
+     if (SetOgreInputOptions) then SetOgreInputOptions(gbHideMouse,gbGrabIn=
+put) end
+     gPreOgreTime =3D gLoadingProfileLastTime
+@@ -522,7 +525,7 @@
+     =
+
+     ------------------------------------------ obsolete, just for testing =
+-----------------------------------
+     -- Lua test because Lua50 should not be compiled full-optimized with V=
+S2005 Express (maybe also other compilers)
+-    if (true) then LuaBitwiseTest() end
++    --~ if (true) then LuaBitwiseTest() end
+     -- if (gHuffmanCompression) then LuaHuffmanTest() end
+     ---if (false) then AnalyseStatics(0) end
+     -- if (false) then ExpressionTest() end
+@@ -563,6 +566,8 @@
+     BindGeneralKeys()
+ =
+
+     NotifyListener(&quot;Hook_PostLoad&quot;)
++    =
+
++    gWorkerThread =3D CreateExtendedLuaThread(GetMainWorkingDir()..&quot;lua/wo=
+rker_thread.lua&quot;)
+ =
+
+     StartMainMenu()
+     =
+
+@@ -571,6 +576,8 @@
+     if gConfig:Get(&quot;gLogStatsToFile&quot;) then
+         os.remove(&quot;stats.dat&quot;)
+     end
++
++	=
+
+ =
+
+     -- mainloop
+     if (gEnableGlobalProfiler) then StartGlobalProfiler2() end -- old and =
+too slow, don't use
+@@ -622,12 +629,16 @@
+ =
+
+ -- called every frame, after all timer-steppers, see Step() in lib.time.lua
+ function MainStep ()
++	gFrameCounter =3D gFrameCounter + 1
++	=
+
+     local t_cpu_start =3D Client_GetTicks()
+     gProfiler_MainStep:Start(gEnableProfiler_MainStep)
+     gProfiler_MainStep:Section(&quot;LugreStep&quot;)
+         =
+
+     gViewportW,gViewportH =3D GetViewportSize()
+     LugreStep()
++    =
+
++    gWorkerThread:checkForResults()
+     =
+
+     gProfiler_MainStep:Section(&quot;Hook_MainStep&quot;)
+     =
+
+
+Modified: trunk/lua/net/net.generic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.generic.lua (original)
++++ trunk/lua/net/net.generic.lua Sat Mar 20 18:03:09 2010
+@@ -161,7 +161,7 @@
+ 			else =
+
+ 				local iAttributeCharges =3D input:PopNetInt16()
+ 				data.attributes[iAttributeID] =3D iAttributeCharges
+-				local cliloctxt =3D gClilocLoader and gClilocLoader:Get(iAttributeID) =
+or (&quot;unknown_cliloc_&quot;..iAttributeID)
++				local cliloctxt =3D GetCliloc(iAttributeID)
+ 				table.insert(myPreAosAttributeLines,((iAttributeCharges &gt; 0) and (iAtt=
+ributeCharges..&quot;:&quot;) or &quot;&quot;)..cliloctxt)
+ 			end
+ 		end
+
+Modified: trunk/lua/net/net.tooltips.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.tooltips.lua (original)
++++ trunk/lua/net/net.tooltips.lua Sat Mar 20 18:03:09 2010
+@@ -44,6 +44,9 @@
+ 	end
+ end
+ =
+
++gMegaClilocParamsCache =3D {}
++gMegaClilocParamsCache.size =3D 0
++
+ -- Mega Cliloc - server sends new Clilocs - just add them to the Cliloc
+ -- TODO : this cliloc additions might be local to a specific mobile, e.g. =
+vendor or container...
+ function gPacketHandler.kPacket_Mega_Cliloc()	--0xD6
+@@ -58,33 +61,60 @@
+ 	local hash =3D BitwiseAND(data.objrevision_hash,kToolTipHashMask) =
+
+ 		-- objrevision_hash in old iris code : obj/character-&gt;SetAOSTooltipID(li=
+stID);
+ 	=
+
++	-- reset cache if it gets tooo big
++	if gMegaClilocParamsCache.size &gt; 100 then
++		gMegaClilocParamsCache =3D {}
++		gMegaClilocParamsCache.size =3D 0
++		--~ print(&quot;RESET PARAM CACHE&quot;)
++	end
++	=
+
+ 	local totaltext =3D &quot;&quot;
+ 	local bFirst =3D true
+ 	=
+
+ 	while true do =
+
+ 		local cliloc_id =3D input:PopNetUint32()
+ 		if (cliloc_id =3D=3D 0x00000000) then break end
+-		local cliloctext =3D gClilocLoader and gClilocLoader:Get(cliloc_id) or &quot;&quot;
++		--~ local cliloctext =3D GetCliloc(cliloc_id)
+ 		=
+
+ 		local number_of_unicode_chars =3D input:PopNetUint16() / 2
+-		local text =3D &quot;&quot;
+-		local totalparamtext =3D &quot;&quot;
+-		local debugtxt =3D &quot;&quot;
++		=
+
++		local buffersize =3D number_of_unicode_chars * 2
++		local crc =3D input:CRC(buffersize)
++		=
+
++		--~ print(&quot;CRC&quot;, crc)
++		=
+
+ 		local params =3D {}
+-		for i =3D 1,number_of_unicode_chars do  -- read unicode text and split b=
+y 0x09 =3D tab
+-			local head =3D input:PopUint8()
+-			local data =3D input:PopUint8()
+-			local c =3D ((head~=3D0) and string.char(head) or &quot;?&quot;)
+-			if (head =3D=3D 9 and data =3D=3D 0) then -- delimiter =3D tab=3D0x09
+-				table.insert(params,text)
+-				text =3D &quot;&quot;
+-			else
+-				text =3D text..c
++		=
+
++		if not gMegaClilocParamsCache[crc] then
++					=
+
++			--~ print(&quot;----&gt;&quot;, cliloc_id, number_of_unicode_chars)
++			local text =3D &quot;&quot;
++			local totalparamtext =3D &quot;&quot;
++			--~ local debugtxt =3D &quot;&quot;
++			=
+
++			for i =3D 1,number_of_unicode_chars do  -- read unicode text and split =
+by 0x09 =3D tab
++				local head =3D input:PopUint8()
++				local data =3D input:PopUint8()
++				local c =3D ((head~=3D0) and string.char(head) or &quot;?&quot;)
++				if (head =3D=3D 9 and data =3D=3D 0) then -- delimiter =3D tab=3D0x09
++					table.insert(params,text)
++					text =3D &quot;&quot;
++				else
++					text =3D text..c
++				end
++				totalparamtext =3D totalparamtext..c
++				--~ debugtxt =3D debugtxt..&quot;(&quot;..head..&quot;,&quot;..data..&quot;:&quot;..c..&quot;)&quot;
+ 			end
+-			totalparamtext =3D totalparamtext..c
+-			debugtxt =3D debugtxt..&quot;(&quot;..head..&quot;,&quot;..data..&quot;:&quot;..c..&quot;)&quot;
++			table.insert(params,text)
++		=
+
++			gMegaClilocParamsCache[crc] =3D params
++			gMegaClilocParamsCache.size =3D gMegaClilocParamsCache.size + 1
++		else
++			input:PopRaw(buffersize)
++			=
+
++			--~ print(&quot;CACHE HIT&quot;, crc)
++			params =3D gMegaClilocParamsCache[crc]
+ 		end
+-		table.insert(params,text)
+ 		=
+
+ 		local text =3D string.gsub(ParameterizedClilocText(cliloc_id,params),&quot;&lt;b=
+r&gt;&quot;,&quot;\n&quot;)
+ 		=
+
+
+Modified: trunk/lua/net/net.trade.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.trade.lua (original)
++++ trunk/lua/net/net.trade.lua Sat Mar 20 18:03:09 2010
+@@ -153,7 +153,7 @@
+ 			end
+ 			=
+
+ 			local nameint =3D tonumber(good.name)
+-			if (nameint and good.name =3D=3D &quot;&quot;..nameint) then good.name =3D gClilo=
+cLoader:Get(nameint) or (&quot;unknown_cliloc_&quot;..nameint) end
++			if (nameint and good.name =3D=3D &quot;&quot;..nameint) then good.name =3D GetCli=
+loc(nameint) end
+ 			shop.goods[i] =3D good
+ 		end
+ 		=
+
+@@ -247,7 +247,7 @@
+ 			--~ good.bIsInPlayerBackpack =3D good.item.iContainerSerial =3D=3D GetP=
+layerBackPackSerial()  not needed, see bSellMode above
+ 			=
+
+ 			local nameint =3D tonumber(good.name)
+-			if (nameint and good.name =3D=3D &quot;&quot;..nameint) then good.name =3D gClilo=
+cLoader:Get(nameint) or (&quot;unknown_cliloc_&quot;..nameint) end
++			if (nameint and good.name =3D=3D &quot;&quot;..nameint) then good.name =3D GetCli=
+loc(nameint) end
+ 			=
+
+ 			print(&quot;shopitem&quot;,hex(good.item.artid),hex(good.item.hue),good.price,goo=
+d.name) =
+
+ 			--~ if (not knownartids[good.item.artid]) then print(&quot;shopitem&quot;,good.it=
+em.artid,good.name) knownartids[good.item.artid] =3D true end
+
+Modified: trunk/lua/widgets/widget.gumpdialog.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/widgets/widget.gumpdialog.lua (original)
++++ trunk/lua/widgets/widget.gumpdialog.lua Sat Mar 20 18:03:09 2010
+@@ -84,7 +84,7 @@
+ 	end
+ 	if (gClilocLoader) then
+ 		for cliloc_id,v in pairs(self.usedClilocs) do
+-			if (StringContains(gClilocLoader:Get(cliloc_id),search)) then return tr=
+ue end
++			if (StringContains(GetCliloc(cliloc_id),search)) then return true end
+ 		end
+ 	end
+ end
+@@ -104,7 +104,7 @@
+ 	end
+ 	if (gClilocLoader) then
+ 		for cliloc_id,v in pairs(self.usedClilocs) do
+-			table.insert(res,gClilocLoader:Get(cliloc_id))
++			table.insert(res,GetCliloc(cliloc_id))
+ 		end
+ 	end
+ 	return res
+
+Modified: trunk/lua/widgets/widget.uotext.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/widgets/widget.uotext.lua (original)
++++ trunk/lua/widgets/widget.uotext.lua Sat Mar 20 18:03:09 2010
+@@ -35,7 +35,7 @@
+ 			if (params.args) then =
+
+ 				text =3D ParameterizedClilocText(params.cliloc_id,params.args)
+ 			else
+-				text =3D gClilocLoader:Get(params.cliloc_id) or &quot;no_cliloc&quot; =
+
++				text =3D GetCliloc(params.cliloc_id)
+ 			end
+ 		end
+ 	end
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="002054.html">[Iris-commit] [IRIS] r3294 - /trunk/lua/lib.thread.lua
+</A></li>
+	<LI>Next message: <A HREF="002056.html">[Iris-commit] [IRIS] r3296 - /trunk/lua/gui/gui.helper.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2055">[ date ]</a>
+              <a href="thread.html#2055">[ thread ]</a>
+              <a href="subject.html#2055">[ subject ]</a>
+              <a href="author.html#2055">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

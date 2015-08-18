@@ -1,0 +1,1062 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2900 - in /trunk: config/ config/shards/ lua/	lua/net/
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2009-February/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2900%20-%20in%20/trunk%3A%20config/%20config/shards/%20lua/%0A%09lua/net/&In-Reply-To=%3C20090207142120.761481C1884D%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001701.html">
+   <LINK REL="Next"  HREF="001703.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2900 - in /trunk: config/ config/shards/ lua/	lua/net/</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2900%20-%20in%20/trunk%3A%20config/%20config/shards/%20lua/%0A%09lua/net/&In-Reply-To=%3C20090207142120.761481C1884D%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2900 - in /trunk: config/ config/shards/ lua/	lua/net/">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat Feb  7 15:21:20 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001701.html">[Iris-commit] [IRIS] r2899 - in /trunk: lua/lib.mousepick.lua lua/main.lua plugins/moblist.lua premakelinux_noclean.sh
+</A></li>
+        <LI>Next message: <A HREF="001703.html">[Iris-commit] [IRIS] r2901 - in /trunk: config/shards/ lua/
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1702">[ date ]</a>
+              <a href="thread.html#1702">[ thread ]</a>
+              <a href="subject.html#1702">[ subject ]</a>
+              <a href="author.html#1702">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sat Feb  7 15:21:20 2009
+New Revision: 2900
+
+Log:
+added support for uo protocol changes in clientversion 6.0.1.7 , so now the=
+ client version can be set beyond that without crashing, current default is=
+ 6.0.9.2.  started work on shardlist internal redesign.
+
+Added:
+    trunk/config/shards/
+    trunk/lua/lib.shardlist.lua
+Modified:
+    trunk/config/   (props changed)
+    trunk/lua/config_declarations.lua
+    trunk/lua/lib.mainmenu.lua
+    trunk/lua/lib.packet.lua
+    trunk/lua/lib.protocol.lua
+    trunk/lua/lib.razorpacketvideo.lua
+    trunk/lua/lib.xml.lua
+    trunk/lua/main.lua
+    trunk/lua/net/net.dynamic.lua
+    trunk/lua/net/net.other.lua
+
+Modified: trunk/lua/config_declarations.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/config_declarations.lua (original)
++++ trunk/lua/config_declarations.lua Sat Feb  7 15:21:20 2009
+@@ -16,7 +16,11 @@
+ ]]--
+ =
+
+ gConfig:DeclareFloat(&quot;kGuiToolTipWait&quot;, &quot;gui&quot;, &quot;tooltip timeout&quot;, &quot;TODO&quot;, =
+100)
+-gConfig:DeclareString(&quot;gClientVersion&quot;, &quot;protocol&quot;, &quot;client version&quot;, 'Cli=
+ent Identification String (try other version for example &quot;4.0.11c5&quot;)', &quot;6.0=
+.1.6&quot;)
++
++
++
++gConfig:DeclareString(&quot;gClientVersion&quot;, &quot;protocol&quot;, &quot;client version&quot;, 'Cli=
+ent Identification String (try other version for example &quot;4.0.11c5&quot;)', &quot;6.0=
+.9.2&quot;) -- old was 6.0.1.6, but the protocol changes in 6017 are supported n=
+ow =3D)
++
+ =
+
+ -- Camera Rotation - Input stuff use: &quot;mouse1&quot;, &quot;mouse2&quot; or &quot;mouse3&quot;
+ gInput_CamMouseButton =3D GetNamedKey(&quot;mouse3&quot;)
+@@ -141,6 +145,10 @@
+ -- Server Emulator Configuration
+ --------------------------------
+ gShardList =3D {}
++
++
++--~ preset shards now loaded from config/shards/*.xml
++
+ gShardList[&quot;localhost&quot;] =3D {
+ 		gLoginname =3D &quot;admin&quot;,	-- Loginname
+ 		gPassword =3D &quot;admin&quot;,	-- Password
+@@ -197,14 +205,7 @@
+ 		gServerSeed =3D hex2num(&quot;0xFFFFFFFF&quot;),
+ 		gPolServer =3D false
+ 	}
+-
+-gShardList[&quot;# - Offline Mode&quot;] =3D { =
+
+-		gStartGameWithoutNetwork =3D true
+-	}
+-
+-gShardList[&quot;# - Debug Mode&quot;] =3D { =
+
+-		gStartInDebugMode =3D true
+-	}
++--~ ]]--
+ =
+
+ -- in config.lua you can add shards like this: 	=
+
+ -- gShardList[&quot;myshard&quot;] =3D { ..... } =
+
+
+Modified: trunk/lua/lib.mainmenu.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mainmenu.lua (original)
++++ trunk/lua/lib.mainmenu.lua Sat Feb  7 15:21:20 2009
+@@ -375,6 +375,8 @@
+ 				return
+ 		end
+ 	end -- connect to shard
++	=
+
++	LoadShardList()
+ =
+
+ 	-- start menu sound
+ 	SoundPlayMusicById(8)
+@@ -399,6 +401,14 @@
+ 		table.insert(rows,{ {type=3D&quot;Button&quot;,	onLeftClick=3Dfun,shard=3Dshard,sh=
+ardname=3Dshardname,text=3DGetShardButtonText(shard,shardname)} })
+ 	end
+ =
+
++	=
+
++	local shardname,shard =3D &quot;# - Offline Mode&quot;,{gStartGameWithoutNetwork =
+=3D true}
++		table.insert(rows,{ {type=3D&quot;Button&quot;,	onLeftClick=3Dfun,shard=3Dshard,sh=
+ardname=3Dshardname,text=3DGetShardButtonText(shard,shardname)} })
++	local shardname,shard =3D &quot;# - Debug Mode&quot;,{gStartInDebugMode =3D true}
++		table.insert(rows,{ {type=3D&quot;Button&quot;,	onLeftClick=3Dfun,shard=3Dshard,sh=
+ardname=3Dshardname,text=3DGetShardButtonText(shard,shardname)} })
++
++	=
+
++	=
+
+ 	table.insert(rows,{ {type=3D&quot;Button&quot;,text=3D&quot;# - Graphic Options&quot;,onLeftC=
+lick=3Dfunction ()
+ 		StopMainMenu()
+ 		if (Client_ShowOgreConfig()) then
+
+Modified: trunk/lua/lib.packet.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.packet.lua (original)
++++ trunk/lua/lib.packet.lua Sat Feb  7 15:21:20 2009
+@@ -1,243 +1,267 @@
+-gPacketType.kPacket_CharacterCreation 								=3D { id=3D0x00 }
+-gPacketType.kPacket_Logout					 						=3D { id=3D0x01 }
+-gPacketType.kPacket_Request_Movement								=3D { id=3D0x02 }
+-gPacketType.kPacket_Speech											=3D { id=3D0x03 }
+-gPacketType.kPacket_Request_God_Mode								=3D { id=3D0x04 }
+-gPacketType.kPacket_Attack											=3D { id=3D0x05 }
+-gPacketType.kPacket_Double_Click									=3D { id=3D0x06 }
+-gPacketType.kPacket_Take_Object										=3D { id=3D0x07 }
+-gPacketType.kPacket_Drop_Object										=3D { id=3D0x08 }
+-gPacketType.kPacket_Single_Click									=3D { id=3D0x09 }
+-gPacketType.kPacket_Edit											=3D { id=3D0x0A }
+-gPacketType.kPacket_Damage											=3D { id=3D0x0B }
+-gPacketType.kPacket_Tile_Data										=3D { id=3D0x0C }
+-gPacketType.kPacket_NPC_Data										=3D { id=3D0x0D }
+-gPacketType.kPacket_Edit_Template_Data								=3D { id=3D0x0E }
+-gPacketType.kPacket_Paperdoll_Old									=3D { id=3D0x0F }
+-gPacketType.kPacket_Hue_Data										=3D { id=3D0x10 }
+-gPacketType.kPacket_Mobile_Stats									=3D { id=3D0x11 }
+-gPacketType.kPacket_Request_SkillOrSpell							=3D { id=3D0x12 }
+-gPacketType.kPacket_Equip_Item_Request								=3D { id=3D0x13 }
+-gPacketType.kPacket_Change_Elevation								=3D { id=3D0x14 }
+-gPacketType.kPacket_Follow											=3D { id=3D0x15 }
+-gPacketType.kPacket_Request_Script_Names							=3D { id=3D0x16 }
+-gPacketType.kPacket_Script_Tree_Command								=3D { id=3D0x17 }
+-gPacketType.kPacket_Script_Attach									=3D { id=3D0x18 }
+-gPacketType.kPacket_NPC_Conversation_Data							=3D { id=3D0x19 }
+-gPacketType.kPacket_Show_Item										=3D { id=3D0x1A }
+-gPacketType.kPacket_Login_Confirm									=3D { id=3D0x1B }
+-gPacketType.kPacket_Text											=3D { id=3D0x1C }
+-gPacketType.kPacket_Destroy											=3D { id=3D0x1D }
+-gPacketType.kPacket_Animate											=3D { id=3D0x1E }
+-gPacketType.kPacket_Explode											=3D { id=3D0x1F }
+-
+-gPacketType.kPacket_Teleport										=3D { id=3D0x20 }
+-gPacketType.kPacket_Block_Movement									=3D { id=3D0x21 }
+-gPacketType.kPacket_Accept_Movement_Resync_Request					=3D { id=3D0x22 }
+-gPacketType.kPacket_Drag_Item										=3D { id=3D0x23 }
+-gPacketType.kPacket_Open_Container									=3D { id=3D0x24 }
+-gPacketType.kPacket_Object_to_Object								=3D { id=3D0x25 }
+-gPacketType.kPacket_Old_Client										=3D { id=3D0x26 }
+-gPacketType.kPacket_Get_Item_Failed									=3D { id=3D0x27 }
+-gPacketType.kPacket_Drop_Item_Failed								=3D { id=3D0x28 }
+-gPacketType.kPacket_Drop_Item_OK									=3D { id=3D0x29 }
+-gPacketType.kPacket_Blood											=3D { id=3D0x2A }
+-gPacketType.kPacket_God_Mode										=3D { id=3D0x2B }
+-gPacketType.kPacket_Death											=3D { id=3D0x2C }
+-gPacketType.kPacket_Health											=3D { id=3D0x2D }
+-gPacketType.kPacket_Equip_Item										=3D { id=3D0x2E }
+-gPacketType.kPacket_Swing											=3D { id=3D0x2F }
+-
+-gPacketType.kPacket_Attack_OK										=3D { id=3D0x30 }
+-gPacketType.kPacket_Attack_End										=3D { id=3D0x31 }
+-gPacketType.kPacket_Hack_Mover										=3D { id=3D0x32 }
+-gPacketType.kPacket_Group											=3D { id=3D0x33 }
+-gPacketType.kPacket_Client_Query									=3D { id=3D0x34 }
+-gPacketType.kPacket_Resource_Type									=3D { id=3D0x35 }
+-gPacketType.kPacket_Resource_Tile_Data								=3D { id=3D0x36 }
+-gPacketType.kPacket_Move_Object										=3D { id=3D0x37 }
+-gPacketType.kPacket_Follow_Move										=3D { id=3D0x38 }
+-gPacketType.kPacket_Groups											=3D { id=3D0x39 }
+-gPacketType.kPacket_Skills											=3D { id=3D0x3A }
+-gPacketType.kPacket_Accept_Offer									=3D { id=3D0x3B }
+-gPacketType.kPacket_Container_Contents								=3D { id=3D0x3C }
+-gPacketType.kPacket_Ship											=3D { id=3D0x3D }
+-gPacketType.kPacket_Versions										=3D { id=3D0x3E }
+-gPacketType.kPacket_Update_Statics									=3D { id=3D0x3F }
+-
+-gPacketType.kPacket_Update_Terrain									=3D { id=3D0x40 }
+-gPacketType.kPacket_Update_Tiledata									=3D { id=3D0x41 }
+-gPacketType.kPacket_Update_Art										=3D { id=3D0x42 }
+-gPacketType.kPacket_Update_Anim										=3D { id=3D0x43 }
+-gPacketType.kPacket_Update_Hues										=3D { id=3D0x44 }
+-gPacketType.kPacket_Ver_OK											=3D { id=3D0x45 }
+-gPacketType.kPacket_New_Art											=3D { id=3D0x46 }
+-gPacketType.kPacket_New_Terrain										=3D { id=3D0x47 }
+-gPacketType.kPacket_New_Anim										=3D { id=3D0x48 }
+-gPacketType.kPacket_New_Hues										=3D { id=3D0x49 }
+-gPacketType.kPacket_Destroy_Art										=3D { id=3D0x4A }
+-gPacketType.kPacket_Check_Ver										=3D { id=3D0x4B }
+-gPacketType.kPacket_Script_Names									=3D { id=3D0x4C }
+-gPacketType.kPacket_Script_File										=3D { id=3D0x4D }
+-gPacketType.kPacket_Light_Change									=3D { id=3D0x4E }
+-gPacketType.kPacket_Sunlight										=3D { id=3D0x4F }
+-
+-gPacketType.kPacket_Board_Header									=3D { id=3D0x50 }
+-gPacketType.kPacket_Board_Message									=3D { id=3D0x51 }
+-gPacketType.kPacket_Post_Message									=3D { id=3D0x52 }
+-gPacketType.kPacket_Login_Reject									=3D { id=3D0x53 }
+-gPacketType.kPacket_Sound											=3D { id=3D0x54 }
+-gPacketType.kPacket_Login_Complete									=3D { id=3D0x55 }
+-gPacketType.kPacket_Map_Command										=3D { id=3D0x56 }
+-gPacketType.kPacket_Update_Regions									=3D { id=3D0x57 }
+-gPacketType.kPacket_New_Region										=3D { id=3D0x58 }
+-gPacketType.kPacket_New_Context_FX									=3D { id=3D0x59 }
+-gPacketType.kPacket_Update_Context_FX								=3D { id=3D0x5A }
+-gPacketType.kPacket_Game_Time										=3D { id=3D0x5B }
+-gPacketType.kPacket_Restart_Ver										=3D { id=3D0x5C }
+-gPacketType.kPacket_Pre_Login										=3D { id=3D0x5D }
+-gPacketType.kPacket_Server_List2									=3D { id=3D0x5E }
+-gPacketType.kPacket_Add_Server										=3D { id=3D0x5F }
+-
+-gPacketType.kPacket_Server_Remove									=3D { id=3D0x60 }
+-gPacketType.kPacket_Destroy_Static									=3D { id=3D0x61 }
+-gPacketType.kPacket_Move_Static										=3D { id=3D0x62 }
+-gPacketType.kPacket_Area_Load										=3D { id=3D0x63 }
+-gPacketType.kPacket_Area_Load_Request								=3D { id=3D0x64 }
+-gPacketType.kPacket_Weather_Change									=3D { id=3D0x65 }
+-gPacketType.kPacket_Book_Contents									=3D { id=3D0x66 }
+-gPacketType.kPacket_Simple_Edit										=3D { id=3D0x67 }
+-gPacketType.kPacket_Script_LS_Attach								=3D { id=3D0x68 }
+-gPacketType.kPacket_Friends											=3D { id=3D0x69 }
+-gPacketType.kPacket_Friend_Notify									=3D { id=3D0x6A }
+-gPacketType.kPacket_Key_Use											=3D { id=3D0x6B }
+-gPacketType.kPacket_Target											=3D { id=3D0x6C }
+-gPacketType.kPacket_Music											=3D { id=3D0x6D }
+-gPacketType.kPacket_Animation										=3D { id=3D0x6E }
+-gPacketType.kPacket_SecureTrade										=3D { id=3D0x6F }
+-
+-gPacketType.kPacket_Effect											=3D { id=3D0x70 }
+-gPacketType.kPacket_Bulletin_Board									=3D { id=3D0x71 }
+-gPacketType.kPacket_SetPlayerWarmode								=3D { id=3D0x72 }
+-gPacketType.kPacket_Ping											=3D { id=3D0x73 }
+-gPacketType.kPacket_Shop_Data										=3D { id=3D0x74 }
+-gPacketType.kPacket_Rename_MOB										=3D { id=3D0x75 }
+-gPacketType.kPacket_Server_Change									=3D { id=3D0x76 }
+-gPacketType.kPacket_Naked_MOB										=3D { id=3D0x77 }
+-gPacketType.kPacket_Equipped_MOB									=3D { id=3D0x78 }
+-gPacketType.kPacket_Resource_Query									=3D { id=3D0x79 }
+-gPacketType.kPacket_Resource_Data									=3D { id=3D0x7A }
+-gPacketType.kPacket_Sequence										=3D { id=3D0x7B }
+-gPacketType.kPacket_Object_Picker									=3D { id=3D0x7C }
+-gPacketType.kPacket_Picked_Object									=3D { id=3D0x7D }
+-gPacketType.kPacket_God_View_Query									=3D { id=3D0x7E }
+-gPacketType.kPacket_God_View_Data									=3D { id=3D0x7F }
+-
+-gPacketType.kPacket_Account_Login_Request							=3D { id=3D0x80 }
+-gPacketType.kPacket_Account_Login_OK								=3D { id=3D0x81 }
+-gPacketType.kPacket_Account_Login_Failed							=3D { id=3D0x82 }
+-gPacketType.kPacket_Account_Delete_Character						=3D { id=3D0x83 }
+-gPacketType.kPacket_Change_Character_Password						=3D { id=3D0x84 }
+-gPacketType.kPacket_Delete_Character_Failed							=3D { id=3D0x85 }
+-gPacketType.kPacket_All_Characters									=3D { id=3D0x86 }
+-gPacketType.kPacket_Send_Resources									=3D { id=3D0x87 }
+-gPacketType.kPacket_Open_Paperdoll									=3D { id=3D0x88 }
+-gPacketType.kPacket_Corpse_Equipment								=3D { id=3D0x89 }
+-gPacketType.kPacket_Trigger_Edit									=3D { id=3D0x8A }
+-gPacketType.kPacket_Display_Sign									=3D { id=3D0x8B }
+-gPacketType.kPacket_Server_Redirect									=3D { id=3D0x8C }
+-gPacketType.kPacket_KR_CharacterCreation							=3D { id=3D0x8D }
+-gPacketType.kPacket_Move_Character									=3D { id=3D0x8E }
+-gPacketType.kPacket_Unused4											=3D { id=3D0x8F }
+-
+-gPacketType.kPacket_Open_Course_Gump								=3D { id=3D0x90 }
+-gPacketType.kPacket_Post_Login										=3D { id=3D0x91 }
+-gPacketType.kPacket_Update_Multi									=3D { id=3D0x92 }
+-gPacketType.kPacket_Book_Header										=3D { id=3D0x93 }
+-gPacketType.kPacket_Update_Skill									=3D { id=3D0x94 }
+-gPacketType.kPacket_Hue_Picker										=3D { id=3D0x95 }
+-gPacketType.kPacket_Game_Central_Monitor							=3D { id=3D0x96 }
+-gPacketType.kPacket_Move_Player										=3D { id=3D0x97 }
+-gPacketType.kPacket_MOB_Name										=3D { id=3D0x98 }
+-gPacketType.kPacket_Target_Multi									=3D { id=3D0x99 }
+-gPacketType.kPacket_Text_Entry										=3D { id=3D0x9A }
+-gPacketType.kPacket_Request_Assistance								=3D { id=3D0x9B }
+-gPacketType.kPacket_Assist_Request									=3D { id=3D0x9C }
+-gPacketType.kPacket_GM_Single										=3D { id=3D0x9D }
+-gPacketType.kPacket_Shop_Sell										=3D { id=3D0x9E }
+-gPacketType.kPacket_Shop_Offer										=3D { id=3D0x9F }
+-
+-gPacketType.kPacket_Server_Select									=3D { id=3D0xA0 }
+-gPacketType.kPacket_HP_Health										=3D { id=3D0xA1 }
+-gPacketType.kPacket_Mana_Health										=3D { id=3D0xA2 }
+-gPacketType.kPacket_Stamina											=3D { id=3D0xA3 }
+-gPacketType.kPacket_Hardware_Info									=3D { id=3D0xA4 }
+-gPacketType.kPacket_Web_Browser										=3D { id=3D0xA5 }
+-gPacketType.kPacket_Message											=3D { id=3D0xA6 }	--Tips/Notice wind=
+ow
+-gPacketType.kPacket_Request_Tip										=3D { id=3D0xA7 }
+-gPacketType.kPacket_Server_List										=3D { id=3D0xA8 } =
+
+-gPacketType.kPacket_Character_List									=3D { id=3D0xA9 }
+-gPacketType.kPacket_Current_Target									=3D { id=3D0xAA }
+-gPacketType.kPacket_String_Query									=3D { id=3D0xAB }
+-gPacketType.kPacket_String_Response									=3D { id=3D0xAC }
+-gPacketType.kPacket_Speech_Unicode									=3D { id=3D0xAD }
+-gPacketType.kPacket_Text_Unicode									=3D { id=3D0xAE }
+-gPacketType.kPacket_Death_Animation									=3D { id=3D0xAF }
+-
+-gPacketType.kPacket_Generic_Gump									=3D { id=3D0xB0 }
+-gPacketType.kPacket_Generic_Gump_Trigger							=3D { id=3D0xB1 }
+-gPacketType.kPacket_Chat_Message									=3D { id=3D0xB2 }
+-gPacketType.kPacket_Chat_Text										=3D { id=3D0xB3 }
+-gPacketType.kPacket_Target_Object_List								=3D { id=3D0xB4 }
+-gPacketType.kPacket_Open_Chat										=3D { id=3D0xB5 }
+-gPacketType.kPacket_Help_Request									=3D { id=3D0xB6 }
+-gPacketType.kPacket_Help_Text										=3D { id=3D0xB7 }
+-gPacketType.kPacket_Character_Profile								=3D { id=3D0xB8 }
+-gPacketType.kPacket_Features										=3D { id=3D0xB9 }
+-gPacketType.kPacket_TrackingArrow									=3D { id=3D0xBA }
+-gPacketType.kPacket_Account_ID										=3D { id=3D0xBB }
+-gPacketType.kPacket_Game_Season										=3D { id=3D0xBC }
+-gPacketType.kPacket_Client_Version									=3D { id=3D0xBD }
+-gPacketType.kPacket_Assist_Version									=3D { id=3D0xBE }
+-gPacketType.kPacket_Generic_Command									=3D { id=3D0xBF }
+-
+-gPacketType.kPacket_Hued_FX											=3D { id=3D0xC0 }
+-gPacketType.kPacket_Localized_Text									=3D { id=3D0xC1 }
+-gPacketType.kPacket_Unicode_Text_Entry								=3D { id=3D0xC2 }
+-gPacketType.kPacket_Global_Queue									=3D { id=3D0xC3 }
+-gPacketType.kPacket_Semivisible										=3D { id=3D0xC4 }
+-gPacketType.kPacket_Invalid_Map										=3D { id=3D0xC5 }
+-gPacketType.kPacket_Invalid_Map_Enable								=3D { id=3D0xC6 }
+-gPacketType.kPacket_Particle_Effect									=3D { id=3D0xC7 }
+-gPacketType.kPacket_Change_Update_Range								=3D { id=3D0xC8 }
+-gPacketType.kPacket_Trip_Time										=3D { id=3D0xC9 }
+-gPacketType.kPacket_UTrip_Time										=3D { id=3D0xCA }
+-gPacketType.kPacket_Global_Queue_Count								=3D { id=3D0xCB }
+-gPacketType.kPacket_Localized_Text_Plus_String						=3D { id=3D0xCC }
+-gPacketType.kPacket_Unknown_God_Packet								=3D { id=3D0xCD }
+-gPacketType.kPacket_IGR_Client										=3D { id=3D0xCE }
+-gPacketType.kPacket_IGR_Login										=3D { id=3D0xCF }
+-
+-gPacketType.kPacket_IGR_Configuration								=3D { id=3D0xD0 }
+-gPacketType.kPacket_IGR_Logout										=3D { id=3D0xD1 }
+-gPacketType.kPacket_Update_Mobile									=3D { id=3D0xD2 }
+-gPacketType.kPacket_Show_Mobile										=3D { id=3D0xD3 }
+-gPacketType.kPacket_Book_Info										=3D { id=3D0xD4 }
+-gPacketType.kPacket_Unknown_Client_Packet							=3D { id=3D0xD5 }
+-gPacketType.kPacket_Mega_Cliloc										=3D { id=3D0xD6 }
+-gPacketType.kPacket_AOS_Command										=3D { id=3D0xD7 }
+-gPacketType.kPacket_Custom_House									=3D { id=3D0xD8 }
+-gPacketType.kPacket_Metrics											=3D { id=3D0xD9 }
+-gPacketType.kPacket_Mahjong											=3D { id=3D0xDA }
+-gPacketType.kPacket_Character_Transfer_Log							=3D { id=3D0xDB }
+-gPacketType.kPacket_AOSObjProp										=3D { id=3D0xDC } -- size was not =
+in necro list
++gPacketType =3D {}
++
++gPacketType.kPacket_CharacterCreation 								=3D { id=3D0x00, size=3D104 }
++gPacketType.kPacket_Logout					 						=3D { id=3D0x01, size=3D5 }
++gPacketType.kPacket_Request_Movement								=3D { id=3D0x02, size=3D7 }
++gPacketType.kPacket_Speech											=3D { id=3D0x03, size=3D0 }
++gPacketType.kPacket_Request_God_Mode								=3D { id=3D0x04, size=3D2 }
++gPacketType.kPacket_Attack											=3D { id=3D0x05, size=3D5 }
++gPacketType.kPacket_Double_Click									=3D { id=3D0x06, size=3D5 }
++gPacketType.kPacket_Take_Object										=3D { id=3D0x07, size=3D7 }
++gPacketType.kPacket_Drop_Object										=3D { id=3D0x08, size=3D14 }
++gPacketType.kPacket_Single_Click									=3D { id=3D0x09, size=3D5 }
++gPacketType.kPacket_Edit											=3D { id=3D0x0A, size=3D11 }
++gPacketType.kPacket_Damage											=3D { id=3D0x0B, size=3D7 }
++gPacketType.kPacket_Tile_Data										=3D { id=3D0x0C, size=3D0 }
++gPacketType.kPacket_NPC_Data										=3D { id=3D0x0D, size=3D3 }
++gPacketType.kPacket_Edit_Template_Data								=3D { id=3D0x0E, size=3D0 }
++gPacketType.kPacket_Paperdoll_Old									=3D { id=3D0x0F, size=3D61 }
++gPacketType.kPacket_Hue_Data										=3D { id=3D0x10, size=3D215 }
++gPacketType.kPacket_Mobile_Stats									=3D { id=3D0x11, size=3D0 }
++gPacketType.kPacket_Request_SkillOrSpell							=3D { id=3D0x12, size=3D0 }
++gPacketType.kPacket_Equip_Item_Request								=3D { id=3D0x13, size=3D10 }
++gPacketType.kPacket_Change_Elevation								=3D { id=3D0x14, size=3D6 }
++gPacketType.kPacket_Follow											=3D { id=3D0x15, size=3D9 }
++gPacketType.kPacket_Request_Script_Names							=3D { id=3D0x16, size=3D1 }
++gPacketType.kPacket_Script_Tree_Command								=3D { id=3D0x17, size=3D0 }
++gPacketType.kPacket_Script_Attach									=3D { id=3D0x18, size=3D0 }
++gPacketType.kPacket_NPC_Conversation_Data							=3D { id=3D0x19, size=3D0 }
++gPacketType.kPacket_Show_Item										=3D { id=3D0x1A, size=3D0 }
++gPacketType.kPacket_Login_Confirm									=3D { id=3D0x1B, size=3D37 }
++gPacketType.kPacket_Text											=3D { id=3D0x1C, size=3D0 }
++gPacketType.kPacket_Destroy											=3D { id=3D0x1D, size=3D5 }
++gPacketType.kPacket_Animate											=3D { id=3D0x1E, size=3D4 }
++gPacketType.kPacket_Explode											=3D { id=3D0x1F, size=3D8 }
++
++gPacketType.kPacket_Teleport										=3D { id=3D0x20, size=3D19 }
++gPacketType.kPacket_Block_Movement									=3D { id=3D0x21, size=3D8 }
++gPacketType.kPacket_Accept_Movement_Resync_Request					=3D { id=3D0x22, si=
+ze=3D3 }
++gPacketType.kPacket_Drag_Item										=3D { id=3D0x23, size=3D26 }
++gPacketType.kPacket_Open_Container									=3D { id=3D0x24, size=3D7 }
++gPacketType.kPacket_Object_to_Object								=3D { id=3D0x25, size=3D20 }
++gPacketType.kPacket_Old_Client										=3D { id=3D0x26, size=3D5 }
++gPacketType.kPacket_Get_Item_Failed									=3D { id=3D0x27, size=3D2 }
++gPacketType.kPacket_Drop_Item_Failed								=3D { id=3D0x28, size=3D5 }
++gPacketType.kPacket_Drop_Item_OK									=3D { id=3D0x29, size=3D1 }
++gPacketType.kPacket_Blood											=3D { id=3D0x2A, size=3D5 }
++gPacketType.kPacket_God_Mode										=3D { id=3D0x2B, size=3D2 }
++gPacketType.kPacket_Death											=3D { id=3D0x2C, size=3D2 }
++gPacketType.kPacket_Health											=3D { id=3D0x2D, size=3D17 }
++gPacketType.kPacket_Equip_Item										=3D { id=3D0x2E, size=3D15 }
++gPacketType.kPacket_Swing											=3D { id=3D0x2F, size=3D10 }
++
++gPacketType.kPacket_Attack_OK										=3D { id=3D0x30, size=3D5 }
++gPacketType.kPacket_Attack_End										=3D { id=3D0x31, size=3D1 }
++gPacketType.kPacket_Hack_Mover										=3D { id=3D0x32, size=3D2 }
++gPacketType.kPacket_Group											=3D { id=3D0x33, size=3D2 }
++gPacketType.kPacket_Client_Query									=3D { id=3D0x34, size=3D10 }
++gPacketType.kPacket_Resource_Type									=3D { id=3D0x35, size=3D653 }
++gPacketType.kPacket_Resource_Tile_Data								=3D { id=3D0x36, size=3D0 }
++gPacketType.kPacket_Move_Object										=3D { id=3D0x37, size=3D8 }
++gPacketType.kPacket_Follow_Move										=3D { id=3D0x38, size=3D7 }
++gPacketType.kPacket_Groups											=3D { id=3D0x39, size=3D9 }
++gPacketType.kPacket_Skills											=3D { id=3D0x3A, size=3D0 }
++gPacketType.kPacket_Accept_Offer									=3D { id=3D0x3B, size=3D0 }
++gPacketType.kPacket_Container_Contents								=3D { id=3D0x3C, size=3D0 }
++gPacketType.kPacket_Ship											=3D { id=3D0x3D, size=3D2 }
++gPacketType.kPacket_Versions										=3D { id=3D0x3E, size=3D37 }
++gPacketType.kPacket_Update_Statics									=3D { id=3D0x3F, size=3D0 }
++
++gPacketType.kPacket_Update_Terrain									=3D { id=3D0x40, size=3D201 }
++gPacketType.kPacket_Update_Tiledata									=3D { id=3D0x41, size=3D0 }
++gPacketType.kPacket_Update_Art										=3D { id=3D0x42, size=3D0 }
++gPacketType.kPacket_Update_Anim										=3D { id=3D0x43, size=3D553 }
++gPacketType.kPacket_Update_Hues										=3D { id=3D0x44, size=3D713 }
++gPacketType.kPacket_Ver_OK											=3D { id=3D0x45, size=3D5 }
++gPacketType.kPacket_New_Art											=3D { id=3D0x46, size=3D0 }
++gPacketType.kPacket_New_Terrain										=3D { id=3D0x47, size=3D11 }
++gPacketType.kPacket_New_Anim										=3D { id=3D0x48, size=3D73 }
++gPacketType.kPacket_New_Hues										=3D { id=3D0x49, size=3D93 }
++gPacketType.kPacket_Destroy_Art										=3D { id=3D0x4A, size=3D5 }
++gPacketType.kPacket_Check_Ver										=3D { id=3D0x4B, size=3D9 }
++gPacketType.kPacket_Script_Names									=3D { id=3D0x4C, size=3D0 }
++gPacketType.kPacket_Script_File										=3D { id=3D0x4D, size=3D0 }
++gPacketType.kPacket_Light_Change									=3D { id=3D0x4E, size=3D6 }
++gPacketType.kPacket_Sunlight										=3D { id=3D0x4F, size=3D2 }
++
++gPacketType.kPacket_Board_Header									=3D { id=3D0x50, size=3D0 }
++gPacketType.kPacket_Board_Message									=3D { id=3D0x51, size=3D0 }
++gPacketType.kPacket_Post_Message									=3D { id=3D0x52, size=3D0 }
++gPacketType.kPacket_Login_Reject									=3D { id=3D0x53, size=3D2 }
++gPacketType.kPacket_Sound											=3D { id=3D0x54, size=3D12 }
++gPacketType.kPacket_Login_Complete									=3D { id=3D0x55, size=3D1 }
++gPacketType.kPacket_Map_Command										=3D { id=3D0x56, size=3D11 }
++gPacketType.kPacket_Update_Regions									=3D { id=3D0x57, size=3D110 }
++gPacketType.kPacket_New_Region										=3D { id=3D0x58, size=3D106 }
++gPacketType.kPacket_New_Context_FX									=3D { id=3D0x59, size=3D0 }
++gPacketType.kPacket_Update_Context_FX								=3D { id=3D0x5A, size=3D0 }
++gPacketType.kPacket_Game_Time										=3D { id=3D0x5B, size=3D4 }
++gPacketType.kPacket_Restart_Ver										=3D { id=3D0x5C, size=3D2 }
++gPacketType.kPacket_Pre_Login										=3D { id=3D0x5D, size=3D73 }
++gPacketType.kPacket_Server_List2									=3D { id=3D0x5E, size=3D0 }
++gPacketType.kPacket_Add_Server										=3D { id=3D0x5F, size=3D49 }
++
++gPacketType.kPacket_Server_Remove									=3D { id=3D0x60, size=3D5 }
++gPacketType.kPacket_Destroy_Static									=3D { id=3D0x61, size=3D9 }
++gPacketType.kPacket_Move_Static										=3D { id=3D0x62, size=3D15 }
++gPacketType.kPacket_Area_Load										=3D { id=3D0x63, size=3D13 }
++gPacketType.kPacket_Area_Load_Request								=3D { id=3D0x64, size=3D1 }
++gPacketType.kPacket_Weather_Change									=3D { id=3D0x65, size=3D4 }
++gPacketType.kPacket_Book_Contents									=3D { id=3D0x66, size=3D0 }
++gPacketType.kPacket_Simple_Edit										=3D { id=3D0x67, size=3D21 }
++gPacketType.kPacket_Script_LS_Attach								=3D { id=3D0x68, size=3D0 }
++gPacketType.kPacket_Friends											=3D { id=3D0x69, size=3D0 }
++gPacketType.kPacket_Friend_Notify									=3D { id=3D0x6A, size=3D3 }
++gPacketType.kPacket_Key_Use											=3D { id=3D0x6B, size=3D9 }
++gPacketType.kPacket_Target											=3D { id=3D0x6C, size=3D19 }
++gPacketType.kPacket_Music											=3D { id=3D0x6D, size=3D3 }
++gPacketType.kPacket_Animation										=3D { id=3D0x6E, size=3D14 }
++gPacketType.kPacket_SecureTrade										=3D { id=3D0x6F, size=3D0 }
++
++gPacketType.kPacket_Effect											=3D { id=3D0x70, size=3D28 }
++gPacketType.kPacket_Bulletin_Board									=3D { id=3D0x71, size=3D0 }
++gPacketType.kPacket_SetPlayerWarmode								=3D { id=3D0x72, size=3D5 }
++gPacketType.kPacket_Ping											=3D { id=3D0x73, size=3D2 }
++gPacketType.kPacket_Shop_Data										=3D { id=3D0x74, size=3D0 }
++gPacketType.kPacket_Rename_MOB										=3D { id=3D0x75, size=3D35 }
++gPacketType.kPacket_Server_Change									=3D { id=3D0x76, size=3D16 }
++gPacketType.kPacket_Naked_MOB										=3D { id=3D0x77, size=3D17 }
++gPacketType.kPacket_Equipped_MOB									=3D { id=3D0x78, size=3D0 }
++gPacketType.kPacket_Resource_Query									=3D { id=3D0x79, size=3D9 }
++gPacketType.kPacket_Resource_Data									=3D { id=3D0x7A, size=3D0 }
++gPacketType.kPacket_Sequence										=3D { id=3D0x7B, size=3D2 }
++gPacketType.kPacket_Object_Picker									=3D { id=3D0x7C, size=3D0 }
++gPacketType.kPacket_Picked_Object									=3D { id=3D0x7D, size=3D13 }
++gPacketType.kPacket_God_View_Query									=3D { id=3D0x7E, size=3D2 }
++gPacketType.kPacket_God_View_Data									=3D { id=3D0x7F, size=3D0 }
++
++gPacketType.kPacket_Account_Login_Request							=3D { id=3D0x80, size=3D62=
+ }
++gPacketType.kPacket_Account_Login_OK								=3D { id=3D0x81, size=3D0 }
++gPacketType.kPacket_Account_Login_Failed							=3D { id=3D0x82, size=3D2 }
++gPacketType.kPacket_Account_Delete_Character						=3D { id=3D0x83, size=3D=
+39 }
++gPacketType.kPacket_Change_Character_Password						=3D { id=3D0x84, size=
+=3D69 }
++gPacketType.kPacket_Delete_Character_Failed							=3D { id=3D0x85, size=3D=
+2 }
++gPacketType.kPacket_All_Characters									=3D { id=3D0x86, size=3D0 }
++gPacketType.kPacket_Send_Resources									=3D { id=3D0x87, size=3D0 }
++gPacketType.kPacket_Open_Paperdoll									=3D { id=3D0x88, size=3D66 }
++gPacketType.kPacket_Corpse_Equipment								=3D { id=3D0x89, size=3D0 }
++gPacketType.kPacket_Trigger_Edit									=3D { id=3D0x8A, size=3D0 }
++gPacketType.kPacket_Display_Sign									=3D { id=3D0x8B, size=3D0 }
++gPacketType.kPacket_Server_Redirect									=3D { id=3D0x8C, size=3D11 }
++gPacketType.kPacket_KR_CharacterCreation							=3D { id=3D0x8D, size=3D0 }
++gPacketType.kPacket_Move_Character									=3D { id=3D0x8E, size=3D0 }
++gPacketType.kPacket_Unused4											=3D { id=3D0x8F, size=3D0 }
++
++gPacketType.kPacket_Open_Course_Gump								=3D { id=3D0x90, size=3D19 }
++gPacketType.kPacket_Post_Login										=3D { id=3D0x91, size=3D65 }
++gPacketType.kPacket_Update_Multi									=3D { id=3D0x92, size=3D0 }
++gPacketType.kPacket_Book_Header										=3D { id=3D0x93, size=3D99 }
++gPacketType.kPacket_Update_Skill									=3D { id=3D0x94, size=3D0 }
++gPacketType.kPacket_Hue_Picker										=3D { id=3D0x95, size=3D9 }
++gPacketType.kPacket_Game_Central_Monitor							=3D { id=3D0x96, size=3D0 }
++gPacketType.kPacket_Move_Player										=3D { id=3D0x97, size=3D2 }
++gPacketType.kPacket_MOB_Name										=3D { id=3D0x98, size=3D0 }
++gPacketType.kPacket_Target_Multi									=3D { id=3D0x99, size=3D26 }
++gPacketType.kPacket_Text_Entry										=3D { id=3D0x9A, size=3D0 }
++gPacketType.kPacket_Request_Assistance								=3D { id=3D0x9B, size=3D258 }
++gPacketType.kPacket_Assist_Request									=3D { id=3D0x9C, size=3D309 }
++gPacketType.kPacket_GM_Single										=3D { id=3D0x9D, size=3D51 }
++gPacketType.kPacket_Shop_Sell										=3D { id=3D0x9E, size=3D0 }
++gPacketType.kPacket_Shop_Offer										=3D { id=3D0x9F, size=3D0 }
++
++gPacketType.kPacket_Server_Select									=3D { id=3D0xA0, size=3D3 }
++gPacketType.kPacket_HP_Health										=3D { id=3D0xA1, size=3D9 }
++gPacketType.kPacket_Mana_Health										=3D { id=3D0xA2, size=3D9 }
++gPacketType.kPacket_Stamina											=3D { id=3D0xA3, size=3D9 }
++gPacketType.kPacket_Hardware_Info									=3D { id=3D0xA4, size=3D149 }
++gPacketType.kPacket_Web_Browser										=3D { id=3D0xA5, size=3D0 }
++gPacketType.kPacket_Message											=3D { id=3D0xA6, size=3D0 }	--Tips/N=
+otice window
++gPacketType.kPacket_Request_Tip										=3D { id=3D0xA7, size=3D4 }
++gPacketType.kPacket_Server_List										=3D { id=3D0xA8, size=3D0 } =
+
++gPacketType.kPacket_Character_List									=3D { id=3D0xA9, size=3D0 }
++gPacketType.kPacket_Current_Target									=3D { id=3D0xAA, size=3D5 }
++gPacketType.kPacket_String_Query									=3D { id=3D0xAB, size=3D0 }
++gPacketType.kPacket_String_Response									=3D { id=3D0xAC, size=3D0 }
++gPacketType.kPacket_Speech_Unicode									=3D { id=3D0xAD, size=3D0 }
++gPacketType.kPacket_Text_Unicode									=3D { id=3D0xAE, size=3D0 }
++gPacketType.kPacket_Death_Animation									=3D { id=3D0xAF, size=3D13 }
++
++gPacketType.kPacket_Generic_Gump									=3D { id=3D0xB0, size=3D0 }
++gPacketType.kPacket_Generic_Gump_Trigger							=3D { id=3D0xB1, size=3D0 }
++gPacketType.kPacket_Chat_Message									=3D { id=3D0xB2, size=3D0 }
++gPacketType.kPacket_Chat_Text										=3D { id=3D0xB3, size=3D0 }
++gPacketType.kPacket_Target_Object_List								=3D { id=3D0xB4, size=3D0 }
++gPacketType.kPacket_Open_Chat										=3D { id=3D0xB5, size=3D64 }
++gPacketType.kPacket_Help_Request									=3D { id=3D0xB6, size=3D9 }
++gPacketType.kPacket_Help_Text										=3D { id=3D0xB7, size=3D0 }
++gPacketType.kPacket_Character_Profile								=3D { id=3D0xB8, size=3D0 }
++gPacketType.kPacket_Features										=3D { id=3D0xB9, size=3D3 }
++gPacketType.kPacket_TrackingArrow									=3D { id=3D0xBA, size=3D6 }
++gPacketType.kPacket_Account_ID										=3D { id=3D0xBB, size=3D9 }
++gPacketType.kPacket_Game_Season										=3D { id=3D0xBC, size=3D3 }
++gPacketType.kPacket_Client_Version									=3D { id=3D0xBD, size=3D0 }
++gPacketType.kPacket_Assist_Version									=3D { id=3D0xBE, size=3D0 }
++gPacketType.kPacket_Generic_Command									=3D { id=3D0xBF, size=3D0 }
++
++gPacketType.kPacket_Hued_FX											=3D { id=3D0xC0, size=3D36 }
++gPacketType.kPacket_Localized_Text									=3D { id=3D0xC1, size=3D0 }
++gPacketType.kPacket_Unicode_Text_Entry								=3D { id=3D0xC2, size=3D0 }
++gPacketType.kPacket_Global_Queue									=3D { id=3D0xC3, size=3D0 }
++gPacketType.kPacket_Semivisible										=3D { id=3D0xC4, size=3D6 }
++gPacketType.kPacket_Invalid_Map										=3D { id=3D0xC5, size=3D203 }
++gPacketType.kPacket_Invalid_Map_Enable								=3D { id=3D0xC6, size=3D1 }
++gPacketType.kPacket_Particle_Effect									=3D { id=3D0xC7, size=3D49 }
++gPacketType.kPacket_Change_Update_Range								=3D { id=3D0xC8, size=3D2 }
++gPacketType.kPacket_Trip_Time										=3D { id=3D0xC9, size=3D6 }
++gPacketType.kPacket_UTrip_Time										=3D { id=3D0xCA, size=3D6 }
++gPacketType.kPacket_Global_Queue_Count								=3D { id=3D0xCB, size=3D7 }
++gPacketType.kPacket_Localized_Text_Plus_String						=3D { id=3D0xCC, size=
+=3D0 }
++gPacketType.kPacket_Unknown_God_Packet								=3D { id=3D0xCD, size=3D1 }
++gPacketType.kPacket_IGR_Client										=3D { id=3D0xCE, size=3D0 }
++gPacketType.kPacket_IGR_Login										=3D { id=3D0xCF, size=3D78 }
++
++gPacketType.kPacket_IGR_Configuration								=3D { id=3D0xD0, size=3D0 }
++gPacketType.kPacket_IGR_Logout										=3D { id=3D0xD1, size=3D2 }
++gPacketType.kPacket_Update_Mobile									=3D { id=3D0xD2, size=3D25 }
++gPacketType.kPacket_Show_Mobile										=3D { id=3D0xD3, size=3D0 }
++gPacketType.kPacket_Book_Info										=3D { id=3D0xD4, size=3D0 }
++gPacketType.kPacket_Unknown_Client_Packet							=3D { id=3D0xD5, size=3D0 }
++gPacketType.kPacket_Mega_Cliloc										=3D { id=3D0xD6, size=3D0 }
++gPacketType.kPacket_AOS_Command										=3D { id=3D0xD7, size=3D0 }
++gPacketType.kPacket_Custom_House									=3D { id=3D0xD8, size=3D0 }
++gPacketType.kPacket_Metrics											=3D { id=3D0xD9, size=3D268 }
++gPacketType.kPacket_Mahjong											=3D { id=3D0xDA, size=3D0 }
++gPacketType.kPacket_Character_Transfer_Log							=3D { id=3D0xDB, size=3D0=
+ }
++gPacketType.kPacket_AOSObjProp										=3D { id=3D0xDC, size=3D9 } -- siz=
+e was not in necro list
+ -- dd df (compressed gump und buff system)
+-gPacketType.kPacket_Compressed_Gump									=3D { id=3D0xDD }
++gPacketType.kPacket_Compressed_Gump									=3D { id=3D0xDD, size=3D0 }
+ -- unknown yet
+-gPacketType.kPacket_unknownDEpacket									=3D { id=3D0xDE }
++gPacketType.kPacket_unknownDEpacket									=3D { id=3D0xDE, size=3D0 }
+ -- buff/debuff packet
+-gPacketType.kPacket_BuffDebuff_System								=3D { id=3D0xDF }
+-gPacketType.kPacket_ExtBundledPacket								=3D { id=3D0xF0 } -- party pos=
+itions, used by razor positioning system
++gPacketType.kPacket_BuffDebuff_System								=3D { id=3D0xDF, size=3D0 }
++gPacketType.kPacket_ExtBundledPacket								=3D { id=3D0xF0, size=3D0 } --=
+ party positions, used by razor positioning system
++
++gPacketSizeOverride6017 =3D {[0x25]=3D21,[0x08]=3D15,} -- 0x3C is changed =
+as well, but was dynamic anyway
++
++gPacketSizeByID =3D {}
++for k,v in pairs(gPacketType) do gPacketSizeByID[v.id] =3D v.size end
++
++gPacketTypeId2Name =3D {}
++for k,v in pairs(gPacketType) do gPacketTypeId2Name[v.id] =3D k end
++
++-- make names available as global constants, like kPacket_Account_Login_Re=
+quest, needed for sending
++for k,v in pairs(gPacketType) do _G[k] =3D v.id end =
+
++
++function InitPackets ()
++	if (ClientVersionIsPost6017()) then =
+
++		print(&quot;initializing packets for 6.0.1.7 or later&quot;)
++		for id,newsize in pairs(gPacketSizeOverride6017) do gPacketSizeByID[id] =
+=3D newsize end
++		--~ os.exit(0)
++	end
++end
++	=
+
++-- changed NecroPacketData - (0x0B oldsize=3D&quot;0x010A&quot; , damage packet)
++-- packet sizes from necrotoolz.sourceforge.net/kairpacketguide/index.html=
+ (0 means dynamic) contains all sizes from 0x00 to 0xDB
+ =
+
+ --[[
+ gPacketType.kPacket_								=3D { id=3D0xE0 }
+@@ -257,7 +281,6 @@
+ gPacketType.kPacket_								=3D { id=3D0xEE }
+ gPacketType.kPacket_								=3D { id=3D0xEF }
+ =
+
+-gPacketType.kPacket_								=3D { id=3D0xF0 }
+ gPacketType.kPacket_								=3D { id=3D0xF1 }
+ gPacketType.kPacket_								=3D { id=3D0xF2 }
+ gPacketType.kPacket_								=3D { id=3D0xF3 }
+
+Modified: trunk/lua/lib.protocol.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.protocol.lua (original)
++++ trunk/lua/lib.protocol.lua Sat Feb  7 15:21:20 2009
+@@ -1,4 +1,8 @@
+ -- handles the interpretation of the uo protocol (fixed &amp; dynamic packetsi=
+zes, calling receive handlers, logging, ...)
++
++-- register packet types
++dofile(libpath .. &quot;lib.packet.lua&quot;)
++
+ =
+
+ gCharacterList =3D {}
+ gCities =3D {}
+@@ -6,47 +10,19 @@
+ -- register packet handlers
+ gPacketHandler =3D {}
+ =
+
++gNoLogPackets =3D { kPacket_Ping } -- can be used to shorten the standard =
+log for every packet
++
+ =
+
+ function ClientVersionIsPost6017	() return ClientVersionIsPost(6017) end -=
+- see <A HREF="http://iris2.de/index.php/Clientversion_6.0.1.7_and_later">http://iris2.de/index.php/Clientversion_6.0.1.7_and_later</A>
+ function GetClientVersionAsNumber	() return tonumber((string.gsub(gClientV=
+ersion,&quot;%D&quot;,&quot;&quot;))) end -- gClientVersion =3D &quot;6.0.1.6&quot;
+ function ClientVersionIsPost		(version) return GetClientVersionAsNumber() =
+&gt;<i>=3D version end
+</I> =
+
+ =
+
+--- changed NecroPacketData - (0x0B oldsize=3D&quot;0x010A&quot; , damage packet)
+--- packet sizes from necrotoolz.sourceforge.net/kairpacketguide/index.html=
+ (0 means dynamic) contains all sizes from 0x00 to 0xDB
+-gNecroPacketData_ID 	=3D {  &quot;0x00&quot;,  &quot;0x01&quot;,  &quot;0x02&quot;,  &quot;0x03&quot;,  &quot;0x04&quot;,  &quot;=
+0x05&quot;,  &quot;0x06&quot;,  &quot;0x07&quot;,  &quot;0x08&quot;,  &quot;0x09&quot;,  &quot;0x0A&quot;,  &quot;0x0B&quot;,  &quot;0x0C&quot;,  &quot;0x0=
+D&quot;,  &quot;0x0E&quot;,  &quot;0x0F&quot;,  &quot;0x10&quot;,  &quot;0x11&quot;,  &quot;0x12&quot;,  &quot;0x13&quot;,  &quot;0x14&quot;,  &quot;0x15&quot;,=
+  &quot;0x16&quot;,  &quot;0x17&quot;,  &quot;0x18&quot;,  &quot;0x19&quot;,  &quot;0x1A&quot;,  &quot;0x1B&quot;,  &quot;0x1C&quot;,  &quot;0x1D&quot;,  &quot;=
+0x1E&quot;,  &quot;0x1F&quot;,  &quot;0x20&quot;,  &quot;0x21&quot;,  &quot;0x22&quot;,  &quot;0x23&quot;,  &quot;0x24&quot;,  &quot;0x25&quot;,  &quot;0x2=
+6&quot;,  &quot;0x27&quot;,  &quot;0x28&quot;,  &quot;0x29&quot;,  &quot;0x2A&quot;,  &quot;0x2B&quot;,  &quot;0x2C&quot;,  &quot;0x2D&quot;,  &quot;0x2E&quot;,=
+  &quot;0x2F&quot;,  &quot;0x30&quot;,  &quot;0x31&quot;,  &quot;0x32&quot;,  &quot;0x33&quot;,  &quot;0x34&quot;,  &quot;0x35&quot;,  &quot;0x36&quot;,  &quot;=
+0x37&quot;,  &quot;0x38&quot;,  &quot;0x39&quot;,  &quot;0x3A&quot;,  &quot;0x3B&quot;,  &quot;0x3C&quot;,  &quot;0x3D&quot;,  &quot;0x3E&quot;,  &quot;0x3=
+F&quot;,  &quot;0x40&quot;,  &quot;0x41&quot;,  &quot;0x42&quot;,  &quot;0x43&quot;,  &quot;0x44&quot;,  &quot;0x45&quot;,  &quot;0x46&quot;,  &quot;0x47&quot;,=
+  &quot;0x48&quot;,  &quot;0x49&quot;,  &quot;0x4A&quot;,  &quot;0x4B&quot;,  &quot;0x4C&quot;,  &quot;0x4D&quot;,  &quot;0x4E&quot;,  &quot;0x4F&quot;,  &quot;=
+0x50&quot;,  &quot;0x51&quot;,  &quot;0x52&quot;,  &quot;0x53&quot;,  &quot;0x54&quot;,  &quot;0x55&quot;,  &quot;0x56&quot;,  &quot;0x57&quot;,  &quot;0x5=
+8&quot;,  &quot;0x59&quot;,  &quot;0x5A&quot;,  &quot;0x5B&quot;,  &quot;0x5C&quot;,  &quot;0x5D&quot;,  &quot;0x5E&quot;,  &quot;0x5F&quot;,  &quot;0x60&quot;,=
+  &quot;0x61&quot;,  &quot;0x62&quot;,  &quot;0x63&quot;,  &quot;0x64&quot;,  &quot;0x65&quot;,  &quot;0x66&quot;,  &quot;0x67&quot;,  &quot;0x68&quot;,  &quot;=
+0x69&quot;,  &quot;0x6A&quot;,  &quot;0x6B&quot;,  &quot;0x6C&quot;,  &quot;0x6D&quot;,  &quot;0x6E&quot;,  &quot;0x6F&quot;,  &quot;0x70&quot;,  &quot;0x7=
+1&quot;,  &quot;0x72&quot;,  &quot;0x73&quot;,  &quot;0x74&quot;,  &quot;0x75&quot;,  &quot;0x76&quot;,  &quot;0x77&quot;,  &quot;0x78&quot;,  &quot;0x79&quot;,=
+  &quot;0x7A&quot;,  &quot;0x7B&quot;,  &quot;0x7C&quot;,  &quot;0x7D&quot;,  &quot;0x7E&quot;,  &quot;0x7F&quot;,  &quot;0x80&quot;,  &quot;0x81&quot;,  &quot;=
+0x82&quot;,  &quot;0x83&quot;,  &quot;0x84&quot;,  &quot;0x85&quot;,  &quot;0x86&quot;,  &quot;0x87&quot;,  &quot;0x88&quot;,  &quot;0x89&quot;,  &quot;0x8=
+A&quot;,  &quot;0x8B&quot;,  &quot;0x8C&quot;,  &quot;0x8D&quot;,  &quot;0x8E&quot;,  &quot;0x8F&quot;,  &quot;0x90&quot;,  &quot;0x91&quot;,  &quot;0x92&quot;,=
+  &quot;0x93&quot;,  &quot;0x94&quot;,  &quot;0x95&quot;,  &quot;0x96&quot;,  &quot;0x97&quot;,  &quot;0x98&quot;,  &quot;0x99&quot;,  &quot;0x9A&quot;,  &quot;=
+0x9B&quot;,  &quot;0x9C&quot;,  &quot;0x9D&quot;,  &quot;0x9E&quot;,  &quot;0x9F&quot;,  &quot;0xA0&quot;,  &quot;0xA1&quot;,  &quot;0xA2&quot;,  &quot;0xA=
+3&quot;,  &quot;0xA4&quot;,  &quot;0xA5&quot;,  &quot;0xA6&quot;,  &quot;0xA7&quot;,  &quot;0xA8&quot;,  &quot;0xA9&quot;,  &quot;0xAA&quot;,  &quot;0xAB&quot;,=
+  &quot;0xAC&quot;,  &quot;0xAD&quot;,  &quot;0xAE&quot;,  &quot;0xAF&quot;,  &quot;0xB0&quot;,  &quot;0xB1&quot;,  &quot;0xB2&quot;,  &quot;0xB3&quot;,  &quot;=
+0xB4&quot;,  &quot;0xB5&quot;,  &quot;0xB6&quot;,  &quot;0xB7&quot;,  &quot;0xB8&quot;,  &quot;0xB9&quot;,  &quot;0xBA&quot;,  &quot;0xBB&quot;,  &quot;0xB=
+C&quot;,  &quot;0xBD&quot;,  &quot;0xBE&quot;,  &quot;0xBF&quot;,  &quot;0xC0&quot;,  &quot;0xC1&quot;,  &quot;0xC2&quot;,  &quot;0xC3&quot;,  &quot;0xC4&quot;,=
+  &quot;0xC5&quot;,  &quot;0xC6&quot;,  &quot;0xC7&quot;,  &quot;0xC8&quot;,  &quot;0xC9&quot;,  &quot;0xCA&quot;,  &quot;0xCB&quot;,  &quot;0xCC&quot;,  &quot;=
+0xCD&quot;,  &quot;0xCE&quot;,  &quot;0xCF&quot;,  &quot;0xD0&quot;,  &quot;0xD1&quot;,  &quot;0xD2&quot;,  &quot;0xD3&quot;,  &quot;0xD4&quot;,  &quot;0xD=
+5&quot;,  &quot;0xD6&quot;,  &quot;0xD7&quot;,  &quot;0xD8&quot;,  &quot;0xD9&quot;,  &quot;0xDA&quot;,  &quot;0xDB&quot;,  &quot;0xDC&quot;,
+-  &quot;0xDD&quot;, &quot;0xDE&quot;, &quot;0xDF&quot;,  &quot;0xF0&quot;}
+-gNecroPacketData_Size 	=3D {&quot;0x0068&quot;,&quot;0x0005&quot;,&quot;0x0007&quot;,     &quot;0&quot;,&quot;0x0002&quot;,&quot;=
+0x0005&quot;,&quot;0x0005&quot;,&quot;0x0007&quot;,&quot;0x000E&quot;,&quot;0x0005&quot;,&quot;0x000B&quot;,&quot;0x0007&quot;,     &quot;0&quot;,&quot;0x0=
+003&quot;,     &quot;0&quot;,&quot;0x003D&quot;,&quot;0x00D7&quot;,     &quot;0&quot;,     &quot;0&quot;,&quot;0x000A&quot;,&quot;0x0006&quot;,&quot;0x0009=
+&quot;,&quot;0x0001&quot;,     &quot;0&quot;,     &quot;0&quot;,     &quot;0&quot;,     &quot;0&quot;,&quot;0x0025&quot;,     &quot;0&quot;,&quot;0x0005&quot;,&quot;=
+0x0004&quot;,&quot;0x0008&quot;,&quot;0x0013&quot;,&quot;0x0008&quot;,&quot;0x0003&quot;,&quot;0x001A&quot;,&quot;0x0007&quot;,&quot;0x0014&quot;,&quot;0x0=
+005&quot;,&quot;0x0002&quot;,&quot;0x0005&quot;,&quot;0x0001&quot;,&quot;0x0005&quot;,&quot;0x0002&quot;,&quot;0x0002&quot;,&quot;0x0011&quot;,&quot;0x000F=
+&quot;,&quot;0x000A&quot;,&quot;0x0005&quot;,&quot;0x0001&quot;,&quot;0x0002&quot;,&quot;0x0002&quot;,&quot;0x000A&quot;,&quot;0x028D&quot;,     &quot;0&quot;,&quot;=
+0x0008&quot;,&quot;0x0007&quot;,&quot;0x0009&quot;,     &quot;0&quot;,     &quot;0&quot;,     &quot;0&quot;,&quot;0x0002&quot;,&quot;0x0025&quot;,    =
+ &quot;0&quot;,&quot;0x00C9&quot;,     &quot;0&quot;,     &quot;0&quot;,&quot;0x0229&quot;,&quot;0x02C9&quot;,&quot;0x0005&quot;,     &quot;0&quot;,&quot;0x000B=
+&quot;,&quot;0x0049&quot;,&quot;0x005D&quot;,&quot;0x0005&quot;,&quot;0x0009&quot;,     &quot;0&quot;,     &quot;0&quot;,&quot;0x0006&quot;,&quot;0x0002&quot;, =
+    &quot;0&quot;,     &quot;0&quot;,     &quot;0&quot;,&quot;0x0002&quot;,&quot;0x000C&quot;,&quot;0x0001&quot;,&quot;0x000B&quot;,&quot;0x006E&quot;,&quot;0x0=
+06A&quot;,     &quot;0&quot;,     &quot;0&quot;,&quot;0x0004&quot;,&quot;0x0002&quot;,&quot;0x0049&quot;,     &quot;0&quot;,&quot;0x0031&quot;,&quot;0x0005=
+&quot;,&quot;0x0009&quot;,&quot;0x000F&quot;,&quot;0x000D&quot;,&quot;0x0001&quot;,&quot;0x0004&quot;,     &quot;0&quot;,&quot;0x0015&quot;,     &quot;0&quot;, =
+    &quot;0&quot;,&quot;0x0003&quot;,&quot;0x0009&quot;,&quot;0x0013&quot;,&quot;0x0003&quot;,&quot;0x000E&quot;,     &quot;0&quot;,&quot;0x001C&quot;,    =
+ &quot;0&quot;,&quot;0x0005&quot;,&quot;0x0002&quot;,     &quot;0&quot;,&quot;0x0023&quot;,&quot;0x0010&quot;,&quot;0x0011&quot;,     &quot;0&quot;,&quot;0x0009=
+&quot;,     &quot;0&quot;,&quot;0x0002&quot;,     &quot;0&quot;,&quot;0x000D&quot;,&quot;0x0002&quot;,     &quot;0&quot;,&quot;0x003E&quot;,     &quot;0&quot;,&quot;=
+0x0002&quot;,&quot;0x0027&quot;,&quot;0x0045&quot;,&quot;0x0002&quot;,     &quot;0&quot;,     &quot;0&quot;,&quot;0x0042&quot;,     &quot;0&quot;,    =
+ &quot;0&quot;,     &quot;0&quot;,&quot;0x000B&quot;,     &quot;0&quot;,     &quot;0&quot;,     &quot;0&quot;,&quot;0x0013&quot;,&quot;0x0041&quot;,     &quot;0=
+&quot;,&quot;0x0063&quot;,     &quot;0&quot;,&quot;0x0009&quot;,     &quot;0&quot;,&quot;0x0002&quot;,     &quot;0&quot;,&quot;0x001A&quot;,     &quot;0&quot;,&quot;=
+0x0102&quot;,&quot;0x0135&quot;,&quot;0x0033&quot;,     &quot;0&quot;,     &quot;0&quot;,&quot;0x0003&quot;,&quot;0x0009&quot;,&quot;0x0009&quot;,&quot;0x0=
+009&quot;,&quot;0x0095&quot;,     &quot;0&quot;,     &quot;0&quot;,&quot;0x0004&quot;,     &quot;0&quot;,     &quot;0&quot;,&quot;0x0005&quot;,     &quot;0=
+&quot;,     &quot;0&quot;,     &quot;0&quot;,     &quot;0&quot;,&quot;0x000D&quot;,     &quot;0&quot;,     &quot;0&quot;,     &quot;0&quot;,     &quot;0&quot;, =
+    &quot;0&quot;,&quot;0x0040&quot;,&quot;0x0009&quot;,     &quot;0&quot;,     &quot;0&quot;,&quot;0x0003&quot;,&quot;0x0006&quot;,&quot;0x0009&quot;,&quot;0x0=
+003&quot;,     &quot;0&quot;,     &quot;0&quot;,     &quot;0&quot;,&quot;0x0024&quot;,     &quot;0&quot;,     &quot;0&quot;,     &quot;0&quot;,&quot;0x0006=
+&quot;,&quot;0x00CB&quot;,&quot;0x0001&quot;,&quot;0x0031&quot;,&quot;0x0002&quot;,&quot;0x0006&quot;,&quot;0x0006&quot;,&quot;0x0007&quot;,     &quot;0&quot;,&quot;=
+0x0001&quot;,     &quot;0&quot;,&quot;0x004E&quot;,     &quot;0&quot;,&quot;0x0002&quot;,&quot;0x0019&quot;,     &quot;0&quot;,     &quot;0&quot;,    =
+ &quot;0&quot;,     &quot;0&quot;,     &quot;0&quot;,     &quot;0&quot;,&quot;0x010C&quot;,     &quot;0&quot;,     &quot;0&quot;,&quot;0x0009&quot;,
+-     &quot;0&quot;,    &quot;0&quot;,    &quot;0&quot;,     &quot;0&quot;}
+-
+-gNecroPacketSize =3D {}
+-for i =3D 1,table.getn(gNecroPacketData_ID) do =
+
+-	gNecroPacketSize[hex2num(gNecroPacketData_ID[i])] =3D hex2num(gNecroPacke=
+tData_Size[i]) =
+
+-end
+-gNoLogPackets =3D { kPacket_Ping } -- can be used to shorten the standard =
+log for every packet
+-
+-	=
+
+--- register packet types
+-	gPacketType =3D {}
+-	gPacketSizeById =3D {}
+-	gPacketTypeId2Name =3D {}
+-	dofile(libpath .. &quot;lib.packet.lua&quot;)
+-	-- register packets type with size set : if(v.size) is true for size=3D0,=
+ this is no mistake here, packets with size 0 should be registered, =
+
+-	-- those with size not set =3D nil should not be registered, and if (v.si=
+ze) is false for size=3Dnil =3D not set
+-	for k,v in pairs(gPacketType) do =
+
+-		local packetsize =3D -1
+-		if (v.size) then packetsize =3D v.size else packetsize =3D gNecroPacketS=
+ize[v.id] end
+-		-- if no packet size specified in lib.packet.lua, use the one from necro=
+toolz
+-		gPacketSizeById[v.id] =3D packetsize
+-	end
+-	for k,v in pairs(gPacketType) do gPacketTypeId2Name[v.id] =3D k end
+-	for k,v in pairs(gPacketType) do _G[k] =3D v.id end -- make names availab=
+le as global constants, like kPacket_Account_Login_Request, needed for send=
+ing
+-	=
+
+-
+ gProfiler_Packets =3D CreateRoughProfiler(&quot;Packets&quot;)
+ =
+
+ -- check if packets are complete and handle them
+ function HandlePackets ()
++	if (not gPacketInit) then gPacketInit =3D true InitPackets() end
+ 	if (not gNoLogPackets_ByPacket) then gNoLogPackets_ByPacket =3D {} for k,=
+v in pairs(gNoLogPackets) do gNoLogPackets_ByPacket[v] =3D true end end
+ 	local input =3D GetRecvFIFO()
+ 	=
+
+@@ -54,7 +30,7 @@
+ 	=
+
+ 	while (input:Size() &gt;=3D 1) do
+ 		local iId =3D input:PeekNetUint8(0)
+-		local iPacketSize =3D gPacketSizeById[iId]
++		local iPacketSize =3D gPacketSizeByID[iId]
+ 		--~ print(&quot;packet&quot;,gPacketTypeId2Name[iId],iPacketSize)
+ 		if (not iPacketSize) then
+ 			print(&quot;Packet with unknown Packetsize received : &quot;,iId)
+@@ -149,15 +125,3 @@
+ 	file:write(info)
+ 	file:close()
+ end
+-
+--- Send Packets -----------------------------------------------------------
+-
+--- request serverside helppage
+-function Send_RequestHelp()
+-	local out =3D GetSendFIFO()
+-	out:PushNetUint8(kPacket_Request_Assistance)
+-	for i=3D1, 257 do
+-		out:PushNetUint8(0)
+-	end
+-	out:SendPacket()
+-end
+
+Modified: trunk/lua/lib.razorpacketvideo.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.razorpacketvideo.lua (original)
++++ trunk/lua/lib.razorpacketvideo.lua Sat Feb  7 15:21:20 2009
+@@ -149,7 +149,7 @@
+ 		=
+
+ 		packet.iPacketID		=3D fifo:PeekNetUint8(0)
+ 		if (packet.iPacketID =3D=3D 0xff) then fifo:PopRaw(1) break end
+-		packet.iPacketSize		=3D myPacketSizeOverride[packet.iPacketID] or gPacke=
+tSizeById[packet.iPacketID]
++		packet.iPacketSize		=3D myPacketSizeOverride[packet.iPacketID] or gPacke=
+tSizeByID[packet.iPacketID]
+ 		=
+
+ 		if (not packet.iPacketSize) then 	=
+
+ 			print(&quot;rpv : warning, unknown packettype-size&quot;,sprintf(&quot;0x%02x&quot;,packet.=
+iPacketID))
+
+Modified: trunk/lua/lib.xml.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.xml.lua (original)
++++ trunk/lua/lib.xml.lua Sat Feb  7 15:21:20 2009
+@@ -1,4 +1,11 @@
+ -- utilities for xml
++
++-- use this instead of table.insert, as the .n field is not set by table.i=
+nsert
++function XMLNodeAddChild (node,child)
++	local newsize =3D (node.n or 0) + 1
++	node.n =3D newsize
++	node[newsize] =3D child
++end
+ =
+
+ -- finds the first (or index'th) child with child.name=3Dname
+ -- index : one-based indices   default =3D one =3D first
+
+Modified: trunk/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/main.lua (original)
++++ trunk/lua/main.lua Sat Feb  7 15:21:20 2009
+@@ -102,6 +102,7 @@
+ dofile(libpath .. &quot;lib.razorconfig.lua&quot;)
+ dofile(libpath .. &quot;lib.razorpacketvideo.lua&quot;)
+ dofile(libpath .. &quot;lib.configdialog.lua&quot;)
++dofile(libpath .. &quot;lib.shardlist.lua&quot;)
+ =
+
+ dofile(libpath .. &quot;gui/gui.main.lua&quot;)
+ dofile(libpath .. &quot;obj/obj.main.lua&quot;)
+@@ -350,16 +351,13 @@
+ =
+
+ 	-- detect UOPath
+ 	if (not gUOPath) then AutoDetectUOPath() end
+-	if (ClientVersionIsPost6017()) then =
+
+-		local errmsg =3D &quot;FATAL, gClientVersion &gt;=3D 6.0.1.7 not supported yet (=
+protocol changes), cur version =3D &quot;..tostring(GetClientVersionAsNumber())
+-		-- see <A HREF="http://iris2.de/index.php/Clientversion_6.0.1.7_and_later">http://iris2.de/index.php/Clientversion_6.0.1.7_and_later</A>
+-		FatalErrorMessage(errmsg)
+-	end
++	print(&quot;uo protocol version used by iris&quot;,GetClientVersionAsNumber()) -- s=
+ee <A HREF="http://iris2.de/index.php/Clientversion_6.0.1.7_and_later">http://iris2.de/index.php/Clientversion_6.0.1.7_and_later</A>
+ 	TestUOAM()
+ 	local luaversion =3D string.sub(_VERSION, 5, 7)
+ 	print(&quot;Lua version : &quot;..luaversion)
+ 	print(&quot;Ogre platform : &quot;..OGRE_PLATFORM)
+ 	=
+
++	InitShardList()
+ 	HandleCommandLine()
+ 	=
+
+ 	if (gCommandLineSwitches[&quot;-profile&quot;]) then StartGlobalProfiler() end
+
+Modified: trunk/lua/net/net.dynamic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.dynamic.lua (original)
++++ trunk/lua/net/net.dynamic.lua Sat Feb  7 15:21:20 2009
+@@ -111,12 +111,14 @@
+ 		local dynamicdata =3D {}
+ 		dynamicdata.container_content_order =3D i
+ 		dynamicdata.serial				=3D input:PopNetUint32()
+-		dynamicdata.artid_base			=3D input:PopNetUint16()
++		dynamicdata.artid_base			=3D input:PopNetUint16() --~ runuo code before =
+sending this : if ( artid_base &gt; 0x3FFF ) artid_base =3D 0x9D7;  =
+
+ 		dynamicdata.artid_addstack		=3D input:PopNetUint8()
+ 		dynamicdata.amount				=3D input:PopNetUint16()
+ 		dynamicdata.xloc				=3D input:PopNetInt16()
+ 		dynamicdata.yloc				=3D input:PopNetInt16()
+ 		dynamicdata.zloc				=3D 0						--Grid Index (only since 6.0.1.7 2D and 2=
+.45.5.6 KR)
++		=
+
++		if (ClientVersionIsPost6017()) then dynamicdata.gridloc =3D input:PopNet=
+Int8(0) end =
+
+ 		dynamicdata.iContainerSerial 	=3D input:PopNetUint32()
+ 		dynamicdata.hue 				=3D input:PopNetUint16()
+ 		=
+
+@@ -151,6 +153,7 @@
+ 	dynamicdata.xloc				=3D input:PopNetInt16()
+ 	dynamicdata.yloc				=3D input:PopNetInt16()
+ 	dynamicdata.zloc				=3D 0						--Grid Index (only since 6.0.1.7 2D and 2.=
+45.5.6 KR)
++	if (ClientVersionIsPost6017()) then dynamicdata.gridloc =3D input:PopNetI=
+nt8(0) end =
+
+ 	dynamicdata.iContainerSerial	=3D input:PopNetUint32()
+ 	dynamicdata.hue					=3D input:PopNetUint16()
+ 	--~ print(&quot;kPacket_Object_to_Object&quot;,SmartDump(dynamicdata))
+
+Modified: trunk/lua/net/net.other.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.other.lua (original)
++++ trunk/lua/net/net.other.lua Sat Feb  7 15:21:20 2009
+@@ -247,3 +247,15 @@
+ ]]--
+ end
+ =
+
++
++-- Send Packets -----------------------------------------------------------
++
++-- request serverside helppage
++function Send_RequestHelp()
++	local out =3D GetSendFIFO()
++	out:PushNetUint8(kPacket_Request_Assistance)
++	for i=3D1, 257 do
++		out:PushNetUint8(0)
++	end
++	out:SendPacket()
++end
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001701.html">[Iris-commit] [IRIS] r2899 - in /trunk: lua/lib.mousepick.lua lua/main.lua plugins/moblist.lua premakelinux_noclean.sh
+</A></li>
+	<LI>Next message: <A HREF="001703.html">[Iris-commit] [IRIS] r2901 - in /trunk: config/shards/ lua/
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1702">[ date ]</a>
+              <a href="thread.html#1702">[ thread ]</a>
+              <a href="subject.html#1702">[ subject ]</a>
+              <a href="author.html#1702">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

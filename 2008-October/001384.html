@@ -1,0 +1,280 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2579 - in /trunk: lua/lib.2d.mousepick.lua	plugins/moblist.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-October/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2579%20-%20in%20/trunk%3A%20lua/lib.2d.mousepick.lua%0A%09plugins/moblist.lua&In-Reply-To=%3C20081015164817.9D4391524030%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001383.html">
+   <LINK REL="Next"  HREF="001385.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2579 - in /trunk: lua/lib.2d.mousepick.lua	plugins/moblist.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2579%20-%20in%20/trunk%3A%20lua/lib.2d.mousepick.lua%0A%09plugins/moblist.lua&In-Reply-To=%3C20081015164817.9D4391524030%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2579 - in /trunk: lua/lib.2d.mousepick.lua	plugins/moblist.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Wed Oct 15 18:48:17 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001383.html">[Iris-commit] [IRIS] r2578 - /trunk/screenshots/
+</A></li>
+        <LI>Next message: <A HREF="001385.html">[Iris-commit] [IRIS] r2580 - /trunk/bin/iris2.exe
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1384">[ date ]</a>
+              <a href="thread.html#1384">[ thread ]</a>
+              <a href="subject.html#1384">[ subject ]</a>
+              <a href="author.html#1384">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Wed Oct 15 18:48:16 2008
+New Revision: 2579
+
+Log:
+moblist starts to work
+
+Modified:
+    trunk/lua/lib.2d.mousepick.lua
+    trunk/plugins/moblist.lua
+
+Modified: trunk/lua/lib.2d.mousepick.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.mousepick.lua (original)
++++ trunk/lua/lib.2d.mousepick.lua Wed Oct 15 18:48:16 2008
+@@ -91,6 +91,8 @@
+ 		local data =3D GetMouseHitObject(false)
+ 		local artid =3D data and data.artid
+ 		if (artid) then hitinfo =3D hitinfo..sprintf(&quot;artid=3D0x%04x=3D%d(%s),&quot;,=
+artid,artid,GetStaticTileTypeName(artid) or &quot;&quot;) end
++		local hue =3D data and data.hue
++		if (hue) then hitinfo =3D hitinfo..sprintf(&quot;hue=3D%d,&quot;,hue) end
+ 		local xloc,yloc,zloc =3D GetMouseHitTileCoords()
+ 		if (xloc) then
+ 			local bx,by =3D floor(xloc/8),floor(yloc/8)
+
+Modified: trunk/plugins/moblist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/plugins/moblist.lua (original)
++++ trunk/plugins/moblist.lua Wed Oct 15 18:48:16 2008
+@@ -1,9 +1,20 @@
+ =
+
+ if (not gDisabledPlugins.moblist) then =
+
+ =
+
+-kMobList_MaxCat =3D 3
+ kMobList_CatW =3D 100
+-kMobList_CatItemH =3D 24
++kMobList_CatItemH =3D 20
++kMobList_CatItemBarH =3D 5
++kMobList_CatDist =3D 4
++
++kMobList_Healer_Text =3D &quot; the wandering healer&quot;
++kMobList_Escort_Text =3D &quot; the seeker of adventure&quot;
++
++kMobListCat_Self	=3D 1
++kMobListCat_Friends	=3D 2
++kMobListCat_Players	=3D 3
++kMobListCat_Pets	=3D 4
++kMobListCat_Rest	=3D 5
++kMobList_MaxCat 	=3D kMobListCat_Rest
+ =
+
+ RegisterWidgetClass(&quot;UOMobList&quot;)
+ RegisterWidgetClass(&quot;UOMobListItem&quot;)
+@@ -17,12 +28,12 @@
+ 	local vw,vh =3D GetViewportSize()
+ 	self:SetPos(vw-kMobList_CatW,230)
+ 	=
+
+-	RegisterListener(&quot;Hook_HUDStep&quot;,function () self:Step() end)
+-	RegisterListener(&quot;Hook_MobName&quot;,function (serial,name,clilocid) self:MobN=
+ame(serial,name,clilocid) end) -- from several text/speak packets..
+-	RegisterListener(&quot;Hook_ToolTipUpdate&quot;,function (serial) self:ToolTipUpdat=
+e(serial) end)
+-	RegisterListener(&quot;Hook_Object_CreateMobile&quot;, function (mobile) self:AddMo=
+b(mobile) end)
+-	RegisterListener(&quot;Hook_Object_DestroyMobile&quot;,function (mobile) self:Remov=
+eMob(mobile) end)
+-	RegisterListener(&quot;Hook_UpdatePartyMemberList&quot;,function () self:RecalcCat(=
+) end)
++	RegisterListener(&quot;Hook_HUDStep&quot;,				function () 		self:Step() end)
++	RegisterListener(&quot;Hook_MobName&quot;,				function (serial,name,clilocid) self:=
+MobName(serial,name,clilocid) end) -- from several text/speak packets..
++	RegisterListener(&quot;Hook_ToolTipUpdate&quot;,			function (serial)	self:ToolTipUp=
+date(serial) end)
++	RegisterListener(&quot;Hook_Object_CreateMobile&quot;,	function (mobile)	self:AddMo=
+b(mobile) end)
++	RegisterListener(&quot;Hook_Object_DestroyMobile&quot;,	function (mobile)	self:Remo=
+veMob(mobile) end)
++	RegisterListener(&quot;Hook_UpdatePartyMemberList&quot;,	function ()			self:RecalcC=
+at() end)
+ end
+ =
+
+ function gWidgetPrototype.UOMobList:ToolTipUpdate		(serial)
+@@ -61,9 +72,9 @@
+ 		for item,v in pairs(self.items) do item:ReGroup(self.catgroup) end
+ 		-- reposition groups
+ 		local y =3D 0
+-		self.catgroup[1]:SetPos(0,y) y =3D y + kMobList_CatItemH * self.catgroup=
+[1].itemcount
+-		self.catgroup[2]:SetPos(0,y) y =3D y + kMobList_CatItemH * self.catgroup=
+[2].itemcount
+-		self.catgroup[3]:SetPos(0,y) y =3D y + kMobList_CatItemH * self.catgroup=
+[3].itemcount
++		for k,group in ipairs(self.catgroup) do =
+
++			group:SetPos(0,y) y =3D y + kMobList_CatItemH * group.itemcount + ((gro=
+up.itemcount &gt; 0) and kMobList_CatDist or 0)
++		end
+ 	end
+ 	for item,v in pairs(self.items) do item:Step() end
+ end
+@@ -78,6 +89,20 @@
+ 	self.moblist =3D params.moblist
+ 	self.text =3D self:CreateChild(&quot;UOText&quot;,{x=3D0,y=3D0,text=3D&quot;&quot;,col=3D{r=
+=3D1,g=3D1,b=3D1},fontid=3D2,bold=3Dtrue})
+ 	self.text:SetIgnoreBBoxHit(false)
++	=
+
++	local mobile =3D params.mobile
++	local w,h =3D kMobList_CatW,kMobList_CatItemBarH
++	local xoff,yoff =3D 0,kMobList_CatItemH-kMobList_CatItemBarH
++	self.fillw =3D w
++	self.fillh =3D h
++	=
+
++	local paramb =3D MakeSpritePanelParam_BorderPartMatrix(GetPlainTextureGUI=
+Mat(&quot;simplebutton.png&quot;),w,h, xoff,yoff, 0,0, 4,8,4, 4,8,4, 32,32, 1,1, fals=
+e, false)
++	local paramf =3D MakeSpritePanelParam_BorderPartMatrix(GetPlainTextureGUI=
+Mat(&quot;simplebutton.png&quot;),w,h, xoff,yoff, 0,0, 4,8,4, 4,8,4, 32,32, 1,1, fals=
+e, false)
++	paramb.r,paramb.g,paramb.b =3D GetNotorietyColor(mobile.notoriety)
++	paramf.r,paramf.g,paramf.b =3D 0,0.5,1
++	self.border	=3D self:CreateChild(&quot;Image&quot;,{gfxparam_init=3Dparamb})
++	self.fill	=3D self:CreateChild(&quot;Image&quot;,{gfxparam_init=3Dparamf,bVertexBuf=
+ferDynamic=3Dtrue})
++	=
+
+ 	self:UpdateName()
+ 	self:RecalcCat()
+ end
+@@ -93,12 +118,28 @@
+ 	text =3D string.gsub(text,&quot; %[&quot;,&quot;%[&quot;) -- move guildtag closer
+ 	text =3D string.gsub(text,&quot;^Lord&quot;,&quot;&quot;)
+ 	text =3D string.gsub(text,&quot;^Lady&quot;,&quot;&quot;)
+-	text =3D string.gsub(text,&quot;^a&quot;,&quot;&quot;)
++	text =3D string.gsub(text,&quot;^an &quot;,&quot;&quot;)
++	text =3D string.gsub(text,&quot;^a &quot;,&quot;&quot;)
+ 	text =3D string.gsub(text,&quot;^[ \t]+&quot;,&quot;&quot;) -- remove leading spaces
+ 	text =3D string.gsub(text,&quot;[ \t]+$&quot;,&quot;&quot;) -- remove trailing spaces
++	=
+
++	-- npcs friends
++	self.bIsNPC =3D false =
+
++	if (StringContains(text,kMobList_Healer_Text)) then self.bIsNPC =3D true =
+text =3D &quot;[HEALER]&quot;..string.gsub(text,kMobList_Healer_Text,&quot;&quot;) end
++	if (StringContains(text,kMobList_Escort_Text)) then self.bIsNPC =3D true =
+text =3D &quot;[ESCORT]&quot;..string.gsub(text,kMobList_Escort_Text,&quot;&quot;) end
++	=
+
+ 	self.old_text =3D text
++	=
+
++	-- check friends
+ 	self.bIsFriendlyGuild =3D false
+ 	for k,guildtag in pairs(gFriendlyGuildTags) do if (StringContains(text,gu=
+ildtag)) then self.bIsFriendlyGuild =3D true break end end
++	=
+
++	-- check pets
++	self.bIsPet =3D StringContains(text,&quot;(summoned)&quot;) or StringContains(text,=
+&quot;(tame)&quot;)
++	local mobile =3D self.mobile
++	if (mobile.artid =3D=3D 574 and mobile.hue =3D=3D 0) then self.bIsPet =3D=
+ true end -- blade spirit
++	if (mobile.artid =3D=3D 164 and mobile.hue =3D=3D 0) then self.bIsPet =3D=
+ true end -- energy vortex
++	=
+
+ 	self:UpdateNameGfx()
+ 	self:RecalcCat()
+ end
+@@ -115,14 +156,21 @@
+ 	if (self.old_notoriety ~=3D mobile.notoriety) then =
+
+ 		self.old_notoriety  =3D mobile.notoriety
+ 		self:UpdateNameGfx()
++		-- todo : update bar-background color ? not visible when full hp ?
+ 	end
++	=
+
++	-- poison... color !
++	local f_hp =3D mobile.stats and ((mobile.stats.curHits or 0) / (mobile.st=
+ats.maxHits or 1)) or 0
++	self.fill:SetSize(max(0,min(1,f_hp)) * self.fillw,self.fillh)
+ end
+ =
+
+ function gWidgetPrototype.UOMobListItem:RecalcCat ()
+-	if (self.namecliloc) then self:SetCat(3) return end
+ 	local serial =3D self.serial
+-	if (GetPlayerSerial() =3D=3D serial or IsMobileInParty(serial) or self.bI=
+sFriendlyGuild) then self:SetCat(1) return end
+-	self:SetCat(2)
++	if (GetPlayerSerial() =3D=3D serial) then						return self:SetCat(kMobLis=
+tCat_Self) end
++	if (IsMobileInParty(serial) or self.bIsFriendlyGuild) then	return self:Se=
+tCat(kMobListCat_Friends) end
++	if (self.bIsPet) then										return self:SetCat(kMobListCat_Pets) end
++	if (self.namecliloc or self.bIsNPC) then 					return self:SetCat(kMobList=
+Cat_Rest) end
++	return self:SetCat(kMobListCat_Players)
+ end
+ =
+
+ function gWidgetPrototype.UOMobListItem:SetCat (cat)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001383.html">[Iris-commit] [IRIS] r2578 - /trunk/screenshots/
+</A></li>
+	<LI>Next message: <A HREF="001385.html">[Iris-commit] [IRIS] r2580 - /trunk/bin/iris2.exe
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1384">[ date ]</a>
+              <a href="thread.html#1384">[ thread ]</a>
+              <a href="subject.html#1384">[ subject ]</a>
+              <a href="author.html#1384">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

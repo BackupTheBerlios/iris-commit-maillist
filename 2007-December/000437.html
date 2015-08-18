@@ -1,0 +1,146 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1621 - in /trunk/data: lua/lib.macrolist.lua	mymacros.lua.dist
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2007-December/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1621%20-%20in%20/trunk/data%3A%20lua/lib.macrolist.lua%0A%09mymacros.lua.dist&In-Reply-To=%3C20071210213100.054B41C186E5%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000436.html">
+   <LINK REL="Next"  HREF="000438.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1621 - in /trunk/data: lua/lib.macrolist.lua	mymacros.lua.dist</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1621%20-%20in%20/trunk/data%3A%20lua/lib.macrolist.lua%0A%09mymacros.lua.dist&In-Reply-To=%3C20071210213100.054B41C186E5%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1621 - in /trunk/data: lua/lib.macrolist.lua	mymacros.lua.dist">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Mon Dec 10 22:30:59 CET 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000436.html">[Iris-commit] [IRIS] r1620 - in /trunk/data: ./ grannys/materials/ lua/ models/materials/ skybox/materials/ terrain/materials/
+</A></li>
+        <LI>Next message: <A HREF="000438.html">[Iris-commit] [IRIS] r1622 - /trunk/data/lua/lib.3d.renderer.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#437">[ date ]</a>
+              <a href="thread.html#437">[ thread ]</a>
+              <a href="subject.html#437">[ subject ]</a>
+              <a href="author.html#437">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Mon Dec 10 22:30:59 2007
+New Revision: 1621
+
+Log:
+targetself added
+
+Modified:
+    trunk/data/lua/lib.macrolist.lua
+    trunk/data/mymacros.lua.dist
+
+Modified: trunk/data/lua/lib.macrolist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.macrolist.lua (original)
++++ trunk/data/lua/lib.macrolist.lua Mon Dec 10 22:30:59 2007
+@@ -49,18 +49,34 @@
+ end
+ =
+
+ gMacroLastTargetMemory =3D nil
+-gMacroTargetLastRunning =3D false
++gMacroWaitForTargetActive =3D false
+ function MacroRememberTarget (hitobject)
+ 	gMacroLastTargetMemory =3D {}
+ 	for k,v in pairs(hitobject) do gMacroLastTargetMemory[k] =3D v end
+ end
+ =
+
+ function MacroCmd_TargetLast	(completefun) 		-- repeat the last target	=
+
+-	if (gMacroTargetLastRunning) then return end
+-	gMacroTargetLastRunning =3D true
++	if (gMacroWaitForTargetActive) then return end
++	gMacroWaitForTargetActive =3D true
+ 	RegisterListener(&quot;Hook_StartTargetMode&quot;,function () =
+
+ 			if (gMacroLastTargetMemory) then CompleteTargetMode(gMacroLastTargetMem=
+ory) end
+-			gMacroTargetLastRunning =3D false
++			gMacroWaitForTargetActive =3D false
++			if (completefun) then completefun() end
++			return true
++		end)
++end
++
++function MacroCmd_TargetSelf	(completefun) 		-- target self
++	if (gMacroWaitForTargetActive) then return end
++	gMacroWaitForTargetActive =3D true
++	RegisterListener(&quot;Hook_StartTargetMode&quot;,function () =
+
++			local playermobile =3D GetPlayerMobile()
++			print(&quot;MacroCmd_TargetSelf hook triggered&quot;)
++			if (playermobile) then =
+
++				print(&quot;#&quot;,playermobile.serial)
++				CompleteTargetMode({hittype=3DkMousePickHitType_Mobile,mobile=3Dplayer=
+mobile}) =
+
++			end
++			gMacroWaitForTargetActive =3D false
+ 			if (completefun) then completefun() end
+ 			return true
+ 		end)
+
+Modified: trunk/data/mymacros.lua.dist
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/mymacros.lua.dist (original)
++++ trunk/data/mymacros.lua.dist Mon Dec 10 22:30:59 2007
+@@ -69,3 +69,5 @@
+ =
+
+ SetMacro(&quot;f5&quot;,			function() MacroCmd_ItemSlot_Use(1) MacroCmd_TargetLast()=
+ end)
+ =
+
++
++SetMacro(&quot;f6&quot;,	function() MacroCmd_Item_UseByName(&quot;bandage&quot;) MacroCmd_Targ=
+etSelf() end)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000436.html">[Iris-commit] [IRIS] r1620 - in /trunk/data: ./ grannys/materials/ lua/ models/materials/ skybox/materials/ terrain/materials/
+</A></li>
+	<LI>Next message: <A HREF="000438.html">[Iris-commit] [IRIS] r1622 - /trunk/data/lua/lib.3d.renderer.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#437">[ date ]</a>
+              <a href="thread.html#437">[ thread ]</a>
+              <a href="subject.html#437">[ subject ]</a>
+              <a href="author.html#437">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

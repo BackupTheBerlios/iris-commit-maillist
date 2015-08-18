@@ -1,0 +1,214 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r3285 - in /trunk/lua: lib.3d.map.lua lib.3d.mousepick.lua lib.compass.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2010-March/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3285%20-%20in%20/trunk/lua%3A%20lib.3d.map.lua%0A%20lib.3d.mousepick.lua%20lib.compass.lua&In-Reply-To=%3C20100320035848.E5EC77A9807B%40simon%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="002044.html">
+   <LINK REL="Next"  HREF="002046.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r3285 - in /trunk/lua: lib.3d.map.lua lib.3d.mousepick.lua lib.compass.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3285%20-%20in%20/trunk/lua%3A%20lib.3d.map.lua%0A%20lib.3d.mousepick.lua%20lib.compass.lua&In-Reply-To=%3C20100320035848.E5EC77A9807B%40simon%3E"
+       TITLE="[Iris-commit] [IRIS] r3285 - in /trunk/lua: lib.3d.map.lua lib.3d.mousepick.lua lib.compass.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat Mar 20 04:58:48 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="002044.html">[Iris-commit] [IRIS] r3284 -	/trunk/data/models/materials/textures.material
+</A></li>
+        <LI>Next message: <A HREF="002046.html">[Iris-commit] [IRIS] r3286 - in /trunk/lua: lib.3d.mobile.lua lib.3d.mousepick.lua lib.bodygfx.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2045">[ date ]</a>
+              <a href="thread.html#2045">[ thread ]</a>
+              <a href="subject.html#2045">[ subject ]</a>
+              <a href="author.html#2045">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: hagish
+Date: Sat Mar 20 04:58:48 2010
+New Revision: 3285
+
+Log:
+* reduced compass update interval
+* faster 3d mousepicking
+
+Modified:
+    trunk/lua/lib.3d.map.lua
+    trunk/lua/lib.3d.mousepick.lua
+    trunk/lua/lib.compass.lua
+
+Modified: trunk/lua/lib.3d.map.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.map.lua (original)
++++ trunk/lua/lib.3d.map.lua Sat Mar 20 04:58:48 2010
+@@ -142,7 +142,7 @@
+ 			end
+ 		end
+ 	end
+-	print(&quot;Renderer3D:MapAreaCheck&quot;,x,y,activearea)
++	--~ print(&quot;Renderer3D:MapAreaCheck&quot;,x,y,activearea)
+ 	if (gLastMapArea =3D=3D activearea) then return end
+ 	gLastMapArea =3D activearea
+ 	self:SetMapAreaEnv(activearea or gMaps[gMapIndex])
+
+Modified: trunk/lua/lib.3d.mousepick.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.mousepick.lua (original)
++++ trunk/lua/lib.3d.mousepick.lua Sat Mar 20 04:58:48 2010
+@@ -33,6 +33,7 @@
+         =
+
+         local serial
+ 		if (not gKeyPressed[key_mouse_right]) then
++			--~ #THREAD
+ 			serial =3D GetMouseHitSerial(true) -- executes mousepick
+ 			if (serial =3D=3D 0) then serial =3D nil end
+ 			if (gMousePickFoundHit and gMousePickFoundHit.hittype =3D=3D kMousePick=
+HitType_Container) then serial =3D nil end -- backpane
+@@ -52,16 +53,16 @@
+     =
+
+     -- multi mousepicking
+     for k,v in pairs(gMultis) do
+-        local skipcheck =3D false
++        local docheck =3D false
+         =
+
+         -- bb ray pick for early out
+         if k.minx and k.maxx and k.miny and k.maxy then
+             local x,y,w,h =3D k.minx, k.miny, k.maxx - k.minx + 1, k.maxy =
+- k.miny + 1
+             local hit,dist =3D RayAABBQuery( rx, ry, rz, rvx, rvy, rvz, -x=
+,y,-10000, w, h, 10000 )
+-            if hit then skipcheck =3D true end
+-        end
+-        =
+
+-        if skipcheck then
++            if hit then docheck =3D true end
++        end
++        =
+
++        if docheck then
+             for kk,vv in pairs(k.lparts) do
+                 local iTileTypeID,xloc,yloc,zloc,iHue =3D unpack(vv) -- se=
+e Multi_AddPartHelper
+                 local mousepickdata =3D vv.multi_mousepick -- see cMapBloc=
+k_3D_Multis:WorkStep_LoadDetail
+@@ -140,9 +141,11 @@
+     local numcustomquads =3D 0
+     if self.map3d_spawners and self.map3d_spawners.statics then
+         self.map3d_spawners.statics:ForAllBlocks(function(block)
++			-- OLD NOTE/COMMENT
+             -- bbox raypick disabled, as it seems broken. model raypick co=
+ntains bounding sphere precheck already.
+             -- block:BBRayPick(rx, ry, rz, rvx, rvy, rvz) -- if 3d static =
+mousepicking is strange, look here, xmirror maybe.. no longer used for terr=
+ain, only here
+-            if true then
++            =
+
++            if not block:BBRayPick(rx, ry, rz, rvx, rvy, rvz) then
+                 block:ForAllEntities(function(entity)
+                     if (not entity.bLoaded) then return end
+                     if (not entity.zloc) then print(&quot;mousepick warning, st=
+atic entity has no zloc&quot;,entity.serial,entity.artid) end
+
+Modified: trunk/lua/lib.compass.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.compass.lua (original)
++++ trunk/lua/lib.compass.lua Sat Mar 20 04:58:48 2010
+@@ -17,6 +17,10 @@
+ gbCompassLayoutDirty =3D false
+ kDetailMapCacheSize =3D 256
+ kDetailMapCacheViewRad =3D 80
++
++gCompassLastUpdate =3D nil
++gCompassUpdateTimeout =3D 100
++
+ =
+
+ gPositionMarkers =3D {
+     --[1] =3D {
+@@ -474,7 +478,8 @@
+ =
+
+ -- called every frame
+ function UpdateCompass ()
+-    if (not(gEnableCompass)) then return end
++	--~ #THREAD
++    if (not(gEnableCompass) or not(gIrisCompassDialog)) then return end
+     =
+
+     if(gbCompassLayoutDirty) then
+         gbCompassLayoutDirty =3D false
+@@ -498,7 +503,15 @@
+         end
+     end
+     =
+
+-    if (gIrisCompassDialog and gIrisCompassDialog.bDoUpdate) then   =
+
++    if 	gIrisCompassDialog and =
+
++		gIrisCompassDialog.bDoUpdate and =
+
++		(
++			(gCompassLastUpdate =3D=3D nil) or =
+
++			(Client_GetTicks() - gCompassLastUpdate &gt; gCompassUpdateTimeout)
++		)
++	then   =
+
++		gCompassLastUpdate =3D (gCompassLastUpdate or Client_GetTicks()) + gComp=
+assUpdateTimeout
++	=
+
+         -- ax =3D camera angle, cxloc, cyloc =3D tileposition
+         local ax, cxloc, cyloc =3D gCurrentRenderer:GetCompassInfo()
+         local vw,vh =3D GetViewportSize() -- uses overlay manager
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="002044.html">[Iris-commit] [IRIS] r3284 -	/trunk/data/models/materials/textures.material
+</A></li>
+	<LI>Next message: <A HREF="002046.html">[Iris-commit] [IRIS] r3286 - in /trunk/lua: lib.3d.mobile.lua lib.3d.mousepick.lua lib.bodygfx.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2045">[ date ]</a>
+              <a href="thread.html#2045">[ thread ]</a>
+              <a href="subject.html#2045">[ subject ]</a>
+              <a href="author.html#2045">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

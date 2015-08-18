@@ -1,0 +1,498 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2359 - in /trunk: data/ lua/ lua/gui/	lua/obj/ widgets/
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-August/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2359%20-%20in%20/trunk%3A%20data/%20lua/%20lua/gui/%0A%09lua/obj/%20widgets/&In-Reply-To=%3C20080805223444.136C41524030%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001166.html">
+   <LINK REL="Next"  HREF="001168.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2359 - in /trunk: data/ lua/ lua/gui/	lua/obj/ widgets/</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2359%20-%20in%20/trunk%3A%20data/%20lua/%20lua/gui/%0A%09lua/obj/%20widgets/&In-Reply-To=%3C20080805223444.136C41524030%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2359 - in /trunk: data/ lua/ lua/gui/	lua/obj/ widgets/">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Wed Aug  6 00:34:43 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001166.html">[Iris-commit] [IRIS] r2358 - in /trunk/lua: gui/gui.gumpparser.lua gui/gui.healthbar.lua gui/gui.main.lua gui/gui.popup.lua gui/gui.spellbook.lua net.popup.lua net/net.main.lua net/net.other.lua
+</A></li>
+        <LI>Next message: <A HREF="001168.html">[Iris-commit] [IRIS] r2360 - in /trunk: lua/gui/gui.securetrade.lua lua/lib.uodragdrop.lua lua/obj/obj.container.lua widgets/widget.uocheckbox.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1167">[ date ]</a>
+              <a href="thread.html#1167">[ thread ]</a>
+              <a href="subject.html#1167">[ subject ]</a>
+              <a href="author.html#1167">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Wed Aug  6 00:34:43 2008
+New Revision: 2359
+
+Log:
+uodragdrop : osi-like-behavior,bugfixes, container-gumps now use guisys2
+
+Added:
+    trunk/widgets/widget.uocontainer.lua
+    trunk/widgets/widget.uocontaineritem.lua
+Modified:
+    trunk/data/config.lua.dist
+    trunk/lua/gui/gui.gumpparser.lua
+    trunk/lua/gui/gui.securetrade.lua
+    trunk/lua/lib.3d.mousepick.lua
+    trunk/lua/lib.uodragdrop.lua
+    trunk/lua/obj/obj.container.lua
+    trunk/lua/obj/obj.dynamic.lua
+
+Modified: trunk/data/config.lua.dist
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/config.lua.dist (original)
++++ trunk/data/config.lua.dist Wed Aug  6 00:34:43 2008
+@@ -18,6 +18,8 @@
+ -- gUOPath =3D &quot;C:\\Programme\\EA Games\\Ultima Online\\&quot; -- example for w=
+in
+ -- gUOPath =3D &quot;c:/programme/uo/&quot;  -- example for win
+ =
+
++gShiftDragCombine =3D false
++gDisableContainerItemStackDoubleImage =3D false
+ gDebugTerrainGrid =3D false
+ =
+
+ -- Speech support
+
+Modified: trunk/lua/gui/gui.gumpparser.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.gumpparser.lua (original)
++++ trunk/lua/gui/gui.gumpparser.lua Wed Aug  6 00:34:43 2008
+@@ -73,6 +73,18 @@
+ 	=
+
+ 	local testgump,x,y,kDebugName =3D kGumpSample_PM,0,300,&quot;bla&quot;
+ 	local d2 =3D GumpParser_New(testgump,false) -- d2:SetPos(x,y) d2.sDebugNa=
+me =3D kDebugName
++	=
+
++	local container =3D {serial=3D1234,gumpid=3D60,content=3D{
++			{serial=3D1001,artid=3D9625,xloc=3D61,yloc=3D104,hue=3D0,amount=3D1,use=
+gump=3Dfalse},
++			{serial=3D1002,artid=3D3982,xloc=3D51,yloc=3D65,hue=3D0,amount=3D38,use=
+gump=3Dfalse},
++			{serial=3D1003,artid=3D3965,xloc=3D135,yloc=3D87,hue=3D0,amount=3D22,us=
+egump=3Dfalse},
++			{serial=3D1004,artid=3D3965,xloc=3D87,yloc=3D75,hue=3D0,amount=3D16,use=
+gump=3Dfalse},
++			{serial=3D1005,artid=3D8901,xloc=3D83,yloc=3D102,hue=3D1121,amount=3D1,=
+usegump=3Dfalse},
++			{serial=3D1006,artid=3D3983,xloc=3D86,yloc=3D102,hue=3D0,amount=3D38,us=
+egump=3Dfalse},
++			{serial=3D1007,artid=3D8787,xloc=3D110,yloc=3D95,hue=3D2406,amount=3D1,=
+usegump=3Dfalse},
++		},GetContent=3Dfunction (self) return self.content end}
++
++	local containerdialog =3D CreateUOContainerDialog(container)
+ 	=
+
+ 	--~ local dialog =3D GumpParser_New(kClientSideGump_Paperdoll_Own,true) d=
+ialog:SetLeftTop(400,100)
+ 	--~ GumpParser(kClientSideGump_Paperdoll_Own,true)
+
+Modified: trunk/lua/gui/gui.securetrade.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.securetrade.lua (original)
++++ trunk/lua/gui/gui.securetrade.lua Wed Aug  6 00:34:43 2008
+@@ -4,6 +4,7 @@
+ securetrading.dialogId =3D 4000001
+ securetrading.x =3D 0
+ securetrading.y =3D 0
++--~ securetrading.bSupportsGuiSys2 =3D true
+ securetrading.Data =3D
+ 	 &quot;{ page 0 }&quot; ..
+ 	 &quot;{ gumppic 0 0 2150 securepic }&quot; ..
+@@ -37,6 +38,7 @@
+ gSecureTrades =3D {}
+ =
+
+ function SecureTradeRebuildContainerWidgets (mysectrade,container,bIsMyStu=
+ff)
++	assert(mysectrade.dialog.rootwidget,&quot;SecureTrade not supported by new gui=
+ system yet&quot;)
+ 	if (bIsMyStuff) then
+ 		for k,widget in pairs(mysectrade.myStuff) do widget:Destroy() end
+ 		mysectrade.myStuff =3D {}
+@@ -136,6 +138,8 @@
+ =
+
+ 		-- show dialog
+ 		local dialog =3D GumpParser( securetrading, true )
++		=
+
++		assert(dialog.rootwidget,&quot;SecureTrade not supported by new gui system ye=
+t 2&quot;)
+ =
+
+ 		mysectrade.dialog =3D dialog
+ 		dialog.uoSecureTrade =3D mysectrade
+
+Modified: trunk/lua/lib.3d.mousepick.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.mousepick.lua (original)
++++ trunk/lua/lib.3d.mousepick.lua Wed Aug  6 00:34:43 2008
+@@ -55,6 +55,7 @@
+ 	-- 2d mousepicking
+ 	local widget =3D GetWidgetUnderMouse()
+ 	if (widget) then =
+
++		--~ print(&quot;Renderer3D:MousePick_2D&quot;,widget,widget.uoContainer,widget.ite=
+m,widget.GetClassName and widget:GetClassName())
+ 		if (widget.uoContainer and widget.item) then
+ 			gMousePickFoundHit =3D {}
+ 			gMousePickFoundHit.hittype =3D kMousePickHitType_ContainerItem
+
+Modified: trunk/lua/lib.uodragdrop.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.uodragdrop.lua (original)
++++ trunk/lua/lib.uodragdrop.lua Wed Aug  6 00:34:43 2008
+@@ -5,8 +5,8 @@
+ =
+
+ function SetDragItem( item, offx, offy )
+ 	if (item) then
+-		local material		=3D GetArtMat( item.artid + hex2num(&quot;0x4000&quot;), item.hue )
+-		local width, height	=3D GetArtSize( item.artid + hex2num(&quot;0x4000&quot;), item=
+.hue )
++		local material		=3D GetArtMat( item.artid + 0x4000, item.hue )
++		local width, height	=3D GetArtSize( item.artid + 0x4000, item.hue )
+ 		=
+
+ 		if (not offx) then offx =3D -math.floor( width/2 ) end
+ 		if (not offy) then offy =3D -math.floor( height*3/5 ) end
+@@ -170,7 +170,7 @@
+ function PrepareDragPaperdollItem (item) =
+
+ 	if (item.layer =3D=3D kLayer_Backpack) then return end
+ 	local widget =3D item.widget
+-	local iArtID =3D item.artid + hex2num(&quot;0x4000&quot;)
++	local iArtID =3D item.artid + 0x4000
+ 	local mat =3D GetArtMat(iArtID,item.hue)
+ 	local w,h =3D GetArtSize(iArtID,item.hue)
+ 	local offx,offy =3D -w/2,-h/2 =
+
+@@ -182,12 +182,13 @@
+ function PrepareDragContainerItem (item) =
+
+ 	local widget =3D item.widget or item.secwidget
+ 	if (not widget) then return end
+-	local iArtID =3D item.artid + hex2num(&quot;0x4000&quot;)
++	local iArtID =3D item.artid + 0x4000
+ 	local mat =3D GetArtMat(iArtID,item.hue)
+ 	local w,h =3D GetArtSize(iArtID,item.hue)
+ 	local iMouseX,iMouseY =3D GetMousePos()
+-	local offx =3D widget.gfx:GetDerivedLeft() - iMouseX =
+
+-	local offy =3D widget.gfx:GetDerivedTop() - iMouseY
++	local x,y =3D widget:GetDerivedPos()
++	local offx =3D x - iMouseX =
+
++	local offy =3D y - iMouseY
+ 	=
+
+ 	-- used fields of gDragDrop.item : 	.artid .serial .amount =
+
+ 	PrepareUODragDrop(item,widget,mat,w,h,offx,offy)
+@@ -197,7 +198,7 @@
+ -- Todo: Multi support
+ function PrepareDragDynamic (dynamic)
+ 	if dynamic.artid &lt; gMulti_ID then
+-		local iArtID =3D dynamic.artid + hex2num(&quot;0x4000&quot;)
++		local iArtID =3D dynamic.artid + 0x4000
+ 		local matname =3D GetArtMat(iArtID,dynamic.hue)
+ 		local w,h =3D GetArtSize(iArtID,dynamic.hue)
+ 		local offx,offy =3D -w/2,-h/2 =
+
+@@ -337,10 +338,14 @@
+ 	printdebug(&quot;dragdrop&quot;,&quot;MouseUpUODragDrop&quot;,dialog_under_mouse,dialog_under=
+_mouse and dialog_under_mouse.debugname)
+ 	=
+
+ 	if (dialog_under_mouse) then
++		local iMouseX,iMouseY =3D GetMousePos()
+ 		if (dialog_under_mouse.rootwidget) then
+-			local iMouseX,iMouseY =3D GetMousePos()
+ 			x =3D iMouseX - dialog_under_mouse.rootwidget.gfx:GetDerivedLeft() + gD=
+ragDrop.offx
+ 			y =3D iMouseY - dialog_under_mouse.rootwidget.gfx:GetDerivedTop() + gDr=
+agDrop.offy
++		elseif (dialog_under_mouse.GetDerivedPos) then
++			local dx,dy =3D dialog_under_mouse:GetDerivedPos()
++			x =3D iMouseX - dx + gDragDrop.offx
++			y =3D iMouseY - dy + gDragDrop.offy
+ 		end
+ 	end
+ 	=
+
+@@ -378,7 +383,7 @@
+ 		end
+ 		=
+
+ 		-- stack items of same type in the container if shift is pressed
+-		if (gKeyPressed[key_lshift] and container) then
++		if (gShiftDragCombine and gKeyPressed[key_lshift] and container) then
+ 			printdebug(&quot;dragdrop&quot;,&quot;stack same items&quot;)
+ 			for k,i in pairs(container:GetContent()) do =
+
+ 				if =
+
+
+Modified: trunk/lua/obj/obj.container.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/obj/obj.container.lua (original)
++++ trunk/lua/obj/obj.container.lua Wed Aug  6 00:34:43 2008
+@@ -35,64 +35,7 @@
+ 	self:UpdateContent()
+ end
+ =
+
+--- ----------------------------------------------- container prototype ---=
+--------------------------
+-
+-local function DestroyContainerItemWidgets (container) =
+
+-	for k,item in pairs(container:GetContent()) do
+-		if (item.widget) then item.widget:Destroy()  item.widget =3D nil end
+-	end
+-end
+-
+--- create graphical representation (use only if container dialog is alread=
+y visible)
+-local function MakeContainerItemWidget (item)
+-	local parent =3D item.container.dialog.rootwidget
+-	local widget =3D nil
+-
+-	-- If it's not an ART-gfx to display -&gt; Display GUMP-gfx
+-	if (item.usegump=3D=3Dtrue) then -- true for gold pieces and similar, see=
+ obj.dynamic.lua ApplyArtidStackManipulation
+-		widget =3D MakeBorderGumpPart (parent,item.artid,item.xloc,item.yloc + i=
+tem.gumpyoffset)
+-
+-		widget.mbIgnoreMouseOver =3D false
+-		widget.uoContainer =3D item.container
+-		widget.item =3D item
+-		item.widget =3D widget
+-
+-		widget.onMouseLeave =3D function () gCurrentRenderer.gMousePickTippOverr=
+ide =3D false end
+-		widget.onMouseDown	=3D function (widget,mousebutton) end
+-	else
+-		widget =3D MakeArtGumpPart (parent,item.artid,item.xloc,item.yloc,0,0,0,=
+item.hue)
+-
+-		widget.mbIgnoreMouseOver =3D false
+-		widget.uoContainer =3D item.container
+-		widget.item =3D item
+-		item.widget =3D widget
+-
+-		-- item debuginfo on mouseover (clientside,debuginfos)
+-		widget.onMouseLeave =3D function () =
+
+-			gCurrentRenderer.gMousePickTippOverride =3D false =
+
+-			Client_SetBottomLine(&quot;&quot;)
+-		end
+-		widget.onMouseDown	=3D function (widget,mousebutton) end
+-		widget.onMouseEnter =3D function ()
+-			-- TODO : find a cleaner solution to override the mousepick tipp
+-			local item =3D widget.item
+-			local name =3D GetStaticTileTypeName(item.artid) or &quot;&quot;
+-			info =3D sprintf(&quot;item %s amount=3D%d (artid=3D%04x=3D%d)&quot;,name,item.am=
+ount,item.artid,item.artid)
+-			gCurrentRenderer.gMousePickTippOverride =3D info
+-			Client_SetBottomLine(gCurrentRenderer.gMousePickTippOverride)
+-		end
+-	end
+-
+-	if (gTooltipSupport and widget) then
+-		widget.tooltip_offx =3D kUOToolTippOffX
+-		widget.tooltip_offy =3D kUOToolTippOffY
+-		widget.stylesetname =3D gGuiDefaultStyleSet
+-		widget.on_simple_tooltip =3D function (widget) =
+
+-				local tooltiptext =3D AosToolTip_GetText(widget.item.serial) or &quot;&quot;
+-				return (tooltiptext .. &quot; \n &quot;) or &quot;?&quot; =
+
+-			end -- add newline, workaround for tooltip sizecalc bug
+-	end
+-end
++
+ =
+
+ -- ----------------------------------------------- End of local functions =
+-----------------------------
+ =
+
+@@ -125,10 +68,7 @@
+ =
+
+ -- destroys old widgets and creates new ones from contents
+ function RefreshContainerItemWidgets (container) =
+
+-	if (container.dialog) then
+-		DestroyContainerItemWidgets(container)
+-		for k,item in pairs(container:GetContent()) do MakeContainerItemWidget(i=
+tem) end
+-	end
++	if (container.dialog) then container.dialog:RefreshItems() end
+ end
+ =
+
+ -- called from kPacket_Open_Container
+@@ -157,36 +97,16 @@
+ 	end
+ 	=
+
+ 	-- normal container
+-	=
+
+ 	local container =3D GetOrCreateContainer(containerdata.serial)
+ 	container.gumpid =3D containerdata.gumpid
+ 	=
+
+ 	-- 0x003c =3D backpack
+ 	-- 0x0030 =3D shopcontainer
+-	if (not container.dialog) then
+-		-- create dialog from scratch
+-		local dialog =3D guimaker.MakeSortedDialog()
+-		container.dialog =3D dialog
+-		dialog.uoContainer =3D container
+-		=
+
+-		local x,y =3D GetDesktopElementPosition(&quot;container&quot;,containerdata.serial)
+-		if x and y then =
+
+-			dialog.rootwidget.gfx:SetPos(x,y) -- TODO : choose position
+-		else
+-			dialog.rootwidget.gfx:SetPos(200,100) -- TODO : choose position
+-		end
+-		=
+
+-		dialog.backpane =3D MakeBorderGumpPart(dialog.rootwidget,container.gumpi=
+d,0,0)
+-		dialog.backpane.mbIgnoreMouseOver =3D false
+-		dialog.backpane.on_mouse_right_down	=3D function (widget) CloseContainer=
+(widget.dialog.uoContainer.serial) end
+-		dialog.backpane.on_mouse_left_down	=3D function (widget) widget.dialog:B=
+ringToFront() gui.StartMoveDialog(widget.dialog.rootwidget) end
+-		=
+
+-		NotifyListener(&quot;Hook_OpenContainer&quot;, dialog, container.serial)
+-	end
++	if (not container.dialog) then container.dialog =3D CreateUOContainerDial=
+og(container) end
+ 	gLastDebugContainer =3D container
+ 	RefreshContainerItemWidgets(container)
+-
+ 	SecureTradeRebuildContainerHook(container)
++	NotifyListener(&quot;Hook_OpenContainer&quot;,container.dialog,container.serial)
+ end
+ =
+
+ -- packet handlers for containers (chests, drawers, inventory..)
+@@ -203,7 +123,6 @@
+ 	local container =3D GetContainer(serial)
+ 	if (container and container.dialog) then
+ 		NotifyListener(&quot;Hook_CloseContainer&quot;,container.dialog,serial)
+-		DestroyContainerItemWidgets(container)
+ 		container.dialog:Destroy()
+ 		container.dialog =3D nil
+ 	end
+@@ -225,9 +144,7 @@
+ function OpenContainer	(serial, x,y)
+ 	Send_DoubleClick(serial)
+ 	local container =3D GetOrCreateContainer(serial) =
+
+-	if container.dialog and container.dialog.rootwidget then
+-		container.dialog.rootwidget.gfx:SetPos(x,y)
+-	end
++	if container.dialog then container.dialog:SetPos(x,y) end
+ end
+ =
+
+ --[[
+
+Modified: trunk/lua/obj/obj.dynamic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/obj/obj.dynamic.lua (original)
++++ trunk/lua/obj/obj.dynamic.lua Wed Aug  6 00:34:43 2008
+@@ -120,11 +120,6 @@
+ 	local bIsInWorld =3D self.iContainerSerial =3D=3D 0
+ 	-- i think bIsInWorld is only true if the object was initially created us=
+ing kPacket_Show_Item
+ 	-- or is it possible for object_to_object/equip_item to set iContainerSer=
+ial to zero ?
+-
+-	if (not bIsInWorld) then =
+
+-		-- TODO : burn in gumpyoffset if dynamicdata contains position ?? =
+
+-		-- self.yloc =3D self.yloc+self.gumpyoffset
+-	end
+ =
+
+ 	-- TODO : if (self.artid &gt;=3D gMulti_ID +100) .. model is multi
+ 	-- gMulti_ID =3D hex2num(&quot;0x4000&quot;)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001166.html">[Iris-commit] [IRIS] r2358 - in /trunk/lua: gui/gui.gumpparser.lua gui/gui.healthbar.lua gui/gui.main.lua gui/gui.popup.lua gui/gui.spellbook.lua net.popup.lua net/net.main.lua net/net.other.lua
+</A></li>
+	<LI>Next message: <A HREF="001168.html">[Iris-commit] [IRIS] r2360 - in /trunk: lua/gui/gui.securetrade.lua lua/lib.uodragdrop.lua lua/obj/obj.container.lua widgets/widget.uocheckbox.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1167">[ date ]</a>
+              <a href="thread.html#1167">[ thread ]</a>
+              <a href="subject.html#1167">[ subject ]</a>
+              <a href="author.html#1167">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

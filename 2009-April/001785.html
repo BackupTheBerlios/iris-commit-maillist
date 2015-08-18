@@ -1,0 +1,355 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2986 - in /trunk/lua: lib.protocol.lua	lib.proxy.lua net/net.text.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2009-April/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2986%20-%20in%20/trunk/lua%3A%20lib.protocol.lua%0A%09lib.proxy.lua%20net/net.text.lua&In-Reply-To=%3C20090406210939.814601C1882F%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001784.html">
+   <LINK REL="Next"  HREF="001786.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2986 - in /trunk/lua: lib.protocol.lua	lib.proxy.lua net/net.text.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2986%20-%20in%20/trunk/lua%3A%20lib.protocol.lua%0A%09lib.proxy.lua%20net/net.text.lua&In-Reply-To=%3C20090406210939.814601C1882F%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2986 - in /trunk/lua: lib.protocol.lua	lib.proxy.lua net/net.text.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Mon Apr  6 23:09:39 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001784.html">[Iris-commit] [IRIS] r2985 - /trunk/lua/lib.proxy.lua
+</A></li>
+        <LI>Next message: <A HREF="001786.html">[Iris-commit] [IRIS] r2987 - in /trunk/lua: gui/gui.gumpparser.lua net/net.generic.lua net/net.text.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1785">[ date ]</a>
+              <a href="thread.html#1785">[ thread ]</a>
+              <a href="subject.html#1785">[ subject ]</a>
+              <a href="author.html#1785">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Mon Apr  6 23:09:38 2009
+New Revision: 2986
+
+Log:
+proxy : added compressed gump decode, and changed packet hexdump to look re=
+semble razor packetlog
+
+Modified:
+    trunk/lua/lib.protocol.lua
+    trunk/lua/lib.proxy.lua
+    trunk/lua/net/net.text.lua
+
+Modified: trunk/lua/lib.protocol.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.protocol.lua (original)
++++ trunk/lua/lib.protocol.lua Mon Apr  6 23:09:38 2009
+@@ -94,15 +94,37 @@
+ 	local cmd =3D fifo:PeekNetUint8(0)
+ 	if (gFileNoLogPackets and in_array(cmd,gFileNoLogPackets)) then return end
+ =
+
+-	local dirother =3D (direction =3D=3D &quot;Client&quot;) and &quot;Server&quot; or &quot;Client&quot;
+-	local subtime =3D Client_GetTicks()
+-	if (cmd =3D=3D 0xff) then print(&quot;########!!!!!!! 0xFF sent : &quot;,GetOneLine=
+BackTrace(2)) os.exit(0) end
+-	local name =3D gPacketTypeId2Name[cmd] or &quot;???&quot;
+ 	local traceback =3D &quot;&quot;
+ 	--~ local traceback =3D (not gPacketLogBackTrace) and (&quot; trace=3D&quot;..GetOn=
+eLineBackTrace(4)) or &quot;&quot;
+ 	if (MyGetBackTrace) then traceback =3D (not gPacketLogBackTrace) and (&quot; t=
+race=3D&quot;..MyGetBackTrace(4,&quot; &quot;)) or &quot;&quot; end
+ 	=
+
++	local info =3D HexDumpUOPacket(fifo,len,direction =3D=3D &quot;Client&quot;,traceba=
+ck) =
+
++	=
+
++	if (gPacketLogBackTrace) then info =3D info..&quot;\n&quot;..MyGetBackTrace(4)..&quot;\n=
+\n&quot; end
++	=
+
++	if (direction ~=3D &quot;Client&quot; and direction ~=3D &quot;Server&quot;) then info =3D in=
+fo..&quot;\nREALDIRECTION:&quot;..direction..&quot;\n&quot; end
++	=
+
++	info =3D info..&quot;\n\n&quot;
++	=
+
++	if (gPacketLogInit) then
++		gPacketLogInit =3D false
++		info =3D &quot;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt; Logging started &quot;..os.date(&quot;%d.%m.%Y %H:%M:%S&quot;)..&quot; =
+(iris) &lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;\n\n&quot; .. info
++	end
++	=
+
++	local file =3D io.open(&quot;packets.txt&quot;,&quot;a&quot;)
++	file:write(info)
++	file:close()
++end
++	=
+
++function HexDumpUOPacket (fifo,len,bIsFromClient,traceback) =
+
++	local cmd =3D fifo:PeekNetUint8(0)
++	local direction =3D bIsFromClient and &quot;Client&quot; or &quot;Server&quot;
++	local dirother =3D (not bIsFromClient) and &quot;Server&quot; or &quot;Client&quot;
++	local subtime =3D Client_GetTicks()
++	local name =3D gPacketTypeId2Name[cmd] or &quot;???&quot;
++	=
+
+ 	local info =3D &quot;&quot;
++	traceback =3D traceback or &quot;&quot;
+ 	=
+
+ 	local t =3D subtime
+ 	if (gLastPacketLogTime) then info =3D info..&quot;timediff	&quot;..(t-gLastPacketLo=
+gTime)..&quot;\n&quot; end
+@@ -140,17 +162,5 @@
+ 		end
+ 		info =3D info..sprintf(&quot;%04X   &quot;,linepos)..hexdump..&quot;  &quot;..ascidump..&quot;\n&quot;
+ 	end
+-	=
+
+-	if (gPacketLogBackTrace) then info =3D info..&quot;\n&quot;..MyGetBackTrace(4)..&quot;\n=
+\n&quot; end
+-	=
+
+-	info =3D info..&quot;\n\n&quot;
+-	=
+
+-	if (gPacketLogInit) then
+-		gPacketLogInit =3D false
+-		info =3D &quot;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt; Logging started &quot;..os.date(&quot;%d.%m.%Y %H:%M:%S&quot;)..&quot; =
+(iris) &lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;\n\n&quot; .. info
+-	end
+-	=
+
+-	local file =3D io.open(&quot;packets.txt&quot;,&quot;a&quot;)
+-	file:write(info)
+-	file:close()
++	return info
+ end
+
+Modified: trunk/lua/lib.proxy.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.proxy.lua (original)
++++ trunk/lua/lib.proxy.lua Mon Apr  6 23:09:38 2009
+@@ -26,8 +26,74 @@
+ 		Client_USleep(10) =
+
+ 		NetReadAndWrite()
+ 	end
+-	=
+
++
+ end
++
++-- compressed Gump
++-- see also function gPacketHandler.kPacket_Compressed_Gump ()	--0xDD
++function ProxyParseCompressedGumpPacket (input) =
+
++	local popped_start =3D input:GetTotalPopped()
++	local id =3D input:PopNetUint8()
++	local size =3D input:PopNetUint16()
++	local newgump =3D {}
++
++	newgump.playerid =3D input:PopNetUint32()
++	newgump.dialogId =3D input:PopNetUint32()
++	newgump.x =3D input:PopNetUint32()
++	newgump.y =3D input:PopNetUint32()
++
++	newgump.Length_CompressedData =3D input:PopNetUint32() - 4
++	newgump.Length_Data =3D input:PopNetUint32()
++
++	assert(28 + newgump.Length_CompressedData &lt;=3D size)
++
++	--- Data Part ---
++	local decompressed =3D CreateFIFO()
++	-- pop and decompress data into decompress fifo
++	input:PeekDecompressIntoFifo(newgump.Length_CompressedData,newgump.Length=
+_Data,decompressed)
++	-- skip compressed part (peeked)
++	input:PopRaw(newgump.Length_CompressedData)
++	newgump.Data =3D decompressed:PopFilledString(decompressed:Size())
++	-- and clear the decompress fifo for later usage
++	decompressed:Clear()
++	=
+
++	-- WARNING  strange -4 on compression ahead (see runuo2 source)
++	--- Textlines Part ---
++	newgump.numTextLines =3D input:PopNetUint32()
++
++	if (newgump.numTextLines ~=3D 0) then
++		newgump.Length_CompressedTextLines =3D input:PopNetUint32() - 4
++		newgump.Length_TextLines =3D input:PopNetUint32()
++	=
+
++		-- pop and decompress data into decompress fifo
++		input:PeekDecompressIntoFifo(newgump.Length_CompressedTextLines,newgump.=
+Length_TextLines,decompressed)
++		-- skip compressed part (peeked)
++		input:PopRaw(newgump.Length_CompressedTextLines)
++		=
+
++		-- print gumpdata
++		for k,v in pairs(newgump) do printdebug(&quot;gump&quot;,sprintf(&quot;newgump.%s =3D &quot;=
+,k),v) end
++		=
+
++		local textlen =3D 0
++		newgump.textline =3D {}
++		newgump.textline_unicode =3D {}
++		--Index 0 because Serverside Gump Commands use this Index as textline re=
+ferences
++		for i =3D 0,newgump.numTextLines-1 do
++			textlen =3D decompressed:PopNetUint16()
++			printdebug(&quot;gump&quot;,&quot;reading text line &quot;,i,&quot; with length &quot;,textlen)
++			newgump.textline[i],newgump.textline_unicode[i] =3D UniCodeDualPop(deco=
+mpressed,textlen)
++			printdebug(&quot;gump&quot;,sprintf(&quot;newgump.textline[%d](len=3D%d)=3D\n&quot;,i,textl=
+en),newgump.textline[i])
++		end
++	end
++
++	decompressed:Destroy()
++
++	if ( (input:Size() &gt;=3D 4) and (input:GetTotalPopped()-popped_start &lt; siz=
+e) ) then
++		local unknownterminator=3Dinput:PopNetUint32()
++	end
++	return newgump
++end
++
++
+ =
+
+ -- returns false if packet incomplete
+ function UOProxyHandlePacket	(fifo_in,fifo_out,bIsFromClient) =
+
+@@ -136,6 +202,33 @@
+ 		end
+ 		=
+
+ 		-- todo : NetStartHuffman (after redirect?)
++		=
+
++		=
+
++		if (bIsFromServer and iId =3D=3D kPacket_Compressed_Gump) then 	--0xDD
++			local packetfifo =3D CreateFIFO()
++			packetfifo:PushFIFOPartRaw(fifo_in,0,iPacketSize) =
+
++			local gumpdata =3D ProxyParseCompressedGumpPacket(packetfifo)
++			packetfifo:Destroy()
++			=
+
++			function MyPrintField (gumpdata,fieldname) print(&quot;gumpdata.&quot;..fieldname=
+,SmartDump(gumpdata[fieldname])) end
++			MyPrintField(gumpdata,&quot;playerid&quot;)
++			MyPrintField(gumpdata,&quot;dialogId&quot;)
++			MyPrintField(gumpdata,&quot;x&quot;)
++			MyPrintField(gumpdata,&quot;y&quot;)
++			MyPrintField(gumpdata,&quot;Length_CompressedData&quot;)
++			MyPrintField(gumpdata,&quot;Length_Data&quot;)
++			MyPrintField(gumpdata,&quot;Data&quot;)
++			MyPrintField(gumpdata,&quot;numTextLines&quot;)
++			MyPrintField(gumpdata,&quot;Length_CompressedTextLines&quot;)
++			MyPrintField(gumpdata,&quot;Length_TextLines&quot;)
++			MyPrintField(gumpdata,&quot;textline&quot;)
++			MyPrintField(gumpdata,&quot;textline_unicode&quot;)
++		end
++		=
+
++		=
+
++		=
+
++		=
+
++		=
+
+ 		=
+
+ 		=
+
+ 		if (bIsFromClient and gProxyBlockingClient) then
+@@ -165,7 +258,8 @@
+ 		=
+
+ 		=
+
+ 		print(&quot;recv:&quot;,fromname,&quot;t_since_start=3D&quot;,t_since_start) =
+
+-		print(FIFOHexDump(fifo_in,0,iPacketSize))
++		print(HexDumpUOPacket(fifo_in,iPacketSize,bIsFromClient,&quot; proxy&quot;))
++		--~ print(FIFOHexDump(fifo_in,0,iPacketSize))
+ 		fifo_out:PushFIFOPartRaw(fifo_in,0,iPacketSize) =
+
+ 		fifo_in:PopRaw(iPacketSize)
+ 		return true
+
+Modified: trunk/lua/net/net.text.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.text.lua (original)
++++ trunk/lua/net/net.text.lua Mon Apr  6 23:09:38 2009
+@@ -481,11 +481,12 @@
+ 	if not speech then print(&quot;unknown speech=3D&quot;,speech) return end
+ 	local speechlen =3D string.len(speech)
+ 	local out =3D GetSendFIFO()
++	-- todo : limit textlen : runuo : if ( text.Length &lt;=3D 0 || text.Length =
+&gt;<i> 128 ) return;
+</I> 	out:PushNetUint8(kPacket_Speech)
+ 	out:PushNetUint16(speechlen+8+1)
+-	out:PushNetUint8(0)
+-	out:PushNetUint16(10)
+-	out:PushNetUint16(3)
++	out:PushNetUint8(0) -- MessageType
++	out:PushNetUint16(10) -- hue
++	out:PushNetUint16(3) -- font
+ 	out:PushFilledString(speech, speechlen)
+ 	out:PushNetUint8(0)			-- add a Null-Terminator to sendstring
+ 	out:SendPacket()
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001784.html">[Iris-commit] [IRIS] r2985 - /trunk/lua/lib.proxy.lua
+</A></li>
+	<LI>Next message: <A HREF="001786.html">[Iris-commit] [IRIS] r2987 - in /trunk/lua: gui/gui.gumpparser.lua net/net.generic.lua net/net.text.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1785">[ date ]</a>
+              <a href="thread.html#1785">[ thread ]</a>
+              <a href="subject.html#1785">[ subject ]</a>
+              <a href="author.html#1785">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

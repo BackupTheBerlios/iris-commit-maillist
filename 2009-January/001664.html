@@ -1,0 +1,137 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2862 - in /trunk/lua: lib.2d.dynamic.lua	main.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2009-January/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2862%20-%20in%20/trunk/lua%3A%20lib.2d.dynamic.lua%0A%09main.lua&In-Reply-To=%3C20090112220611.1796F1C1880F%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001663.html">
+   <LINK REL="Next"  HREF="001665.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2862 - in /trunk/lua: lib.2d.dynamic.lua	main.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2862%20-%20in%20/trunk/lua%3A%20lib.2d.dynamic.lua%0A%09main.lua&In-Reply-To=%3C20090112220611.1796F1C1880F%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2862 - in /trunk/lua: lib.2d.dynamic.lua	main.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Mon Jan 12 23:06:10 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001663.html">[Iris-commit] [IRIS] r2861 - in /trunk/lua: lib.2d.dynamic.lua lib.2d.renderer.lua lib.mapblock.base.lua lib.protocol.lua main.lua net/net.multi.lua
+</A></li>
+        <LI>Next message: <A HREF="001665.html">[Iris-commit] [IRIS] r2863 - in /trunk/lua: lib.2d.mobile.lua lib.2d.spriteblock.lua main.lua net/net.text.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1664">[ date ]</a>
+              <a href="thread.html#1664">[ thread ]</a>
+              <a href="subject.html#1664">[ subject ]</a>
+              <a href="author.html#1664">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Mon Jan 12 23:06:10 2009
+New Revision: 2862
+
+Log:
+2D:Dynamics_MainStep : only one rebuild block per frame to reduce spikes
+
+Modified:
+    trunk/lua/lib.2d.dynamic.lua
+    trunk/lua/main.lua
+
+Modified: trunk/lua/lib.2d.dynamic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.dynamic.lua (original)
++++ trunk/lua/lib.2d.dynamic.lua Mon Jan 12 23:06:10 2009
+@@ -32,9 +32,11 @@
+ =
+
+ =
+
+ function Renderer2D:Dynamics_MainStep			() =
+
+-	local bHadDirty =3D false
+-	for block,v in pairs(self.gDynamicBlockDirtyList) do bHadDirty =3D true s=
+elf:DynamicBlockRebuild(block) end
+-	if (bHadDirty) then self.gDynamicBlockDirtyList =3D {} end
++	for block,v in pairs(self.gDynamicBlockDirtyList) do =
+
++		self.gDynamicBlockDirtyList[block] =3D nil =
+
++		self:DynamicBlockRebuild(block) =
+
++		break
++	end
+ end
+ =
+
+ =
+
+
+Modified: trunk/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/main.lua (original)
++++ trunk/lua/main.lua Mon Jan 12 23:06:10 2009
+@@ -475,11 +475,11 @@
+ 	end
+ 	print(Client_GetTicks(),&quot;=3D=3D=3D MyProfilerTop memLua =3D=3D=3D&quot;)
+ 	for k,o in pairs(arr_memL) do =
+
+-		if (k &lt;=3D topx) then print(&quot; #&quot;..k,sprintf(&quot;%5dkb&quot;,floor(o.v/1024)),o.n=
+ame) end =
+
++		if (k &lt;=3D topx and o.v &gt; 0) then print(&quot; #&quot;..k,sprintf(&quot;%5dkb&quot;,floor(o.=
+v/1024)),o.name) end =
+
+ 	end
+ 	print(Client_GetTicks(),&quot;=3D=3D=3D MyProfilerTop memOgre =3D=3D=3D&quot;)
+ 	for k,o in pairs(arr_memO) do =
+
+-		if (k &lt;=3D topx) then print(&quot; #&quot;..k,sprintf(&quot;%5dkb&quot;,floor(o.v/1024)),o.n=
+ame) end =
+
++		if (k &lt;=3D topx and o.v &gt; 0) then print(&quot; #&quot;..k,sprintf(&quot;%5dkb&quot;,floor(o.=
+v/1024)),o.name) end =
+
+ 	end
+ 	print(Client_GetTicks(),&quot; . . . . . &quot;)
+ 	=
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001663.html">[Iris-commit] [IRIS] r2861 - in /trunk/lua: lib.2d.dynamic.lua lib.2d.renderer.lua lib.mapblock.base.lua lib.protocol.lua main.lua net/net.multi.lua
+</A></li>
+	<LI>Next message: <A HREF="001665.html">[Iris-commit] [IRIS] r2863 - in /trunk/lua: lib.2d.mobile.lua lib.2d.spriteblock.lua main.lua net/net.text.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1664">[ date ]</a>
+              <a href="thread.html#1664">[ thread ]</a>
+              <a href="subject.html#1664">[ subject ]</a>
+              <a href="author.html#1664">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

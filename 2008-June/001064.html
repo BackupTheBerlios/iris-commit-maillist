@@ -1,0 +1,222 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2255 - in /trunk/lua: lib.3d.dynamic.lua	lib.3d.map.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-June/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2255%20-%20in%20/trunk/lua%3A%20lib.3d.dynamic.lua%0A%09lib.3d.map.lua&In-Reply-To=%3C20080627224036.8DCFB1C180A9%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001063.html">
+   <LINK REL="Next"  HREF="001065.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2255 - in /trunk/lua: lib.3d.dynamic.lua	lib.3d.map.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2255%20-%20in%20/trunk/lua%3A%20lib.3d.dynamic.lua%0A%09lib.3d.map.lua&In-Reply-To=%3C20080627224036.8DCFB1C180A9%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2255 - in /trunk/lua: lib.3d.dynamic.lua	lib.3d.map.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat Jun 28 00:40:31 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001063.html">[Iris-commit] [IRIS] r2254 - in /trunk/lua: gui/gui.gumpparser.lua gui/gui.healthbar.lua gui/gui.journal.lua gui/gui.paperdoll.lua gui/gui.quit.lua gui/gui.securetrade.lua gui/gui.skill.lua gui/gui.status.lua lib.loading.lua main.lua
+</A></li>
+        <LI>Next message: <A HREF="001065.html">[Iris-commit] [IRIS] r2256 - in /trunk: lua/main.lua widgets/
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1064">[ date ]</a>
+              <a href="thread.html#1064">[ thread ]</a>
+              <a href="subject.html#1064">[ subject ]</a>
+              <a href="author.html#1064">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: hagish
+Date: Sat Jun 28 00:40:16 2008
+New Revision: 2255
+
+Log:
+removed obslete uv textatlas patch calls
+
+Modified:
+    trunk/lua/lib.3d.dynamic.lua
+    trunk/lua/lib.3d.map.lua
+
+Modified: trunk/lua/lib.3d.dynamic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.dynamic.lua (original)
++++ trunk/lua/lib.3d.dynamic.lua Sat Jun 28 00:40:16 2008
+@@ -8,6 +8,7 @@
+ Renderer3D.gFastBatchDynamicsUpdateNext =3D nil
+ Renderer3D.gFastBatchDynamicsUpdateNextTimout =3D 10
+ Renderer3D.gFastBatchDynamicsUpdateBlockLimit =3D 5
++Renderer3D.gFastBatchDynamicsBlockSize =3D 8
+ Renderer3D.gFastBatchDynamicsMap =3D CreateArray2D()
+ Renderer3D.gFastBatchDynamicsMapDestroyListener =3D nil
+ =
+
+@@ -36,9 +37,6 @@
+ 	if Renderer3D.gFastBatchDynamicsUpdateNeeded and =
+
+ 		(not Renderer3D.gFastBatchDynamicsUpdateNext or Renderer3D.gFastBatchDyn=
+amicsUpdateNext &lt; gMyTicks) then
+ 	=
+
+-		local cxloc,cyloc =3D self:GetLookAheadCamPos()
+-		local cbx,cby =3D math.floor(cxloc/8 - 0.5),math.floor(cyloc/8 - 0.5)
+-
+ 		local blocksUpdated =3D 0
+ 		local blocksLimit =3D Renderer3D.gFastBatchDynamicsUpdateBlockLimit or 1
+ 		local blocksLeft =3D 0
+@@ -53,8 +51,6 @@
+ 					=
+
+ 					-- unset dirty flag
+ 					v.mbUpdateNeeded =3D false
+-					=
+
+-					local prio =3D 1 + 100 / (math.abs(bx-cbx)+math.abs(by-cby))
+ 					=
+
+ 					-- on demand create
+ 					if not v.mFastBatch then
+@@ -119,8 +115,8 @@
+ =
+
+ -- marks the dynamic block at uo position xy dirty, will get rebuild next =
+time
+ function Renderer3D:MarkDynamicBlockDirty	(x,y)
+-	local bx =3D math.floor(x/8)
+-	local by =3D math.floor(y/8)
++	local bx =3D math.floor(x / Renderer3D.gFastBatchDynamicsBlockSize)
++	local by =3D math.floor(y / Renderer3D.gFastBatchDynamicsBlockSize)
+ 	if Array2DGet(Renderer3D.gFastBatchDynamicsMap, bx,by) then
+ 		local e =3D Array2DGet(Renderer3D.gFastBatchDynamicsMap, bx,by)
+ 		e.mbUpdateNeeded =3D true
+@@ -148,8 +144,8 @@
+ 	Renderer3D:RemoveDynamicFromMap(dynamic)
+ =
+
+ 	-- block position
+-	local bx =3D math.floor(dynamic.xloc/8)
+-	local by =3D math.floor(dynamic.yloc/8)
++	local bx =3D math.floor(dynamic.xloc / Renderer3D.gFastBatchDynamicsBlock=
+Size)
++	local by =3D math.floor(dynamic.yloc / Renderer3D.gFastBatchDynamicsBlock=
+Size)
+ 	=
+
+ 	-- block empty? create a new entry
+ 	if not Array2DGet(Renderer3D.gFastBatchDynamicsMap, bx,by) then
+@@ -171,9 +167,6 @@
+ end
+ =
+
+ function Renderer3D:RemoveDynamicFromMap	(dynamic)
+-	-- local bx =3D math.floor(dynamic.xloc/8)
+-	-- local by =3D math.floor(dynamic.yloc/8)
+-	=
+
+ 	Array2DForAll(Renderer3D.gFastBatchDynamicsMap, function(e,bx,by)
+ 		-- remove dynamic if available
+ 		if e.mlDynamic[dynamic.serial] then
+@@ -190,25 +183,6 @@
+ 			Array2DSet(Renderer3D.gFastBatchDynamicsMap, bx,by, nil)
+ 		end
+ 	end)
+-end
+-
+--- untested
+-function Renderer3D:RemoveDynamicBlock	(blockx,blocky)
+-	if Array2DGet(Renderer3D.gFastBatchDynamicsMap, blockx,blocky) then
+-		print(&quot;RemoveDynamicBlock&quot;,blockx,blocky)
+-		local e =3D Array2DGet(Renderer3D.gFastBatchDynamicsMap, blockx,blocky)
+-		=
+
+-		-- remove all dynamics
+-		for k,v in pairs(e.mlDynamic) do
+-			e.miCount =3D e.miCount - 1
+-			e.mlDynamic[k] =3D nil
+-			print(&quot;RemoveDynamicBlock: remove serial&quot;,k)
+-		end
+-
+-		-- and kill the block
+-		if e.mFastBatch then e.mFastBatch:Destroy() end
+-		Array2DSet(Renderer3D.gFastBatchDynamicsMap, blockx,blocky, nil)
+-	end
+ end
+ =
+
+ -- rebuilds the graphic of the dynamics
+@@ -343,7 +317,7 @@
+ 	local bCorpseGFX =3D false
+ 	if (bCorpse) then
+ 		-- corpse
+-		print(&quot;CORPSECODE,CreateDynamicGfx corpse&quot;,item.amount)
++		-- print(&quot;CORPSECODE,CreateDynamicGfx corpse&quot;,item.amount)
+ 		bCorpseGFX =3D true
+ 		=
+
+ 		local bodyid =3D item.amount
+@@ -461,7 +435,6 @@
+ 		if (gFastBatchDynamics and item.meshname and item.meshname ~=3D false) t=
+hen
+ 			-- trigger: burn all dynamics into the dynamic fastbatch
+ 			item.meshbuffer =3D GetMeshBuffer(item.meshname) -- for mousepicking
+-			TexAtlas_AdjustMeshBufferIfNeeded(item.meshname,item.meshbuffer)
+ 			=
+
+ 			Renderer3D:AddDynamicToMap	(item)
+ 		-- Old rendering method
+
+Modified: trunk/lua/lib.3d.map.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.map.lua (original)
++++ trunk/lua/lib.3d.map.lua Sat Jun 28 00:40:16 2008
+@@ -318,7 +318,6 @@
+ 			end
+ =
+
+ 			entity.meshbuffer =3D GetMeshBuffer(meshname) -- for mousepicking
+-			TexAtlas_AdjustMeshBufferIfNeeded(meshname,entity.meshbuffer)
+ 			local orderval =3D entity.zloc -- used for blendout later (fastbatch fe=
+ature)
+ 			if visible then chunk.fastbatch:FastBatch_AddMeshBuffer(entity.meshbuff=
+er, orderval ,entity.x,entity.y,entity.z, qw,qx,qy,qz, sx,sy,sz, r,g,b,a) e=
+nd
+ 		else
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001063.html">[Iris-commit] [IRIS] r2254 - in /trunk/lua: gui/gui.gumpparser.lua gui/gui.healthbar.lua gui/gui.journal.lua gui/gui.paperdoll.lua gui/gui.quit.lua gui/gui.securetrade.lua gui/gui.skill.lua gui/gui.status.lua lib.loading.lua main.lua
+</A></li>
+	<LI>Next message: <A HREF="001065.html">[Iris-commit] [IRIS] r2256 - in /trunk: lua/main.lua widgets/
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1064">[ date ]</a>
+              <a href="thread.html#1064">[ thread ]</a>
+              <a href="subject.html#1064">[ subject ]</a>
+              <a href="author.html#1064">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,223 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1463 - in /trunk/data/lua:	lib.tilefreewalk.lua net.walk.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2007-October/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1463%20-%20in%20/trunk/data/lua%3A%0A%09lib.tilefreewalk.lua%20net.walk.lua&In-Reply-To=%3C20071010134035.54A831C18165%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000277.html">
+   <LINK REL="Next"  HREF="000279.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1463 - in /trunk/data/lua:	lib.tilefreewalk.lua net.walk.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1463%20-%20in%20/trunk/data/lua%3A%0A%09lib.tilefreewalk.lua%20net.walk.lua&In-Reply-To=%3C20071010134035.54A831C18165%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1463 - in /trunk/data/lua:	lib.tilefreewalk.lua net.walk.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Wed Oct 10 15:40:34 CEST 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000277.html">[Iris-commit] [IRIS] r1462 - /trunk/data/lua/lib.tilefreewalk.lua
+</A></li>
+        <LI>Next message: <A HREF="000279.html">[Iris-commit] [IRIS] r1464 - /trunk/data/lua/lib.tilefreewalk.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#278">[ date ]</a>
+              <a href="thread.html#278">[ thread ]</a>
+              <a href="subject.html#278">[ subject ]</a>
+              <a href="author.html#278">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Wed Oct 10 15:40:30 2007
+New Revision: 1463
+
+Log:
+improved tilefree following a bit, so the tile-positions doesn't get stuck =
+so easily
+
+Modified:
+    trunk/data/lua/lib.tilefreewalk.lua
+    trunk/data/lua/net.walk.lua
+
+Modified: trunk/data/lua/lib.tilefreewalk.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.tilefreewalk.lua (original)
++++ trunk/data/lua/lib.tilefreewalk.lua Wed Oct 10 15:40:30 2007
+@@ -385,10 +385,10 @@
+ function WalkLog2 (...) if (gKeyPressed[key_f]) then print(&quot;walklog2&quot;,unpa=
+ck(arg)) end end
+ =
+
+ function gTileFreeWalk:StuckCheck ()
+-	local x,y,z =3D self:GetPos_ClientSide()
+-	local rx,ry,rz =3D self:RoundPos(x,y,z)
+-	local d =3D len2(x-rx,y-ry)
+-	if (d &gt; 0.1) then return end
++	--~ local x,y,z =3D self:GetPos_ClientSide()
++	--~ local rx,ry,rz =3D self:RoundPos(x,y,z)
++	--~ local d =3D len2(x-rx,y-ry)
++	--~ if (d &gt; 0.1) then return end
+ 	=
+
+ 	-- TODO...
+ 	--~ print(&quot;StuckCheck&quot;)
+@@ -398,7 +398,10 @@
+ =
+
+ =
+
+ function gTileFreeWalk:Impl_WalkRequestStep (bRunRequested)
+-	self:StuckCheck()
++	-- self confirm here if there is no server, debug/offline mode only
++	if (gStartGameWithoutNetwork) then self:SetPos_LastConfirmed(self:RoundPo=
+s(self:GetPos_ClientSide())) return end
++	=
+
++	--~ self:StuckCheck()
+ 	self:PathPoint_Pop() -- pathpoints aren't currently used
+ 	if (not Walk_RequestTimeOk()) then return end
+ 	=
+
+@@ -412,44 +415,17 @@
+ 	=
+
+ 	WalkStep_WalkInDir(iDir,bRunRequested,true)
+ 	=
+
+-	if (true) then return end
+-	self:SetPos_LastConfirmed(rx,ry,rz)
+-	=
+
+-	local bWalkForward		=3D (not gActiveEditText) and gKeyPressed[key_up]		=
+
+-	local bWalkBackwards	=3D (not gActiveEditText) and gKeyPressed[key_down]	=
+
+-	local bTurnLeft			=3D (not gActiveEditText) and gKeyPressed[key_left]	=
+
+-	local bTurnRight		=3D (not gActiveEditText) and gKeyPressed[key_right]	=
+
+-	=
+
+-		=
+
+-	if (		bWalkForward) then WalkStep_WalkInDir(gPlayerDir ,true)
+-	elseif (	bTurnLeft	) then WalkStep_WalkInDir(gPlayerDir-1,true)
+-	elseif (	bTurnRight	) then WalkStep_WalkInDir(gPlayerDir+1,true) =
+
+-	end
+-	=
+
+-	=
+
+-	print(&quot;player&quot;,gPlayerXLoc,gPlayerYLoc,gPlayerDir)
+-	self:Impl_SetToPlayerPos(GetPlayerMobile())
+-	=
+
+-		=
+
+-	-- self confirm here if there is no server, debug/offline mode only
+-	if (gStartGameWithoutNetwork) then self:SetPos_LastConfirmed(rx,ry,rz) re=
+turn end
+-	=
+
+-	WalkLog2(&quot;Impl_WalkRequestStep timeok,haxnext&quot;,Walk_RequestTimeOk(),self:=
+PathPoint_HasNext())
+-	=
+
+-	-- don't calc if request can't be sent yet
+-	if (not Walk_RequestTimeOk()) then return end
+-	=
+
+-	=
+
+-	local x1,y1,z1 =3D self:PathPoint_GetNth(1)
+-	if (not x1) then return end
+-	=
+
+-	xloc1,yloc1,zloc1 =3D self:LocalToUOPos(x1,y1,z1)
+-	=
+
+-	=
+
++	=
+
++	=
+
++	--~ print(&quot;player&quot;,gPlayerXLoc,gPlayerYLoc,gPlayerDir)
++	--~ self:Impl_SetToPlayerPos(GetPlayerMobile())
++	--~ WalkLog2(&quot;Impl_WalkRequestStep timeok,haxnext&quot;,Walk_RequestTimeOk(),s=
+elf:PathPoint_HasNext())
++	--~ local x1,y1,z1 =3D self:PathPoint_GetNth(1)
++	--~ if (not x1) then return end
++	--~ xloc1,yloc1,zloc1 =3D self:LocalToUOPos(x1,y1,z1)
+ 	--~ if (xloc2 and WalkStep_WalkToPosSimple(xloc2,yloc2,bRunRequested,fals=
+e)) then return end
+-	print(&quot;WalkStep_WalkToPosSimple&quot;,xloc1,yloc1,gPlayerXLoc,gPlayerYLoc)
+-	WalkStep_WalkToPosSimple(xloc1,yloc1,bRunRequested,false)
+-	=
+
++	--~ print(&quot;WalkStep_WalkToPosSimple&quot;,xloc1,yloc1,gPlayerXLoc,gPlayerYLoc)
++	--~ WalkStep_WalkToPosSimple(xloc1,yloc1,bRunRequested,false)
+ 	-- todo : pathpoints can be impassable, happens during diagonal walk, don=
+'t send walk requests to those
+ 	-- determine the &quot;next&quot; position for the request, summarize as much into =
+one step as possible
+ end
+
+Modified: trunk/data/lua/net.walk.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/net.walk.lua (original)
++++ trunk/data/lua/net.walk.lua Wed Oct 10 15:40:30 2007
+@@ -127,7 +127,7 @@
+ function WalkStep_WalkInDir		(iDir,bRunFlag,bTrySides) =
+
+ 	if (not Walk_RequestTimeOk()) then return end
+ 	iDir =3D DirWrap(iDir)
+-	if (iDir ~=3D gPlayerDir	or 	WalkStep_CanWalkInDir(iDir  )) then return E=
+xecWalkRequestIfPossible(iDir  ,bRunFlag) end
++	if (						WalkStep_CanWalkInDir(iDir  )) then return ExecWalkRequestIfPos=
+sible(iDir  ,bRunFlag) end
+ 	if (bTrySides and			WalkStep_CanWalkInDir(iDir-1)) then return ExecWalkRe=
+questIfPossible(iDir-1,bRunFlag) end
+ 	if (bTrySides and			WalkStep_CanWalkInDir(iDir+1)) then return ExecWalkRe=
+questIfPossible(iDir+1,bRunFlag) end
+ end
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000277.html">[Iris-commit] [IRIS] r1462 - /trunk/data/lua/lib.tilefreewalk.lua
+</A></li>
+	<LI>Next message: <A HREF="000279.html">[Iris-commit] [IRIS] r1464 - /trunk/data/lua/lib.tilefreewalk.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#278">[ date ]</a>
+              <a href="thread.html#278">[ thread ]</a>
+              <a href="subject.html#278">[ subject ]</a>
+              <a href="author.html#278">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

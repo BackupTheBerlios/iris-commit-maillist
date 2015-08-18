@@ -1,0 +1,212 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r3399 - /trunk/lua/main.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2011-October/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3399%20-%20/trunk/lua/main.lua&In-Reply-To=%3C20111026172939.6A4A354D0007%40simon%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="002138.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r3399 - /trunk/lua/main.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3399%20-%20/trunk/lua/main.lua&In-Reply-To=%3C20111026172939.6A4A354D0007%40simon%3E"
+       TITLE="[Iris-commit] [IRIS] r3399 - /trunk/lua/main.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Wed Oct 26 19:29:39 CEST 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="002138.html">[Iris-commit] [IRIS] r3398 - in /trunk: config/shards/vetus-mundus.xml installdeps.ubuntu.sh
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2139">[ date ]</a>
+              <a href="thread.html#2139">[ thread ]</a>
+              <a href="subject.html#2139">[ subject ]</a>
+              <a href="author.html#2139">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Wed Oct 26 19:29:39 2011
+New Revision: 3399
+
+Log:
+writable path alternatives trial and error, lets hope this makes it playabl=
+e on unicode usernames or system folder paths...
+
+Modified:
+    trunk/lua/main.lua
+
+Modified: trunk/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/main.lua (original)
++++ trunk/lua/main.lua Wed Oct 26 19:29:39 2011
+@@ -47,30 +47,82 @@
+ 		local home =3D GetHomePath()
+ 		if (not home) then return end
+ 		=
+
+-		gHomeIrisPath 		=3D home..&quot;/.iris/&quot;
+-		gTempPath 			=3D gHomeIrisPath..&quot;tmp/&quot;
+-		gScreenshotDir		=3D gHomeIrisPath..&quot;screenshots/&quot;
+-		gConfigPath 		=3D gHomeIrisPath..&quot;config/&quot;
+-		gConfigPathFile     =3D gConfigPath..gConfigFile
+-		gMacroPathFile      =3D gConfigPath..gMacroFile
+-		gDesktopDir			=3D gConfigPath..&quot;desktop/&quot;
+-		gPacketVideoFileName_folderpath	=3D gHomeIrisPath..&quot;videos/&quot; -- todo : t=
+ext=3D'will be saved as .ipv files in iris/videos/'
+-		gUOAMDir			=3D gConfigPath..&quot;uoam/&quot;
+-		gUoamMarkPathFile	=3D gUOAMDir..gUoamMarkFile
++		local function MyInitCheckHomeDir (home)
++			print(&quot;trying to init from home path:&quot;,home)
++			gHomeIrisPath 		=3D home..&quot;/.iris/&quot;
++			gTempPath 			=3D gHomeIrisPath..&quot;tmp/&quot;
++			gScreenshotDir		=3D gHomeIrisPath..&quot;screenshots/&quot;
++			gConfigPath 		=3D gHomeIrisPath..&quot;config/&quot;
++			gConfigPathFile     =3D gConfigPath..gConfigFile
++			gMacroPathFile      =3D gConfigPath..gMacroFile
++			gDesktopDir			=3D gConfigPath..&quot;desktop/&quot;
++			gPacketVideoFileName_folderpath	=3D gHomeIrisPath..&quot;videos/&quot; -- todo : =
+text=3D'will be saved as .ipv files in iris/videos/'
++			gUOAMDir			=3D gConfigPath..&quot;uoam/&quot;
++			gUoamMarkPathFile	=3D gUOAMDir..gUoamMarkFile
++			=
+
++			-- check if config.lua is already copied
++			if (not file_exists(gConfigPathFile)) then
++				print(&quot;initializing &quot;..gHomeIrisPath)
++				mkdir(gHomeIrisPath)
++				mkdir(gTempPath)
++				mkdir(gScreenshotDir)
++				mkdir(gConfigPath)
++				mkdir(gDesktopDir)
++				mkdir(gPacketVideoFileName_folderpath)
++				mkdir(gUOAMDir)
++
++				print(&quot;Copy config from: &quot; .. gMainWorkingDir..&quot;config/&quot; .. &quot; to: &quot; ..=
+ gConfigPath)
++				-- test if config dir is writable, probably unicode filepath problem i=
+f not (e.g /Data aplikaci/ with accent on i or unicode username or somethin=
+g)
++				local config_write_test_path =3D gConfigPath..&quot;config-write-test.txt&quot;
++				local fp =3D io.open(config_write_test_path,&quot;wb&quot;)
++				if (fp) then =
+
++					fp:close()
++					CopyDir(gMainWorkingDir..&quot;config/&quot;,gConfigPath)
++					return true
++				else
++					print(&quot;path not writable:&quot;,config_write_test_path)
++					return false
++				end
++			else =
+
++				return true
++			end
++		end
+ 		=
+
+-		-- check if config.lua is already copied
+-		if (not file_exists(gConfigPathFile)) then
+-			print(&quot;initializing &quot;..gHomeIrisPath)
+-			mkdir(gHomeIrisPath)
+-			mkdir(gTempPath)
+-			mkdir(gScreenshotDir)
+-			mkdir(gConfigPath)
+-			mkdir(gDesktopDir)
+-			mkdir(gPacketVideoFileName_folderpath)
+-			mkdir(gUOAMDir)
+-
+-			print(&quot;Copy config from: &quot; .. gMainWorkingDir..&quot;config/&quot; .. &quot; to: &quot; .. =
+gConfigPath)
+-			CopyDir(gMainWorkingDir..&quot;config/&quot;,gConfigPath)
++		if (not MyInitCheckHomeDir(home)) then
++			print(&quot;##########################################&quot;)
++			print(&quot;##########################################&quot;)
++			print(&quot;####  &quot;)
++			print(&quot;####  couldn't write to config folder, maybe unicode username or=
+ system folder names in path:&quot;)
++			print(&quot;####  &quot;,config_write_test_path)
++			print(&quot;####  trying other paths, warning, it might be readonly in win-v=
+ista/win7..., start as admin or set it writable on problems&quot;)
++			print(&quot;####  &quot;)
++			print(&quot;##########################################&quot;)
++			print(&quot;##########################################&quot;)
++			=
+
++			-- try a few paths
++			local function MyGetShellLine (cmd) -- for getting path from shell vari=
+ables, e.g. &quot;echo %appdata%&quot;
++				local file =3D io.popen(cmd)
++				if (not file) then return end
++				for line in file:lines() do file:close() return string.sub(line,1,-1) =
+end
++				file:close()
++			end
++			local function MyTryPaths () =
+
++				-- try a few paths, e.g. <A HREF="http://en.wikipedia.org/wiki/Environment_vari=">http://en.wikipedia.org/wiki/Environment_vari=</A>
+able
++				if (WIN32) then =
+
++					local path =3D MyGetShellLine(&quot;echo %PROGRAMDATA%&quot;) if (MyInitCheckHo=
+meDir(path)) then return end -- try first, no username involved, e.g winxp:=
+&quot;C:\Documents and Settings\All Users&quot;   win7:&quot;C:\ProgramData&quot;
++					--~ local path =3D MyGetShellLine(&quot;echo %APPDATA%&quot;) if (MyInitCheckHo=
+meDir(path)) then return end -- (already in GetHomePath()) winxp:&quot;C:\Docume=
+nts and Settings\{username}\Application Data&quot;   win7:&quot;C:\Users\{username}\A=
+ppData\Roaming&quot;
++					local path =3D MyGetShellLine(&quot;echo %CommonProgramFiles%&quot;) if (MyInit=
+CheckHomeDir(path)) then return end -- 	C:\Program Files\Common Files
++				end
++				if (MyInitCheckHomeDir(gMainWorkingDir)) then return end
++				if (MyInitCheckHomeDir(&quot;..&quot;)) then return end
++				if (WIN32) then =
+
++					--~ if (MyInitCheckHomeDir(&quot;C:&quot;)) then return end
++					--~ if (MyInitCheckHomeDir(&quot;D:&quot;)) then return end -- kets hope this d=
+oesn't write on dvd or something...
++					--~ local path =3D MyGetShellLine(&quot;echo %TMP%&quot;) if (MyInitCheckHomeDi=
+r(path)) then return end
++				end
++				print(&quot;failed to find writable path for temporary data, exiting...&quot;)
++				os.exit(0)
++			end
+ 		end
+ 	end
+ end
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="002138.html">[Iris-commit] [IRIS] r3398 - in /trunk: config/shards/vetus-mundus.xml installdeps.ubuntu.sh
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2139">[ date ]</a>
+              <a href="thread.html#2139">[ thread ]</a>
+              <a href="subject.html#2139">[ subject ]</a>
+              <a href="author.html#2139">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

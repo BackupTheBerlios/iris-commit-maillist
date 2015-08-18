@@ -1,0 +1,844 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2154 - in /trunk/lua: ./ obj/
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-May/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2154%20-%20in%20/trunk/lua%3A%20./%20obj/&In-Reply-To=%3C20080509210019.87EEF1C18654%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000963.html">
+   <LINK REL="Next"  HREF="000965.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2154 - in /trunk/lua: ./ obj/</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2154%20-%20in%20/trunk/lua%3A%20./%20obj/&In-Reply-To=%3C20080509210019.87EEF1C18654%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2154 - in /trunk/lua: ./ obj/">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Fri May  9 22:23:01 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000963.html">[Iris-commit] [IRIS] r2153 - in /trunk: include/ src/
+</A></li>
+        <LI>Next message: <A HREF="000965.html">[Iris-commit] [IRIS] r2155 - /trunk/lua/lib.2d.renderer.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#964">[ date ]</a>
+              <a href="thread.html#964">[ thread ]</a>
+              <a href="subject.html#964">[ subject ]</a>
+              <a href="author.html#964">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Fri May  9 22:23:00 2008
+New Revision: 2154
+
+Log:
+dummy 2d renderer, black screen, but no crash
+
+Added:
+    trunk/lua/lib.2d.cam.lua
+    trunk/lua/lib.2d.renderer.lua
+    trunk/lua/lib.light.lua
+Modified:
+    trunk/lua/lib.3d.cam.lua
+    trunk/lua/lib.3d.mobile.lua
+    trunk/lua/lib.3d.renderer.lua
+    trunk/lua/lib.3d.walksmooth.lua
+    trunk/lua/lib.compass.lua
+    trunk/lua/lib.loading.lua
+    trunk/lua/lib.macrolist.lua
+    trunk/lua/lib.mainmenu.lua
+    trunk/lua/lib.pathfind.lua
+    trunk/lua/lib.renderer.lua
+    trunk/lua/lib.test.lua
+    trunk/lua/main.lua
+    trunk/lua/net.walk.lua
+    trunk/lua/obj/obj.mobile.lua
+
+Modified: trunk/lua/lib.3d.cam.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.cam.lua (original)
++++ trunk/lua/lib.3d.cam.lua Fri May  9 22:23:00 2008
+@@ -22,6 +22,17 @@
+ Renderer3D.gCamMoveWithMouse_OffX	=3D nil
+ Renderer3D.gCamMoveWithMouse_OffY	=3D nil
+ 		=
+
++function Renderer3D:CamInit()
++	--print(&quot;activating Renderer3D&quot;)
++	local cam =3D GetMainCam()
++	cam:SetFOVy(gfDeg2Rad*45)
++	cam:SetNearClipDistance(0.5) -- old : 1
++	cam:SetFarClipDistance(2000) -- ogre defaul : 100000
++	cam:SetProjectionType(kCamera_PT_PERSPECTIVE) -- perspective
++	self.gbCamRotChanged =3D true
++end	=
+
++
++
+ function Renderer3D:CamKeyUp(key)
+ 	if (key =3D=3D gInput_CamMouseButton and self.gCamMoveWithMouse) then =
+
+ 		self.gCamMoveWithMouse =3D false =
+
+@@ -251,23 +262,22 @@
+ end
+ =
+
+ -- can return floating point block position
+-function Renderer3D:UpdateCompass()
++function Renderer3D:GetCompassInfo()
+ 	local ax,ay,az =3D GetMainCam():GetEulerAng()
+-	local xmirror =3D false
+ 	=
+
+ 	-- if in third person, center compass on player instead of on cam
+ 	if (Renderer3D.gCamMode =3D=3D Renderer3D.kCamMode_Third) then
+ 		local x,y,z =3D gTileFreeWalk:GetExactLocalPos()
+ 		local xloc,yloc,zloc =3D self:LocalToUOPos(x,y,z*10)
+ 		--~ local xloc,yloc,zloc =3D GetPlayerPos()
+-		if (xloc) then return ax, xloc/8, yloc/8, xmirror end
++		if (xloc) then return ax, xloc, yloc end
+ 	end
+ 		=
+
+ 	local camx,camy,camz =3D GetMainCam():GetPos()
+-	local iCamOverBlockX =3D self.giMapOriginX*self.ROBMAP_CHUNK_SIZE + camx/8
+-	local iCamOverBlockY =3D self.giMapOriginY*self.ROBMAP_CHUNK_SIZE + camy/8
+-	=
+
+-	return ax, -iCamOverBlockX, iCamOverBlockY, xmirror
++	local iCamOverLocX =3D self.giMapOriginX*self.ROBMAP_CHUNK_SIZE*8 + camx
++	local iCamOverLocY =3D self.giMapOriginY*self.ROBMAP_CHUNK_SIZE*8 + camy
++	=
+
++	return ax, -iCamOverLocX, iCamOverLocY
+ end
+ =
+
+ --[[
+
+Modified: trunk/lua/lib.3d.mobile.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.mobile.lua (original)
++++ trunk/lua/lib.3d.mobile.lua Fri May  9 22:23:00 2008
+@@ -2,7 +2,7 @@
+ -- manages all visual things for mobiles : body,energybar,aura,selection m=
+arker,name, text over head...
+ =
+
+ -- called from obj.mobile.lua
+-function UpdateMobileModel (mobile)
++function Renderer3D:UpdateMobileModel (mobile)
+ 	if (gTestNoMobileGfxNodes) then return end
+ 	if (not mobile.bodygfx) then mobile.bodygfx =3D CreateBodyGfx() end
+ 	mobile.bodygfx:MarkForUpdate(mobile.artid,mobile.hue,GetMobileEquipmentLi=
+st(mobile))
+
+Modified: trunk/lua/lib.3d.renderer.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.renderer.lua (original)
++++ trunk/lua/lib.3d.renderer.lua Fri May  9 22:23:00 2008
+@@ -3,6 +3,16 @@
+ -- see also lib.3d.dynamic.lua
+ =
+
+ Renderer3D =3D {}
++
++dofile(libpath .. &quot;lib.3d.mobile.lua&quot;)
++dofile(libpath .. &quot;lib.3d.dynamic.lua&quot;)
++dofile(libpath .. &quot;lib.3d.mousepick.lua&quot;)
++dofile(libpath .. &quot;lib.3d.map.lua&quot;)
++dofile(libpath .. &quot;lib.3d.combat.lua&quot;)
++dofile(libpath .. &quot;lib.3d.cam.lua&quot;)
++dofile(libpath .. &quot;lib.3d.walksmooth.lua&quot;)
++
++
+ gRendererList[ &quot;Renderer3d&quot; ] =3D Renderer3D
+ =
+
+ -- static Factor to rise the Z-Level for statics+dynamics
+@@ -12,11 +22,29 @@
+ Renderer3D.gDynamicMaxRenderDist =3D 128 -- 0 means always rendered  -- TO=
+DO : make this dependant on bounding sphere size, e.g. in pixel size ?
+ Renderer3D.gDynamicZAdd =3D 0.2 -- add a bit to make sure all dynamics can=
+ be clicked and none are below the floor, todo : improve this by detecting =
+floor height and model bbox
+ =
+
+-function Renderer3D:PreInit ()
+-	-- load texture atlas
+-	LoadTexAtlas()
+-	MultiTexTerrainInit()
+-end
++function Renderer3D:SetOfflineStartPos (x,y,z)
++	gTileFreeWalk:SetPos_All(x+0.5,y+0.5,z) -- + for both might be wrong..
++end
++
++
++
++function Renderer3D:SetLastConfirmedUOPos(xloc,yloc,zloc) gTileFreeWalk:Im=
+pl_SetLastConfirmedUOPos(xloc,yloc,zloc) end -- walk
++function Renderer3D:SetLastRequestedUOPos(xloc,yloc,zloc) gTileFreeWalk:Im=
+pl_SetLastRequestedUOPos(xloc,yloc,zloc) end -- walk
++
++--- for AttackMobile macro
++function Renderer3D:SetViewDir(dx,dy) gTileFreeWalk:SetViewDir(dx,dy) end
++
++-- for hotkey
++function Renderer3D:OfflineTeleportToMouse()
++	gTileFreeWalk:SetPos_All(gTileFreeWalk:RoundPos(gTileFreeWalk:MousePickPo=
+s()))
++end
++
++-- used by MacroRead_GetPlayerPosition when no playermobile found (yet)
++function Renderer3D:GetExactLocalPos()
++	sx,sy,sz =3D gTileFreeWalk:GetExactLocalPos()
++	return -sx,sy,sz
++end
++
+ =
+
+ -- warning !you still have to do 0.1 z factor seperately
+ function Renderer3D:UOPosToLocal (xloc,yloc,z) =
+
+@@ -39,34 +67,6 @@
+ 	--print(&quot;TranslateOsiWalkAngle&quot;,-x,camangdeg)
+ 	--return -x + camangdeg - 3*45
+ 	return x - camangdeg + 5*45
+-end
+-
+--- initializes Worldlight for normal SkyBox
+-function Renderer3D:SetupWorldlight ()
+-	if (gUseCaelumSkysystem) then return end
+-
+-	Client_ClearLights()
+-
+-	-- Sun Light
+-	gDirectionalLightSun =3D Client_AddDirectionalLight(
+-								gSunLightDirection.x,
+-								gSunLightDirection.y,
+-								gSunLightDirection.z)
+-	=
+
+-	Client_SetLightDiffuseColor(gDirectionalLightSun,
+-								gSunLightDiffuse.r,
+-								gSunLightDiffuse.g,
+-								gSunLightDiffuse.b)
+-
+-	Client_SetLightSpecularColor(gDirectionalLightSun,
+-								gSunLightSpecular.r,
+-								gSunLightSpecular.g,
+-								gSunLightSpecular.b)
+-
+-	-- Ambient Light
+-	Client_SetAmbientLight( gAmbientLight.r,
+-							gAmbientLight.g,
+-							gAmbientLight.b, 1.0)
+ end
+ =
+
+ function Renderer3D:SetMapEnvironment (bUnderGround)
+@@ -186,7 +186,7 @@
+ 	Renderer3D.gbNeedCorrectAspectRatio =3D true
+ end
+ =
+
+-function Renderer3D:CorrectAspectRatio (w,h)
++function Renderer3D:CorrectAspectRatio ()
+ 	if (not Renderer3D.gbNeedCorrectAspectRatio) then return end
+ 	Renderer3D.gbNeedCorrectAspectRatio =3D false
+ 	local vp =3D GetMainViewport()
+@@ -194,24 +194,28 @@
+ 	GetMainCam():SetAspectRatio(vp:GetActualWidth() / vp:GetActualHeight())
+ end
+ =
+
++function Renderer3D:FirstInit ()
++	if (self.bFirstInitDone) then return end
++	self.bFirstInitDone =3D true
++	-- load texture atlas
++	LoadTexAtlas()
++	MultiTexTerrainInit()
++end
++
++	=
+
+ function Renderer3D:Init()
+-	--print(&quot;activating Renderer3D&quot;)
+-	local cam =3D GetMainCam()
+-	cam:SetFOVy(gfDeg2Rad*45)
+-	cam:SetNearClipDistance(0.5) -- old : 1
+-	cam:SetFarClipDistance(2000) -- ogre defaul : 100000
+-	cam:SetProjectionType(kCamera_PT_PERSPECTIVE) -- perspective
+-
++	self:FirstInit()
++	self:CamInit()
++	=
+
+ 	-- for 2D/3D renderer switching
+ 	self.gbActive =3D true
+ =
+
+ 	-- initialize Worldlight for normal SkyBox
+-	self.SetupWorldlight()
++	SetupWorldLight_Default()
+ =
+
+ 	-- initialize Shadowsystem
+ 	self:SetupShadows()
+ =
+
+-	self.gbCamRotChanged =3D true
+ 	for k,dynamic in pairs(GetDynamicList()) do if (DynamicIsInWorld(dynamic)=
+) then self:AddDynamicItem(dynamic) end end
+ 	for k,mobile in pairs(GetMobileList()) do self:CreateMobileGfx(mobile) end
+ end
+
+Modified: trunk/lua/lib.3d.walksmooth.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.walksmooth.lua (original)
++++ trunk/lua/lib.3d.walksmooth.lua Fri May  9 22:23:00 2008
+@@ -97,6 +97,7 @@
+ end
+ =
+
+ function Renderer3D:NotifyPlayerTeleported ()
++	gTileFreeWalk:NotifyPlayerMobileTeleport(GetPlayerMobile())
+ 	self:WalkSmoothReset(GetPlayerMobile())
+ end
+ =
+
+
+Modified: trunk/lua/lib.compass.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.compass.lua (original)
++++ trunk/lua/lib.compass.lua Fri May  9 22:23:00 2008
+@@ -183,7 +183,7 @@
+ 			local mygfx =3D gIrisCompassDialog.compassframe_rot.gfx
+ 			mygfx:InitRROC()
+ 			mygfx:SetMaterial(&quot;compassframe_rot&quot;)
+-			local ax, iCamOverBlockX, iCamOverBlockY, MirrorX =3D gCurrentRenderer:=
+UpdateCompass()
++			local ax, cxloc, cyloc =3D gCurrentRenderer:GetCompassInfo()
+ 			local r =3D math.sqrt( halfwidth*halfwidth + halfwidth*halfwidth )
+ 			local rsin =3D halfwidth * math.sin(- ax + gfDeg2Rad*90)
+ 			local rcos =3D halfwidth * math.cos(- ax + gfDeg2Rad*90)
+@@ -321,14 +321,11 @@
+ =
+
+ -- returns the relative position in px (from the compass center) of a give=
+n uo location in tiles
+ function GetRelativeCompasUOPositionInPx	(xloc, yloc)
+-	local angle, iCamOverBlockX, iCamOverBlockY, MirrorX =3D gCurrentRenderer=
+:<i>UpdateCompass()
+</I>+	local angle, cxloc, cyloc =3D gCurrentRenderer:GetCompassInfo()
+ 	local vw,vh =3D GetViewportSize() -- uses overlay manager
+ 	local z =3D GetMaxZ()
+ 	local mx =3D vw - gCompassSize/2 - gCompassOff
+ 	local my =3D 15 + gCompassSize/2 + gCompassOff
+-	=
+
+-	local cxloc =3D iCamOverBlockX*8
+-	local cyloc =3D iCamOverBlockY*8
+ 	=
+
+ 	local px =3D xloc - cxloc
+ 	local py =3D yloc - cyloc
+@@ -355,8 +352,8 @@
+ function UpdateCompass ()
+ 	if (gDisableCompass) then return end
+ 	if (gIrisCompassDialog and gIrisCompassDialog.bDoUpdate) then	=
+
+-		-- ax =3D camera angle, iCamOverBlockX*8 =3D tileposition, iCamOverBlock=
+Y*8 =3D tileposition, MirrorX =3D strage mirror hack
+-		local ax, iCamOverBlockX, iCamOverBlockY, MirrorX =3D gCurrentRenderer:U=
+pdateCompass()
++		-- ax =3D camera angle, cxloc, cyloc =3D tileposition
++		local ax, cxloc, cyloc =3D gCurrentRenderer:GetCompassInfo()
+ 		local vw,vh =3D GetViewportSize() -- uses overlay manager
+ 		local z =3D GetMaxZ()
+ 		local mx =3D vw - gCompassSize/2 - gCompassOff
+@@ -366,7 +363,7 @@
+ 		=
+
+ 		-- detail compass
+ 		if (not bRough) then
+-			local xloc,yloc =3D iCamOverBlockX*8, iCamOverBlockY*8
++			local xloc,yloc =3D cxloc, cyloc
+ 			UpdateDetailMapCacheIfNeeded(xloc,yloc)
+ 			local mygfx =3D gIrisCompassDialog.detailcompass.gfx
+ 			=
+
+@@ -440,27 +437,10 @@
+ 			mygfx:RenderableEnd()
+ 		=
+
+ 		end
+-		=
+
+-		-- old radar
+-		--[[
+-		if (gIrisCompassDialog.radar) then
+-			--MemProfile(&quot;a&quot;)
+-			gIrisCompassDialog.radar:SetLocation( iCamOverBlockX*8, iCamOverBlockY*=
+8 ) -- TODO : memleak, old tiles (and textures?) not freed
+-			--MemProfile(&quot;c&quot;)
+-			gIrisCompassDialog.radar:SetAngle( ax )
+-			gIrisCompassDialog.radar:SetPosition( mx, my )
+-		=
+
+-			if (MirrorX) then
+-				gIrisCompassDialog.radar:SetMirrorX( true )
+-			else
+-				gIrisCompassDialog.radar:SetMirrorX( false )
+-			end
+-		end
+-		]]--
+ =
+
+ 		if (gIrisCompassDialog.compass.gfx and bRough) then
+ 			gIrisCompassDialog.compass.gfx:SetAngBias(ax)
+-			gIrisCompassDialog.compass.gfx:SetUVMid(iCamOverBlockX/gCompassMapW, iC=
+amOverBlockY/gCompassMapH)
++			gIrisCompassDialog.compass.gfx:SetUVMid(cxloc/8/gCompassMapW, cyloc/8/g=
+CompassMapH)
+ 		end
+ =
+
+ 		-- rotating compass part
+
+Modified: trunk/lua/lib.loading.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.loading.lua (original)
++++ trunk/lua/lib.loading.lua Fri May  9 22:23:00 2008
+@@ -245,7 +245,7 @@
+ 	-- destroy old ground and static loaders
+ 	if (gGroundBlockLoader) then gGroundBlockLoader:Destroy() gGroundBlockLoa=
+der =3D nil end
+ 	if (gStaticBlockLoader) then gStaticBlockLoader:Destroy() gStaticBlockLoa=
+der =3D nil end
+-	Renderer3D:ClearMapCache()
++	gCurrentRenderer:ClearMapCache()
+ end
+ =
+
+ -- Loads Maps+Statics+Diff Files (only pre 6.0.0)
+
+Modified: trunk/lua/lib.macrolist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.macrolist.lua (original)
++++ trunk/lua/lib.macrolist.lua Fri May  9 22:23:00 2008
+@@ -228,8 +228,7 @@
+ 	if mobile then
+ 		sx,sy,sz =3D mobile.xloc,mobile.yloc,mobile.zloc * 0.1
+ 	else
+-		sx,sy,sz =3D gTileFreeWalk:GetExactLocalPos()
+-		sx =3D -sx
++		sx,sy,sz =3D gCurrentRenderer:GetExactLocalPos()
+ 	end	=
+
+ 	return sx,sy,sz
+ end
+@@ -402,7 +401,7 @@
+ 				local px,py,pz =3D GetPlayerTilePosition()
+ 				local dx,dy,dz =3D Vector.sub(px,py,pz, tx,ty,tz)
+ 				dx,dy,dz =3D Vector.normalise_to_len(dx,dy,dz, 1)
+-				gTileFreeWalk:SetViewDir(dx,dy)
++				gCurrentRenderer:SetViewDir(dx,dy)
+ 				dx,dy,dz =3D Vector.add(tx,ty,tz, dx,dy,dz)
+ 				dx =3D round(dx)
+ 				dy =3D round(dy)
+
+Modified: trunk/lua/lib.mainmenu.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mainmenu.lua (original)
++++ trunk/lua/lib.mainmenu.lua Fri May  9 22:23:00 2008
+@@ -110,12 +110,11 @@
+ =
+
+ 	-- Binds key and Inits all InGame-Data
+ 	StartInGame() -- otherwise handled by the serverpacket (kPacket_Login_Com=
+plete)
+-	gTileFreeWalk:SetPos_All(x+0.5,y+0.5,z) -- + for both might be wrong..
++	gCurrentRenderer:SetOfflineStartPos(x,y,z)
++	=
+
+ =
+
+ 	-- offline : tilefree walk teleport
+-	BindDown(&quot;f6&quot;,function ()
+-		gTileFreeWalk:SetPos_All(gTileFreeWalk:RoundPos(gTileFreeWalk:MousePickP=
+os()))
+-	end)
++	BindDown(&quot;f6&quot;,function () gCurrentRenderer:OfflineTeleportToMouse() end)
+ 	=
+
+ 	-- Unbind some keys only for offline mode (rest is the same as InGame)
+ 	UnBindArr({&quot;u&quot;,&quot;q&quot;,&quot;e&quot;,&quot;tab&quot;,&quot;r&quot;,&quot;t&quot;,&quot;k&quot;,&quot;j&quot;,&quot;b&quot;,&quot;p&quot;,&quot;g&quot;,&quot;h&quot;,&quot;y&quot;})
+
+Modified: trunk/lua/lib.pathfind.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.pathfind.lua (original)
++++ trunk/lua/lib.pathfind.lua Fri May  9 22:23:00 2008
+@@ -13,8 +13,7 @@
+ 	if mobile then
+ 		sx,sy,sz =3D mobile.xloc,mobile.yloc,mobile.zloc
+ 	else
+-		sx,sy,sz =3D gTileFreeWalk:GetExactLocalPos()
+-		sx =3D -sx
++		sx,sy,sz =3D gCurrentRenderer:GetExactLocalPos()
+ 		sz =3D sz * 10
+ 	end
+ 	return math.floor(sx),math.floor(sy),math.floor(sz)
+
+Modified: trunk/lua/lib.renderer.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.renderer.lua (original)
++++ trunk/lua/lib.renderer.lua Fri May  9 22:23:00 2008
+@@ -23,8 +23,8 @@
+ end
+ =
+
+ -- called from c
+-function NotifyMainWindowResized (w,h)
+-	gCurrentRenderer:NotifyMainWindowResized(w,h) -- set aspect ratio
++function NotifyMainWindowResized (w,h) =
+
++	NotifyListener(&quot;Hook_MainWindowResized&quot;,w,h) -- warning, only use this to=
+ mark as changed, might be called more than once per frame
+ end
+ =
+
+ --###############################
+@@ -33,5 +33,3 @@
+ =
+
+ -- renderer interface changes, remove these if implemented --
+ -- example : if (not Renderer2D.SomeNewMethod) then Renderer2D.SomeNewMeth=
+od =3D function() end end
+-
+-Renderer2D =3D Renderer2D or {}
+
+Modified: trunk/lua/lib.test.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.test.lua (original)
++++ trunk/lua/lib.test.lua Fri May  9 22:23:00 2008
+@@ -4,6 +4,46 @@
+ function TestGuiSystem2_Step ()
+ 	local widget =3D gui.GetWidgetUnderMouse()
+ 	Client_SetBottomLine(&quot;TestGuiSystem2 WidgetUnderMouse : &quot;..(widget and (w=
+idget.mytext or &quot;unknown&quot;) or &quot;NONE&quot;))
++end
++
++function GrassTestStep()
++	------------------------------------------ obsolete, just for testing ---=
+--------------------------------
++	--[[	=
+
++	if gGrass and gStaticLoader then =
+
++		gGrass:Update() =
+
++	elseif GetMainCam() and gStaticBlockLoader then
++		gGrass =3D CreatePagedGeometry(GetMainCam(), 50)
++		gGrass:AddDetailLevel(&quot;batch&quot;,100,50)
++		--gGrass:AddDetailLevel(&quot;impostor&quot;,500,50)
++
++		local x,y,z =3D gCurrentRenderer:LocalToUOPos(GetMainCam():GetPos())
++		gStaticLoader =3D CreatePagedGeometryStaticLoader(gGrass, gStaticBlockLo=
+ader, -1,1,10, x,y,z)
++		gStaticLoader:AssignToPagedGeometry(gGrass)
++		=
+
++		gGrassLoader =3D CreateGrassLoader(gGrass)
++		gGrassLoader:AssignToPagedGeometry(gGrass)
++
++		gGrassLoader:SetHeightFunction(function(x,z)
++			return x+z
++		end)
++
++		local l =3D gGrassLoader:AddLayer(&quot;grass&quot;)
++
++		l:SetMinimumSize(2.0, 2.0)
++		l:SetMaximumSize(2.5, 2.5)
++		l:SetAnimationEnabled(true)
++		l:SetSwayDistribution(10.0)
++		l:SetSwayLength(0.5)
++		l:SetSwaySpeed(0.5)
++		l:SetDensity(1.5)
++		l:SetFadeTechnique(false,true)
++		=
+
++		l:SetColorMapFileColor(&quot;terrain_texture.jpg&quot;)
++		l:SetDensityMapFileAlpha(&quot;grass_density.png&quot;)
++		l:SetMapBounds(-1500, -1500, 1500, 1500)
++	end
++	]]--
++	-------------------------------------------------------------------------=
+---------------------------------
+ end
+ =
+
+ function TestZLib()
+
+Modified: trunk/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/main.lua (original)
++++ trunk/lua/main.lua Fri May  9 22:23:00 2008
+@@ -34,12 +34,7 @@
+ -- renderer second
+ gRendererList =3D {}
+ dofile(libpath .. &quot;lib.3d.renderer.lua&quot;)
+-dofile(libpath .. &quot;lib.3d.mobile.lua&quot;)
+-dofile(libpath .. &quot;lib.3d.dynamic.lua&quot;)
+-dofile(libpath .. &quot;lib.3d.mousepick.lua&quot;)
+-dofile(libpath .. &quot;lib.3d.map.lua&quot;)
+-dofile(libpath .. &quot;lib.3d.combat.lua&quot;)
+-dofile(libpath .. &quot;lib.3d.cam.lua&quot;)
++dofile(libpath .. &quot;lib.2d.renderer.lua&quot;)
+ =
+
+ dofile(libpath .. &quot;lib.renderer.lua&quot;)
+ dofile(libpath .. &quot;lib.uoids.lua&quot;)
+@@ -71,7 +66,6 @@
+ dofile(libpath .. &quot;lib.fallback.lua&quot;)
+ dofile(libpath .. &quot;lib.charcreate.lua&quot;)
+ dofile(libpath .. &quot;lib.devtool.lua&quot;)
+-dofile(libpath .. &quot;lib.3d.walksmooth.lua&quot;)
+ dofile(libpath .. &quot;lib.mount.lua&quot;)
+ dofile(libpath .. &quot;lib.debug.lua&quot;)
+ dofile(libpath .. &quot;lib.uodragdrop.lua&quot;)
+@@ -79,6 +73,7 @@
+ dofile(libpath .. &quot;lib.tilefreewalk.lua&quot;)
+ dofile(libpath .. &quot;lib.bugreport.lua&quot;)
+ dofile(libpath .. &quot;lib.buff.lua&quot;)
++dofile(libpath .. &quot;lib.light.lua&quot;)
+ dofile(libpath .. &quot;lib.unifont.lua&quot;)
+ dofile(libpath .. &quot;lib.pathfind.lua&quot;)
+ dofile(libpath .. &quot;lib.plugin.lua&quot;)
+@@ -320,8 +315,6 @@
+ 	PreLoad()
+ 	=
+
+ 	InvokeExporters()
+-	=
+
+-	gCurrentRenderer:PreInit()
+ =
+
+ 	MainMenuFinishedPreLoading()
+ =
+
+@@ -343,44 +336,7 @@
+ =
+
+ 	-- mainloop
+ 	while (Client_IsAlive()) do =
+
+-		------------------------------------------ obsolete, just for testing --=
+---------------------------------
+-		--[[	=
+
+-		if gGrass and gStaticLoader then =
+
+-			gGrass:Update() =
+
+-		elseif GetMainCam() and gStaticBlockLoader then
+-			gGrass =3D CreatePagedGeometry(GetMainCam(), 50)
+-			gGrass:AddDetailLevel(&quot;batch&quot;,100,50)
+-			--gGrass:AddDetailLevel(&quot;impostor&quot;,500,50)
+-
+-			local x,y,z =3D gCurrentRenderer:LocalToUOPos(GetMainCam():GetPos())
+-			gStaticLoader =3D CreatePagedGeometryStaticLoader(gGrass, gStaticBlockL=
+oader, -1,1,10, x,y,z)
+-			gStaticLoader:AssignToPagedGeometry(gGrass)
+-			=
+
+-			gGrassLoader =3D CreateGrassLoader(gGrass)
+-			gGrassLoader:AssignToPagedGeometry(gGrass)
+-
+-			gGrassLoader:SetHeightFunction(function(x,z)
+-				return x+z
+-			end)
+-
+-			local l =3D gGrassLoader:AddLayer(&quot;grass&quot;)
+-
+-			l:SetMinimumSize(2.0, 2.0)
+-			l:SetMaximumSize(2.5, 2.5)
+-			l:SetAnimationEnabled(true)
+-			l:SetSwayDistribution(10.0)
+-			l:SetSwayLength(0.5)
+-			l:SetSwaySpeed(0.5)
+-			l:SetDensity(1.5)
+-			l:SetFadeTechnique(false,true)
+-			=
+
+-			l:SetColorMapFileColor(&quot;terrain_texture.jpg&quot;)
+-			l:SetDensityMapFileAlpha(&quot;grass_density.png&quot;)
+-			l:SetMapBounds(-1500, -1500, 1500, 1500)
+-		end
+-		]]--
+-		------------------------------------------------------------------------=
+----------------------------------
+-	=
+
++		GrassTestStep()
+ 		MainStep() =
+
+ 	end
+ end
+@@ -430,7 +386,7 @@
+ 		StepUODragDrop()
+ 		PingStep()
+ 		gCurrentRenderer:CombatGuiStep()
+-		if (gCurrentRenderer.MobileAnimStep) then gCurrentRenderer:MobileAnimSte=
+p() end
++		gCurrentRenderer:MobileAnimStep()
+ 		gCurrentRenderer:CamStep()
+ 		GuiStep()
+ 	else
+
+Modified: trunk/lua/net.walk.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net.walk.lua (original)
++++ trunk/lua/net.walk.lua Fri May  9 22:23:00 2008
+@@ -196,7 +196,7 @@
+ 	=
+
+ 	-- set player pos
+ 	SetPlayerPos(xloc,yloc,zloc,iFullDir)
+-	gTileFreeWalk:Impl_SetLastRequestedUOPos(xloc,yloc,zloc)
++	gCurrentRenderer:SetLastRequestedUOPos(xloc,yloc,zloc)
+ 	return true
+ end
+ =
+
+@@ -223,7 +223,8 @@
+ 	=
+
+ 	if (request) then
+ 		gWalkRequests[iSeqNum] =3D nil -- request has been handled, remove from =
+queue
+-		gTileFreeWalk:Impl_SetLastConfirmedUOPos(request.xloc,request.yloc,reque=
+st.zloc)
++		gCurrentRenderer:SetLastConfirmedUOPos(request.xloc,request.yloc,request=
+.zloc)
++	=
+
+ 		-- todo : tilefree : set last confirmed pos
+ 		--~ WalkLog(&quot;kPacket_Accept_Movement ok&quot;)
+ 	else
+@@ -253,7 +254,6 @@
+ 	WalkLog(&quot;kPacket_Block_Movement start&quot;)
+ 	ResetWalkQueue()
+ 	SetPlayerPos(xloc,yloc,zloc,dir)
+-	gTileFreeWalk:NotifyPlayerMobileTeleport(GetPlayerMobile())
+ 	gCurrentRenderer:NotifyPlayerTeleported()
+ 	=
+
+ 	Send_Accept_Block_Movement(seqnumber)
+@@ -314,7 +314,6 @@
+ 	=
+
+ 	ResetWalkQueue()
+ 	SetPlayerPos(mobiledata.xloc,mobiledata.yloc,mobiledata.zloc,mobiledata.d=
+ir) -- always call this, affects gPlayerPos
+-	gTileFreeWalk:NotifyPlayerMobileTeleport(GetPlayerMobile())
+ 	gCurrentRenderer:NotifyPlayerTeleported()
+ 	MultiTexTerrain_NotifyTeleport()
+ 	WalkLog(&quot;NotifyTeleport end&quot;)
+
+Modified: trunk/lua/obj/obj.mobile.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/obj/obj.mobile.lua (original)
++++ trunk/lua/obj/obj.mobile.lua Fri May  9 22:23:00 2008
+@@ -152,8 +152,7 @@
+ 		if (paperdoll) then RebuildPaperdoll(paperdoll) end
+ 		=
+
+ 		-- TODO : UpdateMobileModel does check for changes, but still a little e=
+xpensive, only call if neccessary ?
+-		if (gCurrentRenderer =3D=3D Renderer3D) then UpdateMobileModel(self) end =
+
+-		if (gCurrentRenderer =3D=3D Renderer2D) then assert(false,&quot;FIXME?&quot;) gCur=
+rentRenderer:UpdateMobileEquipment(self) end
++		gCurrentRenderer:UpdateMobileModel(self)
+ 	end
+ =
+
+ 	self:NotifyListener(&quot;Mobile_Update&quot;)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000963.html">[Iris-commit] [IRIS] r2153 - in /trunk: include/ src/
+</A></li>
+	<LI>Next message: <A HREF="000965.html">[Iris-commit] [IRIS] r2155 - /trunk/lua/lib.2d.renderer.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#964">[ date ]</a>
+              <a href="thread.html#964">[ thread ]</a>
+              <a href="subject.html#964">[ subject ]</a>
+              <a href="author.html#964">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,478 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2860 - in /trunk/lua: lib.2d.map.lua lib.2d.renderer.lua lib.blendout.lua lib.charcreate.lua main.lua net.walk.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2009-January/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2860%20-%20in%20/trunk/lua%3A%20lib.2d.map.lua%0A%20lib.2d.renderer.lua%20lib.blendout.lua%20lib.charcreate.lua%20main.lua%0A%20net.walk.lua&In-Reply-To=%3C20090111155832.289AE1C1880C%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001661.html">
+   <LINK REL="Next"  HREF="001663.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2860 - in /trunk/lua: lib.2d.map.lua lib.2d.renderer.lua lib.blendout.lua lib.charcreate.lua main.lua net.walk.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2860%20-%20in%20/trunk/lua%3A%20lib.2d.map.lua%0A%20lib.2d.renderer.lua%20lib.blendout.lua%20lib.charcreate.lua%20main.lua%0A%20net.walk.lua&In-Reply-To=%3C20090111155832.289AE1C1880C%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2860 - in /trunk/lua: lib.2d.map.lua lib.2d.renderer.lua lib.blendout.lua lib.charcreate.lua main.lua net.walk.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sun Jan 11 16:58:31 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001661.html">[Iris-commit] [IRIS] r2859 - /trunk/bin/iris2.exe
+</A></li>
+        <LI>Next message: <A HREF="001663.html">[Iris-commit] [IRIS] r2861 - in /trunk/lua: lib.2d.dynamic.lua lib.2d.renderer.lua lib.mapblock.base.lua lib.protocol.lua main.lua net/net.multi.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1662">[ date ]</a>
+              <a href="thread.html#1662">[ thread ]</a>
+              <a href="subject.html#1662">[ subject ]</a>
+              <a href="author.html#1662">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sun Jan 11 16:58:30 2009
+New Revision: 2860
+
+Log:
+walk net code profiled, and multi-blendout-calc optimized
+
+Modified:
+    trunk/lua/lib.2d.map.lua
+    trunk/lua/lib.2d.renderer.lua
+    trunk/lua/lib.blendout.lua
+    trunk/lua/lib.charcreate.lua
+    trunk/lua/main.lua
+    trunk/lua/net.walk.lua
+
+Modified: trunk/lua/lib.2d.map.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.map.lua (original)
++++ trunk/lua/lib.2d.map.lua Sun Jan 11 16:58:30 2009
+@@ -65,6 +65,7 @@
+ 	--~ if (self:CamModeAllowsBlendout()) then ... end   -- don't blend out i=
+n freecam ?
+ 	myLayer,bTerrainVisible =3D CalcBlendOutZ()
+ 	=
+
++	gProfiler_Walk:Section(&quot;BlendOutLayersAbovePlayer:setvis&quot;)
+ 	=
+
+ 	-- only update if changed
+ 	if (self.giBlendOutCurZ ~=3D myLayer or self.gbBlendOutTerrainVisible ~=
+=3D bTerrainVisible) then
+
+Modified: trunk/lua/lib.2d.renderer.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.renderer.lua (original)
++++ trunk/lua/lib.2d.renderer.lua Sun Jan 11 16:58:30 2009
+@@ -94,19 +94,18 @@
+ 	gProfiler_R2D_MainStep:Section(&quot;MobileAnimStep&quot;)
+ 	self:MobileAnimStep()
+ 	=
+
+-	gProfiler_R2D_MainStep:Section(&quot;walk&quot;)
++	gProfiler_R2D_MainStep:Section(&quot;mouse&quot;)
+ 	local uodir,pixeldist =3D Get2DMouseDirAndDist()
+ 	=
+
+ 	local xloc,yloc,zloc =3D GetPlayerPos()
+ 	local bOfflineMode =3D xloc =3D=3D nil
+-	local bMousePickBlockedByWalk =3D false
++	gProfiler_R2D_MainStep:Section(&quot;walk&quot;)
+ 	if (not bOfflineMode) then
+ 		if (gKeyPressed[key_mouse_right] and (not gLastMouseDownWidget)) then =
+
+ 			local bRunFlag =3D pixeldist &gt; 200
+ 			if (gAlwaysRun) then bRunFlag =3D true end
+ 			--~ print(&quot;Get2DMouseDirAndDist&quot;,uodir,pixeldist)
+ 			WalkStep_WalkInDir(uodir,bRunFlag,true)
+-			bMousePickBlockedByWalk =3D true
+ 		end
+ 		=
+
+ 		=
+
+
+Modified: trunk/lua/lib.blendout.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.blendout.lua (original)
++++ trunk/lua/lib.blendout.lua Sun Jan 11 16:58:30 2009
+@@ -1,8 +1,12 @@
+ =
+
+ kBlendOutPlayerHeight =3D 18	--eriminator: es galt grob, alles was 18z =C3=
+=AF=C2=BF=C2=BDberm char war wurd ausgebledent
+ =
+
++gProfiler_Blendout =3D CreateRoughProfiler(&quot;Blendout&quot;) -- gEnableProfiler_=
+Blendout
++
+ -- returns myLayer,bTerrainVisible
+ function CalcBlendOutZ ()
++	gProfiler_Blendout:Start(gEnableProfiler_Blendout)
++	gProfiler_Blendout:Section(&quot;start&quot;)
+ 	local x,y,z =3D GetPlayerPos()
+ 	=
+
+ 	local myLayer =3D nil
+@@ -13,10 +17,12 @@
+ 	local playerheadpos =3D z + kBlendOutPlayerHeight
+ 	=
+
+ 	-- check ground
++	gProfiler_Blendout:Section(&quot;ground&quot;)
+ 	local iPlayerGroundZLoc =3D GetGroundZAtAbsPos(x,y) =
+
+ 	if (iPlayerGroundZLoc and iPlayerGroundZLoc &gt;=3D playerheadpos) then play=
+erIsInside =3D true bTerrainVisible =3D false end
+ 	=
+
+ 	-- check statics
++	gProfiler_Blendout:Section(&quot;statics&quot;)
+ 	if (not playerIsInside) then
+ 		local l =3D MapGetStatics(x,y)
+ 		=
+
+@@ -29,24 +35,26 @@
+ 	end
+ =
+
+ 	-- check multis
++	gProfiler_Blendout:Section(&quot;multis&quot;)
+ 	if (not playerIsInside) then
+-		local iTileTypeID,iX,iY,iZ,iHue
+-		local multi
+-		for k,v in pairs(gMultis) do
+-			multi =3D k
+-			if multi.lparts then
+-				for k,v in pairs(multi.lparts) do
+-					iTileTypeID,iX,iY,iZ,iHue =3D unpack(v)
+-					if	iX =3D=3D x and iY =3D=3D y  and iZ &gt;=3D playerheadpos then
+-						playerIsInside =3D true
+-						if ((not zloc_roof) or (zloc_roof &gt; iZ)) then zloc_roof =3D iZ end
+-					end
++		local xloc =3D x
++		local yloc =3D y
++		local n =3D xloc..&quot;,&quot;..yloc
++		for multi,v in pairs(gMultis) do =
+
++			local cache =3D multi.cache and multi.cache[n] -- see Multi_AddPartHelp=
+er =
+
++			if (cache) then for k,item in pairs(cache) do =
+
++				-- item =3D {iZ=3Dzloc,iTileTypeID=3DiTileTypeID,xloc=3Dxloc,yloc=3Dyl=
+oc,zloc=3Dzloc,artid=3DiTileTypeID,iHue=3DiHue}
++				local iZ =3D item.zloc
++				if iZ &gt;=3D playerheadpos then
++					playerIsInside =3D true
++					if ((not zloc_roof) or (zloc_roof &gt; iZ)) then zloc_roof =3D iZ end
+ 				end
+-			end
++			end end
+ 		end
+ 	end
+ =
+
+ 	-- check dynamics to detect dynamic houseroofs and other stuff above the =
+head
++	gProfiler_Blendout:Section(&quot;dynamics&quot;)
+ 	if (not playerIsInside) then
+ 		local iZ
+ 		for k,dynamic in pairs(GetDynamicsAtPosition(x,y)) do
+@@ -57,6 +65,7 @@
+ 			end
+ 		end
+ 	end
++	gProfiler_Blendout:End()
+ =
+
+ 	-- blend out layers above player head if inside
+ 	--~ if (playerIsInside) then myLayer =3D zloc_roof or playerheadpos end
+
+Modified: trunk/lua/lib.charcreate.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.charcreate.lua (original)
++++ trunk/lua/lib.charcreate.lua Sun Jan 11 16:58:30 2009
+@@ -77,7 +77,7 @@
+ 	chardata.hairColor		=3D hex2num(&quot;0x044E&quot;) -- 0x044E(human) 0x0034(elf)
+ 	chardata.facialHair		=3D hex2num(&quot;0x0000&quot;)
+ 	chardata.facialHairColor=3D hex2num(&quot;0x0000&quot;)
+-	chardata.location		=3D hex2num(&quot;0x0000&quot;) -- uogamers: 0=3Dyew,1=3Dminoc,2=
+=3Dbrit,3=3Dmoonglow,4=3Dtrinsik,5=3DMagincia,6=3Djhelom,7=3Dscara,8=3Dvesp=
+er,9=3Docclo,10=3D
++	chardata.location		=3D hex2num(&quot;0x0000&quot;) -- uogamers: 0=3Dyew,1=3Dminoc,2=
+=3Dbrit,3=3Dmoonglow,4=3Dtrinsik,5=3DMagincia,6=3Djhelom,7=3Dscara,8=3Dvesp=
+er,9=3Docclo
+ 	chardata.slot			=3D hex2num(&quot;0x0003&quot;)
+ 	chardata.shirtColor		=3D hex2num(&quot;0x036F&quot;) --hex2num(&quot;0x0083&quot;)
+ 	chardata.pantsColor		=3D hex2num(&quot;0x0111&quot;) --hex2num(&quot;0x01AC&quot;)
+
+Modified: trunk/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/main.lua (original)
++++ trunk/lua/main.lua Sun Jan 11 16:58:30 2009
+@@ -432,15 +432,19 @@
+ 	print(Client_GetTicks(),&quot;=3D=3D=3D MyProfilerTop =3D=3D=3D&quot;)
+ 	if (not gEnableRoughProfileSum) then return end
+ 	local arr =3D {}
+-	for k,profiler in pairs({gProfiler_MainStep,gProfiler_R2D_MainStep,gProfi=
+ler_R2D_MousePick,gProfiler_R3D_MainStep}) do
++	for k,profiler in pairs({gProfiler_MainStep,
++							gProfiler_R2D_MainStep,
++							gProfiler_R2D_MousePick,
++							gProfiler_R3D_MainStep,
++							gProfiler_Walk,
++							gProfiler_Blendout,	=
+
++							}) do
+ 		for secname,tsum in pairs(profiler.sum) do table.insert(arr,{name=3Dprof=
+iler.name..&quot;:&quot;..secname,tsum=3Dtsum}) end
+ 		profiler.sum =3D {}
+ 	end =
+
+ 	table.sort(arr,function (a,b) return a.tsum &gt; b.tsum end)
+-	local totaltsum =3D 0
+ 	for k,o in pairs(arr) do =
+
+-		if (k &lt;=3D 5) then print(&quot; #&quot;..k,sprintf(&quot;%5dmsec (%3d%%)&quot;,o.tsum,floor(=
+100*o.tsum/gMyProfilerTopCPUTSum)),o.name) end
+-		totaltsum =3D totaltsum + o.tsum
++		if (k &lt;=3D 10) then print(&quot; #&quot;..k,sprintf(&quot;%5dmsec (%3d%%)&quot;,o.tsum,floor=
+(100*o.tsum/gMyProfilerTopCPUTSum)),o.name) end
+ 	end
+ 	print(sprintf(&quot; total time=3D%dsec cpu=3D%d%% gpu=3D%d%% idle/maxfpswait=
+=3D%d%%&quot;	=
+
+ 															,	floor(gMyProfilerTopTenInterval/1000)
+
+Modified: trunk/lua/net.walk.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net.walk.lua (original)
++++ trunk/lua/net.walk.lua Sun Jan 11 16:58:30 2009
+@@ -93,6 +93,8 @@
+ function GetPlayerDir () return gPlayerDir end
+ =
+
+ -- fulldir CAN include runflag
++
++
+ function SetPlayerPos (xloc,yloc,zloc,fulldir) =
+
+ 	--~ WalkLog(&quot;SetPlayerPos&quot;,xloc,yloc,zloc,fulldir)
+ 	local dir =3D BitwiseAND(fulldir,hex2num(&quot;0x07&quot;))
+@@ -101,22 +103,29 @@
+ 	gPlayerYLoc =3D yloc
+ 	gPlayerZLoc =3D zloc
+ 	=
+
++	gProfiler_Walk:Section(&quot;SetPlayerPos:Hook_SetPlayerPos&quot;)
+ 	NotifyListener(&quot;Hook_SetPlayerPos&quot;)
++	gProfiler_Walk:Section(&quot;SetPlayerPos:GetPlayerMobile&quot;)
+ 	=
+
+ 	local mobile =3D GetPlayerMobile()
+ 	if (not mobile) then return end
+ 	=
+
+ 	-- update the mobile/char/body of the player
++	gProfiler_Walk:Section(&quot;SetPlayerPos:mob:Update&quot;)
+ 	mobile.xloc =3D xloc
+ 	mobile.yloc =3D yloc
+ 	mobile.zloc =3D zloc
+ 	mobile.dir =3D fulldir
+ 	mobile:Update()
++	gProfiler_Walk:Section(&quot;SetPlayerPos:PacketVideoLog&quot;)
+ 	PacketVideo_LogPlayerPos(xloc,yloc,zloc,fulldir)
+ 	=
+
+ 	-- handle position update
++	gProfiler_Walk:Section(&quot;SetPlayerPos:BlendOutLayersAbovePlayer&quot;)
+ 	gCurrentRenderer:BlendOutLayersAbovePlayer()
++	gProfiler_Walk:Section(&quot;SetPlayerPos:DestroyObjectsFarFromPlayer&quot;)
+ 	DestroyObjectsFarFromPlayer(gPlayerXLoc,gPlayerYLoc)
++	gProfiler_Walk:End() -- in case it this is called from outside walk
+ end
+ =
+
+ =
+
+@@ -129,16 +138,22 @@
+ -- clientside collision check, returns true if passable
+ function WalkStep_CanWalkInDir	(iDir) =
+
+ 	iDir =3D DirWrap(iDir)
+-	return GetNearestGroundLevel(gPlayerXLoc,gPlayerYLoc,gPlayerZLoc,iDir) ~=
+=3D nil
+-end
++	return GetNearestGroundLevel(gPlayerXLoc,gPlayerYLoc,gPlayerZLoc,iDir)
++end
++
++
++gProfiler_Walk =3D CreateRoughProfiler(&quot;Walk&quot;) -- gEnableProfiler_Walk
+ =
+
+ -- does collision detection, tries neighboring dirs if direct walk is bloc=
+ked
+ function WalkStep_WalkInDir		(iDir,bRunFlag,bTrySides) =
+
+ 	if (not Walk_RequestTimeOk()) then return end
+ 	iDir =3D DirWrap(iDir)
+-	if (						WalkStep_CanWalkInDir(iDir  )) then return ExecWalkRequestIfPos=
+sible(iDir  ,bRunFlag) end
+-	if (bTrySides and			WalkStep_CanWalkInDir(iDir-1)) then return ExecWalkRe=
+questIfPossible(iDir-1,bRunFlag) end
+-	if (bTrySides and			WalkStep_CanWalkInDir(iDir+1)) then return ExecWalkRe=
+questIfPossible(iDir+1,bRunFlag) end
++	gProfiler_Walk:Start(gEnableProfiler_Walk)
++	gProfiler_Walk:Section(&quot;WalkInDir:CheckCanWalk&quot;)
++	local nextzloc =3D WalkStep_CanWalkInDir(iDir)	if (				nextzloc) then ret=
+urn ExecWalkRequestIfPossible(iDir  ,bRunFlag,nextzloc) end
++	local nextzloc =3D WalkStep_CanWalkInDir(iDir-1)	if (bTrySides and	nextzl=
+oc) then return ExecWalkRequestIfPossible(iDir-1,bRunFlag,nextzloc) end
++	local nextzloc =3D WalkStep_CanWalkInDir(iDir+1)	if (bTrySides and	nextzl=
+oc) then return ExecWalkRequestIfPossible(iDir+1,bRunFlag,nextzloc) end
++	gProfiler_Walk:End()
+ end
+ =
+
+ function WalkStep_WalkToPosSimple	(xloc,yloc,bRunFlag,bTrySides) =
+
+@@ -174,44 +189,52 @@
+ end
+ 	=
+
+ -- internal, don't call directly, no check for walkable, only checks for t=
+ime
+-function ExecWalkRequestIfPossible	(iDir,bRunFlag)
++function ExecWalkRequestIfPossible	(iDir,bRunFlag,nextzloc)
+ 	if (not Walk_RequestTimeOk()) then return end
+ 	if (gResyncRequestActive and gMyTicks &lt; gResyncRequestActive + 1000) then=
+ return end
+-	if (not FastWalk_Ok()) then return end
++	=
+
++	gProfiler_Walk:Start(gEnableProfiler_Walk)
++	gProfiler_Walk:Section(&quot;ExecWalk:FastWalkCheck&quot;)
++	=
+
++	if (not FastWalk_Ok()) then gProfiler_Walk:End() return end
+ 	if (not gFastWalkKeysUsed) then =
+
+ 		if (not WalkQueueOkForNextSend()) then
+ 			if (Client_GetTicks() &gt; gWalkRequestAntiStuckTimeout) then
+ 				print(&quot;walk:walk-request-timeout,sending resync-request&quot;)
+ 				Send_Movement_Resync_Request()
+ 			else
++				gProfiler_Walk:End()
+ 				return =
+
+ 			end
+ 		end
+ 	end
++	gProfiler_Walk:Section(&quot;ExecWalk:TimeCalc&quot;)
+ 	gWalkRequestAntiStuckTimeout =3D Client_GetTicks() + 2000 -- might need r=
+esync
+ 	iDir =3D DirWrap(iDir)
+ 	local iFullDir =3D BitwiseOR(iDir,bRunFlag and kWalkFlag_Run or 0) -- inc=
+ludes runflag
+ 	=
+
+ 	local playermobile =3D GetPlayerMobile()
+ 	--~ WalkLog2(&quot;ExecWalkRequestIfPossible playermobile&quot;,playermobile)
+-	if (not playermobile) then return end
++	if (not playermobile) then gProfiler_Walk:End() return end
+ 	=
+
+ 	-- init request
+ 	local xloc =3D gPlayerXLoc
+ 	local yloc =3D gPlayerYLoc
+ 	local zloc =3D gPlayerZLoc
+ 	=
+
++	gProfiler_Walk:Section(&quot;ExecWalk:WalkForward&quot;)
+ 	-- calculate wait time and success-pos
+ 	local iWaitTime =3D gWalkTimeout_DirectionChange -- just turn without wal=
+king is quick
+ 	if (iDir =3D=3D gPlayerDir) then -- walk forward
+ 		iWaitTime =3D WalkGetInterval(bRunFlag)
+-		zloc =3D GetNearestGroundLevel(xloc,yloc,zloc,gPlayerDir)
++		zloc =3D nextzloc or GetNearestGroundLevel(xloc,yloc,zloc,gPlayerDir)
+ 		assert(zloc)
+ 		=
+
+ 		xloc =3D xloc + GetDirX(gPlayerDir)
+ 		yloc =3D yloc + GetDirY(gPlayerDir)
+ 	end
+ 	=
+
++	gProfiler_Walk:Section(&quot;ExecWalk:SendRequest&quot;)
+ 	-- set next request time
+ 	gNextWalkRequestTime =3D math.max(gMyTicks,gNextWalkRequestTime + iWaitTi=
+me) -- compensate slow fps a bit
+ 	=
+
+@@ -232,9 +255,12 @@
+ 	gNextWalkSequenceNumber =3D gNextWalkSequenceNumber + 1
+ 	if (gNextWalkSequenceNumber &gt; 255) then gNextWalkSequenceNumber =3D 1 end
+ 	=
+
++	gProfiler_Walk:Section(&quot;ExecWalk:SetPlayerPos&quot;)
+ 	-- set player pos
+ 	SetPlayerPos(xloc,yloc,zloc,iFullDir)
++	gProfiler_Walk:Section(&quot;ExecWalk:renderer:SetLastRequestedUOPos&quot;)
+ 	gCurrentRenderer:SetLastRequestedUOPos(xloc,yloc,zloc)
++	gProfiler_Walk:End()
+ 	return true
+ end
+ =
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001661.html">[Iris-commit] [IRIS] r2859 - /trunk/bin/iris2.exe
+</A></li>
+	<LI>Next message: <A HREF="001663.html">[Iris-commit] [IRIS] r2861 - in /trunk/lua: lib.2d.dynamic.lua lib.2d.renderer.lua lib.mapblock.base.lua lib.protocol.lua main.lua net/net.multi.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1662">[ date ]</a>
+              <a href="thread.html#1662">[ thread ]</a>
+              <a href="subject.html#1662">[ subject ]</a>
+              <a href="author.html#1662">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

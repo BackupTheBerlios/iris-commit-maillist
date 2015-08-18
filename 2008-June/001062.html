@@ -1,0 +1,284 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2253 - /trunk/lua/lib.3d.dynamic.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-June/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2253%20-%20/trunk/lua/lib.3d.dynamic.lua&In-Reply-To=%3C20080627212146.422951C180A9%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001061.html">
+   <LINK REL="Next"  HREF="001063.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2253 - /trunk/lua/lib.3d.dynamic.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2253%20-%20/trunk/lua/lib.3d.dynamic.lua&In-Reply-To=%3C20080627212146.422951C180A9%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2253 - /trunk/lua/lib.3d.dynamic.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Fri Jun 27 23:21:46 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001061.html">[Iris-commit] [IRIS] r2252 - /trunk/lua/lib.unifont.lua
+</A></li>
+        <LI>Next message: <A HREF="001063.html">[Iris-commit] [IRIS] r2254 - in /trunk/lua: gui/gui.gumpparser.lua gui/gui.healthbar.lua gui/gui.journal.lua gui/gui.paperdoll.lua gui/gui.quit.lua gui/gui.securetrade.lua gui/gui.skill.lua gui/gui.status.lua lib.loading.lua main.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1062">[ date ]</a>
+              <a href="thread.html#1062">[ thread ]</a>
+              <a href="subject.html#1062">[ subject ]</a>
+              <a href="author.html#1062">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: hagish
+Date: Fri Jun 27 23:21:45 2008
+New Revision: 2253
+
+Log:
+improved dynamic/multi loading code
+
+Modified:
+    trunk/lua/lib.3d.dynamic.lua
+
+Modified: trunk/lua/lib.3d.dynamic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.dynamic.lua (original)
++++ trunk/lua/lib.3d.dynamic.lua Fri Jun 27 23:21:45 2008
+@@ -6,7 +6,8 @@
+ -- fast batch geometry gfx3d that contains the dynamics
+ Renderer3D.gFastBatchDynamicsUpdateNeeded =3D true
+ Renderer3D.gFastBatchDynamicsUpdateNext =3D nil
+-Renderer3D.gFastBatchDynamicsUpdateNextTimout =3D 500
++Renderer3D.gFastBatchDynamicsUpdateNextTimout =3D 10
++Renderer3D.gFastBatchDynamicsUpdateBlockLimit =3D 5
+ Renderer3D.gFastBatchDynamicsMap =3D CreateArray2D()
+ Renderer3D.gFastBatchDynamicsMapDestroyListener =3D nil
+ =
+
+@@ -34,22 +35,27 @@
+ function Renderer3D:CheckForFastBatchDynamicsUpdate ()
+ 	if Renderer3D.gFastBatchDynamicsUpdateNeeded and =
+
+ 		(not Renderer3D.gFastBatchDynamicsUpdateNext or Renderer3D.gFastBatchDyn=
+amicsUpdateNext &lt; gMyTicks) then
+-
+-		Renderer3D.gFastBatchDynamicsUpdateNeeded =3D false
+ 	=
+
+ 		local cxloc,cyloc =3D self:GetLookAheadCamPos()
+ 		local cbx,cby =3D math.floor(cxloc/8 - 0.5),math.floor(cyloc/8 - 0.5)
+ =
+
++		local blocksUpdated =3D 0
++		local blocksLimit =3D Renderer3D.gFastBatchDynamicsUpdateBlockLimit or 1
++		local blocksLeft =3D 0
++
+ 		Array2DForAll(Renderer3D.gFastBatchDynamicsMap, function(v,bx,by)
+ 			if v.mbUpdateNeeded then
+-				-- unset dirty flag
+-				v.mbUpdateNeeded =3D false
++				-- only try to update the block
+ 				=
+
+-				local prio =3D 1 + 100 / (math.abs(bx-cbx)+math.abs(by-cby))
+-				=
+
+-				job.create(function()
+-					-- print(&quot;## update dynamic block&quot;,bx,by,prio)
+-
++				-- update slots available?
++				if blocksUpdated &lt; blocksLimit then
++					blocksUpdated =3D blocksUpdated + 1
++					=
+
++					-- unset dirty flag
++					v.mbUpdateNeeded =3D false
++					=
+
++					local prio =3D 1 + 100 / (math.abs(bx-cbx)+math.abs(by-cby))
++					=
+
+ 					-- on demand create
+ 					if not v.mFastBatch then
+ 						v.mFastBatch =3D CreateRootGfx3D()
+@@ -82,10 +88,18 @@
+ 					v.mFastBatch:SetCastShadows(gDynamicsCastShadows)
+ 					=
+
+ 					v.mFastBatch:FastBatch_Build()
+-				end, nil, prio)
++				else
++					-- one block skipped
++					blocksLeft =3D blocksLeft + 1
++				end
+ 			end
+ 		end)
+ 		=
+
++		-- print(&quot;#### UPDATE&quot;,blocksUpdated, blocksLeft, blocksLimit)
++		=
+
++		-- if there a still blocks left -&gt; updateNeeded =3D true
++		Renderer3D.gFastBatchDynamicsUpdateNeeded =3D blocksLeft &gt; 0 =
+
++
+ 		self:UpdateDynamicDisplayRange()
+ 		Renderer3D.gFastBatchDynamicsUpdateNext =3D gMyTicks + Renderer3D.gFastB=
+atchDynamicsUpdateNextTimout
+ 	end
+@@ -133,9 +147,11 @@
+ =
+
+ 	Renderer3D:RemoveDynamicFromMap(dynamic)
+ =
+
++	-- block position
+ 	local bx =3D math.floor(dynamic.xloc/8)
+ 	local by =3D math.floor(dynamic.yloc/8)
+ 	=
+
++	-- block empty? create a new entry
+ 	if not Array2DGet(Renderer3D.gFastBatchDynamicsMap, bx,by) then
+ 		Array2DSet(Renderer3D.gFastBatchDynamicsMap, bx,by, {mbUpdateNeeded=3Dtr=
+ue, miCount=3D0,mlDynamic=3D{}})
+ 	end
+@@ -221,14 +237,40 @@
+ =
+
+ -- creates the geometry of the given multi and stores the gfx object in th=
+is multi
+ function Renderer3D:CreateMultiGraphic	(multi)
+-	multi.staticGeometry =3D CreateRootGfx3D()
+-	=
+
++	-- only run one build process per multi
++	if multi.mbBuildRunning then return end
++	multi.mbBuildRunning =3D true
++	=
+
++	-- build job
+ 	job.create(function()
++		if not multi.staticGeometry or not multi.staticGeometry:IsAlive() then
++			multi.staticGeometry =3D CreateRootGfx3D()
++		end
++
++		job.yield()
++		-- terminate?
++		if multi.mbCancelBuildAndDestroy then multi.staticGeometry:Destroy() ret=
+urn end
++					=
+
++		-- load mesh buffers
++		for k,v in pairs(multi.lparts) do
++			-- get tile
++			local iTileTypeID,iX,iY,iZ,iHue =3D unpack(v)
++			-- and mesh
++			local meshname =3D GetMeshName(iTileTypeID)
++			-- and try to load it
++			if meshname then =
+
++				GetMeshBuffer(meshname)
++			end
++		end
++		=
+
++		job.yield()
++		-- terminate?
++		if multi.mbCancelBuildAndDestroy then multi.staticGeometry:Destroy() ret=
+urn end
++
++		-- build geometry
+ 		multi.staticGeometry:SetFastBatch()
+ =
+
+ 		for k,v in pairs(multi.lparts) do
+-			-- table.insert(multi.lparts, {iTileTypeID,iX,iY,iZ,iHue})
+-			=
+
+ 			local x,y,z
+ 			local qw,qx,qy,qz
+ 			local xadd,yadd,zadd
+@@ -261,29 +303,25 @@
+ 				}
+ 				=
+
+ 				v.mousepick =3D mousepick
+-			else
+-				--[[
+-				entity.x,entity.y,entity.z =3D self:UOPosToLocal(entity.xloc+0.5,entit=
+y.yloc+0.5,entity.zloc*0.1 + 0.5)
+-				entity.gfx =3D CreateRootGfx3D()
+-				entity.gfx:SetPosition(entity.x,entity.y,entity.z)
+-				entity.gfx.billboard =3D entity.gfx:CreateChild()
+-				-- we have to add 0x4000 for fallbacks
+-				self:CreateArtBillBoard(entity.gfx.billboard,iTranslatedTileTypeID + 0=
+x4000,entity.iHue)
+-				table.insert(chunk.lStaticEntities,entity)
+-				printdebug(&quot;missing&quot;,sprintf(&quot;Fallback: Static Billboard created : iTr=
+anslatedTileTypeID=3D%i\n&quot;, iTranslatedTileTypeID))
+-				]]--
+ 			end
+ 		end
+ =
+
+ 		multi.staticGeometry:FastBatch_Build()
++
++		multi.staticGeometry:SetCastShadows(gDynamicsCastShadows)
++		=
+
++		multi.mbBuildRunning =3D false
++
++		-- terminate?
++		if multi.mbCancelBuildAndDestroy then multi.staticGeometry:Destroy() ret=
+urn end
+ 	end, nil, 1)
+-
+-	multi.staticGeometry:SetCastShadows(gDynamicsCastShadows)
+ end
+ =
+
+ -- destroys the multi gfx static geometry
+ function Renderer3D:DestroyMultiGraphic	(multi)
+-	if multi.staticGeometry then =
+
++	if multi.mbBuildRunning then
++		multi.mbCancelBuildAndDestroy =3D true
++	elseif multi.staticGeometry then =
+
+ 		multi.staticGeometry:Destroy() =
+
+ 		multi.staticGeometry =3D nil
+ 	end
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001061.html">[Iris-commit] [IRIS] r2252 - /trunk/lua/lib.unifont.lua
+</A></li>
+	<LI>Next message: <A HREF="001063.html">[Iris-commit] [IRIS] r2254 - in /trunk/lua: gui/gui.gumpparser.lua gui/gui.healthbar.lua gui/gui.journal.lua gui/gui.paperdoll.lua gui/gui.quit.lua gui/gui.securetrade.lua gui/gui.skill.lua gui/gui.status.lua lib.loading.lua main.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1062">[ date ]</a>
+              <a href="thread.html#1062">[ thread ]</a>
+              <a href="subject.html#1062">[ subject ]</a>
+              <a href="author.html#1062">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

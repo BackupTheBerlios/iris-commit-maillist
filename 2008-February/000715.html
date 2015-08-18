@@ -1,0 +1,197 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1903 - in /trunk: data/config.lua.dist lua/lib.3d.map.lua lua/lib.terrain.multitex.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-February/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1903%20-%20in%20/trunk%3A%20data/config.lua.dist%0A%20lua/lib.3d.map.lua%20lua/lib.terrain.multitex.lua&In-Reply-To=%3C20080213002110.1F45A1C18176%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000714.html">
+   <LINK REL="Next"  HREF="000716.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1903 - in /trunk: data/config.lua.dist lua/lib.3d.map.lua lua/lib.terrain.multitex.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1903%20-%20in%20/trunk%3A%20data/config.lua.dist%0A%20lua/lib.3d.map.lua%20lua/lib.terrain.multitex.lua&In-Reply-To=%3C20080213002110.1F45A1C18176%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1903 - in /trunk: data/config.lua.dist lua/lib.3d.map.lua lua/lib.terrain.multitex.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Wed Feb 13 01:21:10 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000714.html">[Iris-commit] [IRIS] r1902 - in /trunk/lua:	filter/filter.granny.lua lib.3d.renderer.lua
+</A></li>
+        <LI>Next message: <A HREF="000716.html">[Iris-commit] [IRIS] r1904 - in /trunk: bin/iris2.exe lua/filter/filter.granny.lua lua/gui/gui.hotbar.lua lua/lib.gfm.lua lua/lib.gumpparser.lua lua/lib.uodragdrop.lua lua/net/net.mobile.lua lua/net/net.other.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#715">[ date ]</a>
+              <a href="thread.html#715">[ thread ]</a>
+              <a href="subject.html#715">[ subject ]</a>
+              <a href="author.html#715">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: sience
+Date: Wed Feb 13 01:21:09 2008
+New Revision: 1903
+
+Log:
+-option DisableWater renamed to more specific DisableMultitexWater
+-MultitexWater calculations limited to MultitexTerrain
+
+Modified:
+    trunk/data/config.lua.dist
+    trunk/lua/lib.3d.map.lua
+    trunk/lua/lib.terrain.multitex.lua
+
+Modified: trunk/data/config.lua.dist
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/config.lua.dist (original)
++++ trunk/data/config.lua.dist Wed Feb 13 01:21:09 2008
+@@ -432,6 +432,13 @@
+ -- ugly, but faster
+ gDisableMultiTexTerrainTransitions =3D false
+ =
+
++-- for debugging
++gDisableMultiTexWater =3D false
++
++-- additional lower quality terrain in the distance
++gEnableLowDetailTerrainFarSight =3D false
++gEnableLowDetailTerrainFarSightRangeAdd =3D 2
++
+ -- Fastbatching of Statics/Dynamics (no hueing)
+ gFastBatchStatics =3D true
+ gFastBatchDynamics =3D true
+@@ -448,13 +455,6 @@
+ -- the debug display at the bottom of the screen
+ gDisableBottomLine =3D false
+ =
+
+--- for debugging
+-gDisableWater =3D false
+-
+--- additional lower quality terrain in the distance
+-gEnableLowDetailTerrainFarSight =3D false
+-gEnableLowDetailTerrainFarSightRangeAdd =3D 2
+-
+ -- shaderbased characterrendering (beta)
+ gUseHumanSkinShader =3D false
+ =
+
+
+Modified: trunk/lua/lib.3d.map.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.map.lua (original)
++++ trunk/lua/lib.3d.map.lua Wed Feb 13 01:21:09 2008
+@@ -284,7 +284,7 @@
+ 	=
+
+ 	local staticwatertile =3D true -- true if not water ?
+ 	-- add level
+-	if (not gDisableWater) and FilterIsStaticWater(iTileTypeID) then
++	if gEnableMultiTexTerrain and (not gDisableMultiTexWater) and FilterIsSta=
+ticWater(iTileTypeID) then
+ 		local z =3D entity.zloc
+ 		local bx =3D chunk.miX * self.ROBMAP_CHUNK_SIZE * 8
+ 		local by =3D chunk.miY * self.ROBMAP_CHUNK_SIZE * 8
+@@ -301,7 +301,7 @@
+ 	local meshname =3D (not gForceFallBackBillboards_Statics) and staticwater=
+tile and GetMeshName(iTileTypeID, (gFastBatchStatics and 0) or entity.iHue)
+ =
+
+ 	-- TODO: does it really work? 	--build Edgelist for Stencil Shadows
+-	if (meshname and gBuildStencilShadowEdgeList) then print(&quot;edges generated=
+&quot;) MeshBuildEdgeList(meshname) end
++	--if (meshname and gBuildStencilShadowEdgeList) then print(&quot;edges generat=
+ed&quot;) MeshBuildEdgeList(meshname) end
+ =
+
+ 	-- create Mesh
+ 	if (meshname and meshname ~=3D false) then
+@@ -379,7 +379,7 @@
+ 	chunk.pStaticGeometryLayers =3D {}
+ =
+
+ 	-- water stats
+-	if (not gDisableWater) then
++	if gEnableMultiTexTerrain and (not gDisableMultiTexWater) then
+ 		chunk.mWaterZMap =3D {}		-- local z height [x..&quot;_&quot;..y]
+ 		chunk.SetWaterZWithoutBorder =3D function(self, tx, ty, z)
+ 			if (tx &gt;=3D 0 and ty &gt;=3D 0 and tx &lt; Renderer3D.ROBMAP_CHUNK_SIZE * 8 a=
+nd ty &lt; Renderer3D.ROBMAP_CHUNK_SIZE * 8) then
+@@ -411,7 +411,7 @@
+ 	local iBlockUO_Y =3D y * self.ROBMAP_CHUNK_SIZE
+ 	=
+
+ 	-- water analysis
+-	if (not gDisableWater) then
++	if gEnableMultiTexTerrain and (not gDisableMultiTexWater) then
+ 		if (gGroundBlockLoader) then
+ 			local tiletype,z
+ 			local tx,ty
+@@ -526,7 +526,7 @@
+ 	end
+ =
+
+ 	-- WATER
+-	if (not gDisableWater) then
++	if gEnableMultiTexTerrain and (not gDisableMultiTexWater) then
+ 		local count =3D countarr(chunk.mWaterZMap) -- might be slow
+ 		=
+
+ 		if (gEnableMultiTexTerrain and count and count &gt; 0) then
+
+Modified: trunk/lua/lib.terrain.multitex.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.terrain.multitex.lua (original)
++++ trunk/lua/lib.terrain.multitex.lua Wed Feb 13 01:21:09 2008
+@@ -174,7 +174,6 @@
+ =
+
+ function MultiTexTerrain_NotifyTeleport ()
+ 	print(&quot;MultiTexTerrain_NotifyTeleport&quot;)
+-	--~ MultiTexTerrain_NotifyMapChange()
+ end
+ =
+
+ =
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000714.html">[Iris-commit] [IRIS] r1902 - in /trunk/lua:	filter/filter.granny.lua lib.3d.renderer.lua
+</A></li>
+	<LI>Next message: <A HREF="000716.html">[Iris-commit] [IRIS] r1904 - in /trunk: bin/iris2.exe lua/filter/filter.granny.lua lua/gui/gui.hotbar.lua lua/lib.gfm.lua lua/lib.gumpparser.lua lua/lib.uodragdrop.lua lua/net/net.mobile.lua lua/net/net.other.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#715">[ date ]</a>
+              <a href="thread.html#715">[ thread ]</a>
+              <a href="subject.html#715">[ subject ]</a>
+              <a href="author.html#715">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

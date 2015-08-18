@@ -1,0 +1,739 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2736 - in /trunk: data/mymacros.lua.dist lua/lib.razorconfig.lua lua/lib.razormacro.lua lua/main.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-November/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2736%20-%20in%20/trunk%3A%20data/mymacros.lua.dist%0A%20lua/lib.razorconfig.lua%20lua/lib.razormacro.lua%20lua/main.lua&In-Reply-To=%3C20081117194845.413791C187E3%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001539.html">
+   <LINK REL="Next"  HREF="001541.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2736 - in /trunk: data/mymacros.lua.dist lua/lib.razorconfig.lua lua/lib.razormacro.lua lua/main.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2736%20-%20in%20/trunk%3A%20data/mymacros.lua.dist%0A%20lua/lib.razorconfig.lua%20lua/lib.razormacro.lua%20lua/main.lua&In-Reply-To=%3C20081117194845.413791C187E3%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2736 - in /trunk: data/mymacros.lua.dist lua/lib.razorconfig.lua lua/lib.razormacro.lua lua/main.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Mon Nov 17 20:48:44 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001539.html">[Iris-commit] [IRIS] r2735 - in /trunk/lua: lib.2d.dynamic.lua	lib.uoanim.lua lib.uoids.lua
+</A></li>
+        <LI>Next message: <A HREF="001541.html">[Iris-commit] [IRIS] r2737 - in /trunk: lua/lib.macrolist.lua lua/net/net.dynamic.lua lua/net/net.trade.lua plugins/moblist.lua videos/
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1540">[ date ]</a>
+              <a href="thread.html#1540">[ thread ]</a>
+              <a href="subject.html#1540">[ subject ]</a>
+              <a href="author.html#1540">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Mon Nov 17 20:48:43 2008
+New Revision: 2736
+
+Log:
+razor config importer starts working
+
+Added:
+    trunk/lua/lib.razormacro.lua
+Modified:
+    trunk/data/mymacros.lua.dist
+    trunk/lua/lib.razorconfig.lua
+    trunk/lua/main.lua
+
+Modified: trunk/data/mymacros.lua.dist
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/mymacros.lua.dist (original)
++++ trunk/data/mymacros.lua.dist Mon Nov 17 20:48:43 2008
+@@ -98,3 +98,6 @@
+ SetMacro(&quot;alt+Z&quot;,	function() MacroCmd_Spell(&quot;Invisibility&quot;) end)
+ SetMacro(&quot;alt+X&quot;,	function() MacroCmd_Spell(&quot;Meteor Swarm&quot;) end)
+ ]]--
++
++SetMacro(&quot;shift+f11&quot;,	function() ImportRazorProfileDialog() end)
++ImportRazorProfile(&quot;C:\\Program Files\\Razor\\Profiles\\default.xml&quot;) -- i=
+mport default config
+
+Modified: trunk/lua/lib.razorconfig.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.razorconfig.lua (original)
++++ trunk/lua/lib.razorconfig.lua Mon Nov 17 20:48:43 2008
+@@ -29,150 +29,175 @@
+ --~ 65      a       0       L:1044092         spiritspeak
+ =
+
+ gRazorHotKeyAction =3D {}
+-gRazorHotKeyAction[1473] =3D function () Send_DoubleClick(GetPlayerSerial(=
+)) end -- dismount
+-gRazorHotKeyAction[1195] =3D function () end -- clear target queue
+-gRazorHotKeyAction[1059] =3D function () MacroCmd_TargetSelfNow() end -- t=
+argetself
+-gRazorHotKeyAction[1058] =3D function () MacroCmd_TargetLastNow() end -- t=
+argetlast
+-gRazorHotKeyAction[1013] =3D function () MacroCmd_WeaponAbilityPrimary() e=
+nd
+-
+-
+-
+-gRazorSpellConfig =3D {}
++gRazorHotKeyAction[1473] =3D {name=3D&quot;dismount&quot;,fun=3Dfunction () Send_Dou=
+bleClick(GetPlayerSerial()) end} -- dismount
++gRazorHotKeyAction[1195] =3D {name=3D&quot;clear target queue&quot;,fun=3Dfunction (=
+) end} -- clear target queue
++gRazorHotKeyAction[1059] =3D {name=3D&quot;targetself&quot;,fun=3Dfunction () MacroC=
+md_TargetSelfNow() end} -- targetself
++gRazorHotKeyAction[1058] =3D {name=3D&quot;targetlast&quot;,fun=3Dfunction () MacroC=
+md_TargetLastNow() end} -- targetlast
++gRazorHotKeyAction[1013] =3D {name=3D&quot;weapon:primary&quot;,fun=3Dfunction () Ma=
+croCmd_WeaponAbilityPrimary() end}
++
++
++
++gRazorSpellID =3D {}
+ --~ zirkel1&quot;
+-gRazorSpellConfig[&quot;L:3002018&quot;] =3D &quot;Weaken&quot;
+-gRazorSpellConfig[&quot;L:3002017&quot;] =3D &quot;Reactive Armor&quot;
+-gRazorSpellConfig[&quot;L:3002016&quot;] =3D &quot;Night Sight&quot;
+-gRazorSpellConfig[&quot;L:3002015&quot;] =3D &quot;Magic Arrow&quot;
+-gRazorSpellConfig[&quot;L:3002014&quot;] =3D &quot;Heal&quot;
+-gRazorSpellConfig[&quot;L:3002013&quot;] =3D &quot;FeebleMind&quot;
+-gRazorSpellConfig[&quot;L:3002012&quot;] =3D &quot;Create Food&quot;
+-gRazorSpellConfig[&quot;L:3002011&quot;] =3D &quot;Clumsy&quot;
++gRazorSpellID[3002018] =3D &quot;Weaken&quot;
++gRazorSpellID[3002017] =3D &quot;Reactive Armor&quot;
++gRazorSpellID[3002016] =3D &quot;Night Sight&quot;
++gRazorSpellID[3002015] =3D &quot;Magic Arrow&quot;
++gRazorSpellID[3002014] =3D &quot;Heal&quot;
++gRazorSpellID[3002013] =3D &quot;FeebleMind&quot;
++gRazorSpellID[3002012] =3D &quot;Create Food&quot;
++gRazorSpellID[3002011] =3D &quot;Clumsy&quot;
+ --~ zirkel2&quot;
+-gRazorSpellConfig[&quot;L:3002026&quot;] =3D &quot;Strength&quot;
+-gRazorSpellConfig[&quot;L:3002025&quot;] =3D &quot;Protection&quot;
+-gRazorSpellConfig[&quot;L:3002024&quot;] =3D &quot;Magic Untrap&quot;
+-gRazorSpellConfig[&quot;L:3002023&quot;] =3D &quot;Magic Trap&quot;
+-gRazorSpellConfig[&quot;L:3002022&quot;] =3D &quot;Harm&quot;
+-gRazorSpellConfig[&quot;L:3002021&quot;] =3D &quot;Cure&quot;
+-gRazorSpellConfig[&quot;L:3002020&quot;] =3D &quot;Cunning&quot;
+-gRazorSpellConfig[&quot;L:3002019&quot;] =3D &quot;Agility&quot;
++gRazorSpellID[3002026] =3D &quot;Strength&quot;
++gRazorSpellID[3002025] =3D &quot;Protection&quot;
++gRazorSpellID[3002024] =3D &quot;Magic Untrap&quot;
++gRazorSpellID[3002023] =3D &quot;Magic Trap&quot;
++gRazorSpellID[3002022] =3D &quot;Harm&quot;
++gRazorSpellID[3002021] =3D &quot;Cure&quot;
++gRazorSpellID[3002020] =3D &quot;Cunning&quot;
++gRazorSpellID[3002019] =3D &quot;Agility&quot;
+ --~ zirkel3
+-gRazorSpellConfig[&quot;L:3002034&quot;] =3D &quot;Wall of Stone&quot;
+-gRazorSpellConfig[&quot;L:3002033&quot;] =3D &quot;Unlock&quot;
+-gRazorSpellConfig[&quot;L:3002032&quot;] =3D &quot;Teleport&quot;
+-gRazorSpellConfig[&quot;L:3002031&quot;] =3D &quot;Telekinesis&quot;
+-gRazorSpellConfig[&quot;L:3002030&quot;] =3D &quot;Poison&quot;
+-gRazorSpellConfig[&quot;L:3002029&quot;] =3D &quot;Magic Lock&quot;
+-gRazorSpellConfig[&quot;L:3002028&quot;] =3D &quot;Fire Ball&quot;
+-gRazorSpellConfig[&quot;L:3002027&quot;] =3D &quot;Bless&quot;
++gRazorSpellID[3002034] =3D &quot;Wall of Stone&quot;
++gRazorSpellID[3002033] =3D &quot;Unlock&quot;
++gRazorSpellID[3002032] =3D &quot;Teleport&quot;
++gRazorSpellID[3002031] =3D &quot;Telekinesis&quot;
++gRazorSpellID[3002030] =3D &quot;Poison&quot;
++gRazorSpellID[3002029] =3D &quot;Magic Lock&quot;
++gRazorSpellID[3002028] =3D &quot;Fire Ball&quot;
++gRazorSpellID[3002027] =3D &quot;Bless&quot;
+ --~ zirkel4&quot;
+-gRazorSpellConfig[&quot;L:3002042&quot;] =3D &quot;Recall&quot;
+-gRazorSpellConfig[&quot;L:3002041&quot;] =3D &quot;Mana Drain&quot;
+-gRazorSpellConfig[&quot;L:3002040&quot;] =3D &quot;Lightning&quot;
+-gRazorSpellConfig[&quot;L:3002039&quot;] =3D &quot;Greater Heal&quot;
+-gRazorSpellConfig[&quot;L:3002038&quot;] =3D &quot;Fire Field&quot;
+-gRazorSpellConfig[&quot;L:3002037&quot;] =3D &quot;Curse&quot;
+-gRazorSpellConfig[&quot;L:3002036&quot;] =3D &quot;Arch Protection&quot;
+-gRazorSpellConfig[&quot;L:3002035&quot;] =3D &quot;Arch Cure&quot;
++gRazorSpellID[3002042] =3D &quot;Recall&quot;
++gRazorSpellID[3002041] =3D &quot;Mana Drain&quot;
++gRazorSpellID[3002040] =3D &quot;Lightning&quot;
++gRazorSpellID[3002039] =3D &quot;Greater Heal&quot;
++gRazorSpellID[3002038] =3D &quot;Fire Field&quot;
++gRazorSpellID[3002037] =3D &quot;Curse&quot;
++gRazorSpellID[3002036] =3D &quot;Arch Protection&quot;
++gRazorSpellID[3002035] =3D &quot;Arch Cure&quot;
+ --~ zirkel5&quot;
+-gRazorSpellConfig[&quot;L:3002050&quot;] =3D &quot;Summ.Creature&quot;
+-gRazorSpellConfig[&quot;L:3002049&quot;] =3D &quot;Poison Field&quot;
+-gRazorSpellConfig[&quot;L:3002048&quot;] =3D &quot;Paralyze&quot;
+-gRazorSpellConfig[&quot;L:3002047&quot;] =3D &quot;Mind Blast&quot;
+-gRazorSpellConfig[&quot;L:3002046&quot;] =3D &quot;Spell Reflection&quot;
+-gRazorSpellConfig[&quot;L:3002045&quot;] =3D &quot;Incognito&quot;
+-gRazorSpellConfig[&quot;L:3002044&quot;] =3D &quot;Dispel Field&quot;
+-gRazorSpellConfig[&quot;L:3002043&quot;] =3D &quot;Blade Spirit&quot;
++gRazorSpellID[3002050] =3D &quot;Summ.Creature&quot;
++gRazorSpellID[3002049] =3D &quot;Poison Field&quot;
++gRazorSpellID[3002048] =3D &quot;Paralyze&quot;
++gRazorSpellID[3002047] =3D &quot;Mind Blast&quot;
++gRazorSpellID[3002046] =3D &quot;Spell Reflection&quot;
++gRazorSpellID[3002045] =3D &quot;Incognito&quot;
++gRazorSpellID[3002044] =3D &quot;Dispel Field&quot;
++gRazorSpellID[3002043] =3D &quot;Blade Spirit&quot;
+ --~ zirkel6 &quot;
+-gRazorSpellConfig[&quot;L:3002058&quot;] =3D &quot;Reveal&quot;
+-gRazorSpellConfig[&quot;L:3002057&quot;] =3D &quot;Paralyze Field&quot;
+-gRazorSpellConfig[&quot;L:3002056&quot;] =3D &quot;Mass Curse&quot;
+-gRazorSpellConfig[&quot;L:3002055&quot;] =3D &quot;Mark&quot;
+-gRazorSpellConfig[&quot;L:3002054&quot;] =3D &quot;Invisibility&quot;
+-gRazorSpellConfig[&quot;L:3002053&quot;] =3D &quot;Explosion&quot;
+-gRazorSpellConfig[&quot;L:3002052&quot;] =3D &quot;Energy Bolt&quot;
+-gRazorSpellConfig[&quot;L:3002051&quot;] =3D &quot;Dispel&quot;
++gRazorSpellID[3002058] =3D &quot;Reveal&quot;
++gRazorSpellID[3002057] =3D &quot;Paralyze Field&quot;
++gRazorSpellID[3002056] =3D &quot;Mass Curse&quot;
++gRazorSpellID[3002055] =3D &quot;Mark&quot;
++gRazorSpellID[3002054] =3D &quot;Invisibility&quot;
++gRazorSpellID[3002053] =3D &quot;Explosion&quot;
++gRazorSpellID[3002052] =3D &quot;Energy Bolt&quot;
++gRazorSpellID[3002051] =3D &quot;Dispel&quot;
+ --~ zirkel7&quot;
+-gRazorSpellConfig[&quot;L:3002066&quot;] =3D &quot;Polymorph&quot;
+-gRazorSpellConfig[&quot;L:3002065&quot;] =3D &quot;Meteor Swarm&quot;
+-gRazorSpellConfig[&quot;L:3002064&quot;] =3D &quot;Mass Dispel&quot;
+-gRazorSpellConfig[&quot;L:3002063&quot;] =3D &quot;Mana Vampire&quot;
+-gRazorSpellConfig[&quot;L:3002062&quot;] =3D &quot;Gate&quot;
+-gRazorSpellConfig[&quot;L:3002061&quot;] =3D &quot;FlameStrike&quot;
+-gRazorSpellConfig[&quot;L:3002060&quot;] =3D &quot;Energy Field&quot;
+-gRazorSpellConfig[&quot;L:3002059&quot;] =3D &quot;Chain Lightning&quot;
++gRazorSpellID[3002066] =3D &quot;Polymorph&quot;
++gRazorSpellID[3002065] =3D &quot;Meteor Swarm&quot;
++gRazorSpellID[3002064] =3D &quot;Mass Dispel&quot;
++gRazorSpellID[3002063] =3D &quot;Mana Vampire&quot;
++gRazorSpellID[3002062] =3D &quot;Gate&quot;
++gRazorSpellID[3002061] =3D &quot;FlameStrike&quot;
++gRazorSpellID[3002060] =3D &quot;Energy Field&quot;
++gRazorSpellID[3002059] =3D &quot;Chain Lightning&quot;
+ --~ zirkel8&quot;
+-gRazorSpellConfig[&quot;L:3002074&quot;] =3D &quot;Water Elemental&quot;
+-gRazorSpellConfig[&quot;L:3002071&quot;] =3D &quot;Summon Daemon&quot;
+-gRazorSpellConfig[&quot;L:3002069&quot;] =3D &quot;Resurrection&quot;
+-gRazorSpellConfig[&quot;L:3002073&quot;] =3D &quot;Fire Elemental&quot;
+-gRazorSpellConfig[&quot;L:3002068&quot;] =3D &quot;Energy Vortex&quot;
+-gRazorSpellConfig[&quot;L:3002067&quot;] =3D &quot;Earthquake&quot;
+-gRazorSpellConfig[&quot;L:3002072&quot;] =3D &quot;Earth Elemental&quot;
+-gRazorSpellConfig[&quot;L:3002070&quot;] =3D &quot;Air Elemental&quot;
++gRazorSpellID[3002074] =3D &quot;Water Elemental&quot;
++gRazorSpellID[3002071] =3D &quot;Summon Daemon&quot;
++gRazorSpellID[3002069] =3D &quot;Resurrection&quot;
++gRazorSpellID[3002073] =3D &quot;Fire Elemental&quot;
++gRazorSpellID[3002068] =3D &quot;Energy Vortex&quot;
++gRazorSpellID[3002067] =3D &quot;Earthquake&quot;
++gRazorSpellID[3002072] =3D &quot;Earth Elemental&quot;
++gRazorSpellID[3002070] =3D &quot;Air Elemental&quot;
+ --~ bush&quot;
+-gRazorSpellConfig[&quot;L:1060600&quot;] =3D &quot;Momentum Strike&quot;
+-gRazorSpellConfig[&quot;L:1060599&quot;] =3D &quot;Lightning Strike&quot;
+-gRazorSpellConfig[&quot;L:1060595&quot;] =3D &quot;Honorable Execution&quot;
+-gRazorSpellConfig[&quot;L:1060597&quot;] =3D &quot;Evasion&quot;
+-gRazorSpellConfig[&quot;L:1060598&quot;] =3D &quot;Counter Attack&quot;
+-gRazorSpellConfig[&quot;L:1060596&quot;] =3D &quot;Confidence&quot;
++gRazorSpellID[1060600] =3D &quot;Momentum Strike&quot;
++gRazorSpellID[1060599] =3D &quot;Lightning Strike&quot;
++gRazorSpellID[1060595] =3D &quot;Honorable Execution&quot;
++gRazorSpellID[1060597] =3D &quot;Evasion&quot;
++gRazorSpellID[1060598] =3D &quot;Counter Attack&quot;
++gRazorSpellID[1060596] =3D &quot;Confidence&quot;
+ --~ chiv&quot;
+-gRazorSpellConfig[&quot;L:1060594&quot;] =3D &quot;Sacred Journey&quot;
+-gRazorSpellConfig[&quot;L:1060593&quot;] =3D &quot;Remove Curse&quot;
+-gRazorSpellConfig[&quot;L:1060592&quot;] =3D &quot;Noble Sacrifice&quot;
+-gRazorSpellConfig[&quot;L:1060591&quot;] =3D &quot;Holy Light&quot;
+-gRazorSpellConfig[&quot;L:1060590&quot;] =3D &quot;Enemy of one&quot;
+-gRazorSpellConfig[&quot;L:1060589&quot;] =3D &quot;Divine Fury&quot;
+-gRazorSpellConfig[&quot;L:1060588&quot;] =3D &quot;Dispel Evil&quot;
+-gRazorSpellConfig[&quot;L:1060587&quot;] =3D &quot;Consecrate Weapon&quot;
+-gRazorSpellConfig[&quot;L:1060586&quot;] =3D &quot;Close Wounds&quot;
+-gRazorSpellConfig[&quot;L:1060585&quot;] =3D &quot;Cleanse By Fire&quot;
++gRazorSpellID[1060594] =3D &quot;Sacred Journey&quot;
++gRazorSpellID[1060593] =3D &quot;Remove Curse&quot;
++gRazorSpellID[1060592] =3D &quot;Noble Sacrifice&quot;
++gRazorSpellID[1060591] =3D &quot;Holy Light&quot;
++gRazorSpellID[1060590] =3D &quot;Enemy of one&quot;
++gRazorSpellID[1060589] =3D &quot;Divine Fury&quot;
++gRazorSpellID[1060588] =3D &quot;Dispel Evil&quot;
++gRazorSpellID[1060587] =3D &quot;Consecrate Weapon&quot;
++gRazorSpellID[1060586] =3D &quot;Close Wounds&quot;
++gRazorSpellID[1060585] =3D &quot;Cleanse By Fire&quot;
+ --~ necro&quot;				=
+
+-gRazorSpellConfig[&quot;L:1060524&quot;] =3D &quot;WraithForm&quot;				=
+
+-gRazorSpellConfig[&quot;L:1060523&quot;] =3D &quot;Wither&quot;			=
+
+-gRazorSpellConfig[&quot;L:1060522&quot;] =3D &quot;Vengeful Spirit&quot;		=
+
+-gRazorSpellConfig[&quot;L:1060521&quot;] =3D &quot;Vampiric Embrace&quot;			=
+
+-gRazorSpellConfig[&quot;L:1060520&quot;] =3D &quot;Summon Familiar&quot;			=
+
+-gRazorSpellConfig[&quot;L:1060519&quot;] =3D &quot;Strangle&quot;				=
+
+-gRazorSpellConfig[&quot;L:1060518&quot;] =3D &quot;Poison Strike&quot;		=
+
+-gRazorSpellConfig[&quot;L:1060517&quot;] =3D &quot;Pain Spike&quot;				=
+
+-gRazorSpellConfig[&quot;L:1060516&quot;] =3D &quot;Mind Rot&quot;			=
+
+-gRazorSpellConfig[&quot;L:1060515&quot;] =3D &quot;Lich Form&quot;			=
+
+-gRazorSpellConfig[&quot;L:1060514&quot;] =3D &quot;Horrific Beast&quot;		=
+
+-gRazorSpellConfig[&quot;L:1060525&quot;] =3D &quot;Exorcism&quot;
+-gRazorSpellConfig[&quot;L:1060513&quot;] =3D &quot;Evil Omen&quot;			=
+
+-gRazorSpellConfig[&quot;L:1060512&quot;] =3D &quot;Curse Weapon&quot;
+-gRazorSpellConfig[&quot;L:1060511&quot;] =3D &quot;Corpse Skin&quot;
+-gRazorSpellConfig[&quot;L:1060510&quot;] =3D &quot;Blood Oath&quot;
+-gRazorSpellConfig[&quot;L:1060509&quot;] =3D &quot;Animate Dead&quot;
++gRazorSpellID[1060524] =3D &quot;WraithForm&quot;				=
+
++gRazorSpellID[1060523] =3D &quot;Wither&quot;			=
+
++gRazorSpellID[1060522] =3D &quot;Vengeful Spirit&quot;		=
+
++gRazorSpellID[1060521] =3D &quot;Vampiric Embrace&quot;			=
+
++gRazorSpellID[1060520] =3D &quot;Summon Familiar&quot;			=
+
++gRazorSpellID[1060519] =3D &quot;Strangle&quot;				=
+
++gRazorSpellID[1060518] =3D &quot;Poison Strike&quot;		=
+
++gRazorSpellID[1060517] =3D &quot;Pain Spike&quot;				=
+
++gRazorSpellID[1060516] =3D &quot;Mind Rot&quot;			=
+
++gRazorSpellID[1060515] =3D &quot;Lich Form&quot;			=
+
++gRazorSpellID[1060514] =3D &quot;Horrific Beast&quot;		=
+
++gRazorSpellID[1060525] =3D &quot;Exorcism&quot;
++gRazorSpellID[1060513] =3D &quot;Evil Omen&quot;			=
+
++gRazorSpellID[1060512] =3D &quot;Curse Weapon&quot;
++gRazorSpellID[1060511] =3D &quot;Corpse Skin&quot;
++gRazorSpellID[1060510] =3D &quot;Blood Oath&quot;
++gRazorSpellID[1060509] =3D &quot;Animate Dead&quot;
+ --~ nin&quot;
+-gRazorSpellConfig[&quot;L:1060614&quot;] =3D &quot;Mirror Image&quot;
+-gRazorSpellConfig[&quot;L:1060616&quot;] =3D &quot;Suprise Attack&quot;
+-gRazorSpellConfig[&quot;L:1060617&quot;] =3D &quot;Shadowjump&quot;
+-gRazorSpellConfig[&quot;L:1060613&quot;] =3D &quot;Ki Attack&quot;
+-gRazorSpellConfig[&quot;L:1060610&quot;] =3D &quot;Focus Attack&quot;
+-gRazorSpellConfig[&quot;L:1060611&quot;] =3D &quot;Death Strike&quot;
+-gRazorSpellConfig[&quot;L:1060615&quot;] =3D &quot;Backstab&quot;
+-gRazorSpellConfig[&quot;L:1060612&quot;] =3D &quot;Animal Form&quot;
++gRazorSpellID[1060614] =3D &quot;Mirror Image&quot;
++gRazorSpellID[1060616] =3D &quot;Suprise Attack&quot;
++gRazorSpellID[1060617] =3D &quot;Shadowjump&quot;
++gRazorSpellID[1060613] =3D &quot;Ki Attack&quot;
++gRazorSpellID[1060610] =3D &quot;Focus Attack&quot;
++gRazorSpellID[1060611] =3D &quot;Death Strike&quot;
++gRazorSpellID[1060615] =3D &quot;Backstab&quot;
++gRazorSpellID[1060612] =3D &quot;Animal Form&quot;
+ --~ spellw&quot;
+-gRazorSpellConfig[&quot;L:1071039&quot;] =3D &quot;Word Of Death&quot;
+-gRazorSpellConfig[&quot;L:1071035&quot;] =3D &quot;Wildfire&quot;
+-gRazorSpellConfig[&quot;L:1071030&quot;] =3D &quot;Thunderstorm&quot;
+-gRazorSpellConfig[&quot;L:1071033&quot;] =3D &quot;Summon Fiend&quot;
+-gRazorSpellConfig[&quot;L:1071032&quot;] =3D &quot;Summon Fey&quot;
+-gRazorSpellConfig[&quot;L:1071034&quot;] =3D &quot;Reaper Form&quot;
+-gRazorSpellConfig[&quot;L:1071031&quot;] =3D &quot;Nature Fury&quot;
+-gRazorSpellConfig[&quot;L:1071028&quot;] =3D &quot;Immolating Weapon&quot;
+-gRazorSpellConfig[&quot;L:1071027&quot;] =3D &quot;Gift Of Renewal&quot;
+-gRazorSpellConfig[&quot;L:1071040&quot;] =3D &quot;Gift Of Life&quot;
+-gRazorSpellConfig[&quot;L:1071038&quot;] =3D &quot;Ethereal Voyage&quot;
+-gRazorSpellConfig[&quot;L:1071036&quot;] =3D &quot;Essence Of Wind&quot;
+-gRazorSpellConfig[&quot;L:1071037&quot;] =3D &quot;Dryad Allure&quot;
+-gRazorSpellConfig[&quot;L:1071029&quot;] =3D &quot;Attunement&quot;
+-gRazorSpellConfig[&quot;L:1071041&quot;] =3D &quot;Arcane Empowerment&quot;
+-gRazorSpellConfig[&quot;L:1071026&quot;] =3D &quot;Arcane Circle&quot;
++gRazorSpellID[1071039] =3D &quot;Word Of Death&quot;
++gRazorSpellID[1071035] =3D &quot;Wildfire&quot;
++gRazorSpellID[1071030] =3D &quot;Thunderstorm&quot;
++gRazorSpellID[1071033] =3D &quot;Summon Fiend&quot;
++gRazorSpellID[1071032] =3D &quot;Summon Fey&quot;
++gRazorSpellID[1071034] =3D &quot;Reaper Form&quot;
++gRazorSpellID[1071031] =3D &quot;Nature Fury&quot;
++gRazorSpellID[1071028] =3D &quot;Immolating Weapon&quot;
++gRazorSpellID[1071027] =3D &quot;Gift Of Renewal&quot;
++gRazorSpellID[1071040] =3D &quot;Gift Of Life&quot;
++gRazorSpellID[1071038] =3D &quot;Ethereal Voyage&quot;
++gRazorSpellID[1071036] =3D &quot;Essence Of Wind&quot;
++gRazorSpellID[1071037] =3D &quot;Dryad Allure&quot;
++gRazorSpellID[1071029] =3D &quot;Attunement&quot;
++gRazorSpellID[1071041] =3D &quot;Arcane Empowerment&quot;
++gRazorSpellID[1071026] =3D &quot;Arcane Circle&quot;
+ 	=
+
++gRazorSkillID =3D {}
++gRazorSkillID[1044061] =3D &quot;Anatomy&quot;
++gRazorSkillID[1044062] =3D &quot;Animal Lore&quot;
++gRazorSkillID[1044095] =3D &quot;Animal Taming&quot;
++gRazorSkillID[1044064] =3D &quot;Arms Lore&quot;
++gRazorSkillID[1044066] =3D &quot;Begging&quot;
++gRazorSkillID[1044072] =3D &quot;Cartography&quot;
++gRazorSkillID[1044074] =3D &quot;Detecting Hidden&quot;
++gRazorSkillID[1044075] =3D &quot;Discordance&quot;
++gRazorSkillID[1044076] =3D &quot;Evaluate Intelligence&quot;
++gRazorSkillID[1044079] =3D &quot;Forensic Evaluation&quot;
++gRazorSkillID[1044081] =3D &quot;Hiding&quot;
++gRazorSkillID[1044083] =3D &quot;Inscription&quot;
++gRazorSkillID[1044063] =3D &quot;Item Identification&quot;
++gRazorSkillID[1044106] =3D &quot;Meditation&quot;
++gRazorSkillID[1044069] =3D &quot;Peacemaking&quot;
++gRazorSkillID[1044090] =3D &quot;Poisoning&quot;
++gRazorSkillID[1044082] =3D &quot;Provocation&quot;
++gRazorSkillID[1044092] =3D &quot;Spirit Speak&quot;
++gRazorSkillID[1044093] =3D &quot;Stealing&quot;
++gRazorSkillID[1044107] =3D &quot;Stealth&quot;
++gRazorSkillID[1044096] =3D &quot;Taste Identification&quot;
++gRazorSkillID[1044098] =3D &quot;Tracking&quot;
++--~ gRazorSkillID[1044108] =3D &quot;Disarming&quot;  -- ??? preaos ?
++-- Snooping,Remove Trap,Lockpicking,Herding,Cooking,Camping&quot;
+ 	=
+
+ --[[
+ Assistant.Macros.HotKeyAction|1044061| Anato
+@@ -207,174 +232,72 @@
+ =
+
+ function ImportRazorHotkeys (filepath)
+ 	print(&quot;ImportRazorHotkeys&quot;,filepath)
+-	if (not filepath) then return end
++	if (not file_exists(filepath)) then return end
+ 	local profile =3D LuaXML_ParseFile(filepath)[1]
+ 	for k,hotkey in ipairs(xmlchild(profile,&quot;hotkeys&quot;)) do =
+
+-		local key =3D hotkey.attr.key
+-		key =3D gRazorKeyCodeTranslate[key] or key
+-		local keymod =3D hotkey.attr.mod
++		local keycode =3D tonumber(hotkey.attr.key)
++		keycode =3D gRazorKeyCodeTranslate[keycode] or keycode
++		local keymod =3D tonumber(hotkey.attr.mod)
+ 		local action =3D hotkey[1]
+-		local spellname =3D gRazorSpellConfig[action]
++		local a,b,actionid =3D string.find(action,&quot;L:(.+)&quot;)
+ 		local a,b,macroname =3D string.find(action,&quot;Play: (.+)&quot;)
+-		print(key,GetKeyName(key),keymod,action,spellname,macroname)
++		local spellname =3D actionid and gRazorSpellID[tonumber(actionid)]
++		local skillname =3D actionid and gRazorSkillID[tonumber(actionid)]
++		local hotkeyaction =3D actionid and gRazorHotKeyAction[tonumber(actionid=
+)]
++		=
+
++		local bCtrl		=3D TestBit(keymod,kRazorMod_Ctrl)
++		local bAlt		=3D TestBit(keymod,kRazorMod_Alt)
++		local bShift	=3D TestBit(keymod,kRazorMod_Shift)
++		local keycomboname =3D GetMacroKeyComboName(keycode,&quot;?&quot;,bCtrl,bAlt,bShif=
+t) =
+
++		--~ print(keycode,keymod,keycomboname,action,actionid,macroname,spellnam=
+e,skillname)
++		=
+
++		if (spellname) then =
+
++			print(&quot;razor:spell&quot;,keycomboname,spellname) =
+
++			SetMacro(keycomboname,function () MacroCmd_Spell(spellname) end)
++		elseif (skillname) then =
+
++			print(&quot;razor:skill&quot;,keycomboname,skillname) =
+
++			SetMacro(keycomboname,function () MacroCmd_Skill(skillname) end)
++		elseif (macroname) then =
+
++			print(&quot;razor:macro&quot;,keycomboname,macroname) =
+
++			SetMacro(keycomboname,function () StartRazorMacroJob(macroname) end)
++		elseif (hotkeyaction) then =
+
++			print(&quot;razor:action&quot;,keycomboname,hotkeyaction.name) =
+
++			SetMacro(keycomboname,function () hotkeyaction.fun() end)
++		else
++			print(&quot;razor:unknown&quot;,keycomboname,action)
++		end
+ 	end
+ 	--~ &lt;key mod=3D&quot;7&quot; key=3D&quot;49&quot; send=3D&quot;False&quot;&gt;L:3002011&lt;/key&gt;Clumsy
+ end
+ =
+
+-gRazorMacros =3D {}
+-function LoadRazorMacros (folderpath) =
+
+-	local files =3D dirlist(folderpath,false,true) -- (dirpath,bDirs,bFiles)
+-	for k,filename in pairs(files) do =
+
+-		local macroname =3D string.gsub(filename,&quot;.macro$&quot;,&quot;&quot;)
+-		local macro =3D {}
+-		for line in io.lines(folderpath..filename) do
+-			local command =3D strsplit(&quot;|&quot;,string.gsub(line,&quot;[\n\r]&quot;,&quot;&quot;))
+-			if (command[1]) then command[1] =3D string.gsub(command[1],&quot;Assistant.M=
+acros.&quot;,&quot;&quot;) end
+-			table.insert(macro,command)
+-		end
+-		gRazorMacros[macroname] =3D macro
+-	end
+-	--~ print(&quot;LoadRazorMacros&quot;,SmartDump(files))
++--[[
++
++razor:unknown   wheeldown   L:1058
++razor:unknown   wheelup 	L:1059
++razor:unknown   mouse3  	L:1195
++razor:unknown   ctrl+f1 	Dress: ghongolas
++razor:unknown   alt+b   	L:1311
++razor:unknown   o       	L:1013
++
++ExtCastSpellAction      29      4294967295
++
++]]--
++
++function ImportRazorProfileDialog ()
++	local profile_filepath =3D FileOpenDialog_RazorProfile()
++	if (profile_filepath) then ImportRazorProfile(profile_filepath) end
+ end
+-
+-gRazorMacroCmd =3D {}
+-
+---~ WalkAction|2
+-function gRazorMacroCmd.WalkAction (dir) MacroCmd_WalkInDir(dir,TestBit(di=
+r,0x80)) end
+-
+---~ DoubleClickTypeAction|10229|True
+-function gRazorMacroCmd.DoubleClickTypeAction (artid,u1) MacroCmd_Item_Use=
+ByArtID(artid) end
+-
+---~ DoubleClickAction|546224|220
+-function gRazorMacroCmd.DoubleClickAction (serial,u1) Send_DoubleClick(ser=
+ial) end
+-
+---~ PauseAction|00:00:00.5550000
+---~ PauseAction|00:00:02
+-function gRazorMacroCmd.PauseAction (dur)
+-	local a,b,h,m,s =3D string.find(dur,&quot;(%d+):(%d+):(.+)&quot;)
+-	local ms =3D 1000*(tonumber(s) + 60*(tonumber(m) + 60*tonumber(h)))
+-	job.wait(ms)
++function ImportRazorProfile (profile_filepath)
++	profile_filepath =3D string.gsub(profile_filepath,&quot;\\&quot;,&quot;/&quot;) -- \ to /
++	if (not file_exists(profile_filepath)) then print(&quot;warning, ImportRazorPr=
+ofile file not found&quot;,profile_filepath) return end
++	print(&quot;importing razor profile : &quot;,profile_filepath)
++	local basefilepath =3D string.gsub(profile_filepath,&quot;[^/]+/[^/]+$&quot;,&quot;&quot;)
++	LoadRazorMacros(basefilepath..&quot;Macros/&quot;)
++	ImportRazorHotkeys(profile_filepath)
+ end
+-
+---~ WaitForTargetAction|1
+-function gRazorMacroCmd.WaitForTargetAction (timeout) MacroCmd_JobWaitForT=
+arget(timeout*1000) end
+-
+---~ LastTargetAction
+-function gRazorMacroCmd.LastTargetAction () MacroCmd_TargetLastNow() end
+-
+---~ TargetRelLocAction|2|0
+-function gRazorMacroCmd.TargetRelLocAction (dx,dy) if (gPlayerXLoc) then M=
+acroCmd_TargetGroundNow(gPlayerXLoc+dx,gPlayerYLoc+dy) end end
+-
+---~ AbsoluteTargetAction|0|0|41651|1657|310|-85|118
+-function gRazorMacroCmd.AbsoluteTargetAction (u1,u2,uartid,u4,u5,u6,u7) pr=
+int(&quot;AbsoluteTargetAction&quot;,u1,u2,uartid,u4,u5,u6,u7) end
+-
+---~ HotKeyAction|1195| -- clear target queue
+-function gRazorMacroCmd.HotKeyAction (hotkeyaction,param) =
+
+-	local handler =3D gRazorHotKeyAction[tonumber(hotkeyaction)]
+-	print(&quot;HotKeyAction&quot;,hotkeyaction,handler,param)
+-	if (handler) then handler(param) end
+-end
+-
+---~ SpeechAction|0|198|3|enu|5|48|232|22|49|108|all follow me
+-function gRazorMacroCmd.SpeechAction (u1,u2,u3,enu,u4,u5,u6,u7,u8,u9,text)=
+ MacroCmd_Say(text) end
+-
+---~ ExtCastSpellAction|507|4294967295
+-function gRazorMacroCmd.ExtCastSpellAction (uspellid,u2) print(&quot;ExtCastSpe=
+llAction&quot;,uspellid,u2) end
+-
+---~ MacroCastSpellAction|44 -- (magetrain.macro) (lastspell?)
+-function gRazorMacroCmd.MacroCastSpellAction (spellid) print(&quot;MacroCastSpe=
+llAction&quot;,spellid) end
+-
+-
+---~ GumpResponseAction|21|0|0
+-function gRazorMacroCmd.GumpResponseAction (a,b,c) print(&quot;HotKeyAction&quot;,a,=
+b,c) end
+-
+---~ WaitForGumpAction|949095101|False|300
+-function gRazorMacroCmd.WaitForGumpAction (gumptype,u1,timeout) print(&quot;Wai=
+tForGumpAction&quot;,gumptype,u1,timeout) end
+-
+--- dummy
+-gRazorMacroCmd[&quot;!Loop&quot;] =3D function () end
+-
+-
+-function ExecRazorMacroCommand (command) =
+
+-	if (not command[1]) then return end
+-	local handler =3D gRazorMacroCmd[command[1]]
+-	if (not handler) then print(&quot;ExecRazorMacroCommand warning, unknown comma=
+nd&quot;,command[1]) return end
+-	handler(unpack(command,2))
+-end
+-
+-function RazorEvaluateIf (command)
+-	print(&quot;TODO:RazorEvaluateIf&quot;,unpack(command))
+-	return true
+-end
+-
+-
+-function StopRazorMacro ()
+-	if (not gLastRazorMacroJobID) then return end
+-	job.terminate(gLastRazorMacroJobID)
+-	gLastRazorMacroJobID =3D nil
+-end
+-
+-function StartRazorMacroJob (macroname)
+-	local macro =3D gRazorMacros[macroname]
+-	if (not macro) then return end
+-	local bLoop =3D (macro[1] and macro[1][1]) =3D=3D &quot;!Loop&quot;
+-	print(&quot;StartRazorMacroJob name,loop=3D&quot;,macroname,bLoop)
+-	StopRazorMacro()
+-	gLastRazorMacroJobID =3D job.create(function()
+-			repeat =
+
+-				local stack =3D {} -- if,for
+-				local i =3D 1
+-				local cmd
+-				local iSkipUntilEndIfOrElseDepth =3D 0
+-				repeat 	=
+
+-					local command =3D macro[i] =
+
+-					local top =3D stack[#stack]
+-					print(&quot;macroline&quot;,i,iSkipUntilEndIfOrElseDepth,command[1])
+-					if (command[1] =3D=3D &quot;IfAction&quot;) then --~ IfAction|4|0|you prepare t=
+o perform a shadowjump.
+-						if (iSkipUntilEndIfOrElseDepth &gt; 0) then
+-							iSkipUntilEndIfOrElseDepth =3D iSkipUntilEndIfOrElseDepth + 1
+-						elseif (not RazorEvaluateIf(command)) then =
+
+-							iSkipUntilEndIfOrElseDepth =3D 1
+-						end
+-					elseif (command[1] =3D=3D &quot;ElseAction&quot;) then
+-						if (iSkipUntilEndIfOrElseDepth =3D=3D 1) then =
+
+-							iSkipUntilEndIfOrElseDepth =3D 0 -- if (false) then .. else =
+
+-						elseif (iSkipUntilEndIfOrElseDepth =3D=3D 0) then
+-							iSkipUntilEndIfOrElseDepth =3D 1 -- if (true) then .. else =
+
+-						end
+-					elseif (command[1] =3D=3D &quot;EndIfAction&quot;) then
+-						if (iSkipUntilEndIfOrElseDepth &gt; 0) then  =
+
+-							iSkipUntilEndIfOrElseDepth =3D iSkipUntilEndIfOrElseDepth - 1
+-						end -- otherwise it was a non-nested and non-skipped -- if (true) th=
+en ... endif
+-					elseif (iSkipUntilEndIfOrElseDepth =3D=3D 0) then
+-						job.wait(1)
+-						if (command[1] =3D=3D &quot;ForAction&quot;) then --~ ForAction|10
+-							local times =3D tonumber(command[2]) or 1
+-							table.insert(stack,{times,i})
+-							print(&quot;for loop start&quot;,times,i)
+-						elseif (command[1] =3D=3D &quot;EndForAction&quot;) then
+-							assert(type(top) =3D=3D &quot;table&quot;,&quot;razor macro : malformed for : endf=
+or&quot;)
+-							local times,forstart =3D unpack(top)
+-							table.remove(stack)
+-							if (times &gt;=3D 2) then
+-								print(&quot;razor macro : for loop start,left&quot;,forstart,times-1)
+-								i =3D forstart =
+
+-								table.insert(stack,{times-1,i})
+-							end
+-						else
+-							ExecRazorMacroCommand(command)
+-						end
+-					end
+-					i =3D i + 1
+-				until i &gt; #macro
+-				job.wait(1)
+-			until (not bLoop)
+-		end)
+-end
+-
+-
+-
+-local filepath =3D &quot;/home/ghoul/Desktop/cavern/razorprofile/default.xml&quot; -=
+- FileOpenDialog_RazorProfile()
++--~ os.exit(0)
++
++--~ local filepath =3D &quot;/home/ghoul/Desktop/cavern/razorprofile/default.xm=
+l&quot; -- FileOpenDialog_RazorProfile()
+ --~ local xml =3D LuaXML_ParseFile(filepath)[1]
+ --~ print(SmartDump(xml[1]))
+ --~ LuaXML_SaveFile(&quot;../bla.xml&quot;,xml)
+
+Modified: trunk/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/main.lua (original)
++++ trunk/lua/main.lua Mon Nov 17 20:48:43 2008
+@@ -94,6 +94,7 @@
+ dofile(libpath .. &quot;lib.blendout.lua&quot;)
+ dofile(libpath .. &quot;lib.packetvideo.lua&quot;)
+ dofile(libpath .. &quot;lib.objectpicker.lua&quot;)
++dofile(libpath .. &quot;lib.razormacro.lua&quot;)
+ dofile(libpath .. &quot;lib.razorconfig.lua&quot;)
+ =
+
+ dofile(libpath .. &quot;gui/gui.main.lua&quot;)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001539.html">[Iris-commit] [IRIS] r2735 - in /trunk/lua: lib.2d.dynamic.lua	lib.uoanim.lua lib.uoids.lua
+</A></li>
+	<LI>Next message: <A HREF="001541.html">[Iris-commit] [IRIS] r2737 - in /trunk: lua/lib.macrolist.lua lua/net/net.dynamic.lua lua/net/net.trade.lua plugins/moblist.lua videos/
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1540">[ date ]</a>
+              <a href="thread.html#1540">[ thread ]</a>
+              <a href="subject.html#1540">[ subject ]</a>
+              <a href="author.html#1540">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

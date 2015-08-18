@@ -1,0 +1,1643 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2428 - in /trunk: data/ lua/
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-August/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2428%20-%20in%20/trunk%3A%20data/%20lua/&In-Reply-To=%3C20080831134903.2A1191C18647%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001232.html">
+   <LINK REL="Next"  HREF="001234.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2428 - in /trunk: data/ lua/</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2428%20-%20in%20/trunk%3A%20data/%20lua/&In-Reply-To=%3C20080831134903.2A1191C18647%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2428 - in /trunk: data/ lua/">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sun Aug 31 15:49:02 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001232.html">[Iris-commit] [IRIS] r2427 - in /trunk/lua: lib.3d.renderer.lua	net/net.mobile.lua
+</A></li>
+        <LI>Next message: <A HREF="001234.html">[Iris-commit] [IRIS] r2429 - /trunk/lua/net.walk.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1233">[ date ]</a>
+              <a href="thread.html#1233">[ thread ]</a>
+              <a href="subject.html#1233">[ subject ]</a>
+              <a href="author.html#1233">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sun Aug 31 15:49:02 2008
+New Revision: 2428
+
+Log:
+runuo-walkcode-port now working, several walk-issues resolved with this. te=
+rrain blended out when underground (caves), cam not clipped to terrain when=
+ underground, redesigned tilefreewalk groundcaching
+
+Removed:
+    trunk/lua/lib.walking2.lua
+Modified:
+    trunk/data/config.lua.dist
+    trunk/lua/config_declarations.lua
+    trunk/lua/lib.3d.cam.lua
+    trunk/lua/lib.3d.dynamic.lua
+    trunk/lua/lib.3d.map.lua
+    trunk/lua/lib.3d.mousepick.lua
+    trunk/lua/lib.3d.renderer.lua
+    trunk/lua/lib.bodygfx.lua
+    trunk/lua/lib.mapblock.3d.terrain.lua
+    trunk/lua/lib.pathfind.lua
+    trunk/lua/lib.tilefreewalk.lua
+    trunk/lua/lib.uoutils.lua
+    trunk/lua/lib.walking3.lua
+    trunk/lua/main.lua
+    trunk/lua/net.walk.lua
+
+Modified: trunk/data/config.lua.dist
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/config.lua.dist (original)
++++ trunk/data/config.lua.dist Sun Aug 31 15:49:02 2008
+@@ -467,8 +467,6 @@
+ =
+
+ gEnableGotoOnClick =3D false
+ =
+
+-gUseWalk3 =3D false
+-
+ gMarkFile =3D &quot;../data/uoam/mark.uoam&quot;
+ =
+
+ -- experimental code for faster diagonal movement (tries to avoid stair ef=
+fect)
+@@ -488,3 +486,5 @@
+ gUseWaterShader =3D false
+ =
+
+ gShowHealthBarOverEveryMobile =3D false
++gEnableWalkLog =3D false
++gUseWalk3 =3D true
+
+Modified: trunk/lua/config_declarations.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/config_declarations.lua (original)
++++ trunk/lua/config_declarations.lua Sun Aug 31 15:49:02 2008
+@@ -463,7 +463,6 @@
+ gConfig:DeclareEnum(&quot;gGraphicProfile&quot;, &quot;gfx&quot;, &quot;gfx profile&quot;, 'shaderbased =
+characterrendering (beta)', &quot;med&quot;, {&quot;ultralow&quot;, &quot;low&quot;, &quot;med&quot;, &quot;high&quot;, &quot;ultr=
+ahigh&quot;, &quot;none&quot;})
+ =
+
+ gConfig:DeclareBoolean(&quot;gEnableGotoOnClick&quot;, &quot;input&quot;, &quot;goto on click&quot;, 'TO=
+DO', false)
+-gConfig:DeclareBoolean(&quot;gUseWalk3&quot;, &quot;input&quot;, &quot;walk3&quot;, 'TODO', false)
+ =
+
+ gMarkFile =3D &quot;../data/uoam/mark.uoam&quot;
+ =
+
+
+Modified: trunk/lua/lib.3d.cam.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.cam.lua (original)
++++ trunk/lua/lib.3d.cam.lua Sun Aug 31 15:49:02 2008
+@@ -266,7 +266,7 @@
+ 	end
+ 	=
+
+ 	-- keep cam above ground
+-	local bKeepCamAboveGround =3D true
++	local bKeepCamAboveGround =3D Renderer3D.gbBlendOutTerrainVisible
+ 	if (bKeepCamAboveGround and not(gStartInDebugMode) and (self.gCamMode =3D=
+=3D self.kCamMode_Third)) then =
+
+ 		local x,y,z =3D cam:GetPos()
+ 		local xloc,yloc =3D Renderer3D:LocalToUOPos(x,y,z)
+
+Modified: trunk/lua/lib.3d.dynamic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.dynamic.lua (original)
++++ trunk/lua/lib.3d.dynamic.lua Sun Aug 31 15:49:02 2008
+@@ -377,8 +377,10 @@
+ 	-- setup fast access cache for walking
+ 	if (not multi.cache) then multi.cache =3D {} end
+ 	local myarr =3D multi.cache[iX..&quot;,&quot;..iY]
++	--~ print(&quot;######## Renderer3D:Multi_AddPartHelper addcache&quot;,multi)
+ 	if (not myarr) then myarr =3D {} multi.cache[iX..&quot;,&quot;..iY] =3D myarr end
+-	table.insert(myarr,{iZ=3DiZ,iTileTypeID=3DiTileTypeID,iHue=3DiHue})
++	table.insert(myarr,{iZ=3DiZ,iTileTypeID=3DiTileTypeID,xloc=3DiX,yloc=3DiY=
+,zloc=3DiZ,artid=3DiTileTypeID,iHue=3DiHue}) =
+
++	-- also used by W3_ForAllMultiPartsAtPos
+ end
+ =
+
+ -- TODO: Multis &amp; Serversidemultis don't recognize kTileDataFlag_LightSour=
+ce yet
+@@ -427,6 +429,7 @@
+ 		print(&quot;ERROR: artid missing!!!!\n&quot;)
+ 	elseif item.artid &gt;=3D gMulti_ID then =
+
+ 		-- Multis
++		print(&quot;######## Renderer3D:CreateDynamicGfx:Multi&quot;,item.artid-gMulti_ID,=
+item.xloc,item.yloc,item.zloc)
+ 	=
+
+ 		printdebug(&quot;multi&quot;,&quot;-----------------------------&quot;)
+ 		printdebug(&quot;multi&quot;, sprintf(&quot;Multi detected with ARTID&quot;,item.artid,vardu=
+mp(item)) )
+@@ -440,6 +443,7 @@
+ 			local multi =3D {}
+ 			multi.lparts =3D {}
+ 			=
+
++			print(&quot;+serverside&quot;,#item.lTile)
+ 			for k,v in pairs(item.lTile) do
+ 				-- create part
+ 				iTileTypeID =3D v.artid
+@@ -468,6 +472,7 @@
+ 			multi.id =3D item.artid - gMulti_ID
+ =
+
+ 			local parts =3D gMultiLoader:CountMultiParts(multi.id)
++			print(&quot;+clientside&quot;,parts)
+ 			multi.lparts =3D {}
+ 			=
+
+ 			-- read out parts
+
+Modified: trunk/lua/lib.3d.map.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.map.lua (original)
++++ trunk/lua/lib.3d.map.lua Sun Aug 31 15:49:02 2008
+@@ -172,6 +172,8 @@
+ 		if (self.gbBlendOutTerrainVisible ~=3D bTerrainVisible) then
+ 			self:SetMapEnvironment(not bTerrainVisible)
+ 			self.gbBlendOutTerrainVisible =3D bTerrainVisible
++			=
+
++			self.map3d_spawners.terrain:ForAllBlocks(function(block) block:UpdateBl=
+endOutVisibility() end)
+ 		end
+ 		=
+
+ 		local a,b =3D self:BlendoutGetVisibleRange()
+@@ -207,6 +209,8 @@
+ =
+
+ -- NOTE: layerZ is a uo zloc not the layer index in pStaticGeometryLayers
+ function Renderer3D:IsZLayerVisible (layerZ)
++	if (not self.giBlendOutCurZ) then return true end
++	if (not layerZ) then return true end
+ 	return (not self.giBlendOutCurZ) or layerZ &lt;=3D self.giBlendOutCurZ
+ end
+ =
+
+
+Modified: trunk/lua/lib.3d.mousepick.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.mousepick.lua (original)
++++ trunk/lua/lib.3d.mousepick.lua Sun Aug 31 15:49:02 2008
+@@ -160,6 +160,7 @@
+ 	if self.map3d_spawners and self.map3d_spawners.statics then
+ 		self.map3d_spawners.statics:ForAllBlocks(function(block)
+ 			block:ForAllEntities(function(entity)
++				if (not entity.zloc) then print(&quot;mousepick warning, static entity has =
+no zloc&quot;,entity.serial,entity.artid) end
+ 				if (Renderer3D:IsZLayerVisible(entity.zloc)) then -- zloc is in intege=
+r tilecoords from uo
+ 					if (entity.gfx and entity.gfx.billboard) then
+ 						-- fallback
+
+Modified: trunk/lua/lib.3d.renderer.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.renderer.lua (original)
++++ trunk/lua/lib.3d.renderer.lua Sun Aug 31 15:49:02 2008
+@@ -88,7 +88,7 @@
+ end
+ =
+
+ function Renderer3D:SetOfflineStartPos (x,y,z)
+-	gTileFreeWalk:SetPos_All(x+0.5,y+0.5,z) -- + for both might be wrong..
++	gTileFreeWalk:SetPos_All(self:LocalToUOPos(x+0.5,y+0.5,z)) -- + for both =
+might be wrong..
+ end
+ =
+
+ function Renderer3D:MainStep	()
+@@ -129,7 +129,7 @@
+ =
+
+ -- for hotkey
+ function Renderer3D:OfflineTeleportToMouse()
+-	gTileFreeWalk:SetPos_All(gTileFreeWalk:RoundPos(gTileFreeWalk:MousePickPo=
+s()))
++	gTileFreeWalk:SetPos_All(self:LocalToUOPos(gTileFreeWalk:RoundPos(gTileFr=
+eeWalk:MousePickPos())))
+ end
+ =
+
+ -- used by MacroRead_GetPlayerPosition when no playermobile found (yet)
+
+Modified: trunk/lua/lib.bodygfx.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.bodygfx.lua (original)
++++ trunk/lua/lib.bodygfx.lua Sun Aug 31 15:49:02 2008
+@@ -148,7 +148,7 @@
+ 	 =
+
+ 	-- create body parts
+ 	local bodyid =3D self:GetBodyID()
+-	print(&quot;gBodyGfxPrototype:Update bodyid=3D&quot;,bodyid)
++	--~ print(&quot;gBodyGfxPrototype:Update bodyid=3D&quot;,bodyid)
+ 	self.modelparts =3D {}
+ 	=
+
+ 	local modelidarr,iPrimaryHandItem,iSecondaryHandItem =3D self:GetModelPar=
+tModelIDs()
+@@ -158,7 +158,7 @@
+ 	local mount =3D self:GetEquipmentAtLayer(kLayer_Mount)
+ 	if (mount) then
+ 		local mountbodyid =3D gMountTranslate[mount.artid]
+-		print(&quot;gBodyGfxPrototype:Update&quot;,mount.artid,mountbodyid,mount.hue)
++		--~ print(&quot;gBodyGfxPrototype:Update&quot;,mount.artid,mountbodyid,mount.hue)
+ 		if ((not mountbodyid) or mountbodyid =3D=3D 0) then mountbodyid =3D gSta=
+ndardHorse end
+ 		if (mountbodyid and mountbodyid ~=3D 0) then
+ 			local mountskeleton =3D GetOrCreateSkeleton(mountbodyid) -- skeleton is=
+ determined by the bodyid, not possible from the wearables
+
+Modified: trunk/lua/lib.mapblock.3d.terrain.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mapblock.3d.terrain.lua (original)
++++ trunk/lua/lib.mapblock.3d.terrain.lua Sun Aug 31 15:49:02 2008
+@@ -13,4 +13,10 @@
+ 	--~ print(&quot;cMapBlock_3D_Terrain:WorkStep_LoadDetail&quot;,self.bx,self.by)
+ 	local bs =3D kMultiTexTerrainChunkSize
+ 	self.gfx_terrain =3D MakeMultiTexTerrainGfx(self.bx * bs,self.by * bs)
++	self:UpdateBlendOutVisibility()
+ end
++
++
++function cMapBlock_3D_Terrain:UpdateBlendOutVisibility ()
++	if (self.gfx_terrain) then self.gfx_terrain:SetVisible(Renderer3D.gbBlend=
+OutTerrainVisible) end
++end
+
+Modified: trunk/lua/lib.pathfind.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.pathfind.lua (original)
++++ trunk/lua/lib.pathfind.lua Sun Aug 31 15:49:02 2008
+@@ -58,8 +58,8 @@
+ 		-- HACK ignore diagonal movements
+ 		--if math.abs(dx)+math.abs(dy) =3D=3D 1 then
+ 		=
+
+-		 	local bIsWalkable,iNewZ	=3D GetNearestGroundLevel(x,y,z * 10,dir)
+-		 	if bIsWalkable then
++		 	local iNewZ	=3D GetNearestGroundLevel(x,y,z * 10,dir)
++		 	if iNewZ then
+ 			 	iNewZ =3D math.floor(iNewZ / 10) =
+
+ 				-- add neighbour
+ 				local dz =3D (z-iNewZ)
+
+Modified: trunk/lua/lib.tilefreewalk.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.tilefreewalk.lua (original)
++++ trunk/lua/lib.tilefreewalk.lua Sun Aug 31 15:49:02 2008
+@@ -82,7 +82,7 @@
+ 	self.pos_clientside =3D {0,0,0}
+ 	self.pos_lastconfirmed =3D {0,0,0}
+ 	self.pos_lastrequested =3D {0,0,0}
+-	self:SetPos_All(0,0,0)
++	self:SetPos_All(self:LocalToUOPos(0,0,0))
+ 	=
+
+ 	if (true) then
+ 		self.sDebugMarkerMeshName_Big	=3D MakeSphereMesh(11,11,0.2,0.2,0.2)
+@@ -93,10 +93,10 @@
+ function gTileFreeWalk:OnStartInGame ()
+ 	if (gStartGameWithoutNetwork) then
+ 		Renderer3D:ChangeCamMode(Renderer3D.kCamMode_Third)
+-		--~ self:SetPos_All(-1548.5,326.5,5.0) --  iris online canyons
+-		--~ self:SetPos_All(-1489.5,402.5,-7.6)
+-		--~ self:SetPos_All(-1482.5,1527.5,2.0)  -- osi-britannia  -- set in sta=
+rtofflinemode in lib.mainmenu.lua
+-		--~ self:SetPos_All(-1482.5,1527.5,2.0)  -- osi-britannia  -- set in sta=
+rtofflinemode in lib.mainmenu.lua
++		--~ self:SetPos_All(self:LocalToUOPos(-1548.5, 326.5, 5.0)) --  iris onl=
+ine canyons
++		--~ self:SetPos_All(self:LocalToUOPos(-1489.5, 402.5,-7.6))
++		--~ self:SetPos_All(self:LocalToUOPos(-1482.5,1527.5, 2.0))  -- osi-brit=
+annia  -- set in startofflinemode in lib.mainmenu.lua
++		--~ self:SetPos_All(self:LocalToUOPos(-1482.5,1527.5, 2.0))  -- osi-brit=
+annia  -- set in startofflinemode in lib.mainmenu.lua
+ 	end
+ 	RegisterStepper(function () gTileFreeWalk:Step() end) =
+
+ end
+@@ -252,20 +252,22 @@
+ 				=
+
+ 				rx,ry,rz =3D self:RoundPos(x,y,z)
+ 				self:PathPoint_Push(rx,ry,rz)
+-				self:ScanGroundIfNeeded(rx,ry,rz)
++				local xloc,yloc,zloc =3D self:LocalToUOPos(rx,ry,rz)
++				self:ScanGroundIfNeeded(xloc,yloc,zloc,rx,ry,rz)
+ 				=
+
+ 				-- calc correct z here
+ 				if (self.groundcache) then
+-					local l =3D (x &lt;=3D rx) and (rx-1) or rx
+-					local t =3D (y &lt;=3D ry) and (ry-1) or ry
+-					local fx,fy =3D x-l,y-t
+-					local x00,y00 =3D l-rx,t-ry
+-					local zSelf =3D self.groundcache[&quot;0,0&quot;] or z
+-					local z00 =3D self.groundcache[(x00  )..&quot;,&quot;..(y00  )]
+-					local z10 =3D self.groundcache[(x00+1)..&quot;,&quot;..(y00  )]
+-					local z01 =3D self.groundcache[(x00  )..&quot;,&quot;..(y00+1)]
+-					local z11 =3D self.groundcache[(x00+1)..&quot;,&quot;..(y00+1)]
+-					z =3D InterpolateSquare(z00 or zSelf,z10 or zSelf,z01 or zSelf,z11 or=
+ zSelf,fx,fy)
++					local fx =3D -x - floor(-x)
++					local fy =3D  y - floor( y)
++					=
+
++					local z00 =3D self:GroundCacheGetHeightForInterpolation(xloc  ,yloc  )
++					local z10 =3D self:GroundCacheGetHeightForInterpolation(xloc+1,yloc  )
++					local z01 =3D self:GroundCacheGetHeightForInterpolation(xloc  ,yloc+1)
++					local z11 =3D self:GroundCacheGetHeightForInterpolation(xloc+1,yloc+1)
++					local zr =3D z00 or z10 or z01 or z11
++					if (zr) then
++						z =3D InterpolateSquare(z00 or zr,z10 or zr,z01 or zr,z11 or zr,fx,f=
+y) * 0.1 + Renderer3D.gZ_Factor
++					end
+ 				end
+ 			end
+ 		end
+@@ -310,6 +312,14 @@
+ 	self:Impl_StepPlayer(fRequestedSpeed,bRunRequested)
+ end
+ =
+
++-- ##### ##### ##### ##### ##### groundcache
++
++function gTileFreeWalk:GroundCacheGetHeightForInterpolation (xloc,yloc)
++	return	self.groundcache[(xloc  )..&quot;,&quot;..(yloc  )] or
++			self.groundcache[(xloc-1)..&quot;,&quot;..(yloc  )] or
++			self.groundcache[(xloc  )..&quot;,&quot;..(yloc-1)] or
++			self.groundcache[(xloc-1)..&quot;,&quot;..(yloc-1)]
++end
+ =
+
+ -- ##### ##### ##### ##### ##### collision
+ =
+
+@@ -349,18 +359,43 @@
+ 	return x,y
+ end
+ =
+
++
++function gTileFreeWalk:UpdateGroundCache (xloc,yloc,zloc)
++	--~ print(&quot;##### gTileFreeWalk:UpdateGroundCache&quot;,xloc,yloc,zloc)
++	if (not gGroundBlockLoader) then print(&quot;gTileFreeWalk:UpdateGroundCache :=
+ warning, no maploader(yet)&quot;) return end
++	xloc =3D floor(xloc)
++	yloc =3D floor(yloc)
++	zloc =3D floor(zloc)
++	local groundcache =3D {}
++	for iDir=3D0,7 do =
+
++		groundcache[(xloc+GetDirX(iDir))..&quot;,&quot;..(yloc+GetDirY(iDir))] =3D GetNear=
+estGroundLevel(xloc,yloc,zloc,iDir)
++	end
++	groundcache[xloc..&quot;,&quot;..yloc] =3D zloc
++	self.groundcache =3D groundcache
++end
++
+ -- scans the ground if clientpos entered a new tile, calculates walls
+-function gTileFreeWalk:ScanGroundIfNeeded (rx,ry,rz)
+-	if (self.lastscanx ~=3D rx or self.lastscany ~=3D ry) then =
+
+-		self.groundcache =3D self:Impl_ScanGround(rx,ry,rz,self.lastscanx,self.l=
+astscany) -- read surrounding height info
+-		self.lastscanx =3D rx
+-		self.lastscany =3D ry
++function gTileFreeWalk:ScanGroundIfNeeded (xloc,yloc,zloc,rx,ry,rz)
++	if (self.lastscanxloc ~=3D xloc or self.lastscanyloc ~=3D yloc) then
++		self.lastscanxloc =3D xloc
++		self.lastscanyloc =3D yloc
++		-- read surrounding height info
++		if (self.groundcache) then
++			local myzloc =3D self.groundcache[xloc..&quot;,&quot;..yloc] =
+
++			if (myzloc) then zloc =3D myzloc self:UpdateGroundCache(xloc,yloc,zloc)=
+ end
++			-- new xloc,zloc is not neccessarily valid, for example the rounded edg=
+e of a table
++			-- check old groundcache andlisten to teleport/block notify
++		end
++		local groundcache =3D self.groundcache
++		=
+
+ 		self.bSkipWalkStep =3D false
+ 		UpdateDebugTerrainGrid(rx,ry,rz)
+ 		=
+
+ 		self:DebugMarkerGroup_Clear(&quot;nearground&quot;)
+-		function GetGround (x,y) local z =3D self.groundcache[x..&quot;,&quot;..y] return =
+z end --  print(&quot;GetGround&quot;,x,y,z,rx,ry)
+-		self.walls =3D {}
++		function GetGround (dx,dy) return groundcache[(xloc-dx)..&quot;,&quot;..(yloc+dy)]=
+ end --  print(&quot;GetGround&quot;,x,y,z,rx,ry)
++		local walls =3D {}
++		self.walls =3D walls
++		=
+
+ 		for dx =3D -1,1 do =
+
+ 		for dy =3D -1,1 do =
+
+ 			local x,y,z =3D rx+dx,ry+dy,GetGround(dx,dy)
+@@ -378,31 +413,31 @@
+ 				local b11 =3D true
+ 		=
+
+ 				if (not GetGround(dx,dy+1)) then -- vertical
+-					table.insert(self.walls,{	x-e,y,   x-e,y+e	})
+-					table.insert(self.walls,{	x+e,y+e, x+e,y		})
++					table.insert(walls,{	x-e,y,   x-e,y+e	})
++					table.insert(walls,{	x+e,y+e, x+e,y		})
+ 					b01 =3D false b11 =3D false
+ 				end
+ 				if (not GetGround(dx,dy-1)) then -- vertical
+-					table.insert(self.walls,{	x-e,y-e, x-e,y		})
+-					table.insert(self.walls,{	x+e,y,   x+e,y-e	})
++					table.insert(walls,{	x-e,y-e, x-e,y		})
++					table.insert(walls,{	x+e,y,   x+e,y-e	})
+ 					b00 =3D false b10 =3D false
+ 				end
+ 				=
+
+ 				if (not GetGround(dx+1,dy)) then -- horizontal
+-					table.insert(self.walls,{	x,y+e,   x+e,y+e	})
+-					table.insert(self.walls,{	x+e,y-e, x,y-e		})
++					table.insert(walls,{	x,y+e,   x+e,y+e	})
++					table.insert(walls,{	x+e,y-e, x,y-e		})
+ 					b10 =3D false b11 =3D false
+ 				end                                                           =
+
+ 				if (not GetGround(dx-1,dy)) then -- horizontal       =
+
+-					table.insert(self.walls,{	x-e,y+e, x,y+e		})     =
+
+-					table.insert(self.walls,{	x,y-e,   x-e,y-e	})
++					table.insert(walls,{	x-e,y+e, x,y+e		})     =
+
++					table.insert(walls,{	x,y-e,   x-e,y-e	})
+ 					b00 =3D false b01 =3D false
+ 				end
+ 				=
+
+-				if (b00) then table.insert(self.walls,{	x,y-e,   x-e,y	}) end
+-				if (b01) then table.insert(self.walls,{	x-e,y,   x,y+e	}) end
+-				if (b11) then table.insert(self.walls,{	x,y+e,   x+e,y	}) end
+-				if (b10) then table.insert(self.walls,{	x+e,y,   x,y-e	}) end
++				if (b00) then table.insert(walls,{	x,y-e,   x-e,y	}) end
++				if (b01) then table.insert(walls,{	x-e,y,   x,y+e	}) end
++				if (b11) then table.insert(walls,{	x,y+e,   x+e,y	}) end
++				if (b10) then table.insert(walls,{	x+e,y,   x,y-e	}) end
+ 			end
+ 		end
+ 		end
+@@ -411,14 +446,16 @@
+ 		-- warning, the rounded position of the player can be blocked, due to di=
+agonal movement
+ 		=
+
+ 		-- precalc some vars for the walls
+-		local h =3D 0.5
++		local h =3D 1.5
+ 		for k,wallarr in pairs(self.walls) do
+ 			local x1,y1,x2,y2 =3D unpack(wallarr)
+ 			local dx,dy =3D sub2(x2,y2,x1,y1)
+ 			local nx,ny =3D norm2(-dy,dx)
+ 			local invsqlen =3D 1.0/sqlen2(dx,dy)
+ 			self.walls[k] =3D {x1,y1,x2,y2,dx,dy,nx,ny,invsqlen}
+-			--self:DebugMarkerGroup_AddWall(&quot;nearground&quot;, 	x1,y1,rz,   x2,y2,rz, h,=
+	1,0,0)
++			if (gShowTileFreeDebugWalls) then
++				self:DebugMarkerGroup_AddWall(&quot;nearground&quot;, 	x1,y1,rz,   x2,y2,rz, h,	=
+1,0,0)
++			end
+ 		end
+ 	end
+ end
+@@ -489,7 +526,7 @@
+ =
+
+ function gTileFreeWalk:Impl_SetToPlayerPos (mobile)
+ 	self.movedirx,self.movediry =3D norm2(GetDirXLocal(gPlayerDir),GetDirYLoc=
+al(gPlayerDir))
+-	self:SetPos_All(self:UOPosToLocal(mobile.xloc,mobile.yloc,mobile.zloc))
++	self:SetPos_All(mobile.xloc,mobile.yloc,mobile.zloc)
+ 	self:UpdateClientPosMarker()
+ end
+ =
+
+@@ -546,7 +583,7 @@
+ function gTileFreeWalk:StuckFix (lx,ly,lz)
+ 	print(&quot;gTileFreeWalk:StuckFix&quot;)
+ 	self.iLastTimeNotStuck =3D gMyTicks
+-	self:SetPos_All(lx,ly,lz)
++	self:SetPos_All(self:LocalToUOPos(lx,ly,lz))
+ 	self:UpdateClientPosMarker()
+ end
+ =
+
+@@ -603,50 +640,6 @@
+ 		end
+ 	end
+ end
+-
+--- input : rounded
+--- read new surrounding height info
+-function gTileFreeWalk:Impl_ScanGround (rx,ry,rz,ox,oy)
+-	if (not ox) then ox,oy =3D self:GetPos_LastConfirmed() end
+-
+-	local xloc,yloc,zloc =3D self:LocalToUOPos(rx,ry,rz)
+-	=
+
+-	local iSelfZ =3D nil -- zloc
+-	local iComingHereDir
+-	local groundcache =3D {}
+-	function RegisterZ (ldx,ldy,iNewZ)
+-		groundcache[ldx..&quot;,&quot;..ldy] =3D groundcache[ldx..&quot;,&quot;..ldy] or (iNewZ and =
+(iNewZ*0.1 + Renderer3D.gZ_Factor))
+-	end
+-	function CheckDir (iDir) 	=
+
+-		local ldx,ldy =3D GetDirXLocal(iDir),GetDirYLocal(iDir)
+-		if (sign(ldx) =3D=3D sign(rx-ox) and sign(ldy) =3D=3D sign(ry-oy)) then =
+iComingHereDir =3D iDir end
+-		local xloc2,yloc2 =3D xloc+GetDirX(iDir),yloc+GetDirY(iDir)
+-		local iNewZ =3D self:Impl_CalcWalkStep(xloc2,yloc2,zloc,iDir)
+-		RegisterZ(ldx,ldy,iNewZ)
+-		if (iNewZ) then iSelfZ =3D self:Impl_CalcWalkStep(xloc,yloc,zloc,DirWrap=
+(iDir+4)) or iSelfZ end
+-		--~ if (iNewZ and (not DirIsDiagonal(iDir))) then =
+
+-			--~ local iDirL,iDirR =3D DirWrap(iDir-2),DirWrap(iDir+2) =
+
+-			--~ RegisterZ(ldx+GetDirXLocal(iDirL),ldy+GetDirYLocal(iDirL),self:Impl=
+_CalcWalkStep(xloc2+GetDirX(iDirL),yloc2+GetDirY(iDirL),iNewZ,iDirL))
+-			--~ RegisterZ(ldx+GetDirXLocal(iDirR),ldy+GetDirYLocal(iDirR),self:Impl=
+_CalcWalkStep(xloc2+GetDirX(iDirR),yloc2+GetDirY(iDirR),iNewZ,iDirR))
+-		--~ end
+-	end
+-	for iDir=3D1,7,2 do CheckDir(iDir) end -- check diagonals first
+-	for iDir=3D0,7,2 do CheckDir(iDir) end
+-	=
+
+-	iSelfZ =3D iSelfZ or self:Impl_CalcWalkStep(xloc,yloc,zloc,iComingHereDir=
+ or 0)
+-	RegisterZ(0,0,iSelfZ)
+-	--print(&quot;0,0&quot;,groundcache[&quot;0,0&quot;],iComingHereDir)
+-	return groundcache
+-end
+-
+-function gTileFreeWalk:Impl_CalcWalkStep (xloc,yloc,zloc,iDir)
+-	-- if (xloc =3D=3D 1670 and yloc =3D=3D 283) then return false end
+-	local bIsWalkable,iNewZ	=3D GetNearestGroundLevel(xloc,yloc,zloc,iDir)
+--- SiENcE
+---print(xloc,yloc,zloc,iDir,iNewZ,bIsWalkable)
+-	return bIsWalkable and iNewZ
+-end
+-
+ =
+
+ -- returns x,y,z
+ function gTileFreeWalk:Impl_MousePickPos ()
+@@ -787,12 +780,14 @@
+ function gTileFreeWalk:SetPos_LastRequested (x,y,z)		self.pos_lastrequeste=
+d =3D {x,y,z} end
+ =
+
+ -- used for teleport and init
+-function gTileFreeWalk:SetPos_All (x,y,z)		=
+
++function gTileFreeWalk:SetPos_All (xloc,yloc,zloc)	=
+
++	local x,y,z =3D self:UOPosToLocal(xloc,yloc,zloc)
+ 	self:SetPos_ClientSide(		x,y,z)
+ 	self:SetPos_LastConfirmed(	x,y,z)
+ 	self:SetPos_LastRequested(	x,y,z)
+ 	while (self:PathPoint_Count() &gt; 0) do self:PathPoint_Pop() end
+ 	self.pathpoints =3D {}
++	self:UpdateGroundCache(xloc,yloc,zloc)   =
+
+ end
+ =
+
+ =
+
+
+Modified: trunk/lua/lib.uoutils.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.uoutils.lua (original)
++++ trunk/lua/lib.uoutils.lua Sun Aug 31 15:49:02 2008
+@@ -14,6 +14,10 @@
+ 	return posx+GetDirX(dir),posy+GetDirY(dir)
+ end =
+
+ =
+
++function Dir2Quaternion (dir)
++	local dx,dy =3D GetDirXLocal(dir),GetDirYLocal(dir)
++	return Quaternion.getRotation(0,-1,0,dx,dy,0)
++end
+ =
+
+ function DirWrap (iDir) -- wraps into [0,7], also removes runflag automati=
+cally, but a bit expensive for that
+ 	while (iDir &lt; 0) do iDir =3D iDir + 8 end
+
+Modified: trunk/lua/lib.walking3.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.walking3.lua (original)
++++ trunk/lua/lib.walking3.lua Sun Aug 31 15:49:02 2008
+@@ -3,16 +3,7 @@
+ -- TODO : season translation
+ =
+
+ =
+
+-
+-
+-kTileFlag =3D {}
+-kTileFlag.Wet			=3D kTileDataFlag_Wet
+-kTileFlag.Impassable	=3D kTileDataFlag_Impassable
+-kTileFlag.Surface		=3D kTileDataFlag_Surface
+-kTileFlag.Door			=3D kTileDataFlag_Door
+-
+-kImpassableSurface =3D kTileFlag.Impassable + kTileFlag.Surface
+-
++kImpassableSurface =3D kTileDataFlag_Impassable + kTileDataFlag_Surface
+ =
+
+ =
+
+ kPersonHeight				=3D 16
+@@ -22,73 +13,108 @@
+ =
+
+ gW3ItemTypeFlagsCache =3D {}
+ =
+
+--- returns bClientSidePassable,zloc
++-- returns newZ or nil if (bMoveIsOk=3DbClientSidePassable) =
+
+ function GetNearestGroundLevel (xloc,yloc,iStartZ,iDir)
+-	if (gUseWalk3) then return GetNearestGroundLevel_W3(xloc,yloc,iStartZ,iDi=
+r) end
+-	return GetNearestGroundLevel_W2(xloc,yloc,iStartZ,iDir)
+-end
+-
+-RegisterStepper(function () W3_Test_Step() end) =
+
+-
+-function W3_Test_Step ()
+-	if (not gDisableTileFreeWalk) then return end
+-	--~ print(&quot;W3_Step&quot;)
+-	gTileFreeWalk:UpdateOfflineBody(x,y,z, qw,qx,qy,qz, bMoving,bTurning,bWar=
+Mode,bRunFlag)
+-end
+-
+---[[
+-replaces the old GetNearestGroundLevel, was used like
+-
+-function WalkStep_CanWalkInDir	(iDir) =
+
+-	iDir =3D DirWrap(iDir)
+-	return (GetNearestGroundLevel(gPlayerXLoc + GetDirX(iDir),gPlayerYLoc + G=
+etDirY(iDir),gPlayerZLoc,iDir))
+-	--(return value was bClientSidePassable,zloc)
+-end
+-]]--
+-
+--- returns bMoveIsOk,newZ
+-function GetNearestGroundLevel_W3 (xloc,yloc,iStartZ,iDir)
+ 	local playermobile =3D GetPlayerMobile()
+ 	local playerbodyid =3D playermobile and playermobile.artid or 400
+ 	local bIsAlive =3D true
+ 	if (playermobile and playermobile.bIsGhost) then bIsAlive =3D false end
+ 	local mobile =3D {zloc=3DiStartZ,CanSwim=3Dfalse,CantWalk=3Dfalse,Alive=
+=3DbIsAlive,Body=3D{BodyID=3Dplayerbodyid},IsDeadBondedPet=3Dfalse}
+ 	local posx,posy,posz,d =3D xloc,yloc,iStartZ,iDir
++	=
+
+ 	local bMoveIsOk,newZ =3D W3_CheckMovement( mobile, posx,posy,posz, d)
+-	return bMoveIsOk,newZ
+-end
+-
+-
+--- old : Movable runuo:ImplFlag.Movable , probably true for dynamic, false=
+ for static    (door?)
++	--~ print(&quot;GetNearestGroundLevel&quot;,posx,posy,posz,&quot;d&quot;..d,bMoveIsOk and &quot;ok=
+&quot; or &quot;blocked&quot;,newZ)
++	return bMoveIsOk and newZ or nil
++end
++
++
++RegisterListener(&quot;Hook_SetPlayerPos&quot;,function () W3TestUpdateGfx2() end)
++RegisterListener(&quot;Hook_StartInGame&quot;	,function () W3TestInit() end)
++
++function W3TestStepForward ()
++	local xloc,yloc,zloc,dir =3D gW3Test.xloc,gW3Test.yloc,gW3Test.zloc,gW3Te=
+st.dir
++	local bIsWalkable,iNewZ =3D GetNearestGroundLevel(xloc,yloc,zloc,dir)
++	print(&quot;W3TestStepForward&quot;,xloc,yloc,zloc,&quot;d&quot;..dir,bIsWalkable and &quot;ok&quot; or=
+ &quot;blocked&quot;,iNewZ)
++	if (not bIsWalkable) then return end
++	gW3Test.zloc =3D iNewZ
++	gW3Test.xloc,gW3Test.yloc =3D ApplyDir(dir,xloc,yloc)
++	W3TestUpdateGfx()
++end
++
++function W3TestUpdateGfx2 ()
++	if (not gW3Test) then return end
++	-- get from network pos
++	gW3Test.xloc,gW3Test.yloc,gW3Test.zloc =3D gPlayerXLoc,gPlayerYLoc,gPlaye=
+rZLoc
++	--~ print(&quot;W3TestUpdateGfx2&quot;,gPlayerXLoc,gPlayerYLoc,gPlayerZLoc)
++	W3TestUpdateGfx()
++end
++function W3TestUpdateGfx ()
++	local x,y,z =3D Renderer3D:UOPosToLocal(gW3Test.xloc,gW3Test.yloc,gW3Test=
+.zloc*0.1) =
+
++	local qw,qx,qy,qz =3D Dir2Quaternion(gW3Test.dir)
++	local bMoving,bTurning,bWarMode,bRunFlag =3D false,false,false,false
++	gTileFreeWalk:UpdateOfflineBody(x-0.5,y+0.5,z, qw,qx,qy,qz, bMoving,bTurn=
+ing,bWarMode,bRunFlag)
++	gTileFreeWalk:SetPos_ClientSide(x-0.5,y+0.5,z)
++end
++function W3TestInit ()
++	if (not gDisableTileFreeWalk) then return end
++	--~ print(&quot;W3TestInit&quot;)
++	gW3Test =3D {}
++	local x,y,z =3D unpack(gOfflineModeCamStart)
++	gW3Test.xloc,gW3Test.yloc,gW3Test.zloc =3D Renderer3D:LocalToUOPos(x,y,z =
+* 10)
++	gW3Test.zloc =3D round(gW3Test.zloc)
++	print(&quot;W3TestInit&quot;,gW3Test.xloc,gW3Test.yloc,gW3Test.zloc)
++	gW3Test.dir =3D 4
++	local bOffline =3D false
++	if (bOffline) then
++		W3TestUpdateGfx()
++		SetMacro(&quot;left&quot;,	function() gW3Test.dir =3D DirWrap(gW3Test.dir - 1) W3T=
+estUpdateGfx() end)
++		SetMacro(&quot;right&quot;,	function() gW3Test.dir =3D DirWrap(gW3Test.dir + 1) W3=
+TestUpdateGfx() end)
++		SetMacro(&quot;up&quot;,		function() W3TestStepForward() end)
++		SetMacro(&quot;down&quot;,	function() =
+
++			gW3Test.dir =3D DirWrap(gW3Test.dir + 4) =
+
++			W3TestStepForward()  =
+
++			gW3Test.dir =3D DirWrap(gW3Test.dir + 4) =
+
++			W3TestUpdateGfx()
++			end)
++	else
++		W3TestUpdateGfx2()
++		SetMacro(&quot;left&quot;,	function() gW3Test.dir =3D DirWrap(gW3Test.dir - 1) Wal=
+kStep_TurnToDir(gW3Test.dir) W3TestUpdateGfx2() end)
++		SetMacro(&quot;right&quot;,	function() gW3Test.dir =3D DirWrap(gW3Test.dir + 1) Wa=
+lkStep_TurnToDir(gW3Test.dir) W3TestUpdateGfx2() end)
++		SetMacro(&quot;up&quot;,		function() =
+
++			WalkStep_WalkInDir(gW3Test.dir,false,false) =
+
++			W3TestUpdateGfx2() =
+
++		end)
++	end
++end
++	=
+
++
++
++
++
++-- old : Movable runuo:ImplFlag.Movable , probably true for dynamic, false=
+ for static    (door? probably for ghosts)
+ function W3_ItemIsMovable		(item)		return not item.bIsStatic end
+ =
+
+ =
+
+ -- handles clientside and serverside multis (no difference for us, just th=
+e way they are loaded)
+-function W3_ForAllMultiPartsAtPos	(xloc,yloc,item,fun,param)
+-	local multidata =3D item.multi
+-	local mycache =3D multi.w3_cache
+-	if (not mycache) then
+-		mycache =3D {}
+-		multi.w3_cache =3D mycache
+-		for k,v in pairs(multi.lparts or {}) do
+-			local iTileTypeID,iX,iY,iZ,iHue =3D unpack(v)
+-			local n =3D iX..&quot;,&quot;..iY
+-			local myarr =3D mycache[n]
+-			if (not myarr) then myarr =3D {} mycache[n] =3D myarr end
+-			table.insert(myarr,{zloc=3DiZ,artid=3DiTileTypeID,bIsStatic=3Dtrue})
+-		end
+-	end
+-	for k,item in pairs(mycache[xloc..&quot;,&quot;..yloc]) do fun(item,param) end
++-- calls fun(item,param)
++-- item : used by filterItemFun, expected : (item.artid item.bIsStatic(gho=
+st-doors,set to false/nil), inserts item into table)
++-- item : used by W3_Check etc..  probably needs .xloc .yloc .zloc .artid
++function W3_ForAllMultiPartsAtPos	(xloc,yloc,fun,param)
++	local n =3D xloc..&quot;,&quot;..yloc
++	for multi,v in pairs(gMultis) do =
+
++		--~ print(&quot;W3_ForAllMultiPartsAtPos&quot;,multi,multi.lparts,#multi.lparts,mu=
+lti.cache)
++		local cache =3D multi.cache and multi.cache[n] -- see Renderer3D:Multi_A=
+ddPartHelper =
+
++		if (cache) then for k,item in pairs(cache) do fun(item,param) end end
++	end
+ end
+ =
+
+ -- considers statics, dynamics and multis
+ function W3_ForAllItemsAtPos	(xloc,yloc,fun,param)
++	W3_ForAllMultiPartsAtPos(xloc,yloc,fun,param)
+ 	for k,static in pairs(MapGetStatics(xloc,yloc)) do fun(static,param) end
+ 	for k,dynamic in pairs(GetDynamicList()) do
+ 		if (DynamicIsInWorld(dynamic) and dynamic.artid) then
+-			if (dynamic.artid &gt;=3D gMulti_ID) then -- multi =
+
+-				W3_ForAllMultiPartsAtPos(xloc,yloc,multi_item,fun,param)
+-			elseif (dynamic.xloc =3D=3D xloc and dynamic.yloc =3D=3D yloc) then -- =
+normal
++			if (dynamic.xloc =3D=3D xloc and dynamic.yloc =3D=3D yloc and dynamic.a=
+rtid &lt; gMulti_ID) then -- non-multi
+ 				fun(dynamic,param)
+ 			end
+ 		end
+@@ -137,16 +163,16 @@
+ =
+
+ 	if ( xForward &lt; 0 or yForward &lt; 0 or xForward &gt;=3D MapGetWInTiles() or yF=
+orward &gt;=3D MapGetHInTiles() ) then return false,newZ end
+ 	=
+
+-	local checkDiagonals =3D DirIsDiagonal(d) -- see lib.protocol.lua:56:
++	local checkDiagonals =3D DirIsDiagonal(d)
+ =
+
+ 	local ignoreMovableImpassables =3D kIgnoreMovableImpassables -- bool
+ 	local reqFlags =3D kImpassableSurface -- TileFlag
+ =
+
+-	if ( mobile.CanSwim ) then reqFlags =3D BitwiseOR(reqFlags,kTileFlag.Wet)=
+ end
++	if ( mobile.CanSwim ) then reqFlags =3D BitwiseOR(reqFlags,kTileDataFlag_=
+Wet) end
+ =
+
+ 	local filterItemFun =3D function (item,param)
+ 		local flags =3D GetStaticTileTypeFlags(item.artid)
+-		if (ignoreMovableImpassables and W3_ItemIsMovable(item) and TestMask(fla=
+gs,kTileFlag.Impassable)) then return end
++		if (ignoreMovableImpassables and W3_ItemIsMovable(item) and TestMask(fla=
+gs,kTileDataFlag_Impassable)) then return end
+ 		if (BitwiseAND(flags,reqFlags) =3D=3D 0) then return end
+ 		if (item.artid &lt; 0x4000) then table.insert(param,item) end
+ 	end
+@@ -158,6 +184,7 @@
+ 	local startZ,startTop =3D W3_GetStartZ( mobile, posx,posy,posz, itemsStar=
+t)
+ =
+
+ 	moveIsOk,newZ =3D W3_Check( mobile, itemsForward, xForward, yForward, sta=
+rtTop, startZ, mobile.CanSwim, mobile.CantWalk)
++	--~ print(&quot;W3_CheckMovement startZ,startTop  check_forward=3D&quot;,startZ,sta=
+rtTop,moveIsOk,newZ)
+ =
+
+ 	if ( moveIsOk and checkDiagonals ) then
+ 		local itemsLeft		=3D {} W3_ForAllItemsAtPos(xLeft	,yLeft	,filterItemFun	=
+,itemsLeft)
+@@ -172,15 +199,22 @@
+ end
+ =
+
+ =
+
++function W3_IsOK_Fun (item,param)
++	local itemtype =3D GetStaticTileType(BitwiseAND(item.artid,0x3FFF))
++	if ( TestMask(itemtype.miFlags,kImpassableSurface) ) then -- Impassable o=
+r Surface
++		if ( item.zloc + itemtype.iCalcHeight &gt; param.ourZ and param.ourTop &gt; it=
+em.zloc ) then param.bFailed =3D true end -- intersection =
+
++	end
++end
++
+ --~ private bool IsOk( bool ignoreDoors, int ourZ, int ourTop, Tile[] tile=
+s, ArrayList items )
+-function W3_IsOK(  ignoreDoors,  ourZ, ourTop, tiles, items )
+-	for i,check in pairs(tiles) do
+-		local itemtype =3D GetStaticTileType(BitwiseAND(check.artid,0x3FFF))
+-		if ( TestMask(itemtype.miFlags,kImpassableSurface) ) then -- Impassable =
+or Surface
+-			if ( check.zloc + itemtype.iCalcHeight &gt; ourZ and ourTop &gt; check.zloc )=
+ then return false end -- intersection =
+
+-		end
+-	end
+-
++function W3_IsOK(  ignoreDoors,  ourZ, ourTop, x,y, items )
++	-- statics and multis
++	local param =3D {ourZ=3DourZ,ourTop=3DourTop}
++	for k,item in pairs(MapGetStatics(x,y)) do W3_IsOK_Fun(item,param) end
++	W3_ForAllMultiPartsAtPos(x,y,W3_IsOK_Fun,param)
++	if param.bFailed then return false end
++	=
+
++	-- items passed in
+ 	for i,item in pairs(items) do -- Item
+ 		local iTileTypeID =3D BitwiseAND(item.artid,0x3FFF) -- int
+ 		local itemtype =3D GetStaticTileType(iTileTypeID) -- ItemData
+@@ -188,7 +222,7 @@
+ =
+
+ 		if (TestMask(flags,kImpassableSurface)) then -- Impassable or Surface
+ 			if (ignoreDoors and -- doors
+-				(	TestMask(flags,kTileFlag.Door) or =
+
++				(	TestMask(flags,kTileDataFlag_Door) or =
+
+ 					iTileTypeID =3D=3D 0x692 or =
+
+ 					iTileTypeID =3D=3D 0x846 or =
+
+ 					iTileTypeID =3D=3D 0x873 or =
+
+@@ -207,19 +241,61 @@
+ 	return true
+ end
+ =
+
++function W3_Check_Fun(item,param)
++	local itemtype =3D GetStaticTileType(BitwiseAND(item.artid,0x3FFF)) -- It=
+emData
++	local flags =3D itemtype.miFlags -- TileFlag
++
++	if ( BitwiseAND(flags,kImpassableSurface) =3D=3D kTileDataFlag_Surface or =
+
++		(param.canSwim and TestMask(flags , kTileDataFlag_Wet)) ) then -- Surfac=
+e and (not Impassable)
++		if (param.cantWalk and BitwiseAND(flags , kTileDataFlag_Wet) =3D=3D 0 ) =
+then return end -- continue
++		=
+
++		local itemZ =3D item.zloc
++		local itemTop =3D itemZ
++		local ourZ =3D itemZ + itemtype.iCalcHeight
++		local ourTop =3D ourZ + kPersonHeight
++		local testTop =3D param.checkTop
++
++		if ( param.moveIsOk ) then
++			local cmp =3D math.abs( ourZ - param.mobilezloc ) - math.abs( param.new=
+Z - param.mobilezloc )
++			if ( cmp &gt; 0 or (cmp =3D=3D 0 and ourZ &gt; param.newZ) ) then return end =
+-- continue
++		end
++
++		if ( ourZ + kPersonHeight &gt; testTop ) then testTop =3D ourZ + kPersonHei=
+ght end
++
++		if ( not itemtype.bBridge ) then itemTop =3D itemTop + itemtype.miHeight=
+ end
++
++		if ( param.stepTop &gt;=3D itemTop ) then
++			local landCheck =3D itemZ
++
++			if ( itemtype.miHeight &gt;=3D kStepHeight ) then
++				landCheck =3D landCheck + kStepHeight
++			else
++				landCheck =3D landCheck + itemtype.miHeight
++			end
++
++			if ( param.considerLand and landCheck &lt; param.landCenter and param.land=
+Center &gt; ourZ and testTop &gt; param.landZ ) then
++				--continue
++			else
++				if (W3_IsOK( param.ignoreDoors, ourZ, testTop, param.x, param.y, param=
+.items ) ) then
++					param.newZ =3D ourZ
++					param.moveIsOk =3D true
++				end
++			end
++		end
++	end
++end
+ =
+
+ --~ private bool Check( Map map, Mobile mobile, ArrayList items, int x, in=
+t y, int startTop, int startZ, bool canSwim, bool cantWalk, out int newZ )
+--- returns bla,newZ
++-- returns moveIsOk,newZ
+ function W3_Check(  mobile,  items,  x,  y,  startTop,  startZ,  canSwim, =
+ cantWalk )
+-	local newZ =3D 0
+-
+-	local tiles			 =3D MapGetStatics( x, y ) -- Tile[]
++	local param =3D {}
++
+ 	local landTile		 =3D MapGetGround( x, y ) -- Tile
+ 	local landTileFlags  =3D landTile.flags
+-	local landTileIsWet	 =3D TestMask(landTileFlags,kTileFlag.Wet)
+-
+-	local landBlocks =3D TestMask(landTileFlags,kTileFlag.Impassable) -- bool
+-	local considerLand =3D not landTile.bIgnoredByWalk -- bool
++	local landTileIsWet	 =3D TestMask(landTileFlags,kTileDataFlag_Wet)
++
++	local landBlocks =3D TestMask(landTileFlags,kTileDataFlag_Impassable) -- =
+bool
++	param.considerLand =3D not landTile.bIgnoredByWalk -- bool
+ =
+
+ 	if ( landBlocks and canSwim and landTileIsWet ) then
+ 		landBlocks =3D false
+@@ -227,233 +303,119 @@
+ 		landBlocks =3D true
+ 	end
+ =
+
+-	local landZ =3D 0
+-	local landCenter =3D 0
+-	local landTop =3D 0
+-
+-	local landZ,landCenter,landTop =3D W3_GetAverageZ(x, y)
+-
+-	local moveIsOk =3D false
+-
+-	local stepTop =3D startTop + kStepHeight
+-	local checkTop =3D startZ + kPersonHeight
+-
+-	local ignoreDoors =3D ( kAlwaysIgnoreDoors or (not mobile.Alive) or mobil=
+e.Body.BodyID =3D=3D 0x3DB or mobile.IsDeadBondedPet )
+-
+-	for i,tile in pairs(tiles) do -- Tile
+-		local itemtype =3D GetStaticTileType(BitwiseAND(tile.artid,0x3FFF)) -- I=
+temData
+-		local flags =3D itemtype.miFlags -- TileFlag
+-
+-		if ( BitwiseAND(flags,kImpassableSurface) =3D=3D kTileFlag.Surface or (c=
+anSwim and TestMask(flags , kTileFlag.Wet)) ) then -- Surface and (not Impa=
+ssable)
+-			if ( cantWalk and BitwiseAND(flags , kTileFlag.Wet) =3D=3D 0 ) then
+-				--continue
+-			else
+-
+-				local itemZ =3D tile.zloc
+-				local itemTop =3D itemZ
+-				local ourZ =3D itemZ + itemtype.iCalcHeight
+-				local ourTop =3D ourZ + kPersonHeight
+-				local testTop =3D checkTop
+-
+-				local bMyContinue =3D false
+-				if ( moveIsOk ) then
+-					local cmp =3D math.abs( ourZ - mobile.zloc ) - math.abs( newZ - mobil=
+e.zloc )
+-
+-					if ( cmp &gt; 0 or (cmp =3D=3D 0 and ourZ &gt; newZ) ) then bMyContinue =3D=
+ true end
+-				end
+-
+-				if (not bMyContinue) then
+-					if ( ourZ + kPersonHeight &gt; testTop ) then testTop =3D ourZ + kPerson=
+Height end
+-
+-					if ( not itemtype.bBridge ) then itemTop =3D itemTop + itemtype.miHei=
+ght end
+-
+-					if ( stepTop &gt;=3D itemTop ) then
+-						local landCheck =3D itemZ
+-
+-						if ( itemtype.miHeight &gt;=3D kStepHeight ) then
+-							landCheck =3D landCheck + kStepHeight
+-						else
+-							landCheck =3D landCheck + itemtype.miHeight
+-						end
+-
+-						if ( considerLand and landCheck &lt; landCenter and landCenter &gt; ourZ a=
+nd testTop &gt; landZ ) then
+-							--continue
+-						else
+-							if ( W3_IsOK( ignoreDoors, ourZ, testTop, tiles, items ) ) then
+-								newZ =3D ourZ
+-								moveIsOk =3D true
+-							end
+-						end
+-					end
+-				end
+-			end
+-		end
+-	end
+-
+-	for i,item in pairs(items) do  -- Item
+-		local itemtype =3D GetStaticTileType(item.artid) --GetStaticTileType(Bit=
+wiseAND(item.artid , 0x3FFF)) ItemData
+-		local flags =3D GetStaticTileTypeFlags(item.artid)  -- itemtype.miFlags =
+ TileFlag
+-
+-		if ( BitwiseAND(flags , kImpassableSurface) =3D=3D kTileFlag.Surface or =
+(mobile.CanSwim and TestMask(flags , kTileFlag.Wet)) ) then -- Surface and =
+(not Impassable)
+-			if ( cantWalk and BitwiseAND(flags , kTileFlag.Wet) =3D=3D 0 ) then
+-				--~ continue
+-			else
+-
+-				local itemZ =3D item.zloc
+-				local itemTop =3D itemZ
+-				local ourZ =3D itemZ + itemtype.iCalcHeight
+-				local ourTop =3D ourZ + kPersonHeight
+-				local testTop =3D checkTop
+-
+-				local bMyContinue =3D false
+-				=
+
+-				if ( moveIsOk ) then
+-					local cmp =3D math.abs( ourZ - mobile.zloc ) - math.abs( newZ - mobil=
+e.zloc )
+-
+-					if ( cmp &gt; 0 or (cmp =3D=3D 0 and ourZ &gt; newZ) ) then bMyContinue =3D=
+ true end
+-				end
+-
+-				if (not bMyContinue) then
+-					if ( ourZ + kPersonHeight &gt; testTop ) then testTop =3D ourZ + kPerson=
+Height end
+-
+-					if ( not itemtype.bBridge ) then itemTop =3D itemTop + itemtype.miHei=
+ght end
+-
+-					if ( stepTop &gt;=3D itemTop ) then
+-						local landCheck =3D itemZ
+-
+-						if ( itemtype.miHeight &gt;=3D kStepHeight ) then
+-							landCheck =3D landCheck + kStepHeight
+-						else
+-							landCheck =3D landCheck + itemtype.miHeight
+-						end
+-
+-						if ( considerLand and landCheck &lt; landCenter and landCenter &gt; ourZ a=
+nd testTop &gt; landZ ) then
+-							--continue
+-						else
+-							if ( W3_IsOK( ignoreDoors, ourZ, testTop, tiles, items ) ) then
+-								newZ =3D ourZ
+-								moveIsOk =3D true
+-							end
+-						end
+-					end
+-				end
+-			end
+-		end
+-	end
+-
+-	if ( considerLand and (not landBlocks) and stepTop &gt;=3D landZ ) then
+-		local ourZ =3D landCenter
++	param.items =3D items
++	param.x =3D x
++	param.y =3D y
++	param.newZ =3D 0
++	param.landZ,param.landCenter,param.landTop =3D W3_GetAverageZ(x, y)
++	param.moveIsOk =3D false
++	param.stepTop =3D startTop + kStepHeight
++	param.checkTop =3D startZ + kPersonHeight
++	param.ignoreDoors =3D ( kAlwaysIgnoreDoors or (not mobile.Alive) or mobil=
+e.Body.BodyID =3D=3D 0x3DB or mobile.IsDeadBondedPet )
++
++	param.mobilezloc =3D mobile.zloc =
+
++	param.canSwim =3D canSwim =
+
++	param.cantWalk =3D cantWalk
++	=
+
++	-- statics,multis and the items passed in
++	for k,item in pairs(MapGetStatics(x,y)) do W3_Check_Fun(item,param) end
++	W3_ForAllMultiPartsAtPos(x,y,W3_Check_Fun,param)
++	for i,item in pairs(items) do W3_Check_Fun(item,param) end
++	=
+
++	if ( param.considerLand and (not landBlocks) and param.stepTop &gt;=3D param=
+.landZ ) then
++		local ourZ =3D param.landCenter
+ 		local ourTop =3D ourZ + kPersonHeight
+-		local testTop =3D checkTop
++		local testTop =3D param.checkTop
+ =
+
+ 		if ( ourZ + kPersonHeight &gt; testTop ) then testTop =3D ourZ + kPersonHei=
+ght end
+ =
+
+ 		local shouldCheck =3D true
+ =
+
+ 		if ( moveIsOk ) then
+-			local cmp =3D math.abs( ourZ - mobile.zloc ) - math.abs( newZ - mobile.=
+zloc ) -- int
+-			if ( cmp &gt; 0 or (cmp =3D=3D 0 and ourZ &gt; newZ) ) then shouldCheck =3D f=
+alse end
+-		end
+-
+-		if ( shouldCheck and W3_IsOK( ignoreDoors, ourZ, testTop, tiles, items )=
+ ) then
+-			newZ =3D ourZ
+-			moveIsOk =3D true
+-		end
+-	end
+-
+-	return moveIsOk,newZ
++			local cmp =3D math.abs( ourZ - param.mobilezloc ) - math.abs( param.new=
+Z - param.mobilezloc ) -- int
++			if ( cmp &gt; 0 or (cmp =3D=3D 0 and ourZ &gt; param.newZ) ) then shouldCheck=
+ =3D false end
++		end
++
++		if ( shouldCheck and W3_IsOK( param.ignoreDoors, ourZ, testTop, x,y, ite=
+ms ) ) then
++			param.newZ =3D ourZ
++			param.moveIsOk =3D true
++		end
++	end
++
++	return param.moveIsOk,param.newZ
++end
++
++function W3_GetStartZ_Fun	(item,param)
++	local itemtype =3D GetStaticTileType(BitwiseAND(item.artid , 0x3FFF)) -- =
+ItemData
++	local calcTop =3D item.zloc + itemtype.iCalcHeight
++	local flags =3D itemtype.miFlags
++
++	if (	((not param.isSet) or calcTop &gt;=3D param.zCenter) and =
+
++			(	TestMask(flags , kTileDataFlag_Surface) or =
+
++				( param.CanSwim and TestMask(flags,kTileDataFlag_Wet) ) ) and =
+
++			param.posz &gt;=3D calcTop )
++	then
++		if ( param.CantWalk and BitwiseAND(flags , kTileDataFlag_Wet) =3D=3D 0 )=
+ then
++			--continue
++		else =
+
++			param.zLow =3D item.zloc
++			param.zCenter =3D calcTop
++
++			local top =3D item.zloc + itemtype.miHeight
++
++			if ( (not param.isSet) or top &gt; param.zTop ) then param.zTop =3D top end
++
++			param.isSet =3D true
++		end
++	end
+ end
+ =
+
+ --~ private void GetStartZ( Mobile mobile, Map map, Point3D loc, ArrayList=
+ itemList, out int zLow, out int zTop )
+ -- returns zLow,zTop
+ function W3_GetStartZ(  mobile,  posx,posy,posz,  itemList )
+-	local zLow,zTop =3D 0,0
+-
+-	local landZ 		=3D 0
+-	local landCenter	=3D 0
+-	local landTop		=3D 0
+ 	local landTile 		=3D MapGetGround( posx, posy ) -- Tile
+ 	local landTileFlags	=3D landTile.flags
+-	local landBlocks	=3D TestMask(landTileFlags, kTileFlag.Impassable)
+-
+-	if ( landBlocks and mobile.CanSwim and TestMask(landTileFlags , kTileFlag=
+.Wet) ) then
++	local landBlocks	=3D TestMask(landTileFlags, kTileDataFlag_Impassable)
++	local bWet			=3D TestMask(landTileFlags, kTileDataFlag_Wet)
++
++	if ( landBlocks and mobile.CanSwim and bWet ) then
+ 		landBlocks =3D false
+-	elseif ( mobile.CantWalk and BitwiseAND(landTileFlags , kTileFlag.Wet) =
+=3D=3D 0 ) then
++	elseif ( mobile.CantWalk and (not bWet) ) then
+ 		landBlocks =3D true
+ 	end
+ =
+
+-	landZ,landCenter,landTop =3D W3_GetAverageZ( posx, posy)
++	local landZ,landCenter,landTop =3D W3_GetAverageZ(posx, posy)
+ =
+
+ 	local considerLand =3D not landTile.bIgnoredByWalk
+ =
+
+-	local zCenter =3D 0
+-	local isSet =3D false
++	local param =3D {}
++	param.posz =3D posz
++	param.zCenter =3D 0
++	param.zLow =3D 0
++	param.zTop =3D 0
++	param.isSet =3D false
++	param.CanSwim =3D mobile.CanSwim
++	param.CantWalk =3D mobile.CantWalk
+ =
+
+ 	if ( considerLand and (not landBlocks) and posz &gt;=3D landCenter ) then
+-		zLow =3D landZ
+-		zCenter =3D landCenter
+-		if ( (not isSet) or landTop &gt; zTop ) then zTop =3D landTop end
+-		isSet =3D true
+-	end
+-
+-	local staticTiles =3D MapGetStatics( posx, posy ) -- Tile[]
+-
+-	for i,tile in pairs(staticTiles) do -- Tile
+-		local itemtype =3D GetStaticTileType(BitwiseAND(tile.artid , 0x3FFF)) --=
+ ItemData
+-
+-		local calcTop =3D (tile.zloc + itemtype.iCalcHeight)
+-
+-		if	(((not isSet) or calcTop &gt;=3D zCenter) and =
+
+-			 (TestMask(itemtype.miFlags , kTileFlag.Surface) or (mobile.CanSwim and=
+ TestMask(itemtype.miFlags,kTileFlag.Wet))) and =
+
+-			 posz &gt;=3D calcTop =
+
+-			) then
+-			if ( mobile.CantWalk and BitwiseAND(itemtype.miFlags , kTileFlag.Wet) =
+=3D=3D 0 ) then
+-				--continue
+-			else
+-				zLow =3D tile.zloc
+-				zCenter =3D calcTop
+-
+-				local top =3D tile.zloc + itemtype.miHeight
+-
+-				if ( (not isSet) or top &gt; zTop ) then zTop =3D top end
+-
+-				isSet =3D true
+-			end
+-		end
+-	end
+-
+-	for i,item in pairs(itemList) do -- Item
+-		local itemtype =3D GetStaticTileType(item.artid) -- ItemData
+-
+-		local calcTop =3D item.zloc + itemtype.iCalcHeight
+-
+-		if (	((not isSet) or calcTop &gt;=3D zCenter) and =
+
+-				(	TestMask(itemtype.miFlags , kTileFlag.Surface) or =
+
+-					( mobile.CanSwim and TestMask(itemtype.miFlags,kTileFlag.Wet) ) ) and =
+
+-				posz &gt;=3D calcTop )
+-		then
+-			if ( mobile.CantWalk and BitwiseAND(itemtype.miFlags , kTileFlag.Wet) =
+=3D=3D 0 ) then
+-				--continue
+-			else =
+
+-				zLow =3D item.zloc
+-				zCenter =3D calcTop
+-
+-				local top =3D item.zloc + itemtype.miHeight
+-
+-				if ( (not isSet) or top &gt; zTop ) then zTop =3D top end
+-
+-				isSet =3D true
+-			end
+-		end
+-	end
+-
+-	if ( not isSet ) then
+-		zLow =3D posz
+-		zTop =3D posz
+-	elseif ( posz &gt; zTop ) then
+-		zTop =3D posz
+-	end
+-	=
+
+-	return zLow,zTop
+-end
+-
++		param.zLow =3D landZ
++		param.zCenter =3D landCenter
++		if ( (not param.isSet) or landTop &gt; zTop ) then param.zTop =3D landTop e=
+nd
++		param.isSet =3D true
++	end
++	=
+
++	-- statics, multis, and the items
++	for k,item in pairs(MapGetStatics(posx,posy)) do W3_GetStartZ_Fun(item,pa=
+ram) end
++	W3_ForAllMultiPartsAtPos(posx,posy,W3_GetStartZ_Fun,param)
++	for k,item in pairs(itemList) do W3_GetStartZ_Fun(item,param) end
++	=
+
++	if ( not param.isSet ) then
++		param.zLow =3D posz
++		param.zTop =3D posz
++	elseif ( posz &gt; param.zTop ) then
++		param.zTop =3D posz
++	end
++	=
+
++	return param.zLow,param.zTop
++end
++
+
+Modified: trunk/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/main.lua (original)
++++ trunk/lua/main.lua Sun Aug 31 15:49:02 2008
+@@ -56,7 +56,6 @@
+ dofile(libpath .. &quot;lib.artatlas.lua&quot;)
+ dofile(libpath .. &quot;lib.cliloc.lua&quot;)
+ dofile(libpath .. &quot;lib.macrolist.lua&quot;)
+-dofile(libpath .. &quot;lib.walking2.lua&quot;)
+ dofile(libpath .. &quot;lib.walking3.lua&quot;)
+ dofile(libpath .. &quot;lib.spellbooks.lua&quot;)
+ dofile(libpath .. &quot;lib.speech.lua&quot;)
+@@ -291,7 +290,6 @@
+ 	HandleCommandLine()
+ 	=
+
+ 	if (gCommandLineSwitches[&quot;-profile&quot;]) then StartGlobalProfiler() end
+-	if (gCommandLineSwitches[&quot;-walk3&quot;]) then gUseWalk3 =3D true end
+ 	if (gCommandLineSwitches[&quot;-2d&quot;]) then gCurrentRenderer =3D Renderer2D end
+ 	if (gCommandLineSwitches[&quot;-3d&quot;]) then gCurrentRenderer =3D Renderer3D end
+ 	=
+
+
+Modified: trunk/lua/net.walk.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net.walk.lua (original)
++++ trunk/lua/net.walk.lua Sun Aug 31 15:49:02 2008
+@@ -59,6 +59,7 @@
+ gIncreasedMovementSpeedBodyIDs =3D {[220]=3D&quot;lama&quot;,[218]=3D&quot;ostard&quot;,[25]=
+=3D&quot;wolf&quot;,[246]=3D&quot;bake&quot;} -- bodyids, ninjitsu (todo : unicorn,kirin, necro=
+?)
+  =
+
+ function WalkLog (...) =
+
++	if (not gEnableWalkLog) then return end
+ 	local tdiff =3D gLastLogTime and (gMyTicks-gLastLogTime) or 0
+ 	local prefix =3D sprintf(&quot;WalkLog t=3D%5d k=3D%2d r=3D%2d&quot;,tdiff,FastWalk=
+_CountKeys(),countarr(gWalkRequests))
+ 	print(prefix,unpack(arg)) =
+
+@@ -97,6 +98,8 @@
+ 	gPlayerYLoc =3D yloc
+ 	gPlayerZLoc =3D zloc
+ 	=
+
++	NotifyListener(&quot;Hook_SetPlayerPos&quot;)
++	=
+
+ 	local mobile =3D GetPlayerMobile()
+ 	if (not mobile) then return end
+ 	=
+
+@@ -122,7 +125,7 @@
+ -- clientside collision check, returns true if passable
+ function WalkStep_CanWalkInDir	(iDir) =
+
+ 	iDir =3D DirWrap(iDir)
+-	return (GetNearestGroundLevel(gPlayerXLoc + GetDirX(iDir),gPlayerYLoc + G=
+etDirY(iDir),gPlayerZLoc,iDir))
++	return GetNearestGroundLevel(gPlayerXLoc,gPlayerYLoc,gPlayerZLoc,iDir) ~=
+=3D nil
+ end
+ =
+
+ -- does collision detection, tries neighboring dirs if direct walk is bloc=
+ked
+@@ -174,12 +177,11 @@
+ 	local iWaitTime =3D gWalkTimeout_DirectionChange -- just turn without wal=
+king is quick
+ 	if (iDir =3D=3D gPlayerDir) then -- walk forward
+ 		iWaitTime =3D WalkGetInterval(bRunFlag)
++		zloc =3D GetNearestGroundLevel(xloc,yloc,zloc,gPlayerDir)
++		assert(zloc)
++		=
+
+ 		xloc =3D xloc + GetDirX(gPlayerDir)
+ 		yloc =3D yloc + GetDirY(gPlayerDir)
+-		=
+
+-		local bClientSidePassable
+-		bClientSidePassable,zloc =3D GetNearestGroundLevel(xloc,yloc,zloc,gPlaye=
+rDir)
+-		assert(bClientSidePassable)
+ 	end
+ 	=
+
+ 	-- set next request time
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001232.html">[Iris-commit] [IRIS] r2427 - in /trunk/lua: lib.3d.renderer.lua	net/net.mobile.lua
+</A></li>
+	<LI>Next message: <A HREF="001234.html">[Iris-commit] [IRIS] r2429 - /trunk/lua/net.walk.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1233">[ date ]</a>
+              <a href="thread.html#1233">[ thread ]</a>
+              <a href="subject.html#1233">[ subject ]</a>
+              <a href="author.html#1233">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

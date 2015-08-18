@@ -1,0 +1,324 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r3309 - in /trunk: include/grannyparser.h lua/lib.granny.anim.lua lua/lib.granny.debug.lua src/granny_L.cpp
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2010-March/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3309%20-%20in%20/trunk%3A%20include/grannyparser.h%0A%20lua/lib.granny.anim.lua%20lua/lib.granny.debug.lua%20src/granny_L.cpp&In-Reply-To=%3C20100327113302.0AD5154D0007%40simon%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="002068.html">
+   <LINK REL="Next"  HREF="002070.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r3309 - in /trunk: include/grannyparser.h lua/lib.granny.anim.lua lua/lib.granny.debug.lua src/granny_L.cpp</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3309%20-%20in%20/trunk%3A%20include/grannyparser.h%0A%20lua/lib.granny.anim.lua%20lua/lib.granny.debug.lua%20src/granny_L.cpp&In-Reply-To=%3C20100327113302.0AD5154D0007%40simon%3E"
+       TITLE="[Iris-commit] [IRIS] r3309 - in /trunk: include/grannyparser.h lua/lib.granny.anim.lua lua/lib.granny.debug.lua src/granny_L.cpp">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat Mar 27 12:33:01 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="002068.html">[Iris-commit] [IRIS] r3308 - /trunk/lua/lib.granny.debug.lua
+</A></li>
+        <LI>Next message: <A HREF="002070.html">[Iris-commit] [IRIS] r3310 - in /trunk/lua: lib.granny.anim.lua	lib.granny.debug.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2069">[ date ]</a>
+              <a href="thread.html#2069">[ thread ]</a>
+              <a href="subject.html#2069">[ subject ]</a>
+              <a href="author.html#2069">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sat Mar 27 12:33:00 2010
+New Revision: 3309
+
+Log:
+lua granny loader : anim working with old skeleton loader, bugfix in granny=
+ c++ code: signed type
+
+Modified:
+    trunk/include/grannyparser.h
+    trunk/lua/lib.granny.anim.lua
+    trunk/lua/lib.granny.debug.lua
+    trunk/src/granny_L.cpp
+
+Modified: trunk/include/grannyparser.h
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/include/grannyparser.h (original)
++++ trunk/include/grannyparser.h Sat Mar 27 12:33:00 2010
+@@ -90,7 +90,7 @@
+ } STRUCT_PACKED;
+ =
+
+ struct GrannyBoneTie {
+-	uint32	iBone;
++	int32	iBone;
+ 	=
+
+ 	/// this might be initial position, translate:3f quaternion:4f =
+
+ 	/// but doesn't look like floats in uo/Models/Others/H_Female_LLegs_V2_LO=
+D2.grn
+
+Modified: trunk/lua/lib.granny.anim.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.granny.anim.lua (original)
++++ trunk/lua/lib.granny.anim.lua Sat Mar 27 12:33:00 2010
+@@ -245,10 +245,7 @@
+ end
+ 	=
+
+ --- translate weightindex to bone index using info from 0xCA5E0c0a (only i=
+n models, not in anims)
+-function cSubMeshConstructor:WeightBoneIndex2GrannyBoneID		(iWeightBoneInd=
+ex)
+-	local o =3D self.mpGrannyLoader.mBoneTies[iWeightBoneIndex]
+-	return o and o.iBone or -1
+-end
++function cSubMeshConstructor:WeightBoneIndex2GrannyBoneID		(iWeightBoneInd=
+ex) return self.mpGrannyLoader:WeightBoneIndex2GrannyBoneID(iWeightBoneInde=
+x) end
+ 	=
+
+ --- converts a boneindex from the granny vertex weights to an ogre bone in=
+dex in the skeleton
+ --- returns -1 if not found
+
+Modified: trunk/lua/lib.granny.debug.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.granny.debug.lua (original)
++++ trunk/lua/lib.granny.debug.lua Sat Mar 27 12:33:00 2010
+@@ -85,6 +85,8 @@
+ 	gfx:SetPosition(1,0,0)
+ 	if (animid) then body:StartAnimLoop(animid) end
+ 	=
+
++	gsOldGrannyMeshName =3D body.modelparts[1]:GetEntity():getMesh():getName()
++	=
+
+ 	--~ if (gDebugMenuAnimIndex &gt;=3D 0) then body:StartAnimLoop(gDebugMenuAni=
+mIndex) end
+ 	--~ body:StartAnimLoop(1)
+ 	=
+
+@@ -217,16 +219,26 @@
+ 		-- granny wide bone infos
+ 		if (bHasBoneWeights) then =
+
+ 			pGrannyLoader.mBoneNameCache =3D {}
++			function pGrannyLoader:WeightBoneIndex2GrannyBoneID (iWeightBoneIndex)
++				local o =3D self.mBoneTies[iWeightBoneIndex+1]
++				return o and o.iBone or -1
++			end
++			function pGrannyLoader:FindBone (sName)
++				local sSearchName =3D self:IsMasterBoneName(sName) and self:GetUnified=
+MasterBoneName() or sName
++				local imax =3D #self.mBoneTies2+1
++				for i =3D 0,imax do if (self:GetBoneName(i) =3D=3D sSearchName) then r=
+eturn i end end
++				return -1
++			end
+ 			function pGrannyLoader:GetBoneName (iBoneID) -- used when creating bone=
+ weights
+ 				local cache =3D self.mBoneNameCache[iBoneID]
+ 				if (cache ~=3D nil) then return cache end
+-				local iObjPtr =3D self.mBoneTies2[iBoneID]
++				local iObjPtr =3D self.mBoneTies2[iBoneID+1]
+ 				cache =3D iObjPtr and self:GetBoneName2(iObjPtr - 1) or &quot;&quot;
+ 				self.mBoneNameCache[iBoneID] =3D cache
+ 				return cache
+ 			end
+ 			function pGrannyLoader:GetBoneName2 (iObjPtr) -- used by GetBoneName() =
+and when creating anim    (pAnim.mpAnim.iID-1)
+-				local iObj =3D self.mBoneTies1[iObjPtr] if (not iObj) then return &quot;&quot; e=
+nd
++				local iObj =3D self.mBoneTies1[iObjPtr+1] if (not iObj) then return &quot;&quot;=
+ end
+ 				iObj =3D iObj - 1 =
+
+ 				local mainparam =3D self.mMainParams[iObj] if (not mainparam) then ret=
+urn &quot;&quot; end
+ 				local sName =3D mainparam[&quot;__ObjectName&quot;] or &quot;&quot;
+@@ -376,17 +388,47 @@
+ 		end
+ 			=
+
+ 		if (1 =3D=3D 1) then =
+
++			local pMesh2 =3D gsOldGrannyMeshName and MeshManager_load(gsOldGrannyMe=
+shName)
+ 			local pMesh =3D entity:getMesh()
+ 			local list =3D pMesh:enumBoneAssignment()
+ 			print(&quot;enumBoneAssignment&quot;,list,list and #list,&quot;#&quot;..sMeshName..&quot;#&quot;,&quot;#&quot;.=
+.pMesh:getName()..&quot;#&quot;)
+ 			for k,entry in ipairs(list) do print(&quot;boneAssignment&quot;,k,unpack(entry)) =
+end
+ 			local iNumSubMeshes =3D pMesh:getNumSubMeshes()
++			local skel1 =3D pMesh:getSkeleton()
++			local skel2 =3D pMesh2 and pMesh2:getSkeleton()
+ 			for iSubMeshIdx =3D 0,iNumSubMeshes-1 do =
+
+ 				local sub =3D pMesh:getSubMesh(iSubMeshIdx)
+-				local list =3D sub:enumBoneAssignment()
++				local sub2 =3D pMesh2 and pMesh2:getSubMesh(iSubMeshIdx)
++				local list =3D sub:enumBoneAssignment() -- key,vertexIndex,boneIndex,w=
+eight
++				local list2 =3D sub2 and sub2:enumBoneAssignment()
+ 				print(&quot;sub.enumBoneAssignment&quot;,list,list and #list)
+-				for k,entry in ipairs(list) do print(&quot;sub[&quot;..iSubMeshIdx..&quot;].boneAssig=
+nment&quot;,k,unpack(entry)) end
++				for k,e in ipairs(list) do =
+
++					local f =3D list2 and list2[k] or {} =
+
++					local keyA,vertexIndexA,boneIndexA,weightA =3D unpack(e) local pBone =
+=3D skel1:getBone(boneIndexA) local boneName1 =3D pBone and pBone:getName()=
+ local bh1 =3D pBone and pBone:getHandle()
++					local keyB,vertexIndexB,boneIndexB,weightB =3D unpack(f) local pBone =
+=3D skel2:getBone(boneIndexB) local boneName2 =3D pBone and pBone:getName()=
+ local bh2 =3D pBone and pBone:getHandle()
++					print(&quot;sub[&quot;..iSubMeshIdx..&quot;].boneAssignmentA&quot;,k,keyA,vertexIndexA,bo=
+neIndexA,weightA,boneName1,bh1)
++					print(&quot;sub[&quot;..iSubMeshIdx..&quot;].boneAssignmentB&quot;,k,keyB,vertexIndexB,bo=
+neIndexB,weightB,boneName2,bh2)
++					if (k&gt;=3D 30) then break end
++				end
++				=
+
++				-- problem mit boneindex. abfolge lua : =
+
++				--[[
++				local pi =3D poly.iVertex[i] + 1
++				local myBoneWeightList =3D myBoneWeights[pi] -- tMyBoneWeightList     =
+   TODO : see how myBoneWeights is built
++				for i,itor in ipairs(myBoneWeightList) do =
+
++							local	iWeightBoneIndex 	=3D itor[1]
++							local	iOgreBoneHandle 	=3D self:WeightBoneIndex2OgreBoneHandle(iWei=
+ghtBoneIndex)
++								local iBoneID =3D self:WeightBoneIndex2GrannyBoneID(iWeightBoneInd=
+ex)   	self.mpGrannyLoader.mBoneTies[iWeightBoneIndex].iBone
++								local sName =3D self.mpGrannyLoader:GetBoneName(iBoneID)					mpSke=
+leton:SearchBoneByName(sName)
++					idea : output bonenames from skeleton of old loader , bruteforce id-&gt;=
+name from new loader (show list helps with off-by-one)
++				]]--
++				=
+
+ 			end
++			=
+
++			local oldgrn =3D GetGrannyModelLoader(bodyid)
++			for iBoneID=3D0,40 do local a,b =3D pGrannyLoader:GetBoneName(iBoneID),=
+oldgrn:GetBoneName(iBoneID)   print(&quot;iBoneID-&gt;name&quot;,iBoneID,a,b) assert(a=
+=3D=3Db) end
++			for iObjPtr=3D0,40 do local a,b =3D pGrannyLoader:GetBoneName2(iObjPtr)=
+,oldgrn:GetBoneName2(iObjPtr) print(&quot;iObjPtr-&gt;name&quot;,iObjPtr,a,b) assert(a=
+=3D=3Db) end
++			for wid=3D0,40 do local a,b =3D pGrannyLoader:WeightBoneIndex2GrannyBon=
+eID(wid),oldgrn:WeightBoneIndex2GrannyBoneID(wid) print(&quot;wid-&gt;gbid&quot;,wid,hex=
+(a),hex(b)) assert(a=3D=3Db) end
+ 		end
+ 		=
+
+ 	--~ /cavern/code/iris/mylugre/src/lugre_gfx3D.cpp:700:void	cGfx3D::SetAni=
+m	(const char* szAnimName,const bool bLoop) {
+
+Modified: trunk/src/granny_L.cpp
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/src/granny_L.cpp (original)
++++ trunk/src/granny_L.cpp Sat Mar 27 12:33:00 2010
+@@ -1,5 +1,6 @@
+ #include &quot;lugre_prefix.h&quot;
+ #include &quot;lugre_luabind.h&quot;
++#include &quot;lugre_luabind_direct.h&quot;
+ #include &quot;grannyparser.h&quot;
+ #include &quot;grannyloader_i2.h&quot;
+ #include &quot;grannyogreloader.h&quot;
+@@ -23,7 +24,7 @@
+ =
+
+ =
+
+ =
+
+-class cGrannyLoader_i2_L : public cLuaBind&lt;cGrannyLoader_i2&gt; { public:
++class cGrannyLoader_i2_L : public cLuaBind&lt;cGrannyLoader_i2&gt;, cLuaBindDire=
+ctQuickWrapHelper { public:
+ 	// implementation of cLuaBind
+ =
+
+ 		/// called by Register(), registers object-methods (see cLuaBind constru=
+ctor for examples)
+@@ -31,6 +32,15 @@
+ 			lua_register(L,&quot;LoadGranny&quot;,			&amp;cGrannyLoader_i2_L::LoadGranny);
+ 			lua_register(L,&quot;CreateSkeleton&quot;,		&amp;cGrannyLoader_i2_L::CreateSkeleton);=
+ // TODO : destroy, own class like material
+ 			lua_register(L,&quot;SkeletonHasAnimation&quot;,	&amp;cGrannyLoader_i2_L::SkeletonHas=
+Animation);
++			=
+
++			LUABIND_QUICKWRAP(	GetBoneName,					{ return PushString(L,checkudata_al=
+ive(L)-&gt;GetBoneName(ParamInt(L,2)) ); });
++			LUABIND_QUICKWRAP(	GetBoneName2,					{ return PushString(L,checkudata_a=
+live(L)-&gt;GetBoneName2(ParamInt(L,2)) ); });
++			LUABIND_QUICKWRAP(	WeightBoneIndex2GrannyBoneID,	{ =
+
++					int iWeightBoneIndex =3D ParamInt(L,2);
++					return PushNumber(L, (iWeightBoneIndex &gt;=3D 0 &amp;&amp; iWeightBoneIndex &lt; c=
+heckudata_alive(L)-&gt;mBoneTies.size()) ? checkudata_alive(L)-&gt;mBoneTies[iWei=
+ghtBoneIndex]-&gt;iBone : -1 );
++				});
++			=
+
++			=
+
+ 			=
+
+ 			#define REGISTER_METHOD(methodname) mlMethod.push_back(make_luaL_reg(#m=
+ethodname,&amp;cGrannyLoader_i2_L::methodname));
+ 			REGISTER_METHOD(Destroy);
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="002068.html">[Iris-commit] [IRIS] r3308 - /trunk/lua/lib.granny.debug.lua
+</A></li>
+	<LI>Next message: <A HREF="002070.html">[Iris-commit] [IRIS] r3310 - in /trunk/lua: lib.granny.anim.lua	lib.granny.debug.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2069">[ date ]</a>
+              <a href="thread.html#2069">[ thread ]</a>
+              <a href="subject.html#2069">[ subject ]</a>
+              <a href="author.html#2069">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

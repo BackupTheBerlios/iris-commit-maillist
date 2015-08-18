@@ -1,0 +1,1213 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2694 - in /trunk/lua: ./ filter/ gui/
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-November/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2694%20-%20in%20/trunk/lua%3A%20./%20filter/%20gui/&In-Reply-To=%3C20081102234729.C9FB01C187D4%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001497.html">
+   <LINK REL="Next"  HREF="001499.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2694 - in /trunk/lua: ./ filter/ gui/</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2694%20-%20in%20/trunk/lua%3A%20./%20filter/%20gui/&In-Reply-To=%3C20081102234729.C9FB01C187D4%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2694 - in /trunk/lua: ./ filter/ gui/">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Mon Nov  3 00:47:29 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001497.html">[Iris-commit] [IRIS] r2693 - /trunk/lua/lib.unifont.lua
+</A></li>
+        <LI>Next message: <A HREF="001499.html">[Iris-commit] [IRIS] r2695 - /trunk/data/skippedfallbacks.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1498">[ date ]</a>
+              <a href="thread.html#1498">[ thread ]</a>
+              <a href="subject.html#1498">[ subject ]</a>
+              <a href="author.html#1498">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: hagish
+Date: Mon Nov  3 00:47:29 2008
+New Revision: 2694
+
+Log:
+*improved block spawner and sheduler (only blocks that are not idle are sor=
+ted and stepped, added cam distance to priority)
+*bb early out checks for 3d mousepicking (now its possible to load big area=
+s)
+*config option to display water as uo tiles
+*removed debug output
+*improved dump missing models
+*added some models (artfilter)
+
+Modified:
+    trunk/lua/filter/filter.art.lua
+    trunk/lua/gui/gui.helper.lua
+    trunk/lua/lib.2d.renderer.lua
+    trunk/lua/lib.3d.map.lua
+    trunk/lua/lib.3d.mousepick.lua
+    trunk/lua/lib.3d.waterspawner.lua
+    trunk/lua/lib.debugmenu.lua
+    trunk/lua/lib.desktop.lua
+    trunk/lua/lib.macrolist.lua
+    trunk/lua/lib.mapblock.3d.dynamics.lua
+    trunk/lua/lib.mapblock.3d.statics.lua
+    trunk/lua/lib.mapblock.3d.terrain.lua
+    trunk/lua/lib.mapblock.3d.water.lua
+    trunk/lua/lib.mapblock.base.lua
+    trunk/lua/lib.mapblock.scheduler.lua
+    trunk/lua/lib.mapblock.spawner.lua
+    trunk/lua/lib.sound.iris.lua
+    trunk/lua/lib.static.lua
+
+Modified: trunk/lua/filter/filter.art.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/filter/filter.art.lua (original)
++++ trunk/lua/filter/filter.art.lua Mon Nov  3 00:47:29 2008
+@@ -81,6 +81,30 @@
+ gArtFilter[3343]=3D{maptoid=3D3340,rotation=3D&quot;x:0,y:0,z:90&quot;,xadd=3D0,yadd=
+=3D1,zadd=3D0}
+ gArtFilter[3344]=3D{maptoid=3D3342,rotation=3D&quot;x:0,y:0,z:90&quot;,xadd=3D0,yadd=
+=3D1,zadd=3D0}
+ gArtFilter[3345]=3D{maptoid=3D3341,rotation=3D&quot;x:0,y:0,z:90&quot;,xadd=3D0,yadd=
+=3D1,zadd=3D0}
++
++-- ceramic roof red
++gArtFilter[9173]=3D{maptoid=3D9172,rotation=3D&quot;x:0,y:0,z:90&quot;,xadd=3D0,yadd=
+=3D1,zadd=3D0}
++
++gArtFilter[9175]=3D{maptoid=3D9174,rotation=3D&quot;x:0,y:0,z:90&quot;,xadd=3D0,yadd=
+=3D1,zadd=3D0}
++gArtFilter[9176]=3D{maptoid=3D9174,rotation=3D&quot;x:0,y:0,z:180&quot;,xadd=3D1,yad=
+d=3D1,zadd=3D0}
++gArtFilter[9177]=3D{maptoid=3D9174,rotation=3D&quot;x:0,y:0,z:-90&quot;,xadd=3D1,yad=
+d=3D0,zadd=3D0}
++
++gArtFilter[9180]=3D{maptoid=3D9178,rotation=3D&quot;x:0,y:0,z:90&quot;,xadd=3D0,yadd=
+=3D1,zadd=3D0}
++gArtFilter[9181]=3D{maptoid=3D9179,rotation=3D&quot;x:0,y:0,z:90&quot;,xadd=3D0,yadd=
+=3D1,zadd=3D0}
++
++gArtFilter[9182]=3D{maptoid=3D9178,rotation=3D&quot;x:0,y:0,z:-90&quot;,xadd=3D1,yad=
+d=3D0,zadd=3D0}
++gArtFilter[9183]=3D{maptoid=3D9179,rotation=3D&quot;x:0,y:0,z:-90&quot;,xadd=3D1,yad=
+d=3D0,zadd=3D0}
++
++gArtFilter[9184]=3D{maptoid=3D9178,rotation=3D&quot;x:0,y:0,z:180&quot;,xadd=3D1,yad=
+d=3D1,zadd=3D0}
++gArtFilter[9185]=3D{maptoid=3D9179,rotation=3D&quot;x:0,y:0,z:180&quot;,xadd=3D1,yad=
+d=3D1,zadd=3D0}
++
++gArtFilter[9186]=3D{maptoid=3D9188,rotation=3D&quot;x:0,y:0,z:90&quot;,xadd=3D0,yadd=
+=3D1,zadd=3D0}
++gArtFilter[9190]=3D{maptoid=3D9188,rotation=3D&quot;x:0,y:0,z:180&quot;,xadd=3D1,yad=
+d=3D1,zadd=3D0}
++gArtFilter[9192]=3D{maptoid=3D9188,rotation=3D&quot;x:0,y:0,z:-90&quot;,xadd=3D1,yad=
+d=3D0,zadd=3D0}
++
++gArtFilter[9187]=3D{maptoid=3D9189,rotation=3D&quot;x:0,y:0,z:90&quot;,xadd=3D0,yadd=
+=3D1,zadd=3D0}
++gArtFilter[9191]=3D{maptoid=3D9189,rotation=3D&quot;x:0,y:0,z:180&quot;,xadd=3D1,yad=
+d=3D1,zadd=3D0}
++gArtFilter[9193]=3D{maptoid=3D9189,rotation=3D&quot;x:0,y:0,z:-90&quot;,xadd=3D1,yad=
+d=3D0,zadd=3D0}
+ =
+
+ -- ceramic roof blue
+ gArtFilter[9157]=3D{maptoid=3D9155,rotation=3D&quot;x:0,y:0,z:-180&quot;,xadd=3D1,ya=
+dd=3D1,zadd=3D0}
+@@ -282,18 +306,18 @@
+ gArtFilter[10014]=3D{maptoid=3D10011,rotation=3D&quot;x:0,y:0,z:90&quot;,xadd=3D0,ya=
+dd=3D1.95,zadd=3D0}
+ gArtFilter[10015]=3D{maptoid=3D10012,rotation=3D&quot;x:0,y:0,z:90&quot;,xadd=3D0,ya=
+dd=3D1.95,zadd=3D0}
+ =
+
+-gArtFilter[2242]=3D{maptoid=3D2241,rotation=3D&quot;x:0,y:0,z:-90&quot;,xadd=3D-1.9,=
+yadd=3D0,zadd=3D0}
+-gArtFilter[2232]=3D{maptoid=3D2237,rotation=3D&quot;x:0,y:0,z:0&quot;,xadd=3D-1,yadd=
+=3D0,zadd=3D0}
++gArtFilter[2242]=3D{maptoid=3D2241,rotation=3D&quot;x:0,y:0,z:-90&quot;,xadd=3D1.9,y=
+add=3D0,zadd=3D0}
++gArtFilter[2232]=3D{maptoid=3D2237,rotation=3D&quot;x:0,y:0,z:0&quot;,xadd=3D1,yadd=
+=3D0,zadd=3D0}
+ gArtFilter[2231]=3D{maptoid=3D2237,rotation=3D&quot;x:0,y:0,z:90&quot;,xadd=3D0,yadd=
+=3D0.9,zadd=3D0}
+ gArtFilter[2236]=3D{maptoid=3D2237,rotation=3D&quot;x:0,y:0,z:90&quot;,xadd=3D0,yadd=
+=3D0,zadd=3D0}
+-gArtFilter[2239]=3D{maptoid=3D2238,rotation=3D&quot;x:0,y:0,z:-90&quot;,xadd=3D0,yad=
+d=3D0,zadd=3D0}
+-gArtFilter[2227]=3D{maptoid=3D2228,rotation=3D&quot;x:0,y:0,z:-90&quot;,xadd=3D-1,ya=
+dd=3D0,zadd=3D0}
+-gArtFilter[2226]=3D{maptoid=3D2228,rotation=3D&quot;x:0,y:0,z:-90&quot;,xadd=3D-0.1,=
+yadd=3D0,zadd=3D0}
++gArtFilter[2239]=3D{maptoid=3D2238,rotation=3D&quot;x:0,y:0,z:0&quot;,xadd=3D0,yadd=
+=3D0,zadd=3D0}
++gArtFilter[2227]=3D{maptoid=3D2228,rotation=3D&quot;x:0,y:0,z:-90&quot;,xadd=3D1,yad=
+d=3D0,zadd=3D0}
++gArtFilter[2226]=3D{maptoid=3D2228,rotation=3D&quot;x:0,y:0,z:-90&quot;,xadd=3D0.1,y=
+add=3D0,zadd=3D0}
+ gArtFilter[2229]=3D{maptoid=3D2228,rotation=3D&quot;x:0,y:0,z:0&quot;,xadd=3D0,yadd=
+=3D0.9,zadd=3D0}
+ =
+
+ gArtFilter[2234]=3D{maptoid=3D2238,rotation=3D&quot;x:0,y:0,z:0&quot;,xadd=3D0,yadd=
+=3D0.9,zadd=3D0}
+-gArtFilter[2235]=3D{maptoid=3D2238,rotation=3D&quot;x:0,y:0,z:-90&quot;,xadd=3D-1,ya=
+dd=3D0,zadd=3D0}
+-gArtFilter[2233]=3D{maptoid=3D2240,rotation=3D&quot;x:0,y:0,z:180&quot;,xadd=3D-1.9,=
+yadd=3D1.45,zadd=3D0}
++gArtFilter[2235]=3D{maptoid=3D2238,rotation=3D&quot;x:0,y:0,z:-90&quot;,xadd=3D1,yad=
+d=3D0,zadd=3D0}
++gArtFilter[2233]=3D{maptoid=3D2240,xadd=3D1,yadd=3D0.9,zadd=3D0}
+ =
+
+ gArtFilter[9345]=3D{maptoid=3D9344,rotation=3D&quot;x:0,y:0,z:90&quot;,xadd=3D0,yadd=
+=3D1.95,zadd=3D0}
+ gArtFilter[9348]=3D{maptoid=3D9347,rotation=3D&quot;x:0,y:0,z:90&quot;,xadd=3D0,yadd=
+=3D1.95,zadd=3D0}
+
+Modified: trunk/lua/gui/gui.helper.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.helper.lua (original)
++++ trunk/lua/gui/gui.helper.lua Mon Nov  3 00:47:29 2008
+@@ -1,8 +1,7 @@
+ -- number of currently running loading things
+ -- used to show ie. block loading acitivity
+ giShowLoading =3D 0
+-function NotifyLoadingStart() giShowLoading =3D giShowLoading + 1 end
+-function NotifyLoadingEnd() giShowLoading =3D giShowLoading - 1 end
++giShowLoadingUnfinished =3D 0
+ function DisplayLoadingState ()
+ 	if (gNoRender) then return end
+ 	-- parameters
+@@ -56,6 +55,7 @@
+ 		local t =3D OgreTriangleCount()
+ 		local j =3D job.count()
+ 		local l =3D giShowLoading
++		local lu =3D giShowLoadingUnfinished
+ 		local fps =3D OgreAvgFPS()
+ 	=
+
+ 		if gConfig:Get(&quot;gLogStatsToFile&quot;) then
+@@ -88,11 +88,11 @@
+ 			end
+ 		end
+ 					=
+
+-		local text =3D sprintf(&quot;%5.1ffps %dt %db gfx | %s OGRE %s LUA mem | %i j=
+ %i l&quot;,
++		local text =3D sprintf(&quot;%5.1ffps %dt %db gfx | %s OGRE %s LUA mem | %i j=
+ %i/%i l&quot;,
+ 			fps, t, b, =
+
+ 			DisplayMemoryUsageFormatHelper(memoryusage),
+ 			DisplayMemoryUsageFormatHelper(mem_dyn), =
+
+-			j, l
++			j, l, lu
+ 		)
+ 		if (not gMemoryUsageField) then
+ 			local vw,vh =3D GetViewportSize()
+
+Modified: trunk/lua/lib.2d.renderer.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.renderer.lua (original)
++++ trunk/lua/lib.2d.renderer.lua Mon Nov  3 00:47:29 2008
+@@ -163,6 +163,7 @@
+ -- skybox,fog etc for 3d
+ function Renderer2D:SetMapEnvironment () =
+
+ 	GetMainViewport():SetBackCol(0,0,0)
++	Client_SetFog(0)
+ end
+ =
+
+ function Renderer2D:UpdateMapEnvironment (hour,minute,second) end -- updat=
+e time, lightscale and season
+
+Modified: trunk/lua/lib.3d.map.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.map.lua (original)
++++ trunk/lua/lib.3d.map.lua Mon Nov  3 00:47:29 2008
+@@ -19,9 +19,9 @@
+ kMapLoad_3D_Statics_Rough		=3D {prio=3D2}
+ kMapLoad_3D_Multis_Rough		=3D {prio=3D3}
+ kMapLoad_3D_Terrain_Detail		=3D {prio=3D4}
+-kMapLoad_3D_Water_Detail		=3D {prio=3D5}
+-kMapLoad_3D_Statics_Detail		=3D {prio=3D6}
+-kMapLoad_3D_Multis_Detail		=3D {prio=3D7}
++kMapLoad_3D_Statics_Detail		=3D {prio=3D5}
++kMapLoad_3D_Multis_Detail		=3D {prio=3D6}
++kMapLoad_3D_Water_Detail		=3D {prio=3D7}
+ kMapLoad_3D_Dynamics_AddRemove	=3D {prio=3D8}
+ kMapLoad_3D_Dynamics_Batch		=3D {prio=3D5}
+ =
+
+
+Modified: trunk/lua/lib.3d.mousepick.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.mousepick.lua (original)
++++ trunk/lua/lib.3d.mousepick.lua Mon Nov  3 00:47:29 2008
+@@ -43,21 +43,32 @@
+ 	=
+
+ 	-- multi mousepicking
+ 	for k,v in pairs(gMultis) do
+-		for kk,vv in pairs(k.lparts) do
+-			local iTileTypeID,xloc,yloc,zloc,iHue =3D unpack(vv) -- see Multi_AddPa=
+rtHelper
+-			local mousepickdata =3D vv.multi_mousepick -- see cMapBlock_3D_Multis:W=
+orkStep_LoadDetail
+-			if mousepickdata and self:IsZLayerVisible(zloc) then  =
+
+-				bHit,fHitDist =3D mousepickdata.meshbuffer:RayPick(rx,ry,rz,rvx,rvy,rv=
+z,
+-					mousepickdata.x,mousepickdata.y,mousepickdata.z,
+-					mousepickdata.qw,mousepickdata.qx,mousepickdata.qy,mousepickdata.qz,
+-					mousepickdata.sx,mousepickdata.sy,mousepickdata.sz)
+-
+-				if (bHit and ((not gMousePickFoundHit) or fHitDist &lt; self.gMousePickFo=
+undDist)) then
+-					self.gMousePickFoundDist =3D fHitDist
+-					gMousePickFoundHit =3D {}
+-					gMousePickFoundHit.hittype =3D kMousePickHitType_Static
+-					gMousePickFoundHit.entity =3D mousepickdata
+-					--entity has to have the following properties: hue, x, y, z, iTileTyp=
+eID
++		local skipcheck =3D false
++		=
+
++		-- bb ray pick for early out
++		if k.minx and k.maxx and k.miny and k.maxy then
++			local x,y,w,h =3D k.minx, k.miny, k.maxx - k.minx + 1, k.maxy - k.miny =
++ 1
++			local hit,dist =3D RayAABBQuery( rx, ry, rz, rvx, rvy, rvz, -x,y,-10000=
+, w, h, 10000 )
++			if hit then skipcheck =3D true end
++		end
++		=
+
++		if skipcheck then
++			for kk,vv in pairs(k.lparts) do
++				local iTileTypeID,xloc,yloc,zloc,iHue =3D unpack(vv) -- see Multi_AddP=
+artHelper
++				local mousepickdata =3D vv.multi_mousepick -- see cMapBlock_3D_Multis:=
+WorkStep_LoadDetail
++				if mousepickdata and self:IsZLayerVisible(zloc) then  =
+
++					bHit,fHitDist =3D mousepickdata.meshbuffer:RayPick(rx,ry,rz,rvx,rvy,r=
+vz,
++						mousepickdata.x,mousepickdata.y,mousepickdata.z,
++						mousepickdata.qw,mousepickdata.qx,mousepickdata.qy,mousepickdata.qz,
++						mousepickdata.sx,mousepickdata.sy,mousepickdata.sz)
++
++					if (bHit and ((not gMousePickFoundHit) or fHitDist &lt; self.gMousePickF=
+oundDist)) then
++						self.gMousePickFoundDist =3D fHitDist
++						gMousePickFoundHit =3D {}
++						gMousePickFoundHit.hittype =3D kMousePickHitType_Static
++						gMousePickFoundHit.entity =3D mousepickdata
++						--entity has to have the following properties: hue, x, y, z, iTileTy=
+peID
++					end
+ 				end
+ 			end
+ 		end
+@@ -76,41 +87,43 @@
+ 				local bx,by =3D iBlockUO_X,iBlockUO_Y
+ 				local tx,ty
+ =
+
+-				bHit,fHitDist,tx,ty =3D TerrainMultiTex_RayPick(gGroundBlockLoader,bx,=
+by,w,h,0.1, rx-gfx.x,ry-gfx.y,rz-gfx.z, rvx,rvy,rvz)
+-				if (bHit) then
+-					if (tx &gt;=3D 8) then bx =3D bx + 1   tx =3D tx - 8 end
+-					if (ty &gt;=3D 8) then by =3D by + 1   ty =3D ty - 8 end
+-				end
+-				=
+
+-				if (bHit and ((not gMousePickFoundHit) or fHitDist &lt; self.gMousePickFo=
+undDist)) then
+-					self.gMousePickFoundDist =3D fHitDist
+-					gMousePickFoundHit =3D {}
+-					gMousePickFoundHit.hittype =3D kMousePickHitType_Terrain
+-					gMousePickFoundHit.chunk =3D chunk
++				if block:BBRayPick(rx, ry, rz, rvx, rvy, rvz) then
++					bHit,fHitDist,tx,ty =3D TerrainMultiTex_RayPick(gGroundBlockLoader,bx=
+,by,w,h,0.1, rx-gfx.x,ry-gfx.y,rz-gfx.z, rvx,rvy,rvz)
++
++					if (bHit) then
++						if (tx &gt;=3D 8) then bx =3D bx + 1   tx =3D tx - 8 end
++						if (ty &gt;=3D 8) then by =3D by + 1   ty =3D ty - 8 end
++					end
+ 					=
+
+-					local x,y =3D Renderer3D:LocalToUOPos(rx + fHitDist * rvx, ry + fHitD=
+ist * rvy)
+-					x,y =3D math.floor(x),math.floor(y)
+-					local iTileType,iZLoc =3D GetAbsTile(x,y) =
+
+-					local bx =3D math.floor((x - iBlockUO_X)/8)
+-					local by =3D math.floor((y - iBlockUO_Y)/8)
+-					local origin_abs_x =3D self.giMapOriginX * self.ROBMAP_CHUNK_SIZE
+-					local origin_abs_y =3D self.giMapOriginY * self.ROBMAP_CHUNK_SIZE
+-					local originoffx =3D 8.0*(iBlockUO_X-origin_abs_x)
+-					local originoffy =3D 8.0*(iBlockUO_Y-origin_abs_y)
+-					=
+
+-					gMousePickFoundHit.tiletype =3D iTileType
+-					gMousePickFoundHit.minz =3D iZLoc*0.1 =
+
+-					gMousePickFoundHit.maxz =3D iZLoc*0.1
+-					gMousePickFoundHit.x =3D x
+-					gMousePickFoundHit.y =3D y
+-					gMousePickFoundHit.tx =3D math.mod(x,8)
+-					gMousePickFoundHit.ty =3D math.mod(y,8)
+-					gMousePickFoundHit.iBlockX =3D iBlockUO_X+bx
+-					gMousePickFoundHit.iBlockY =3D iBlockUO_Y+by
+-					gMousePickFoundHit.blockorigin_x =3D originoffx+bx*8
+-					gMousePickFoundHit.blockorigin_y =3D originoffy+by*8
+-				end
+-								=
+
++					if (bHit and ((not gMousePickFoundHit) or fHitDist &lt; self.gMousePickF=
+oundDist)) then
++						self.gMousePickFoundDist =3D fHitDist
++						gMousePickFoundHit =3D {}
++						gMousePickFoundHit.hittype =3D kMousePickHitType_Terrain
++						gMousePickFoundHit.chunk =3D chunk
++						=
+
++						local x,y =3D Renderer3D:LocalToUOPos(rx + fHitDist * rvx, ry + fHit=
+Dist * rvy)
++						x,y =3D math.floor(x),math.floor(y)
++						local iTileType,iZLoc =3D GetAbsTile(x,y) =
+
++						local bx =3D math.floor((x - iBlockUO_X)/8)
++						local by =3D math.floor((y - iBlockUO_Y)/8)
++						local origin_abs_x =3D self.giMapOriginX * self.ROBMAP_CHUNK_SIZE
++						local origin_abs_y =3D self.giMapOriginY * self.ROBMAP_CHUNK_SIZE
++						local originoffx =3D 8.0*(iBlockUO_X-origin_abs_x)
++						local originoffy =3D 8.0*(iBlockUO_Y-origin_abs_y)
++						=
+
++						gMousePickFoundHit.tiletype =3D iTileType
++						gMousePickFoundHit.minz =3D iZLoc*0.1 =
+
++						gMousePickFoundHit.maxz =3D iZLoc*0.1
++						gMousePickFoundHit.x =3D x
++						gMousePickFoundHit.y =3D y
++						gMousePickFoundHit.tx =3D math.mod(x,8)
++						gMousePickFoundHit.ty =3D math.mod(y,8)
++						gMousePickFoundHit.iBlockX =3D iBlockUO_X+bx
++						gMousePickFoundHit.iBlockY =3D iBlockUO_Y+by
++						gMousePickFoundHit.blockorigin_x =3D originoffx+bx*8
++						gMousePickFoundHit.blockorigin_y =3D originoffy+by*8
++					end
++				end			=
+
+ 			end
+ 		end)
+ 	end
+@@ -120,48 +133,50 @@
+ 	local numcustomquads =3D 0
+ 	if self.map3d_spawners and self.map3d_spawners.statics then
+ 		self.map3d_spawners.statics:ForAllBlocks(function(block)
+-			block:ForAllEntities(function(entity)
+-				if (not entity.bLoaded) then return end
+-				if (not entity.zloc) then print(&quot;mousepick warning, static entity has =
+no zloc&quot;,entity.serial,entity.artid) end
+-				if (Renderer3D:IsZLayerVisible(entity.zloc)) then -- zloc is in intege=
+r tilecoords from uo
+-					=
+
+-					if (entity.gfx) then numgfx =3D numgfx + 1 end
+-					if (entity.gfx and entity.gfx.billboard) then
+-						-- fallback
+-						local x,y,z =3D entity.gfx.billboard:GetDerivedPosition()
+-						fHitDist =3D SphereRayPick(x,y,z,0.5,rx,ry,rz,rvx,rvy,rvz) -- 0.5 rad
+-						bHit =3D (fHitDist ~=3D nil)
+-					elseif (entity.staticentity) then
+-						bHit,fHitDist =3D entity.staticentity:RayPick(rx,ry,rz,rvx,rvy,rvz,
+-							entity.x,entity.y,entity.z,
+-							entity.qw,entity.qx,entity.qy,entity.qz,
+-							entity.sx,entity.sy,entity.sz)
+-					elseif (entity.meshbuffer) then
+-						bHit,fHitDist =3D entity.meshbuffer:RayPick(rx,ry,rz,rvx,rvy,rvz,
+-							entity.x,entity.y,entity.z,
+-							entity.qw,entity.qx,entity.qy,entity.qz,
+-							entity.sx,entity.sy,entity.sz)
+-					elseif (entity.gfx and entity.gfx.customquads) then
+-						numcustomquads =3D numcustomquads + 1
+-						--~ print(&quot;mousepick : entity.customquads&quot;,entity.x,entity.y,entity.=
+z)
+-						for k,quad in pairs(entity.gfx.customquads) do =
+
+-							local x1,y1,z1 =3D unpack(quad[1])
+-							local x2,y2,z2 =3D unpack(quad[2])
+-							local x3,y3,z3 =3D unpack(quad[3])
+-							local x4,y4,z4 =3D unpack(quad[4])
+-							local dist =3D RayPickFace4(x1,y1,z1, x2,y2,z2, x3,y3,z3, x4,y4,z4,=
+ entity.x,entity.y,entity.z, rx,ry,rz, rvx,rvy,rvz)
+-							bHit,fHitDist =3D dist ~=3D nil,dist =
+
++			if block:BBRayPick(rx, ry, rz, rvx, rvy, rvz) then
++				block:ForAllEntities(function(entity)
++					if (not entity.bLoaded) then return end
++					if (not entity.zloc) then print(&quot;mousepick warning, static entity has=
+ no zloc&quot;,entity.serial,entity.artid) end
++					if (Renderer3D:IsZLayerVisible(entity.zloc)) then -- zloc is in integ=
+er tilecoords from uo
++						=
+
++						if (entity.gfx) then numgfx =3D numgfx + 1 end
++						if (entity.gfx and entity.gfx.billboard) then
++							-- fallback
++							local x,y,z =3D entity.gfx.billboard:GetDerivedPosition()
++							fHitDist =3D SphereRayPick(x,y,z,0.5,rx,ry,rz,rvx,rvy,rvz) -- 0.5 r=
+ad
++							bHit =3D (fHitDist ~=3D nil)
++						elseif (entity.staticentity) then
++							bHit,fHitDist =3D entity.staticentity:RayPick(rx,ry,rz,rvx,rvy,rvz,
++								entity.x,entity.y,entity.z,
++								entity.qw,entity.qx,entity.qy,entity.qz,
++								entity.sx,entity.sy,entity.sz)
++						elseif (entity.meshbuffer) then
++							bHit,fHitDist =3D entity.meshbuffer:RayPick(rx,ry,rz,rvx,rvy,rvz,
++								entity.x,entity.y,entity.z,
++								entity.qw,entity.qx,entity.qy,entity.qz,
++								entity.sx,entity.sy,entity.sz)
++						elseif (entity.gfx and entity.gfx.customquads) then
++							numcustomquads =3D numcustomquads + 1
++							--~ print(&quot;mousepick : entity.customquads&quot;,entity.x,entity.y,entity=
+.z)
++							for k,quad in pairs(entity.gfx.customquads) do =
+
++								local x1,y1,z1 =3D unpack(quad[1])
++								local x2,y2,z2 =3D unpack(quad[2])
++								local x3,y3,z3 =3D unpack(quad[3])
++								local x4,y4,z4 =3D unpack(quad[4])
++								local dist =3D RayPickFace4(x1,y1,z1, x2,y2,z2, x3,y3,z3, x4,y4,z4=
+, entity.x,entity.y,entity.z, rx,ry,rz, rvx,rvy,rvz)
++								bHit,fHitDist =3D dist ~=3D nil,dist =
+
++							end
+ 						end
+-					end
+-					if (bHit and ((not gMousePickFoundHit) or fHitDist &lt; self.gMousePickF=
+oundDist)) then
+-						self.gMousePickFoundDist =3D fHitDist
+-						gMousePickFoundHit =3D {}
+-						gMousePickFoundHit.hittype =3D kMousePickHitType_Static
+-						gMousePickFoundHit.entity =3D entity
+-						--entity has to have the following properties: hue, x, y, z, iTileTy=
+peID
+-					end
+-				end
+-			end)
++						if (bHit and ((not gMousePickFoundHit) or fHitDist &lt; self.gMousePick=
+FoundDist)) then
++							self.gMousePickFoundDist =3D fHitDist
++							gMousePickFoundHit =3D {}
++							gMousePickFoundHit.hittype =3D kMousePickHitType_Static
++							gMousePickFoundHit.entity =3D entity
++							--entity has to have the following properties: hue, x, y, z, iTileT=
+ypeID
++						end
++					end
++				end)
++			end
+ 		end)
+ 	end
+ 	=
+
+
+Modified: trunk/lua/lib.3d.waterspawner.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.waterspawner.lua (original)
++++ trunk/lua/lib.3d.waterspawner.lua Mon Nov  3 00:47:29 2008
+@@ -10,7 +10,7 @@
+ end
+ =
+
+ function cWaterSpawner:TriggerUpdate	(item)
+-	if item.artid and FilterIsStaticWater(item.artid) then
++	if item.artid and FilterIsStaticWater(item.artid) and not gConfig:Get(&quot;gW=
+aterAsGroundTiles&quot;) then
+ 		local b =3D self:GetBlockByUOLocation(item.xloc,item.yloc)
+ 		b:Rebuild()
+ 	end
+
+Modified: trunk/lua/lib.debugmenu.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.debugmenu.lua (original)
++++ trunk/lua/lib.debugmenu.lua Mon Nov  3 00:47:29 2008
+@@ -922,6 +922,10 @@
+ function DebugFlipModel	(id)
+ 	print(&quot;###############################&quot;)
+ 	print(&quot;flip normals&quot;)
++	if gArtFilter[id] and gArtFilter[id].maptoid then
++		id =3D gArtFilter[id].maptoid
++	end
++	=
+
+ 	local base =3D id - math.mod(id,1000) + 1000
+ 	local relpath  =3D sprintf(&quot;models/to_%06d/&quot;,base)
+ 	local mdlname =3D GetModelName(id)
+@@ -958,7 +962,7 @@
+ 	-- try to rotate and adjust blender like, only possible if meshmagick is =
+installed (unix)
+ 	os.execute(&quot;cp '&quot;..mdl..&quot;' '&quot;..expmdl..&quot;'&quot;)
+ 	os.execute(&quot;meshmagick transform -rotate=3D90/1/0/0 '&quot;..expmdl..&quot;'&quot;)
+-	os.execute(&quot;meshmagick transform -scale=3D10/-10/10 '&quot;..expmdl..&quot;'&quot;)
++	os.execute(&quot;meshmagick transform -scale=3D1/-1/1 '&quot;..expmdl..&quot;'&quot;)
+ 	os.execute(&quot;meshmagick transform -rotate=3D90/0/1/0 '&quot;..expmdl..&quot;'&quot;)
+ =
+
+ 	-- create xml file
+
+Modified: trunk/lua/lib.desktop.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.desktop.lua (original)
++++ trunk/lua/lib.desktop.lua Mon Nov  3 00:47:29 2008
+@@ -268,7 +268,7 @@
+ 	for k,v in pairs(gDesktop) do
+ 		if gDesktopElementFactory[v.name] and gDesktopElementFactory[v.name].che=
+ckpos then
+ 			if gDesktopElementFactory[v.name].checkpos(v,widget) then =
+
+-				print(&quot;REPLACE&quot;,nx,ny)
++				--~ print(&quot;REPLACE&quot;,nx,ny)
+ 				ReplaceDesktopElementIn(v.name,nx,ny,v.param,gDesktopPositions)
+ 				SaveDesktop() =
+
+ 			end
+
+Modified: trunk/lua/lib.macrolist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.macrolist.lua (original)
++++ trunk/lua/lib.macrolist.lua Mon Nov  3 00:47:29 2008
+@@ -583,7 +583,7 @@
+ 	gAttackRunning =3D true
+ 	=
+
+ 	job.create(function()
+-		print(&quot;START ATTACK&quot;)
++		--~ print(&quot;START ATTACK&quot;)
+ 		local reqsend =3D false
+ 		while gAttackRunning and gAttackMobile do
+ 			local mobile =3D gMobiles[gAttackMobile]
+@@ -606,7 +606,7 @@
+ 				=
+
+ 				if (IsWarModeActive()) then
+ 					if not reqsend then
+-						print(&quot;REQUEST SEND&quot;)
++						--~ print(&quot;REQUEST SEND&quot;)
+ 						Send_AttackReq(gAttackMobile)
+ 						reqsend =3D true
+ 					end
+@@ -617,7 +617,7 @@
+ 				job.wait(500)
+ 			end
+ 		end
+-		print(&quot;STOP ATTACK&quot;)
++		--~ print(&quot;STOP ATTACK&quot;)
+ 	end)
+ end
+ =
+
+
+Modified: trunk/lua/lib.mapblock.3d.dynamics.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mapblock.3d.dynamics.lua (original)
++++ trunk/lua/lib.mapblock.3d.dynamics.lua Mon Nov  3 00:47:29 2008
+@@ -41,8 +41,7 @@
+ =
+
+ function cMapBlock_3D_Dynamics:AddDynamic (dynamic)
+ 	local iTileTypeID,xloc,yloc,iZ,iHue =3D self:GetRawDataFromDynamic(dynami=
+c)
+-	if iTileTypeID and xloc and yloc and iZ and not FilterIsStaticWater(iTile=
+TypeID) then
+-		--~ print(&quot;ADD&quot;,self,dynamic.serial)
++	if iTileTypeID and xloc and yloc and iZ and (gConfig:Get(&quot;gWaterAsGroundT=
+iles&quot;) or not FilterIsStaticWater(iTileTypeID)) then
+ 		self.mUpdateNeeded =3D true
+ =
+
+ 		self.lDynamics[dynamic.serial] =3D {
+@@ -68,6 +67,12 @@
+ -- called every frame, instant actions (destroy gfx), evaluate priority =
+
+ function cMapBlock_3D_Dynamics:ShortStep (t,xloc,yloc,zloc)
+ 	if self.mUpdateNeeded then
++		local bx,by,w,h =3D self:GetAABB()
++		=
+
++		local camdist =3D hypot(	(bx+w/2)-xloc,
++								(by+h/2)-yloc)
++		self.last_camdist =3D camdist
++
+ 		-- big changes
+ 		self:SetPriority(kMapLoad_3D_Dynamics_AddRemove.prio)
+ 	--~ elseif self.mUnbatched &gt; 0 and self.mLastChange &lt; t - cMapBlock_3D_Dy=
+namics.kBatchTimeout then
+@@ -75,7 +80,7 @@
+ 		--~ self.mRebatchNeeded =3D true
+ 		--~ self:SetPriority(kMapLoad_3D_Dynamics_Batch.prio)
+ 	--~ else
+-		self:SetPriority(kSchedulerIdlePriority)
++		--~ self:SetPriority(kSchedulerIdlePriority)
+ 	end
+ 		=
+
+ 	--~ elseif ((self.iNextLODUpdate or 0) &lt; t) then
+@@ -97,7 +102,11 @@
+ =
+
+ -- a single step during the thread
+ function cMapBlock_3D_Dynamics:WorkStep ()
+-	if self.mUpdateNeeded then
++	local dt =3D Client_GetTicks() - (self.last_update_time or 0)
++	=
+
++	if self.mUpdateNeeded and (dt &gt; 500) then
++		self.rebuild_count =3D (self.rebuild_count or 0) + 1
++		self.last_update_time =3D Client_GetTicks()
+ 		=
+
+ 		if not self.mTileBatch then
+ 			self.mTileBatch =3D CreateClassInstance(cTileBatch)
+@@ -126,5 +135,7 @@
+ 		--~ print(&quot;count&quot;,self,countarr(self.lDynamics))
+ =
+
+ 		self:SetDisplayRange(gCurrentRenderer:BlendoutGetVisibleRange())
++
++		self:SetPriority(kSchedulerIdlePriority)
+ 	end
+ end
+
+Modified: trunk/lua/lib.mapblock.3d.statics.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mapblock.3d.statics.lua (original)
++++ trunk/lua/lib.mapblock.3d.statics.lua Mon Nov  3 00:47:29 2008
+@@ -15,7 +15,7 @@
+ =
+
+ cMapBlock_3D_Statics	=3D CreateClass(cMapBlockGrid)
+ cMapBlock_3D_Statics.iBlockSize		=3D 8*2 -- in tiles
+-cMapBlock_3D_Statics.iLoadRadius	=3D 4 -- in iBlockSize-blocks
++cMapBlock_3D_Statics.iLoadRadius	=3D 8 -- in iBlockSize-blocks
+ cMapBlock_3D_Statics.kMaxDist_Visible		=3D cMapBlock_3D_Statics.iBlockSize=
+ * 4 -- camdist in tiles  see mapblock.base for default
+ cMapBlock_3D_Statics.kMaxDist_Detail		=3D cMapBlock_3D_Statics.iBlockSize =
+* 2 -- camdist in tiles
+ =
+
+@@ -63,7 +63,7 @@
+ 			for k,s in pairs(l) do =
+
+ 				iTileTypeID,iX,iY,iZ,iHue =3D s.artid, s.tx, s.ty, s.zloc, s.hue
+ 				=
+
+-				if (not FilterIsStaticWater(iTileTypeID)) and iTileTypeID and iX and i=
+Y and iZ and (not FilterSkipStatic(iTileTypeID)) then =
+
++				if (gConfig:Get(&quot;gWaterAsGroundTiles&quot;) or not FilterIsStaticWater(iTil=
+eTypeID)) and iTileTypeID and iX and iY and iZ and (not FilterSkipStatic(iT=
+ileTypeID)) then =
+
+ 					-- uo tile pos
+ 					local xloc,yloc =3D (iBlockUO_X+x)*8+iX,(iBlockUO_Y+y)*8+iY
+ 					if =
+
+
+Modified: trunk/lua/lib.mapblock.3d.terrain.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mapblock.3d.terrain.lua (original)
++++ trunk/lua/lib.mapblock.3d.terrain.lua Mon Nov  3 00:47:29 2008
+@@ -18,6 +18,6 @@
+ =
+
+ =
+
+ function cMapBlock_3D_Terrain:UpdateBlendOutVisibility ()
+-	print(&quot;terrain:UpdateBlendOutVisibility&quot;,Renderer3D.gbBlendOutTerrainVisi=
+ble)
++	--~ print(&quot;terrain:UpdateBlendOutVisibility&quot;,Renderer3D.gbBlendOutTerrain=
+Visible)
+ 	if (self.gfx_terrain) then self.gfx_terrain:SetVisible(Renderer3D.gbBlend=
+OutTerrainVisible) end
+ end
+
+Modified: trunk/lua/lib.mapblock.3d.water.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mapblock.3d.water.lua (original)
++++ trunk/lua/lib.mapblock.3d.water.lua Mon Nov  3 00:47:29 2008
+@@ -193,19 +193,19 @@
+ end
+ =
+
+ function cMapBlock_3D_Water:SetWaterZ	(tx, ty, z)
+-	--~ self:SetWaterZWithoutBorder(tx,ty,z)
++	self:SetWaterZWithoutBorder(tx,ty,z)
+ =
+
+ 	-- set border of 1 tile
+ 	-- this is slow
+-	self:SetWaterZWithoutBorder(tx+1,ty+0,z)
+-	self:SetWaterZWithoutBorder(tx-1,ty+0,z)
+-	self:SetWaterZWithoutBorder(tx+0,ty+1,z)
+-	self:SetWaterZWithoutBorder(tx+0,ty-1,z)
+-	=
+
+-	self:SetWaterZWithoutBorder(tx+1,ty+1,z)
+-	self:SetWaterZWithoutBorder(tx-1,ty-1,z)
+-	self:SetWaterZWithoutBorder(tx+1,ty-1,z)
+-	self:SetWaterZWithoutBorder(tx-1,ty+1,z)
++	--~ self:SetWaterZWithoutBorder(tx+1,ty+0,z)
++	--~ self:SetWaterZWithoutBorder(tx-1,ty+0,z)
++	--~ self:SetWaterZWithoutBorder(tx+0,ty+1,z)
++	--~ self:SetWaterZWithoutBorder(tx+0,ty-1,z)
++	--~ =
+
++	--~ self:SetWaterZWithoutBorder(tx+1,ty+1,z)
++	--~ self:SetWaterZWithoutBorder(tx-1,ty-1,z)
++	--~ self:SetWaterZWithoutBorder(tx+1,ty-1,z)
++	--~ self:SetWaterZWithoutBorder(tx-1,ty+1,z)
+ end
+ =
+
+ function cMapBlock_3D_Water:WorkStep_LoadDetail ()
+@@ -233,7 +233,7 @@
+ 			for k,s in pairs(l) do =
+
+ 				iTileTypeID,iX,iY,iZ,iHue =3D s.artid, s.tx, s.ty, s.zloc, s.hue
+ 				=
+
+-				if iTileTypeID and FilterIsStaticWater(iTileTypeID) and iX and iY and =
+iZ then =
+
++				if not gConfig:Get(&quot;gWaterAsGroundTiles&quot;) and iTileTypeID and FilterIs=
+StaticWater(iTileTypeID) and iX and iY and iZ then =
+
+ 					-- uo tile pos
+ 					local xloc,yloc =3D (iBlockUO_X+x)*8+iX,(iBlockUO_Y+y)*8+iY
+ 					--~ print(&quot;DEBUG&quot;,&quot;water&quot;,x,y,basex,basey,xloc,yloc,iZ)
+@@ -248,7 +248,7 @@
+ 					local xloc,yloc =3D (iBlockUO_X+x)*8+lx,(iBlockUO_Y+y)*8+ly
+ 					local o =3D MapGetGround(xloc,yloc)
+ 					=
+
+-					if o.iTileType and FilterIsMapWater(o.iTileType) then
++					if not gConfig:Get(&quot;gWaterAsGroundTiles&quot;) and o.iTileType and FilterI=
+sMapWater(o.iTileType) then
+ 						self:SetWaterZ(xloc-basex,yloc-basey,o.zloc)					=
+
+ 						self:YieldIfOverTime()
+ 					end
+@@ -256,11 +256,12 @@
+ 			end
+ 	end end
+ 	=
+
++	self:Yield()
++	=
+
+ 	-- check dynamics
+ 	for k,dynamic in pairs(GetDynamicList()) do if (DynamicIsInWorld(dynamic)=
+) then
+-		if dynamic.artid and FilterIsStaticWater(dynamic.artid) then
++		if not gConfig:Get(&quot;gWaterAsGroundTiles&quot;) and dynamic.artid and FilterIs=
+StaticWater(dynamic.artid) then
+ 			self:SetWaterZ(dynamic.xloc-basex,dynamic.yloc-basey,dynamic.zloc)					=
+
+-			self:YieldIfOverTime()
+ 		end
+ 	end end
+ =
+
+
+Modified: trunk/lua/lib.mapblock.base.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mapblock.base.lua (original)
++++ trunk/lua/lib.mapblock.base.lua Mon Nov  3 00:47:29 2008
+@@ -18,6 +18,14 @@
+ -- returns the bounding box of the map block (x,y,w,h) in tiles
+ function cMapBlock:GetAABB	() return 0,0,0,0 end	-- override me !
+ =
+
++-- check if the given ray hits the bounding box of the block
++-- returns hit and distance
++function cMapBlock:BBRayPick	(rx, ry, rz, rvx, rvy, rvz)
++	local x,y,w,h =3D self:GetAABB()
++	local hit,dist =3D RayAABBQuery( rx, ry, rz, rvx, rvy, rvz, -x,y,-10000, =
+w, h, 10000 )
++	return hit,dist
++end
++
+ function cMapBlock:GetPos	()
+ 	local x,y,w,h =3D self:GetAABB()
+ 	return x,y
+@@ -29,7 +37,10 @@
+ end
+ =
+
+ function cMapBlock:SetPriority		(prio)	self.prio =3D prio end
+-function cMapBlock:Yield			()		coroutine.yield() end
++function cMapBlock:Yield			()		=
+
++	self.last_yield_stack =3D _TRACEBACK()
++	coroutine.yield() =
+
++end
+ function cMapBlock:YieldIfOverTime	()		if (Client_GetTicks() &gt; self.t_end)=
+ then self:Yield() end end
+ =
+
+ function cMapBlock:Work			(t_end)	=
+
+@@ -46,6 +57,7 @@
+ function cMapBlock:CheckForResumeError	(status,r)
+ 	if not status then
+ 		print(&quot;ERROR: job terminated: &quot;,r)
++		print(SmartDump(self,3))
+ 	end
+ end
+ =
+
+@@ -107,19 +119,25 @@
+ 		=
+
+ 		local camdist =3D hypot(	(bx+w/2)-x,
+ 								(by+h/2)-y)
++		self.last_camdist =3D camdist
++
+ 		local newlod
+ 		if (	camdist &lt;  self.kMaxDist_Detail ) then newlod =3D self.kLOD_Detail =
+
+ 		elseif (camdist &lt;  self.kMaxDist_Visible) then newlod =3D self.kLOD_Roug=
+h end
+ 		--~ if (newlod) then print(&quot;cMapBlock:ShortStep&quot;,newlod,camdist,self.kMa=
+xDist_Detail) end
+-		=
+
+ 		self:SetLOD(newlod)
+ 	end
+ end
+ =
+
+ -- a single step during the thread
+ function cMapBlock:WorkStep ()
+-	if (self.lod_finished =3D=3D self.lod) then return end -- nothing to do
+-	NotifyLoadingStart()
++	if (self.lod_finished =3D=3D self.lod) then =
+
++		-- sets priority to idle if the current lod level is the loaded one
++		-- changing the lod should change the prio later
++		self:SetPriority(kSchedulerIdlePriority)
++		return -- nothing to do
++	end
++	=
+
+ 	if (self.lod =3D=3D self.kLOD_Rough ) then =
+
+ 		self:WorkStep_LoadRough()  =
+
+ 		self:ClearDetail() =
+
+@@ -131,7 +149,6 @@
+ 		self.lod_finished =3D self.lod =
+
+ 		self:SetPriority(kSchedulerIdlePriority)
+ 	end
+-	NotifyLoadingEnd()
+ end
+ =
+
+ function cMapBlock:ClearRough   () end -- override me !
+
+Modified: trunk/lua/lib.mapblock.scheduler.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mapblock.scheduler.lua (original)
++++ trunk/lua/lib.mapblock.scheduler.lua Mon Nov  3 00:47:29 2008
+@@ -34,14 +34,23 @@
+ 	local t =3D Client_GetTicks()
+ 	local t_end =3D gMyTicks + self.kAllowedTicksPerFrame
+ 	=
+
++	local active_blocks =3D {}
++	=
+
+ 	-- shortsteps, re-evaluate prio, release gfx
+-	for k,process in ipairs(self.pProcessList) do process:ShortStep(t,x,y,z) =
+end =
+
++	for k,process in ipairs(self.pProcessList) do =
+
++		process:ShortStep(t,x,y,z) =
+
++		if process.prio ~=3D kSchedulerIdlePriority then
++			table.insert(active_blocks, process)
++		end
++	end =
+
++	=
+
++	giShowLoading =3D countarr(active_blocks)
+ 	=
+
+ 	-- sort by priority
+-	table.sort(self.pProcessList,self.CmpProcess)
++	table.sort(active_blocks,self.CmpProcess)
+ 	=
+
+ 	-- work until no time left
+-	for k,process in ipairs(self.pProcessList) do =
+
++	for k,process in ipairs(active_blocks) do =
+
+ 		local t1 =3D Client_GetTicks()
+ 		process:Work(t_end)
+ 		local t2 =3D Client_GetTicks()
+@@ -52,7 +61,16 @@
+ end
+ =
+
+ -- true when the first is less than the second       (NOT less-equal)
+-function cScheduler.CmpProcess	(a,b) return a.prio &lt; b.prio end
++function cScheduler.CmpProcess	(a,b) =
+
++	local da =3D math.floor((a.last_camdist or 1000)/8)
++	local db =3D math.floor((b.last_camdist or 1000)/8)
++	=
+
++	if da ~=3D db then =
+
++		return da &lt; db
++	else =
+
++		return a.prio &lt; b.prio =
+
++	end
++end
+ =
+
+ function cScheduler:Destroy ()
+ 	for k,v in pairs(self.pProcessList) do
+
+Modified: trunk/lua/lib.mapblock.spawner.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mapblock.spawner.lua (original)
++++ trunk/lua/lib.mapblock.spawner.lua Mon Nov  3 00:47:29 2008
+@@ -12,6 +12,7 @@
+ 	self.pBlockClass	=3D pBlockClass
+ 	self.pScheduler		=3D pScheduler
+ 	self.mlUnfinishedBlock =3D {}
++	self.mlToBeDestroyedBlock =3D {}
+ end
+ =
+
+ -- calls fun(block) for all blocks
+@@ -38,7 +39,8 @@
+ 				block.by &lt; by-r or =
+
+ 				block.by &gt; by+r) then
+ 				-- outside, destroyed
+-				self:DestroyMapBlock(block)
++				self.mlToBeDestroyedBlock[block] =3D true
++				--~ self:DestroyMapBlock(block)
+ 			end
+ 		end
+ 		=
+
+@@ -50,6 +52,8 @@
+ 		end
+ 	end
+ 	=
+
++	giShowLoadingUnfinished =3D countarr(self.mlUnfinishedBlock) + countarr(s=
+elf.mlToBeDestroyedBlock)
++	=
+
+ 	-- check unfinished jobs and remove them if finished
+ 	for k,v in pairs(self.mlUnfinishedBlock) do
+ 		if k:IsDead() then
+@@ -57,6 +61,13 @@
+ 			self.pScheduler:RemoveProcess(k)
+ 			self.mlUnfinishedBlock[k] =3D nil
+ 		end
++	end
++	=
+
++	-- destroy blocks
++	for k,v in pairs(self.mlToBeDestroyedBlock) do
++		self.mlToBeDestroyedBlock[k] =3D nil
++		self:DestroyMapBlock(k)
++		if not TimeLeftInFrame() then break end
+ 	end
+ end
+ =
+
+
+Modified: trunk/lua/lib.sound.iris.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.sound.iris.lua (original)
++++ trunk/lua/lib.sound.iris.lua Mon Nov  3 00:47:29 2008
+@@ -3,13 +3,13 @@
+ =
+
+ -- same like lugre:SoundPlayEffect but written for UO specific sound.mul
+ function SoundPlayEffect_UO (x,y,z,effect)
+-	print(&quot;SoundPlayEffect_UO&quot;,x,y,z,effect,gSoundLoader,gUseEffect,gSoundSys=
+tem)
++	--~ print(&quot;SoundPlayEffect_UO&quot;,x,y,z,effect,gSoundLoader,gUseEffect,gSoun=
+dSystem)
+ 	if gSoundLoader then
+ 		if gUseEffect and gSoundSystem then
+ 			printdebug(&quot;sound&quot;,sprintf(&quot;SoundPlayEffect(%f,%f,%f,%i)\n&quot;,x,y,z,effec=
+t))
+ 			FlushSoundEffects()
+ 			local e =3D CreateSoundSource3DFromEffect(gSoundSystem,gSoundLoader,x,y=
+,z,effect)
+-			print(&quot;soundcreated&quot;,e)
++			--~ print(&quot;soundcreated&quot;,e)
+ 			if e then
+ 				e.file =3D &quot;uosound:&quot;..effect
+ 				e:SetMinMaxDistance(50,100000)
+
+Modified: trunk/lua/lib.static.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.static.lua (original)
++++ trunk/lua/lib.static.lua Mon Nov  3 00:47:29 2008
+@@ -42,6 +42,7 @@
+ -- TODO: remove hueing from her, not needed for fastbatch here
+ -- bDontGenerateFallback is used during preload to not generate uo art fal=
+lback models
+ gLegacyModelCache =3D {}
++gbModelIsFallback =3D {}
+ function GetMeshName (iTileTypeID, bDontGenerateFallback)
+ 	--1st: Seasonal Translation
+ 	local iTranslatedTileTypeID =3D SeasonalStaticTranslation(iTileTypeID, gS=
+easonSetting)
+@@ -72,7 +73,7 @@
+ 	end
+ 	=
+
+ 	-- dump missing models as images
+-	if gDumpMissingModels then
++	if gDumpMissingModels and not bDontGenerateFallback then
+ 		local skip =3D gSkippedArtBillboardFallBacks[iTranslatedTileTypeID] or I=
+sGroundPlate(iTranslatedTileTypeID)
+ 		local filename =3D &quot;missing/&quot;..iTranslatedTileTypeID..&quot;.png&quot;
+ 		local filename_unmapped =3D &quot;missing/&quot;..iTileTypeID..&quot;.png&quot;
+@@ -91,7 +92,7 @@
+ 				end
+ 			end
+ 			img:Destroy()
+-		elseif (meshname or skip) then
++		elseif (meshname or skip) and not gbModelIsFallback[iTranslatedTileTypeI=
+D] then
+ 			if file_exists(filename) then
+ 				-- remove existing missing images
+ 				print(&quot;remove missing art image because there is now a model&quot;,iTransla=
+tedTileTypeID,filename)
+@@ -115,6 +116,7 @@
+ 		meshname =3D GetFallbackMeshName(iTranslatedTileTypeID)
+ 		if meshname then
+ 			gLegacyModelCache[iTranslatedTileTypeID] =3D meshname
++			gbModelIsFallback[iTranslatedTileTypeID] =3D true
+ 			--~ giStaticFallbackCount =3D (giStaticFallbackCount or 0) + 1
+ 			--~ print(&quot;giStaticFallbackCount&quot;,giStaticFallbackCount)
+ 		end
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001497.html">[Iris-commit] [IRIS] r2693 - /trunk/lua/lib.unifont.lua
+</A></li>
+	<LI>Next message: <A HREF="001499.html">[Iris-commit] [IRIS] r2695 - /trunk/data/skippedfallbacks.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1498">[ date ]</a>
+              <a href="thread.html#1498">[ thread ]</a>
+              <a href="subject.html#1498">[ subject ]</a>
+              <a href="author.html#1498">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,186 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2163 - in /trunk/lua: lib.2d.cam.lua	lib.compass.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-May/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2163%20-%20in%20/trunk/lua%3A%20lib.2d.cam.lua%0A%09lib.compass.lua&In-Reply-To=%3C20080510163240.266AB1C186BC%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000972.html">
+   <LINK REL="Next"  HREF="000974.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2163 - in /trunk/lua: lib.2d.cam.lua	lib.compass.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2163%20-%20in%20/trunk/lua%3A%20lib.2d.cam.lua%0A%09lib.compass.lua&In-Reply-To=%3C20080510163240.266AB1C186BC%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2163 - in /trunk/lua: lib.2d.cam.lua	lib.compass.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat May 10 18:32:38 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000972.html">[Iris-commit] [IRIS] r2162 - in /trunk/lua: lib.2d.cam.lua lib.2d.renderer.lua lib.3d.renderer.lua lib.renderer.lua
+</A></li>
+        <LI>Next message: <A HREF="000974.html">[Iris-commit] [IRIS] r2164 - /trunk/repairmusic.sh
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#973">[ date ]</a>
+              <a href="thread.html#973">[ thread ]</a>
+              <a href="subject.html#973">[ subject ]</a>
+              <a href="author.html#973">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sat May 10 18:32:37 2008
+New Revision: 2163
+
+Log:
+compass now handles window resize well, thanks to btbn for this patch
+
+Modified:
+    trunk/lua/lib.2d.cam.lua
+    trunk/lua/lib.compass.lua
+
+Modified: trunk/lua/lib.2d.cam.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.cam.lua (original)
++++ trunk/lua/lib.2d.cam.lua Sat May 10 18:32:37 2008
+@@ -66,8 +66,8 @@
+ end
+ =
+
+ =
+
+-
+-function Renderer2D:CamSetAspectRatio ()
++-- updates aspect ratio, zoom etc
++function Renderer2D:CamUpdateParams ()
+ 	local cam =3D GetMainCam() =
+
+ 	local vp =3D GetMainViewport()
+ 	local viewport_w =3D vp:GetActualWidth()
+@@ -107,7 +107,7 @@
+ 	-- main cam setup
+ 	self.fCamPosXLoc =3D 653*8
+ 	self.fCamPosYLoc =3D 424*8
+-	self:CamSetAspectRatio()
++	self:CamUpdateParams()
+ end
+ =
+
+ -- returns xloc,yloc in uo coords
+@@ -124,7 +124,7 @@
+ function Renderer2D:CamStep						() =
+
+ 	if (self.gbNeedCorrectAspectRatio) then
+ 		self.gbNeedCorrectAspectRatio =3D false
+-		self:CamSetAspectRatio()
++		self:CamUpdateParams()
+ 	end
+ 	=
+
+ 	local curticks =3D Client_GetTicks()
+
+Modified: trunk/lua/lib.compass.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.compass.lua (original)
++++ trunk/lua/lib.compass.lua Sat May 10 18:32:37 2008
+@@ -7,6 +7,7 @@
+ gDetailMapCacheMaterial =3D nil
+ gDetailMapCacheBX =3D nil
+ gDetailMapCacheBY =3D nil
++gbCompassLayoutDirty =3D false
+ kDetailMapCacheSize =3D 256
+ kDetailMapCacheViewRad =3D 80
+ =
+
+@@ -121,6 +122,13 @@
+ function InitCompassIfNeeded () =
+
+ 	if (gDisableCompass) then return end
+ 	if (gIrisCompassDialog) then return end
++
++	RegisterListener(&quot;Hook_MainWindowResized&quot;,
++		function()
++			gbCompassLayoutDirty =3D true
++		end
++	)
++
+ 	local iGumpID_BigCompass =3D (hex2num(&quot;0x1393&quot;)) -- big compass
+ 	local iGumpID_SmallCompass =3D (hex2num(&quot;0x1392&quot;)) -- small compass
+ =
+
+@@ -351,6 +359,29 @@
+ -- called every frame
+ function UpdateCompass ()
+ 	if (gDisableCompass) then return end
++	=
+
++	if(gbCompassLayoutDirty) then
++		gbCompassLayoutDirty =3D false
++		local vw,vh =3D GetViewportSize()
++		gIrisCompassDialog.rootwidget.gfx:SetPos(vw-gCompassSize - gCompassOff,1=
+5 + gCompassOff)
++		if (gIrisCompassDialog.compassframe_static) then
++			local z =3D GetMaxZ()
++			local mx =3D vw - gCompassSize/2 - gCompassOff
++			local my =3D 15 + gCompassSize/2 + gCompassOff
++			local halfwidth =3D 128
++
++			local mygfx =3D gIrisCompassDialog.compassframe_static.gfx
++			mygfx:RenderableBegin(4,6,false,false,OT_TRIANGLE_LIST)
++			mygfx:RenderableVertex(((mx - halfwidth)/vw * 2.0 - 1.0),((my - halfwid=
+th)/vh * (-2.0) + 1.0),z, 0,0)
++			mygfx:RenderableVertex(((mx + halfwidth)/vw * 2.0 - 1.0),((my - halfwid=
+th)/vh * (-2.0) + 1.0),z, 1,0)
++			mygfx:RenderableVertex(((mx - halfwidth)/vw * 2.0 - 1.0),((my + halfwid=
+th)/vh * (-2.0) + 1.0),z, 0,1)
++			mygfx:RenderableVertex(((mx + halfwidth)/vw * 2.0 - 1.0),((my + halfwid=
+th)/vh * (-2.0) + 1.0),z, 1,1)
++			mygfx:RenderableIndex3(0,1,2)
++			mygfx:RenderableIndex3(1,3,2)
++			mygfx:RenderableEnd()
++		end
++	end
++	=
+
+ 	if (gIrisCompassDialog and gIrisCompassDialog.bDoUpdate) then	=
+
+ 		-- ax =3D camera angle, cxloc, cyloc =3D tileposition
+ 		local ax, cxloc, cyloc =3D gCurrentRenderer:GetCompassInfo()
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000972.html">[Iris-commit] [IRIS] r2162 - in /trunk/lua: lib.2d.cam.lua lib.2d.renderer.lua lib.3d.renderer.lua lib.renderer.lua
+</A></li>
+	<LI>Next message: <A HREF="000974.html">[Iris-commit] [IRIS] r2164 - /trunk/repairmusic.sh
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#973">[ date ]</a>
+              <a href="thread.html#973">[ thread ]</a>
+              <a href="subject.html#973">[ subject ]</a>
+              <a href="author.html#973">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

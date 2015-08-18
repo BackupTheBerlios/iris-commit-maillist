@@ -1,0 +1,151 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1855 - in /trunk/lua: lib.3d.cam.lua	lib.3d.map.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-January/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1855%20-%20in%20/trunk/lua%3A%20lib.3d.cam.lua%0A%09lib.3d.map.lua&In-Reply-To=%3C20080125233518.7B7DC1C1873A%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000667.html">
+   <LINK REL="Next"  HREF="000669.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1855 - in /trunk/lua: lib.3d.cam.lua	lib.3d.map.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1855%20-%20in%20/trunk/lua%3A%20lib.3d.cam.lua%0A%09lib.3d.map.lua&In-Reply-To=%3C20080125233518.7B7DC1C1873A%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1855 - in /trunk/lua: lib.3d.cam.lua	lib.3d.map.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat Jan 26 00:35:18 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000667.html">[Iris-commit] [IRIS] r1854 -	/trunk/data/models/materials/textures.material
+</A></li>
+        <LI>Next message: <A HREF="000669.html">[Iris-commit] [IRIS] r1856 - in /trunk/lua: lib.3d.dynamic.lua lib.3d.map.lua lib.mainmenu.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#668">[ date ]</a>
+              <a href="thread.html#668">[ thread ]</a>
+              <a href="subject.html#668">[ subject ]</a>
+              <a href="author.html#668">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sat Jan 26 00:35:17 2008
+New Revision: 1855
+
+Log:
+cam zoomlimit and slight farterrain optimization
+
+Modified:
+    trunk/lua/lib.3d.cam.lua
+    trunk/lua/lib.3d.map.lua
+
+Modified: trunk/lua/lib.3d.cam.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.cam.lua (original)
++++ trunk/lua/lib.3d.cam.lua Sat Jan 26 00:35:17 2008
+@@ -87,6 +87,10 @@
+ 	local base =3D 1.5
+ 	if (add &gt; 0) then factor =3D base end
+ 	if (add &lt; 0) then factor =3D 1.0 / base end
++	=
+
++	gMinZoom =3D gMinZoom or 1
++	gMaxZoom =3D gMaxZoom or 80
++	local factor =3D math.max(gMinZoom,math.min(gMaxZoom,self.gThirdPersonDis=
+t * factor)) / self.gThirdPersonDist =
+
+ 	self.gThirdPersonDist =3D self.gThirdPersonDist * factor
+ 	self.gCamLookAheadDist =3D self.gCamLookAheadDist * factor
+ 	self.gbCamRotChanged =3D true
+
+Modified: trunk/lua/lib.3d.map.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.map.lua (original)
++++ trunk/lua/lib.3d.map.lua Sat Jan 26 00:35:17 2008
+@@ -76,7 +76,7 @@
+ 	if (not gEnableLowDetailTerrainFarSight) then return end
+ 	if (not Renderer3D.gLowDetailTerrainNeedsRebuild) then return end
+ 	self.gLowDetailTerrainNeedsRebuild =3D false
+-	if (gLowDetailTerrain) then gLowDetailTerrain:Destroy() gLowDetailTerrain=
+ =3D nil end
++	--~ if (gLowDetailTerrain) then gLowDetailTerrain:Destroy() gLowDetailTer=
+rain =3D nil end
+ 	if (not gGroundBlockLoader) then return end
+ 	--~ if (gKeyPressed[key_lshift]) then return end
+ 	--~ if (true) then return end
+@@ -93,8 +93,12 @@
+ 	end
+ 	=
+
+ 	-- allocate renderable from lowcount
+-	gLowDetailTerrain =3D CreateRootGfx3D()
+-	gLowDetailTerrain:SetSimpleRenderable()
++	local bGfxInit =3D false
++	if (not gLowDetailTerrain) then
++		gLowDetailTerrain =3D CreateRootGfx3D()
++		gLowDetailTerrain:SetSimpleRenderable()
++		bGfxInit =3D true
++	end
+ 	local gfx =3D gLowDetailTerrain
+ 	local cs =3D self.ROBMAP_CHUNK_SIZE
+ 	local polycount =3D (2*2) * (cs * cs) * table.getn(lowlist) -- each lowli=
+st entry is one chunk, each chunk is cx*cx mapblocks, we use 2*2 polys for =
+each
+@@ -139,10 +143,12 @@
+ 	=
+
+ 	-- finish renderable
+ 	gfx:RenderableEnd()
+-	gfx:SetMaterial(&quot;terrain_multitex_far&quot;)
+-	gfx:SetCastShadows(false)
+-	local x,y,z =3D self:UOPosToLocal(0,0,0)
+-	gfx:SetPosition(x, y, z)
++	--~ if (bGfxInit) then
++		gfx:SetMaterial(&quot;terrain_multitex_far&quot;)
++		gfx:SetCastShadows(false)
++		local x,y,z =3D self:UOPosToLocal(0,0,0)
++		gfx:SetPosition(x, y, z)
++	--~ end
+ end
+ =
+
+ =
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000667.html">[Iris-commit] [IRIS] r1854 -	/trunk/data/models/materials/textures.material
+</A></li>
+	<LI>Next message: <A HREF="000669.html">[Iris-commit] [IRIS] r1856 - in /trunk/lua: lib.3d.dynamic.lua lib.3d.map.lua lib.mainmenu.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#668">[ date ]</a>
+              <a href="thread.html#668">[ thread ]</a>
+              <a href="subject.html#668">[ subject ]</a>
+              <a href="author.html#668">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

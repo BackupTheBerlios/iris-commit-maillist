@@ -1,0 +1,187 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1470 - in /trunk/data: config.lua.dist	lua/lib.tilefreewalk.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2007-October/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1470%20-%20in%20/trunk/data%3A%20config.lua.dist%0A%09lua/lib.tilefreewalk.lua&In-Reply-To=%3C20071010193034.6E67A1C18165%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000284.html">
+   <LINK REL="Next"  HREF="000286.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1470 - in /trunk/data: config.lua.dist	lua/lib.tilefreewalk.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1470%20-%20in%20/trunk/data%3A%20config.lua.dist%0A%09lua/lib.tilefreewalk.lua&In-Reply-To=%3C20071010193034.6E67A1C18165%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1470 - in /trunk/data: config.lua.dist	lua/lib.tilefreewalk.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Wed Oct 10 21:30:34 CEST 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000284.html">[Iris-commit] [IRIS] r1469 - in /trunk/data: base/ui/sience_border.png base/ui/sience_button.png base/ui/sience_window.png base/ui/ui.material lua/gui/gui.styles.lua lua/lib.bugreport.lua lua/lib.mainmenu.lua
+</A></li>
+        <LI>Next message: <A HREF="000286.html">[Iris-commit] [IRIS] r1471 - in /trunk: bin/iris2.exe data/lua/filter.art.lua data/lua/lib.3d.dynamic.lua data/lua/lib.static.lua data/lua/lib.tilefreewalk.lua data/lua/lib.uoids.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#285">[ date ]</a>
+              <a href="thread.html#285">[ thread ]</a>
+              <a href="subject.html#285">[ subject ]</a>
+              <a href="author.html#285">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Wed Oct 10 21:30:34 2007
+New Revision: 1470
+
+Log:
+freewalk : added stuckcheck that teleports the player back to the last requ=
+ested position if movement fails for 4 seconds
+
+Modified:
+    trunk/data/config.lua.dist
+    trunk/data/lua/lib.tilefreewalk.lua
+
+Modified: trunk/data/config.lua.dist
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/config.lua.dist (original)
++++ trunk/data/config.lua.dist Wed Oct 10 21:30:34 2007
+@@ -247,3 +247,4 @@
+ gEnableRTTModelImages =3D false
+ =
+
+ gShowTileFreeDebug =3D false
++gShowTileFreeDebug =3D true
+
+Modified: trunk/data/lua/lib.tilefreewalk.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.tilefreewalk.lua (original)
++++ trunk/data/lua/lib.tilefreewalk.lua Wed Oct 10 21:30:34 2007
+@@ -16,6 +16,7 @@
+ 		=
+
+ gTileFreePlayerRad =3D 0.2 -- radius of player/human
+ gTileFreeDebugWallH =3D 0.7
++kStuckCheckDuration =3D 4000
+ =
+
+ -- ##### ##### ##### ##### ##### init
+ =
+
+@@ -26,6 +27,7 @@
+ 	self.debugmarkers =3D {}
+ 	self.debugmarkergroups =3D {}
+ 	self.walls =3D {}
++	self.iLastTimeNotStuck =3D 0
+ 	self.movedirx =3D 0
+ 	self.movediry =3D 1
+ 	self.pos_clientside =3D {0,0,0}
+@@ -181,6 +183,14 @@
+ 	-- send walk requests to server if possible
+ 	self:Impl_WalkRequestStep(bRunRequested)
+ 	=
+
++	if (not gStartGameWithoutNetwork) then =
+
++		if (gMyTicks - self.iLastTimeNotStuck &gt; kStuckCheckDuration) then
++			local lx,ly,lz =3D self:GetPos_LastRequested()
++			local rx,ry,rz =3D self:RoundPos(self:GetPos_ClientSide())
++			if (lx ~=3D rx or ly ~=3D ry) then self:StuckFix(lx,ly,lz) end
++		end
++	end
++	=
+
+ 	self:Impl_StepPlayer(fRequestedSpeed,bRunRequested)
+ end
+ =
+
+@@ -405,7 +415,14 @@
+ 	local iDir =3D DirFromLocalDxDy(dx,dy)
+ 	if (not iDir) then self.bSkipWalkStep =3D true return end
+ 	=
+
+-	WalkStep_WalkInDir(iDir,bRunRequested,true)
++	if (WalkStep_WalkInDir(iDir,bRunRequested,true)) then self.iLastTimeNotSt=
+uck =3D gMyTicks end
++end
++
++function gTileFreeWalk:StuckFix (lx,ly,lz)
++	print(&quot;gTileFreeWalk:StuckFix&quot;)
++	self.iLastTimeNotStuck =3D gMyTicks
++	self:SetPos_All(lx,ly,lz)
++	self:UpdateClientPosMarker()
+ end
+ 				=
+
+ =
+
+@@ -457,7 +474,7 @@
+ 	function RegisterZ (ldx,ldy,iNewZ)
+ 		groundcache[ldx..&quot;,&quot;..ldy] =3D groundcache[ldx..&quot;,&quot;..ldy] or (iNewZ and =
+(iNewZ*0.1 + Renderer3D.gZ_Factor))
+ 	end
+-	for iDir=3D0,7 do =
+
++	function CheckDir (iDir) 	=
+
+ 		local ldx,ldy =3D GetDirXLocal(iDir),GetDirYLocal(iDir)
+ 		if (sign(ldx) =3D=3D sign(rx-ox) and sign(ldy) =3D=3D sign(ry-oy)) then =
+iComingHereDir =3D iDir end
+ 		local xloc2,yloc2 =3D xloc+GetDirX(iDir),yloc+GetDirY(iDir)
+@@ -470,6 +487,8 @@
+ 			RegisterZ(ldx+GetDirXLocal(iDirR),ldy+GetDirYLocal(iDirR),self:Impl_Cal=
+cWalkStep(xloc2+GetDirX(iDirR),yloc2+GetDirY(iDirR),iNewZ,iDirR))
+ 		end
+ 	end
++	for iDir=3D1,7,2 do CheckDir(iDir) end -- check diagonals first
++	for iDir=3D0,7,2 do CheckDir(iDir) end
+ 	=
+
+ 	iSelfZ =3D iSelfZ or self:Impl_CalcWalkStep(xloc,yloc,zloc,iComingHereDir=
+ or 0)
+ 	RegisterZ(0,0,iSelfZ)
+@@ -589,6 +608,7 @@
+ 	self:SetPos_ClientSide(		x,y,z)
+ 	self:SetPos_LastConfirmed(	x,y,z)
+ 	self:SetPos_LastRequested(	x,y,z)
++	while (self:PathPoint_Count() &gt; 0) do self:PathPoint_Pop() end
+ 	self.pathpoints =3D {}
+ end
+ =
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000284.html">[Iris-commit] [IRIS] r1469 - in /trunk/data: base/ui/sience_border.png base/ui/sience_button.png base/ui/sience_window.png base/ui/ui.material lua/gui/gui.styles.lua lua/lib.bugreport.lua lua/lib.mainmenu.lua
+</A></li>
+	<LI>Next message: <A HREF="000286.html">[Iris-commit] [IRIS] r1471 - in /trunk: bin/iris2.exe data/lua/filter.art.lua data/lua/lib.3d.dynamic.lua data/lua/lib.static.lua data/lua/lib.tilefreewalk.lua data/lua/lib.uoids.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#285">[ date ]</a>
+              <a href="thread.html#285">[ thread ]</a>
+              <a href="subject.html#285">[ subject ]</a>
+              <a href="author.html#285">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

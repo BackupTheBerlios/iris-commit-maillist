@@ -1,0 +1,216 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1815 - /trunk/lua/lib.walking2.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-January/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1815%20-%20/trunk/lua/lib.walking2.lua&In-Reply-To=%3C20080120132719.F1D341524004%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000628.html">
+   <LINK REL="Next"  HREF="000630.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1815 - /trunk/lua/lib.walking2.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1815%20-%20/trunk/lua/lib.walking2.lua&In-Reply-To=%3C20080120132719.F1D341524004%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1815 - /trunk/lua/lib.walking2.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sun Jan 20 14:27:19 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000628.html">[Iris-commit] [IRIS] r1813 - /trunk/lua/main.lua
+</A></li>
+        <LI>Next message: <A HREF="000630.html">[Iris-commit] [IRIS] r1816 - in /trunk: data/base/main.material data/config.lua.dist data/models/materials/textures.material data/terrain/materials/terrain.material lua/lib.3d.map.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#629">[ date ]</a>
+              <a href="thread.html#629">[ thread ]</a>
+              <a href="subject.html#629">[ subject ]</a>
+              <a href="author.html#629">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sun Jan 20 14:27:19 2008
+New Revision: 1815
+
+Log:
+optimized walkcode for multis
+
+Modified:
+    trunk/lua/lib.walking2.lua
+
+Modified: trunk/lua/lib.walking2.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.walking2.lua (original)
++++ trunk/lua/lib.walking2.lua Sun Jan 20 14:27:19 2008
+@@ -5,6 +5,23 @@
+ =
+
+ function printwalkdebug (...) if (gDebugWalkingDetailed) then printdebug(&quot;=
+walking&quot;,unpack(arg)) end end =
+
+ =
+
++		=
+
++function GetMultiPartsAtPos(multi,xloc,yloc) =
+
++	local mycache =3D multi.cache
++	if (not mycache) then
++		mycache =3D {}
++		multi.cache =3D mycache
++		for k,v in pairs(multi.lparts or {}) do
++			local iTileTypeID,iX,iY,iZ,iHue =3D unpack(v)
++			local myarr =3D mycache[iX..&quot;,&quot;..iY]
++			if (not myarr) then myarr =3D {}   mycache[iX..&quot;,&quot;..iY] =3D myarr end
++			table.insert(myarr,{iZ=3DiZ,iTileTypeID=3DiTileTypeID,iHue=3DiHue})
++		end
++	end
++	return mycache[xloc..&quot;,&quot;..yloc] or {}
++end
++		=
+
++		=
+
+ kHex02 =3D hex2num(&quot;0x02&quot;)
+ =
+
+ -- returns tiletype,zloc
+@@ -53,41 +70,38 @@
+ function GetWalkingBlockFlagsHelper(zloc,artid,flaglist)
+ 	local t =3D GetStaticTileType(artid)
+ 	if (t) then
+-		if ( not(isBridge(t.miFlags)) and not(isImpassable(t.miFlags)) and not(i=
+sSurface(t.miFlags)) ) then
++		local t_isBridge		=3D isBridge(t.miFlags)
++		local t_isImpassable	=3D isImpassable(t.miFlags)
++		local t_isSurface		=3D isSurface(t.miFlags)
++		if ( not(t_isBridge) and not(t_isImpassable) and not(t_isSurface) ) then
+ 			--~ printwalkdebug(&quot;----&quot; .. t.msName ..&quot;  !impassable  !bridge  !surfa=
+ceblocking&quot;)
+ 		else
+ 			local iHeight =3D t.miHeight
+-			if (isBridge(t.miFlags)) then iHeight =3D iHeight/2 + 0.5 end -- TODO :=
+ 2 is the right value, but playerpos is to low
++			if (t_isBridge) then iHeight =3D iHeight/2 + 0.5 end -- TODO : 2 is the=
+ right value, but playerpos is to low
+ 			=
+
+-			if (flaglist[zloc] =3D=3D nil) then
+-				flaglist[zloc] =3D { }
+-			end
+ 			local myflaglist =3D flaglist[zloc]
++			if (myflaglist =3D=3D nil) then myflaglist =3D { } flaglist[zloc] =3D m=
+yflaglist end
+ 			=
+
+-			myflaglist.bSurface =3D myflaglist.bSurface or isSurface(t.miFlags)
+-			myflaglist.bBridge =3D myflaglist.bBridge or isBridge(t.miFlags)
++			if (t_isSurface	) then myflaglist.bSurface =3D true end
++			if (t_isBridge	) then myflaglist.bBridge =3D true end
+ 			=
+
+ 			if (iHeight &gt; 0) then
+-				myflaglist.bImpassable =3D myflaglist.bImpassable or isImpassable(t.mi=
+Flags)
++				if (t_isImpassable) then myflaglist.bImpassable =3D true end
+ 				for j=3D1, iHeight-1, 1 do
+-					if (flaglist[zloc + j] =3D=3D nil) then
+-						flaglist[zloc + j] =3D { }
+-					end
+ 					local myflaglist =3D flaglist[zloc + j]
+-					myflaglist.bImpassable =3D myflaglist.bImpassable or isImpassable(t.m=
+iFlags)
+-					myflaglist.bSurface =3D myflaglist.bSurface or isSurface(t.miFlags)
+-					myflaglist.bBridge =3D myflaglist.bBridge or isBridge (t.miFlags) =
+
++					if (myflaglist =3D=3D nil) then myflaglist =3D { } flaglist[zloc + j]=
+ =3D myflaglist end
++					if (t_isImpassable	) then myflaglist.bImpassable =3D true end
++					if (t_isSurface		) then myflaglist.bSurface =3D true end
++					if (t_isBridge		) then myflaglist.bBridge =3D true end
+ 				end
+ 				=
+
+-				if (flaglist[zloc + iHeight] =3D=3D nil) then
+-					flaglist[zloc + iHeight] =3D { }
+-				end
+ 				local myflaglist =3D flaglist[zloc + iHeight]
+-				myflaglist.bSurface =3D myflaglist.bSurface or isSurface(t.miFlags)
+-				myflaglist.bBridge =3D myflaglist.bBridge or isBridge(t.miFlags) =
+
++				if (myflaglist =3D=3D nil) then myflaglist =3D { } flaglist[zloc + iHe=
+ight] =3D myflaglist end
++				if (t_isSurface	) then myflaglist.bSurface =3D true end
++				if (t_isBridge	) then myflaglist.bBridge =3D true end
+ 			end
+ 			=
+
+-			--~ printwalkdebug(&quot;----&quot; .. t.msName ..&quot;  z=3D&quot; .. zloc .. &quot;  height=
+=3D&quot; .. iHeight .. &quot; bImpassable=3D&quot; .. tostring(isImpassable(t.miFlags)) .=
+. &quot; bSurface=3D&quot; .. tostring(isSurface(t.miFlags)) .. &quot; isBridge=3D&quot; .. tos=
+tring(isBridge(t.miFlags)))
++			--~ printwalkdebug(&quot;----&quot; .. t.msName ..&quot;  z=3D&quot; .. zloc .. &quot;  height=
+=3D&quot; .. iHeight .. &quot; bImpassable=3D&quot; .. tostring(t_isImpassable) .. &quot; bSurf=
+ace=3D&quot; .. tostring(isSurface(t.miFlags)) .. &quot; isBridge=3D&quot; .. tostring(isB=
+ridge(t.miFlags)))
+ 		end
+ 	end
+ end
+@@ -150,17 +164,9 @@
+ 	--~ printwalkdebug(&quot;---Multis&quot;)
+ 	=
+
+ 	if (not gTestIgnoreMultisInWalk) then
+-	for k,v in pairs(gMultis) do
+-		local multi =3D k
+-		=
+
+-		if multi.lparts then
+-			for k,v in pairs(multi.lparts) do
+-
+-				local iTileTypeID,iX,iY,iZ,iHue =3D unpack(v)
+-				if	iX =3D=3D xloc and iY =3D=3D yloc  then
+-					GetWalkingBlockFlagsHelper(iZ,iTileTypeID,flaglist)
+-				end
+-			end
++	for multi,v in pairs(gMultis) do
++		for k,item in pairs(GetMultiPartsAtPos(multi,xloc,yloc)) do
++			GetWalkingBlockFlagsHelper(item.iZ,item.iTileTypeID,flaglist)
+ 		end
+ 	end
+ 	end
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000628.html">[Iris-commit] [IRIS] r1813 - /trunk/lua/main.lua
+</A></li>
+	<LI>Next message: <A HREF="000630.html">[Iris-commit] [IRIS] r1816 - in /trunk: data/base/main.material data/config.lua.dist data/models/materials/textures.material data/terrain/materials/terrain.material lua/lib.3d.map.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#629">[ date ]</a>
+              <a href="thread.html#629">[ thread ]</a>
+              <a href="subject.html#629">[ subject ]</a>
+              <a href="author.html#629">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

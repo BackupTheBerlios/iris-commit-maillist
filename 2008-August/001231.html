@@ -1,0 +1,191 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2426 - in /trunk/lua: lib.tilefreewalk.lua	lib.walking3.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-August/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2426%20-%20in%20/trunk/lua%3A%20lib.tilefreewalk.lua%0A%09lib.walking3.lua&In-Reply-To=%3C20080830025715.B22181C18679%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001230.html">
+   <LINK REL="Next"  HREF="001232.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2426 - in /trunk/lua: lib.tilefreewalk.lua	lib.walking3.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2426%20-%20in%20/trunk/lua%3A%20lib.tilefreewalk.lua%0A%09lib.walking3.lua&In-Reply-To=%3C20080830025715.B22181C18679%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2426 - in /trunk/lua: lib.tilefreewalk.lua	lib.walking3.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat Aug 30 04:57:15 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001230.html">[Iris-commit] [IRIS] r2425 - in /trunk/lua: gui/gui.helper.lua	net/net.other.lua
+</A></li>
+        <LI>Next message: <A HREF="001232.html">[Iris-commit] [IRIS] r2427 - in /trunk/lua: lib.3d.renderer.lua	net/net.mobile.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1231">[ date ]</a>
+              <a href="thread.html#1231">[ thread ]</a>
+              <a href="subject.html#1231">[ subject ]</a>
+              <a href="author.html#1231">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sat Aug 30 04:57:14 2008
+New Revision: 2426
+
+Log:
+prepare for walk debug
+
+Modified:
+    trunk/lua/lib.tilefreewalk.lua
+    trunk/lua/lib.walking3.lua
+
+Modified: trunk/lua/lib.tilefreewalk.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.tilefreewalk.lua (original)
++++ trunk/lua/lib.tilefreewalk.lua Sat Aug 30 04:57:14 2008
+@@ -123,6 +123,7 @@
+ =
+
+ =
+
+ function gTileFreeWalk:Step	()
++	if (gDisableTileFreeWalk) then return end
+ 	if (gCurrentRenderer ~=3D Renderer3D) then return end
+ 	local bWalkInMouseDir	=3D gKeyPressed[key_mouse2] and (not gLastMouseDown=
+Widget) and (not gLastRightClickSerial)
+ 	local bWalkForward		=3D (not gActiveEditText) and gKeyPressed[key_up]		=
+
+@@ -556,6 +557,26 @@
+ -- qw,qx,qy,qz =3D gTileFreeWalk:GetOrientation()
+ function gTileFreeWalk:GetOrientation ()	return Quaternion.getRotation(0,-=
+1,0,self:GetViewDir()) end
+ =
+
++function gTileFreeWalk:UpdateOfflineBody (x,y,z, qw,qx,qy,qz, bMoving,bTur=
+ning,bWarMode,bRunFlag)
++	if (not gTileFreeTestBodyGfx) then =
+
++		local mobile =3D kTileFreeTestMobile
++		gTileFreeTestBodyGfx =3D CreateBodyGfx()
++		gTileFreeTestBodyGfx:MarkForUpdate(mobile.artid,mobile.hue,mobile.conten=
+t)
++		gTileFreeTestBodyGfx:Update()
++	end
++	gTileFreeTestBodyGfx:SetState(bMoving,bTurning,bWarMode,bRunFlag)
++	gTileFreeTestBodyGfx.modelgfx:SetPosition(x,y,z)
++	gTileFreeTestBodyGfx.modelgfx:SetOrientation(qw,qx,qy,qz)
++	=
+
++	-- handle offline blend out
++	gCurrentRenderer:BlendOutLayersAbovePlayer()
++	gPlayerXLoc,gPlayerYLoc,gPlayerZLoc =3D Renderer3D:LocalToUOPos(x,y,z * 1=
+0)
++	=
+
++	gPlayerXLoc =3D math.floor(gPlayerXLoc)
++	gPlayerYLoc =3D math.floor(gPlayerYLoc)
++	gPlayerZLoc =3D math.floor(gPlayerZLoc)
++end
++
+ -- fRequestedSpeed is the speed requested by the mousepos/keyboard, might =
+not be reached, e.g. when walking against a wall
+ function gTileFreeWalk:Impl_StepPlayer (fRequestedSpeed,bRunRequested)
+ =
+
+@@ -569,24 +590,7 @@
+ 	=
+
+ 	-- apply to body
+ 	if (gStartGameWithoutNetwork) then -- offline mode, show test model
+-		if (not gTileFreeTestBodyGfx) then =
+
+-			local mobile =3D kTileFreeTestMobile
+-			gTileFreeTestBodyGfx =3D CreateBodyGfx()
+-			gTileFreeTestBodyGfx:MarkForUpdate(mobile.artid,mobile.hue,mobile.conte=
+nt)
+-			gTileFreeTestBodyGfx:Update()
+-		end
+-		gTileFreeTestBodyGfx:SetState(bMoving,bTurning,bWarMode,bRunFlag)
+-		gTileFreeTestBodyGfx.modelgfx:SetPosition(x,y,z)
+-		gTileFreeTestBodyGfx.modelgfx:SetOrientation(qw,qx,qy,qz)
+-		=
+
+-		-- handle offline blend out
+-		gCurrentRenderer:BlendOutLayersAbovePlayer()
+-		gPlayerXLoc,gPlayerYLoc,gPlayerZLoc =3D Renderer3D:LocalToUOPos(x,y,z * =
+10)
+-		=
+
+-		gPlayerXLoc =3D math.floor(gPlayerXLoc)
+-		gPlayerYLoc =3D math.floor(gPlayerYLoc)
+-		gPlayerZLoc =3D math.floor(gPlayerZLoc)
+-		=
+
++		gTileFreeWalk:UpdateOfflineBody(x,y,z, qw,qx,qy,qz, bMoving,bTurning,bWa=
+rMode,bRunFlag)
+ 	else -- online mode, set mobile pos
+ 		local mobile =3D GetPlayerMobile()
+ 		if (mobile) then =
+
+
+Modified: trunk/lua/lib.walking3.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.walking3.lua (original)
++++ trunk/lua/lib.walking3.lua Sat Aug 30 04:57:14 2008
+@@ -26,6 +26,14 @@
+ function GetNearestGroundLevel (xloc,yloc,iStartZ,iDir)
+ 	if (gUseWalk3) then return GetNearestGroundLevel_W3(xloc,yloc,iStartZ,iDi=
+r) end
+ 	return GetNearestGroundLevel_W2(xloc,yloc,iStartZ,iDir)
++end
++
++RegisterStepper(function () W3_Test_Step() end) =
+
++
++function W3_Test_Step ()
++	if (not gDisableTileFreeWalk) then return end
++	--~ print(&quot;W3_Step&quot;)
++	gTileFreeWalk:UpdateOfflineBody(x,y,z, qw,qx,qy,qz, bMoving,bTurning,bWar=
+Mode,bRunFlag)
+ end
+ =
+
+ --[[
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001230.html">[Iris-commit] [IRIS] r2425 - in /trunk/lua: gui/gui.helper.lua	net/net.other.lua
+</A></li>
+	<LI>Next message: <A HREF="001232.html">[Iris-commit] [IRIS] r2427 - in /trunk/lua: lib.3d.renderer.lua	net/net.mobile.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1231">[ date ]</a>
+              <a href="thread.html#1231">[ thread ]</a>
+              <a href="subject.html#1231">[ subject ]</a>
+              <a href="author.html#1231">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,254 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r3359 - in /trunk: lua/lib.map.lua lua/lib.packet.lua lua/lib.protocol.lua lua/net/net.mobile.lua src/data_radar.cpp
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2010-August/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3359%20-%20in%20/trunk%3A%20lua/lib.map.lua%0A%20lua/lib.packet.lua%20lua/lib.protocol.lua%20lua/net/net.mobile.lua%0A%20src/data_radar.cpp&In-Reply-To=%3C20100804171008.A91E554D0008%40simon%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="002098.html">
+   <LINK REL="Next"  HREF="002100.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r3359 - in /trunk: lua/lib.map.lua lua/lib.packet.lua lua/lib.protocol.lua lua/net/net.mobile.lua src/data_radar.cpp</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3359%20-%20in%20/trunk%3A%20lua/lib.map.lua%0A%20lua/lib.packet.lua%20lua/lib.protocol.lua%20lua/net/net.mobile.lua%0A%20src/data_radar.cpp&In-Reply-To=%3C20100804171008.A91E554D0008%40simon%3E"
+       TITLE="[Iris-commit] [IRIS] r3359 - in /trunk: lua/lib.map.lua lua/lib.packet.lua lua/lib.protocol.lua lua/net/net.mobile.lua src/data_radar.cpp">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Wed Aug  4 19:10:08 CEST 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="002098.html">[Iris-commit] [IRIS] r3358 - in /trunk: ./ lua/ lua/net/ lua/obj/	src/
+</A></li>
+        <LI>Next message: <A HREF="002100.html">[Iris-commit] [IRIS] r3360 - /trunk/bin/iris2.exe
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2099">[ date ]</a>
+              <a href="thread.html#2099">[ thread ]</a>
+              <a href="subject.html#2099">[ subject ]</a>
+              <a href="author.html#2099">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Wed Aug  4 19:10:05 2010
+New Revision: 3359
+
+Log:
+secured radarmap loader for broken statics, added new packet 0xe2 kPacket_M=
+obStateAnimKR for vetus-mundus crashfix, made iris packetloop more tolerant=
+ for unknown packets
+
+Modified:
+    trunk/lua/lib.map.lua
+    trunk/lua/lib.packet.lua
+    trunk/lua/lib.protocol.lua
+    trunk/lua/net/net.mobile.lua
+    trunk/src/data_radar.cpp
+
+Modified: trunk/lua/lib.map.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.map.lua (original)
++++ trunk/lua/lib.map.lua Wed Aug  4 19:10:05 2010
+@@ -73,7 +73,9 @@
+     end
+     if (gStaticBlockLoader) then
+         for i =3D 0,iStaticCount-1 do
+-            local iTileTypeID,tx,ty,iZ,iHue =3D gStaticBlockLoader:GetStat=
+ic(i)
++            local iTileTypeID,tx,ty,iZ,iHue =3D gStaticBlockLoader:GetStat=
+ic(i) =
+
++			--~ assert(tx &gt;=3D 0 and tx &lt; 8,&quot;tx&quot;..tostring(tx))
++			--~ assert(ty &gt;=3D 0 and ty &lt; 8,&quot;ty&quot;..tostring(ty))
+             local static =3D {zloc=3DiZ,artid=3DiTileTypeID,hue=3DiHue,tx=
+=3Dtx,ty=3Dty,xloc=3Dtx+bx*8,yloc=3Dty+by*8,bx=3Dbx,by=3Dby,iBlockIndex=3Di=
+,fBlockIndexRel=3Di/iStaticCount,bIsStatic=3Dtrue}
+             table.insert(b.statics_bypos[ty*10 + tx],static)
+             table.insert(b.statics_all,static)
+
+Modified: trunk/lua/lib.packet.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.packet.lua (original)
++++ trunk/lua/lib.packet.lua Wed Aug  4 19:10:05 2010
+@@ -239,6 +239,7 @@
+ gPacketType.kPacket_unknownDEpacket									=3D { id=3D0xDE, size=3D0 }
+ -- buff/debuff packet
+ gPacketType.kPacket_BuffDebuff_System								=3D { id=3D0xDF, size=3D0 }
++gPacketType.kPacket_MobStateAnimKR									=3D { id=3D0xE2, size=3D10 } --=
+ <A HREF="http://docs.polserver.com/packets/index.php?Packet=3D0xE2">http://docs.polserver.com/packets/index.php?Packet=3D0xE2</A>
+ gPacketType.kPacket_ExtBundledPacket								=3D { id=3D0xF0, size=3D0 } --=
+ party positions, used by razor positioning system
+ gPacketType.kPacket_ObjectInfo										=3D { id=3D0xF3, size=3D24 }
+ =
+
+
+Modified: trunk/lua/lib.protocol.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.protocol.lua (original)
++++ trunk/lua/lib.protocol.lua Wed Aug  4 19:10:05 2010
+@@ -36,6 +36,9 @@
+ =
+
+ gProfiler_Packets =3D CreateRoughProfiler(&quot;Packets&quot;)
+ =
+
++gContinueOnUnknownPackets =3D true
++gOnPacketCrash_HexDump =3D true
++			=
+
+ -- check if packets are complete and handle them
+ function HandlePackets ()
+ 	if (not gNoLogPackets_ByPacket) then gNoLogPackets_ByPacket =3D {} for k,=
+v in pairs(gNoLogPackets) do gNoLogPackets_ByPacket[v] =3D true end end
+@@ -48,8 +51,11 @@
+ 		local iId =3D input:PeekNetUint8(0)
+ 		local iPacketSize =3D gPacketSizeByID[iId]
+ 		--~ print(&quot;packet&quot;,gPacketTypeId2Name[iId],iPacketSize)
+-		if (not iPacketSize) then
++		if (not iPacketSize) then -- triggers only if nil, not for 0
+ 			local iSizeIfDynamic =3D (input:Size() &gt;=3D 3) and input:PeekNetUint16(=
+1)
++			print(&quot;####################################################&quot;)
++			print(&quot;###  NETWORK ERROR: unknown Packetsize received  ###&quot;)
++			print(&quot;####################################################&quot;)
+ 			print(&quot;Packet with unknown Packetsize received : &quot;,iId,sprintf(&quot;0x%02x&quot;=
+,iId or 0),&quot;remaining size:&quot;,input:Size(),&quot;dynsize&quot;,iSizeIfDynamic)
+ 			print(&quot;WARNING : HandlePackets -&gt; forced Crash&quot;)
+ 			print(&quot;tipps and possible reasons :&quot;)
+@@ -61,7 +67,10 @@
+ 			AOSResistances 0
+ 			}]])
+ 			if (gOnPacketCrash_HexDump) then print(FIFOHexDump (input)) end
+-			Crash()	-- triggers only if nil, not for 0
++			if (not gContinueOnUnknownPackets) then Crash() return end
++			-- drop rest in fifo and continue, undetermined loss of data, but bette=
+r than a crash
++			input:PopRaw(input:Size())
++			break
+ 		end
+ 		if (iPacketSize =3D=3D 0 and input:Size() &lt; 3) then break end -- packet =
+incomplete
+ 		if (iPacketSize =3D=3D 0) then iPacketSize =3D input:PeekNetUint16(1) end
+
+Modified: trunk/lua/net/net.mobile.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.mobile.lua (original)
++++ trunk/lua/net/net.mobile.lua Wed Aug  4 19:10:05 2010
+@@ -383,6 +383,18 @@
+ 	gSwingCounter[attacker_serial] =3D (gSwingCounter[attacker_serial] or 0) =
++ 1
+ end
+ =
+
++-- <A HREF="http://docs.polserver.com/packets/index.php?Packet=3D0xE2">http://docs.polserver.com/packets/index.php?Packet=3D0xE2</A>
++function gPacketHandler.kPacket_MobStateAnimKR() -- 0xE2, 10bytes
++	local input =3D GetRecvFIFO()
++	local id =3D input:PopNetUint8()
++	local serial	=3D input:PopNetUint32() -- Mobile serial
++	local action	=3D input:PopNetUint16()
++	local unknown1	=3D input:PopNetUint8() -- unknown (0x00)
++	local actionsub	=3D input:PopNetUint8() -- Secondary/Sub Action
++	local unknown2	=3D input:PopNetUint8() -- Last byte appears a random numb=
+er from 0 to 59. Could this be a loop or timer?
++	--~ print(&quot;MobStateAnimKR&quot;,serial,action,unknown1,actionsub,unknown2)
++end
++
+ -- TODO : what is the result of this packet?
+ --BYTE cmd =
+
+ --BYTE action (2=3Dghost, 1=3Dresurrect, 0=3Dfrom server)
+
+Modified: trunk/src/data_radar.cpp
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/src/data_radar.cpp (original)
++++ trunk/src/data_radar.cpp Wed Aug  4 19:10:05 2010
+@@ -22,6 +22,7 @@
+ 	=
+
+ 	// prepare vars
+ 	uint32* pBuf =3D (uint32*)OGRE_MALLOC(iImgW*iImgH*sizeof(uint32), Ogre::M=
+EMCATEGORY_GENERAL);
++	if (!pBuf) { printf(&quot;GenerateRadarImage: malloc failed : %d bytes\n&quot;,iImg=
+W*iImgH*sizeof(uint32)); exit(0); }
+ 	int heightmap[8*8]; // like a z-buffer, for statics
+ 	=
+
+ 	// iterate over blocks
+@@ -29,7 +30,7 @@
+ 	for (int ax=3D0;ax&lt;dbx;++ax) {
+ 		// first step, ground
+ 		cGroundBlock* pGroundBlock =3D oGroundBlockLoader.GetGroundBlock(bx0+ax,=
+by0+ay);
+-		if (pGroundBlock) {
++		if (pGroundBlock &amp;&amp; pGroundBlock-&gt;mpRawGroundBlock) {
+ 			for (int ty=3D0;ty&lt;8;++ty)
+ 			for (int tx=3D0;tx&lt;8;++tx) {
+ 				heightmap[ty*8+tx] =3D pGroundBlock-&gt;mpRawGroundBlock-&gt;mTiles[ty][tx].=
+miZ;
+@@ -42,13 +43,13 @@
+ 				pBuf[(ay*8+ty)*iImgW+ax*8+tx] =3D 0;
+ 			}
+ 		}
+-		=
+
+ 		// second step, statics
+ 		cStaticBlock* pStaticBlock =3D oStaticBlockLoader.GetStaticBlock(bx0+ax,=
+by0+ay);
+ 		if (pStaticBlock) {
++			//~ if (pStaticBlock-&gt;Count() &gt; 0x04ff) { printf(&quot;GenerateRadarImage: p=
+StaticBlock-&gt;Count()  %d\n&quot;,pStaticBlock-&gt;Count()); exit(0); }
+ 			for( int s=3D0; s&lt;pStaticBlock-&gt;Count(); s++ ) {
+-				int tx =3D pStaticBlock-&gt;mpRawStaticList[s].miX;
+-				int ty =3D pStaticBlock-&gt;mpRawStaticList[s].miY;
++				int tx =3D mymax(0,mymin(7,pStaticBlock-&gt;mpRawStaticList[s].miX));
++				int ty =3D mymax(0,mymin(7,pStaticBlock-&gt;mpRawStaticList[s].miY));
+ 				int tz =3D pStaticBlock-&gt;mpRawStaticList[s].miZ;
+ 				int iTileType =3D pStaticBlock-&gt;mpRawStaticList[s].miTileID;
+ 				//~ int iHue =3D pStaticBlock-&gt;mpRawStaticList[s].miHue; // TODO ? mod=
+ify radar-color using hueloader ? is this needed ?
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="002098.html">[Iris-commit] [IRIS] r3358 - in /trunk: ./ lua/ lua/net/ lua/obj/	src/
+</A></li>
+	<LI>Next message: <A HREF="002100.html">[Iris-commit] [IRIS] r3360 - /trunk/bin/iris2.exe
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2099">[ date ]</a>
+              <a href="thread.html#2099">[ thread ]</a>
+              <a href="subject.html#2099">[ subject ]</a>
+              <a href="author.html#2099">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

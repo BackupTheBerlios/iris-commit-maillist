@@ -1,0 +1,252 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1232 - in /trunk: data/lua/main.lua	src/scripting.cpp
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2007-June/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1232%20-%20in%20/trunk%3A%20data/lua/main.lua%0A%09src/scripting.cpp&In-Reply-To=%3C20070623112125.16B09B1466D%40localhost.localdomain%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000047.html">
+   <LINK REL="Next"  HREF="000049.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1232 - in /trunk: data/lua/main.lua	src/scripting.cpp</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1232%20-%20in%20/trunk%3A%20data/lua/main.lua%0A%09src/scripting.cpp&In-Reply-To=%3C20070623112125.16B09B1466D%40localhost.localdomain%3E"
+       TITLE="[Iris-commit] [IRIS] r1232 - in /trunk: data/lua/main.lua	src/scripting.cpp">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat Jun 23 13:21:24 CEST 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000047.html">[Iris-commit] [IRIS] r1231 - /trunk/bin/msvcp60.dll
+</A></li>
+        <LI>Next message: <A HREF="000049.html">[Iris-commit] [IRIS] r1233 - in /trunk/data: lua/lib.gui.lua lua/lib.time.lua lua/main.lua skippedfallbacks.lua terrain/materials/terrain.material
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#48">[ date ]</a>
+              <a href="thread.html#48">[ thread ]</a>
+              <a href="subject.html#48">[ subject ]</a>
+              <a href="author.html#48">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sat Jun 23 13:21:21 2007
+New Revision: 1232
+
+Log:
+bind for ogre pixel format constants for lua, can be used in OgreSetShadowT=
+exturePixelFormat
+
+Modified:
+    trunk/data/lua/main.lua
+    trunk/src/scripting.cpp
+
+Modified: trunk/data/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/main.lua (original)
++++ trunk/data/lua/main.lua Sat Jun 23 13:21:21 2007
+@@ -152,6 +152,12 @@
+ 	=
+
+ 	gMyTicks =3D Client_GetTicks()
+ 	=
+
++	-- register pixel format constants, like PF_FLOAT16_R
++	if (OgrePixelFormatList) then
++		local mylist =3D OgrePixelFormatList()
++		for id,name in pairs(mylist) do _G[name] =3D id end
++	end
++	=
+
+ 	LoadingProfile(&quot;initializing Ogre&quot;,true)
+ 	gPreOgreTime =3D gLoadingProfileLastTime
+ 	if (not InitOgre()) then Exit() end
+
+Modified: trunk/src/scripting.cpp
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/src/scripting.cpp (original)
++++ trunk/src/scripting.cpp Sat Jun 23 13:21:21 2007
+@@ -1144,11 +1144,67 @@
+ 	return 0;
+ }
+ =
+
+-/// for lua :   void	  OgreSetShadowTexturePixelFormat  ()
+-static int 				l_OgreSetShadowTexturePixelFormat	(lua_State *L) { PROFILE  =
+
+-	cOgreWrapper::GetSingleton().mSceneMgr-&gt;setShadowTexturePixelFormat(Ogre:=
+:<i>PF_FLOAT16_R);
+</I>-	return 0;
+-}
++/// for lua :   void	  OgreSetShadowTexturePixelFormat	()
++static int 				l_OgreSetShadowTexturePixelFormat	(lua_State *L) { PROFILE  =
+
++	Ogre::PixelFormat pf =3D (lua_gettop(L) &gt;=3D 2 &amp;&amp; !lua_isnil(L,1)) ? ((Og=
+re::PixelFormat)luaL_checkint(L,1)) : Ogre::PF_FLOAT16_R;
++	cOgreWrapper::GetSingleton().mSceneMgr-&gt;setShadowTexturePixelFormat(pf);
++	return 0;
++}
++
++
++/// for lua :   table	  OgrePixelFormatList  ()
++static int 				l_OgrePixelFormatList	(lua_State *L) { PROFILE  =
+
++	lua_newtable(L);
++	#define OgrePixelFormatList_REGISTER(pf) lua_pushstring(L,#pf); lua_rawse=
+ti(L,-2,(int)Ogre::pf);
++	OgrePixelFormatList_REGISTER(PF_UNKNOWN)		// 	Unknown pixel format.
++	OgrePixelFormatList_REGISTER(PF_L8)				// 		8-bit pixel format, all bits =
+luminace.
++	OgrePixelFormatList_REGISTER(PF_BYTE_L)			// 	=
+
++	OgrePixelFormatList_REGISTER(PF_L16)			// 		16-bit pixel format, all bits=
+ luminace.
++	OgrePixelFormatList_REGISTER(PF_SHORT_L)		// 	=
+
++	OgrePixelFormatList_REGISTER(PF_A8)				// 		8-bit pixel format, all bits =
+alpha.
++	OgrePixelFormatList_REGISTER(PF_BYTE_A)			// 	=
+
++	OgrePixelFormatList_REGISTER(PF_A4L4)			// 	8-bit pixel format, 4 bits al=
+pha, 4 bits luminace.
++	OgrePixelFormatList_REGISTER(PF_BYTE_LA)		// 	2 byte pixel format, 1 byte=
+ luminance, 1 byte alpha
++	OgrePixelFormatList_REGISTER(PF_R5G6B5)			// 	16-bit pixel format, 5 bits=
+ red, 6 bits green, 5 bits blue.
++	OgrePixelFormatList_REGISTER(PF_B5G6R5)			// 	16-bit pixel format, 5 bits=
+ red, 6 bits green, 5 bits blue.
++	OgrePixelFormatList_REGISTER(PF_R3G3B2)			// 	8-bit pixel format, 2 bits =
+blue, 3 bits green, 3 bits red.
++	OgrePixelFormatList_REGISTER(PF_A4R4G4B4)		// 	16-bit pixel format, 4 bit=
+s for alpha, red, green and blue.
++	OgrePixelFormatList_REGISTER(PF_A1R5G5B5)		// 	16-bit pixel format, 5 bit=
+s for blue, green, red and 1 for alpha.
++	OgrePixelFormatList_REGISTER(PF_R8G8B8)			// 	24-bit pixel format, 8 bits=
+ for red, green and blue.
++	OgrePixelFormatList_REGISTER(PF_B8G8R8)			// 	24-bit pixel format, 8 bits=
+ for blue, green and red.
++	OgrePixelFormatList_REGISTER(PF_A8R8G8B8)		// 	32-bit pixel format, 8 bit=
+s for alpha, red, green and blue.
++	OgrePixelFormatList_REGISTER(PF_A8B8G8R8)		// 	32-bit pixel format, 8 bit=
+s for blue, green, red and alpha.
++	OgrePixelFormatList_REGISTER(PF_B8G8R8A8)		// 	32-bit pixel format, 8 bit=
+s for blue, green, red and alpha.
++	OgrePixelFormatList_REGISTER(PF_R8G8B8A8)		// 	32-bit pixel format, 8 bit=
+s for red, green, blue and alpha.
++	OgrePixelFormatList_REGISTER(PF_X8R8G8B8)		// 	32-bit pixel format, 8 bit=
+s for red, 8 bits for green, 8 bits for blue like PF_A8R8G8B8, but alpha wi=
+ll get discarded
++	OgrePixelFormatList_REGISTER(PF_X8B8G8R8)		// 	32-bit pixel format, 8 bit=
+s for blue, 8 bits for green, 8 bits for red like PF_A8B8G8R8, but alpha wi=
+ll get discarded
++	OgrePixelFormatList_REGISTER(PF_BYTE_RGB)		// 	3 byte pixel format, 1 byt=
+e for red, 1 byte for green, 1 byte for blue
++	OgrePixelFormatList_REGISTER(PF_BYTE_BGR)		// 	3 byte pixel format, 1 byt=
+e for blue, 1 byte for green, 1 byte for red
++	OgrePixelFormatList_REGISTER(PF_BYTE_BGRA)		// 	4 byte pixel format, 1 by=
+te for blue, 1 byte for green, 1 byte for red and one byte for alpha
++	OgrePixelFormatList_REGISTER(PF_BYTE_RGBA)		// 	4 byte pixel format, 1 by=
+te for red, 1 byte for green, 1 byte for blue, and one byte for alpha
++	OgrePixelFormatList_REGISTER(PF_A2R10G10B10)	// 	32-bit pixel format, 2 b=
+its for alpha, 10 bits for red, green and blue.
++	OgrePixelFormatList_REGISTER(PF_A2B10G10R10)	// 	32-bit pixel format, 10 =
+bits for blue, green and red, 2 bits for alpha.
++	OgrePixelFormatList_REGISTER(PF_DXT1)			// 	DDS (DirectDraw Surface) DXT1=
+ format.
++	OgrePixelFormatList_REGISTER(PF_DXT2)			// 	DDS (DirectDraw Surface) DXT2=
+ format.
++	OgrePixelFormatList_REGISTER(PF_DXT3)			// 	DDS (DirectDraw Surface) DXT3=
+ format.
++	OgrePixelFormatList_REGISTER(PF_DXT4)			// 	DDS (DirectDraw Surface) DXT4=
+ format.
++	OgrePixelFormatList_REGISTER(PF_DXT5)			// 	DDS (DirectDraw Surface) DXT5=
+ format.
++	OgrePixelFormatList_REGISTER(PF_FLOAT16_R)		// 	=
+
++	OgrePixelFormatList_REGISTER(PF_FLOAT16_RGB)	// 	=
+
++	OgrePixelFormatList_REGISTER(PF_FLOAT16_RGBA)	// 	=
+
++	OgrePixelFormatList_REGISTER(PF_FLOAT32_R)		// 	=
+
++	OgrePixelFormatList_REGISTER(PF_FLOAT32_RGB)	// 	=
+
++	OgrePixelFormatList_REGISTER(PF_FLOAT32_RGBA)	// 	=
+
++	OgrePixelFormatList_REGISTER(PF_FLOAT16_GR)		// 	=
+
++	OgrePixelFormatList_REGISTER(PF_FLOAT32_GR)		// 	=
+
++	OgrePixelFormatList_REGISTER(PF_DEPTH)			// 	=
+
++	OgrePixelFormatList_REGISTER(PF_SHORT_RGBA)		// 	=
+
++	OgrePixelFormatList_REGISTER(PF_SHORT_GR)		// 	=
+
++	OgrePixelFormatList_REGISTER(PF_SHORT_RGB)		// 	=
+
++	OgrePixelFormatList_REGISTER(PF_COUNT)			// =
+
++	return 1;
++}
++
+ =
+
+ /// for lua :   void	  OgreSetShadowTextureSelfShadow  (bool)
+ static int 				l_OgreSetShadowTextureSelfShadow	(lua_State *L) { PROFILE  =
+
+@@ -1579,7 +1635,8 @@
+ 	lua_register(L,&quot;OgreSetShadowDirLightTextureOffset&quot;,				l_OgreSetShadowDi=
+rLightTextureOffset);
+ 	lua_register(L,&quot;OgreSetShadowFarDistance&quot;,							l_OgreSetShadowFarDistan=
+ce);
+ 	lua_register(L,&quot;OgreSetShadowTextureSize&quot;,							l_OgreSetShadowTextureSi=
+ze);
+-	lua_register(L,&quot;OgreSetShadowTexturePixelFormat&quot;,					l_OgreSetShadowText=
+urePixelFormat);
++	lua_register(L,&quot;OgreSetShadowTexturePixelFormat&quot;,					l_OgreSetShadowText=
+urePixelFormat);
++	lua_register(L,&quot;OgrePixelFormatList&quot;,								l_OgrePixelFormatList);
+ 	lua_register(L,&quot;OgreSetShadowTextureSelfShadow&quot;,					l_OgreSetShadowTextu=
+reSelfShadow);
+ 	lua_register(L,&quot;OgreSetShadowTextureCasterMaterial&quot;,				l_OgreSetShadowTe=
+xtureCasterMaterial);
+ 	lua_register(L,&quot;OgreSetShadowTextureReceiverMaterial&quot;,				l_OgreSetShadow=
+TextureReceiverMaterial);
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000047.html">[Iris-commit] [IRIS] r1231 - /trunk/bin/msvcp60.dll
+</A></li>
+	<LI>Next message: <A HREF="000049.html">[Iris-commit] [IRIS] r1233 - in /trunk/data: lua/lib.gui.lua lua/lib.time.lua lua/main.lua skippedfallbacks.lua terrain/materials/terrain.material
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#48">[ date ]</a>
+              <a href="thread.html#48">[ thread ]</a>
+              <a href="subject.html#48">[ subject ]</a>
+              <a href="author.html#48">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

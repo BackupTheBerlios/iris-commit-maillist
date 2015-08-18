@@ -1,0 +1,210 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2445 - in /trunk/lua: gui/gui.paperdoll.lua lib.uodragdrop.lua lib.uoids.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-September/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2445%20-%20in%20/trunk/lua%3A%20gui/gui.paperdoll.lua%0A%20lib.uodragdrop.lua%20lib.uoids.lua&In-Reply-To=%3C20080903020514.49E5C1C18695%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001249.html">
+   <LINK REL="Next"  HREF="001251.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2445 - in /trunk/lua: gui/gui.paperdoll.lua lib.uodragdrop.lua lib.uoids.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2445%20-%20in%20/trunk/lua%3A%20gui/gui.paperdoll.lua%0A%20lib.uodragdrop.lua%20lib.uoids.lua&In-Reply-To=%3C20080903020514.49E5C1C18695%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2445 - in /trunk/lua: gui/gui.paperdoll.lua lib.uodragdrop.lua lib.uoids.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Wed Sep  3 04:05:14 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001249.html">[Iris-commit] [IRIS] r2444 - in /trunk/lua: gui/gui.paperdoll.lua	obj/obj.dynamic.lua
+</A></li>
+        <LI>Next message: <A HREF="001251.html">[Iris-commit] [IRIS] r2446 - /trunk/plugins/hudenemylist.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1250">[ date ]</a>
+              <a href="thread.html#1250">[ thread ]</a>
+              <a href="subject.html#1250">[ subject ]</a>
+              <a href="author.html#1250">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Wed Sep  3 04:05:13 2008
+New Revision: 2445
+
+Log:
+added paperdoll layer stitchin/blocking system, e.g. shroud/robe(TorsoOuter=
+) blocks/covers arms and torso-inner
+
+Modified:
+    trunk/lua/gui/gui.paperdoll.lua
+    trunk/lua/lib.uodragdrop.lua
+    trunk/lua/lib.uoids.lua
+
+Modified: trunk/lua/gui/gui.paperdoll.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.paperdoll.lua (original)
++++ trunk/lua/gui/gui.paperdoll.lua Wed Sep  3 04:05:13 2008
+@@ -234,7 +234,7 @@
+ =
+
+ -- Don't call this directly, use RebuildPaperdoll() instead (need to rebui=
+ld completely on change because of layerorder)
+ -- item fields : serial artid layer hue (=3D-1 if not set)
+-local function CreatePaperdollItemWidget(layer, paperdoll, item, base_id)
++local function CreatePaperdollItemWidget(layer, paperdoll, item, base_id, =
+blockedlayers)
+ 	local dialog =3D paperdoll.dialog
+ 	local animid =3D nil
+ 	local typename =3D &quot;&quot;
+@@ -255,16 +255,14 @@
+ 	if (GetGumpMat(gumpid) =3D=3D &quot;&quot; and base_id =3D=3D kGumpBaseId_Female) t=
+hen gumpid =3D animid+kGumpBaseId_Male end -- fallback to male
+ 	if (item.layer =3D=3D kLayer_Backpack) then gumpid =3D animid+kGumpBaseId=
+_Male end -- no female backpack ;)
+ =
+
+-	local widget
+-	=
+
+-	=
+
+-	item.widget =3D MakeBorderGumpPart(dialog.rootwidget, gumpid, BodyWidget_=
+x, BodyWidget_y, 0, 0, 0, item.hue)
+-	--~ setmetatable(item,{__index=3Dfunction (myinstance, key) if (key =3D=
+=3D &quot;widget&quot;) then print(&quot;bla&quot;,_TRACEBACK()) return myinstance.widget2 end =
+end})
+-	PaperdollItemWidgetInit(item.widget,layer,paperdoll,item,base_id)
++	=
+
++	if (not blockedlayers[layer]) then
++		item.widget =3D MakeBorderGumpPart(dialog.rootwidget, gumpid, BodyWidget=
+_x, BodyWidget_y, 0, 0, 0, item.hue)
++		PaperdollItemWidgetInit(item.widget,layer,paperdoll,item,base_id)
++	end
+ 	=
+
+ 	-- additonal widget in jewelry slot
+ 	if gLayerOrderPositionAndArtOverwrite[layer] then
+-
+ 		local x,y =3D unpack(gLayerOrderPositionAndArtOverwrite[layer])
+ 		=
+
+ 		local minx,miny,maxx,maxy =3D GetArtVisibleAABB(item.artid + 0x4000)
+@@ -408,11 +406,19 @@
+ 			-- TODO : fallback/default bodyid ?
+ 		end
+ 	=
+
++		-- 2d stitching
++		local blockedlayers =3D {}
++		for blocker,blockedlist in pairs(gPaperdollBlockingLayers) do =
+
++			if GetMobileEquipmentItem(mobile,blocker) then
++				for k,blocked in pairs(blockedlist) do blockedlayers[blocked] =3D true=
+ end
++			end
++		end
++		=
+
+ 		-- create item widgets
+ 		for index,layer in pairs(gLayerOrder) do =
+
+ 			local k =3D gLayerTypeName[layer]
+ 			local item =3D GetMobileEquipmentItem(mobile,layer)
+-			if (item) then CreatePaperdollItemWidget(layer,paperdoll,item,base_id) =
+end
++			if (item) then CreatePaperdollItemWidget(layer,paperdoll,item,base_id,b=
+lockedlayers) end
+ 		end
+ 	end
+ =
+
+
+Modified: trunk/lua/lib.uodragdrop.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.uodragdrop.lua (original)
++++ trunk/lua/lib.uodragdrop.lua Wed Sep  3 04:05:13 2008
+@@ -415,6 +415,7 @@
+ 		local layer =3D GetPaperdollLayerFromTileType(iTileTypeID)
+ 		local mobileserial =3D paperdoll.mobileserial
+ 		local mobile =3D GetMobile(mobileserial)
++		print(&quot;drop on paperdoll&quot;,gLayerTypeName[layer])
+ 		printdebug(&quot;dragdrop&quot;,&quot;MouseUpUODragDrop: drop on paperdoll &quot;,item.seria=
+l,item.amount,iTileTypeID,layer,paperdoll.mobileserial)
+ 		if (not layer) then
+ 			printdebug(&quot;dragdrop&quot;,&quot;CompleteUODragDrop : item is not wearable&quot;,vardu=
+mp(item))
+
+Modified: trunk/lua/lib.uoids.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.uoids.lua (original)
++++ trunk/lua/lib.uoids.lua Wed Sep  3 04:05:13 2008
+@@ -154,6 +154,10 @@
+ gLayerTypeName =3D {}
+ for k,v in pairs(gLayerType) do gLayerTypeName[v] =3D k end -- make names =
+available as global constants
+ =
+
++gPaperdollBlockingLayers =3D {
++	[kLayer_TorsoOuter] =3D {kLayer_Arms,kLayer_TorsoInner} -- kLayer_Helm, =
+
++}
++
+ -- WARNING ! this is not a complete list (see gLayerType for that) , e.g. =
+kLayer_Mound =3D 0x19 is not in here
+ gLayerOrder =3D {
+ 	hex2num(&quot;0x09&quot;),					   -- - N/A (not used)
+@@ -173,8 +177,8 @@
+     hex2num(&quot;0x07&quot;),                       -- - Hand Covering/Armor
+     hex2num(&quot;0x17&quot;),                       -- - Legs (outer)(Skirt/Kilt)
+     hex2num(&quot;0x0B&quot;),                       -- - Hair
+-    hex2num(&quot;0x16&quot;),                       -- - Torso (outer)(Robe)
+     hex2num(&quot;0x06&quot;),                       -- - Head Covering/Armor
++    hex2num(&quot;0x16&quot;),                       -- - Torso (outer)(Robe) =
+
+     hex2num(&quot;0x0C&quot;),                       -- - Waist (Half-Apron)
+     hex2num(&quot;0x01&quot;),                       -- - Single-Hand item/weapon
+     hex2num(&quot;0x02&quot;),                       -- - Two-Hand item/weapon (incl=
+uding Shield)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001249.html">[Iris-commit] [IRIS] r2444 - in /trunk/lua: gui/gui.paperdoll.lua	obj/obj.dynamic.lua
+</A></li>
+	<LI>Next message: <A HREF="001251.html">[Iris-commit] [IRIS] r2446 - /trunk/plugins/hudenemylist.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1250">[ date ]</a>
+              <a href="thread.html#1250">[ thread ]</a>
+              <a href="subject.html#1250">[ subject ]</a>
+              <a href="author.html#1250">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

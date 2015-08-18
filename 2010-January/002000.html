@@ -1,0 +1,387 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r3240 - in /trunk/lua: lib.cursor.lua lib.macrolist.lua lib.mainmenu.accountlist.lua lib.shardlist.lua net/net.cursor.lua net/net.mobile.lua net/net.partysystem.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2010-January/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3240%20-%20in%20/trunk/lua%3A%20lib.cursor.lua%0A%20lib.macrolist.lua%20lib.mainmenu.accountlist.lua%20lib.shardlist.lua%0A%20net/net.cursor.lua%20net/net.mobile.lua%20net/net.partysystem.lua&In-Reply-To=%3C20100128175628.A4D3B7A98004%40simon%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001999.html">
+   
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r3240 - in /trunk/lua: lib.cursor.lua lib.macrolist.lua lib.mainmenu.accountlist.lua lib.shardlist.lua net/net.cursor.lua net/net.mobile.lua net/net.partysystem.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3240%20-%20in%20/trunk/lua%3A%20lib.cursor.lua%0A%20lib.macrolist.lua%20lib.mainmenu.accountlist.lua%20lib.shardlist.lua%0A%20net/net.cursor.lua%20net/net.mobile.lua%20net/net.partysystem.lua&In-Reply-To=%3C20100128175628.A4D3B7A98004%40simon%3E"
+       TITLE="[Iris-commit] [IRIS] r3240 - in /trunk/lua: lib.cursor.lua lib.macrolist.lua lib.mainmenu.accountlist.lua lib.shardlist.lua net/net.cursor.lua net/net.mobile.lua net/net.partysystem.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Thu Jan 28 18:56:28 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001999.html">[Iris-commit] [IRIS] r3239 - /trunk/README
+</A></li>
+        
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2000">[ date ]</a>
+              <a href="thread.html#2000">[ thread ]</a>
+              <a href="subject.html#2000">[ subject ]</a>
+              <a href="author.html#2000">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Thu Jan 28 18:56:28 2010
+New Revision: 3240
+
+Log:
+charlist skill display fixed for subserverid other than 0, StartTargetMode_=
+ClientSide : no message sent to server, MacroCmd_PlayerDead,MacroCmd_Mobile=
+Dead , MacroCmd_JobGetTargetClientSide, MacroCmd_StoreLastTarget , MacroCmd=
+_SendStoredTarget , MacroCmd_GetStoredTarget_Serial , MacroCmd_GetStoredTar=
+get_Pos , macropathfind bugfix return value
+
+Modified:
+    trunk/lua/lib.cursor.lua
+    trunk/lua/lib.macrolist.lua
+    trunk/lua/lib.mainmenu.accountlist.lua
+    trunk/lua/lib.shardlist.lua
+    trunk/lua/net/net.cursor.lua
+    trunk/lua/net/net.mobile.lua
+    trunk/lua/net/net.partysystem.lua
+
+Modified: trunk/lua/lib.cursor.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.cursor.lua (original)
++++ trunk/lua/lib.cursor.lua Thu Jan 28 18:56:28 2010
+@@ -100,11 +100,17 @@
+ function IsTargetModeActive () return gTargetModeActive end
+ =
+
+ function CleanupTargetMode ()
++	gNextTargetClientSide =3D nil -- should be nil already after sendtarget (=
+also used with 0 if cancelled)
+     if (not gTargetModeActive) then return end
+     gSmartLastSpellID =3D nil -- either cancelled or targetted.
+     SetUOCursor(kCursorIndex_Normal)
+     gTargetModeActive =3D false
+     NotifyListener(&quot;Hook_TargetMode_End&quot;) -- always called, even if aborte=
+d by server
++end
++
++function StartTargetMode_ClientSide ()
++	gNextTargetClientSide =3D true
++	StartTargetMode()
+ end
+ =
+
+ function StartTargetMode ()
+@@ -121,6 +127,7 @@
+ =
+
+ -- client side cancel
+ function CancelTargetMode ()
++	if (not IsTargetModeActive()) then return end
+     GuiAddChatLine(&quot;Target Mode canceled&quot;)
+     Send_Target_Cancel()
+     CleanupTargetMode()
+
+Modified: trunk/lua/lib.macrolist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.macrolist.lua (original)
++++ trunk/lua/lib.macrolist.lua Thu Jan 28 18:56:28 2010
+@@ -43,8 +43,11 @@
+ function GetPlayerTithingPoints() return GetMobileStat(GetPlayerMobile(),&quot;=
+tithing&quot;) end
+ function IsPlayerHidden() local mobile =3D GetPlayerMobile() return mobile=
+ and mobile.flag_hidden end
+ =
+
++function MacroCmd_PlayerDead 	 () return MacroCmd_MobileDead(GetPlayerMobi=
+le()) end
+ function MacroCmd_PlayerPoisoned () return MacroCmd_MobilePoisoned(GetPlay=
+erMobile()) end
+ function MacroCmd_PlayerMortaled () return MacroCmd_MobileMortaled(GetPlay=
+erMobile()) end
++function MacroCmd_MobileDead	 (mobile) return mobile and (mobile.artid =3D=
+=3D 402 or mobile.artid =3D=3D 403) end -- ghost form
++--~ function MacroCmd_MobileDead	 (mobile) return mobile and GetMobileRelH=
+P(mobile.serial) =3D=3D 0 end
+ function MacroCmd_MobilePoisoned (mobile) return mobile and IsMobilePoison=
+ed(mobile) end
+ function MacroCmd_MobileMortaled (mobile) return mobile and IsMobileMortal=
+ed(mobile) end
+ =
+
+@@ -183,6 +186,36 @@
+ function MacroCmd_ToggleHideGUI () GuiToggleHide() Client_RenderOneFrame()=
+ end
+ =
+
+ =
+
++function MacroCmd_StartTargetModeClientSide () StartTargetMode_ClientSide(=
+) end
++
++function MacroCmd_JobGetTargetClientSide ()
++	local jobid =3D job.running_id() assert(jobid)
++	local res
++	RegisterListener(&quot;Hook_TargetMode_Send&quot;,function (...) res =3D {...} job.=
+wakeup(jobid) return true end)
++	MacroCmd_StartTargetModeClientSide()
++	job.wait(1000*3600*24)
++	if (not res) then return end
++	local bIsPos,flag,serial,x,y,z,model,bIsCancel =3D unpack(res)
++	if (bIsCancel) then return false end
++	return MacroCmd_StoreLastTarget()
++end
++
++function MacroCmd_StoreLastTarget () return CopyArray(gMacroLastTargetMemo=
+ry) end
++function MacroCmd_SendStoredTarget (t) return CompleteTargetMode(t) end
++function MacroCmd_GetStoredTarget_Serial (t)
++	if (not t) then return end
++    if (t.hittype =3D=3D kMousePickHitType_Mobile) then return t.mobile.se=
+rial end
++    if (t.hittype =3D=3D kMousePickHitType_Dynamic) then return t.dynamic.=
+serial end
++end
++function MacroCmd_GetStoredTarget_Pos (t)
++	if (not t) then return end
++    if (t.hittype =3D=3D kMousePickHitType_Mobile) then return t.mobile.xl=
+oc,t.mobile.yloc,t.mobile.zloc end
++    if (t.hittype =3D=3D kMousePickHitType_Dynamic) then return t.dynamic.=
+xloc,t.dynamic.yloc,t.dynamic.zloc end
++    if (t.hittype =3D=3D kMousePickHitType_Static) then return t.hit_xloc,=
+t.hit_yloc,t.hit_zloc end
++    if (t.hittype =3D=3D kMousePickHitType_Ground) then return t.x,t.y,t.z=
+ end
++    return t.hit_xloc,t.hit_yloc,t.hit_zloc
++end
++	=
+
+ function MacroCmd_PopupCommandByTag (serial,tag,timeout)
+     local timeout_endt =3D Client_GetTicks() + (timeout or 1000)
+     Send_PopupRequest(serial)
+@@ -1047,14 +1080,14 @@
+ 	tolerance =3D tolerance or 0
+ 	local bLog =3D not bNoLog
+ 	if (bLog) then print(&quot;MacroCmd_PathFindTo : start&quot;,xloc,yloc,tolerance,ti=
+meout) end
+-	if (GetUODistToPlayer(xloc,yloc) &lt;=3D tolerance) then =
+
+-		if (bLog) then print(&quot;MacroCmd_PathFindTo : already there&quot;) end
+-		return true =
+
+-	end
+ 	local iJobWaitInterval =3D 50
+ 	timeout =3D timeout or 0
+ 	local endt =3D (timeout &gt; 0) and (Client_GetTicks() + timeout)
+ 	repeat -- repeat the pathfinding calc every few seconds in case dynamics =
+show up
++		if (GetUODistToPlayer(xloc,yloc) &lt;=3D tolerance) then =
+
++			if (bLog) then print(&quot;MacroCmd_PathFindTo : already there&quot;) end
++			return true =
+
++		end
+ 		local t =3D Client_GetTicks()
+ 		local res =3D cPathFind2:CalcRouteFromPlayerToPos(xloc,yloc,tolerance,iJ=
+obWaitInterval,endt and (endt-t)) =
+
+ 		local t2 =3D Client_GetTicks()
+
+Modified: trunk/lua/lib.mainmenu.accountlist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mainmenu.accountlist.lua (original)
++++ trunk/lua/lib.mainmenu.accountlist.lua Thu Jan 28 18:56:28 2010
+@@ -57,7 +57,8 @@
+                 local myrow =3D bHadFirstChar and {{&quot;&quot;},{&quot;&quot;},{&quot;&quot;}} or base=
+row
+                 bHadFirstChar =3D true
+                 =
+
+-                local chardata =3D SimpleXMLLoad(GetCharFilePath(user,char=
+.id))
++                local chardata =3D SimpleXMLLoad(GetCharFilePath(user,char=
+.id,0)) or SimpleXMLLoad(GetCharFilePath(user,char.id,1))
++				print(&quot;MainMenu_AccountList_Start GetCharFilePath&quot;,user,char.id,charda=
+ta)
+                 local charinfo =3D &quot;&quot;
+                 if (chardata) then
+                     local timediff =3D os.time() - (chardata.time or 0)
+
+Modified: trunk/lua/lib.shardlist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.shardlist.lua (original)
++++ trunk/lua/lib.shardlist.lua Thu Jan 28 18:56:28 2010
+@@ -4,7 +4,7 @@
+ function GetConfigDirPath               () return gConfigPath end
+ function GetShardListDirPath            () return GetConfigDirPath()..&quot;sha=
+rds/&quot; end
+ function GetShardMemoryFilePath         () return GetConfigDirPath()..&quot;sha=
+rdmemory.xml&quot; end
+-function GetCharFilePath                (loginname,charid) return GetConfi=
+gDirPath()..&quot;chars/&quot;..table.concat({gLoginServerIP,gLoginServerPort,ShardLi=
+stFileNamePartEncode(loginname or gLoginname),(giGameServerID or 0),(charid=
+ or gCharID or 0)},&quot;.&quot;)..&quot;.xml&quot; end
++function GetCharFilePath                (loginname,charid,subserverid) ret=
+urn GetConfigDirPath()..&quot;chars/&quot;..table.concat({gLoginServerIP,gLoginServer=
+Port,ShardListFileNamePartEncode(loginname or gLoginname),(subserverid or g=
+iGameServerID or 0),(charid or gCharID or 0)},&quot;.&quot;)..&quot;.xml&quot; end
+ function GetShardConfigFilePath         (shardname) return GetShardListDir=
+Path()..ShardListFileNamePartEncode(shardname)..&quot;.xml&quot; end
+ =
+
+ function ShardListFileNamePartEncode    (x) return string.gsub(x,&quot;[^0-9a-z=
+A-Z_%-%(%) ]&quot;,&quot;.&quot;) end
+
+Modified: trunk/lua/net/net.cursor.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.cursor.lua (original)
++++ trunk/lua/net/net.cursor.lua Thu Jan 28 18:56:28 2010
+@@ -51,28 +51,33 @@
+ end
+ =
+
+ -- Send Targetcursor (0x6c)
+-function Send_Target (bIsPos,flag,serial,x,y,z,model)
++function Send_Target (bIsPos,flag,serial,x,y,z,model,bIsCancel)
+ 	print(&quot;Send_Target&quot;,bIsPos,hex(flag),hex(serial),x,y,z,hex(model))
+ 	--printf(&quot;NET: Send_Target: %d 0x%02x 0x%08x %d %d %d 0x%04x\n&quot;,bIsPos an=
+d 1 or 0,flag,serial,x or 0,y or 0,z or 0,model or 0)
+-	local out =3D GetSendFIFO()
+-	out:PushNetUint8(kPacket_Target)
+-	out:PushNetUint8(bIsPos and kTargetModeType_Pos or kTargetModeType_Object)
+-	out:PushNetUint32(gTargetModeSerial)
+-	out:PushNetUint8(flag)
+-	out:PushNetUint32(serial)
+-	out:PushNetUint16(x or 0)
+-	out:PushNetUint16(y or 0)
+-	out:PushNetUint16(z or 0)		-- out:PushInt16(z)
+-	out:PushNetUint16(model or 0)	-- ArtID, ModelID (granny)
+ 	=
+
+-	NotifyListener(&quot;Hook_TargetMode_Send&quot;,bIsPos,flag,serial,x,y,z,model) -- =
+called on target and cancel-by-client, but not if aborted by server
+-	out:SendPacket()
++	if (gNextTargetClientSide) then =
+
++		gNextTargetClientSide =3D nil
++	else
++		local out =3D GetSendFIFO()
++		out:PushNetUint8(kPacket_Target)
++		out:PushNetUint8(bIsPos and kTargetModeType_Pos or kTargetModeType_Objec=
+t)
++		out:PushNetUint32(gTargetModeSerial)
++		out:PushNetUint8(flag)
++		out:PushNetUint32(serial)
++		out:PushNetUint16(x or 0)
++		out:PushNetUint16(y or 0)
++		out:PushNetUint16(z or 0)		-- out:PushInt16(z)
++		out:PushNetUint16(model or 0)	-- ArtID, ModelID (granny)
++		out:SendPacket()
++	end
++	=
+
++	NotifyListener(&quot;Hook_TargetMode_Send&quot;,bIsPos,flag,serial,x,y,z,model,bIsC=
+ancel) -- called on target and cancel-by-client, but not if aborted by serv=
+er
+ end
+ =
+
+ -- Cancel Target Cursor Mode  by cleint
+ function Send_Target_Cancel () =
+
+ 	NotifyListener(&quot;Hook_TargetMode_CancelByClient&quot;)
+-	Send_Target(false,0,0x00000000,hex2num(&quot;0xFFFF&quot;),hex2num(&quot;0xFFFF&quot;),0,0)
++	Send_Target(false,0,0x00000000,0xFFFF,0xFFFF,0,0,true)
+ end
+ =
+
+ -- Target Ground Map
+
+Modified: trunk/lua/net/net.mobile.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.mobile.lua (original)
++++ trunk/lua/net/net.mobile.lua Thu Jan 28 18:56:28 2010
+@@ -182,6 +182,8 @@
+ 	=
+
+ 	=
+
+ 	stats.mobstatversion	=3D MySave_PopNetUint8()
++	=
+
++	print(&quot;stats.mobstatversion&quot;,hex(stats.mobstatversion))
+ 	=
+
+ 	-- mobstatversion : <A HREF="http://docs.polserver.com/packets/index.php?Packet=3D=">http://docs.polserver.com/packets/index.php?Packet=3D=</A>
+0x11
+     --~ * 0x00: no more data following (end of packet here).
+
+Modified: trunk/lua/net/net.partysystem.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.partysystem.lua (original)
++++ trunk/lua/net/net.partysystem.lua Thu Jan 28 18:56:28 2010
+@@ -228,7 +228,7 @@
+ function PartyListDialog_StartInviteMode () =
+
+ 	print(&quot;PartyListDialog_StartInviteMode&quot;) =
+
+ 	-- start targetting mode
+-	StartTargetMode()
++	StartTargetMode_ClientSide()
+ 	gPartyList_InviteNextTarget =3D true
+ end
+ =
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001999.html">[Iris-commit] [IRIS] r3239 - /trunk/README
+</A></li>
+	
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2000">[ date ]</a>
+              <a href="thread.html#2000">[ thread ]</a>
+              <a href="subject.html#2000">[ subject ]</a>
+              <a href="author.html#2000">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

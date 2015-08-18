@@ -1,0 +1,337 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r3070 - in /trunk/lua/gui: gui.amount.lua	gui.quit.lua gui.status.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2009-July/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3070%20-%20in%20/trunk/lua/gui%3A%20gui.amount.lua%0A%09gui.quit.lua%20gui.status.lua&In-Reply-To=%3C20090711172905.C92AF7A980F1%40simon%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001832.html">
+   <LINK REL="Next"  HREF="001834.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r3070 - in /trunk/lua/gui: gui.amount.lua	gui.quit.lua gui.status.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3070%20-%20in%20/trunk/lua/gui%3A%20gui.amount.lua%0A%09gui.quit.lua%20gui.status.lua&In-Reply-To=%3C20090711172905.C92AF7A980F1%40simon%3E"
+       TITLE="[Iris-commit] [IRIS] r3070 - in /trunk/lua/gui: gui.amount.lua	gui.quit.lua gui.status.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat Jul 11 19:29:05 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001832.html">[Iris-commit] [IRIS] r3069 - /trunk/lua/gui/gui.quit.lua
+</A></li>
+        <LI>Next message: <A HREF="001834.html">[Iris-commit] [IRIS] r3071 - in /trunk: lua/gui/gui.chat.lua lua/lib.2d.spriteblock.lua lua/lib.data.lua lua/lib.hue.lua lua/lib.macrolist.lua lua/lib.uoutils.lua lua/main.lua lua/net/net.partysystem.lua src/data_hue_L.cpp
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1833">[ date ]</a>
+              <a href="thread.html#1833">[ thread ]</a>
+              <a href="subject.html#1833">[ subject ]</a>
+              <a href="author.html#1833">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: sience
+Date: Sat Jul 11 19:29:05 2009
+New Revision: 3070
+
+Log:
+-small changes that the open gump functions, all follow the same style
+
+Modified:
+    trunk/lua/gui/gui.amount.lua
+    trunk/lua/gui/gui.quit.lua
+    trunk/lua/gui/gui.status.lua
+
+Modified: trunk/lua/gui/gui.amount.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.amount.lua (original)
++++ trunk/lua/gui/gui.amount.lua Sat Jul 11 19:29:05 2009
+@@ -36,78 +36,79 @@
+ -- Open amount Gump
+ -- callback_done(amount) =
+
+ function OpenAmount (x,y,minValue,currentValue,maxValue,callback_done)
+-	if currentValue =3D=3D nil then currentValue =3D maxValue end
+-	if minValue =3D=3D nil or maxValue =3D=3D nil then return end
++	if not(gAmountDialog) then
++		if currentValue =3D=3D nil then currentValue =3D maxValue end
++		if minValue =3D=3D nil or maxValue =3D=3D nil then return end
++		=
+
++	--	CloseAmount()
++		=
+
++		local dialog =3D GumpParser( amountGump, true )
++		gAmountDialog =3D dialog
+ 	=
+
+-	CloseAmount()
++		-- save mobile info to dialog
++		dialog.callback_done =3D callback_done
++		dialog.minValue =3D minValue
++		dialog.currentValue =3D currentValue
++		dialog.maxValue =3D maxValue
++		=
+
++		-- update dialog on pressing enter
++		dialog:GetCtrlByName(&quot;amount&quot;).params.bClearOnFirstKeyDown =3D true
++		dialog:GetCtrlByName(&quot;amount&quot;).params.bNumbersOnly =3D true
++		dialog:GetCtrlByName(&quot;amount&quot;):SetFocus()
++		dialog:GetCtrlByName(&quot;amount&quot;).on_change_text =3D function(self) =
+
++			local text =3D self:GetText()
++			local v =3D math.floor(tonumber(text) or 0)
++			if (v &gt; dialog.maxValue) then
++				dialog:SetAbsoluteValue(dialog.maxValue)
++			else
++				dialog.bKeepAmountText =3D true
++				dialog:SetAbsoluteValue(text)
++				dialog.bKeepAmountText =3D false
++			end
++		end
++		dialog:GetCtrlByName(&quot;amount&quot;).on_return =3D function(self)
++			dialog:SetAbsoluteValue(self:GetText())
++			dialog:SendClose()
++		end
+ 	=
+
+-	local dialog =3D GumpParser( amountGump, true )
++		-- set a value (adjusts dot and amount text entry field)
++		dialog.SetAbsoluteValue =3D function(self,v)
++			v =3D math.floor(tonumber(v) or 0)
++			self.currentValue =3D Clamp(v, self.minValue, self.maxValue)
++			if (not dialog.bKeepAmountText) then dialog:GetCtrlByName(&quot;amount&quot;):Set=
+Text(self.currentValue or &quot;?&quot;,false) end
++			=
+
++			local r =3D (self.currentValue - self.minValue) / (self.maxValue - self=
+.minValue)
++			=
+
++			local x1,y1 =3D dialog:GetCtrlByName(&quot;start&quot;):GetPos()
++			local x2,y2 =3D dialog:GetCtrlByName(&quot;end&quot;):GetPos()
++			local x =3D x1 + r * (x2 - x1)
++			local y =3D y1 + r * (y2 - y1)
++			dialog:GetCtrlByName(&quot;dot&quot;):SetPos(math.floor(x), math.floor(y))
++		end
+ 	=
+
+-	gAmountDialog =3D dialog
+-
+-	-- save mobile info to dialog
+-	dialog.callback_done =3D callback_done
+-	dialog.minValue =3D minValue
+-	dialog.currentValue =3D currentValue
+-	dialog.maxValue =3D maxValue
++		-- overwrite the dialog close function from gumpparser
++		dialog.SendClose =3D function (self) local amount =3D self.currentValue =
+CloseAmount() self.callback_done(amount) end
++		dialog.gumpdata.functions =3D { [0] =3D function (widget) local amount =
+=3D dialog.currentValue CloseAmount() dialog.callback_done(amount) end }
++		=
+
+ 	=
+
+-	-- update dialog on pressing enter
+-	dialog:GetCtrlByName(&quot;amount&quot;).params.bClearOnFirstKeyDown =3D true
+-	dialog:GetCtrlByName(&quot;amount&quot;).params.bNumbersOnly =3D true
+-	dialog:GetCtrlByName(&quot;amount&quot;):SetFocus()
+-	dialog:GetCtrlByName(&quot;amount&quot;).on_change_text =3D function(self) =
+
+-		local text =3D self:GetText()
+-		local v =3D math.floor(tonumber(text) or 0)
+-		if (v &gt; dialog.maxValue) then
+-			dialog:SetAbsoluteValue(dialog.maxValue)
+-		else
+-			dialog.bKeepAmountText =3D true
+-			dialog:SetAbsoluteValue(text)
+-			dialog.bKeepAmountText =3D false
++		-- drag the dot around
++		local dot =3D dialog:GetCtrlByName(&quot;dot&quot;)
++	=
+
++		dialog.moveDot =3D function (self, x,y)
++			local x1,y1 =3D dialog:GetCtrlByName(&quot;start&quot;):GetPos()
++			local x2,y2 =3D dialog:GetCtrlByName(&quot;end&quot;):GetPos()
++			local r =3D (x - x1) / (x2 - x1)
++			local v =3D minValue + (maxValue + minValue) * r
++			dialog:SetAbsoluteValue(v)
+ 		end
++	=
+
++		dot.on_mouse_left_down =3D function () dot:StartMouseMove(key_mouse_left=
+,dialog.moveDot,dialog) end
++	=
+
++		-- initial setup
++		if x and y then dialog:SetPos(x,y) end
++		dialog:SetAbsoluteValue(currentValue)
++		=
+
++		dialog:GetCtrlByName(&quot;start&quot;):SetVisible(false)
++		dialog:GetCtrlByName(&quot;end&quot;):SetVisible(false)
+ 	end
+-	dialog:GetCtrlByName(&quot;amount&quot;).on_return =3D function(self)
+-		dialog:SetAbsoluteValue(self:GetText())
+-		dialog:SendClose()
+-	end
+-
+-	-- set a value (adjusts dot and amount text entry field)
+-	dialog.SetAbsoluteValue =3D function(self,v)
+-		v =3D math.floor(tonumber(v) or 0)
+-		self.currentValue =3D Clamp(v, self.minValue, self.maxValue)
+-		if (not dialog.bKeepAmountText) then dialog:GetCtrlByName(&quot;amount&quot;):SetT=
+ext(self.currentValue or &quot;?&quot;,false) end
+-		=
+
+-		local r =3D (self.currentValue - self.minValue) / (self.maxValue - self.=
+minValue)
+-		=
+
+-		local x1,y1 =3D dialog:GetCtrlByName(&quot;start&quot;):GetPos()
+-		local x2,y2 =3D dialog:GetCtrlByName(&quot;end&quot;):GetPos()
+-		local x =3D x1 + r * (x2 - x1)
+-		local y =3D y1 + r * (y2 - y1)
+-		dialog:GetCtrlByName(&quot;dot&quot;):SetPos(math.floor(x), math.floor(y))
+-	end
+-
+-	-- overwrite the dialog close function from gumpparser
+-	dialog.SendClose =3D function (self) local amount =3D self.currentValue C=
+loseAmount() self.callback_done(amount) end
+-	dialog.gumpdata.functions =3D { [0] =3D function (widget) local amount =
+=3D dialog.currentValue CloseAmount() dialog.callback_done(amount) end }
+-	=
+
+-
+-	-- drag the dot around
+-	local dot =3D dialog:GetCtrlByName(&quot;dot&quot;)
+-
+-	dialog.moveDot =3D function (self, x,y)
+-		local x1,y1 =3D dialog:GetCtrlByName(&quot;start&quot;):GetPos()
+-		local x2,y2 =3D dialog:GetCtrlByName(&quot;end&quot;):GetPos()
+-		local r =3D (x - x1) / (x2 - x1)
+-		local v =3D minValue + (maxValue + minValue) * r
+-		dialog:SetAbsoluteValue(v)
+-	end
+-
+-	dot.on_mouse_left_down =3D function () dot:StartMouseMove(key_mouse_left,=
+dialog.moveDot,dialog) end
+-
+-	-- initial setup
+-	if x and y then dialog:SetPos(x,y) end
+-	dialog:SetAbsoluteValue(currentValue)
+-	=
+
+-	dialog:GetCtrlByName(&quot;start&quot;):SetVisible(false)
+-	dialog:GetCtrlByName(&quot;end&quot;):SetVisible(false)
+ end
+
+Modified: trunk/lua/gui/gui.quit.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.quit.lua (original)
++++ trunk/lua/gui/gui.quit.lua Sat Jul 11 19:29:05 2009
+@@ -29,20 +29,18 @@
+ gQuitDialog =3D nil
+ =
+
+ -- Close amount Gump
+-function CloseQuit() =
+
++function CloseQuit () =
+
+ 	if (not gQuitDialog) then return end
+ 	gQuitDialog:Destroy()
+ 	gQuitDialog =3D nil
+ end
+ =
+
+-function OpenQuit()
++function OpenQuit ()
+ 	if not(gQuitDialog) then
+ 		local dialog =3D GumpParser( quitGump, true )
+-
+ 		gQuitDialog =3D dialog
+ 		=
+
+ 		-- overwrite the dialog close function from gumpparser
+ 		dialog.SendClose =3D function (self) CloseQuit() end
+-
+ 	end
+ end
+
+Modified: trunk/lua/gui/gui.status.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.status.lua (original)
++++ trunk/lua/gui/gui.status.lua Sat Jul 11 19:29:05 2009
+@@ -70,12 +70,7 @@
+ end
+ 		=
+
+ function ToggleStatusAos ()
+-	if (gStatusAosDialog) then
+-		-- store current positoin
+-		gStatusAosDialog_LastPositionX, gStatusAosDialog_LastPositionY =3D gStat=
+usAosDialog.rootwidget.gfx:GetPos()
+-		-- and close
+-		gStatusAosDialog:Close()
+-	else
++	if not(gStatusAosDialog) then
+ 		-- request stats update of player body
+ 		if gPlayerBodySerial then Send_ClientQuery(gRequest_States,gPlayerBodySe=
+rial) end
+ =
+
+@@ -199,6 +194,11 @@
+ 				if dialog.lockbutton_int then dialog.lockbutton_int:SetLockState(int) =
+end
+ 			end
+ 		end
++	else
++		-- store current positoin
++		gStatusAosDialog_LastPositionX, gStatusAosDialog_LastPositionY =3D gStat=
+usAosDialog.rootwidget.gfx:GetPos()
++		-- and close
++		gStatusAosDialog:Close()
+ 	end
+ end
+ =
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001832.html">[Iris-commit] [IRIS] r3069 - /trunk/lua/gui/gui.quit.lua
+</A></li>
+	<LI>Next message: <A HREF="001834.html">[Iris-commit] [IRIS] r3071 - in /trunk: lua/gui/gui.chat.lua lua/lib.2d.spriteblock.lua lua/lib.data.lua lua/lib.hue.lua lua/lib.macrolist.lua lua/lib.uoutils.lua lua/main.lua lua/net/net.partysystem.lua src/data_hue_L.cpp
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1833">[ date ]</a>
+              <a href="thread.html#1833">[ thread ]</a>
+              <a href="subject.html#1833">[ subject ]</a>
+              <a href="author.html#1833">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

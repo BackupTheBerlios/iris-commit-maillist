@@ -1,0 +1,289 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1753 - in /trunk: data/base/main.material lua/lib.3d.dynamic.lua lua/lib.3d.mousepick.lua lua/lib.fallback.lua lua/lib.static.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-January/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1753%20-%20in%20/trunk%3A%20data/base/main.material%0A%20lua/lib.3d.dynamic.lua%20lua/lib.3d.mousepick.lua%20lua/lib.fallback.lua%0A%20lua/lib.static.lua&In-Reply-To=%3C20080115170823.D8FBB1C18004%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000567.html">
+   <LINK REL="Next"  HREF="000570.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1753 - in /trunk: data/base/main.material lua/lib.3d.dynamic.lua lua/lib.3d.mousepick.lua lua/lib.fallback.lua lua/lib.static.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1753%20-%20in%20/trunk%3A%20data/base/main.material%0A%20lua/lib.3d.dynamic.lua%20lua/lib.3d.mousepick.lua%20lua/lib.fallback.lua%0A%20lua/lib.static.lua&In-Reply-To=%3C20080115170823.D8FBB1C18004%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1753 - in /trunk: data/base/main.material lua/lib.3d.dynamic.lua lua/lib.3d.mousepick.lua lua/lib.fallback.lua lua/lib.static.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat Jan 12 03:35:35 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000567.html">[Iris-commit] [IRIS] r1752 - /trunk/lua/main.lua
+</A></li>
+        <LI>Next message: <A HREF="000570.html">[Iris-commit] [IRIS] r1754 - /trunk/lua/lib.3d.map.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#569">[ date ]</a>
+              <a href="thread.html#569">[ thread ]</a>
+              <a href="subject.html#569">[ subject ]</a>
+              <a href="author.html#569">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: hagish
+Date: Sat Jan 12 03:35:33 2008
+New Revision: 1753
+
+Log:
+static dynamic mousepicking
+
+Modified:
+    trunk/data/base/main.material
+    trunk/lua/lib.3d.dynamic.lua
+    trunk/lua/lib.3d.mousepick.lua
+    trunk/lua/lib.fallback.lua
+    trunk/lua/lib.static.lua
+
+Modified: trunk/data/base/main.material
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/base/main.material (original)
++++ trunk/data/base/main.material Sat Jan 12 03:35:33 2008
+@@ -49,6 +49,27 @@
+ 			texture_unit arttex
+ 			{
+ 				texture stone512.dds
++				tex_address_mode clamp
++			}
++		}
++	}
++}
++
++material fallbackbox
++{
++	technique
++	{
++		pass
++		{
++			lighting on
++			ambient 1.0 1.0 1.0
++			diffuse 1.0 1.0 1.0
++			=
+
++			cull_hardware anticlockwise
++		=
+
++			texture_unit arttex
++			{
++				texture art_fallback.png
+ 				tex_address_mode clamp
+ 			}
+ 		}
+
+Modified: trunk/lua/lib.3d.dynamic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.dynamic.lua (original)
++++ trunk/lua/lib.3d.dynamic.lua Sat Jan 12 03:35:33 2008
+@@ -32,6 +32,7 @@
+ 		local qw,qx,qy,qz
+ 		-- add dynamics
+ 		for k,dynamic in pairs(GetDynamicList()) do
++			-- print(&quot;DEBUG&quot;,&quot;ADD DYNAMIC&quot;,dynamic.meshname)
+ 			if (dynamic.meshname and DynamicIsInWorld(dynamic)) then
+ 				if (self:IsZLayerVisible(dynamic.zloc)) then
+ 						x,y,z =3D Renderer3D:UOPosToLocal (dynamic.xloc,dynamic.yloc,dynamic=
+.zloc * 0.1) =
+
+@@ -151,6 +152,8 @@
+ 		-- normal 1 part object
+ 		local meshname =3D (not gForceFallBackBillboards_Dynamics) and GetStatic=
+MeshName(item.artid) -- ,item.hue)
+ 		item.meshname =3D meshname
++		item.meshname =3D meshname
++		-- print(&quot;DEBUG&quot;,&quot;meshname&quot;,item.meshname)
+ 		=
+
+ 		if gFastBatchDynamics and meshname and meshname ~=3D false then
+ 			-- trigger: burn all dynamics into the dynamic fastbatch
+@@ -177,19 +180,13 @@
+ =
+
+ 				-- fallback to billboard with original art
+ 				if (not IsArtBillboardFallBackSkipped(item.artid)) then
+-					if gUseWhiteBoxAsFallBack then
+-						-- use just a white box as fallback
+-						SetFallBackBox(item.gfx)
+-						printdebug(&quot;missing&quot;,sprintf(&quot;Renderer3D:CreateDynamicGfx: failed lo=
+ading mesh for dynamic: artid=3D%i z_typename=3D%s -&gt; box fallback\n&quot;,item.=
+artid or -1,GetStaticTileTypeName(item.artid) or &quot;&quot;))
+-					else
+-						-- generate uoart billboard fallback
+-						item.gfx.billboard =3D item.gfx:CreateChild()
+-						item.xadd =3D item.xadd + 0.5
+-						item.yadd =3D item.yadd + 0.5
+-						item.zadd =3D item.zadd + 0.5
+-						self:CreateArtBillBoard(item.gfx.billboard,iTranslatedTileTypeID,ite=
+m.hue)
+-						printdebug(&quot;missing&quot;,sprintf(&quot;Renderer3D:CreateDynamicGfx: failed lo=
+ading mesh for dynamic: artid=3D%i z_typename=3D%s\n&quot;,item.artid or -1,GetS=
+taticTileTypeName(item.artid) or &quot;&quot;))
+-					end
++					-- generate uoart billboard fallback
++					item.gfx.billboard =3D item.gfx:CreateChild()
++					item.xadd =3D item.xadd + 0.5
++					item.yadd =3D item.yadd + 0.5
++					item.zadd =3D item.zadd + 0.5
++					self:CreateArtBillBoard(item.gfx.billboard,iTranslatedTileTypeID,item=
+.hue)
++					printdebug(&quot;missing&quot;,sprintf(&quot;Renderer3D:CreateDynamicGfx: failed loa=
+ding mesh for dynamic: artid=3D%i z_typename=3D%s\n&quot;,item.artid or -1,GetSt=
+aticTileTypeName(item.artid) or &quot;&quot;))
+ 				end
+ 			end
+ =
+
+
+Modified: trunk/lua/lib.3d.mousepick.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.mousepick.lua (original)
++++ trunk/lua/lib.3d.mousepick.lua Sat Jan 12 03:35:33 2008
+@@ -191,28 +191,25 @@
+ 	=
+
+ 	-- dynamics
+ 	for k,dynamic in pairs(GetDynamicList()) do
+-		if (dynamic.gfx and DynamicIsInWorld(dynamic)) then
++		if (DynamicIsInWorld(dynamic)) then
+ 			-- WARNING copy &amp; paste code
+ 			if (self:IsZLayerVisible(dynamic.zloc)) then
+-				if (dynamic.gfx.billboard) then
++				if (dynamic.gfx and dynamic.gfx.billboard) then
+ 					-- fallback
+ 					local x,y,z =3D dynamic.gfx.billboard:GetDerivedPosition()
+ 					fHitDist =3D SphereRayPick(x,y,z,0.5,rx,ry,rz,rvx,rvy,rvz) -- 0.5 rad
+ 					bHit =3D (fHitDist ~=3D nil)
+-				else
++				elseif ( dynamic.meshbuffer ) then
+ 					-- mesh mousepick
+-					if ( dynamic.meshbuffer) then
+ 						local x,y,z =3D Renderer3D:UOPosToLocal (dynamic.xloc,dynamic.yloc,d=
+ynamic.zloc * 0.1) =
+
+ 						local qw,qx,qy,qz =3D GetStaticMeshOrientation(dynamic.artid)
+ 						=
+
+-						print(&quot;DEBUG&quot;,x,y,z)
+-						=
+
+ 						bHit,fHitDist =3D dynamic.meshbuffer:RayPick(rx,ry,rz,rvx,rvy,rvz,
+ 							x,y,z, qw,qx,qy,qz, -1,1,1)
+-					else
+-						bHit,fHitDist =3D dynamic.gfx:RayPick(rx,ry,rz,rvx,rvy,rvz)
+-					end
+-					=
+
++				elseif ( dynamic.gfx ) then
++					bHit,fHitDist =3D dynamic.gfx:RayPick(rx,ry,rz,rvx,rvy,rvz)
++				else
++					print(&quot;WARNING visible but no mousepicking possible on dynamic&quot;,dynam=
+ic.artid)
+ 				end
+ 				=
+
+ 				if (bHit and ((not gMousePickFoundHit) or fHitDist &lt; self.gMousePickFo=
+undDist)) then
+
+Modified: trunk/lua/lib.fallback.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.fallback.lua (original)
++++ trunk/lua/lib.fallback.lua Sat Jan 12 03:35:33 2008
+@@ -111,13 +111,16 @@
+ 	return res
+ end
+ =
+
+-function SetFallBackBox (gfx)
++function GetFallBackBoxMesh ()
+ 	if not gFallBackBoxMesh then
+-		GfxSetBox(gfx,1,1,1,nil,nil,-1,0,0)
+-		local mat =3D GetPlainTextureMat(&quot;art_fallback.png&quot;)
+-		gfx:SetMaterial(mat)
++		local gfx =3D CreateRootGfx3D()
++
++		GfxSetBox(gfx,1,1,1,nil,nil,0,0,0)
++		gfx:SetMaterial(&quot;fallbackbox&quot;)
++		=
+
+ 		gFallBackBoxMesh =3D gfx:RenderableConvertToMesh()
++		gfx:Destroy()
+ 	end
+ 	=
+
+-	gfx:SetMesh(gFallBackBoxMesh)
++	return gFallBackBoxMesh
+ end
+
+Modified: trunk/lua/lib.static.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.static.lua (original)
++++ trunk/lua/lib.static.lua Sat Jan 12 03:35:33 2008
+@@ -157,6 +157,12 @@
+ 	else
+ 		printdebug(&quot;static&quot;,&quot;mesh already found in cache &quot;,meshname, iHue)
+ 	end
++	=
+
++	-- gray box fallback?
++	if gUseWhiteBoxAsFallBack and not meshname then
++		meshname =3D GetFallBackBoxMesh()
++	end
++	=
+
+ 	return meshname
+ end
+ =
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000567.html">[Iris-commit] [IRIS] r1752 - /trunk/lua/main.lua
+</A></li>
+	<LI>Next message: <A HREF="000570.html">[Iris-commit] [IRIS] r1754 - /trunk/lua/lib.3d.map.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#569">[ date ]</a>
+              <a href="thread.html#569">[ thread ]</a>
+              <a href="subject.html#569">[ subject ]</a>
+              <a href="author.html#569">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,2670 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1456 - in /trunk/data: ./ lua/ lua/net/	lua/obj/
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2007-October/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1456%20-%20in%20/trunk/data%3A%20./%20lua/%20lua/net/%0A%09lua/obj/&In-Reply-To=%3C20071009020021.520CC1C1804D%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000270.html">
+   <LINK REL="Next"  HREF="000272.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1456 - in /trunk/data: ./ lua/ lua/net/	lua/obj/</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1456%20-%20in%20/trunk/data%3A%20./%20lua/%20lua/net/%0A%09lua/obj/&In-Reply-To=%3C20071009020021.520CC1C1804D%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1456 - in /trunk/data: ./ lua/ lua/net/	lua/obj/">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Tue Oct  9 03:15:46 CEST 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000270.html">[Iris-commit] [IRIS] r1455 - /trunk/src/data.cpp
+</A></li>
+        <LI>Next message: <A HREF="000272.html">[Iris-commit] [IRIS] r1457 - in /trunk: include/data.h src/data.cpp
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#271">[ date ]</a>
+              <a href="thread.html#271">[ thread ]</a>
+              <a href="subject.html#271">[ subject ]</a>
+              <a href="author.html#271">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Tue Oct  9 03:15:45 2007
+New Revision: 1456
+
+Log:
+tilefree walk works ingame, a few issues remain to be fixed, but it should =
+work most of the time, probably alos fixed some issues with the walk code a=
+long the way
+
+Added:
+    trunk/data/lua/lib.oldwalk.lua
+    trunk/data/old_walk_notes.txt
+Modified:
+    trunk/data/lua/lib.3d.cam.lua
+    trunk/data/lua/lib.3d.mobile.lua
+    trunk/data/lua/lib.3d.walksmooth.lua
+    trunk/data/lua/lib.debugmenu.lua
+    trunk/data/lua/lib.input.iris.lua
+    trunk/data/lua/lib.keybinds.lua
+    trunk/data/lua/lib.protocol.lua
+    trunk/data/lua/lib.tilefreewalk.lua
+    trunk/data/lua/lib.uoids.lua
+    trunk/data/lua/lib.walking2.lua
+    trunk/data/lua/main.lua
+    trunk/data/lua/net.login.lua
+    trunk/data/lua/net.other.lua
+    trunk/data/lua/net.walk.lua
+    trunk/data/lua/net/net.mobile.lua
+    trunk/data/lua/obj/obj.mobile.lua
+    trunk/data/lua/obj/obj.player.lua
+    trunk/data/old_mobileanim_notest.txt
+
+Modified: trunk/data/lua/lib.3d.cam.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.3d.cam.lua (original)
++++ trunk/data/lua/lib.3d.cam.lua Tue Oct  9 03:15:45 2007
+@@ -199,17 +199,7 @@
+ 	end
+ end
+ =
+
+-function Renderer3D:GetExactLocalPos ()
+-	if (gEnableTileFreeWalk) then return gTileFreeWalk:GetExactLocalPos() end
+-	local playermobile =3D GetPlayerMobile()
+-	if (playermobile and playermobile.bodygfx and playermobile.bodygfx.modelg=
+fx) then
+-		local x,y,z =3D playermobile.bodygfx.modelgfx:GetDerivedPosition()
+-		return x,y,z
+-	end
+-	local x,y,z =3D GetPlayerPos()
+-	if (x) then x,y,z =3D Renderer3D:UOPosToLocal(x+0.5,y+0.5,z*0.1) end
+-	return x,y,z
+-end
++function Renderer3D:GetExactLocalPos () return gTileFreeWalk:GetExactLocal=
+Pos() end
+ =
+
+ -- can return floating point block position
+ function Renderer3D:UpdateCompass()
+@@ -218,8 +208,10 @@
+ 	=
+
+ 	-- if in third person, center compass on player instead of on cam
+ 	if (Renderer3D.gCamMode =3D=3D Renderer3D.kCamMode_Third) then
+-		local x,y,z =3D GetPlayerPos()
+-		if (x) then return ax, x/8, y/8, xmirror end
++		local x,y,z =3D self:GetExactLocalPos()
++		local xloc,yloc,zloc =3D self:LocalToUOPos(x,y,z*10)
++		--~ local xloc,yloc,zloc =3D GetPlayerPos()
++		if (xloc) then return ax, xloc/8, yloc/8, xmirror end
+ 	end
+ 		=
+
+ 	local camx,camy,camz =3D GetMainCam():GetPos()
+
+Modified: trunk/data/lua/lib.3d.mobile.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.3d.mobile.lua (original)
++++ trunk/data/lua/lib.3d.mobile.lua Tue Oct  9 03:15:45 2007
+@@ -213,6 +213,9 @@
+ 	=
+
+ 	self:UpdateMobileVisibility(mobile)
+ 	self:WalkSmoothUpdate(mobile)
++	=
+
++	--~ print(&quot;Renderer3D:UpdateMobile&quot;,mobile,IsPlayerMobile(mobile),mobile.=
+xloc,mobile.yloc,mobile.zloc)
++	if (IsPlayerMobile(mobile)) then gTileFreeWalk:NotifyPlayerMobileUpdate(m=
+obile) end
+ end
+ =
+
+ function Renderer3D:UpdateMobilePos (mobile,x,y,z,qw,qx,qy,qz)
+@@ -236,12 +239,18 @@
+ 	-- animation stuff
+ 	self:WalkSmoothStep(mobile)
+ 	=
+
+-	if (mobile.bodygfx) then =
+
+-		local bMoving	=3D mobile.walksmooth_moving
+-		local bTurning	=3D mobile.walksmooth_turning
+-		local bWarMode 	=3D TestBit(mobile.flag,kMobileFlag_WarMode) -- combat
+-		local bRunFlag 	=3D TestBit(mobile.dir,kWalkFlag_Run)
+-		mobile.bodygfx:SetState(bMoving,bTurning,bWarMode,bRunFlag) =
+
++	=
+
++	-- clientside anims by state
++	if (IsPlayerMobile(mobile)) then =
+
++		-- handled by lib.tilefreewalk.lua
++	else
++		if (mobile.bodygfx) then =
+
++			local bMoving	=3D mobile.walksmooth_moving
++			local bTurning	=3D mobile.walksmooth_turning
++			local bWarMode 	=3D TestBit(mobile.flag,kMobileFlag_WarMode) -- combat
++			local bRunFlag 	=3D TestBit(mobile.dir,kWalkFlag_Run)
++			mobile.bodygfx:SetState(bMoving,bTurning,bWarMode,bRunFlag) =
+
++		end
+ 	end
+ =
+
+ 	-- chat text over player head
+
+Modified: trunk/data/lua/lib.3d.walksmooth.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.3d.walksmooth.lua (original)
++++ trunk/data/lua/lib.3d.walksmooth.lua Tue Oct  9 03:15:45 2007
+@@ -1,22 +1,7 @@
+ -- handles walk smoothing
+ -- see also lib.granny.lua lib.bodygfx.lua
+-
+---[[
+-TODO : from net.walk.lua
+-gWalkTimeout_MoveingSpeed =3D 370
+-gWalkTimeout_RunningSpeed =3D 175
+-gWalkTimeout_MountMovingSpeed =3D 185
+-gWalkTimeout_MountRunningSpeed =3D 95
+-
+-see also
+-	gLayerType.kLayer_Mount 		=3D hex2num(&quot;0x19&quot;) -- (horse, ostard, etc)
+-	gLayerType.kLayer_TwoHanded 	=3D hex2num(&quot;0x02&quot;)
+-	kPacket_Animation	-- [0x6e] 14 Bytes
+-	gActWarmode =3D [gWarmode_Normal,gWarmode_Combat]
+-	mobile flag ? WarMode =3D 0x40,
+-]]--
+---print(&quot;animinfo&quot;,animid,mobile.walksmooth_moving,mobile.walksmooth_turni=
+ng,sprintf(&quot;0x%02x&quot;,mobile.dir))
+-
++-- see also net.walk.lua
++-- see also lib.tilefreewalk.lua
+ =
+
+ -- called from Renderer3D:UpdateMobile, not every frame
+ function Renderer3D:WalkSmoothUpdate (mobile)
+@@ -46,6 +31,7 @@
+ end
+ =
+
+ function Renderer3D:WalkSmoothStep (mobile)
++	if (IsPlayerMobile(mobile)) then return end
+ 	mobile.walksmooth_moving =3D false
+ 	mobile.walksmooth_turning =3D false
+ 	if (not mobile.gfx3d_walksmooth_last_time) then return end
+@@ -70,8 +56,8 @@
+ 	=
+
+ 	-- optimal motiontime
+ 	--local myturntime =3D gWalkTimeout_DirectionChange
+-	local myturntime =3D gWalkTimeout_MoveingSpeed -- take slow turn
+-	local motiontime_opt =3D bRunning and gWalkTimeout_RunningSpeed or gWalkT=
+imeout_MoveingSpeed
++	local myturntime =3D gWalkTimeout_MovingSpeed -- take slow turn
++	local motiontime_opt =3D bRunning and gWalkTimeout_RunningSpeed or gWalkT=
+imeout_MovingSpeed
+ 	if (mobile.walksmooth_turning and (not mobile.walksmooth_moving)) then mo=
+tiontime_opt =3D myturntime end
+ 	=
+
+ 	-- last real motiontime
+@@ -110,6 +96,10 @@
+ 	Renderer3D:UpdateMobilePos(mobile,x,y,z,qw,qx,qy,qz)
+ end
+ =
+
++function Renderer3D:NotifyPlayerTeleported ()
++	self:WalkSmoothReset(GetPlayerMobile())
++end
++
+ -- used when teleported
+ function Renderer3D:WalkSmoothReset (mobile)
+ 	if (not mobile) then return end
+@@ -126,10 +116,6 @@
+ 	mobile.gfx3d_walksmooth_last_time =3D nil
+ end
+ =
+
+-function Renderer3D:NotifyPlayerTeleported ()
+-	self:WalkSmoothReset(GetPlayerMobile())
+-end
+-
+ function Renderer3D:SetSimpleMobilePos (mobile)
+ 	local x,y,z =3D Renderer3D:UOPosToLocal(mobile.xloc,mobile.yloc,mobile.zl=
+oc * 0.1)
+ 	local ang_in_degrees =3D (mobile.dir + 0) * 45.0
+
+Modified: trunk/data/lua/lib.debugmenu.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.debugmenu.lua (original)
++++ trunk/data/lua/lib.debugmenu.lua Tue Oct  9 03:15:45 2007
+@@ -257,9 +257,6 @@
+ 	cam:SetNearClipDistance(0.01) -- old : 1
+ 	--cam:SetFarClipDistance(2000) -- ogre defaul : 100000
+ 	=
+
+-	gPlayerXLoc =3D 0
+-	gPlayerYLoc =3D 0
+-	gPlayerZLoc =3D 0
+ 	Renderer3D.gThirdPersonDist =3D 4
+ 	=
+
+ 	-- grid
+
+Modified: trunk/data/lua/lib.input.iris.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.input.iris.lua (original)
++++ trunk/data/lua/lib.input.iris.lua Tue Oct  9 03:15:45 2007
+@@ -12,7 +12,6 @@
+ RegisterListener(&quot;keyup&quot;,		function (key) gCurrentRenderer:CamKeyUp(key) e=
+nd)
+ =
+
+ RegisterListener(&quot;mouse_left_down&quot;,			function () IrisSingleClick() end)
+-RegisterListener(&quot;mouse_right_down&quot;,		function () MouseStartWalkOnPressed(=
+) end)
+ RegisterListener(&quot;mouse_right_down&quot;,		function () IrisRightClick() end)
+ RegisterListener(&quot;mouse_left_up&quot;,			function () MouseUpUODragDrop() end)
+ RegisterListener(&quot;mouse_right_up&quot;,			function () CancelAutoWalk() end)
+
+Modified: trunk/data/lua/lib.keybinds.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.keybinds.lua (original)
++++ trunk/data/lua/lib.keybinds.lua Tue Oct  9 03:15:45 2007
+@@ -26,7 +26,7 @@
+ 		ToggleCompass(state &gt; 0)
+ 	end end end)
+ =
+
+-	-- additional movement key handling in WalkStep() (for pressed keys)
++	-- additional movement key handling in lib.tilefreewalk (for pressed keys)
+ 	Bind(&quot;right&quot;,   function (state) if (not gActiveEditText) then if (state =
+&gt;<i> 0) then CancelAutoWalk() end end end) =
+</I>
+ 	Bind(&quot;left&quot;,    function (state) if (not gActiveEditText) then if (state =
+&gt;<i> 0) then CancelAutoWalk() end end end) =
+</I>
+ 	Bind(&quot;down&quot;,    function (state) if (not gActiveEditText) then if (state =
+&gt;<i> 0) then CancelAutoWalk() end else ChatLine_HistoryUpDown(-1) end end) =
+</I>
+
+Modified: trunk/data/lua/lib.protocol.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.protocol.lua (original)
++++ trunk/data/lua/lib.protocol.lua Tue Oct  9 03:15:45 2007
+@@ -46,9 +46,22 @@
+ 	dofile(libpath .. &quot;net.world.lua&quot;)
+ 	dofile(libpath .. &quot;net.corpse.lua&quot;)
+ =
+
+-	=
+
+-	--OldIrisPacketLenTest()
+-	=
+
++
++--OldIrisPacketLenTest()
++
++function DirWrap (iDir) -- wraps into [0,7]
++	while (iDir &lt; 0) do iDir =3D iDir + 8 end
++	while (iDir &gt; 7) do iDir =3D iDir - 8 end
++	return iDir
++end
++
++function DirFromLocalDxDy (dx,dy) =
+
++	for dir=3D0,7 do if (sign(dx) =3D=3D GetDirXLocal(dir) and sign(dy) =3D=
+=3D GetDirYLocal(dir)) then return dir end end
++end
++function DirFromUODxDy (dx,dy) =
+
++	for dir=3D0,7 do if (sign(dx) =3D=3D GetDirX(dir) and sign(dy) =3D=3D Get=
+DirY(dir)) then return dir end end
++end
++
+ -- interpret dircode in ogre coordinate system
+ function GetDirXLocal (dir) local a =3D GetDirX(dir) return (a=3D=3D0) and=
+ 0 or (-a) end -- prevent &quot;-0&quot;, float supports signed zero
+ function GetDirYLocal (dir) return GetDirY(dir) end
+@@ -64,12 +77,6 @@
+ 	if (dir =3D=3D 0 or dir =3D=3D 1 or dir =3D=3D 7) then return -1 -- north
+ 	elseif (dir =3D=3D 3 or dir =3D=3D 4 or dir =3D=3D 5) then return 1 -- so=
+uth
+ 	else return 0 end
+-end
+-
+-function GetDirCode (dirx,diry) =
+
+-	local res =3D 0
+-	for i=3D0,7 do if (GetDirX(i) =3D=3D dirx and GetDirY(i) =3D=3D diry) the=
+n res =3D i end end
+-	return res
+ end
+ =
+
+ -- check if packets are complete and handle them
+
+Modified: trunk/data/lua/lib.tilefreewalk.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.tilefreewalk.lua (original)
++++ trunk/data/lua/lib.tilefreewalk.lua Tue Oct  9 03:15:45 2007
+@@ -1,45 +1,11 @@
+--- will be used to add non-tilebased walking
+---[[
+-	see also net.walk.lua lib.walking2.lua  =
+
+-	iris walk is currently bugged (resync,teleport messages), look at : runuo=
+ source : zw : /home/sience
+-	lib.keybinds.lua CancelAutoWalk SetAutoWalkTarget , see also WalkStep for=
+ pressed keys
+-	lib.uoid.lua : limits,  kTileDataFlag_Surface Bridge StairBack StairRight
+-	obj.player.lua : NotifyTeleport() -&gt; ResetWalkQueue()
+-	net.mobile.lua:75: kPacket_Equipped_MOB, ResetWalkQueue()
+-	lib.input.iris.lua : right-hold : MouseStartWalkOnPressed()
+-	net.other.lua : fastwalkstack   kPacket_Generic_SubCommand_SpeedMode ?
+-	lib.walking2.lua net.walk.lua
+-	player and walk files : SetPlayerPos
+-	=
+
+-	todo : later : autowalk : follow mobile etc, see old WalkStep() in net.wa=
+lk.lua
+-	=
+
+-	-- TODO : uo tricky because you can walk diagonally between two obstacles
+-		-- during walking diagonally the rounded position will probably be on a =
+blocked tile !
+-		-- walkrequest to blocked pos may not be sent
+-	=
+
+-	-- TODO : capsule all uo specific stuff so that this lib is usable in oth=
+er projects
+-	-- TODO : 3 debugmarkers : a) clienside pos, b) last-walk-request pos c) =
+last position confirmed by server
+-	-- TODO : uo-specific(capsule me) check walk-key stack and handling of bl=
+ocked/teleport events
+-	-- TODO : smooth clientside speed, even if server lags a bit and then sen=
+ds multiple confirmations at once
+-	-- TODO : util to get heightfieldpos ? (terrain only ? statics ? startz+t=
+racedown ? generic raytrace util ? ...)
+-	-- TODO : util to cache current pos and the 8 surrounding heights (lib.wa=
+lking2.lua)
+-	=
+
+-	-- TODO : reset if client is near the center of a blocked tile (r=3D0.1)
+-	-- TODO   bRunning and gWalkTimeout_RunningSpeed or gWalkTimeout_MoveingS=
+peed
+-	old : =
+
+-		gWalkTimeout_MoveingSpeed =3D 370
+-		gWalkTimeout_RunningSpeed =3D 175
+-		gWalkTimeout_MountMovingSpeed =3D 185
+-		gWalkTimeout_MountRunningSpeed =3D 95
+-		=
+
+-	-- TODO : shift=3Dnorun : gWalk_Running =3D not gKeyPressed[key_lshift]
+-	-- TODO : jump
+-]]--
++-- non-tilebased walking
++-- see also net.walk.lua lib.walking2.lua
++-- TODO : jump clientside ? auto-chat *jump* + recognized by other iris cl=
+ients ?  hack anim by reverse die-backw ? blend sit ? ride ?
++
+ =
+
+ gTileFreeWalk =3D {}
+ =
+
+ kFreeWalkMouseSlowArea =3D 100
+-
+ =
+
+ kTileFreeTestMobile =3D {artid=3D400,hue=3D33780, content=3D{
+ 		{artid=3Dhex2num(&quot;0x3EA2&quot;),layer=3DkLayer_Mount},
+@@ -53,9 +19,7 @@
+ =
+
+ =
+
+ function gTileFreeWalk:Init ()
+-	if (not gEnableTileFreeWalk) then return end -- set in config.lua : gEnab=
+leTileFreeWalk =3D true
+ 	if (gCurrentRenderer ~=3D Renderer3D) then return end
+-	self.iLastWalkRequestSendTime =3D 0
+ 	self.pathpoints =3D {}
+ 	self.debugmarkers =3D {}
+ 	self.debugmarkergroups =3D {}
+@@ -65,22 +29,22 @@
+ 	self.pos_clientside =3D {0,0,0}
+ 	self.pos_lastconfirmed =3D {0,0,0}
+ 	self.pos_lastrequested =3D {0,0,0}
+-end
+-function gTileFreeWalk:OnStartInGame ()
+-	if (not gEnableTileFreeWalk) then return end
++	self:SetPos_All(0,0,0)
++	=
+
+ 	if (true) then
+ 		self.sDebugMarkerMeshName_Big	=3D MakeSphereMesh(11,11,0.2,0.2,0.2)
+ 		self.sDebugMarkerMeshName_Dir	=3D MakeSphereMesh(11,11,0.1,0.1,0.1)
+ 	end
+-	=
+
+-	self:SetPos_All(0,0,0)
++end
++
++function gTileFreeWalk:OnStartInGame ()
+ 	if (gStartGameWithoutNetwork) then
+ 		Renderer3D:ChangeCamMode(Renderer3D.kCamMode_Third)
+ 		self:SetPos_All(-1675.5,284.5,5.0)
+ 	end
+-
+ 	RegisterStepper(function () gTileFreeWalk:Step() end) =
+
+ end
++
+ RegisterListener(&quot;Hook_StartInGame&quot;,function () gTileFreeWalk:OnStartInGam=
+e() end)
+ RegisterListener(&quot;Hook_PreLoad&quot;,function () gTileFreeWalk:Init() end)
+ =
+
+@@ -102,12 +66,12 @@
+ function gTileFreeWalk:Step	()
+ 	if (gCurrentRenderer ~=3D Renderer3D) then return end
+ 	local bWalkInMouseDir	=3D gKeyPressed[key_mouse2]
+-	local bWalkForward		=3D gKeyPressed[key_up]		-- WalkForward() end
+-	local bWalkBackwards	=3D gKeyPressed[key_down]		-- WalkTurn( 4) end
+-	local bTurnLeft			=3D gKeyPressed[key_left]		-- WalkTurn(-1) end
+-	local bTurnRight		=3D gKeyPressed[key_right]	-- WalkTurn( 1) end
++	local bWalkForward		=3D (not gActiveEditText) and gKeyPressed[key_up]		=
+
++	local bWalkBackwards	=3D (not gActiveEditText) and gKeyPressed[key_down]	=
+
++	local bTurnLeft			=3D (not gActiveEditText) and gKeyPressed[key_left]	=
+
++	local bTurnRight		=3D (not gActiveEditText) and gKeyPressed[key_right]	=
+
++	local bSlowWalk			=3D gKeyPressed[key_lshift]
+ 	local fRequestedSpeed =3D 0
+-	local fRequestedDirX,fRequestedDirY =3D 0,0
+ 	local bRunRequested =3D false
+ 	=
+
+ 	-- hold rightmouse button to walk in mouse direction (depends on center o=
+f screen, works good for 3rd person cam)
+@@ -126,7 +90,6 @@
+ 		self.movediry =3D dy
+ 		local maxspeed =3D self:GetClientSideSpeed(self.movedirx,self.movediry,0)
+ 		fRequestedSpeed =3D maxspeed * slowarea_factor
+-		fRequestedDirX,fRequestedDirY =3D dx,dy
+ 		x =3D x + self.movedirx * fRequestedSpeed * gSecondsSinceLastFrame
+ 		y =3D y + self.movediry * fRequestedSpeed * gSecondsSinceLastFrame
+ 		bMoved =3D true
+@@ -139,24 +102,21 @@
+ 			self.movedirx =3D dx*cos(angadd) - dy*sin(angadd)
+ 			self.movediry =3D dx*sin(angadd) + dy*cos(angadd)
+ 			self.movedirx,self.movediry =3D norm2(self.movedirx,self.movediry)
+-			fRequestedDirX,fRequestedDirY =3D self.movedirx,self.movediry
+ 			bMoved =3D true
+ 		end
+ 		if (bWalkForward or bWalkBackwards) then
+ 			fRequestedSpeed =3D  self:GetClientSideSpeed(self.movedirx,self.movedir=
+y,0)
+-			fRequestedDirX,fRequestedDirY =3D self.movedirx,self.movediry
+ 			local maxspeed =3D fRequestedSpeed * gSecondsSinceLastFrame
++			if (bSlowWalk) then maxspeed =3D maxspeed * 0.5 end -- TODO : bSlowWalk=
+-speed
++			bRunRequested =3D not bSlowWalk
++			bMoved =3D true
+ 			=
+
+ 			if (bWalkForward) then
+ 				x =3D x + self.movedirx * maxspeed
+ 				y =3D y + self.movediry * maxspeed
+-				bMoved =3D true
+-				bRunRequested =3D true
+ 			elseif (bWalkBackwards) then
+ 				x =3D x - self.movedirx * maxspeed
+ 				y =3D y - self.movediry * maxspeed
+-				bMoved =3D true
+-				bRunRequested =3D true
+ 			end
+ 		end
+ 	end
+@@ -303,7 +263,7 @@
+ 		end
+ 		=
+
+ 		self:SetPos_ClientSide(x,y,z)
+-		self:SetDebugMarker(&quot;GetPos_ClientSide&quot;, x,y,z, self.movedirx,self.moved=
+iry,0, 1,1,0)
++		self:UpdateClientPosMarker()
+ 	end
+ 	=
+
+ 	-- debug markers
+@@ -312,41 +272,10 @@
+ 	local x,y,z =3D self:GetPos_LastRequested()
+ 	self:SetDebugMarker(&quot;GetPos_LastRequested&quot;, x,y,z, 0,0,0, 0,0,1)
+ 	=
+
+-	=
+
+-
+-	-- send walk requests to server
+-	local iTimeSinceLastWalkRequest =3D gMyTicks - self.iLastWalkRequestSendT=
+ime
+-	local iWalkRequestInterval =3D self:GetWalkRequestInterval()
+-	if (iTimeSinceLastWalkRequest &gt;=3D iWalkRequestInterval) then
+-		if (self:PathPoint_HasNext()) then -- only check for send if we want to =
+send walk requests =
+
+-			self.iLastWalkRequestSendTime =3D (iTimeSinceLastWalkRequest   &gt; 2*iWal=
+kRequestInterval) and gMyTicks or =
+
+-											(self.iLastWalkRequestSendTime + iWalkRequestInterval) -- compe=
+nsate low framerates a bit
+-			=
+
+-			-- todo : pathpoints can be impassable, happens during diagonal walk, d=
+on't send walk requests to those
+-			-- determine the &quot;next&quot; position for the request, summarize as much int=
+o one step as possible
+-			local lx,ly,lz =3D self:GetPos_LastRequested()
+-			local rx,ry,rz
+-			local i =3D 1
+-			while (self:PathPoint_HasNext()) do -- go to the furthes path point tha=
+t can be reached in one step (diag)
+-				local x,y,z =3D self:PathPoint_GetNext()
+-				if (math.abs(x-lx) &gt; 1 or math.abs(y-ly) &gt; 1) then break end -- adjact=
+ed ? (todo : check if walk possible ?)
+-				rx,ry,rz =3D x,y,z
+-				self:PathPoint_Pop()
+-			end
+-			self:SetPos_LastRequested(rx,ry,rz)
+-			=
+
+-			-- todo : send request
+-			--print(&quot;walk request to &quot;,rx,ry,rz,iTimeSinceLastWalkRequest,iWalkRequ=
+estInterval)
+-		=
+
+-			-- confirm here if there is no server
+-			local bSelfConfirmAll =3D gStartGameWithoutNetwork
+-			if (bSelfConfirmAll) then self:SetPos_LastConfirmed(rx,ry,rz) end -- de=
+bug/offline mode only
+-		end
+-	end
+-
+-	=
+
+-	self:Impl_StepPlayer(fRequestedSpeed,fRequestedDirX,fRequestedDirY,bRunRe=
+quested)
+-		=
+
++	-- send walk requests to server if possible
++	self:Impl_WalkRequestStep(bRunRequested)
++	=
+
++	self:Impl_StepPlayer(fRequestedSpeed,bRunRequested)
+ end
+ =
+
+ =
+
+@@ -394,73 +323,172 @@
+ =
+
+ -- ##### ##### ##### ##### ##### implementation (currently uo specific, wi=
+ll later be inserted from extern)
+ =
+
+---[[
+-	z					=3D GetAbsTile(bx*8+tx,by*8+ty) -- access gGroundBlockLoader
+-	z 					=3D AverageGroundHeight(bx,by,tx,ty) -- average edges
+-	bIsWalkable,iNewZ	=3D GetNearestGroundLevel(bx,by,tx,ty,iStartZ,iDir) =
+
+-		-- iDir is only used for diagonal here, but the passed in position is th=
+e TARGET position that is to be checked
+-		-- iStartZ must be rounded
+-	=
+
+-
+-	request.onSuccess_XLoc =3D tx + GetDirX(gPlayerDir)
+-	request.onSuccess_YLoc =3D ty + GetDirY(gPlayerDir)
+-	request.onSuccess_ZLoc =3D tz
+-
+-	request.bClientSidePassable, request.onSuccess_ZLoc =3D GetNearestGroundL=
+evel(
+-								math.floor(request.onSuccess_XLoc/8), =
+
+-								math.floor(request.onSuccess_YLoc/8), =
+
+-								math.mod(request.onSuccess_XLoc,8), =
+
+-								math.mod(request.onSuccess_YLoc,8),
+-								request.onSuccess_ZLoc, iDir)
+-								=
+
+-
+-	local x,y,z =3D Renderer3D:UOPosToLocal(xloc,yloc,zloc * 0.1)
+-]]--
++function gTileFreeWalk:NotifyPlayerMobileTeleport (mobile)
++	self:Impl_SetToPlayerPos(mobile)
++end
++
++function gTileFreeWalk:NotifyPlayerMobileUpdate (mobile)	=
+
++	if (not self.bNetPosInit) then self.bNetPosInit =3D true self:Impl_SetToP=
+layerPos(mobile) end
++end
++
++function gTileFreeWalk:Impl_SetLastRequestedUOPos (xloc,yloc,zloc)
++	--~ print(&quot;Impl_SetLastRequestedUOPos&quot;,xloc,yloc)
++	local x,y,z =3D self:UOPosToLocal(xloc,yloc,zloc)
++	self:SetPos_LastRequested(x,y,z)
++	=
+
++	local maxreached =3D 0
++	for i =3D 1,self:PathPoint_Count() do =
+
++		local px,py,pz =3D self:PathPoint_GetNth(i)
++		--~ print(&quot;Impl_SetLastRequestedUOPos test=3D&quot;,px,py,x,y)
++		if (px =3D=3D x and py =3D=3D y) then maxreached =3D i end
++	end
++	if (maxreached =3D=3D 0) then return end
++	--~ print(&quot;Impl_SetLastRequestedUOPos maxreached=3D&quot;,maxreached)
++	for i =3D 1,maxreached do self:PathPoint_Pop() end
++end
++
++function gTileFreeWalk:Impl_SetLastConfirmedUOPos (xloc,yloc,zloc)
++	self:SetPos_LastConfirmed(self:UOPosToLocal(xloc,yloc,zloc))
++end
++
++
++function gTileFreeWalk:Impl_SetToPlayerPos (mobile)
++	self.movedirx,self.movediry =3D norm2(GetDirXLocal(gPlayerDir),GetDirYLoc=
+al(gPlayerDir))
++	self:SetPos_All(self:UOPosToLocal(mobile.xloc,mobile.yloc,mobile.zloc))
++	self:UpdateClientPosMarker()
++end
++
++function gTileFreeWalk:UOPosToLocal (xloc,yloc,zloc)
++	local x,y,z =3D Renderer3D:UOPosToLocal(xloc,yloc,zloc*0.1) -- inverts x
++	return x-0.5, y+0.5, z
++end
++
++function gTileFreeWalk:LocalToUOPos (x,y,z)
++	local xloc,yloc,zloc =3D Renderer3D:LocalToUOPos(x,y,z*10)  -- inverts x
++	return math.floor(xloc),math.floor(yloc),math.floor(zloc)
++end
++
++function gTileFreeWalk:Impl_CanSendWalkRequest ()
++	return true -- TODO : check if fastwalkstack non empty
++end
++
++function WalkLog2 (...) if (gKeyPressed[key_f]) then print(&quot;walklog2&quot;,unpa=
+ck(arg)) end end
++
++function gTileFreeWalk:StuckCheck ()
++	local x,y,z =3D self:GetPos_ClientSide()
++	local rx,ry,rz =3D self:RoundPos(x,y,z)
++	local d =3D len2(x-rx,y-ry)
++	if (d &gt; 0.1) then return end
++	=
+
++	-- TODO...
++	--~ print(&quot;StuckCheck&quot;)
++	--~ local x,y,z =3D GetPos_LastConfirmed()
++	--
++end
++
++
++function gTileFreeWalk:Impl_WalkRequestStep (bRunRequested)
++	self:StuckCheck()
++	self:PathPoint_Pop() -- pathpoints aren't currently used
++	if (not Walk_RequestTimeOk()) then return end
++	=
+
++	local rx,ry,rz =3D self:RoundPos(self:GetPos_ClientSide())
++	local lx,ly,lz =3D self:GetPos_LastRequested()
++	local dx,dy =3D rx-lx,ry-ly
++	=
+
++	if (dx =3D=3D 0 and dy =3D=3D 0) then return end
++	local iDir =3D DirFromLocalDxDy(dx,dy)
++	if (not iDir) then return end
++	=
+
++	WalkStep_WalkInDir(iDir,bRunRequested,true)
++	=
+
++	if (true) then return end
++	self:SetPos_LastConfirmed(rx,ry,rz)
++	=
+
++	local bWalkForward		=3D (not gActiveEditText) and gKeyPressed[key_up]		=
+
++	local bWalkBackwards	=3D (not gActiveEditText) and gKeyPressed[key_down]	=
+
++	local bTurnLeft			=3D (not gActiveEditText) and gKeyPressed[key_left]	=
+
++	local bTurnRight		=3D (not gActiveEditText) and gKeyPressed[key_right]	=
+
++	=
+
++		=
+
++	if (		bWalkForward) then WalkStep_WalkInDir(gPlayerDir ,true)
++	elseif (	bTurnLeft	) then WalkStep_WalkInDir(gPlayerDir-1,true)
++	elseif (	bTurnRight	) then WalkStep_WalkInDir(gPlayerDir+1,true) =
+
++	end
++	=
+
++	=
+
++	print(&quot;player&quot;,gPlayerXLoc,gPlayerYLoc,gPlayerDir)
++	self:Impl_SetToPlayerPos(GetPlayerMobile())
++	=
+
++		=
+
++	-- self confirm here if there is no server, debug/offline mode only
++	if (gStartGameWithoutNetwork) then self:SetPos_LastConfirmed(rx,ry,rz) re=
+turn end
++	=
+
++	WalkLog2(&quot;Impl_WalkRequestStep timeok,haxnext&quot;,Walk_RequestTimeOk(),self:=
+PathPoint_HasNext())
++	=
+
++	-- don't calc if request can't be sent yet
++	if (not Walk_RequestTimeOk()) then return end
++	=
+
++	=
+
++	local x1,y1,z1 =3D self:PathPoint_GetNth(1)
++	if (not x1) then return end
++	=
+
++	xloc1,yloc1,zloc1 =3D self:LocalToUOPos(x1,y1,z1)
++	=
+
++	=
+
++	--~ if (xloc2 and WalkStep_WalkToPosSimple(xloc2,yloc2,bRunRequested,fals=
+e)) then return end
++	print(&quot;WalkStep_WalkToPosSimple&quot;,xloc1,yloc1,gPlayerXLoc,gPlayerYLoc)
++	WalkStep_WalkToPosSimple(xloc1,yloc1,bRunRequested,false)
++	=
+
++	-- todo : pathpoints can be impassable, happens during diagonal walk, don=
+'t send walk requests to those
++	-- determine the &quot;next&quot; position for the request, summarize as much into =
+one step as possible
++end
++				=
+
+ =
+
+ -- fRequestedSpeed is the speed requested by the mousepos/keyboard, might =
+not be reached, e.g. when walking against a wall
+-function gTileFreeWalk:Impl_StepPlayer (fRequestedSpeed,fRequestedDirX,fRe=
+questedDirY,bRunRequested)
+-	if (not gTileFreeTestBodyGfx) then =
+
+-		local mobile =3D kTileFreeTestMobile
+-		gTileFreeTestBodyGfx =3D CreateBodyGfx()
+-		gTileFreeTestBodyGfx:MarkForUpdate(mobile.artid,mobile.hue,mobile.conten=
+t)
+-		gTileFreeTestBodyGfx:Update()
+-	end
+-	=
+
+-	print(&quot;gTileFreeWalk:Impl_StepPlayer : reqspeed,dx,dy,run&quot;,fRequestedSpee=
+d,fRequestedDirX,fRequestedDirY,bRunRequested)
++function gTileFreeWalk:Impl_StepPlayer (fRequestedSpeed,bRunRequested)
++
+ 	local bMoving,bTurning,bWarMode,bRunFlag =3D false,false,false,false
+ 	bMoving =3D fRequestedSpeed &gt; 0
+ 	bRunFlag =3D bRunRequested
+-	gTileFreeTestBodyGfx:SetState(bMoving,bTurning,bWarMode,bRunFlag)
++	self.bRunRequested =3D bRunRequested
+ 	=
+
+ 	local x,y,z =3D self:GetPos_ClientSide()
+-	gTileFreeTestBodyGfx.modelgfx:SetPosition(x,y,z)
+-	=
+
+-	if (fRequestedDirX ~=3D 0 or fRequestedDirY ~=3D 0) then
+-		local qw,qx,qy,qz =3D Quaternion.getRotation(0,-1,0,fRequestedDirX,fRequ=
+estedDirY,0) =
+
++	local qw,qx,qy,qz =3D Quaternion.getRotation(0,-1,0,self.movedirx or 0,se=
+lf.movediry or -1,0)
++	=
+
++	-- apply to body
++	if (gStartGameWithoutNetwork) then -- offline mode, show test model
++		if (not gTileFreeTestBodyGfx) then =
+
++			local mobile =3D kTileFreeTestMobile
++			gTileFreeTestBodyGfx =3D CreateBodyGfx()
++			gTileFreeTestBodyGfx:MarkForUpdate(mobile.artid,mobile.hue,mobile.conte=
+nt)
++			gTileFreeTestBodyGfx:Update()
++		end
++		gTileFreeTestBodyGfx:SetState(bMoving,bTurning,bWarMode,bRunFlag)
++		gTileFreeTestBodyGfx.modelgfx:SetPosition(x,y,z)
+ 		gTileFreeTestBodyGfx.modelgfx:SetOrientation(qw,qx,qy,qz)
+-	end
+-end
+-
+--- returns bx,by,tx,ty
+-function gTileFreeWalk:Impl_UOPos2BT (xloc,yloc) return math.floor(xloc/8)=
+,math.floor(yloc/8),math.mod(xloc,8),math.mod(yloc,8) end =
+
++	else -- online mode, set mobile pos
++		local mobile =3D GetPlayerMobile()
++		if (mobile) then =
+
++			Renderer3D:UpdateMobilePos(mobile,x+0.5,y-0.5,z,qw,qx,qy,qz)
++			------ --- TODO : SetState(bMoving,bTurning,bWarMode,bRunFlag)
++			=
+
++			bWarMode 	=3D TestBit(mobile.flag,kMobileFlag_WarMode) -- combat
++			--~ bRunFlag 	=3D TestBit(mobile.dir,kWalkFlag_Run)
++			if (mobile.bodygfx) then mobile.bodygfx:SetState(bMoving,bTurning,bWarM=
+ode,bRunFlag) end
++		end
++	end
++end
+ =
+
+ -- input : rounded
+ -- read new surrounding height info
+ function gTileFreeWalk:Impl_ScanGround (rx,ry,rz)
+-	local xloc,yloc,zloc =3D Renderer3D:LocalToUOPos(rx,ry,rz*10)
+-	xloc =3D math.floor(xloc)
+-	yloc =3D math.floor(yloc)
+-	zloc =3D math.floor(zloc)
++	local xloc,yloc,zloc =3D self:LocalToUOPos(rx,ry,rz)
+ 	=
+
+ 	local ox,oy,oz =3D self:PathPoint_GetLast()
+ 	local iSelfZ =3D nil -- zloc
+ 	local iComingHereDir
+ 	local groundcache =3D {}
+-	function DirWrap (iDir) -- wraps into [0,7]
+-		while (iDir &lt; 0) do iDir =3D iDir + 8 end
+-		while (iDir &gt; 7) do iDir =3D iDir - 8 end
+-		return iDir
+-	end
+ 	function RegisterZ (ldx,ldy,iNewZ)
+ 		groundcache[ldx..&quot;,&quot;..ldy] =3D groundcache[ldx..&quot;,&quot;..ldy] or (iNewZ and =
+(iNewZ*0.1 + Renderer3D.gZ_Factor))
+ 	end
+@@ -486,8 +514,7 @@
+ =
+
+ function gTileFreeWalk:Impl_CalcWalkStep (xloc,yloc,zloc,iDir)
+ 	-- if (xloc =3D=3D 1670 and yloc =3D=3D 283) then return false end
+-	local bx,by,tx,ty =3D self:Impl_UOPos2BT(xloc,yloc)
+-	local bIsWalkable,iNewZ	=3D GetNearestGroundLevel(bx,by,tx,ty,zloc,iDir)
++	local bIsWalkable,iNewZ	=3D GetNearestGroundLevel(xloc,yloc,zloc,iDir)
+ 	return bIsWalkable and iNewZ
+ end
+ =
+
+@@ -504,7 +531,7 @@
+ =
+
+ -- world-units (tiles for uo) per second
+ -- todo : depends on conditions(stamina,spells,buffs,debuffs...) and on mo=
+unt/horse ?
+-function gTileFreeWalk:Impl_GetMaxAllowedSpeed		() return 4 end -- TODO  g=
+WalkTimeout_MoveingSpeed
++function gTileFreeWalk:Impl_GetMaxAllowedSpeed		() return 1000 / WalkGetIn=
+terval(true) end
+ function gTileFreeWalk:Impl_GetMaxAllowedTurnRate	() return 45*gfDeg2Rad e=
+nd
+ =
+
+ -- feedback for thirdpersoncam
+@@ -514,7 +541,6 @@
+ =
+
+ -- 27.09.2007 : the code that triggers this event has been deactivated, so=
+ this should no longer be neccessary
+ RegisterListener(&quot;Hook_RecenterWorld&quot;,function (difx,dify)
+-	if (not gEnableTileFreeWalk) then return end
+ 	print(&quot;ERROR, TileFreeWalk : Hook_RecenterWorld not yet implemented&quot;)
+ 	-- todo : move all positons...
+ 	Crash()
+@@ -527,6 +553,7 @@
+ function gTileFreeWalk:PathPoint_SetLast	(x,y,z)		self.lastMarkedWalkPos =
+=3D {x,y,z} end
+ function gTileFreeWalk:PathPoint_GetLast	()			return unpack(self.lastMarke=
+dWalkPos) end
+ function gTileFreeWalk:PathPoint_GetNext	() return self:PathPoint_GetNth(1=
+) end
++function gTileFreeWalk:PathPoint_Count		() return table.getn(self.pathpoin=
+ts) end
+ function gTileFreeWalk:PathPoint_GetNth		(n) -- n=3D1 for first =3D next
+ 	if (not self.pathpoints[n]) then return end
+ 	return unpack(self.pathpoints[n])
+@@ -579,8 +606,8 @@
+ 	self:SetPos_ClientSide(		x,y,z)
+ 	self:SetPos_LastConfirmed(	x,y,z)
+ 	self:SetPos_LastRequested(	x,y,z)
++	self.pathpoints =3D {}
+ 	self:PathPoint_SetLast(		x,y,z)
+-	print(&quot;todo : init ground&quot;)
+ end
+ =
+
+ =
+
+@@ -588,6 +615,11 @@
+ -- ##### ##### ##### ##### ##### debug markers
+ =
+
+ =
+
++		=
+
++function gTileFreeWalk:UpdateClientPosMarker ()
++	local x,y,z =3D self:GetPos_ClientSide()
++	self:SetDebugMarker(&quot;GetPos_ClientSide&quot;, x,y,z, self.movedirx,self.movedi=
+ry,0, 1,1,0)
++end
+ =
+
+ function gTileFreeWalk:DebugMarkerGroup_Clear (groupname)
+ 	local myarr =3D self.debugmarkergroups[groupname]
+
+Modified: trunk/data/lua/lib.uoids.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.uoids.lua (original)
++++ trunk/data/lua/lib.uoids.lua Tue Oct  9 03:15:45 2007
+@@ -7,6 +7,9 @@
+ gRace =3D { [1] =3D &quot;Human&quot;, [2] =3D &quot;Elf&quot; }
+ =
+
+ gMaxHueValue =3D 2999 -- hues.mul has only 2999 values
++
++
++kMobileGhostArtIDs =3D {402,403,607,608,970}
+ =
+
+ -- the meaning of mobile.flag
+ kMobileFlag_Unknown1		=3D hex2num(&quot;0x01&quot;)
+
+Modified: trunk/data/lua/lib.walking2.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.walking2.lua (original)
++++ trunk/data/lua/lib.walking2.lua Tue Oct  9 03:15:45 2007
+@@ -321,7 +321,8 @@
+ -- Can walk the tile, the tile's height and if the tile's a stair
+ -- (about 30 in int, or 3.0 in float (*0.1) is the height of a door)
+ -- two values are returned: is walkable, new Z Level
+-function GetNearestGroundLevel (bx,by,tx,ty,iStartZ,iDir)
++function GetNearestGroundLevel (xloc,yloc,iStartZ,iDir)
++	local bx,by,tx,ty =3D math.floor(xloc/8),math.floor(yloc/8),math.mod(xloc=
+,8),math.mod(yloc,8)
+ 	local Walking_Start =3D Client_GetTicks()
+ 	printwalkdebug(&quot;-------------------&quot;)
+ 	printwalkdebug(&quot;GetNearestGroundLevel()&quot;)
+
+Modified: trunk/data/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/main.lua (original)
++++ trunk/data/lua/main.lua Tue Oct  9 03:15:45 2007
+@@ -96,6 +96,7 @@
+ dofile(libpath .. &quot;filter.art.lua&quot;)
+ dofile(libpath .. &quot;filter.granny.lua&quot;)
+ dofile(libpath .. &quot;filter.map.lua&quot;)
++dofile(libpath .. &quot;lib.oldwalk.lua&quot;)
+ =
+
+ --can be removed from release
+ dofile(libpath .. &quot;lib.meshexporter.lua&quot;)
+@@ -268,7 +269,6 @@
+ 		gCurrentRenderer:UpdateMap()
+ 		gCurrentRenderer:MousePickStep()
+ 		StepUODragDrop()
+-		WalkStep()
+ 		PingStep()
+ 		gCurrentRenderer:CombatGuiStep()
+ 		if (gCurrentRenderer.MobileAnimStep) then gCurrentRenderer:MobileAnimSte=
+p() end
+
+Modified: trunk/data/lua/net.login.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/net.login.lua (original)
++++ trunk/data/lua/net.login.lua Tue Oct  9 03:15:45 2007
+@@ -175,29 +175,29 @@
+ 	local input =3D GetRecvFIFO()
+ 	local id =3D input:PopNetUint8()
+ =
+
+-	packet =3D {}
+-	packet.serial	=3D input:PopNetUint32()
+-	packet.unknown1 =3D input:PopNetUint32()
+-	packet.artid	=3D input:PopNetUint16()
+-	packet.xloc	=3D input:PopNetUint16()
+-	packet.yloc	=3D input:PopNetUint16()
+-	packet.unknown0 =3D input:PopNetUint8()
+-	packet.zloc	=3D input:PopInt8()
+-	packet.dir	=3D input:PopNetUint8()
+-
+-	packet.unknown2 =3D input:PopNetUint16()
+-	packet.unknown3 =3D input:PopNetUint32()
+-
+-	packet.unknown4 =3D input:PopNetUint32()
+-	packet.flag	=3D input:PopNetUint8()
+-	packet.notoriety =3D input:PopNetUint8()
+-
+-	packet.unknown5 =3D input:PopNetUint32()
+-	packet.unknown6 =3D input:PopNetUint16()
+-	packet.unknown7 =3D input:PopNetUint8()
+-	=
+
+-	packet.hue	=3D 0
+-	local playerid =3D packet.serial
++	mobiledata =3D {}
++	mobiledata.serial	=3D input:PopNetUint32()
++	mobiledata.unknown1 =3D input:PopNetUint32()
++	mobiledata.artid	=3D input:PopNetUint16()
++	mobiledata.xloc	=3D input:PopNetUint16()
++	mobiledata.yloc	=3D input:PopNetUint16()
++	mobiledata.unknown0 =3D input:PopNetUint8()
++	mobiledata.zloc	=3D input:PopInt8()
++	mobiledata.dir	=3D input:PopNetUint8()
++
++	mobiledata.unknown2 =3D input:PopNetUint16()
++	mobiledata.unknown3 =3D input:PopNetUint32()
++
++	mobiledata.unknown4 =3D input:PopNetUint32()
++	mobiledata.flag	=3D input:PopNetUint8()
++	mobiledata.notoriety =3D input:PopNetUint8()
++
++	mobiledata.unknown5 =3D input:PopNetUint32()
++	mobiledata.unknown6 =3D input:PopNetUint16()
++	mobiledata.unknown7 =3D input:PopNetUint8()
++	=
+
++	mobiledata.hue	=3D 0
++	local playerid =3D mobiledata.serial
+ =
+
+ 	--Request Skills and stats
+ 	Send_ClientQuery(gRequest_Skills,playerid)
+@@ -210,9 +210,9 @@
+ 	Send_UnknownCommand()
+ 	Send_UnknownSE()
+ 	=
+
+-	-- TODO : HintStartPosition(packet.xloc, packet.yloc, packet.zloc) hint f=
+or campos ?
+-	UpdatePlayerBodySerial(packet.serial)
+-	CreateOrUpdateMobile(packet)
++	-- TODO : HintStartPosition(mobiledata.xloc, mobiledata.yloc, mobiledata.=
+zloc) hint for campos ?
++	UpdatePlayerBodySerial(mobiledata.serial)
++	CreateOrUpdateMobile(mobiledata)
+ end
+ =
+
+ -- if packet is received we can Start the Game now !
+
+Modified: trunk/data/lua/net.other.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/net.other.lua (original)
++++ trunk/data/lua/net.other.lua Tue Oct  9 03:15:45 2007
+@@ -151,20 +151,16 @@
+ 	local subcmd =3D input:PopNetUint16()
+ --	printf(&quot;NET: Generic_Command id: 0x%02x size: %i subcmd: %i\n&quot;,id,size,=
+subcmd)
+ =
+
+-	-- Init gFastwalkStack with 6 values	(runuo's fifosize 0-255)
++	-- FastWalkInit : 6 keys (runuo's fifosize 0-255)
+ 	if (subcmd =3D=3D kPacket_Generic_SubCommand_FastWalkInit) then -- 0x01
+-		for i =3D 0, 5 do
+-			gFastwalkStack[i] =3D input:PopNetUint32()
+-			--printf(&quot;NET: i: %i fastwalkkey: 0x%08x\n&quot;,i,gFastwalkStack[i])
+-		end
+-		--printf(&quot;NET: gFastwalkStack: Number: %i\n&quot;,table.getn(gFastwalkStack)+=
+1)
+-	end
+-
+-	-- Add key to gFastwalkStack
++		local keys =3D {}
++		for i =3D 1,6 do table.insert(keys,input:PopNetUint32()) end
++		FastWalk_Init(keys)
++	end
++
++	-- FastWalkAddKey
+ 	if (subcmd =3D=3D kPacket_Generic_SubCommand_FastWalkAddKey) then
+-		table.insert( gFastwalkStack, 0, input:PopNetUint32())
+-		--printf(&quot;NET: new fastwalkkey: 0x%08x\n&quot;,gFastwalkStack[0])
+-		printf(&quot;gFastwalkStack: Number: %i\n&quot;,table.getn(gFastwalkStack)+1)
++		FastWalk_PushKey(input:PopNetUint32())
+ 	end
+ =
+
+ 	--Subcommand 4: &quot;Close Generic Gump&quot; =
+
+
+Modified: trunk/data/lua/net.walk.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/net.walk.lua (original)
++++ trunk/data/lua/net.walk.lua Tue Oct  9 03:15:45 2007
+@@ -1,75 +1,94 @@
+--- packet handlers for walking
+--- see also lib.packet.lua and lib.protocol.lua
+-
+--- TODO : running
+--- TODO : does change from run to normal require one packet if dir is kept=
+ ?!?
+--- TODO : adjust player z level while walking ?!? =
+
+--- TODO : check for update mobile/char packets with playerid
+-
+-gNextWalkSequenceNumber =3D 0
++-- packet handlers for walking, fastwalk-keystack =
+
++-- see also Impl_WalkRequestStep in lib.freewalk.lua
++--[[
++	todo : check walksmooth : WalkSmoothUpdate
++	todo : check autowalk, walk to target etc
++	todo : tilefree : check indirect paths (diagonal block trick)
++	todo : set dir =
+
++	todo : bodygfx : mount : setvisible ?
++	todo : AttackSelectedMobile   SetAutoWalkTarget  =
+
++	todo : gPlayerXLoc  , gPlayerDir =
+
++	todo : clean old walk : gLastResyncRequest =
+
++	todo : net.walk.lua obj.player.lua
++	todo : bSlowWalk-speed
++	todo : NotifyWarmode : bodygfx:setstate
++	todo : reset if client is near the center of a blocked tile (r=3D0.1)
++	todo : does server not only send ok but also pos via mobile update ? (nak=
+ed_mob)
++	todo : mouse_right_down walk : on start check if on widget or on mobile (=
+see oldwalknotes)
++	todo : if (countarr(gWalkRequests)) then Send_Movement_Resync_Request() e=
+nd =
+
++	=
+
++	Renderer3D:UpdateMobile:
++		self:UpdateMobileVisibility(mobile)
++
++	function Request_Movement (iDir,bRunning) -- doesn't neccesarily move if =
+time wrong... =
+
++			gNextWalkTime =3D gMyTicks + gWalkTimeout_DirectionChange
++			gNextWalkTime =3D gMyTicks + CalculateWalkTimeout(bRunning)
++			=
+
++			=
+
++	lib.keybinds.lua CancelAutoWalk SetAutoWalkTarget , see also WalkStep for=
+ pressed keys
++	lib.uoid.lua : limits,  kTileDataFlag_Surface Bridge StairBack StairRight
++	lib.input.iris.lua : right-hold : MouseStartWalkOnPressed()
++	net.other.lua : fastwalkstack   kPacket_Generic_SubCommand_SpeedMode ?
++	lib.walking2.lua net.walk.lua
++	=
+
++	todo : later : tilefree autowalk : follow mobile, goto pos...
++	=
+
++	-- TODO : uo tricky because you can walk diagonally between two obstacles
++		-- during walking diagonally the rounded position will probably be on a =
+blocked tile !
++		-- walkrequest to blocked pos may not be sent
++]]--
++
+ gPlayerDir =3D 0 -- does NOT include runflag, always in [0,7], change of v=
+iew dir does require one move packet, the players stays on the same tile
+ gPlayerXLoc =3D nil
+ gPlayerYLoc =3D nil
+ gPlayerZLoc =3D nil
+-gLastResyncRequest =3D nil
+-gLastResyncRequestTimeout =3D 5000
+-gMoveQueue =3D {}
++
++gNextWalkRequestTime =3D 0
++gNextWalkSequenceNumber =3D 0
++gWalkRequests =3D {}
+ gFastwalkStack =3D {}
+-gLastWalkRequest =3D nil
+-gNextWalkTime =3D 0
+-gMaxPendingWalkRequests =3D 10
+-gDestroyObjectDist =3D 40 -- TODO : adjust when requesting a different vie=
+wdist from server
+-gDestroyObjectDistSquare =3D gDestroyObjectDist*gDestroyObjectDist
+ =
+
+ -- varans walk timeouts in ms
+-gWalkTimeout_MoveingSpeed =3D 370
++gWalkTimeout_MovingSpeed =3D 370
+ gWalkTimeout_RunningSpeed =3D 175
+ gWalkTimeout_MountMovingSpeed =3D 185
+ gWalkTimeout_MountRunningSpeed =3D 95
+-
+ gWalkTimeout_DirectionChange =3D 60
+ =
+
+--- playerchar is turning pretty fast when using arrow keys, so we're doing=
+ another timeout here to not affect the movement timeout
+-gKeyboardTurn_Interval =3D 150
+-gKeyboardTurn_NextTurn =3D 0
+-
+--- if the player is currently running
+-
+-gWalk_Running =3D true
+-
+--- to walk alongside an obstacle if the player hits it in a diagonal direc=
+tion
+-gAutoChangedDirection_From =3D 0
+-gAutoChangedDirection_To =3D 0
+-gAutoChangedDirection_Timeout =3D 0
+-
+-function AutoChangedDirectionActive(iDir)
+-	return gAutoChangedDirection_Timeout &gt; gMyTicks and gAutoChangedDirection=
+_From =3D=3D iDir and gAutoChangedDirection_To =3D=3D gPlayerDir
+-end
+-
+-function WalkTurn (diradd) =
+
+-	if (gKeyboardTurn_NextTurn &lt; gMyTicks) then =
+
+-		if (diradd &lt; 0) then diradd =3D diradd + 8 end
+-		Request_Movement(gPlayerDir+diradd, gWalk_Running)
+-		gKeyboardTurn_NextTurn =3D gMyTicks + gKeyboardTurn_Interval
+-	end
+-end
+-
+-function WalkForward ()
+-	Request_Movement(gPlayerDir, gWalk_Running)
+-end
++ =
+
++function WalkLog (...) =
+
++	local tdiff =3D gLastLogTime and (gMyTicks-gLastLogTime) or 0
++	local prefix =3D sprintf(&quot;WalkLog t=3D%5d k=3D%2d r=3D%2d&quot;,tdiff,FastWalk=
+_CountKeys(),countarr(gWalkRequests))
++	print(prefix,unpack(arg)) =
+
++	--~ AddFadeLines(prefix..arrdump(arg))
++	gLastLogTime =3D gMyTicks
++end
++
++-- note : according to packetguides, the order of the key-use is not impor=
+tant
++function FastWalk_Init		(keyarr)	=
+
++	WalkLog(&quot;FastWalk_Init start&quot;) =
+
++	gFastwalkStack =3D {} =
+
++	for k,key in pairs(keyarr) do FastWalk_PushKey(key) end =
+
++	WalkLog(&quot;FastWalk_Init end&quot;) =
+
++end
++function FastWalk_PushKey	(key)		WalkLog(&quot;FastWalk_PushKey&quot;,key) table.ins=
+ert(gFastwalkStack,key) end
++function FastWalk_PopKey	()
++	local res =3D FastWalk_HasKey() and table.remove(gFastwalkStack) or 0
++	--WalkLog(&quot;FastWalk_PopKey&quot;,res)
++	return res =
+
++end =
+
++function FastWalk_HasKey	()			return notempty(gFastwalkStack) end =
+
++function FastWalk_CountKeys	()			return table.getn(gFastwalkStack) end
++
++
+ =
+
+ -- returns x,y,z :  absolute tilepos =3D blockpos*8 + reltilepos[0-7]   z =
+as int (not multiplied by 0.1 yet)
+ function GetPlayerPos () return gPlayerXLoc,gPlayerYLoc,gPlayerZLoc end
+ function GetPlayerDir () return gPlayerDir end
+ =
+
+-function IsObjectFarEnoughToDestroy (xloc,yloc)
+-	local dx =3D xloc-gPlayerXLoc
+-	local dy =3D yloc-gPlayerYLoc
+-	return dx*dx + dy*dy &gt; gDestroyObjectDistSquare
+-end
+-
+ -- fulldir CAN include runflag
+ function SetPlayerPos (xloc,yloc,zloc,fulldir) =
+
++	--~ WalkLog(&quot;SetPlayerPos&quot;,xloc,yloc,zloc,fulldir)
+ 	local dir =3D BitwiseAND(fulldir,hex2num(&quot;0x07&quot;))
+ 	gPlayerDir =3D dir -- change of view dir does require one move packet, th=
+e players stays on the same tile
+ 	gPlayerXLoc =3D xloc
+@@ -79,8 +98,6 @@
+ 	local mobile =3D GetPlayerMobile()
+ 	if (not mobile) then return end
+ 	=
+
+-	gCurrentRenderer:BlendOutLayersAbovePlayer()
+-
+ 	-- update the mobile/char/body of the player
+ 	mobile.xloc =3D xloc
+ 	mobile.yloc =3D yloc
+@@ -88,439 +105,114 @@
+ 	mobile.dir =3D fulldir
+ 	mobile:Update()
+ 	=
+
+-	-- destroy objects outside view range
+-	-- dynamics
+-	for k,dynamic in pairs(GetDynamicList()) do if (DynamicIsInWorld(dynamic)=
+ and IsObjectFarEnoughToDestroy(dynamic.xloc,dynamic.yloc)) then
+-		DestroyObjectBySerial(dynamic.serial) =
+
+-	end end
+-	-- mobiles
+-	for k,mobile in pairs(GetMobileList()) do if (IsObjectFarEnoughToDestroy(=
+mobile.xloc,mobile.yloc)) then
+-		DestroyObjectBySerial(mobile.serial) =
+
+-	end end
+-end
+-
+--- needed to determine the correct onSuccess_position for a new walk reque=
+st when other requests are still pending
+-function GetLastPlayerPosOnWalkRequestStack () =
+
+-	if (gLastWalkRequest) then return gLastWalkRequest.onSuccess_XLoc,gLastWa=
+lkRequest.onSuccess_YLoc,gLastWalkRequest.onSuccess_ZLoc end
+-	return gPlayerXLoc,gPlayerYLoc,gPlayerZLoc
+-end
+-
+---- call this if right (walk on press) button is pressed the first time
+-function MouseStartWalkOnPressed ()
+-	gCurrentRenderer:MousePick()
+-
+-	-- dont start rightclickwalking if mobile or widget was clicked
+-	if GetWidgetUnderMouse() or (gMousePickFoundHit and gMousePickFoundHit.hi=
+ttype =3D=3D kMousePickHitType_Mobile) then =
+
+-		gMouseWalkOnPressed =3D false
+-	else
+-		gMouseWalkOnPressed =3D true
++	-- handle position update
++	gCurrentRenderer:BlendOutLayersAbovePlayer()
++	DestroyObjectsFarFromPlayer(gPlayerXLoc,gPlayerYLoc)
++end
++
++
++-- checks if enough time has passed since the last request
++function Walk_RequestTimeOk () return gMyTicks &gt;=3D gNextWalkRequestTime e=
+nd
++
++-- just look in dir, don't start walking, doesn't need clientside collisio=
+n detection
++function WalkStep_TurnToDir		(iDir) if (DirWrap(iDir) ~=3D gPlayerDir) the=
+n return ExecWalkRequestIfPossible(iDir,false) end end
++
++-- clientside collision check, returns true if passable
++function WalkStep_CanWalkInDir	(iDir) =
+
++	iDir =3D DirWrap(iDir)
++	return (GetNearestGroundLevel(gPlayerXLoc + GetDirX(iDir),gPlayerYLoc + G=
+etDirY(iDir),gPlayerZLoc,iDir))
++end
++
++-- does collision detection, tries neighboring dirs if direct walk is bloc=
+ked
++function WalkStep_WalkInDir		(iDir,bRunFlag,bTrySides) =
+
++	if (not Walk_RequestTimeOk()) then return end
++	iDir =3D DirWrap(iDir)
++	if (iDir ~=3D gPlayerDir	or 	WalkStep_CanWalkInDir(iDir  )) then return E=
+xecWalkRequestIfPossible(iDir  ,bRunFlag) end
++	if (bTrySides and			WalkStep_CanWalkInDir(iDir-1)) then return ExecWalkRe=
+questIfPossible(iDir-1,bRunFlag) end
++	if (bTrySides and			WalkStep_CanWalkInDir(iDir+1)) then return ExecWalkRe=
+questIfPossible(iDir+1,bRunFlag) end
++end
++
++function WalkStep_WalkToPosSimple	(xloc,yloc,bRunFlag,bTrySides) =
+
++	if (not Walk_RequestTimeOk()) then return end
++	local dx =3D xloc - gPlayerXLoc
++	local dy =3D yloc - gPlayerYLoc
++	local iDir =3D DirFromUODxDy(dx,dy)
++	WalkLog2(&quot;WalkStep_WalkToPosSimple dx,dy,dir&quot;,dx,dy,iDir)
++	if (dx =3D=3D 0 and dy =3D=3D 0) then return end -- already there
++	return WalkStep_WalkInDir(iDir,bRunFlag,bTrySides)
++end	=
+
++
++function WalkGetInterval (bRunFlag)
++	local playermobile =3D GetPlayerMobile()
++	if (not playermobile) then return end
++	local bMount =3D playermobile:GetEquipmentAtLayer(kLayer_Mount)
++	return	 bMount and	(	bRunFlag and gWalkTimeout_MountRunningSpeed	or gWalk=
+Timeout_MountMovingSpeed) or =
+
++						(	bRunFlag and gWalkTimeout_RunningSpeed		or gWalkTimeout_MovingSpee=
+d)
++end
++
++-- internal, don't call directly, no check for walkable, only checks for t=
+ime
++function ExecWalkRequestIfPossible	(iDir,bRunFlag)
++	if (not Walk_RequestTimeOk()) then return end
++	iDir =3D DirWrap(iDir)
++	local iFullDir =3D BitwiseOR(iDir,bRunFlag and kWalkFlag_Run or 0) -- inc=
+ludes runflag
++	=
+
++	local playermobile =3D GetPlayerMobile()
++	WalkLog2(&quot;ExecWalkRequestIfPossible playermobile&quot;,playermobile)
++	if (not playermobile) then return end
++	=
+
++	-- init request
++	local xloc =3D gPlayerXLoc
++	local yloc =3D gPlayerYLoc
++	local zloc =3D gPlayerZLoc
++	=
+
++	-- calculate wait time and success-pos
++	local iWaitTime =3D gWalkTimeout_DirectionChange -- just turn without wal=
+king is quick
++	if (iDir =3D=3D gPlayerDir) then -- walk forward
++		iWaitTime =3D WalkGetInterval(bRunFlag)
++		xloc =3D xloc + GetDirX(gPlayerDir)
++		yloc =3D yloc + GetDirY(gPlayerDir)
++		=
+
++		local bClientSidePassable
++		bClientSidePassable,zloc =3D GetNearestGroundLevel(xloc,yloc,zloc,gPlaye=
+rDir)
++		assert(bClientSidePassable)
+ 	end
+-end
+-
+--- called every frame
+-gAutoWalk =3D false
+--- for not walking on rightclick if you only want to close a widget
+-gMouseWalkOnPressed =3D false
+--- timeout helper for walking on pressed right mousebutton
+-gNextAutoWalkCheck =3D 0
+--- timeout to next autowalk check on pressed right button
+-gNextAutoWalkCheckTimeout =3D 500
+--- if this is &gt; 0 and the mobile (given as serial) is existing, autowalk t=
+ries to follow the mobile
+-gFollowMobile =3D 0
+-function WalkStep ()
+-	if (gEnableTileFreeWalk) then return end -- see lib.tilefreewalk.lua for =
+walkstep handling
+-	=
+
+-	-- runnung if shift is pressed
+-	gWalk_Running =3D not gKeyPressed[key_lshift]
+-	=
+
+-	-- handle keys if not in menu
+-	if not gActiveEditText then
+-		if gKeyPressed[key_up]		then WalkForward() end
+-		if gKeyPressed[key_down]	then WalkTurn( 4) end
+-		if gKeyPressed[key_left]	then WalkTurn(-1) end
+-		if gKeyPressed[key_right]	then WalkTurn( 1) end
+-	end
+-	=
+
+-	-- follow target
+-	if (gFollowMobile ~=3D 0) then
+-		local target =3D GetMobile(gFollowMobile)
+-		if target then
+-			SetAutoWalkTo(target.xloc, target.yloc,true)
+-		else
+-			gFollowMobile =3D 0
+-		end
+-	end
+-	=
+
+-	-- right click pressed walk
+-	=
+
+-	if gKeyPressed[key_mouse2] and gMouseWalkOnPressed then =
+
+-		-- walk to the cursor
+-		--[[if (gNextAutoWalkCheck &lt; gMyTicks) then
+-			SetAutoWalkTarget()
+-			gNextAutoWalkCheck =3D gMyTicks + gNextAutoWalkCheckTimeout
+-			print(&quot;AUTOWALK&quot;)
+-		end]]--
+-		=
+
+-		if (not GetWidgetUnderMouse()) then
+-			-- walk into the direction of the cursor
+-			local mx, my =3D GetMousePos()
+-			local vw, vh =3D GetViewportSize()
+-		=
+
+-			local Phi =3D gCurrentRenderer:TranslateOsiWalkAngle(math.atan2( my-vh/=
+2.0, mx-vw/2.0 ) / gfDeg2Rad + 450.0)
+-			while (Phi &lt; 0) do Phi =3D Phi + 360 end
+-			while (Phi &gt;=3D 360) do Phi =3D Phi - 360 end
+-		=
+
+-			if (mx &lt; vw/4.0) or (mx &gt; vw*3.0/4.0) or (my &lt; vh/4.0) or (my &gt; vh*3.0/=
+4.0) then
+-				gWalk_Running =3D true
+-			else
+-				gWalk_Running =3D false
+-			end
+-		=
+
+-			local Direction
+-			if ( Phi &gt;=3D 337.5 ) or ( Phi &lt; 22.5 ) then
+-                        	Direction =3D 7
+-	                elseif ( Phi &gt;=3D 22.5 ) and ( Phi &lt; 67.5 ) then
+-        	                Direction =3D 0
+-                	elseif ( Phi &gt;=3D 67.5 ) and ( Phi &lt; 112.5 ) then
+-                        	Direction =3D 1
+-	                elseif ( Phi &gt;=3D 112.5 ) and ( Phi &lt; 157.5 ) then
+-        	        	Direction =3D 2
+-                	elseif ( Phi &gt;=3D 157.5 ) and ( Phi &lt; 202.5 ) then
+-                        	Direction =3D 3
+-	                elseif ( Phi &gt;=3D 202.5 ) and ( Phi &lt; 247.5 ) then
+-        	                Direction =3D 4
+-                	elseif ( Phi &gt;=3D 247.5 ) and ( Phi &lt; 292.5 ) then
+-                        	Direction =3D 5
+-	                else --if ( Phi &gt;=3D 292.5 ) and ( Phi &lt; 237.5 ) then
+-        	                Direction =3D 6
+-			end
+-		=
+
+-			Request_Movement( Direction, gWalk_Running )
+-		end
+-	end
+-
+-	if (gAutoWalk) then
+-		local x,y,z =3D GetPlayerPos()
+-		local dx =3D gAutoWalkX - x
+-		local dy =3D gAutoWalkY - y
+-		if ((dx =3D=3D 0 and dy =3D=3D 0) or (gAutoWalkHaltBefore and math.abs(d=
+x) &lt;=3D 1 and math.abs(dy) &lt;=3D 1)) then =
+
+-			CancelAutoWalk()
+-			printdebug(&quot;walking&quot;,&quot;autowalk canceled dx=3D&quot;..dx..&quot; dy=3D&quot;..dy)
+-		else =
+
+-			if (dx &lt; 0) then dx =3D -1 end
+-			if (dx &gt; 0) then dx =3D 1 end
+-			if (dy &lt; 0) then dy =3D -1 end
+-			if (dy &gt; 0) then dy =3D 1 end
+-			WalkOneStep(dx,dy,true) =
+
+-		end
+-	end	=
+
+-end
+-
+--- sets the current mousehit as walk target
+-function SetAutoWalkTarget () =
+
+-	gCurrentRenderer:MousePick()
+-	if (gMousePickFoundHit and gMousePickFoundHit.hittype ~=3D kMousePickHitT=
+ype_Mobile) then
+-		gAutoWalk =3D true
+-		gAutoWalkX,gAutoWalkY =3D gCurrentRenderer:GetMouseHitTileCoords()
+-	end
+-end
+-
+--- sets the given tile coordinates as walk target
+--- bHaltBefore : if true, stop one field before the target
+-function SetAutoWalkTo (x, y, bHaltBefore) =
+
+-	gAutoWalk =3D true
+-	gAutoWalkX, gAutoWalkY =3D x, y
+-	gAutoWalkHaltBefore =3D bHaltBefore and true or false
+-end
+-
+--- will follow a given mobile
+-function SetFollowMobile (serial)
+-	local target =3D GetMobile(serial)
+-	if target then
+-		gFollowMobile =3D serial
+-		SetAutoWalkTo(target.xloc, target.yloc , true)
+-	else =
+
+-		gFollowMobile =3D 0
+-	end
+-end
+-
+-function CancelAutoWalk () =
+
+-	gAutoWalk =3D false
+-	gAutoWalkHaltBefore =3D false
+-
+-	-- attack the follow target if warmode is activated
+-	if (gActWarmode =3D=3D gWarmode_Combat) then
+-		printdebug(&quot;walking&quot;,&quot;attack the following mobile: &quot;..gFollowMobile)
+-		if (gFollowMobile ~=3D 0) then
+-			printdebug(&quot;walking&quot;,sprintf(&quot;CancelAutoWalk Follow Attack: serial=3D0x=
+%08x\n&quot;,gFollowMobile))
+-			Send_AttackReq(gFollowMobile)
+-		end
+-	end
+-
+-	gFollowMobile =3D 0
+-end
+-
+-function WalkOneStep (dirx,diry,bRunning) =
+
+-	local dir =3D GetDirCode(dirx,diry)
+-	Request_Movement(dir, bRunning)
+-end
+-
+-
+-function GetNextFastWalkKey()
+-	local fastwalkkey =3D gFastwalkStack[0]
+-	if (fastwalkkey) then
+-		table.remove(gFastwalkStack, 0)
+-		printdebug(&quot;walking&quot;,sprintf(&quot;FastwalkKey removed: 0x%08x\n&quot;,fastwalkkey=
+))
+-		printdebug(&quot;walking&quot;,sprintf(&quot;gFastwalkStack: Number: %i\n&quot;, table.getn(=
+gFastwalkStack)+1))
+-
+-		return fastwalkkey
+-	else
+-		return 0
+-	end
+-end
+-
+--- returns the timeout for the chars current walking mode
+--- TODO: mounted
+-function CalculateWalkTimeout(bRunning)
+-	if (bRunning) then
+-		return gWalkTimeout_RunningSpeed
+-	else
+-		return gWalkTimeout_MoveingSpeed
+-	end
+-end
+-
+--- Request Player Move from Server, handle checks and anim stuff
+--- call this if you want to move
+-function Request_Movement (iDir,bRunning)
+-	while (iDir &lt; 0) do iDir =3D iDir + 8 end
+-	iDir =3D math.mod(iDir,8)
+-
+-	local mobile =3D GetPlayerMobile()
+-	if (not mobile) then return end
+-	=
+
+-	-- limit frequency of walk requests
+-	-- local timeout =3D gMyTicks - gNextWalkTime
+-
+-	if (gNextWalkTime &lt; gMyTicks) then
+-		-- set the time for the next possible walk request
+-		if (gPlayerDir ~=3D iDir and not AutoChangedDirectionActive(iDir)) then
+-			-- only turning, just a small timeout to be able to turn the char in a =
+certain direction without walking there
+-			gNextWalkTime =3D gMyTicks + gWalkTimeout_DirectionChange
+-		else
+-			gNextWalkTime =3D gMyTicks + CalculateWalkTimeout(bRunning)
+-		end
+-		=
+
+-		--printdebug(&quot;walking&quot;,sprintf(&quot;WALK IS possible&quot;,timeout,gMyTicks,gNext=
+WalkTime))
+-	else
+-		-- to many walk requests, ill ignore this one
+-		--printdebug(&quot;walking&quot;,sprintf(&quot;WALK NOT possible&quot;,timeout,gMyTicks,gNex=
+tWalkTime))
+-		return
+-	end
+-	=
+
+-	Send_Request_Movement (iDir,bRunning)
+-end
+-
+--- sends Request Player Move from Server
+-function Send_Request_Movement (iDir,bRunning)
+-	local mobile =3D GetPlayerMobile()
+-	if (not mobile) then return end
+-	if (gLastResyncRequest and gMyTicks - gLastResyncRequest &lt; gLastResyncReq=
+uestTimeout) then return end -- resync pending, don't request more movement
+-	=
+
+-	-- TODO : wait for ack of last move ? limit precalc ? limited by fastwalk=
+ stack ?
+-	local request =3D {}
+-	request.bClientSidePassable =3D true
+-
+-	if (gPlayerDir =3D=3D iDir) then
+-		request.onSuccess_Dir =3D gPlayerDir
+-		request.onSuccess_Run =3D bRunning
+-		local tx,ty,tz =3D GetLastPlayerPosOnWalkRequestStack()
+-		request.onSuccess_XLoc =3D tx + GetDirX(gPlayerDir)
+-		request.onSuccess_YLoc =3D ty + GetDirY(gPlayerDir)
+-		request.onSuccess_ZLoc =3D tz
+-
+-		request.bClientSidePassable, request.onSuccess_ZLoc =3D GetNearestGround=
+Level(
+-									math.floor(request.onSuccess_XLoc/8), =
+
+-									math.floor(request.onSuccess_YLoc/8), =
+
+-									math.mod(request.onSuccess_XLoc,8), =
+
+-									math.mod(request.onSuccess_YLoc,8),
+-									request.onSuccess_ZLoc, iDir)
+-	--[[
+-	else
+-		request.onSuccess_Dir =3D iDir
+-		request.onSuccess_Run =3D bRunning
+-		local tx,ty,tz =3D GetLastPlayerPosOnWalkRequestStack()
+-		request.onSuccess_XLoc =3D tx
+-		request.onSuccess_YLoc =3D ty
+-		request.onSuccess_ZLoc =3D tz
+-	]]--
+-									=
+
+-		-- if the tile is not passable and we are walking diagonally we can try =
+to turn to a free adjacent tile
+-		if (not request.bClientSidePassable and (math.mod(iDir, 2) =3D=3D 1)) th=
+en
+-			printwalkdebug(&quot;diagonal movement blocked, trying to walk alongside&quot;)
+-			request.onSuccess_XLoc =3D tx
+-			request.onSuccess_YLoc =3D ty
+-			request.onSuccess_ZLoc =3D tz
+-			=
+
+-			iDir =3D math.mod(iDir + 1, 8)
+-			request.onSuccess_Dir =3D iDir
+-			request.onSuccess_Run =3D bRunning
+-			local diagLocX =3D tx + GetDirX(iDir)
+-			local diagLocY =3D ty + GetDirY(iDir)
+-			request.bClientSidePassable =3D GetNearestGroundLevel(
+-									math.floor(diagLocX/8), =
+
+-									math.floor(diagLocY/8), =
+
+-									math.mod(diagLocX,8), =
+
+-									math.mod(diagLocY,8),
+-									request.onSuccess_ZLoc, iDir)
+-									=
+
+-			if (not request.bClientSidePassable) then
+-				-- if the first one wasn't successful try the other one
+-				=
+
+-				iDir =3D iDir -2
+-				if (iDir &lt; 0) then iDir =3D iDir + 8 end
+-				request.onSuccess_Dir =3D iDir
+-				request.onSuccess_Run =3D bRunning
+-				diagLocX =3D tx + GetDirX(iDir)
+-				diagLocY =3D ty + GetDirY(iDir)
+-				request.bClientSidePassable =3D GetNearestGroundLevel(
+-									math.floor(diagLocX/8), =
+
+-									math.floor(diagLocY/8), =
+
+-									math.mod(diagLocX,8), =
+
+-									math.mod(diagLocY,8),
+-									request.onSuccess_ZLoc, iDir)
+-			end
+-			=
+
+-			-- if we found a way along the obstacle let's save the information to b=
+e able to =
+
+-			-- walk in the free direction while the player holds down his mouse, re=
+sp. up cursor
+-			if (request.bClientSidePassable) then
+-				printwalkdebug(&quot;autochanged direction successful, walking &quot;..gDirectio=
+n[iDir]..&quot; instead of &quot;..gDirection[gPlayerDir])
+-				-- the direction the player pointed at
+-				gAutoChangedDirection_From =3D gPlayerDir
+-				-- the free direction
+-				gAutoChangedDirection_To =3D iDir
+-				-- we should only walk into our new direction while the player is hold=
+ing down his mouse and pointing =
+
+-				-- to the original direction
+-				gAutoChangedDirection_Timeout =3D gMyTicks + CalculateWalkTimeout(bRun=
+ning) + 100
+-			end
+-		end
+-	else
+-		-- the mouse is also pointing in another direction than the char is look=
+ing at if we are running alongside an obstacle
+-		if (AutoChangedDirectionActive(iDir)) then
+-			printwalkdebug(&quot;autochanged direction is active&quot;)
+-			-- first check if the direction the mouse is pointing at is free (iDir)
+-			local tx,ty,tz =3D GetLastPlayerPosOnWalkRequestStack()
+-			request.onSuccess_ZLoc =3D tz
+-			local checkLocX =3D tx + GetDirX(iDir)
+-			local checkLocY =3D ty + GetDirY(iDir)
+-			=
+
+-			request.bClientSidePassable, request.onSuccess_ZLoc =3D GetNearestGroun=
+dLevel(
+-											math.floor(checkLocX/8), =
+
+-											math.floor(checkLocY/8), =
+
+-											math.mod(checkLocX,8), =
+
+-											math.mod(checkLocY,8),
+-											request.onSuccess_ZLoc, iDir)
+-									=
+
+-			if (request.bClientSidePassable) then
+-				printwalkdebug(&quot;mouse direction is free, turning&quot;)
+-				-- if it's free we're turning to the mouse pointer
+-				request.onSuccess_Dir =3D iDir
+-				request.onSuccess_Run =3D bRunning
+-				request.onSuccess_XLoc =3D tx
+-				request.onSuccess_YLoc =3D ty
+-				request.onSuccess_ZLoc =3D tz
+-				-- disable dir correction
+-				gAutoChangedDirection_Timeout =3D 0
+-			else
+-				-- if our auto chosen direction is free, we're running that way of cou=
+rse (gPlayerDir)
+-				printwalkdebug(&quot;checking autochanged dir &quot;..gDirection[gPlayerDir])
+-				request.onSuccess_Dir =3D gPlayerDir
+-				request.onSuccess_Run =3D bRunning
+-				request.onSuccess_XLoc =3D tx + GetDirX(gPlayerDir)
+-				request.onSuccess_YLoc =3D ty + GetDirY(gPlayerDir)
+-				request.onSuccess_ZLoc =3D tz
+-			=
+
+-				request.bClientSidePassable, request.onSuccess_ZLoc =3D GetNearestGrou=
+ndLevel(
+-												math.floor(request.onSuccess_XLoc/8), =
+
+-												math.floor(request.onSuccess_YLoc/8), =
+
+-												math.mod(request.onSuccess_XLoc,8), =
+
+-												math.mod(request.onSuccess_YLoc,8),
+-												request.onSuccess_ZLoc, gPlayerDir)
+-			=
+
+-				if (request.bClientSidePassable) then
+-					printwalkdebug(&quot;autochanged direction is free, going on&quot;)
+-					gAutoChangedDirection_Timeout =3D gMyTicks + CalculateWalkTimeout(bRu=
+nning) + 100
+-				else
+-					printwalkdebug(&quot;autochanged direction blocked, stopping&quot;)
+-					gAutoChangedDirection_Timout =3D 0
+-				end
+-			end
+-		else
+-			printwalkdebug(&quot;normal turn from &quot;..gDirection[gPlayerDir]..&quot; to &quot;..gDi=
+rection[iDir])
+-			request.onSuccess_Dir =3D iDir
+-			request.onSuccess_Run =3D bRunning
+-			local tx,ty,tz =3D GetLastPlayerPosOnWalkRequestStack()
+-			request.onSuccess_XLoc =3D tx
+-			request.onSuccess_YLoc =3D ty
+-			request.onSuccess_ZLoc =3D tz
+-		end
+-	end
+-	=
+
+-	=
+
+-	if (request.bClientSidePassable) then -- else cancel walk request
+-		local pending_walk_request =3D 0
+-		for k,v in pairs(gMoveQueue) do pending_walk_request =3D pending_walk_re=
+quest + 1 end
+-		=
+
+-		if (pending_walk_request &gt; gMaxPendingWalkRequests) then
+-			printdebug(&quot;walking&quot;,&quot;too many walk requests pending, requesting resync=
+&quot;)
+-			Send_Movement_Resync_Request()
+-		else
+-			request.iSeqNum =3D gNextWalkSequenceNumber
+-			request.iFastKey =3D GetNextFastWalkKey()		-- 0
+-			request.onSuccess_Run =3D bRunning
+-			if (bRunning) then iDir=3DBitwiseOR(iDir,kWalkFlag_Run) end
+-			gMoveQueue[request.iSeqNum] =3D request
+-			gLastWalkRequest =3D request
+-
+-			-- TODO : register usage and implement check in walk acc
+-			-- remember old seq. number
+-			gNextWalkSequenceNumber =3D gNextWalkSequenceNumber + 1
+-			if (gNextWalkSequenceNumber &gt; 255) then gNextWalkSequenceNumber =3D 1 e=
+nd
+-
+-			local out =3D GetSendFIFO()
+-			out:PushNetUint8(kPacket_Request_Movement)
+-			out:PushNetUint8(BitwiseOR(request.onSuccess_Dir,request.onSuccess_Run =
+and kWalkFlag_Run or 0))
+-			out:PushNetUint8(request.iSeqNum)
+-			out:PushNetUint32(request.iFastKey)
+-			out:SendPacket()
+-			printdebug(&quot;walking&quot;,sprintf(&quot;NET: Request_Movement: seq=3D%d fastkey=
+=3D0x%08x dir=3D%d suc_x=3D%d suc_y=3D%d\n&quot;,request.iSeqNum,request.iFastKe=
+y,iDir, request.onSuccess_XLoc, request.onSuccess_YLoc))
+-
+-			SetPlayerPos(	request.onSuccess_XLoc,
+-							request.onSuccess_YLoc,
+-							request.onSuccess_ZLoc,
+-							BitwiseOR(request.onSuccess_Dir,request.onSuccess_Run and kWalkFlag=
+_Run or 0)
+-							)
+-		end
+-	else	=
+
+-		printdebug(&quot;walking&quot;,&quot;walk request canceled from client side (not passab=
+le)!&quot;)
+-		gAutoChangedDirection_Timeout =3D 0
+-		CancelAutoWalk()
+-	end
+-end
+-
+--- This Packet is send when Client thinks he is out of Sync (basicly: sequ=
+ence doesn't fit)
+--- The proper response from the server is a Teleport packet kPacket_Telepo=
+rt
+-function Send_Movement_Resync_Request()
+-	printdebug(&quot;walking&quot;,&quot;NET: Movement_Resync_Request&quot;)
+-	ResetWalkQueue()
+-	if (gLastResyncRequest and gMyTicks - gLastResyncRequest &lt; gLastResyncReq=
+uestTimeout) then return end
+-	gLastResyncRequest =3D gMyTicks
+-	printdebug(&quot;walking&quot;,&quot;NET: Movement_Resync_Request (sending)&quot;)
++	=
+
++	-- set next request time
++	gNextWalkRequestTime =3D math.max(gMyTicks,gNextWalkRequestTime + iWaitTi=
+me) -- compensate slow fps a bit
++	=
+
++	-- send packet
++	request =3D {}
++	request.dir =3D iDir
++	request.xloc =3D xloc
++	request.yloc =3D yloc
++	request.zloc =3D zloc
++	request.iFastKey =3D FastWalk_PopKey()
++	request.iSeqNum =3D gNextWalkSequenceNumber
++	--~ WalkLog(&quot;SendWalkRequest&quot;,sprintf(&quot;0x%02x&quot;,iFullDir),request.iSeqNum,=
+request.iFastKey,request.xloc,request.yloc,request.zloc)
++	SendWalkRequest(iFullDir,request.iSeqNum,request.iFastKey) =
+
++	gWalkRequests[request.iSeqNum] =3D request
++	=
+
++	=
+
++	-- increment walk sequence
++	gNextWalkSequenceNumber =3D gNextWalkSequenceNumber + 1
++	if (gNextWalkSequenceNumber &gt; 255) then gNextWalkSequenceNumber =3D 1 end
++	=
+
++	-- set player pos
++	SetPlayerPos(xloc,yloc,zloc,iFullDir)
++	gTileFreeWalk:Impl_SetLastRequestedUOPos(xloc,yloc,zloc)
++	return true
++end
++
++-- internal, don't call directly
++function SendWalkRequest (iFullDir,iSeqNum,iFastKey) =
+
+ 	local out =3D GetSendFIFO()
+-	out:PushNetUint8(kPacket_Accept_Movement_Resync_Request)
+-	out:PushNetUint8(0)
+-	out:PushNetUint8(0)
++	out:PushNetUint8(kPacket_Request_Movement)
++	out:PushNetUint8(iFullDir)
++	out:PushNetUint8(iSeqNum)
++	out:PushNetUint32(iFastKey)
+ 	out:SendPacket()
+ end
++
+ =
+
+ -- Accept Movement Request and or Resync
+ -- TODO : change player notority &lt;- check if this is needed
+@@ -529,88 +221,51 @@
+ 	local id =3D input:PopNetUint8()
+ 	local iSeqNum =3D input:PopNetUint8()
+ 	local player_status_or_notority =3D input:PopNetUint8()  -- correct use u=
+nknown
+-	printdebug(&quot;walking&quot;,sprintf(&quot;NET: Accept_Movement_Resync_Request: seq=3D=
+%d notority=3D0x%02x\n&quot;,iSeqNum,player_status_or_notority))
+-
+-	local request =3D gMoveQueue[iSeqNum]
++	=
+
++	local request =3D gWalkRequests[iSeqNum]
+ 	=
+
+ 	if (request) then
+-		gMoveQueue[iSeqNum] =3D nil -- request has been handled, remove from que=
+ue
+-		if (gLastWalkRequest) then
+-			if (gLastWalkRequest.iSeqNum =3D=3D iSeqNum) then gLastWalkRequest =3D =
+nil end
+-		end
++		gWalkRequests[iSeqNum] =3D nil -- request has been handled, remove from =
+queue
++		gTileFreeWalk:Impl_SetLastConfirmedUOPos(request.xloc,request.yloc,reque=
+st.zloc)
++		-- todo : tilefree : set last confirmed pos
++		--~ WalkLog(&quot;kPacket_Accept_Movement ok&quot;)
+ 	else
+-		printdebug(&quot;walking&quot;,sprintf(&quot;NET: Accept_Movement_Resync_Request: OUTof=
+SYNC! seqnumber : %i\n&quot;,iSeqNum))
+-		Send_Movement_Resync_Request()	-- is this correct? please test
++		WalkLog(&quot;kPacket_Accept_Movement UNKNOWN&quot;)
++		Send_Movement_Resync_Request()
+ 	end
+-
+-	--[[
+-	if last byte is status : =
+
+-	Normal =3D 0x00,
+-	Unknown =3D 0x01,
+-	CanAlterPaperdoll =3D 0x02,
+-	Poisoned =3D 0x04,
+-	GoldenHealth =3D 0x08,
+-	Unknown2 =3D 0x10,
+-	Unknown3 =3D 0x20,
+-	WarMode =3D 0x40,
+-	Hidden =3D 0x80
+-	The CanAlterPaperdoll flag, if enabled in an Open Paperdoll packet (0x88)=
+, =
+
+-	allows the player receiving the packet to add and remove the target's clo=
+thing.
+-
+-	if last byte is notoriety :
+-	Note: notoriety: 0 =3D invalid/across server line
+-	1 =3D innocent (blue)
+-	2 =3D guilded/ally (green)
+-	3 =3D attackable but not criminal (gray)
+-	4 =3D criminal (gray)
+-	5 =3D enemy (orange)
+-	6 =3D murderer (red)
+-	7 =3D Invulnerable/OSI Admin (translucent (like 0x4000 hue))
+-	]]--
+ end
+ =
+
+ -- reset WalkSeq. and Stack
+ function ResetWalkQueue ()
++	WalkLog(&quot;ResetWalkQueue start&quot;)
+ 	gNextWalkSequenceNumber =3D 0
+-	gMoveQueue =3D {}
+-	gLastWalkRequest =3D nil
+-	gAutoChangedDirection_Timeout =3D 0
+-	CancelAutoWalk()
+-end
+-
+---TODOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
++	gWalkRequests =3D {}
++	WalkLog(&quot;ResetWalkQueue end&quot;)
++end
++
+ -- Block Movement Request - reset player to back to location
+ function gPacketHandler.kPacket_Block_Movement()
+-	local input =3D GetRecvFIFO()
+-	local id =3D input:PopNetUint8()
+-	local seqnumber =3D input:PopNetUint8()
+-	local player_xloc =3D input:PopNetUint16()
+-	local player_yloc =3D input:PopNetUint16()
+-	local player_dir =3D input:PopNetUint8()
+-	local player_zloc =3D input:PopInt8()
+-
+-	local fullplayerdir =3D player_dir
+-	player_dir =3D BitwiseAND(player_dir,hex2num(&quot;0x07&quot;))
+-
+-	-- Check if Player is already on Teleported Pos
+-	if (gPlayerXLoc ~=3D player_xloc or gPlayerYLoc ~=3D player_yloc or
+-		gPlayerZLoc ~=3D player_zloc or gPlayerDir ~=3D player_dir) then
+-
+-		printdebug(&quot;walking&quot;,sprintf(&quot;Block_Movement seqnumber=3D%d player_dir=
+=3D%d\n&quot;,seqnumber,player_dir))
+-		gCurrentRenderer:NotifyPlayerTeleported()
+-		SetPlayerPos(player_xloc,player_yloc,player_zloc,fullplayerdir)
+-	else
+-		printdebug(&quot;walking&quot;,&quot;Player not teleported, because already on the same=
+ pos+dir&quot;)
+-	end
+-
++	local input			=3D GetRecvFIFO()
++	local id			=3D input:PopNetUint8()
++	local seqnumber		=3D input:PopNetUint8()
++	local xloc			=3D input:PopNetUint16()
++	local yloc			=3D input:PopNetUint16()
++	local dir			=3D input:PopNetUint8()
++	local zloc			=3D input:PopInt8()
++
++	WalkLog(&quot;kPacket_Block_Movement start&quot;)
++	ResetWalkQueue()
++	SetPlayerPos(xloc,yloc,zloc,dir)
++	gTileFreeWalk:NotifyPlayerMobileTeleport(GetPlayerMobile())
++	gCurrentRenderer:NotifyPlayerTeleported()
++	=
+
+ 	Send_Accept_Block_Movement(seqnumber)
+-
+-	ResetWalkQueue()
++	WalkLog(&quot;kPacket_Block_Movement end&quot;)
+ end
+ =
+
+ -- TODO : is this the same as Send_Movement_Resync_Request ?
+ function Send_Accept_Block_Movement(seqnumber)
+-	printdebug(&quot;walking&quot;,sprintf(&quot;NET: Send_Accept_Block_Movement: seqnumber=
+=3D%i\n&quot;, seqnumber))
++	WalkLog(&quot;Send_Accept_Block_Movement&quot;,seqnumber)
+ 	local out =3D GetSendFIFO()
+ 	out:PushNetUint8(kPacket_Accept_Movement_Resync_Request)
+ 	out:PushNetUint8(seqnumber)
+@@ -618,68 +273,52 @@
+ 	out:SendPacket()
+ end
+ =
+
++-- This Packet is send when Client thinks he is out of Sync (basicly: sequ=
+ence doesn't fit)
++-- The proper response from the server is a Teleport packet kPacket_Telepo=
+rt
++function Send_Movement_Resync_Request()
++	WalkLog(&quot;Send_Movement_Resync_Request&quot;)
++	-- todo : block too many resync requests by remembering gMyTicks here ?
++	ResetWalkQueue()
++	local out =3D GetSendFIFO()
++	out:PushNetUint8(kPacket_Accept_Movement_Resync_Request)
++	out:PushNetUint8(0)
++	out:PushNetUint8(0)
++	out:SendPacket()
++end
++
+ -- Moves Player to Direction
+ -- This packet works with the latest clients, but is never used by the ser=
+ver.
+ -- TODO : Move Player
+ function gPacketHandler.kPacket_Move_Player()
+-	local input =3D GetRecvFIFO()
+-	local id =3D input:PopNetUint8()
+-	local player_dir =3D input:PopNetUint8()
+-	printdebug(&quot;walking&quot;,sprintf(&quot;NET (todo): Move_Player id: %i player_dir: =
+%i\n&quot;,id, player_dir))
+-end
+-
+---[[
+-request-move
+---The values in the enumeration run from 0 (Northeast) to 7 (North).
+---When used with a packet (such as the Request Movement packet),
+---the flag 0x80 will indicate that the character is running in the specifi=
+ed direction.
+-
+-The current value in a sequence of numbers ranging from 0 to 255.
+-The value increases each time the player successfully moves.
+-After this value reaches 255, it gets reset to 1 when the player next move=
+s and the sequence is repeated.
+-
+-Note: sequence number starts at 0, after a reset.  However, if 255 is reac=
+hed, the next seq # is 1, not 0.
+-
+-Fastwalk prevention notes: each 0x02 pops the top element from fastwalk ke=
+y stack. =
+
+-(0xbf sub1 init. fastwalk stack, 0xbf sub2 pushes an element to stack)
+-If stack is empty key value is 0. (=C3=A0 never set keys to 0 in 0xbf sub =
+1/2)
+-Because client sometimes sends bursts of 0x02's DON'T check for a certain =
+top stack value.
+-The only safe way to detect fastwalk: push a key after EACH x021, 0x22, (=
+=3Dsend 0xbf sub 2) check in 0x02 for stack emptyness.
+-If empty -&gt; fastwalk alert.
+-Note that actual key values are irrelevant. (just don't use 0)
+-Of course without perfect 0x02/0x21/0x22 synch (serverside) it's useless t=
+o use fastwalk detection.
+-
+-Last but not least: fastwalk detection adds 9 bytes per step and player !
+-
+-The fastwalk prevention key is a number sent by the server into the MOVE A=
+CK, =
+
+-telling the client the next key to be used. =
+
+-This is used to prevent exploits where client sends &quot;MOVE&quot; message without=
+ waitting for the MOVE ACK from the server. =
+
+-Note: Sequence number starts at 0, is reseted when reaches 255. However, w=
+hen it's reseted,
+-the next sequence number is 1, not 0. =
+
+-
+-0x0A : edit world : for god client, also enables hackmove
+-0x32  	Hack Mover  : informs godclient wether hackmove is on?
+-0x37  	Move Object : This packet is sent by the god client to move a dynam=
+ic object.
+-0x62  	Move Static  This packet is sent by the god client to move a static=
+ item.
+-0x8E  	Move Character  ?? unknown
+-0x38  	Follow Move ?? unknown
+-
+--- from varans walk code
+-MovingSpeed =3D 370; -- walk normal  (milliseconds to text packet)
+-RunningSpeed =3D 175; -- run normal
+-MountMovingSpeed =3D 185; -- walk mount
+-MountRunningSpeed =3D 95; -- run mount
+-MovingStepsPerField =3D 5;
+-RunningStepsPerField =3D 2;
+-MountMovingStepsPerField =3D 2;
+-MountRunningStepsPerField =3D 1;
+-MaxZClimb =3D 20;
+-MaxZFall =3D 20;
+-
+-received lots of kPacket_Stamina 0xA3 : update stamina
+-BYTE cmd
+-BYTE[4] playerID
+-BYTE[2] maxStamina
+-BYTE[2] currentStamina
+-]]--
+-
++	local input			=3D GetRecvFIFO()
++	local id			=3D input:PopNetUint8()
++	local player_dir	=3D input:PopNetUint8()
++	WalkLog(&quot;kPacket_Move_Player&quot;,player_dir)
++end
++
++
++
++-- called from kPacket_Teleport
++function NotifyTeleport	(mobiledata)
++	--mobiledata.serial
++	--mobiledata.artid
++	--mobiledata.teleport_unknown1
++	--mobiledata.hue
++	--mobiledata.flag
++	--mobiledata.xloc
++	--mobiledata.yloc
++	--mobiledata.teleport_unknown2
++	--mobiledata.dir
++	--mobiledata.zloc
++	=
+
++	WalkLog(&quot;NotifyTeleport start&quot;)
++	CreateOrUpdateMobile(mobiledata)
++	UpdatePlayerBodySerial(mobiledata.serial) -- is this packet really only u=
+sed for the player ??
++	=
+
++	ResetWalkQueue()
++	SetPlayerPos(mobiledata.xloc,mobiledata.yloc,mobiledata.zloc,mobiledata.d=
+ir) -- always call this, affects gPlayerPos
++	gTileFreeWalk:NotifyPlayerMobileTeleport(GetPlayerMobile())
++	gCurrentRenderer:NotifyPlayerTeleported()
++	WalkLog(&quot;NotifyTeleport end&quot;)
++end
++
+
+Modified: trunk/data/lua/net/net.mobile.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/net/net.mobile.lua (original)
++++ trunk/data/lua/net/net.mobile.lua Tue Oct  9 03:15:45 2007
+@@ -73,7 +73,6 @@
+ 	end
+ 	=
+
+ 	CreateOrUpdateMobile(mobiledata,equipmentdata)
+-	ResetWalkQueue()
+ end
+ =
+
+ -- 0x20 Teleport packet (also known as ProtocolRecv_Draw_Player)
+@@ -95,7 +94,7 @@
+ 	mobiledata.dir 					=3D input:PopNetUint8()
+ 	mobiledata.zloc 				=3D input:PopInt8()
+ 	=
+
+-	NotifyTeleport(mobiledata)
++	NotifyTeleport(mobiledata) -- calls CreateOrUpdateMobile and assigns play=
+erid
+ end
+ =
+
+ -- Character Animation (0x6e)
+
+Modified: trunk/data/lua/obj/obj.mobile.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/obj/obj.mobile.lua (original)
++++ trunk/data/lua/obj/obj.mobile.lua Tue Oct  9 03:15:45 2007
+@@ -30,7 +30,6 @@
+ =
+
+ each of those is also available as method you can call like mobile:(...) w=
+ithout the first param and without the Mobile_
+ ]]--
+-
+ =
+
+ gMobilePrototype =3D {}
+ gbMobileMethodWrappersInitialized =3D false
+@@ -147,11 +146,12 @@
+ 		end
+ 	end
+ 	=
+
++	local bIsPlayer =3D self.serial =3D=3D gPlayerBodySerial
+ 	-- if something related to equipment might have changed =
+
+ 	-- this can also have happened if equipmentdata=3Dnil, e.g. when an equip=
+ment item was destroyed directly
+ 	-- maybe only in UpdateContent and/or if equipmentdata is set ?
+ 	if (true) then
+-		if (self.serial =3D=3D gPlayerBodySerial) then PlayerEquipmentUpdated() =
+end
++		if (bIsPlayer) then PlayerEquipmentUpdated() end
+ 		local paperdoll =3D gPaperdolls[self.serial]
+ 		if (paperdoll) then RebuildPaperdoll(paperdoll) end
+ 		=
+
+@@ -161,6 +161,18 @@
+ 	end
+ 		=
+
+ 	self:NotifyListener(&quot;Mobile_Update&quot;)
++	=
+
++	=
+
++	-- currently only for human (not elfs)
++	local bIsGhost =3D	in_array(self.artid,kMobileGhostArtIDs)
++	if (bIsGhost ~=3D self.bIsGhost) then
++		self.bIsGhost =3D bIsGhost
++		if (bIsGhost) then =
+
++			print(&quot;mobile is now ghost. isplayer,newartid =3D &quot;,bIsPlayer,self.arti=
+d) =
+
++		else
++			print(&quot;mobile is not ghost anymore. isplayer,newartid =3D &quot;,bIsPlayer,s=
+elf.artid)
++		end
++	end
+ 	=
+
+ 	gCurrentRenderer:UpdateMobile( self )
+ 	=
+
+
+Modified: trunk/data/lua/obj/obj.player.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/obj/obj.player.lua (original)
++++ trunk/data/lua/obj/obj.player.lua Tue Oct  9 03:15:45 2007
+@@ -2,6 +2,8 @@
+ -- see also net.mobile.lua net.paperdoll.lua net.container.lua
+ =
+
+ =
+
++gDestroyObjectDist =3D 40 -- TODO : adjust when requesting a different vie=
+wdist from server
++gDestroyObjectDistSquare =3D gDestroyObjectDist*gDestroyObjectDist
+ =
+
+ gPlayerBodySerial =3D 0
+ gPlayerBackPack =3D false
+@@ -85,65 +87,6 @@
+ 	gui.SetWarmode(gActWarmode)
+ end
+ =
+
+--- called from kPacket_Teleport
+-function NotifyTeleport	(mobiledata)
+-	--mobiledata.serial				=
+
+-	--mobiledata.artid				=
+
+-	--mobiledata.teleport_unknown1 	=
+
+-	--mobiledata.hue 					=
+
+-	--mobiledata.flag 				=
+
+-	--mobiledata.xloc 				=
+
+-	--mobiledata.yloc 				=
+
+-	--mobiledata.teleport_unknown2	=
+
+-	--mobiledata.dir 					=
+
+-	--mobiledata.zloc
+-	=
+
+-	local bPlayerRunning =3D TestBit(mobiledata.dir,kWalkFlag_Run)
+-	local fullplayerdir =3D mobiledata.dir
+-	mobiledata.dir =3D BitwiseAND(mobiledata.dir,hex2num(&quot;0x07&quot;))
+-	=
+
+-	gLastResyncRequest =3D nil
+-	--ResetWalkQueue()
+-	=
+
+-	gCurrentRenderer:NotifyPlayerTeleported()
+-
+---~ 	printdebug(&quot;login&quot;,sprintf(&quot;NET: Draw_Player (Pos before Teleport) XL=
+oc: %i YLoc: %i ZLoc: %i Dir: [%s]\n&quot;,
+---~ 			gPlayerXLoc or 0, gPlayerYLoc or 0, gPlayerZLoc or 0, gDirection[gP=
+layerDir or 0] or &quot;&quot;))
+-	=
+
+-	-- TODO : (Check if char is in Boat!)
+-
+---~ 	printdebug(&quot;login&quot;,sprintf(&quot;NET: Draw_Player: mobiledata.serial: %i b=
+ody: %i XLoc: %i YLoc: %i ZLoc: %i Dir: 0x%02x [%s]\n&quot;,
+---~ 			mobiledata.serial, mobiledata.artid, mobiledata.xloc, mobiledata.yl=
+oc, mobiledata.zloc, fullplayerdir, gDirection[mobiledata.dir] or &quot;&quot;))
+-
+-	-- Check if Player is already on Teleported Pos
+-	if (gPlayerXLoc ~=3D mobiledata.xloc or gPlayerYLoc ~=3D mobiledata.yloc =
+or
+-		gPlayerZLoc ~=3D mobiledata.zloc or gPlayerDir ~=3D mobiledata.dir) then
+-		SetPlayerPos(mobiledata.xloc,mobiledata.yloc,mobiledata.zloc,fullplayerd=
+ir)
+-		print(&quot;Player is teleported.&quot;)
+-	else
+-		print(&quot;Player not teleported, because already on the same pos+dir!&quot;)
+-	end
+-
+-	UpdatePlayerBodySerial(mobiledata.serial)
+-	local playerMobile=3DGetPlayerMobile()
+-	if (playerMobile) then
+-		if (playerMobile.artid ~=3D mobiledata.artid) then
+-			print(&quot;Change PC Bodytype=3D&quot;..mobiledata.artid)
+-			playerMobile.artid=3Dmobiledata.artid
+-
+-			-- currently only for human (not elfs)
+-			if ( (playerMobile.artid=3D=3D402) or (playerMobile.artid=3D=3D403) or
+-				 (playerMobile.artid=3D=3D607) or (playerMobile.artid=3D=3D608) or
+-				 (playerMobile.artid=3D=3D970)) then
+-				print(&quot;TODO : pc character is now ghost. new bodymodel=3D&quot;..mobiledata=
+.artid)
+-			end
+-
+-			playerMobile:Update()
+-		end
+-	end
+-
+-	ResetWalkQueue() -- todo : (here or only if setplayerpos is done?)
+-end
+ =
+
+ -- called from handlers of kPacket_Login_Confirm and kPacket_Teleport
+ function UpdatePlayerBodySerial (serial) =
+
+@@ -157,3 +100,26 @@
+ 	-- create player status dialog and stuff like this
+ 	GuiInit()
+ end
++
++function IsObjectFarEnoughToDestroy (xloc,yloc,player_xloc,player_yloc)
++	local dx =3D xloc - player_xloc
++	local dy =3D yloc - player_yloc
++	return dx*dx + dy*dy &gt; gDestroyObjectDistSquare
++end
++
++-- destroy objects outside view range
++function DestroyObjectsFarFromPlayer (player_xloc,player_yloc)
++	-- dynamics
++	for k,dynamic in pairs(GetDynamicList()) do =
+
++		if (DynamicIsInWorld(dynamic) and IsObjectFarEnoughToDestroy(dynamic.xlo=
+c,dynamic.yloc,player_xloc,player_yloc)) then
++			DestroyObjectBySerial(dynamic.serial) =
+
++		end =
+
++	end
++	-- mobiles
++	for k,mobile in pairs(GetMobileList()) do =
+
++		if (IsObjectFarEnoughToDestroy(mobile.xloc,mobile.yloc,player_xloc,playe=
+r_yloc)) then
++			DestroyObjectBySerial(mobile.serial) =
+
++		end =
+
++	end
++end
++
+
+Modified: trunk/data/old_mobileanim_notest.txt
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/old_mobileanim_notest.txt (original)
++++ trunk/data/old_mobileanim_notest.txt Tue Oct  9 03:15:45 2007
+@@ -1,4 +1,7 @@
+ =
+
++	=
+
++	=
+
++	=
+
+ 	--local bPlayerIsInWarMode =3D gActWarmode =3D=3D gWarmode_Combat -- TODO=
+ : only player, not any mobile
+ =
+
+ mount bodyid =3D 120  0x78      16047 =3D 0x00003eaf   1073742298=3D0x4000=
+01da  2147500545=3D0x80004201
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000270.html">[Iris-commit] [IRIS] r1455 - /trunk/src/data.cpp
+</A></li>
+	<LI>Next message: <A HREF="000272.html">[Iris-commit] [IRIS] r1457 - in /trunk: include/data.h src/data.cpp
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#271">[ date ]</a>
+              <a href="thread.html#271">[ thread ]</a>
+              <a href="subject.html#271">[ subject ]</a>
+              <a href="author.html#271">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

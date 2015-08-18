@@ -1,0 +1,238 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1424 - in /trunk/data/lua: lib.protocol.lua	net/net.mobile.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2007-September/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1424%20-%20in%20/trunk/data/lua%3A%20lib.protocol.lua%0A%09net/net.mobile.lua&In-Reply-To=%3C20070929200552.2BA571C18129%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000238.html">
+   <LINK REL="Next"  HREF="000240.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1424 - in /trunk/data/lua: lib.protocol.lua	net/net.mobile.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1424%20-%20in%20/trunk/data/lua%3A%20lib.protocol.lua%0A%09net/net.mobile.lua&In-Reply-To=%3C20070929200552.2BA571C18129%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1424 - in /trunk/data/lua: lib.protocol.lua	net/net.mobile.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat Sep 29 22:05:51 CEST 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000238.html">[Iris-commit] [IRIS] r1423 - /trunk/data/lua/lib.tilefreewalk.lua
+</A></li>
+        <LI>Next message: <A HREF="000240.html">[Iris-commit] [IRIS] r1425 - /trunk/data/lua/lib.tilefreewalk.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#239">[ date ]</a>
+              <a href="thread.html#239">[ thread ]</a>
+              <a href="subject.html#239">[ subject ]</a>
+              <a href="author.html#239">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sat Sep 29 22:05:50 2007
+New Revision: 1424
+
+Log:
+secured kPacket_Mobile_Stats a bit
+
+Modified:
+    trunk/data/lua/lib.protocol.lua
+    trunk/data/lua/net/net.mobile.lua
+
+Modified: trunk/data/lua/lib.protocol.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.protocol.lua (original)
++++ trunk/data/lua/lib.protocol.lua Sat Sep 29 22:05:50 2007
+@@ -110,7 +110,10 @@
+ 			--Crash()
+ =
+
+ 			printf(&quot;WARNING : packet was not fully processed, used_len=3D%d full_le=
+n=3D%d %s\n&quot;,used_len,iPacketSize,packet_debuginfo)
+-			input:PopRaw(iPacketSize-used_len)
++			local unusedlen =3D iPacketSize-used_len
++			if (unusedlen &gt; 0) then input:PopRaw(unusedlen) end
++			if (unusedlen &lt; 0 and input.HackRestore) then input:HackRestore(-unused=
+len) end
++			=
+
+ 		end
+ 		-- TODO : cScripting::GetSingletonPtr()-&gt;LuaCall(&quot;ProtocolPacketRecvHand=
+ler&quot;,&quot;i&quot;,cmd);	=
+
+ 	end
+
+Modified: trunk/data/lua/net/net.mobile.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/net/net.mobile.lua (original)
++++ trunk/data/lua/net/net.mobile.lua Sat Sep 29 22:05:50 2007
+@@ -123,49 +123,62 @@
+ 	local input =3D GetRecvFIFO()
+ 	local id =3D input:PopNetUint8()
+ 	local iPacketSize =3D input:PopNetUint16()
+-
++	local iBytesLeft =3D iPacketSize
+ 	local stats =3D {}
+-	local mobileserial		=3D input:PopNetUint32()
++	=
+
++	-- returns nil if there are enough bytes left =3D&gt; the &quot;or&quot; clause gets e=
+xecuted
++	function MySave_Prepare (needed)
++		if (iBytesLeft &gt;=3D needed) then iBytesLeft =3D iBytesLeft - needed retu=
+rn end
++		input:PopRaw(iBytesLeft) =
+
++		iBytesLeft =3D 0 =
+
++		print(&quot;underflow in kPacket_Mobile_Stats, flag,iPacketSize=3D&quot;,stats.fla=
+g,iPacketSize) =
+
++		return 0 -- return 0 -&gt; pop is skipped
++	end
++	function MySave_PopNetUint8  () return MySave_Prepare(1) or input:PopNetU=
+int8()  end
++	function MySave_PopNetUint16 () return MySave_Prepare(2) or input:PopNetU=
+int16() end
++	function MySave_PopNetUint32 () return MySave_Prepare(4) or input:PopNetU=
+int32() end
++
++	local mobileserial		=3D MySave_PopNetUint32()
+ 	stats.name				=3D input:PopFilledString(30)
+ 	=
+
+-	stats.curHits			=3D input:PopNetUint16()
+-	stats.maxHits 			=3D input:PopNetUint16()
+-	stats.bCanChangeName	=3D input:PopNetUint8() ~=3D 0	--(0x1 =3D allowed, 0=
+ =3D not allowed)
+-	stats.flag 				=3D input:PopNetUint8()
++	stats.curHits			=3D MySave_PopNetUint16()
++	stats.maxHits 			=3D MySave_PopNetUint16()
++	stats.bCanChangeName	=3D MySave_PopNetUint8() ~=3D 0	--(0x1 =3D allowed, =
+0 =3D not allowed)
++	stats.flag 				=3D MySave_PopNetUint8()
+ 	=
+
+ 	-- more data following
+ 	if (in_array( stats.flag, {1,3,4,5})) then
+-		stats.sex			=3D input:PopNetUint8() -- * 0x00 - Male  * 0x01 - Female
+-		stats.str			=3D input:PopNetUint16()
+-		stats.dex			=3D input:PopNetUint16()
+-		stats.int			=3D input:PopNetUint16()
+-		stats.curStamina	=3D input:PopNetUint16()
+-		stats.maxStamina	=3D input:PopNetUint16()
+-		stats.curMana		=3D input:PopNetUint16()
+-		stats.maxMana		=3D input:PopNetUint16()
+-		stats.gold			=3D input:PopNetUint32()
+-		stats.armor			=3D input:PopNetUint16() -- resistPhysical (old clients: A=
+C).
+-		stats.curWeight		=3D input:PopNetUint16()
++		stats.sex			=3D MySave_PopNetUint8() -- * 0x00 - Male  * 0x01 - Female
++		stats.str			=3D MySave_PopNetUint16()
++		stats.dex			=3D MySave_PopNetUint16()
++		stats.int			=3D MySave_PopNetUint16()
++		stats.curStamina	=3D MySave_PopNetUint16()
++		stats.maxStamina	=3D MySave_PopNetUint16()
++		stats.curMana		=3D MySave_PopNetUint16()
++		stats.maxMana		=3D MySave_PopNetUint16()
++		stats.gold			=3D MySave_PopNetUint32()
++		stats.armor			=3D MySave_PopNetUint16() -- resistPhysical (old clients: =
+AC).
++		stats.curWeight		=3D MySave_PopNetUint16()
+ =
+
+ 		if (stats.flag =3D=3D 5) then
+-			stats.maxWeight	=3D input:PopNetUint16()
+-			stats.race		=3D input:PopNetUint8()
++			stats.maxWeight	=3D MySave_PopNetUint16()
++			stats.race		=3D MySave_PopNetUint8()
+ 		end
+ =
+
+ 		if (in_array( stats.flag, {3,4,5} )) then -- Followers (pets)
+-			stats.statcap	=3D input:PopNetUint16()		-- The character's total allowa=
+ble sum of Strength, Intelligence, and Dexterity
+-			stats.curPet	=3D input:PopNetUint8()			=
+
+-			stats.maxPet	=3D input:PopNetUint8()
++			stats.statcap	=3D MySave_PopNetUint16()		-- The character's total allow=
+able sum of Strength, Intelligence, and Dexterity
++			stats.curPet	=3D MySave_PopNetUint8()			=
+
++			stats.maxPet	=3D MySave_PopNetUint8()
+ 			=
+
+ 			if (in_array( stats.flag, {4,5} )) then -- Resistances
+-				stats.fireresist	=3D input:PopNetUint16()			=
+
+-				stats.coldresist	=3D input:PopNetUint16()			=
+
+-				stats.poisonresist	=3D input:PopNetUint16()			=
+
+-				stats.energyresist	=3D input:PopNetUint16()			=
+
+-				stats.luck			=3D input:PopNetUint16()			=
+
+-				stats.minDamage		=3D input:PopNetUint16()			=
+
+-				stats.maxDamage		=3D input:PopNetUint16()			=
+
+-				stats.tithing		=3D input:PopNetUint32()			=
+
++				stats.fireresist	=3D MySave_PopNetUint16()			=
+
++				stats.coldresist	=3D MySave_PopNetUint16()			=
+
++				stats.poisonresist	=3D MySave_PopNetUint16()			=
+
++				stats.energyresist	=3D MySave_PopNetUint16()			=
+
++				stats.luck			=3D MySave_PopNetUint16()			=
+
++				stats.minDamage		=3D MySave_PopNetUint16()			=
+
++				stats.maxDamage		=3D MySave_PopNetUint16()			=
+
++				stats.tithing		=3D MySave_PopNetUint32()			=
+
+ 			end
+ 		end
+ 	end
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000238.html">[Iris-commit] [IRIS] r1423 - /trunk/data/lua/lib.tilefreewalk.lua
+</A></li>
+	<LI>Next message: <A HREF="000240.html">[Iris-commit] [IRIS] r1425 - /trunk/data/lua/lib.tilefreewalk.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#239">[ date ]</a>
+              <a href="thread.html#239">[ thread ]</a>
+              <a href="subject.html#239">[ subject ]</a>
+              <a href="author.html#239">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

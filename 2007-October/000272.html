@@ -1,0 +1,120 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1457 - in /trunk: include/data.h src/data.cpp
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2007-October/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1457%20-%20in%20/trunk%3A%20include/data.h%20src/data.cpp&In-Reply-To=%3C20071009134909.B2E2B1C18125%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000271.html">
+   <LINK REL="Next"  HREF="000273.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1457 - in /trunk: include/data.h src/data.cpp</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1457%20-%20in%20/trunk%3A%20include/data.h%20src/data.cpp&In-Reply-To=%3C20071009134909.B2E2B1C18125%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1457 - in /trunk: include/data.h src/data.cpp">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Tue Oct  9 15:49:09 CEST 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000271.html">[Iris-commit] [IRIS] r1456 - in /trunk/data: ./ lua/ lua/net/	lua/obj/
+</A></li>
+        <LI>Next message: <A HREF="000273.html">[Iris-commit] [IRIS] r1458 - in /trunk: bin/resources.cfg data/base/main.material data/base/ui/iris_border.png data/base/ui/iris_button.png data/base/ui/iris_window.png data/base/ui/ui.material data/lua/main.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#272">[ date ]</a>
+              <a href="thread.html#272">[ thread ]</a>
+              <a href="subject.html#272">[ subject ]</a>
+              <a href="author.html#272">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Tue Oct  9 15:49:09 2007
+New Revision: 1457
+
+Log:
+bugfix, static file width calc
+
+Modified:
+    trunk/include/data.h
+    trunk/src/data.cpp
+
+Modified: trunk/include/data.h
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/include/data.h (original)
++++ trunk/include/data.h Tue Oct  9 15:49:09 2007
+@@ -352,7 +352,7 @@
+ 		=
+
+ 		cStaticBlock		();
+ 		inline int Count 	() { return mpRawIndex ? (mpRawIndex-&gt;miLength / sizeo=
+f(RawStatic)) : 0; }
+-		inline static int	CalcMapW			(const int iMapH,const int iFileSize) 					=
+{ return iFileSize / (2 * iMapH); } =
+
++		inline static int	CalcMapW			(const int iMapH,const int iIndexFileSize) =
+				{ return iIndexFileSize / (sizeof(RawIndex) * iMapH); } =
+
+ 		inline static int	BlockCoordsToIndex	(const int iBlockX,const int iBlock=
+Y,const int iMapH)	{ return iBlockX*iMapH + iBlockY; }
+ 	};
+ 	=
+
+
+Modified: trunk/src/data.cpp
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/src/data.cpp (original)
++++ trunk/src/data.cpp Tue Oct  9 15:49:09 2007
+@@ -446,7 +446,8 @@
+ =
+
+ cStaticBlockLoader_IndexedFullFile::cStaticBlockLoader_IndexedFullFile	(co=
+nst int iMapH,const char* szIndexFile,const char* szDataFile, const char *s=
+zDiffLookup, const char *szDiffIndex, const char *szDiffData)
+ 	: cStaticBlockLoader(iMapH), cIndexedFullFile(szIndexFile,szDataFile), mp=
+DiffLookupFile(0), mpDiffIndexedFullFile(0) { PROFILE
+-	miMapW =3D cStaticBlock::CalcMapW(miMapH,miFullFileSize);
++	miMapW =3D cStaticBlock::CalcMapW(miMapH,mIndexFile.miFullFileSize);
++	printf(&quot;cStaticBlockLoader_IndexedFullFile miMapW=3D%d\n&quot;,miMapW);
+ 	=
+
+ 	// use diff file? (if all are present)
+ 	if(szDiffLookup &amp;&amp; szDiffIndex &amp;&amp; szDiffData){
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000271.html">[Iris-commit] [IRIS] r1456 - in /trunk/data: ./ lua/ lua/net/	lua/obj/
+</A></li>
+	<LI>Next message: <A HREF="000273.html">[Iris-commit] [IRIS] r1458 - in /trunk: bin/resources.cfg data/base/main.material data/base/ui/iris_border.png data/base/ui/iris_button.png data/base/ui/iris_window.png data/base/ui/ui.material data/lua/main.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#272">[ date ]</a>
+              <a href="thread.html#272">[ thread ]</a>
+              <a href="subject.html#272">[ subject ]</a>
+              <a href="author.html#272">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

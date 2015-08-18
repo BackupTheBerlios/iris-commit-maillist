@@ -1,0 +1,162 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1267 - /trunk/src/scripting.cpp
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2007-July/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1267%20-%20/trunk/src/scripting.cpp&In-Reply-To=%3C20070703193037.959F8109007D%40localhost.localdomain%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000082.html">
+   <LINK REL="Next"  HREF="000084.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1267 - /trunk/src/scripting.cpp</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1267%20-%20/trunk/src/scripting.cpp&In-Reply-To=%3C20070703193037.959F8109007D%40localhost.localdomain%3E"
+       TITLE="[Iris-commit] [IRIS] r1267 - /trunk/src/scripting.cpp">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Tue Jul  3 21:30:37 CEST 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000082.html">[Iris-commit] [IRIS] r1266 - /trunk/bin/iris2.exe
+</A></li>
+        <LI>Next message: <A HREF="000084.html">[Iris-commit] [IRIS] r1268 - in /trunk/data/models: materials/textures.material textures/tex_173.png
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#83">[ date ]</a>
+              <a href="thread.html#83">[ thread ]</a>
+              <a href="subject.html#83">[ subject ]</a>
+              <a href="author.html#83">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Tue Jul  3 21:30:35 2007
+New Revision: 1267
+
+Log:
+add light now returns a light name, which can be used to call Client_Delete=
+Light(name) from lua
+
+Modified:
+    trunk/src/scripting.cpp
+
+Modified: trunk/src/scripting.cpp
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/src/scripting.cpp (original)
++++ trunk/src/scripting.cpp Tue Jul  3 21:30:35 2007
+@@ -697,26 +697,35 @@
+ =
+
+ static int l_Client_AddPointLight (lua_State *L) { PROFILE
+ 	Ogre::SceneManager* pSceneMgr =3D cOgreWrapper::GetSingleton().mSceneMgr;
+-	if (pSceneMgr) {
+-		Ogre::Light* pLight =3D pSceneMgr-&gt;createLight( cOgreWrapper::GetSinglet=
+on().GetUniqueName() );
+-		pLight-&gt;setType( Ogre::Light::LT_POINT );
+-		pLight-&gt;setPosition(luaL_checknumber(L,1),luaL_checknumber(L,2),luaL_che=
+cknumber(L,3));
+-		pLight-&gt;setDiffuseColour(luaL_checknumber(L,4),luaL_checknumber(L,5),lua=
+L_checknumber(L,6));
+-		pLight-&gt;setSpecularColour(luaL_checknumber(L,7),luaL_checknumber(L,8),lu=
+aL_checknumber(L,9));
+-		pLight-&gt;setAttenuation(luaL_checknumber(L,10),luaL_checknumber(L,11),lua=
+L_checknumber(L,12),luaL_checknumber(L,13));
+-	}
+-	return 0;
+-}
+-
+-static int l_Client_AddDirectionalLight (lua_State *L) { PROFILE
+-	Ogre::SceneManager* pSceneMgr =3D cOgreWrapper::GetSingleton().mSceneMgr;
+-	if (pSceneMgr) {
+-		Ogre::Light* pLight =3D pSceneMgr-&gt;createLight( cOgreWrapper::GetSinglet=
+on().GetUniqueName() );
+-		pLight-&gt;setType( Ogre::Light::LT_DIRECTIONAL );
+-		pLight-&gt;setDirection(luaL_checknumber(L,1),luaL_checknumber(L,2),luaL_ch=
+ecknumber(L,3));
+-	}
+-	return 0;
+-}
++	if (!pSceneMgr) return 0;
++	std::string sName =3D cOgreWrapper::GetSingleton().GetUniqueName();
++	Ogre::Light* pLight =3D pSceneMgr-&gt;createLight( sName );
++	pLight-&gt;setType( Ogre::Light::LT_POINT );
++	pLight-&gt;setPosition(luaL_checknumber(L,1),luaL_checknumber(L,2),luaL_chec=
+knumber(L,3));
++	pLight-&gt;setDiffuseColour(luaL_checknumber(L,4),luaL_checknumber(L,5),luaL=
+_checknumber(L,6));
++	pLight-&gt;setSpecularColour(luaL_checknumber(L,7),luaL_checknumber(L,8),lua=
+L_checknumber(L,9));
++	pLight-&gt;setAttenuation(luaL_checknumber(L,10),luaL_checknumber(L,11),luaL=
+_checknumber(L,12),luaL_checknumber(L,13));
++	lua_pushstring(L,sName.c_str());
++	return 1;
++}
++
++static int l_Client_AddDirectionalLight (lua_State *L) { PROFILE
++	Ogre::SceneManager* pSceneMgr =3D cOgreWrapper::GetSingleton().mSceneMgr;
++	if (!pSceneMgr) return 0;
++	std::string sName =3D cOgreWrapper::GetSingleton().GetUniqueName();
++	Ogre::Light* pLight =3D pSceneMgr-&gt;createLight( sName );
++	pLight-&gt;setType( Ogre::Light::LT_DIRECTIONAL );
++	pLight-&gt;setDirection(luaL_checknumber(L,1),luaL_checknumber(L,2),luaL_che=
+cknumber(L,3));
++	lua_pushstring(L,sName.c_str());
++	return 1;
++}
++
++static int l_Client_DeleteLight (lua_State *L) { PROFILE
++	Ogre::SceneManager* pSceneMgr =3D cOgreWrapper::GetSingleton().mSceneMgr;
++	if (pSceneMgr) pSceneMgr-&gt;destroyLight(luaL_checkstring(L,1));
++	return 0;
++}
++
+ =
+
+ static int l_Client_GetPhysStepTime (lua_State *L) { PROFILE
+ 	lua_pushnumber(L,cTimer::mfPhysStepTime);
+@@ -1574,7 +1583,8 @@
+ 	lua_register(L,&quot;Client_SetAmbientLight&quot;,		l_Client_SetAmbientLight);
+ 	lua_register(L,&quot;Client_ClearLights&quot;,			l_Client_ClearLights);
+ 	lua_register(L,&quot;Client_AddPointLight&quot;,			l_Client_AddPointLight);
+-	lua_register(L,&quot;Client_AddDirectionalLight&quot;,	l_Client_AddDirectionalLight=
+);
++	lua_register(L,&quot;Client_AddDirectionalLight&quot;,	l_Client_AddDirectionalLight=
+);
++	lua_register(L,&quot;Client_DeleteLight&quot;,			l_Client_DeleteLight);
+ 	lua_register(L,&quot;Client_GetPhysStepTime&quot;,		l_Client_GetPhysStepTime);
+ 	lua_register(L,&quot;BuildTerrainEntity_Simple&quot;,		l_BuildTerrainEntity_Simple);
+ 	lua_register(L,&quot;BuildTerrainEntity_Shaded&quot;,		l_BuildTerrainEntity_Shaded);
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000082.html">[Iris-commit] [IRIS] r1266 - /trunk/bin/iris2.exe
+</A></li>
+	<LI>Next message: <A HREF="000084.html">[Iris-commit] [IRIS] r1268 - in /trunk/data/models: materials/textures.material textures/tex_173.png
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#83">[ date ]</a>
+              <a href="thread.html#83">[ thread ]</a>
+              <a href="subject.html#83">[ subject ]</a>
+              <a href="author.html#83">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

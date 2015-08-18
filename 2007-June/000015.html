@@ -1,0 +1,243 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1199 - in /trunk/data: lua/lib.static.lua lua/lib.terrain.lua skippedfallbacks.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2007-June/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1199%20-%20in%20/trunk/data%3A%20lua/lib.static.lua%0A%20lua/lib.terrain.lua%20skippedfallbacks.lua&In-Reply-To=%3C20070615195806.16A95B1466C%40localhost.localdomain%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000014.html">
+   <LINK REL="Next"  HREF="000016.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1199 - in /trunk/data: lua/lib.static.lua lua/lib.terrain.lua skippedfallbacks.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1199%20-%20in%20/trunk/data%3A%20lua/lib.static.lua%0A%20lua/lib.terrain.lua%20skippedfallbacks.lua&In-Reply-To=%3C20070615195806.16A95B1466C%40localhost.localdomain%3E"
+       TITLE="[Iris-commit] [IRIS] r1199 - in /trunk/data: lua/lib.static.lua lua/lib.terrain.lua skippedfallbacks.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Fri Jun 15 21:58:05 CEST 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000014.html">[Iris-commit] [IRIS] r1198 - in /trunk/data: lua/lib.3d.map.lua lua/lib.static.lua lua/lib.terrain.lua models/textures/tex_260.png skippedfallbacks.lua
+</A></li>
+        <LI>Next message: <A HREF="000016.html">[Iris-commit] [IRIS] r1200 - in /trunk/bin: d3dx9_33.dll iris2.exe
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#15">[ date ]</a>
+              <a href="thread.html#15">[ thread ]</a>
+              <a href="subject.html#15">[ subject ]</a>
+              <a href="author.html#15">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: sience
+Date: Fri Jun 15 21:58:04 2007
+New Revision: 1199
+
+Log:
+-support for custom_models added (thx to ghouly)
+-waterfilter added (coasts should look good now)
+-skippedfallbacks added
+
+Modified:
+    trunk/data/lua/lib.static.lua
+    trunk/data/lua/lib.terrain.lua
+    trunk/data/skippedfallbacks.lua
+
+Modified: trunk/data/lua/lib.static.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.static.lua (original)
++++ trunk/data/lua/lib.static.lua Fri Jun 15 21:58:04 2007
+@@ -8,10 +8,19 @@
+ end
+ =
+
+ -- returns path to the model file, for importing
+--- TODO handle custom stuff?
+-function GetModelPath(id)
++gCustomModelCache =3D {}
++function GetModelPath(id) =
+
++	local cached =3D gCustomModelCache[id]
++	if (cached) then return cached end
++
+ 	local base =3D id - math.mod(id,1000) + 1000
+-	return sprintf(datapath..&quot;models/models/to_%06d/mdl_%06d.mesh&quot;,base,id)
++	local relpath  =3D sprintf(&quot;models/to_%06d/mdl_%06d.mesh&quot;,base,id)
++	local custompath =3D datapath..&quot;custom/&quot;..relpath
++	if file_exists(custompath) then gCustomModelCache[id] =3D custompath  ret=
+urn custompath end
++
++	local meshpath =3D datapath..&quot;models/&quot;..relpath
++	gCustomModelCache[id] =3D meshpath  =
+
++	return meshpath
+ end
+ =
+
+ gHasModelOnlyOneUoArtCache =3D {}
+@@ -54,29 +63,32 @@
+ 	end
+ end
+ =
+
+--- generates or retrieves mehsname for static model
++-- generates or retrieves meshname for static model
+ -- TODO : not flexible enough, what if model should be skipped, or multipl=
+e models set ? or model depending on surrounding ?
+ gLegacyModelCache =3D {}
+ function GetStaticMeshName (iTileTypeID,iHue)
++	--Seasonal Translation
++	local iTranslatedTileTypeID =3D TranslateTileTypeID(iTileTypeID, gSeasonS=
+etting)
++
+ 	-- hue default value is 0
+ 	iHue =3D iHue or 0
+ =
+
+---[[
+-	-- filter static water
+-	if ( ((iTileTypeID  &gt;=3D 6038) and (iTileTypeID &lt;=3D 6066)) or
+-		 ((iTileTypeID  &gt;=3D 13422) and (iTileTypeID &lt;=3D 13445)) or
+-		 ((iTileTypeID  &gt;=3D 13460) and (iTileTypeID &lt;=3D 13483)) or
+-		 ((iTileTypeID  &gt;=3D 13496) and (iTileTypeID &lt;=3D 13514)) ) then
+-		meshname=3Dnil
++	-- FILTER: static water and map to extra material (one for shaders and on=
+e for normal mode (because we dont have coastline models))
++	if (((iTranslatedTileTypeID  &gt;=3D  6038) and (iTranslatedTileTypeID &lt;=3D =
+ 6066)) or
++		((iTranslatedTileTypeID  &gt;=3D 13422) and (iTranslatedTileTypeID &lt;=3D 134=
+45)) or
++		((iTranslatedTileTypeID  &gt;=3D 13460) and (iTranslatedTileTypeID &lt;=3D 134=
+83)) or
++		((iTranslatedTileTypeID  &gt;=3D 13496) and (iTranslatedTileTypeID &lt;=3D 135=
+14))) then
++		--return nil
+ 		--map[(int)statics_p-&gt;y][(int) statics_p-&gt;x] =3D (int) statics_p-&gt;z + 12=
+8 | 1024;
++		if (gTerrainShader) then
++			iTranslatedTileTypeID=3D19999
++		else
++			iTranslatedTileTypeID=3D6040
++		end
+ 	end
+-]]--
+ =
+
+ 	local meshname =3D gLegacyModelCache[iTileTypeID..&quot;_&quot;..iHue]
+ 	if (meshname =3D=3D nil) then
+-		--Seasonal Translation
+-		local iTranslatedTileTypeID =3D TranslateTileTypeID(iTileTypeID, gSeason=
+Setting)
+-
+ 		-- try to load the new models
+ 		if gUseNewModelLoader then
+ 			meshname =3D GetModelName(iTranslatedTileTypeID) -- &quot;mdl_&quot;..iTileTypeID=
+..&quot;.mesh&quot;
+@@ -108,7 +120,7 @@
+ 			printdebug(&quot;static&quot;,&quot;used OLD model loader:&quot;,iTranslatedTileTypeID,iHue=
+,meshname)
+ 		end
+ 		=
+
+-		if (meshname =3D=3D &quot;&quot;) then meshname =3D false end
++		if (meshname =3D=3D &quot;&quot;) then meshname =3D nil end
+ 		gLegacyModelCache[iTileTypeID..&quot;_&quot;..iHue] =3D meshname
+ 	end
+ 	return meshname
+@@ -116,7 +128,7 @@
+ =
+
+ -- called by the c methods of LegacyModelAndTextureLoader, has to return a=
+ material name, used for statics
+ gLegacyModelMaterialCache =3D {}
+-function LegacyModelLoader_GetMaterial (iModelID,iTextureID) =
+
++function LegacyModelLoader_GetMaterial (iModelID,iTextureID)
+ 	local matname =3D gLegacyModelMaterialCache[iTextureID]
+ 	if ((not matname)) then =
+
+ 		if (iTextureID &gt;=3D 0) then =
+
+
+Modified: trunk/data/lua/lib.terrain.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.terrain.lua (original)
++++ trunk/data/lua/lib.terrain.lua Fri Jun 15 21:58:04 2007
+@@ -19,12 +19,12 @@
+ 	--Seasonal Translation
+ 	local iTranslatedTileTypeID=3DTranslateTileTypeID(iTileTypeID, gSeasonSet=
+ting)
+ =
+
+-	-- filter waterground
+-	if ( (iTranslatedTileTypeID  &gt;=3D 76) and (iTranslatedTileTypeID &lt;=3D 112=
+)) then return &quot;&quot; end
++	-- FILTER: Groundmaptiles (not really needed)
++--	if ( gTerrainShader and (iTranslatedTileTypeID  &gt;=3D 76) and (iTranslat=
+edTileTypeID &lt;=3D 112)) then return &quot;&quot; end
+ =
+
+ 	--temporary for testing material/shader use for tiles (mystiqq) =
+
+ 	if (gTerrainShader and OgreMaterialNameKnown(&quot;tileid_&quot; .. iTranslatedTile=
+TypeID)) then  =
+
+-		return &quot;tileid_&quot; .. iTranslatedTileTypeID  =
+
++		return &quot;tileid_&quot; .. iTranslatedTileTypeID
+ 	end
+ =
+
+ 	local matname =3D gTerrainMaterialCache[iTileTypeID]
+
+Modified: trunk/data/skippedfallbacks.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/skippedfallbacks.lua (original)
++++ trunk/data/skippedfallbacks.lua Fri Jun 15 21:58:04 2007
+@@ -307,3 +307,6 @@
+ RegisterSkippedArtBillboardFallBack(6041) -- 0x1799 name=3Dwater
+ RegisterSkippedArtBillboardFallBack(6040) -- 0x1798 name=3Dwater
+ RegisterSkippedArtBillboardFallBack(6043) -- 0x179b name=3Dwater
++RegisterSkippedArtBillboardFallBack(6065) -- 0x17b1 name=3Dwater
++RegisterSkippedArtBillboardFallBack(6795) -- 0x1a8b name=3Dore cart
++RegisterSkippedArtBillboardFallBack(6790) -- 0x1a86 name=3Dore cart
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000014.html">[Iris-commit] [IRIS] r1198 - in /trunk/data: lua/lib.3d.map.lua lua/lib.static.lua lua/lib.terrain.lua models/textures/tex_260.png skippedfallbacks.lua
+</A></li>
+	<LI>Next message: <A HREF="000016.html">[Iris-commit] [IRIS] r1200 - in /trunk/bin: d3dx9_33.dll iris2.exe
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#15">[ date ]</a>
+              <a href="thread.html#15">[ thread ]</a>
+              <a href="subject.html#15">[ subject ]</a>
+              <a href="author.html#15">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

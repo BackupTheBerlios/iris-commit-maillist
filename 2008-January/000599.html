@@ -1,0 +1,578 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1784 - in /trunk: data/models/models/to_020000/mdl_019999.mesh lua/filter/filter.art.lua lua/lib.3d.dynamic.lua lua/lib.3d.map.lua lua/lib.static.lua lua/lib.terrain.lua lua/lib.terrain.multitex.lua lua/net/net.multi.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-January/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1784%20-%20in%20/trunk%3A%0A%20data/models/models/to_020000/mdl_019999.mesh%20lua/filter/filter.art.lua%0A%20lua/lib.3d.dynamic.lua%20lua/lib.3d.map.lua%20lua/lib.static.lua%0A%20lua/lib.terrain.lua%20lua/lib.terrain.multitex.lua%20lua/net/net.multi.lua&In-Reply-To=%3C20080118180006.7DC091C186F5%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000598.html">
+   <LINK REL="Next"  HREF="000600.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1784 - in /trunk: data/models/models/to_020000/mdl_019999.mesh lua/filter/filter.art.lua lua/lib.3d.dynamic.lua lua/lib.3d.map.lua lua/lib.static.lua lua/lib.terrain.lua lua/lib.terrain.multitex.lua lua/net/net.multi.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1784%20-%20in%20/trunk%3A%0A%20data/models/models/to_020000/mdl_019999.mesh%20lua/filter/filter.art.lua%0A%20lua/lib.3d.dynamic.lua%20lua/lib.3d.map.lua%20lua/lib.static.lua%0A%20lua/lib.terrain.lua%20lua/lib.terrain.multitex.lua%20lua/net/net.multi.lua&In-Reply-To=%3C20080118180006.7DC091C186F5%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1784 - in /trunk: data/models/models/to_020000/mdl_019999.mesh lua/filter/filter.art.lua lua/lib.3d.dynamic.lua lua/lib.3d.map.lua lua/lib.static.lua lua/lib.terrain.lua lua/lib.terrain.multitex.lua lua/net/net.multi.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Fri Jan 18 18:44:03 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000598.html">[Iris-commit] [IRIS] r1783 - /trunk/lua/main.lua
+</A></li>
+        <LI>Next message: <A HREF="000600.html">[Iris-commit] [IRIS] r1785 - in /trunk: lua/main.lua src/data_L.cpp
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#599">[ date ]</a>
+              <a href="thread.html#599">[ thread ]</a>
+              <a href="subject.html#599">[ subject ]</a>
+              <a href="author.html#599">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: sience
+Date: Fri Jan 18 18:44:03 2008
+New Revision: 1784
+
+Log:
+-some improvement and codeclean with water
+
+Removed:
+    trunk/data/models/models/to_020000/mdl_019999.mesh
+Modified:
+    trunk/lua/filter/filter.art.lua
+    trunk/lua/lib.3d.dynamic.lua
+    trunk/lua/lib.3d.map.lua
+    trunk/lua/lib.static.lua
+    trunk/lua/lib.terrain.lua
+    trunk/lua/lib.terrain.multitex.lua
+    trunk/lua/net/net.multi.lua
+
+Modified: trunk/lua/filter/filter.art.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/filter/filter.art.lua (original)
++++ trunk/lua/filter/filter.art.lua Fri Jan 18 18:44:03 2008
+@@ -38,23 +38,17 @@
+ 	end
+ 	return nil
+ end
+-
+--- checks if the given tiletype is a water tile
+-function FilterIsWater(iTileTypeID)
+-	if (((iTileTypeID  &gt;=3D  6038) and (iTileTypeID &lt;=3D  6066)) or
+-		((iTileTypeID  &gt;=3D 13422) and (iTileTypeID &lt;=3D 13445)) or
+-		((iTileTypeID  &gt;=3D 13460) and (iTileTypeID &lt;=3D 13483)) or
+-		((iTileTypeID  &gt;=3D 13496) and (iTileTypeID &lt;=3D 13514))) then return tr=
+ue
+-	else return false end
+-end
+ =
+
+--- FILTER: static water and map to extra material (one for shaders and one=
+ for normal mode (because we dont have coastline models))
+-function FilterStaticWater(iTranslatedTileTypeID,iHue)
+-	if ( FilterIsWater(iTranslatedTileTypeID) ) then
+-		-- assosiate to one all static water to one tileid (we don't have all st=
+atic water tiles as meshes)
+-		iTranslatedTileTypeID=3D6040
++-- checks if the given tiletype is a water tile
++function FilterIsStaticWater(iTileTypeID)
++	if (((iTileTypeID  &gt;=3D  6038) and (iTileTypeID &lt;=3D  6066)) or
++		((iTileTypeID  &gt;=3D 13422) and (iTileTypeID &lt;=3D 13445)) or
++		((iTileTypeID  &gt;=3D 13460) and (iTileTypeID &lt;=3D 13483)) or
++		((iTileTypeID  &gt;=3D 13496) and (iTileTypeID &lt;=3D 13514))) then
++		return true
++	else
++		return false
+ 	end
+-	return iTranslatedTileTypeID,iHue
+ end
+ =
+
+ --armoire - left
+
+Modified: trunk/lua/lib.3d.dynamic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.dynamic.lua (original)
++++ trunk/lua/lib.3d.dynamic.lua Fri Jan 18 18:44:03 2008
+@@ -75,7 +75,7 @@
+ 	-- Detect Multis
+ 	if item.artid &gt;=3D gMulti_ID then
+ 		printdebug(&quot;multi&quot;,&quot;-----------------------------&quot;)
+-		printdebug(&quot;create multi&quot;, sprintf(&quot;ARTID&quot;,item.artid,vardump(item)) )
++		printdebug(&quot;multi&quot;, sprintf(&quot;Multi detected with ARTID&quot;,item.artid,vardu=
+mp(item)) )
+ =
+
+ 		-- Serverside Multi Check (Custom Multi)
+ 		if (item.lTile) then
+@@ -241,7 +241,7 @@
+ function Renderer3D:DestroyDynamicGfx (dynamic)
+ 	-- remove multi entry
+ 	if (dynamic.multi) then
+-		printdebug(&quot;destroy multi&quot;, sprintf(&quot;ARTID&quot;,dynamic.artid,vardump(dynami=
+c)) )
++		printdebug(&quot;multi&quot;, sprintf(&quot;Multi destroyed with ARTID&quot;,dynamic.artid,v=
+ardump(dynamic)) )
+ 		Renderer3D:RebuildChunkAtUOPos(dynamic.xloc,dynamic.yloc)
+ 		gMultis[dynamic.multi] =3D nil =
+
+ 	end
+
+Modified: trunk/lua/lib.3d.map.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.map.lua (original)
++++ trunk/lua/lib.3d.map.lua Fri Jan 18 18:44:03 2008
+@@ -145,10 +145,43 @@
+ 	self.gMapChunks =3D {}
+ end
+ =
+
++--[[
+ --gobal tree params
+ -- TODO: put them into an array
+ Renderer3D.gTreeParameters =3D nil
+ Renderer3D.gTreeStemParameters =3D nil
++function drawCaduneTree(iTileTypeID)
++	-- just to test the cadunetree generation code
++	if ((iTileTypeID =3D=3D 3296) or (iTileTypeID =3D=3D 3297)) then
++		if (not self.gTreeParameters) then
++			self.gTreeParameters =3D CreateCaduneTreeParameters()
++			self.gTreeStemParameters =3D CreateCaduneTreeStem(self.gTreeParameters)
++			self.gTreeStemParameters:Grow()
++		end
++
++		if (iTileTypeID =3D=3D 3296) then
++			print(&quot;generate tree&quot;)
++			entity.gfx =3D self.gTreeStemParameters:CreateGeometry()
++
++			entity.x,entity.y,entity.z =3D self:UOPosToLocal(entity.xloc+1,entity.y=
+loc+0.5,entity.zloc*0.1)
++			entity.gfx:SetOrientation( QuaternionFromString(&quot;x:90,y:0,z:0&quot;) )
++			entity.gfx:SetPosition(entity.x,entity.y,entity.z)
++			entity.gfx:SetScale(0.4,0.4,0.5)
++			entity.gfx:SetNormaliseNormals(true)
++		end
++		if (iTileTypeID =3D=3D 3297) then
++			print(&quot;generate leaves&quot;)
++			entity.gfx =3D self.gTreeStemParameters:CreateLeaves()
++	=
+
++			entity.x,entity.y,entity.z =3D self:UOPosToLocal(entity.xloc+1,entity.y=
+loc+0.5,entity.zloc*0.1)
++			entity.gfx:SetOrientation( QuaternionFromString(&quot;x:90,y:0,z:0&quot;) )
++			entity.gfx:SetPosition(entity.x,entity.y,entity.z)
++			entity.gfx:SetScale(0.4,0.4,0.5)
++			entity.gfx:SetNormaliseNormals(true)
++		end
++	end
++end
++]]--
+ =
+
+ -- handles the entity creation for CreateMapChunk and adds it to chunk.lSt=
+aticEntities
+ function Renderer3D:CreateMapChunkEntity (chunk,iTileTypeID,iXLoc,iYLoc,iZ=
+Loc,iHue)
+@@ -172,48 +205,17 @@
+ 	entity.iTileTypeID =3D iTileTypeID
+ 	entity.iHue =3D iHue
+ 	=
+
+-	=
+
++	local staticwatertile =3D true
+ 	-- calculate water level
+-	if FilterIsWater(iTileTypeID) then
++	if FilterIsStaticWater(iTileTypeID) then
+ 		local z =3D entity.zloc
+ 		chunk.mWaterStaticCountList[z] =3D chunk.mWaterStaticCountList[z] or 0
+ 		chunk.mWaterStaticCountList[z] =3D chunk.mWaterStaticCountList[z] + 1
+-	end
+-	=
+
+-	local meshname =3D (not gForceFallBackBillboards_Statics) and GetStaticMe=
+shName(iTileTypeID,entity.iHue)
+---[[
+---------------------------------------------------------------------------=
+---------------------------------------------------
+-	-- just to test the cadunetree generation code
+-	if ((iTileTypeID =3D=3D 3296) or (iTileTypeID =3D=3D 3297)) then
+-		if (not self.gTreeParameters) then
+-			self.gTreeParameters =3D CreateCaduneTreeParameters()
+-			self.gTreeStemParameters =3D CreateCaduneTreeStem(self.gTreeParameters)
+-			self.gTreeStemParameters:Grow()
+-		end
+-
+-		if (iTileTypeID =3D=3D 3296) then
+-			print(&quot;generate tree&quot;)
+-			entity.gfx =3D self.gTreeStemParameters:CreateGeometry()
+-
+-			entity.x,entity.y,entity.z =3D self:UOPosToLocal(entity.xloc+1,entity.y=
+loc+0.5,entity.zloc*0.1)
+-			entity.gfx:SetOrientation( QuaternionFromString(&quot;x:90,y:0,z:0&quot;) )
+-			entity.gfx:SetPosition(entity.x,entity.y,entity.z)
+-			entity.gfx:SetScale(0.4,0.4,0.5)
+-			entity.gfx:SetNormaliseNormals(true)
+-		end
+-		if (iTileTypeID =3D=3D 3297) then
+-			print(&quot;generate leaves&quot;)
+-			entity.gfx =3D self.gTreeStemParameters:CreateLeaves()
+-	=
+
+-			entity.x,entity.y,entity.z =3D self:UOPosToLocal(entity.xloc+1,entity.y=
+loc+0.5,entity.zloc*0.1)
+-			entity.gfx:SetOrientation( QuaternionFromString(&quot;x:90,y:0,z:0&quot;) )
+-			entity.gfx:SetPosition(entity.x,entity.y,entity.z)
+-			entity.gfx:SetScale(0.4,0.4,0.5)
+-			entity.gfx:SetNormaliseNormals(true)
+-		end
+-	elseif
+---------------------------------------------------------------------------=
+---------------------------------------------------
+-]]--
++		staticwatertile =3D not gEnableMultiTexTerrain		--on multitexturing filt=
+er static water
++	end
++
++	local meshname =3D (not gForceFallBackBillboards_Statics) and staticwater=
+tile and GetStaticMeshName(iTileTypeID,entity.iHue)
++
+ 	-- create Mesh
+ 	if (meshname and meshname ~=3D false) then 	--and (not MeshIsPseudoBillBo=
+ard(iTileTypeID))) then	--currently disabled
+ 		local qw,qx,qy,qz =3D GetStaticMeshOrientation(iTileTypeID)
+@@ -314,7 +316,7 @@
+ 		end
+ 	end
+ =
+
+-	-- load ground
++	-- GROUNDMAP
+ 	if (gGroundBlockLoader and (not gEnableMultiTexTerrain)) then -- probably=
+ needs gTexMapLoader
+ --		local meshname =3D BuildTerrainEntity_Simple(gGroundBlockLoader,iBlock=
+UO_X,iBlockUO_Y,self.ROBMAP_CHUNK_SIZE,self.ROBMAP_CHUNK_SIZE,false)
+ 		local meshname =3D BuildTerrainEntity_Shaded(gGroundBlockLoader,iBlockUO=
+_X,iBlockUO_Y,self.ROBMAP_CHUNK_SIZE,self.ROBMAP_CHUNK_SIZE)
+@@ -341,8 +343,8 @@
+ 	=
+
+ 	chunk.lStaticEntities =3D {}
+ 	=
+
+-	-- load statics
+-	if (gStaticBlockLoader) then -- probably needs gArtMapLoader
++	-- STATICS
++	if (gStaticBlockLoader) then
+ 		local iTileTypeID,iX,iY,iZ,iHue
+ 		local iStaticCount
+ 		local xloc,yloc
+@@ -351,25 +353,20 @@
+ 			for y =3D 0,self.ROBMAP_CHUNK_SIZE-1 do
+ 				gStaticBlockLoader:Load(iBlockUO_X+x,iBlockUO_Y+y)
+ 				iStaticCount =3D gStaticBlockLoader:Count() -- operates on the block t=
+hat was last loaded using :Load()
+-
+-				--printdebug(&quot;static&quot;,&quot;iStaticCount=3D&quot;..iStaticCount)
+-				--printdebug(&quot;static&quot;,&quot;iBlockUO_X=3D&quot;..iBlockUO_X..&quot; iBlockUO_Y=3D&quot;..i=
+BlockUO_Y)
+-				--printdebug(&quot;static&quot;,&quot;BlockX=3D&quot;..x..&quot; BlockY=3D&quot;..y)
+ =
+
+ 				for i =3D 0,iStaticCount-1 do
+ 					iTileTypeID,iX,iY,iZ,iHue =3D gStaticBlockLoader:GetStatic(i) -- oper=
+ates on the block that was last loaded using :Load()
+ 					=
+
+ 					xloc =3D (iBlockUO_X+x)*8 + iX
+ 					yloc =3D (iBlockUO_Y+y)*8 + iY
+-					=
+
+-					--print(&quot;DEBUG&quot;,&quot;STATIC&quot;,iTileTypeID,xloc,yloc,iZ,iHue)
++
+ 					self:CreateMapChunkEntity(chunk,iTileTypeID,xloc,yloc,iZ,iHue)
+ 				end =
+
+ 		end end
+ 	end
+ 	=
+
+-	-- add multis as statics
+-	if (gMultis) then -- probably needs gArtMapLoader
++	-- MULTIS (add multis as statics)
++	if (gMultis) then
+ 		local iTileTypeID,iX,iY,iZ,iHue
+ 		local UO_X,UO_Y
+ 		local multi
+@@ -383,7 +380,7 @@
+ 					UO_Y =3D y * self.ROBMAP_CHUNK_SIZE * 8
+ =
+
+ 					iTileTypeID,iX,iY,iZ,iHue =3D unpack(v)
+-					--print(&quot;DEBUG&quot;,&quot;TILE&quot;,iTileTypeID,iX,iY,iZ,iHue,&quot;:&quot;,UO_X,UO_Y,self.R=
+OBMAP_CHUNK_SIZE*8)
++
+ 					if	iX &gt;=3D UO_X and iX &lt; UO_X+self.ROBMAP_CHUNK_SIZE*8 and =
+
+ 						iY &gt;=3D UO_Y and iY &lt; UO_Y+self.ROBMAP_CHUNK_SIZE*8 then
+ 						=
+
+@@ -395,7 +392,7 @@
+ 	end
+ =
+
+ 	-- TODO : fish in water ? other gimiks ?
+-	=
+
++
+ 	if (gFastBatchStatics) then
+ 		chunk.fastbatch:SetCastShadows(gStaticsCastShadows)
+ 		chunk.fastbatch:FastBatch_Build()
+@@ -406,46 +403,49 @@
+ 			layerStaticGeom:Build()
+ 		end
+ 	end
+-	=
+
+-	local mostz =3D nil
+-	for k,v in pairs(chunk.mWaterStaticCountList) do
+-		if mostz =3D=3D nil or chunk.mWaterStaticCountList[mostz] &lt; v then
+-			mostz =3D k
+-		end
+-	end
+-	=
+
+-	if mostz then
+-		chunk.mfWaterZLoc =3D mostz
+-		chunk.mbDisplayWater =3D true	-- show water?
+-		-- print(&quot;DEBUG&quot;,chunk,&quot;mostz&quot;,mostz)
+-		=
+
+-		-- create water
+-		local gfx =3D CreateRootGfx3D()
+-		local vc =3D 4
+-		local ic =3D 6
+-		local d =3D -8 * Renderer3D.ROBMAP_CHUNK_SIZE
+-		gfx:SetSimpleRenderable()
+-		gfx:RenderableBegin(vc,ic,false,false,OT_TRIANGLE_LIST)
+-		gfx:RenderableVertex(0,0,0, 0,0,1, 0,0)
+-		gfx:RenderableVertex(d,0,0 ,0,0,1, 1,0)
+-		gfx:RenderableVertex(0,-d,0 ,0,0,1, 0,1)
+-		gfx:RenderableVertex(d,-d,0, 0,0,1, 1,1)
+-		gfx:RenderableIndex3(0,2,1)
+-		gfx:RenderableIndex3(1,2,3)
+-		gfx:RenderableEnd()
+-		gfx:SetMaterial(GetPlainTextureMat(&quot;water.jpg&quot;))
+-		=
+
+-		-- TODO
+-		local x,y,z =3D self:UOPosToLocal(chunk.miX * self.ROBMAP_CHUNK_SIZE * 8=
+, chunk.miY * self.ROBMAP_CHUNK_SIZE * 8, chunk.mfWaterZLoc * 0.1 + 0.1)
+-
+-		gfx:SetPosition(x, y, z)
+-		=
+
+-		chunk.mWaterGfx =3D gfx
+-	else
+-		chunk.mfWaterZLoc =3D 0		-- current water level
+-		chunk.mbDisplayWater =3D false	-- show water?
+-	end
+-	=
+
++
++	-- WATER
++	if (gEnableMultiTexTerrain) then
++		local mostz =3D nil
++		for k,v in pairs(chunk.mWaterStaticCountList) do
++			if mostz =3D=3D nil or chunk.mWaterStaticCountList[mostz] &lt; v then
++				mostz =3D k
++			end
++		end
++	=
+
++		if mostz then
++			chunk.mfWaterZLoc =3D mostz
++			chunk.mbDisplayWater =3D true	-- show water?
++			-- print(&quot;DEBUG&quot;,chunk,&quot;mostz&quot;,mostz)
++			=
+
++			-- create water
++			local gfx =3D CreateRootGfx3D()
++			local vc =3D 4
++			local ic =3D 6
++			local d =3D -8 * Renderer3D.ROBMAP_CHUNK_SIZE
++			gfx:SetSimpleRenderable()
++			gfx:RenderableBegin(vc,ic,false,false,OT_TRIANGLE_LIST)
++			gfx:RenderableVertex(0,0,0, 0,0,1, 0,0)
++			gfx:RenderableVertex(d,0,0 ,0,0,1, 1,0)
++			gfx:RenderableVertex(0,-d,0 ,0,0,1, 0,1)
++			gfx:RenderableVertex(d,-d,0, 0,0,1, 1,1)
++			gfx:RenderableIndex3(0,2,1)
++			gfx:RenderableIndex3(1,2,3)
++			gfx:RenderableEnd()
++			gfx:SetMaterial(GetPlainTextureMat(&quot;water.jpg&quot;))
++			=
+
++			-- TODO
++			local x,y,z =3D self:UOPosToLocal(chunk.miX * self.ROBMAP_CHUNK_SIZE * =
+8, chunk.miY * self.ROBMAP_CHUNK_SIZE * 8, chunk.mfWaterZLoc * 0.1 + 0.1)
++	=
+
++			gfx:SetPosition(x, y, z)
++			=
+
++			chunk.mWaterGfx =3D gfx
++		else
++			chunk.mfWaterZLoc =3D 0		-- current water level
++			chunk.mbDisplayWater =3D false	-- show water?
++		end
++	end
++
+ 	return chunk
+ end
+ =
+
+
+Modified: trunk/lua/lib.static.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.static.lua (original)
++++ trunk/lua/lib.static.lua Fri Jan 18 18:44:03 2008
+@@ -93,9 +93,6 @@
+ 	local iTranslatedTileTypeID =3D SeasonalStaticTranslation(iTileTypeID, gS=
+easonSetting)
+ 	-- FILTER: map Mesh to other Mesh
+ 	iTranslatedTileTypeID =3D FilterMesh(iTranslatedTileTypeID)
+-	-- FILTER: static water
+-	iTranslatedTileTypeID,iHue =3D FilterStaticWater(iTranslatedTileTypeID, i=
+Hue)
+-
+ =
+
+ 	local meshname =3D nil
+ =
+
+@@ -143,9 +140,8 @@
+ 		-- TODO: CLONEMESH &amp; HUEMESH both have a very huge load and should use E=
+ntities for Material Hueing !!!!!!!!!!!!!
+ 		-- Hue this Model | TODO: Partitial Hue is currently skipped
+ 		if (gHueLoader and meshname) then
+-			-- don't use iTranslatedTileTypeID here, because of waterhack
+-			if (TestBit(GetStaticTileTypeFlags(iTileTypeID) or 0,kTileDataFlag_Part=
+ial_Hue) ) then
+-				printdebug(&quot;static&quot;,&quot;parthuedmodel=3D&quot;,iTileTypeID)
++			if (TestBit(GetStaticTileTypeFlags(iTranslatedTileTypeID) or 0,kTileDat=
+aFlag_Partial_Hue) ) then
++				printdebug(&quot;static&quot;,&quot;parthuedmodel=3D&quot;,iTranslatedTileTypeID)
+ 			elseif ( (iHue&gt;0) and (iHue&lt;gMaxHueValue) ) then
+ 				local clonemeshname=3DCloneMesh(meshname)
+ 				HueMesh(clonemeshname,gHueLoader,iHue)
+
+Modified: trunk/lua/lib.terrain.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.terrain.lua (original)
++++ trunk/lua/lib.terrain.lua Fri Jan 18 18:44:03 2008
+@@ -15,7 +15,7 @@
+ 	local iTranslatedTileTypeID=3DSeasonalMapTranslation(iTileTypeID, gSeason=
+Setting)
+ =
+
+ 	-- FILTER: Special Filters
+-	iTranslatedTileTypeID =3D FilterMap(iTranslatedTileTypeID)
++--	iTranslatedTileTypeID =3D FilterMap(iTranslatedTileTypeID)
+ =
+
+ 	local matname =3D gTerrainMaterialCache[iTileTypeID]
+ 	if ((not matname) and gTexMapLoader) then
+
+Modified: trunk/lua/lib.terrain.multitex.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.terrain.multitex.lua (original)
++++ trunk/lua/lib.terrain.multitex.lua Fri Jan 18 18:44:03 2008
+@@ -19,7 +19,7 @@
+ gTerrain_MultiTexTypes.snow			=3D {268,269,270,271,276,277,278,279,282,283=
+,284,285,377,378,379,380,381,382,383,384,385,386,387,388,389,390,391,392,39=
+3,394,901,902,903,904,905,906,907,908,913,914,915,916,925,926,927,928,929,9=
+30,931,932,937,938,939,940,1471,1472,1473,1474,1475,1476,1477,1478,1479,148=
+0,1481,1482,1483,1484,1485,1486,1487,1488,1489,1490,1491,1492,1493,1494,150=
+3,1504,1505,1506,1861,1862,1863,1864,1873,1874,1875,1876,1877,1878,1879,188=
+0,1885,1886,1887,1888,1901,1902,1903,1904,1905,1906,1907}
+ gTerrain_MultiTexTypes.void			=3D {506,507,508,509,510,511}
+ =
+
+-gTerrain_MultiTexTypes.water		=3D {168,169,170,171,310,311}
++gTerrain_MultiTexTypes.water		=3D {168,169,170,171,310,311} --,100,94,91,9=
+9,87,82,79,149,131}
+ =
+
+ --[[
+ gTerrain_MultiTexTypes.cave			=3D {581,582,583,584,585,586,587,588,589,590=
+,591,592,593,594,595,596,597,598,599,600,601,602,603,604,605,606,607,608,60=
+9,610,611,612,613,614,615,616,617,618,619,620,621,700,701,702,703,704,705,7=
+06,707,708,709,710,711,712,713,714,715,1595,1596,1597,1598}
+
+Modified: trunk/lua/net/net.multi.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.multi.lua (original)
++++ trunk/lua/net/net.multi.lua Fri Jan 18 18:44:03 2008
+@@ -257,7 +257,7 @@
+ 			end
+ 		end
+ 	else
+-		-- skip an uncompessed CustomHouse packet
++		-- skip an other compession method CustomHouse packets
+ 		input:PopRaw(bufferlen-1)
+ 	end
+ =
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000598.html">[Iris-commit] [IRIS] r1783 - /trunk/lua/main.lua
+</A></li>
+	<LI>Next message: <A HREF="000600.html">[Iris-commit] [IRIS] r1785 - in /trunk: lua/main.lua src/data_L.cpp
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#599">[ date ]</a>
+              <a href="thread.html#599">[ thread ]</a>
+              <a href="subject.html#599">[ subject ]</a>
+              <a href="author.html#599">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

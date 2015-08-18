@@ -1,0 +1,359 @@
+From no-reply at zwischenwelt.org  Sat Oct 17 14:47:22 2009
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Sat, 17 Oct 2009 12:47:22 -0000
+Subject: [Iris-commit] [IRIS] r3130 - /trunk/lua/lib.stitchin.lua
+Message-ID: <20091017124722.327CD7A98127@simon>
+
+Author: ghoulsblade
+Date: Sat Oct 17 14:47:21 2009
+New Revision: 3130
+
+Log:
+file exists check for stitchin.def
+
+Modified:
+    trunk/lua/lib.stitchin.lua
+
+Modified: trunk/lua/lib.stitchin.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.stitchin.lua (original)
++++ trunk/lua/lib.stitchin.lua Sat Oct 17 14:47:21 2009
+@@ -25,50 +25,52 @@
+ 	end
+ 	=
+
+ 	-- parse file
+-	for line in io.lines(filepath) do
+-		line =3D TrimNewLines(line)
+-		if (string.sub(line,1,2) ~=3D "//" and string.len(line) > 0) then
+-			local tokens =3D strsplit("[ \t]+",line)
+-			=
+
+-			if (tokens[1] =3D=3D 'ver' and tokens[2] =3D=3D '1') then
+-				-- ver 1 : everything ok
+-			elseif (string.sub(tokens[1],1,1) =3D=3D '#') then
+-				--print(line,"<"..(tokens[2] or tokens[1])..">")
+-				if (tokens[2] =3D=3D "enddef" or tokens[1] =3D=3D "#enddef") then
+-					assert( def and def.id )
+-					stitchininfo[def.id] =3D def
+-					--def =3D nil
++	if (file_exists(filepath)) then =
+
++		for line in io.lines(filepath) do
++			line =3D TrimNewLines(line)
++			if (string.sub(line,1,2) ~=3D "//" and string.len(line) > 0) then
++				local tokens =3D strsplit("[ \t]+",line)
++				=
+
++				if (tokens[1] =3D=3D 'ver' and tokens[2] =3D=3D '1') then
++					-- ver 1 : everything ok
++				elseif (string.sub(tokens[1],1,1) =3D=3D '#') then
++					--print(line,"<"..(tokens[2] or tokens[1])..">")
++					if (tokens[2] =3D=3D "enddef" or tokens[1] =3D=3D "#enddef") then
++						assert( def and def.id )
++						stitchininfo[def.id] =3D def
++						--def =3D nil
++					else
++						--assert( def =3D=3D nil , vardump2(def))
++						def =3D {}
++						def.id =3D tonumber(tokens[2]) =
+
++						def.coveredBy =3D {}
++						def.covers =3D {}
++						def.remove =3D {}
++						def.replace =3D {}
++					end
++				elseif (tokens[1] =3D=3D "coveredBy") then
++					--coveredBy HEAD FACE
++					for i =3D 2,table.getn(tokens) do def.coveredBy[tokens[i]] =3D true e=
+nd
++				elseif (tokens[1] =3D=3D "covers") then
++					--covers HEAD FACE =
+
++					for i =3D 2,table.getn(tokens) do def.covers[tokens[i]] =3D true end
++				elseif (tokens[1] =3D=3D "remove") then
++					-- remove 703 903 701 710 902 702 901 700 900
++					for i =3D 2,table.getn(tokens) do =
+
++						if (tonumber(tokens[i])) then def.remove[tonumber(tokens[i])] =3D tr=
+ue end
++					end
++				elseif (tokens[1] =3D=3D "whenhuedreplacewith") then
++					-- whenhuedreplacewith 3611
++					def.whenhuedreplacewith =3D tonumber(tokens[2])
++				elseif (tokens[1] =3D=3D "replace") then
++					-- replace 431 with 2401
++					assert(tokens[3] =3D=3D "with")
++					def.replace[tonumber(tokens[2])] =3D tonumber(tokens[4])
++					if (tokens[4] =3D=3D "3012") then table.insert(stitchininfo.pushups,d=
+ef.id) end
+ 				else
+-					--assert( def =3D=3D nil , vardump2(def))
+-					def =3D {}
+-					def.id =3D tonumber(tokens[2]) =
+
+-					def.coveredBy =3D {}
+-					def.covers =3D {}
+-					def.remove =3D {}
+-					def.replace =3D {}
++					-- unknown command
++					-- print("unknown command",line)
+ 				end
+-			elseif (tokens[1] =3D=3D "coveredBy") then
+-				--coveredBy HEAD FACE
+-				for i =3D 2,table.getn(tokens) do def.coveredBy[tokens[i]] =3D true end
+-			elseif (tokens[1] =3D=3D "covers") then
+-				--covers HEAD FACE =
+
+-				for i =3D 2,table.getn(tokens) do def.covers[tokens[i]] =3D true end
+-			elseif (tokens[1] =3D=3D "remove") then
+-				-- remove 703 903 701 710 902 702 901 700 900
+-				for i =3D 2,table.getn(tokens) do =
+
+-					if (tonumber(tokens[i])) then def.remove[tonumber(tokens[i])] =3D tru=
+e end
+-				end
+-			elseif (tokens[1] =3D=3D "whenhuedreplacewith") then
+-				-- whenhuedreplacewith 3611
+-				def.whenhuedreplacewith =3D tonumber(tokens[2])
+-			elseif (tokens[1] =3D=3D "replace") then
+-				-- replace 431 with 2401
+-				assert(tokens[3] =3D=3D "with")
+-				def.replace[tonumber(tokens[2])] =3D tonumber(tokens[4])
+-				if (tokens[4] =3D=3D "3012") then table.insert(stitchininfo.pushups,de=
+f.id) end
+-			else
+-				-- unknown command
+-				-- print("unknown command",line)
+ 			end
+ 		end
+ 	end
+
+
+
+From no-reply at zwischenwelt.org  Sat Oct 24 18:53:08 2009
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Sat, 24 Oct 2009 16:53:08 -0000
+Subject: [Iris-commit] [IRIS] r3131 - in /trunk/bin: OgreMain.dll
+ Plugin_CgProgramManager.dll Plugin_ParticleFX.dll
+ RenderSystem_Direct3D9.dll RenderSystem_GL.dll iris2.exe plugins.cfg
+Message-ID: <20091024165313.DDB867A9812D@simon>
+
+Author: sience
+Date: Sat Oct 24 18:53:02 2009
+New Revision: 3131
+
+Log:
+-Iris2 Win32 build updated to Ogre 1.6.4 (changes here: http://www.ogre3d.o=
+rg/2009/09/28/ogre-v1-6-4-shoggoth-released )
+
+Modified:
+    trunk/bin/OgreMain.dll
+    trunk/bin/Plugin_CgProgramManager.dll
+    trunk/bin/Plugin_ParticleFX.dll
+    trunk/bin/RenderSystem_Direct3D9.dll
+    trunk/bin/RenderSystem_GL.dll
+    trunk/bin/iris2.exe
+    trunk/bin/plugins.cfg
+
+Modified: trunk/bin/OgreMain.dll
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+Binary files - no diff available.
+
+Modified: trunk/bin/Plugin_CgProgramManager.dll
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+Binary files - no diff available.
+
+Modified: trunk/bin/Plugin_ParticleFX.dll
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+Binary files - no diff available.
+
+Modified: trunk/bin/RenderSystem_Direct3D9.dll
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+Binary files - no diff available.
+
+Modified: trunk/bin/RenderSystem_GL.dll
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+Binary files - no diff available.
+
+Modified: trunk/bin/iris2.exe
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+Binary files - no diff available.
+
+Modified: trunk/bin/plugins.cfg
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/bin/plugins.cfg (original)
++++ trunk/bin/plugins.cfg Sat Oct 24 18:53:02 2009
+@@ -10,5 +10,3 @@
+ #Plugin=3DPlugin_BSPSceneManager
+ #Plugin=3DPlugin_OctreeSceneManager
+ Plugin=3DPlugin_CgProgramManager
+-
+-
+
+
+
+From no-reply at zwischenwelt.org  Sun Oct 25 15:49:11 2009
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Sun, 25 Oct 2009 14:49:11 -0000
+Subject: [Iris-commit] [IRIS] r3132 - /branches/stable_release/
+Message-ID: <20091025144911.854707A980B9@simon>
+
+Author: ghoulsblade
+Date: Sun Oct 25 15:49:11 2009
+New Revision: 3132
+
+Log:
+removing stable for trunk -> stable update
+
+Removed:
+    branches/stable_release/
+
+
+
+From no-reply at zwischenwelt.org  Sun Oct 25 15:49:11 2009
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Sun, 25 Oct 2009 14:49:11 -0000
+Subject: [Iris-commit] [IRIS] r3134 - /branches/stable_release/
+Message-ID: <20091025144911.D5B8C7A98131@simon>
+
+Author: ghoulsblade
+Date: Sun Oct 25 15:49:11 2009
+New Revision: 3134
+
+Log:
+lugre -r766 svn://zwischenwelt.org/lugre/trunk/lugre
+
+Modified:
+    branches/stable_release/   (props changed)
+
+
+
+From no-reply at zwischenwelt.org  Sun Oct 25 15:49:11 2009
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Sun, 25 Oct 2009 14:49:11 -0000
+Subject: [Iris-commit] [IRIS] r3133 - /branches/stable_release/
+Message-ID: <20091025144911.B14737A98128@simon>
+
+Author: ghoulsblade
+Date: Sun Oct 25 15:49:11 2009
+New Revision: 3133
+
+Log:
+copying trunk to stable
+
+Added:
+    branches/stable_release/
+      - copied from r3132, trunk/
+
+
+
+From no-reply at zwischenwelt.org  Sun Oct 25 15:56:18 2009
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Sun, 25 Oct 2009 14:56:18 -0000
+Subject: [Iris-commit] [IRIS] r3135 - /trunk/lua/lib.3d.renderer.lua
+Message-ID: <20091025145618.332D87A980B9@simon>
+
+Author: ghoulsblade
+Date: Sun Oct 25 15:56:18 2009
+New Revision: 3135
+
+Log:
+-bigshadowtex for 4096 resolution instead of 1024
+
+Modified:
+    trunk/lua/lib.3d.renderer.lua
+
+Modified: trunk/lua/lib.3d.renderer.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.renderer.lua (original)
++++ trunk/lua/lib.3d.renderer.lua Sun Oct 25 15:56:18 2009
+@@ -325,6 +325,9 @@
+     local shadowfardist=3D5*cMapBlock_3D_Terrain.iLoadRadius+gFogValue
+     print("strShadowTechnique =3D " .. strShadowTechnique)
+     print("setShadowFarDistance =3D " .. shadowfardist)
++	=
+
++	local shadow_tex_size =3D 1024
++	if (gCommandLineSwitches["-bigshadowtex"]) then shadow_tex_size =3D 4096 =
+end
+ =
+
+     if ((strShadowTechnique =3D=3D "stencil_modulative") or (strShadowTech=
+nique =3D=3D "stencil_additive")) then
+         ----- currently doesn't work with Fastbatch, works only for Granny=
+'s
+@@ -332,7 +335,7 @@
+         OgreShadowTechnique(strShadowTechnique)
+     elseif ((strShadowTechnique =3D=3D "texture_modulative") or (strShadow=
+Technique =3D=3D "texture_additive")) then
+         OgreSetShadowTextureCount(8)                -- first mention the c=
+ount (one texture for one lightsource)
+-        OgreSetShadowTextureSize(1024)              -- then the texsize
++        OgreSetShadowTextureSize(shadow_tex_size)              -- then the=
+ texsize
+         OgreSetShadowFarDistance(shadowfardist)
+         OgreSetShadowTextureFadeStart(0.6)
+         OgreSetShadowTextureFadeEnd(0.9)
+@@ -343,7 +346,7 @@
+         OgreSetShadowTextureSelfShadow(true)
+ 		OgreSetShadowTextureCasterMaterial("shadow_caster")
+         OgreSetShadowTextureCount(3)                -- first mention the c=
+ount (one texture for one lightsource)
+-        OgreSetShadowTextureSize(1024)               -- then the texsize
++        OgreSetShadowTextureSize(shadow_tex_size)               -- then th=
+e texsize
+         OgreSetShadowTexturePixelFormat(PF_FLOAT16_RGB)
+         OgreSetShadowCasterRenderBackFaces(false)
+ --[[
+
+
+
+From no-reply at zwischenwelt.org  Fri Oct 30 21:34:56 2009
+From: no-reply at zwischenwelt.org (no-reply at zwischenwelt.org)
+Date: Fri, 30 Oct 2009 20:34:56 -0000
+Subject: [Iris-commit] [IRIS] r3136 - in /trunk/bin: D3DX9_38.dll
+	D3DX9_42.dll
+Message-ID: <20091030203456.363037A9812E@simon>
+
+Author: sience
+Date: Fri Oct 30 21:34:55 2009
+New Revision: 3136
+
+Log:
+-updated dx9 dll
+
+Added:
+    trunk/bin/D3DX9_42.dll   (with props)
+Removed:
+    trunk/bin/D3DX9_38.dll
+
+
+

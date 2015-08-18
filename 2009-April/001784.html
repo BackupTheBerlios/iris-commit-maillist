@@ -1,0 +1,338 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2985 - /trunk/lua/lib.proxy.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2009-April/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2985%20-%20/trunk/lua/lib.proxy.lua&In-Reply-To=%3C20090406200011.9E7EC1C18830%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001783.html">
+   <LINK REL="Next"  HREF="001785.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2985 - /trunk/lua/lib.proxy.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2985%20-%20/trunk/lua/lib.proxy.lua&In-Reply-To=%3C20090406200011.9E7EC1C18830%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2985 - /trunk/lua/lib.proxy.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Mon Apr  6 22:00:11 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001783.html">[Iris-commit] [IRIS] r2984 - in /trunk/lua: lib.net.lua lib.proxy.lua net/net.login.lua net/net.main.lua
+</A></li>
+        <LI>Next message: <A HREF="001785.html">[Iris-commit] [IRIS] r2986 - in /trunk/lua: lib.protocol.lua	lib.proxy.lua net/net.text.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1784">[ date ]</a>
+              <a href="thread.html#1784">[ thread ]</a>
+              <a href="subject.html#1784">[ subject ]</a>
+              <a href="author.html#1784">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Mon Apr  6 22:00:09 2009
+New Revision: 2985
+
+Log:
+proxy : added huffman compression support
+
+Modified:
+    trunk/lua/lib.proxy.lua
+
+Modified: trunk/lua/lib.proxy.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.proxy.lua (original)
++++ trunk/lua/lib.proxy.lua Mon Apr  6 22:00:09 2009
+@@ -29,36 +29,19 @@
+ 	=
+
+ end
+ =
+
+-function UOProxyNetStep ()
+-		-- send =
+
+-		gProxyClientCon:Push(gProxyClientSendFifo)
+-		gProxyClientSendFifo:Clear()
+-		=
+
+-		gProxyServerCon:Push(gProxyServerSendFifo)
+-		gProxyServerSendFifo:Clear()
+-		=
+
+-		-- hardware-step
+-		Client_USleep(10)
+-		NetReadAndWrite()
+-		=
+
+-		-- receive
+-		gProxyClientCon:Pop(gProxyClientRecvFifo)
+-		gProxyServerCon:Pop(gProxyServerRecvFifo)
+-end
+-
+-
+ -- returns false if packet incomplete
+ function UOProxyHandlePacket	(fifo_in,fifo_out,bIsFromClient) =
+
++	local t_since_start =3D Client_GetTicks() - gProxyConStartTime
+ 	if (fifo_in:Size() =3D=3D 0) then return end
+ 	local fromname =3D bIsFromClient and &quot;client&quot; or &quot;server&quot;
+ 	local bIsFromServer =3D not bIsFromClient
+ 	=
+
+ 	local bInterpret =3D true
+-	if (bIsFromServer and gProxyServerHuffmanStarted) then bInterpret =3D fal=
+se end
++	--~ if (bIsFromServer and gProxyServerHuffmanStarted) then bInterpret =3D=
+ false end -- huffman comp&amp;decomp active now
+ 	--~ if (bIsFromClient and gProxyServerHuffmanStarted) then bInterpret =3D=
+ false end -- not really needed but something seems bugged
+ 	=
+
+-	local bScrambleTest =3D true
+-	local bClientBlockTest =3D false
++	local bScrambleTest =3D false
++	local bClientBlockTest =3D true
+ 	=
+
+ 	if (bIsFromClient and gProxyServerHuffmanStarted and (not gProxySecondPar=
+tHeaderStarted)) then
+ 		gProxySecondPartHeaderStarted =3D true
+@@ -87,16 +70,6 @@
+ 	end
+ 	=
+
+ 	=
+
+-	if (bIsFromClient and gProxyBlockingClient) then
+-		fifo_in:Clear()
+-		fifo_in:PushNetUint8(0xBF) =
+
+-		fifo_in:PushNetUint8(0x00) =
+
+-		fifo_in:PushNetUint8(0x06) =
+
+-		fifo_in:PushNetUint8(0x00) =
+
+-		fifo_in:PushNetUint8(0x24) =
+
+-		fifo_in:PushNetUint8(0x16) =
+
+-		print(&quot;client:blocked&quot;)
+-	end
+ 	=
+
+ 	-- modify the unknown se packets
+ 	if (bIsFromClient and fifo_in:Size() &gt;=3D 6) then
+@@ -133,7 +106,8 @@
+ 	if (bInterpret) then =
+
+ 		local iId =3D fifo_in:PeekNetUint8(0)
+ 		local iPacketSize =3D gPacketSizeByID[iId]
+-		print(&quot;UOProxyHandlePacket&quot;,fromname,sprintf(&quot;0x%02x&quot;,iId),gPacketTypeId=
+2Name[iId],iPacketSize)
++		print(&quot;UOProxyHandlePacket&quot;,fromname,sprintf(&quot;0x%02x&quot;,iId),gPacketTypeId=
+2Name[iId],
++				iPacketSize,&quot;t=3D&quot;..t_since_start)
+ 		assert(iPacketSize)
+ 		if (iPacketSize =3D=3D 0 and fifo_in:Size() &lt; 3) then return end -- pack=
+et incomplete
+ 		if (iPacketSize =3D=3D 0) then iPacketSize =3D fifo_in:PeekNetUint16(1) =
+end
+@@ -158,18 +132,45 @@
+ 			fifo_in:PokeNetUint8(2,0)
+ 			fifo_in:PokeNetUint8(3,0)
+ 			fifo_in:PokeNetUint8(4,1)
+-			gProxyServerHuffmanStarted =3D true
++			gProxyServerHuffmanStartedNextRound =3D true
+ 		end
+ 		=
+
+ 		-- todo : NetStartHuffman (after redirect?)
+ 		=
+
+-		print(&quot;recv:&quot;,fromname) =
+
++		=
+
++		if (bIsFromClient and gProxyBlockingClient) then
++			local bBlock =3D true
++			if (fifo_in:PeekNetUint8(0) =3D=3D 0xBF and
++				fifo_in:PeekNetUint8(1) =3D=3D 0x00 and
++				fifo_in:PeekNetUint8(2) =3D=3D 0x06 and
++				fifo_in:PeekNetUint8(3) =3D=3D 0x00 and
++				fifo_in:PeekNetUint8(4) =3D=3D 0x24) then
++				-- UnknownSE (0xBF subcmd 0x24) : ok
++				bBlock =3D false
++			elseif (fifo_in:PeekNetUint8(0) =3D=3D 0x73) then  -- kPacket_Ping : 0x=
+73
++				-- clientside ping : ok
++				bBlock =3D false
++			end
++			=
+
++			bBlock =3D false
++			if (bBlock) then
++				print(&quot;=3D=3D=3DCLIENT:BLOCKED=3D=3D=3D start&quot;)
++				print(FIFOHexDump(fifo_in,0,iPacketSize))
++				--~ print(FIFOHexDump(fifo_in,0,iPacketSize))
++				print(&quot;=3D=3D=3DCLIENT:BLOCKED=3D=3D=3D end&quot;)
++				fifo_in:PopRaw(iPacketSize)
++				return true
++			end
++		end
++		=
+
++		=
+
++		print(&quot;recv:&quot;,fromname,&quot;t_since_start=3D&quot;,t_since_start) =
+
+ 		print(FIFOHexDump(fifo_in,0,iPacketSize))
+ 		fifo_out:PushFIFOPartRaw(fifo_in,0,iPacketSize) =
+
+ 		fifo_in:PopRaw(iPacketSize)
+ 		return true
+ 	else
+-		print(&quot;recv:&quot;,fromname,&quot;(uninterpreted)&quot;) =
+
++		print(&quot;recv:&quot;,fromname,&quot;(uninterpreted) t_since_start=3D&quot;,t_since_start) =
+
+ 		print(FIFOHexDump(fifo_in))
+ 		fifo_out:PushFIFOPartRaw(fifo_in) =
+
+ 		fifo_in:Clear()
+@@ -204,6 +205,8 @@
+ ]]--
+ =
+
+ function UOProxyOneConnection (newcon)
++	if (gProxyServerHuffmanStartedNextRound) then gProxyServerHuffmanStarted =
+=3D true end
++	gProxyConStartTime =3D Client_GetTicks()
+ 	if (gProxyServerHuffmanStarted) then gServerListenerTCP:Destroy() end
+ 	print(&quot;UOProxyOneConnection : start&quot;)
+ 	gProxyClientCon =3D newcon
+@@ -216,25 +219,47 @@
+ 	gProxyServerSendFifo			=3D CreateFIFO()
+ 	gProxyClientRecvFifo			=3D CreateFIFO()
+ 	gProxyServerRecvFifo			=3D CreateFIFO()
++	gProxyServerRecvCompFifo		=3D CreateFIFO()
++	gProxyClientSendCompFifo		=3D CreateFIFO()
+ 	=
+
+ 	gPacketSizeByID[0xEF] =3D 21 -- protocol start... dummy here
+ 	=
+
+ 	local bAlive =3D true
+ 	while bAlive do
+-		UOProxyNetStep()
+-		=
+
++		-- send =
+
++		if (gProxyServerHuffmanStarted) then
++			HuffmanCompress(gProxyClientSendFifo,gProxyClientSendCompFifo) -- does =
+NOT remove data from in-fifo. compression can always be completed.
++			gProxyClientCon:Push(gProxyClientSendCompFifo)
++			gProxyClientSendCompFifo:Clear()
++			gProxyClientSendFifo:Clear()
++		else =
+
++			gProxyClientCon:Push(gProxyClientSendFifo)
++			gProxyClientSendFifo:Clear()
++		end
++		=
+
++		gProxyServerCon:Push(gProxyServerSendFifo)
++		gProxyServerSendFifo:Clear()
++		=
+
++		-- hardware-step
++		Client_USleep(10)
++		NetReadAndWrite()
++		=
+
++		-- receive
++		gProxyClientCon:Pop(gProxyClientRecvFifo)
++		=
+
++		if (gProxyServerHuffmanStarted) then =
+
++			gProxyServerCon:Pop(gProxyServerRecvCompFifo)
++			HuffmanDecompress(gProxyServerRecvCompFifo,gProxyServerRecvFifo) -- DOE=
+S remove data from gProxyServerRecvCompFifo, might not remove all if data f=
+or decompression is not yet complete
++		else
++			gProxyServerCon:Pop(gProxyServerRecvFifo)
++		end
++		=
+
++		-- handle packets
+ 		while UOProxyHandlePacket(gProxyServerRecvFifo,gProxyClientSendFifo,fals=
+e) do end
+ 		while UOProxyHandlePacket(gProxyClientRecvFifo,gProxyServerSendFifo,true=
+) do end
+ 		=
+
+ 		if (not gProxyClientCon:IsConnected()) then print(&quot;disconnected:client&quot;)=
+ bAlive =3D false end
+ 		if (not gProxyServerCon:IsConnected()) then print(&quot;disconnected:server&quot;)=
+ bAlive =3D false end
+-		--~ gProxyServerCon:Pop(gProxyServerCompressedRecvFifo)
+-		--~ HuffmanDecompress(gProxyServerCompressedRecvFifo,gProxyServerRecvFif=
+o)
+-		=
+
+-		=
+
+-		-- HuffmanCompress(in,out)
+-		-- HuffmanDecompress(in,out)
+-		-- PokeNetUint8	(const uint32 offset,const uint8 x)
+ 	end
+ 	print(&quot;UOProxyOneConnection ended.&quot;)
+ 	gProxyClientCon:Destroy()
+@@ -243,6 +268,8 @@
+ 	gProxyServerSendFifo:Destroy()
+ 	gProxyClientRecvFifo:Destroy()
+ 	gProxyServerRecvFifo:Destroy()
++	gProxyServerRecvCompFifo:Destroy()
++	gProxyClientSendCompFifo:Destroy()
+ end
+ =
+
+ =
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001783.html">[Iris-commit] [IRIS] r2984 - in /trunk/lua: lib.net.lua lib.proxy.lua net/net.login.lua net/net.main.lua
+</A></li>
+	<LI>Next message: <A HREF="001785.html">[Iris-commit] [IRIS] r2986 - in /trunk/lua: lib.protocol.lua	lib.proxy.lua net/net.text.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1784">[ date ]</a>
+              <a href="thread.html#1784">[ thread ]</a>
+              <a href="subject.html#1784">[ subject ]</a>
+              <a href="author.html#1784">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,622 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2297 - in /trunk: lua/ lua/gui/ lua/obj/	plugins/ widgets/
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-July/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2297%20-%20in%20/trunk%3A%20lua/%20lua/gui/%20lua/obj/%0A%09plugins/%20widgets/&In-Reply-To=%3C20080712205518.E33851C180E2%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001104.html">
+   <LINK REL="Next"  HREF="001106.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2297 - in /trunk: lua/ lua/gui/ lua/obj/	plugins/ widgets/</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2297%20-%20in%20/trunk%3A%20lua/%20lua/gui/%20lua/obj/%0A%09plugins/%20widgets/&In-Reply-To=%3C20080712205518.E33851C180E2%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2297 - in /trunk: lua/ lua/gui/ lua/obj/	plugins/ widgets/">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat Jul 12 22:55:18 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001104.html">[Iris-commit] [IRIS] r2296 - in /trunk/widgets: widget.gumpdialog.lua widget.uoimage.lua widget.uotext.lua
+</A></li>
+        <LI>Next message: <A HREF="001106.html">[Iris-commit] [IRIS] r2298 - /trunk/lua/lib.desktop.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1105">[ date ]</a>
+              <a href="thread.html#1105">[ thread ]</a>
+              <a href="subject.html#1105">[ subject ]</a>
+              <a href="author.html#1105">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sat Jul 12 22:55:17 2008
+New Revision: 2297
+
+Log:
+gui.healthbar.lua ported to new gui system. uoimage : change params helper,=
+ IsWarModeActive helper, kHealthBarGump_ constants
+
+Modified:
+    trunk/lua/gui/gui.gumpparser.lua
+    trunk/lua/gui/gui.healthbar.lua
+    trunk/lua/gui/gui.paperdoll.lua
+    trunk/lua/lib.macrolist.lua
+    trunk/lua/lib.mousepick.lua
+    trunk/lua/lib.uoids.lua
+    trunk/lua/obj/obj.player.lua
+    trunk/plugins/hudenemylist.lua
+    trunk/widgets/widget.gumpdialog.lua
+    trunk/widgets/widget.uoimage.lua
+
+Modified: trunk/lua/gui/gui.gumpparser.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.gumpparser.lua (original)
++++ trunk/lua/gui/gui.gumpparser.lua Sat Jul 12 22:55:17 2008
+@@ -56,9 +56,20 @@
+ 		profiler:Finish()
+ 		profiler:PrintTotalTime()
+ 	end
+-		=
+
+-	local testgump,x,y,kDebugName =3D kGumpSample_VM_ChatMenu,0,300,&quot;kGumpSam=
+ple_RuneBook2&quot;
+-	local d2 =3D GumpParser_New(testgump,false) d2:SetPos(x,y) d2.sDebugName =
+=3D kDebugName
++	=
+
++	if (1 =3D=3D 1) then
++		gPlayerBodySerial =3D 123
++		local dialog =3D GumpParser_New(kClientSideGump_HealthBar_Own,true)
++		gHealthbarDialogs[gPlayerBodySerial] =3D dialog
++		dialog.SendClose =3D function (self) end
++		=
+
++		SetHitpoints(0.3)
++		SetMana		(0.5)
++		SetStamina	(0.7)
++		gActWarmode =3D gWarmode_Combat
++		StatBar_UpdateMobileFlags({serial=3DgPlayerBodySerial,flag=3DkMobileFlag=
+_Poisoned})
++		HealthBarSetWarMode()
++	end
+ 	=
+
+ 	=
+
+ 	--~ local dialog =3D GumpParser_New(kClientSideGump_Paperdoll_Own,true) d=
+ialog:SetLeftTop(400,100)
+
+Modified: trunk/lua/gui/gui.healthbar.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.healthbar.lua (original)
++++ trunk/lua/gui/gui.healthbar.lua Sat Jul 12 22:55:17 2008
+@@ -5,12 +5,8 @@
+ healthbarGump.x =3D 0
+ healthbarGump.y =3D 0
+ =
+
+-kStatBar_BarRed		=3D 2053
+-kStatBar_BarBlue	=3D 2054
+-kStatBar_BarGreen	=3D 2056
+-kStatBar_BarGolden	=3D 2057
+  =
+
+---~ healthbarGump.bSupportsGuiSys2 =3D true
++healthbarGump.bSupportsGuiSys2 =3D true
+ healthbarGump.Data =3D
+ 	 &quot;{ page 0 }&quot; ..
+ 	 &quot;{ gumppic 0 0 2051 healthbar }&quot; ..
+@@ -27,6 +23,7 @@
+ -- Created 09.03.2008 16:52:23, with GumpStudio &amp; Iris2 Lua Export Plugin
+ -- Exported Iris2 GumpExporter ver 1.0.
+ local npchealthGump =3D {}
++npchealthGump.bSupportsGuiSys2 =3D true
+ npchealthGump.dialogId =3D 2000002
+ npchealthGump.x =3D 0
+ npchealthGump.y =3D 60
+@@ -47,107 +44,38 @@
+ -- list of all open stats dialogs serial-&gt;dialog
+ gHealthbarDialogs =3D {}
+ =
+
+--- sets the current stats bar in %, dont use this directly
+-local function SetStatsBar(name,x)
+-	-- only if status dialog available
+-	if gHealthbarDialogs[gPlayerBodySerial] then
+-		-- find player status dialog
+-		local dialog =3D gHealthbarDialogs[gPlayerBodySerial]
+-		-- TODO : ugly, because the image is shrinked, anjust uvmap or use clipp=
+ing
+-		local w =3D 109	--fixed because &quot;w&quot; can't be changed and mul with %
+-		local h =3D dialog.controls and dialog.controls[name].gfx:GetHeight()
+-		if (x &gt; 1.0) then
+-			x =3D 1.0
+-		elseif (x &lt; 0.0) then
+-			x =3D 0.0
+-		end
+-		if (dialog.controls) then dialog.controls[name].gfx:SetDimensions(w*x,h)=
+ end
+-	end
++--- sets the hitpoints in percentage if the mobile npc dialog is opened
++function SetNpcHealthbarHitpoints (mobile, hitpoints) HealthBar_ChangePara=
+ms(mobile.serial,&quot;hitsbar&quot;,{tiled=3Dtrue,width=3DkHealthBarGump_FullWidth *=
+ max(0,min(1,hitpoints))}) end
++
++function HealthBar_SetPlayerBar	(name,x) HealthBar_ChangeParams(gPlayerBod=
+ySerial,name,{tiled=3Dtrue,width=3DkHealthBarGump_FullWidth * max(0,min(1,x=
+))}) end
++
++-- sets the current hitpoints (in %), x is between 0.0 and 1.0
++function SetHitpoints	(x) HealthBar_SetPlayerBar(&quot;hitsbar&quot;,x) end
++function SetMana		(x) HealthBar_SetPlayerBar(&quot;manabar&quot;,x) end
++function SetStamina		(x) HealthBar_SetPlayerBar(&quot;stambar&quot;,x) end
++
++
++function HealthBar_ChangeBackground (serial,back_gump_id,hue) HealthBar_Ch=
+angeParams(serial,&quot;healthbar&quot;,{gump_id=3Dback_gump_id,hue=3Dhue}) end
++
++function HealthBar_ChangeParams (serial,ctrlname,changearr) =
+
++	local dialog =3D gHealthbarDialogs[serial] if (not dialog) then return end
++	local widget =3D dialog:GetCtrlByName(ctrlname) if (not widget) then retu=
+rn end
++	widget:ChangeParams(changearr)
+ end
+ =
+
+ -- color healthbar for poison/golden effect, called from mobile:UpdateFlag=
+s()
+ function StatBar_UpdateMobileFlags (mobile)
+-	local dialog =3D gHealthbarDialogs[mobile.serial]
+-	if (not dialog) then return end
+ 	local bPoisoned	=3D TestBit(mobile.flag,kMobileFlag_Poisoned) =
+
+ 	local bGolden	=3D TestBit(mobile.flag,kMobileFlag_GoldenHealth) =
+
+-	local iGumpID =3D kStatBar_BarBlue
+-	local hueid =3D 0
+-	if (bPoisoned)	then iGumpID =3D kStatBar_BarGreen end
+-	if (bGolden)	then iGumpID =3D kStatBar_BarGolden end
+-	local mat =3D GetGumpMat(iGumpID,hueid)
+-	local widget =3D dialog.controls[&quot;hitsbar&quot;]
+-	widget.gfx:SetMaterial(mat)
+-
+-	--[[ =
+
+-	gui.gumpparser.lua:148:function GumpParser(Gumpdata, Clientsidemode)
+-	{ gumppic 35 38 2054 hitsbar }
+-	 { gumppic 35 11 2054 hitsbar }
+-	 -- MakeBorderGumpPart( curparent, bToken[4], bToken[2], bToken[3], 0, 0,=
+ 0, tonumber(huenumber) )
+-	local mat =3D GetGumpMat(iGumpID,hueid)
+-	function gMobilePrototype:UpdateHealth (curvalue,maxvalue)
+-			gCurrentRenderer:NotifyHPChange(self.serial, old, curvalue)
+-			self.stats.curHits =3D curvalue
+-			self.stats.maxHits =3D maxvalue
+-			self:NotifyListener(&quot;Mobile_UpdateStats&quot;)
+-		mobile:UpdateFlags
+-			SetHitpoints(self.stats.curHits/self.stats.maxHits)
+-			SetNpcHealthbarHitpoints(self, self.stats.curHits / self.stats.maxHits)
+-	]]--
+-end
+-
+--- sets the current hitpoints (in %), x is between 0.0 and 1.0
+-function SetHitpoints (x)
+-	SetStatsBar(&quot;hitsbar&quot;,x)
+-end
+-
+--- sets the current hitpoints (in %), x is between 0.0 and 1.0
+-function SetMana (x)
+-	SetStatsBar(&quot;manabar&quot;,x)
+-end
+-
+--- sets the current hitpoints (in %), x is between 0.0 and 1.0
+-function SetStamina (x)
+-	SetStatsBar(&quot;stambar&quot;,x)
++	local iGumpID =3D kHealthBarGump_Bar_Blue
++	if (bPoisoned)	then iGumpID =3D kHealthBarGump_Bar_Green end
++	if (bGolden)	then iGumpID =3D kHealthBarGump_Bar_Golden end
++	HealthBar_ChangeParams(mobile.serial,&quot;hitsbar&quot;,{hue=3D0,gump_id=3DiGumpID=
+})
+ end
+ =
+
+ -- sets the warmode visual on statsbar
+-function SetWarmode (warmode)
+-	-- only if status dialog available
+-	if gHealthbarDialogs[gPlayerBodySerial] then
+-		-- find player status dialog
+-		local dialog =3D gHealthbarDialogs[gPlayerBodySerial]
++function HealthBarSetWarMode () HealthBar_ChangeBackground(gPlayerBodySeri=
+al,IsWarModeActive() and kHealthBarGump_Background_Warmode or kHealthBarGum=
+p_Background_Normal) end
+ =
+
+-		local widget =3D dialog.controls and dialog.controls[&quot;healthbar&quot;]
+-		if (widget) then
+-			local mat =3D GetGumpMat(warmode =3D=3D gWarmode_Normal and gWargump_No=
+rmal or gWargump_Combat)
+-			widget.mat_over =3D mat
+-			widget.mat_normal =3D mat
+-			widget.mat_pressed =3D mat
+-			widget.gfx:SetMaterial(mat)
+-		end
+-	end
+-end
+-
+---- sets the hitpoints in percentage if the mobile npc dialog is opened
+-function SetNpcHealthbarHitpoints (mobile, hitpoints)
+-	if mobile and gHealthbarDialogs[mobile.serial] then
+-		-- get dialog and data
+-		local dialog =3D gHealthbarDialogs[mobile.serial]
+-		local x =3D hitpoints
+-		local w =3D 109	--fixed because &quot;w&quot; can't be changed and mul with %
+-		local h =3D dialog.controls[&quot;hitsbar&quot;].gfx:GetHeight()
+-
+-		-- limit the percentage value
+-		if (x &gt; 1.0) then
+-			x =3D 1.0
+-		elseif (x &lt; 0.0) then
+-			x =3D 0.0
+-		end
+-		-- and resize the bar
+-		dialog.controls[&quot;hitsbar&quot;].gfx:SetDimensions(w*x,h)
+-	end
+-end
+ =
+
+ -- removes all this fancy gui stuff :)
+ function RemoveAllHealthbars ()
+@@ -208,65 +136,46 @@
+ 		if x =3D=3D nil or y =3D=3D nil then x =3D 0 y =3D 0 end
+ 	end
+ 	=
+
+-	if (gHealthbarDialogs[mobile.serial]) then =
+
+-		-- only update position
+-		local d =3D gHealthbarDialogs[mobile.serial]
+-		if d and d.rootwidget and d.rootwidget.gfx then
+-			d.rootwidget.gfx:SetPos(x, y)
+-		end
+-		return
+-	end -- already open =
+
++	local d =3D gHealthbarDialogs[mobile.serial]
++	if (d) then d:SetPos(x, y) return end -- already open, only update positi=
+on
+ 	=
+
+ 	local dialog =3D GumpParser( IsPlayerMobile(mobile) and healthbarGump or =
+npchealthGump, true )
++	gHealthbarDialogs[mobile.serial] =3D dialog
+ =
+
+ 	-- save mobile info to dialog
+ 	dialog.mobile =3D mobile
+ =
+
+ 	-- overwrite the dialog close function from gumpparser
+-	dialog.Close =3D function (dialog)
+-					CloseHealthbar(dialog.mobile)
+-				   end
++	dialog.SendClose =3D function (self) CloseHealthbar(self.mobile) end
+ 	-- overwrite the onMouseDown function from gumpparser
+-	dialog.on_mouse_left_down =3D function ()
+-		dialog:BringToFront() =
+
++	dialog.on_mouse_left_down =3D function (self)
++		self:BringToFront() =
+
+ 		if IsTargetModeActive() then =
+
+-			CompleteTargetModeWithTargetMobile(mobile) =
+
++			CompleteTargetModeWithTargetMobile(self.mobile) =
+
+ 		else =
+
+-			-- not needed because it get called already
+-			-- gui.StartMoveDialog(dialog.rootwidget) =
+
++			self:StartMouseMove()
+ 		end =
+
+ 	end
+-	dialog.on_mouse_right_down =3D function ()
+-		dialog:Close()
+-	end
+-	dialog.on_mouse_left_click_double =3D function ()
+-		if (gActWarmode =3D=3D gWarmode_Combat) then
+-			Send_AttackReq(mobile.serial)
++	dialog.on_mouse_left_click_double =3D function (self)
++		if (IsWarModeActive()) then
++			Send_AttackReq(self.mobile.serial)
+ 		else
+-			Send_DoubleClick(mobile.serial)
++			Send_DoubleClick(self.mobile.serial)
+ 		end
+ 	end
+ =
+
+-	local r,g,b =3D GetNotorietyColor(mobile.notoriety)
+-
+ 	if not(IsPlayerMobile(mobile)) then
+-		dialog.controls[&quot;npcname&quot;].gfx:SetCharHeight(gFontDefs[&quot;Gump&quot;].size)
+-		dialog.controls[&quot;npcname&quot;].gfx:SetColour({r,g,b,1.0})
+-		dialog.controls[&quot;npcname&quot;].gfx:SetFont(gFontDefs[&quot;Gump&quot;].name)
+-		dialog.controls[&quot;npcname&quot;].gfx:SetText(mobile.name or &quot;unknown&quot;)
++		dialog:GetCtrlByName(&quot;npcname&quot;):SetUOHtml(mobile.name or &quot;unknown&quot;,false)
++		--~ HealthBar_ChangeBackground(mobile.serial,kHealthBarGump_Background_N=
+ameEntry,GetNotorietyHueID(mobile.notoriety)) -- GetNotorietyColor
+ 	end
+-
+-	gHealthbarDialogs[mobile.serial] =3D dialog
+ =
+
+ 	-- store mobile serial for item drop
+ 	dialog.dropOnMobileSerial =3D mobile.serial
+ 	=
+
+-	if x and y then
+-		if dialog.rootwidget and dialog.rootwidget.gfx then dialog.rootwidget.gf=
+x:SetPos(x,y) end
+-	end
++	if x and y then dialog:SetPos(x,y) end
+ 	=
+
+ 	-- if this was the player status bar, also show warmode
+-	if IsPlayerMobile(mobile) then SetWarmode(gActWarmode) end	=
+
++	if IsPlayerMobile(mobile) then HealthBarSetWarMode() end	=
+
+ 	=
+
+ 	NotifyListener(&quot;Hook_OpenHealthbar&quot;,dialog, mobile.serial)
+ end
+
+Modified: trunk/lua/gui/gui.paperdoll.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.paperdoll.lua (original)
++++ trunk/lua/gui/gui.paperdoll.lua Sat Jul 12 22:55:17 2008
+@@ -59,7 +59,7 @@
+  -- peace
+  [7]	=3D function (widget,mousebutton)
+ 			if (mousebutton =3D=3D 1) then
+-				if (gActWarmode=3D=3DgWarmode_Normal) then
++				if (IsWarModeActive()) then
+ 					Send_CombatMode(gWarmode_Combat)
+ 					widget.mat_normal 	=3D GetGumpMat(hex2num(&quot;0x7E8&quot;))
+ 					widget.mat_pressed 	=3D GetGumpMat(hex2num(&quot;0x7E9&quot;))
+@@ -313,7 +313,7 @@
+ 	end
+ =
+
+ 	-- visually change the Peace/Warmode Button when opening the Paperdoll wh=
+en in combat mode
+-	if (gActWarmode=3D=3DgWarmode_Combat) then
++	if (IsWarModeActive()) then
+ 		local widget =3D dialog.controls[&quot;btnpeace&quot;]
+ 		if (widget) then
+ 			widget.mat_normal 	=3D GetGumpMat(hex2num(&quot;0x7E8&quot;))
+
+Modified: trunk/lua/lib.macrolist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.macrolist.lua (original)
++++ trunk/lua/lib.macrolist.lua Sat Jul 12 22:55:17 2008
+@@ -42,7 +42,7 @@
+ function MacroCmd_SelectNearestMobile	()		if (gInGameStarted) then SelectN=
+earestMobile() end end
+ function MacroCmd_SelectNextMobile		()		if (gInGameStarted) then SelectNex=
+tMobile() end end
+ function MacroCmd_AttackSelectedMobile	()		if (gInGameStarted) then if giS=
+electedMobile then AttackMobile(giSelectedMobile) end end end
+-function MacroCmd_ToggleWarmode			()		if (gInGameStarted) then Send_Combat=
+Mode((gActWarmode=3D=3DgWarmode_Normal) and gWarmode_Combat or gWarmode_Nor=
+mal) end end
++function MacroCmd_ToggleWarmode			()		if (gInGameStarted) then Send_Combat=
+Mode(IsWarModeActive() and gWarmode_Normal or gWarmode_Combat) end end
+ function MacroCmd_Open					(dialogtype)
+ 	if (not gInGameStarted) then return end
+ 	local f =3D gMacroOpenCommands[dialogtype] =
+
+@@ -410,7 +410,7 @@
+ 				SetAutoWalkTo(dx,dy)
+ 				]]
+ 				=
+
+-				if (gActWarmode =3D=3D gWarmode_Combat) then
++				if (IsWarModeActive()) then
+ 					if not reqsend then
+ 						print(&quot;REQUEST SEND&quot;)
+ 						Send_AttackReq(gAttackMobile)
+
+Modified: trunk/lua/lib.mousepick.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mousepick.lua (original)
++++ trunk/lua/lib.mousepick.lua Sat Jul 12 22:55:17 2008
+@@ -35,13 +35,13 @@
+ 		local pm =3D GetPlayerMobile()
+ 		local othermobile =3D gMobiles[iSerial]
+ 		=
+
+-		if (gActWarmode =3D=3D gWarmode_Normal or (pm and iSerial =3D=3D pm.seri=
+al) or not othermobile) then
++		if ((not IsWarModeActive()) or (pm and iSerial =3D=3D pm.serial) or not =
+othermobile) then
+ 			if (iSerial and iSerial ~=3D 0) then
+ 				printdebug(&quot;net&quot;,sprintf(&quot;IrisDoubleClick: serial=3D0x%08x\n&quot;,iSerial))
+ 				Send_DoubleClick(iSerial)
+ 			end
+ 		end
+-		if (gActWarmode =3D=3D gWarmode_Combat) then
++		if (IsWarModeActive()) then
+ 			if (iSerial and iSerial ~=3D 0) then
+ 				printdebug(&quot;net&quot;,sprintf(&quot;IrisDoubleClickAttack: serial=3D0x%08x\n&quot;,iS=
+erial))
+ 				Send_AttackReq(iSerial)
+
+Modified: trunk/lua/lib.uoids.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.uoids.lua (original)
++++ trunk/lua/lib.uoids.lua Sat Jul 12 22:55:17 2008
+@@ -44,8 +44,14 @@
+ gWarmode_Combat	=3D 1	-- 0x01
+ =
+
+ --Warmode Status_Bar GumpIDs
+-gWargump_Normal	=3D hex2num(&quot;0x803&quot;)
+-gWargump_Combat	=3D hex2num(&quot;0x807&quot;)
++kHealthBarGump_Background_Normal	=3D 0x803
++kHealthBarGump_Background_NameEntry	=3D 0x804 -- top:big text field, botto=
+m : health, for npcs
++kHealthBarGump_Bar_Red				=3D 0x805
++kHealthBarGump_Bar_Blue				=3D 0x806
++kHealthBarGump_Background_Warmode	=3D 0x807
++kHealthBarGump_Bar_Green			=3D 0x808
++kHealthBarGump_Bar_Golden			=3D 0x809
++kHealthBarGump_FullWidth 			=3D 109
+ =
+
+ --Walk Limits
+ --gPersonHeight =3D 16
+
+Modified: trunk/lua/obj/obj.player.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/obj/obj.player.lua (original)
++++ trunk/lua/obj/obj.player.lua Sat Jul 12 22:55:17 2008
+@@ -72,6 +72,7 @@
+ 	end
+ end
+ =
+
++function IsWarModeActive () return gActWarmode =3D=3D gWarmode_Combat end
+ =
+
+ -- TODO : move to obj.player.lua ?
+ -- called from kPacket_SetPlayerWarmode
+@@ -88,7 +89,7 @@
+ 		JournalAddText(&quot;&quot;,&quot;You go into War!&quot;)
+ 		--printf(&quot;NET: kPacket_SetPlayerWarmode id: 0x%02x gWarmode: combat\n&quot;,i=
+d)
+ 	end
+-	SetWarmode(gActWarmode)
++	HealthBarSetWarMode()
+ end
+ =
+
+ =
+
+
+Modified: trunk/plugins/hudenemylist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/plugins/hudenemylist.lua (original)
++++ trunk/plugins/hudenemylist.lua Sat Jul 12 22:55:17 2008
+@@ -85,7 +85,7 @@
+ 		OpenHealthbarAtMouse(body)
+ 	end
+ 	bar.widget_bg.on_mouse_left_click_double =3D function ()
+-		if (gActWarmode =3D=3D gWarmode_Combat) then
++		if (IsWarModeActive()) then
+ 			Send_AttackReq(body.serial)
+ 		else
+ 			Send_DoubleClick(body.serial)
+
+Modified: trunk/widgets/widget.gumpdialog.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/widgets/widget.gumpdialog.lua (original)
++++ trunk/widgets/widget.gumpdialog.lua Sat Jul 12 22:55:17 2008
+@@ -55,6 +55,7 @@
+ function gWidgetPrototype.GumpDialog:on_mouse_right_down	() self:SendClose=
+(0) end
+ =
+
+ function gWidgetPrototype.GumpDialog:SendClose	(return_value)
++	if (self.bClientSideMode) then return end
+ 	-- old : CloseServerSideGump(self.Gumpdata.playerid, self.dialogId,return=
+_value)
+ 	-- old : ServerSideGump_GetParams
+ 	local params =3D {}
+
+Modified: trunk/widgets/widget.uoimage.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/widgets/widget.uoimage.lua (original)
++++ trunk/widgets/widget.uoimage.lua Sat Jul 12 22:55:17 2008
+@@ -20,6 +20,12 @@
+ 	self:SetParams(params)
+ end
+ =
+
++function gWidgetPrototype.UOImage:ChangeParams 	(changearr) =
+
++	local params =3D self:GetParams()
++	for k,v in pairs(changearr) do params[k] =3D v end
++	self:SetParams(params)
++end
++function gWidgetPrototype.UOImage:GetParams 	() return self.params end
+ function gWidgetPrototype.UOImage:SetParams 	(params)
+ 	-- clear components if it was multipart before
+ 	for k,child in pairs(self.components) do child:Destroy() end self.compone=
+nts =3D {}
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001104.html">[Iris-commit] [IRIS] r2296 - in /trunk/widgets: widget.gumpdialog.lua widget.uoimage.lua widget.uotext.lua
+</A></li>
+	<LI>Next message: <A HREF="001106.html">[Iris-commit] [IRIS] r2298 - /trunk/lua/lib.desktop.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1105">[ date ]</a>
+              <a href="thread.html#1105">[ thread ]</a>
+              <a href="subject.html#1105">[ subject ]</a>
+              <a href="author.html#1105">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

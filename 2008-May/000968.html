@@ -1,0 +1,230 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2158 - in /trunk/lua: lib.2d.cam.lua	lib.2d.renderer.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-May/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2158%20-%20in%20/trunk/lua%3A%20lib.2d.cam.lua%0A%09lib.2d.renderer.lua&In-Reply-To=%3C20080509232609.3AE0F1524037%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000967.html">
+   <LINK REL="Next"  HREF="000969.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2158 - in /trunk/lua: lib.2d.cam.lua	lib.2d.renderer.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2158%20-%20in%20/trunk/lua%3A%20lib.2d.cam.lua%0A%09lib.2d.renderer.lua&In-Reply-To=%3C20080509232609.3AE0F1524037%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2158 - in /trunk/lua: lib.2d.cam.lua	lib.2d.renderer.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat May 10 01:26:07 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000967.html">[Iris-commit] [IRIS] r2157 - in /trunk: bin/iris2.exe data/models/atlas/tex_atlas_med.material vs8/iris.vcproj
+</A></li>
+        <LI>Next message: <A HREF="000969.html">[Iris-commit] [IRIS] r2159 - in /trunk/lua: lib.2d.cam.lua lib.2d.renderer.lua lib.terrain.multitex.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#968">[ date ]</a>
+              <a href="thread.html#968">[ thread ]</a>
+              <a href="subject.html#968">[ subject ]</a>
+              <a href="author.html#968">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sat May 10 01:26:06 2008
+New Revision: 2158
+
+Log:
+first watertile drawn in 2d new 2d mode : ortho cam setup seems to work
+
+Modified:
+    trunk/lua/lib.2d.cam.lua
+    trunk/lua/lib.2d.renderer.lua
+
+Modified: trunk/lua/lib.2d.cam.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.cam.lua (original)
++++ trunk/lua/lib.2d.cam.lua Sat May 10 01:26:06 2008
+@@ -1,22 +1,94 @@
+ -- ortho cam
+ =
+
++--[[
++
++	int w =3D cOgreWrapper::GetSingleton().mViewport-&gt;getActualWidth();
++	int h =3D cOgreWrapper::GetSingleton().mViewport-&gt;getActualHeight();
++
++	Ogre::Matrix4 ViewportMatrix =3D Ogre::Matrix4::getScale( 2.0/w, -2.0/h, =
+1.0 ); // pixel-coordinate system =
+
++	ViewportMatrix.setTrans(Ogre::Vector3(-1.0, +1.0,0.0)); // 0,0 =3D left-t=
+op
++	pRenderSys._setViewMatrix(			ViewportMatrix );
++	pRenderSys._setProjectionMatrix(	Ogre::Matrix4::IDENTITY );
++	pRenderSys._setWorldMatrix( 		Ogre::Matrix4::IDENTITY );
++]]--
++
++function Renderer2D:CamTestTile ()
++	-- create water
++	local gfx =3D CreateRootGfx3D()
++	local vc =3D 4
++	local ic =3D 6 * 2
++
++	gfx:SetSimpleRenderable()
++	gfx:RenderableBegin(vc,ic,false,false,OT_TRIANGLE_LIST)
++
++	-- print(&quot;DEBUG&quot;,&quot;WATERSTART&quot;,count,vc,ic)
++	local x,y,z =3D 0,0,0
++	=
+
++	local w,h =3D 3,4
++	gfx:RenderableVertex(-x  ,y  ,z, 0,0,1, 0,0)
++	gfx:RenderableVertex(-x-w,y  ,z, 0,0,1, w,0)
++	gfx:RenderableVertex(-x  ,y+h,z, 0,0,1, 0,h)
++	gfx:RenderableVertex(-x-w,y+h,z, 0,0,1, w,h)
++	=
+
++	gfx:RenderableIndex3(0, 1, 2)
++	gfx:RenderableIndex3(1, 3, 2)
++	gfx:RenderableIndex3(0, 2, 1)
++	gfx:RenderableIndex3(1, 2, 3)
++
++	gfx:RenderableEnd()
++
++	local mat =3D GetPlainTextureMat(&quot;terrain1_mosa02.png&quot;)
++	--~ gfx:SetMaterial(&quot;BaseWhiteNoLighting&quot;)
++	--~ gfx:SetMaterial(&quot;water&quot;)
++	gfx:SetMaterial(mat)
++end
++
++
++Renderer2D.gCamAngle =3D 0
++
+ function Renderer2D:CamInit ()
++	self:CamTestTile()
++	=
+
+ 	self.gbNeedCorrectAspectRatio =3D true
+-	--[[ =
+
+-	-- lugre
+ 	local cam =3D GetMainCam() =
+
++	local vp =3D GetMainViewport()
++	local viewport_w =3D vp:GetActualWidth()
++	local viewport_h =3D vp:GetActualHeight()
++	=
+
++	=
+
++	=
+
++	--~ local visible_h =3D viewport_h -- for pixel coordinate system
++	local yscale =3D 1.0 / math.sin(0.25*math.pi) -- uo tiles are quadratic i=
+n iso, but would be y~0.7~sin(45 deg)
++	--~ yscale =3D 1
++	cam:SetAspectRatio(yscale * viewport_w / viewport_h )
++	local tile_h =3D 44  -- 44x44 pixels on screen, but rotated by 45 degree =
+(diag=3D44.. but worldunit rotated as well) -&gt; 44
++	local visible_h =3D viewport_h / tile_h -- coordinate system so that size=
+ of 1 tile =3D 1 world unit
++	self.fNearClip =3D 0.5 * visible_h
+ 	cam:SetFOVy( gfDeg2Rad*90 )
+-	cam:SetNearClipDistance( 0.5 * GetMainViewport():GetActualHeight() )
++	cam:SetNearClipDistance( self.fNearClip )
+ 	cam:SetFarClipDistance( 100000.0 )
+-	cam:SetProjectionType(1)
++	cam:SetProjectionType(kCamera_PT_ORTHOGRAPHIC)
+ 	=
+
+-	--  iris 3d + ortho (unfinished)
+-	local cam =3D GetMainCam()
+-	cam:SetFOVy(gfDeg2Rad*45)
+-	cam:SetNearClipDistance(0.5) -- old : 1
+-	cam:SetFarClipDistance(2000) -- ogre defaul : 100000
+-	cam:SetProjectionType(kCamera_PT_ORTHOGRAPHIC) -- perspective
+-	]]--
++	local xang =3D gfDeg2Rad * 45
++	local zang =3D gfDeg2Rad * (45+180)
++	local w1,x1,y1,z1 =3D Quaternion.fromAngleAxis(zang,0,0,1)	=
+
++	local w2,x2,y2,z2 =3D Quaternion.fromAngleAxis(xang,1,0,0)	=
+
++	local w,x,y,z =3D Quaternion.Mul(w1,x1,y1,z1, w2,x2,y2,z2)
++	=
+
++	=
+
++	local camdist =3D self.fNearClip+100
++	=
+
++	cam:SetRot(w,x,y,z)
++	cam:SetPos(Quaternion.ApplyToVector(0,0,camdist,w,x,y,z))
++end
++
++function Renderer2D:CamStep						() =
+
++	--~ print(&quot;Renderer2D:CamStep&quot;,math.floor(Renderer2D.gCamAngle/gfDeg2Rad))
++	--~ local cam =3D GetMainCam() =
+
++	--~ Renderer2D.gCamAngle =3D Renderer2D.gCamAngle + 0.2 * gfDeg2Rad
++	--~ local w3,x3,y3,z3 =3D Quaternion.fromAngleAxis(Renderer2D.gCamAngle,1=
+,0,0)	=
+
++
++	--~ cam:SetRot(w3,x3,y3,z3)
+ end
+ =
+
+ function Renderer2D:CorrectAspectRatio ()
+
+Modified: trunk/lua/lib.2d.renderer.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.renderer.lua (original)
++++ trunk/lua/lib.2d.renderer.lua Sat May 10 01:26:06 2008
+@@ -59,7 +59,6 @@
+ function Renderer2D:MousePickStep				() end
+ function Renderer2D:CombatGuiStep				() end
+ function Renderer2D:MobileAnimStep				() end
+-function Renderer2D:CamStep						() end
+ function Renderer2D:SetOfflineStartPos			(x,y,z) end
+ =
+
+ function Renderer2D:UpdateMobileModel			() end -- check equipment change e=
+tc
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000967.html">[Iris-commit] [IRIS] r2157 - in /trunk: bin/iris2.exe data/models/atlas/tex_atlas_med.material vs8/iris.vcproj
+</A></li>
+	<LI>Next message: <A HREF="000969.html">[Iris-commit] [IRIS] r2159 - in /trunk/lua: lib.2d.cam.lua lib.2d.renderer.lua lib.terrain.multitex.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#968">[ date ]</a>
+              <a href="thread.html#968">[ thread ]</a>
+              <a href="subject.html#968">[ subject ]</a>
+              <a href="author.html#968">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,216 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1193 - in /trunk: data/lua/net.login.lua include/net.h src/net.cpp src/net_L.cpp src/sound_fmod.cpp
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2007-June/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1193%20-%20in%20/trunk%3A%20data/lua/net.login.lua%0A%20include/net.h%20src/net.cpp%20src/net_L.cpp%20src/sound_fmod.cpp&In-Reply-To=%3C20070613223729.61AB6B1466D%40localhost.localdomain%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000008.html">
+   <LINK REL="Next"  HREF="000010.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1193 - in /trunk: data/lua/net.login.lua include/net.h src/net.cpp src/net_L.cpp src/sound_fmod.cpp</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1193%20-%20in%20/trunk%3A%20data/lua/net.login.lua%0A%20include/net.h%20src/net.cpp%20src/net_L.cpp%20src/sound_fmod.cpp&In-Reply-To=%3C20070613223729.61AB6B1466D%40localhost.localdomain%3E"
+       TITLE="[Iris-commit] [IRIS] r1193 - in /trunk: data/lua/net.login.lua include/net.h src/net.cpp src/net_L.cpp src/sound_fmod.cpp">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Thu Jun 14 00:37:29 CEST 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000008.html">[Iris-commit] [IRIS] r1192 - /trunk/data/config.lua.dist
+</A></li>
+        <LI>Next message: <A HREF="000010.html">[Iris-commit] [IRIS] r1194 - /tools/installer/ /tools/updater/ /trunk/bin/ /trunk/data/ /trunk/data/lua/ /trunk/src/
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#9">[ date ]</a>
+              <a href="thread.html#9">[ thread ]</a>
+              <a href="subject.html#9">[ subject ]</a>
+              <a href="author.html#9">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: hagish
+Date: Thu Jun 14 00:37:28 2007
+New Revision: 1193
+
+Log:
+hostname to ip resolver to compare number based ip and string based ips
+
+Modified:
+    trunk/data/lua/net.login.lua
+    trunk/include/net.h
+    trunk/src/net.cpp
+    trunk/src/net_L.cpp
+    trunk/src/sound_fmod.cpp
+
+Modified: trunk/data/lua/net.login.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/net.login.lua (original)
++++ trunk/data/lua/net.login.lua Thu Jun 14 00:37:28 2007
+@@ -81,7 +81,7 @@
+ 	gGameServerAccount =3D input:PopNetUint32()
+ 	printdebug(&quot;login&quot;,sprintf(&quot;NET: server redirect: id=3D%i ip=3D%x port=3D=
+%i AccountNr.:0x%08x\n&quot;,
+ 			id,gGameServerIP,gGameServerPort,gGameServerAccount))
+-
++	print(&quot;DEBUG IP STRINGS&quot;,NtoA(gGameServerIP),GetHostByName(gLoginServerIP=
+))
+ 	-- login &amp; gameserver are not the same: redirect is received
+ --	if (gGameServerIP ~=3D gLoginServerIP) then -- &lt;- this check should be =
+used but currently crashes
+ 	if ( (gServerType[gServerEmulator]~=3D&quot;RunUO&quot;) or gPolServer ) then
+
+Modified: trunk/include/net.h
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/include/net.h (original)
++++ trunk/include/net.h Thu Jun 14 00:37:28 2007
+@@ -61,6 +61,8 @@
+ =
+
+ 	cNet	();
+ 	~cNet	();
++
++	static unsigned int GetHostByName	(const char *szHost);
+ };
+ =
+
+ =
+
+
+Modified: trunk/src/net.cpp
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/src/net.cpp (original)
++++ trunk/src/net.cpp Thu Jun 14 00:37:28 2007
+@@ -108,6 +108,21 @@
+ =
+
+ const bool	cConnection::IsConnected(){
+ 	return miSocket !=3D INVALID_SOCKET;
++}
++
++
++// resolves hostname to nummeric ip, 0 on error
++unsigned int cNet::GetHostByName	(const char *szHost) { PROFILE
++	// gethostbyname
++	hostent*		h;
++	h =3D gethostbyname(szHost);
++	if(h){
++		return *((uint32 *)h-&gt;h_addr);
++	} else if(inet_addr(szHost) !=3D INADDR_NONE){
++		return inet_addr(szHost);
++	} else {
++		return 0;
++	}
+ }
+ =
+
+ /// outgoing connection
+
+Modified: trunk/src/net_L.cpp
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/src/net_L.cpp (original)
++++ trunk/src/net_L.cpp Thu Jun 14 00:37:28 2007
+@@ -17,7 +17,8 @@
+ 		virtual void RegisterMethods	(lua_State *L) { PROFILE
+ 			lua_register(L,&quot;NetConnect&quot;,		&amp;cConnection_L::NetConnect);
+ 			lua_register(L,&quot;NetReadAndWrite&quot;,	&amp;cConnection_L::NetReadAndWrite);
+-			lua_register(L,&quot;NtoA&quot;,				&amp;cConnection_L::NtoA);
++			lua_register(L,&quot;NtoA&quot;,			&amp;cConnection_L::NtoA);
++			lua_register(L,&quot;GetHostByName&quot;,		&amp;cConnection_L::GetHostByName);
+ 			=
+
+ 			#define REGISTER_METHOD(methodname) mlMethod.push_back(make_luaL_reg(#m=
+ethodname,&amp;cConnection_L::methodname));
+ 			REGISTER_METHOD(Destroy);
+@@ -51,6 +52,24 @@
+ 			snprintf(buffer,16,&quot;%i.%i.%i.%i&quot;,(int)h[3],(int)h[2],(int)h[1],(int)h[0=
+]);
+ 			lua_pushstring(L,buffer);
+ 			return 1;
++		}
++
++		/// converts a hostname to a ip as string or nil on error
++		/// for lua : int 	GetHostByName	(string hostname)
++		static int				GetHostByName	(lua_State *L) { PROFILE
++			unsigned int ip =3D cNet::GetHostByName(luaL_checkstring(L,1));
++			if(ip){
++				// TODO this could be system dependant, due to endianess
++				// probably use inet_ntop() ?
++				=
+
++				static char buffer[32];
++				unsigned char *h =3D (unsigned char *)&ip;
++				snprintf(buffer,16,&quot;%i.%i.%i.%i&quot;,(int)h[0],(int)h[1],(int)h[2],(int)h[=
+3]);
++				lua_pushstring(L,buffer);
++				return 1;
++			} else {
++				return 0;
++			}
+ 		}
+ =
+
+ 	// object methods exported to lua
+
+Modified: trunk/src/sound_fmod.cpp
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/src/sound_fmod.cpp (original)
++++ trunk/src/sound_fmod.cpp Thu Jun 14 00:37:28 2007
+@@ -312,6 +312,8 @@
+ 			printf(&quot;Error!  You are using an old version of FMOD %08x.  This progra=
+m requires %08x\n&quot;, version, FMOD_VERSION);
+ 		}
+ =
+
++		//result =3D FMOD_System_SetDriver(mpSystem,0);
++		//ERRCHECK(result);
+ 		result =3D FMOD_System_Init(mpSystem, miMaxChannels, FMOD_INIT_NORMAL, 0=
+);
+ 		ERRCHECK(result);
+ 	}
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000008.html">[Iris-commit] [IRIS] r1192 - /trunk/data/config.lua.dist
+</A></li>
+	<LI>Next message: <A HREF="000010.html">[Iris-commit] [IRIS] r1194 - /tools/installer/ /tools/updater/ /trunk/bin/ /trunk/data/ /trunk/data/lua/ /trunk/src/
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#9">[ date ]</a>
+              <a href="thread.html#9">[ thread ]</a>
+              <a href="subject.html#9">[ subject ]</a>
+              <a href="author.html#9">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

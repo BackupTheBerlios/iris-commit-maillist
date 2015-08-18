@@ -1,0 +1,178 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2504 - in /trunk/lua: lib.2d.hudfx.lua	lib.2d.mobile.lua net.walk.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-October/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2504%20-%20in%20/trunk/lua%3A%20lib.2d.hudfx.lua%0A%09lib.2d.mobile.lua%20net.walk.lua&In-Reply-To=%3C20081003212605.7EB411C1877C%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001308.html">
+   <LINK REL="Next"  HREF="001310.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2504 - in /trunk/lua: lib.2d.hudfx.lua	lib.2d.mobile.lua net.walk.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2504%20-%20in%20/trunk/lua%3A%20lib.2d.hudfx.lua%0A%09lib.2d.mobile.lua%20net.walk.lua&In-Reply-To=%3C20081003212605.7EB411C1877C%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2504 - in /trunk/lua: lib.2d.hudfx.lua	lib.2d.mobile.lua net.walk.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Fri Oct  3 23:26:05 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001308.html">[Iris-commit] [IRIS] r2503 - in /trunk/lua: lib.2d.cam.lua lib.2d.effect.lua lib.2d.hudfx.lua lib.2d.renderer.lua net/net.mobile.lua widgets/widget.uotext.lua
+</A></li>
+        <LI>Next message: <A HREF="001310.html">[Iris-commit] [IRIS] r2505 - in /trunk/lua: lib.3d.mousepick.lua lib.mapblock.3d.multis.lua net/net.multi.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1309">[ date ]</a>
+              <a href="thread.html#1309">[ thread ]</a>
+              <a href="subject.html#1309">[ subject ]</a>
+              <a href="author.html#1309">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Fri Oct  3 23:26:05 2008
+New Revision: 2504
+
+Log:
+2d : fixed vampform and ghost mobile gfx,  improved walkcode to avoid reque=
+st pileup
+
+Modified:
+    trunk/lua/lib.2d.hudfx.lua
+    trunk/lua/lib.2d.mobile.lua
+    trunk/lua/net.walk.lua
+
+Modified: trunk/lua/lib.2d.hudfx.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.hudfx.lua (original)
++++ trunk/lua/lib.2d.hudfx.lua Fri Oct  3 23:26:05 2008
+@@ -44,9 +44,11 @@
+ 	if (hudfx.mob and hudfx.gfx) then
+ 		local mobile =3D hudfx.mob
+ 		local px,py =3D self:UOPosToPixelPos(mobile.xloc,mobile.yloc,mobile.zloc=
++hudfx.zadd)
+-		local dur =3D hudfx.dur
+-		local ft =3D min(dur,t - hudfx.startt) / dur
+-		hudfx.gfx:SetPos(px,py - sqrt(ft)*hudfx.riseh)
++		if (px) then =
+
++			local dur =3D hudfx.dur
++			local ft =3D min(dur,t - hudfx.startt) / dur
++			hudfx.gfx:SetPos(px,py - sqrt(ft)*hudfx.riseh)
++		end
+ 	end
+ end
+ =
+
+
+Modified: trunk/lua/lib.2d.mobile.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.mobile.lua (original)
++++ trunk/lua/lib.2d.mobile.lua Fri Oct  3 23:26:05 2008
+@@ -61,11 +61,14 @@
+ 	--~ table.insert(parts,{self:GetMobileMountModelAndHue(mobile)}) -- kLaye=
+r_Mount
+ 	if (mount) then table.insert(parts,{gMountTranslate2D[mount.artid],mount.=
+hue,gStandardHorse}) end
+ 	=
+
+-	table.insert(parts,{mobile.artid,mobile.hue,13}) -- fallback=3D13=3Devort=
+ex
+-	if (mobile.artid =3D=3D 400 or mobile.artid =3D=3D 401) then -- only huma=
+ns have equip
++	if (mobile.artid ~=3D 402 and
++		mobile.artid ~=3D 403) then table.insert(parts,{mobile.artid,mobile.hue,=
+13}) end -- fallback=3D13=3Devortex  402=3Dghost
++	--~ print(&quot;######### mobart&quot;,mobile.artid)
++	if (Anim_GetModelCategory(mobile.artid) =3D=3D 3) then -- only humans hav=
+e equip
+ 		for index,layer in pairs(gLayerOrder) do =
+
+ 			local item =3D GetMobileEquipmentItem(mobile,layer)
+ 			if (item) then =
+
++				--~ print(&quot;######### equip&quot;,layer,item.artid)
+ 				local t =3D GetStaticTileType(item.artid)
+ 				local iFallBackModel
+ 				if (layer =3D=3D kLayer_TorsoOuter) then iFallBackModel =3D 469 end --=
+ standard robe
+
+Modified: trunk/lua/net.walk.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net.walk.lua (original)
++++ trunk/lua/net.walk.lua Fri Oct  3 23:26:05 2008
+@@ -87,7 +87,6 @@
+ function FastWalk_CountKeys	()			return table.getn(gFastwalkStack) end
+ =
+
+ =
+
+-
+ -- returns x,y,z :  absolute tilepos =3D blockpos*8 + reltilepos[0-7]   z =
+as int (not multiplied by 0.1 yet)
+ function GetPlayerPos () return gPlayerXLoc,gPlayerYLoc,gPlayerZLoc end
+ function GetPlayerDir () return gPlayerDir end
+@@ -161,10 +160,16 @@
+ 									(	bRunFlag and gWalkTimeout_RunningSpeed		or gWalkTimeout_MovingS=
+peed)
+ end
+ =
+
++-- returns false if the walk queue is full and the next request should wait
++function WalkQueueOkForNextSend ()
++	return countarr(gWalkRequests) &lt;=3D 1
++end
++	=
+
+ -- internal, don't call directly, no check for walkable, only checks for t=
+ime
+ function ExecWalkRequestIfPossible	(iDir,bRunFlag)
+ 	if (not Walk_RequestTimeOk()) then return end
+ 	if (not FastWalk_Ok()) then return end
++	if ((not gFastWalkKeysUsed) and (not WalkQueueOkForNextSend())) then retu=
+rn end
+ 	iDir =3D DirWrap(iDir)
+ 	local iFullDir =3D BitwiseOR(iDir,bRunFlag and kWalkFlag_Run or 0) -- inc=
+ludes runflag
+ 	=
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001308.html">[Iris-commit] [IRIS] r2503 - in /trunk/lua: lib.2d.cam.lua lib.2d.effect.lua lib.2d.hudfx.lua lib.2d.renderer.lua net/net.mobile.lua widgets/widget.uotext.lua
+</A></li>
+	<LI>Next message: <A HREF="001310.html">[Iris-commit] [IRIS] r2505 - in /trunk/lua: lib.3d.mousepick.lua lib.mapblock.3d.multis.lua net/net.multi.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1309">[ date ]</a>
+              <a href="thread.html#1309">[ thread ]</a>
+              <a href="subject.html#1309">[ subject ]</a>
+              <a href="author.html#1309">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

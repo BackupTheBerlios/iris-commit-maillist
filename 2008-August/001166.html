@@ -1,0 +1,1199 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2358 - in /trunk/lua: gui/gui.gumpparser.lua gui/gui.healthbar.lua gui/gui.main.lua gui/gui.popup.lua gui/gui.spellbook.lua net.popup.lua net/net.main.lua net/net.other.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-August/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2358%20-%20in%20/trunk/lua%3A%20gui/gui.gumpparser.lua%0A%20gui/gui.healthbar.lua%20gui/gui.main.lua%20gui/gui.popup.lua%0A%20gui/gui.spellbook.lua%20net.popup.lua%20net/net.main.lua%20net/net.other.lua&In-Reply-To=%3C20080805201623.5300C1524030%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001165.html">
+   <LINK REL="Next"  HREF="001167.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2358 - in /trunk/lua: gui/gui.gumpparser.lua gui/gui.healthbar.lua gui/gui.main.lua gui/gui.popup.lua gui/gui.spellbook.lua net.popup.lua net/net.main.lua net/net.other.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2358%20-%20in%20/trunk/lua%3A%20gui/gui.gumpparser.lua%0A%20gui/gui.healthbar.lua%20gui/gui.main.lua%20gui/gui.popup.lua%0A%20gui/gui.spellbook.lua%20net.popup.lua%20net/net.main.lua%20net/net.other.lua&In-Reply-To=%3C20080805201623.5300C1524030%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2358 - in /trunk/lua: gui/gui.gumpparser.lua gui/gui.healthbar.lua gui/gui.main.lua gui/gui.popup.lua gui/gui.spellbook.lua net.popup.lua net/net.main.lua net/net.other.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Tue Aug  5 22:16:22 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001165.html">[Iris-commit] [IRIS] r2357 - /trunk/lua/gui/gui.gumpmaker.lua
+</A></li>
+        <LI>Next message: <A HREF="001167.html">[Iris-commit] [IRIS] r2359 - in /trunk: data/ lua/ lua/gui/	lua/obj/ widgets/
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1166">[ date ]</a>
+              <a href="thread.html#1166">[ thread ]</a>
+              <a href="subject.html#1166">[ subject ]</a>
+              <a href="author.html#1166">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: sience
+Date: Tue Aug  5 22:16:22 2008
+New Revision: 2358
+
+Log:
+-net.popup.lua deleted and moved to gui.popup.lua &amp; net.other.lua
+-some other small cleanups for better reading the source
+
+Added:
+    trunk/lua/gui/gui.popup.lua
+Removed:
+    trunk/lua/net.popup.lua
+Modified:
+    trunk/lua/gui/gui.gumpparser.lua
+    trunk/lua/gui/gui.healthbar.lua
+    trunk/lua/gui/gui.main.lua
+    trunk/lua/gui/gui.spellbook.lua
+    trunk/lua/net/net.main.lua
+    trunk/lua/net/net.other.lua
+
+Modified: trunk/lua/gui/gui.gumpparser.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.gumpparser.lua (original)
++++ trunk/lua/gui/gui.gumpparser.lua Tue Aug  5 22:16:22 2008
+@@ -104,6 +104,318 @@
+ =
+
+ gServerSideGump =3D {}
+ gGumpPosition =3D {}
++
++local function ServerSideGump_GetParams (dialogId)
++	local params =3D {}
++	params.switches =3D {}
++	params.texts =3D {}
++	local dialog =3D gServerSideGump[dialogId]
++	=
+
++	if (dialog) then
++		for k,widget in pairs(dialog.uo_radio) do if (widget.state =3D=3D 1) the=
+n table.insert(params.switches,widget.returnmsg) end end
++		for k,widget in pairs(dialog.uo_check) do if (widget.state =3D=3D 1) the=
+n table.insert(params.switches,widget.returnmsg) end end
++		for k,widget in pairs(dialog.uo_text) do =
+
++			table.insert(params.texts,{id=3Dwidget.returnmsg,text=3Dwidget.plaintex=
+t or  &quot;&quot;})
++		end
++	end
++
++	return params
++end
++
++function CloseServerSideGump (playerId, dialogId, buttonId)
++	if (buttonId) then
++		printdebug(&quot;gump&quot;,&quot;CloseServerSideGump dialogId=3D&quot;..dialogId..&quot; buttonI=
+d=3D&quot;..buttonId)
++	else
++		printdebug(&quot;gump&quot;,&quot;CloseServerSideGump dialogId=3D&quot;..dialogId..&quot; buttonI=
+d=3Dnil&quot;)
++	end
++
++	local dialog =3D gServerSideGump[dialogId]
++	if (not dialog) then printdebug(&quot;gump&quot;,&quot;CloseServerSideGump : dialog not =
+found=3D&quot;,dialogId) return end
++	if (dialog.SendClose) then dialog:SendClose(buttonId) return end
++	=
+
++	local params =3D ServerSideGump_GetParams(dialogId)
++	GumpReturnMsg(playerId, dialogId, buttonId, params)
++
++	printdebug(&quot;gump&quot;,&quot;ServerSideGump Dialog closed: dialogID=3D&quot;..dialogId)
++	dialog:Close()
++end
++
++-- returns a table
++-- token is an array
++-- tokenformat is a string with comma-separated field names like &quot;x,y,widt=
+h,height,[ctrlname],...&quot; =
+
++-- [] encasing optional params and ... for not checking the number of rema=
+ining params
++function GumpParser_ParseToken (token,tokenformat,paramadd)
++	local res =3D paramadd and CopyArray(paramadd) or {}
++	for k,fieldname in ipairs(explode(&quot;,&quot;,tokenformat)) do
++		if (fieldname =3D=3D &quot;...&quot;) then return res end
++		local tokenval =3D token[k+1]
++		-- [param] is optional
++		if (StrLeft(fieldname,1) =3D=3D &quot;[&quot; and StrRight(fieldname,1) =3D=3D &quot;]&quot;=
+) then
++			fieldname =3D string.sub(fieldname,2,-2) -- cut away one char from each=
+ side
++			if (not tokenval) then return res end -- optional, so exit without warn=
+ing possible
++		end
++		if (not tokenval) then print(&quot;GumpParser_ParseToken:warning:missing para=
+m&quot;,k,fieldname,implode(&quot;,&quot;,token)) return res end -- warn of missing parame=
+ters
++		local tokenvalnum =3D tonumber(tokenval)
++		if (tokenvalnum and tokenval =3D=3D &quot;&quot;..tokenvalnum) then tokenval =3D t=
+okenvalnum end -- convert number-strings to real numbers
++		res[fieldname] =3D tokenval
++	end
++	return res
++end
++
++
++-- close already existing dialog with the same id
++function GumpParser_CloseOldDialog	(dialogId,playerid,bClientSideMode)
++	print(&quot;TODO:GumpParser_CloseOldDialog&quot;)
++	if ((not bClientSideMode) and gServerSideGump[dialogId]) then
++		CloseServerSideGump(playerid, dialogId, 0, bClientSideMode)
++	end
++end
++
++
++kGumpParser_CommandTypes =3D {}
++kGumpParser_CommandTypes[&quot;page&quot;]				=3D {paramformat=3D&quot;pagenum&quot;}
++kGumpParser_CommandTypes[&quot;xmfhtmlgump&quot;]			=3D {paramformat=3D&quot;x,y,width,he=
+ight,cliloc_id,background,scrollbar,[ctrlname]&quot;,paramadd=3D{default_black=
+=3Dtrue,html=3Dtrue}} =
+
++kGumpParser_CommandTypes[&quot;xmfhtmlgumpcolor&quot;]	=3D {paramformat=3D&quot;x,y,width=
+,height,cliloc_id,background,scrollbar,hue,[ctrlname]&quot;,paramadd=3D{html=3Dt=
+rue}}
++kGumpParser_CommandTypes[&quot;croppedtext&quot;]			=3D {paramformat=3D&quot;x,y,width,he=
+ight,hue,textline_id,[ctrlname]&quot;,paramadd=3D{bold=3Dtrue,crop=3Dtrue}}
++kGumpParser_CommandTypes[&quot;htmlgump&quot;]			=3D {paramformat=3D&quot;x,y,width,heigh=
+t,textline_id,background,scrollbar,[ctrlname]&quot;,paramadd=3D{default_black=3D=
+true,html=3Dtrue}} =
+
++kGumpParser_CommandTypes[&quot;text&quot;]				=3D {paramformat=3D&quot;x,y,hue,textline_i=
+d,[ctrlname]&quot;,paramadd=3D{bold=3Dfalse,default_black=3Dtrue}}
++kGumpParser_CommandTypes[&quot;tooltip&quot;]				=3D {paramformat=3D&quot;cliloc_id,[ctrl=
+name]&quot;}
++kGumpParser_CommandTypes[&quot;resizepic&quot;]			=3D {paramformat=3D&quot;x,y,gump_id,wi=
+dth,height,[ctrlname]&quot;,paramadd=3D{multipart=3Dtrue}}
++kGumpParser_CommandTypes[&quot;gumppictiled&quot;]		=3D {paramformat=3D&quot;x,y,width,he=
+ight,gump_id,[ctrlname]&quot;,paramadd=3D{tiled=3Dtrue}}
++kGumpParser_CommandTypes[&quot;checkertrans&quot;]		=3D {paramformat=3D&quot;x,y,width,he=
+ight,[ctrlname]&quot;,paramadd=3D{checker=3Dtrue}}
++kGumpParser_CommandTypes[&quot;tilepic&quot;]				=3D {paramformat=3D&quot;x,y,art_id,[ctr=
+lname]&quot;}
++kGumpParser_CommandTypes[&quot;tilepichue&quot;]			=3D {paramformat=3D&quot;x,y,art_id,hu=
+e,[ctrlname]&quot;}
++kGumpParser_CommandTypes[&quot;button&quot;]				=3D {paramformat=3D&quot;x,y,gump_id_norm=
+al,gump_id_pressed,quit,page_id,[return_value],[ctrlname]&quot;}
++kGumpParser_CommandTypes[&quot;buttontileart&quot;]		=3D {paramformat=3D&quot;x,y,gump_id=
+_normal,gump_id_pressed,quit,page_id,return_value,art_id,hue,art_x,art_y,[c=
+trlname]&quot;}
++kGumpParser_CommandTypes[&quot;checkbox&quot;]			=3D {paramformat=3D&quot;x,y,gump_id_nor=
+mal,gump_id_pressed,status,return_value,[ctrlname]&quot;}
++kGumpParser_CommandTypes[&quot;radio&quot;]				=3D {paramformat=3D&quot;x,y,gump_id_norma=
+l,gump_id_pressed,status,return_value,[ctrlname]&quot;}
++kGumpParser_CommandTypes[&quot;group&quot;]				=3D {paramformat=3D&quot;groupnumber&quot;}
++kGumpParser_CommandTypes[&quot;textentry&quot;]			=3D {paramformat=3D&quot;x,y,width,heig=
+ht,hue,return_value,textline_id_default,[ctrlname]&quot;}
++kGumpParser_CommandTypes[&quot;gumppic&quot;]				=3D {paramformat=3D&quot;x,y,gump_id,...=
+&quot;}
++				=
+
++
++function GumpParser_DebugDumpGump (Gumpdata)
++	-- debug dump
++	if (1 =3D=3D 1 and (not Clientsidemode)) then =
+
++		print(&quot;\n\n##### GUMP #####\n\n\&quot;&quot;..Gumpdata.Data..&quot;\&quot;,\n\ntextline=3D{&quot;=
+) =
+
++		for k,v in pairs(Gumpdata.textline or {}) do print(&quot;[&quot;..k..&quot;]=3D\&quot;&quot;..v..=
+&quot;\&quot;,&quot;) end =
+
++		print(&quot;},&quot;)
++		print(&quot;textline_unicode=3D{&quot;)
++		for k,unicode_arr in pairs(Gumpdata.textline_unicode or {}) do =
+
++			printf(&quot;[&quot;..k..&quot;]=3D{&quot;) =
+
++			for k2,unicode_charcode in pairs(unicode_arr) do printf(&quot;%d,&quot;,unicode_c=
+harcode) end
++			printf(&quot;},\n&quot;) =
+
++		end =
+
++		print(&quot;},&quot;)
++		print(&quot;#######\n\n&quot;) =
+
++	end
++end
++
++
++function GumpParser_New (Gumpdata, bClientSideMode)
++	-- if there is a dialog with the same id, close it
++	GumpParser_CloseOldDialog(Gumpdata.dialogId,Gumpdata.playerid,bClientSide=
+Mode)
++	if (kGumpParser_DebugDump) then GumpParser_DebugDumpGump(Gumpdata) end
++	=
+
++	-- setup
++	local dialog =3D GetDesktopWidget():CreateChild(&quot;GumpDialog&quot;,{dialogId=3D=
+Gumpdata.dialogId,bClientSideMode=3DbClientSideMode,Gumpdata=3DGumpdata})
++	dialog.gumpdata =3D Gumpdata -- for debugging
++	local parent =3D dialog:GetPage(0)
++	local groupnumber =3D -1 -- for radiobuttons
++	local widget
++	=
+
++	-- parse gump code
++	local command_chunks =3D {}
++	--~ local profiler =3D MakeProfiler(&quot;gumpparser&quot;,&quot;preload&quot;)
++	for k,v in pairs(strsplit(&quot;{&quot;,Gumpdata.Data)) do
++		local bToken =3D {}
++		for token in string.gfind(v, &quot;%w+&quot;) do table.insert(bToken,token) end
++		local command =3D bToken[1] and string.lower(bToken[1]) or &quot;&quot;
++		local commandtype =3D kGumpParser_CommandTypes[command]
++		local param =3D commandtype and GumpParser_ParseToken(bToken,commandtype=
+.paramformat,commandtype.paramadd)
++		=
+
++		if (command =3D=3D &quot;gumppic&quot;) then -- special format, optional hue=3D123
++			if (bToken[5] =3D=3D &quot;hue&quot;) then param.hue =3D bToken[6] end
++			if (bClientSideMode) then param.ctrlname =3D bToken[5] end
++		end
++		=
+
++		table.insert(command_chunks,{command,bToken,param})
++		=
+
++		-- preload gumps,artids and maybe unicode chars from cliloc and textline=
+s, texatlas bulk loading
++		--~ PreLoadCliloc(param.cliloc_id) -- later : unicode glyphs for font ?
++		if (param) then =
+
++			if (command =3D=3D &quot;resizepic&quot;) then for k,v in pairs(kBorderGumpIndexA=
+dd) do PreLoadGump(param.gump_id + v) end end
++			PreLoadGump(param.gump_id_normal)
++			PreLoadGump(param.gump_id_pressed)
++			PreLoadGump(param.gump_id,param.hue)
++			PreLoadArt(param.art_id,param.hue)
++		end
++	end
++	--~ profiler:FinishAndPrint()
++	=
+
++	for k,command_chunk in pairs(command_chunks) do =
+
++		local command,bToken,param =3D unpack(command_chunk)
++		------------------------------------------------------------------------=
+--------------------
++		if (command =3D=3D &quot;&quot;) then -- no word in line
++		elseif (command =3D=3D &quot;noclose&quot;) then
++			dialog.noclose =3D true
++		elseif (command =3D=3D &quot;nomove&quot;) then
++			dialog.nomove =3D true
++		elseif (command =3D=3D &quot;nodispose&quot;) then
++			dialog.nodispose =3D true
++		elseif (command =3D=3D &quot;noresize&quot;) then
++			dialog.noresize =3D true
++			=
+
++		--Description:  Specifies which page to define. Page 0 is already presen=
+t and visible with all other Pages (1,2,3,etc) =
+
++		elseif (command =3D=3D &quot;page&quot;) then
++			parent =3D dialog:GetPage(param.pagenum)
++			-- NO:groupnumber =3D -1 -- DON'T start new radio button group on page-=
+switch ! (moongate menu for example)
++			=
+
++			=
+
++			=
+
++		-- ***** ***** ***** ***** ***** TEXT =
+
++			=
+
++			=
+
++		=
+
++		--xmfhtmlgump &lt;x&gt; &lt;y&gt; &lt;width&gt; &lt;height&gt; &lt;cliloc_id&gt; &lt;background&gt; &lt;scrollb=
+ar&gt;
++		--Description:	background=3D0/1=3Dtransparent?  scrollbar=3D0/1=3Ddispla=
+yed
++		elseif (command =3D=3D &quot;xmfhtmlgump&quot;) then
++			widget =3D parent:CreateChild(&quot;UOText&quot;,param)
++			=
+
++		--xmfhtmlgumpcolor &lt;x&gt; &lt;y&gt; &lt;width&gt; &lt;height&gt; &lt;cliloc_id&gt; &lt;background&gt; &lt;sc=
+rollbar&gt; &lt;hue&gt;
++		--Description:	background=3D0/1=3Dtransparent?  scrollbar=3D0/1=3Ddispla=
+yed
++		elseif (command =3D=3D &quot;xmfhtmlgumpcolor&quot;) then
++			widget =3D parent:CreateChild(&quot;UOText&quot;,param)
++			=
+
++		-- croppedtext &lt;x&gt; &lt;y&gt; &lt;width&gt; &lt;height&gt; &lt;hue&gt; &lt;textline_id&gt;
++		-- Description:  Adds a text field to the gump. This is similar to the t=
+ext command,
++		-- but the text is cropped to the defined area.
++		-- text is automatically bold/outlined
++		elseif (command =3D=3D &quot;croppedtext&quot;) then
++			widget =3D parent:CreateChild(&quot;UOText&quot;,param,Gumpdata.textline_unicode =
+or Gumpdata.textline)
++			=
+
++		--HtmlGump &lt;x&gt; &lt;y&gt; &lt;width&gt; &lt;height&gt; &lt;textline_id&gt; &lt;background&gt; &lt;scrollba=
+r&gt;
++		--Description:  Defines a text-area where Html-commands are allowed.
++		--				&lt;background&gt; and &lt;scrollbar&gt; can be 0 or 1 and define whether the =
+background is transparent and a scrollbar is displayed.
++		--{ htmlgump 10 8 100 20 0 0 0 }
++		elseif (command =3D=3D &quot;htmlgump&quot;) then
++			widget =3D parent:CreateChild(&quot;UOText&quot;,param,Gumpdata.textline_unicode =
+or Gumpdata.textline)
++			=
+
++		--text &lt;x&gt; &lt;y&gt; &lt;hue&gt; &lt;textline_id&gt;
++		--Description:  Defines the position and hue of a text (data) entry.
++		elseif (command =3D=3D &quot;text&quot;) then
++			widget =3D parent:CreateChild(&quot;UOText&quot;,param,Gumpdata.textline_unicode =
+or Gumpdata.textline)
++
++		--tooltip &lt;cliloc_id&gt;
++		--Description:  Adds to the previous layoutarray entry a Tooltip with th=
+e in [cliloc-nr] defined Cliloc entry
++		elseif (command =3D=3D &quot;tooltip&quot;) then
++			print(&quot;TODO:GumpParser_SetToolTipp&quot;,widget,param.cliloc_id)
++			=
+
++			=
+
++			=
+
++			=
+
++		-- ***** ***** ***** ***** ***** IMAGE =
+
++		=
+
++		=
+
++		=
+
++		--resizepic &lt;x&gt; &lt;y&gt; &lt;gump_id&gt; &lt;width&gt; &lt;height&gt;
++		--consists of multiple(9) parts, for which gump_id is the base-id, a bor=
+der-frame like thing, dialog background for example. tiled
++		-- multipart=3Dtrue : the gump_id is just the base id, the border tiles =
+have different ids, calculated from it
++		elseif (command =3D=3D &quot;resizepic&quot;) then
++			widget =3D parent:CreateChild(&quot;UOImage&quot;,param)
++			=
+
++		--gumppic &lt;x&gt; &lt;y&gt; &lt;gump_id&gt; [hue=3D353]
++		--Description:  Adds a graphic to the gump, where &lt;id&gt; ist the graphic i=
+d of an item.
++		--				Optionaly there is a color parameter. =
+
++		elseif (command =3D=3D &quot;gumppic&quot;) then
++			widget =3D parent:CreateChild(&quot;UOImage&quot;,param)
++
++		--gumppictiled &lt;x&gt; &lt;y&gt; &lt;width&gt; &lt;height&gt; &lt;gump_id&gt;
++		--Description:  Similar to GumpPic, but the gumppic is tiled to the give=
+n &lt;height&gt; and &lt;width&gt;.
++		elseif (command =3D=3D &quot;gumppictiled&quot;) then
++			widget =3D parent:CreateChild(&quot;UOImage&quot;,param)
++
++		--checkertrans &lt;x&gt; &lt;y&gt; &lt;width&gt; &lt;height&gt;
++		--Description:  Creates a transparent rectangle on position &lt;x,y&gt; using =
+&lt;width&gt; and &lt;height&gt;.
++		elseif (command =3D=3D &quot;checkertrans&quot;) then
++			widget =3D parent:CreateChild(&quot;UOImage&quot;,param)
++
++		--tilepic &lt;x&gt; &lt;y&gt; &lt;art_id&gt;
++		--Description:  Adds a Tilepicture to the gump. &lt;id&gt; defines the tile gr=
+aphic-id.
++		elseif (command =3D=3D &quot;tilepic&quot;) then
++			widget =3D parent:CreateChild(&quot;UOImage&quot;,param)
++
++		--TilePicHue &lt;x&gt; &lt;y&gt; &lt;art_id&gt; &lt;hue&gt;
++		--Description:  Similar to the tilepic command, but with an additional h=
+ue parameter.
++		elseif (command =3D=3D &quot;tilepichue&quot;) then
++			widget =3D parent:CreateChild(&quot;UOImage&quot;,param)
++		=
+
++		=
+
++		=
+
++		-- ***** ***** ***** ***** ***** INPUT =
+
++		=
+
++		=
+
++		=
+
++		--Button &lt;x&gt; &lt;y&gt; &lt;gump_id_normal&gt; &lt;gump_id_pressed&gt; &lt;quit&gt; &lt;page_id&gt; &lt;re=
+turn_value&gt;
++		--Description:  Adds a button to the gump with the specified coordinates=
+ and button graphics.
++		--				&lt;released-id&gt; and &lt;pressed-id&gt; specify the buttongraphic. If press=
+ed check for &lt;return-value&gt;.
++		--				Use &lt;page-id&gt; to switch between pages and &lt;quit&gt;=3D1/0 to close th=
+e gump.
++		--  return_value is optional on pol
++		elseif (command =3D=3D &quot;button&quot;) then
++			widget =3D parent:CreateChild(&quot;UOButton&quot;,param)
++
++		--buttontileart &lt;x&gt; &lt;y&gt; &lt;gump_id_normal&gt; &lt;gump_id_pressed&gt; &lt;quit&gt; &lt;page_=
+id&gt; &lt;return_value&gt; &lt;art_id&gt; &lt;hue&gt; &lt;art_x&gt; &lt;art_y&gt;
++		--Client introduced: between 4.0.4d and 5.0.2b
++		--Description:  Adds a button to the gump with the specified coordinates=
+ and tilepic as graphic.
++		--				&lt;tile-x&gt; and &lt;tile-y&gt; define the coordinates of the tile graphic a=
+nd are relative to &lt;x&gt; and &lt;y&gt;.
++		--{ buttontileart 432 248 9010 9010 1 0 33 1352 0 100 20 }
++		elseif (command =3D=3D &quot;buttontileart&quot;) then
++			widget =3D parent:CreateChild(&quot;UOButton&quot;,param)
++			=
+
++		--checkbox &lt;x&gt; &lt;y&gt; &lt;gump_id_normal&gt; &lt;gump_id_pressed&gt; &lt;status&gt; &lt;return_v=
+alue&gt;
++		--Description:  Adds a CheckBox to the gump. Multiple CheckBoxes can be =
+pressed at the same time.
++		--				Check the &lt;return-value&gt; if you want to know which CheckBoxes were=
+ selected.
++		elseif (command =3D=3D &quot;checkbox&quot;) then
++			widget =3D parent:CreateChild(&quot;UOCheckBox&quot;,param)
++			=
+
++		--radio &lt;x&gt; &lt;y&gt; &lt;gump_id_normal&gt; &lt;gump_id_pressed&gt; &lt;status&gt; &lt;return_valu=
+e&gt;
++		--Description:  Same as Checkbox, but only one Radiobutton can be presse=
+d at the same time, except they are per linked via the 'Group' command.
++		elseif (command =3D=3D &quot;radio&quot;) then
++			widget =3D parent:CreateChild(&quot;UORadioButton&quot;,param,groupnumber)
++			=
+
++		--Group &lt;groupnumber&gt;
++		--Description:  Links radio buttons to a group. Group is send before rad=
+iobuttons. Seems only to work on page 0 and 1.  =
+
++		elseif (command =3D=3D &quot;group&quot;) then
++			groupnumber =3D param.groupnumber
++			=
+
++		--textentry &lt;x&gt; &lt;y&gt; &lt;width&gt; &lt;height&gt; &lt;hue&gt; &lt;return_value&gt; &lt;textline_id_d=
+efault&gt;
++		--Description:  Defines an area where the &lt;default-text-id&gt; is displayed.
++		--				The player can modify this data. To get this data check the &lt;retur=
+n-value&gt;
++		elseif (command =3D=3D &quot;textentry&quot;) then
++			widget =3D parent:CreateChild(&quot;UOEditText&quot;,param,Gumpdata.textline_unic=
+ode or Gumpdata.textline)
++			=
+
++			=
+
++			=
+
++			=
+
++		-- ***** ***** ***** ***** ***** END =
+
++		=
+
++		=
+
++		-- UNKNOWN...
++		else
++			printdebug(&quot;gump&quot;,&quot;UNKNOWN Generic Gump Command: &quot;..strjoin(bToken))
++		end
++		=
+
++		if (param and param.ctrlname) then dialog.controls[param.ctrlname] =3D w=
+idget end
++	end
++
++	-- hide all except page 0 and 1
++	dialog:ShowPage(1)
++
++	if (not bClientSideMode) then
++		if (Gumpdata.dialogId) then gServerSideGump[Gumpdata.dialogId] =3D dialo=
+g end
++	end
++	return dialog
++end
+ =
+
+ -- simple html parser (only center,basefont,br and color tags yep realized)
+ -- TODO : BODY, &lt;A HREF=3D&quot;<A HREF="HTTP://www.polserver.com">HTTP://www.polserver.com</A>&quot;&gt;This is a link&lt;/A&gt;
+@@ -204,320 +516,6 @@
+ 	return msg
+ end
+ =
+
+-local function ServerSideGump_GetParams (dialogId)
+-	local params =3D {}
+-	params.switches =3D {}
+-	params.texts =3D {}
+-	local dialog =3D gServerSideGump[dialogId]
+-	=
+
+-	if (dialog) then
+-		for k,widget in pairs(dialog.uo_radio) do if (widget.state =3D=3D 1) the=
+n table.insert(params.switches,widget.returnmsg) end end
+-		for k,widget in pairs(dialog.uo_check) do if (widget.state =3D=3D 1) the=
+n table.insert(params.switches,widget.returnmsg) end end
+-		for k,widget in pairs(dialog.uo_text) do =
+
+-			table.insert(params.texts,{id=3Dwidget.returnmsg,text=3Dwidget.plaintex=
+t or  &quot;&quot;})
+-		end
+-	end
+-
+-	return params
+-end
+-
+-function CloseServerSideGump (playerId, dialogId, buttonId)
+-	if (buttonId) then
+-		printdebug(&quot;gump&quot;,&quot;CloseServerSideGump dialogId=3D&quot;..dialogId..&quot; buttonI=
+d=3D&quot;..buttonId)
+-	else
+-		printdebug(&quot;gump&quot;,&quot;CloseServerSideGump dialogId=3D&quot;..dialogId..&quot; buttonI=
+d=3Dnil&quot;)
+-	end
+-
+-	local dialog =3D gServerSideGump[dialogId]
+-	if (not dialog) then printdebug(&quot;gump&quot;,&quot;CloseServerSideGump : dialog not =
+found=3D&quot;,dialogId) return end
+-	if (dialog.SendClose) then dialog:SendClose(buttonId) return end
+-	=
+
+-	local params =3D ServerSideGump_GetParams(dialogId)
+-	GumpReturnMsg(playerId, dialogId, buttonId, params)
+-
+-	printdebug(&quot;gump&quot;,&quot;ServerSideGump Dialog closed: dialogID=3D&quot;..dialogId)
+-	dialog:Close()
+-end
+-
+--- returns a table
+--- token is an array
+--- tokenformat is a string with comma-separated field names like &quot;x,y,widt=
+h,height,[ctrlname],...&quot; =
+
+--- [] encasing optional params and ... for not checking the number of rema=
+ining params
+-function GumpParser_ParseToken (token,tokenformat,paramadd)
+-	local res =3D paramadd and CopyArray(paramadd) or {}
+-	for k,fieldname in ipairs(explode(&quot;,&quot;,tokenformat)) do
+-		if (fieldname =3D=3D &quot;...&quot;) then return res end
+-		local tokenval =3D token[k+1]
+-		-- [param] is optional
+-		if (StrLeft(fieldname,1) =3D=3D &quot;[&quot; and StrRight(fieldname,1) =3D=3D &quot;]&quot;=
+) then
+-			fieldname =3D string.sub(fieldname,2,-2) -- cut away one char from each=
+ side
+-			if (not tokenval) then return res end -- optional, so exit without warn=
+ing possible
+-		end
+-		if (not tokenval) then print(&quot;GumpParser_ParseToken:warning:missing para=
+m&quot;,k,fieldname,implode(&quot;,&quot;,token)) return res end -- warn of missing parame=
+ters
+-		local tokenvalnum =3D tonumber(tokenval)
+-		if (tokenvalnum and tokenval =3D=3D &quot;&quot;..tokenvalnum) then tokenval =3D t=
+okenvalnum end -- convert number-strings to real numbers
+-		res[fieldname] =3D tokenval
+-	end
+-	return res
+-end
+-
+-
+--- close already existing dialog with the same id
+-function GumpParser_CloseOldDialog	(dialogId,playerid,bClientSideMode)
+-	print(&quot;TODO:GumpParser_CloseOldDialog&quot;)
+-	if ((not bClientSideMode) and gServerSideGump[dialogId]) then
+-		CloseServerSideGump(playerid, dialogId, 0, bClientSideMode)
+-	end
+-end
+-
+-
+-kGumpParser_CommandTypes =3D {}
+-kGumpParser_CommandTypes[&quot;page&quot;]				=3D {paramformat=3D&quot;pagenum&quot;}
+-kGumpParser_CommandTypes[&quot;xmfhtmlgump&quot;]			=3D {paramformat=3D&quot;x,y,width,he=
+ight,cliloc_id,background,scrollbar,[ctrlname]&quot;,paramadd=3D{default_black=
+=3Dtrue,html=3Dtrue}} =
+
+-kGumpParser_CommandTypes[&quot;xmfhtmlgumpcolor&quot;]	=3D {paramformat=3D&quot;x,y,width=
+,height,cliloc_id,background,scrollbar,hue,[ctrlname]&quot;,paramadd=3D{html=3Dt=
+rue}}
+-kGumpParser_CommandTypes[&quot;croppedtext&quot;]			=3D {paramformat=3D&quot;x,y,width,he=
+ight,hue,textline_id,[ctrlname]&quot;,paramadd=3D{bold=3Dtrue,crop=3Dtrue}}
+-kGumpParser_CommandTypes[&quot;htmlgump&quot;]			=3D {paramformat=3D&quot;x,y,width,heigh=
+t,textline_id,background,scrollbar,[ctrlname]&quot;,paramadd=3D{default_black=3D=
+true,html=3Dtrue}} =
+
+-kGumpParser_CommandTypes[&quot;text&quot;]				=3D {paramformat=3D&quot;x,y,hue,textline_i=
+d,[ctrlname]&quot;,paramadd=3D{bold=3Dfalse,default_black=3Dtrue}}
+-kGumpParser_CommandTypes[&quot;tooltip&quot;]				=3D {paramformat=3D&quot;cliloc_id,[ctrl=
+name]&quot;}
+-kGumpParser_CommandTypes[&quot;resizepic&quot;]			=3D {paramformat=3D&quot;x,y,gump_id,wi=
+dth,height,[ctrlname]&quot;,paramadd=3D{multipart=3Dtrue}}
+-kGumpParser_CommandTypes[&quot;gumppictiled&quot;]		=3D {paramformat=3D&quot;x,y,width,he=
+ight,gump_id,[ctrlname]&quot;,paramadd=3D{tiled=3Dtrue}}
+-kGumpParser_CommandTypes[&quot;checkertrans&quot;]		=3D {paramformat=3D&quot;x,y,width,he=
+ight,[ctrlname]&quot;,paramadd=3D{checker=3Dtrue}}
+-kGumpParser_CommandTypes[&quot;tilepic&quot;]				=3D {paramformat=3D&quot;x,y,art_id,[ctr=
+lname]&quot;}
+-kGumpParser_CommandTypes[&quot;tilepichue&quot;]			=3D {paramformat=3D&quot;x,y,art_id,hu=
+e,[ctrlname]&quot;}
+-kGumpParser_CommandTypes[&quot;button&quot;]				=3D {paramformat=3D&quot;x,y,gump_id_norm=
+al,gump_id_pressed,quit,page_id,[return_value],[ctrlname]&quot;}
+-kGumpParser_CommandTypes[&quot;buttontileart&quot;]		=3D {paramformat=3D&quot;x,y,gump_id=
+_normal,gump_id_pressed,quit,page_id,return_value,art_id,hue,art_x,art_y,[c=
+trlname]&quot;}
+-kGumpParser_CommandTypes[&quot;checkbox&quot;]			=3D {paramformat=3D&quot;x,y,gump_id_nor=
+mal,gump_id_pressed,status,return_value,[ctrlname]&quot;}
+-kGumpParser_CommandTypes[&quot;radio&quot;]				=3D {paramformat=3D&quot;x,y,gump_id_norma=
+l,gump_id_pressed,status,return_value,[ctrlname]&quot;}
+-kGumpParser_CommandTypes[&quot;group&quot;]				=3D {paramformat=3D&quot;groupnumber&quot;}
+-kGumpParser_CommandTypes[&quot;textentry&quot;]			=3D {paramformat=3D&quot;x,y,width,heig=
+ht,hue,return_value,textline_id_default,[ctrlname]&quot;}
+-kGumpParser_CommandTypes[&quot;gumppic&quot;]				=3D {paramformat=3D&quot;x,y,gump_id,...=
+&quot;}
+-				=
+
+-
+-function GumpParser_DebugDumpGump (Gumpdata)
+-	-- debug dump
+-	if (1 =3D=3D 1 and (not Clientsidemode)) then =
+
+-		print(&quot;\n\n##### GUMP #####\n\n\&quot;&quot;..Gumpdata.Data..&quot;\&quot;,\n\ntextline=3D{&quot;=
+) =
+
+-		for k,v in pairs(Gumpdata.textline or {}) do print(&quot;[&quot;..k..&quot;]=3D\&quot;&quot;..v..=
+&quot;\&quot;,&quot;) end =
+
+-		print(&quot;},&quot;)
+-		print(&quot;textline_unicode=3D{&quot;)
+-		for k,unicode_arr in pairs(Gumpdata.textline_unicode or {}) do =
+
+-			printf(&quot;[&quot;..k..&quot;]=3D{&quot;) =
+
+-			for k2,unicode_charcode in pairs(unicode_arr) do printf(&quot;%d,&quot;,unicode_c=
+harcode) end
+-			printf(&quot;},\n&quot;) =
+
+-		end =
+
+-		print(&quot;},&quot;)
+-		print(&quot;#######\n\n&quot;) =
+
+-	end
+-end
+-
+-
+-function GumpParser_New (Gumpdata, bClientSideMode)
+-	-- if there is a dialog with the same id, close it
+-	GumpParser_CloseOldDialog(Gumpdata.dialogId,Gumpdata.playerid,bClientSide=
+Mode)
+-	if (kGumpParser_DebugDump) then GumpParser_DebugDumpGump(Gumpdata) end
+-	=
+
+-	-- setup
+-	local dialog =3D GetDesktopWidget():CreateChild(&quot;GumpDialog&quot;,{dialogId=3D=
+Gumpdata.dialogId,bClientSideMode=3DbClientSideMode,Gumpdata=3DGumpdata})
+-	dialog.gumpdata =3D Gumpdata -- for debugging
+-	local parent =3D dialog:GetPage(0)
+-	local groupnumber =3D -1 -- for radiobuttons
+-	local widget
+-	=
+
+-	-- parse gump code
+-	local command_chunks =3D {}
+-	--~ local profiler =3D MakeProfiler(&quot;gumpparser&quot;,&quot;preload&quot;)
+-	for k,v in pairs(strsplit(&quot;{&quot;,Gumpdata.Data)) do
+-		local bToken =3D {}
+-		for token in string.gfind(v, &quot;%w+&quot;) do table.insert(bToken,token) end
+-		local command =3D bToken[1] and string.lower(bToken[1]) or &quot;&quot;
+-		local commandtype =3D kGumpParser_CommandTypes[command]
+-		local param =3D commandtype and GumpParser_ParseToken(bToken,commandtype=
+.paramformat,commandtype.paramadd)
+-		=
+
+-		if (command =3D=3D &quot;gumppic&quot;) then -- special format, optional hue=3D123
+-			if (bToken[5] =3D=3D &quot;hue&quot;) then param.hue =3D bToken[6] end
+-			if (bClientSideMode) then param.ctrlname =3D bToken[5] end
+-		end
+-		=
+
+-		table.insert(command_chunks,{command,bToken,param})
+-		=
+
+-		-- preload gumps,artids and maybe unicode chars from cliloc and textline=
+s, texatlas bulk loading
+-		--~ PreLoadCliloc(param.cliloc_id) -- later : unicode glyphs for font ?
+-		if (param) then =
+
+-			if (command =3D=3D &quot;resizepic&quot;) then for k,v in pairs(kBorderGumpIndexA=
+dd) do PreLoadGump(param.gump_id + v) end end
+-			PreLoadGump(param.gump_id_normal)
+-			PreLoadGump(param.gump_id_pressed)
+-			PreLoadGump(param.gump_id,param.hue)
+-			PreLoadArt(param.art_id,param.hue)
+-		end
+-	end
+-	--~ profiler:FinishAndPrint()
+-	=
+
+-	for k,command_chunk in pairs(command_chunks) do =
+
+-		local command,bToken,param =3D unpack(command_chunk)
+-		------------------------------------------------------------------------=
+--------------------
+-		if (command =3D=3D &quot;&quot;) then -- no word in line
+-		elseif (command =3D=3D &quot;noclose&quot;) then
+-			dialog.noclose =3D true
+-		elseif (command =3D=3D &quot;nomove&quot;) then
+-			dialog.nomove =3D true
+-		elseif (command =3D=3D &quot;nodispose&quot;) then
+-			dialog.nodispose =3D true
+-		elseif (command =3D=3D &quot;noresize&quot;) then
+-			dialog.noresize =3D true
+-			=
+
+-		--Description:  Specifies which page to define. Page 0 is already presen=
+t and visible with all other Pages (1,2,3,etc) =
+
+-		elseif (command =3D=3D &quot;page&quot;) then
+-			parent =3D dialog:GetPage(param.pagenum)
+-			-- NO:groupnumber =3D -1 -- DON'T start new radio button group on page-=
+switch ! (moongate menu for example)
+-			=
+
+-			=
+
+-			=
+
+-		-- ***** ***** ***** ***** ***** TEXT =
+
+-			=
+
+-			=
+
+-		=
+
+-		--xmfhtmlgump &lt;x&gt; &lt;y&gt; &lt;width&gt; &lt;height&gt; &lt;cliloc_id&gt; &lt;background&gt; &lt;scrollb=
+ar&gt;
+-		--Description:	background=3D0/1=3Dtransparent?  scrollbar=3D0/1=3Ddispla=
+yed
+-		elseif (command =3D=3D &quot;xmfhtmlgump&quot;) then
+-			widget =3D parent:CreateChild(&quot;UOText&quot;,param)
+-			=
+
+-		--xmfhtmlgumpcolor &lt;x&gt; &lt;y&gt; &lt;width&gt; &lt;height&gt; &lt;cliloc_id&gt; &lt;background&gt; &lt;sc=
+rollbar&gt; &lt;hue&gt;
+-		--Description:	background=3D0/1=3Dtransparent?  scrollbar=3D0/1=3Ddispla=
+yed
+-		elseif (command =3D=3D &quot;xmfhtmlgumpcolor&quot;) then
+-			widget =3D parent:CreateChild(&quot;UOText&quot;,param)
+-			=
+
+-		-- croppedtext &lt;x&gt; &lt;y&gt; &lt;width&gt; &lt;height&gt; &lt;hue&gt; &lt;textline_id&gt;
+-		-- Description:  Adds a text field to the gump. This is similar to the t=
+ext command,
+-		-- but the text is cropped to the defined area.
+-		-- text is automatically bold/outlined
+-		elseif (command =3D=3D &quot;croppedtext&quot;) then
+-			widget =3D parent:CreateChild(&quot;UOText&quot;,param,Gumpdata.textline_unicode =
+or Gumpdata.textline)
+-			=
+
+-		--HtmlGump &lt;x&gt; &lt;y&gt; &lt;width&gt; &lt;height&gt; &lt;textline_id&gt; &lt;background&gt; &lt;scrollba=
+r&gt;
+-		--Description:  Defines a text-area where Html-commands are allowed.
+-		--				&lt;background&gt; and &lt;scrollbar&gt; can be 0 or 1 and define whether the =
+background is transparent and a scrollbar is displayed.
+-		--{ htmlgump 10 8 100 20 0 0 0 }
+-		elseif (command =3D=3D &quot;htmlgump&quot;) then
+-			widget =3D parent:CreateChild(&quot;UOText&quot;,param,Gumpdata.textline_unicode =
+or Gumpdata.textline)
+-			=
+
+-		--text &lt;x&gt; &lt;y&gt; &lt;hue&gt; &lt;textline_id&gt;
+-		--Description:  Defines the position and hue of a text (data) entry.
+-		elseif (command =3D=3D &quot;text&quot;) then
+-			widget =3D parent:CreateChild(&quot;UOText&quot;,param,Gumpdata.textline_unicode =
+or Gumpdata.textline)
+-
+-		--tooltip &lt;cliloc_id&gt;
+-		--Description:  Adds to the previous layoutarray entry a Tooltip with th=
+e in [cliloc-nr] defined Cliloc entry
+-		elseif (command =3D=3D &quot;tooltip&quot;) then
+-			print(&quot;TODO:GumpParser_SetToolTipp&quot;,widget,param.cliloc_id)
+-			=
+
+-			=
+
+-			=
+
+-			=
+
+-		-- ***** ***** ***** ***** ***** IMAGE =
+
+-		=
+
+-		=
+
+-		=
+
+-		--resizepic &lt;x&gt; &lt;y&gt; &lt;gump_id&gt; &lt;width&gt; &lt;height&gt;
+-		--consists of multiple(9) parts, for which gump_id is the base-id, a bor=
+der-frame like thing, dialog background for example. tiled
+-		-- multipart=3Dtrue : the gump_id is just the base id, the border tiles =
+have different ids, calculated from it
+-		elseif (command =3D=3D &quot;resizepic&quot;) then
+-			widget =3D parent:CreateChild(&quot;UOImage&quot;,param)
+-			=
+
+-		--gumppic &lt;x&gt; &lt;y&gt; &lt;gump_id&gt; [hue=3D353]
+-		--Description:  Adds a graphic to the gump, where &lt;id&gt; ist the graphic i=
+d of an item.
+-		--				Optionaly there is a color parameter. =
+
+-		elseif (command =3D=3D &quot;gumppic&quot;) then
+-			widget =3D parent:CreateChild(&quot;UOImage&quot;,param)
+-
+-		--gumppictiled &lt;x&gt; &lt;y&gt; &lt;width&gt; &lt;height&gt; &lt;gump_id&gt;
+-		--Description:  Similar to GumpPic, but the gumppic is tiled to the give=
+n &lt;height&gt; and &lt;width&gt;.
+-		elseif (command =3D=3D &quot;gumppictiled&quot;) then
+-			widget =3D parent:CreateChild(&quot;UOImage&quot;,param)
+-
+-		--checkertrans &lt;x&gt; &lt;y&gt; &lt;width&gt; &lt;height&gt;
+-		--Description:  Creates a transparent rectangle on position &lt;x,y&gt; using =
+&lt;width&gt; and &lt;height&gt;.
+-		elseif (command =3D=3D &quot;checkertrans&quot;) then
+-			widget =3D parent:CreateChild(&quot;UOImage&quot;,param)
+-
+-		--tilepic &lt;x&gt; &lt;y&gt; &lt;art_id&gt;
+-		--Description:  Adds a Tilepicture to the gump. &lt;id&gt; defines the tile gr=
+aphic-id.
+-		elseif (command =3D=3D &quot;tilepic&quot;) then
+-			widget =3D parent:CreateChild(&quot;UOImage&quot;,param)
+-
+-		--TilePicHue &lt;x&gt; &lt;y&gt; &lt;art_id&gt; &lt;hue&gt;
+-		--Description:  Similar to the tilepic command, but with an additional h=
+ue parameter.
+-		elseif (command =3D=3D &quot;tilepichue&quot;) then
+-			widget =3D parent:CreateChild(&quot;UOImage&quot;,param)
+-		=
+
+-		=
+
+-		=
+
+-		-- ***** ***** ***** ***** ***** INPUT =
+
+-		=
+
+-		=
+
+-		=
+
+-		--Button &lt;x&gt; &lt;y&gt; &lt;gump_id_normal&gt; &lt;gump_id_pressed&gt; &lt;quit&gt; &lt;page_id&gt; &lt;re=
+turn_value&gt;
+-		--Description:  Adds a button to the gump with the specified coordinates=
+ and button graphics.
+-		--				&lt;released-id&gt; and &lt;pressed-id&gt; specify the buttongraphic. If press=
+ed check for &lt;return-value&gt;.
+-		--				Use &lt;page-id&gt; to switch between pages and &lt;quit&gt;=3D1/0 to close th=
+e gump.
+-		--  return_value is optional on pol
+-		elseif (command =3D=3D &quot;button&quot;) then
+-			widget =3D parent:CreateChild(&quot;UOButton&quot;,param)
+-
+-		--buttontileart &lt;x&gt; &lt;y&gt; &lt;gump_id_normal&gt; &lt;gump_id_pressed&gt; &lt;quit&gt; &lt;page_=
+id&gt; &lt;return_value&gt; &lt;art_id&gt; &lt;hue&gt; &lt;art_x&gt; &lt;art_y&gt;
+-		--Client introduced: between 4.0.4d and 5.0.2b
+-		--Description:  Adds a button to the gump with the specified coordinates=
+ and tilepic as graphic.
+-		--				&lt;tile-x&gt; and &lt;tile-y&gt; define the coordinates of the tile graphic a=
+nd are relative to &lt;x&gt; and &lt;y&gt;.
+-		--{ buttontileart 432 248 9010 9010 1 0 33 1352 0 100 20 }
+-		elseif (command =3D=3D &quot;buttontileart&quot;) then
+-			widget =3D parent:CreateChild(&quot;UOButton&quot;,param)
+-			=
+
+-		--checkbox &lt;x&gt; &lt;y&gt; &lt;gump_id_normal&gt; &lt;gump_id_pressed&gt; &lt;status&gt; &lt;return_v=
+alue&gt;
+-		--Description:  Adds a CheckBox to the gump. Multiple CheckBoxes can be =
+pressed at the same time.
+-		--				Check the &lt;return-value&gt; if you want to know which CheckBoxes were=
+ selected.
+-		elseif (command =3D=3D &quot;checkbox&quot;) then
+-			widget =3D parent:CreateChild(&quot;UOCheckBox&quot;,param)
+-			=
+
+-		--radio &lt;x&gt; &lt;y&gt; &lt;gump_id_normal&gt; &lt;gump_id_pressed&gt; &lt;status&gt; &lt;return_valu=
+e&gt;
+-		--Description:  Same as Checkbox, but only one Radiobutton can be presse=
+d at the same time, except they are per linked via the 'Group' command.
+-		elseif (command =3D=3D &quot;radio&quot;) then
+-			widget =3D parent:CreateChild(&quot;UORadioButton&quot;,param,groupnumber)
+-			=
+
+-		--Group &lt;groupnumber&gt;
+-		--Description:  Links radio buttons to a group. Group is send before rad=
+iobuttons. Seems only to work on page 0 and 1.  =
+
+-		elseif (command =3D=3D &quot;group&quot;) then
+-			groupnumber =3D param.groupnumber
+-			=
+
+-		--textentry &lt;x&gt; &lt;y&gt; &lt;width&gt; &lt;height&gt; &lt;hue&gt; &lt;return_value&gt; &lt;textline_id_d=
+efault&gt;
+-		--Description:  Defines an area where the &lt;default-text-id&gt; is displayed.
+-		--				The player can modify this data. To get this data check the &lt;retur=
+n-value&gt;
+-		elseif (command =3D=3D &quot;textentry&quot;) then
+-			widget =3D parent:CreateChild(&quot;UOEditText&quot;,param,Gumpdata.textline_unic=
+ode or Gumpdata.textline)
+-			=
+
+-			=
+
+-			=
+
+-			=
+
+-		-- ***** ***** ***** ***** ***** END =
+
+-		=
+
+-		=
+
+-		-- UNKNOWN...
+-		else
+-			printdebug(&quot;gump&quot;,&quot;UNKNOWN Generic Gump Command: &quot;..strjoin(bToken))
+-		end
+-		=
+
+-		if (param and param.ctrlname) then dialog.controls[param.ctrlname] =3D w=
+idget end
+-	end
+-
+-	-- hide all except page 0 and 1
+-	dialog:ShowPage(1)
+-
+-	if (not bClientSideMode) then
+-		if (Gumpdata.dialogId) then gServerSideGump[Gumpdata.dialogId] =3D dialo=
+g end
+-	end
+-	return dialog
+-end
+-
+-
+-	=
+
+ function GumpParser_Old (Gumpdata, Clientsidemode)
+ 	if (not gGumpLoader) then return end
+ =
+
+@@ -883,6 +881,7 @@
+ 										end
+ 									  end
+ ]]--
++
+ 				if (Clientsidemode) then dialog.controls[ bToken[8] ] =3D widget end
+ 				table.insert(dialog.uo_check,widget)
+ =
+
+@@ -928,3 +927,4 @@
+ 	end
+ 	return dialog
+ end
++
+
+Modified: trunk/lua/gui/gui.healthbar.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.healthbar.lua (original)
++++ trunk/lua/gui/gui.healthbar.lua Tue Aug  5 22:16:22 2008
+@@ -128,6 +128,8 @@
+ ]]--
+ -- Open Healthbar Gump
+ function OpenHealthbar (mobile,x,y)
++--	if true then return end
++	=
+
+ 	if mobile =3D=3D nil then return end
+ 	=
+
+ 	-- try to read position from desktop infos
+@@ -189,10 +191,7 @@
+ 	end
+ end
+ =
+
+-
+-
+ -- focused/selection auto health bar
+-
+ function HealthBarUpdateSelection(mobile)
+ 	if not gHealthBarSelectionDialog then
+ 		-- init dialog
+@@ -206,6 +205,5 @@
+ 		gHealthBarSelectionDialog:SetVisible(false) =
+
+ 	else
+ 		gHealthBarSelectionDialog:SetVisible(true)
+-				=
+
+-	end
+-end
++	end
++end
+
+Modified: trunk/lua/gui/gui.main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.main.lua (original)
++++ trunk/lua/gui/gui.main.lua Tue Aug  5 22:16:22 2008
+@@ -14,3 +14,4 @@
+ dofile(libpath .. &quot;gui/gui.trade.lua&quot;)
+ dofile(libpath .. &quot;gui/gui.chat.lua&quot;)
+ dofile(libpath .. &quot;gui/gui.amount.lua&quot;)
++dofile(libpath .. &quot;gui/gui.popup.lua&quot;)
+
+Modified: trunk/lua/gui/gui.spellbook.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.spellbook.lua (original)
++++ trunk/lua/gui/gui.spellbook.lua Tue Aug  5 22:16:22 2008
+@@ -33,6 +33,8 @@
+ end
+ =
+
+ function CreateQuickCastButtonSpell(x,y,spellid,spelliconid)
++--	if true then return end
++
+ 	for k,v in pairs(glQuickCastDialog) do
+ 		if v and v.spellid and v.spellid =3D=3D spellid then
+ 			if v and v.rootwidget and v.rootwidget.gfx and v.rootwidget.gfx:IsAlive=
+() then
+@@ -63,6 +65,8 @@
+ end
+ =
+
+ function Open_Spellbook(spellbook)
++--	if true then return end
++
+ 	local dialog =3D gAvailSpellbooks[spellbook.serial]
+ =
+
+ 	if (dialog and not(spellbook.old)) then
+
+Modified: trunk/lua/net/net.main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.main.lua (original)
++++ trunk/lua/net/net.main.lua Tue Aug  5 22:16:22 2008
+@@ -19,7 +19,6 @@
+ -- only things that have at least 2 packets get its own file, everything e=
+lse is handled here:
+ dofile(libpath .. &quot;net/net.packethandlers.lua&quot;)
+ =
+
+-dofile(libpath .. &quot;net.popup.lua&quot;)
+ dofile(libpath .. &quot;net.walk.lua&quot;)
+ =
+
+ gLastDoubleClickSerial =3D 0
+
+Modified: trunk/lua/net/net.other.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.other.lua (original)
++++ trunk/lua/net/net.other.lua Tue Aug  5 22:16:22 2008
+@@ -93,8 +93,33 @@
+ 	--print(&quot;PingPong&quot;)
+ end
+ =
+
+-
+-
++-- triggers -- which came from kPacket_Generic_SubCommand_DisplayPopup
++function Send_PopupRequest (serial)
++	--- if there is already one open, close it
++	if gPopupMenu ~=3D nil then gPopupMenu:Close() end
++	gRunningPopupRequestTimeOut =3D gMyTicks + kRunningPopupRequestTimeOutInt=
+erval
++
++	gPopupMenuSavedPosX,gPopupMenuSavedPosY =3D GetMousePos() -- TODO : maybe=
+ save mousepos at the time of contextrequest ?
++	local out =3D GetSendFIFO()
++	out:PushNetUint8(kPacket_Generic_Command)
++	out:PushNetUint16(hex2num(&quot;0x09&quot;)) -- packet size
++	out:PushNetUint16(kPacket_Generic_SubCommand_PopupRequest) -- Popup Reque=
+st Sub-Command
++	out:PushNetUint32(serial) -- Popup Request Sub-Command
++	out:SendPacket()
++end
++
++-- sends kPacket_Generic_SubCommand_PopupEntrySelect after the user has ch=
+oosen an answer to the popup
++-- which came from kPacket_Generic_SubCommand_DisplayPopup
++-- see also SendPopupChoice() from old iris
++function Send_PopupAnswer (popupserial,entrytag)
++	local out =3D GetSendFIFO()
++	out:PushNetUint8(kPacket_Generic_Command)
++	out:PushNetUint16(hex2num(&quot;0x0B&quot;)) -- packet size
++	out:PushNetUint16(kPacket_Generic_SubCommand_PopupEntrySelect) -- Popup R=
+equest Sub-Command
++	out:PushNetUint32(popupserial)
++	out:PushNetUint16(entrytag)
++	out:SendPacket()
++end
+ =
+
+ -- sends the server the lock state of one stat
+ -- stat (0=3Dstr, 1=3Ddex, 2=3Dint)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001165.html">[Iris-commit] [IRIS] r2357 - /trunk/lua/gui/gui.gumpmaker.lua
+</A></li>
+	<LI>Next message: <A HREF="001167.html">[Iris-commit] [IRIS] r2359 - in /trunk: data/ lua/ lua/gui/	lua/obj/ widgets/
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1166">[ date ]</a>
+              <a href="thread.html#1166">[ thread ]</a>
+              <a href="subject.html#1166">[ subject ]</a>
+              <a href="author.html#1166">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

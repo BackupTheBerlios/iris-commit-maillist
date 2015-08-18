@@ -1,0 +1,385 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2594 - in /trunk: lua/lib.equipment.lua lua/lib.macrolist.lua lua/lib.spellbooks.lua lua/main.lua lua/net/net.object.lua plugins/lib.spellbar.lua plugins/loot.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-October/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2594%20-%20in%20/trunk%3A%20lua/lib.equipment.lua%0A%20lua/lib.macrolist.lua%20lua/lib.spellbooks.lua%20lua/main.lua%0A%20lua/net/net.object.lua%20plugins/lib.spellbar.lua%20plugins/loot.lua&In-Reply-To=%3C20081017175851.5B0BD1C18354%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001398.html">
+   <LINK REL="Next"  HREF="001400.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2594 - in /trunk: lua/lib.equipment.lua lua/lib.macrolist.lua lua/lib.spellbooks.lua lua/main.lua lua/net/net.object.lua plugins/lib.spellbar.lua plugins/loot.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2594%20-%20in%20/trunk%3A%20lua/lib.equipment.lua%0A%20lua/lib.macrolist.lua%20lua/lib.spellbooks.lua%20lua/main.lua%0A%20lua/net/net.object.lua%20plugins/lib.spellbar.lua%20plugins/loot.lua&In-Reply-To=%3C20081017175851.5B0BD1C18354%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2594 - in /trunk: lua/lib.equipment.lua lua/lib.macrolist.lua lua/lib.spellbooks.lua lua/main.lua lua/net/net.object.lua plugins/lib.spellbar.lua plugins/loot.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Fri Oct 17 19:58:51 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001398.html">[Iris-commit] [IRIS] r2593 - /trunk/plugins/loot.lua
+</A></li>
+        <LI>Next message: <A HREF="001400.html">[Iris-commit] [IRIS] r2595 - in /trunk: lua/lib.macrolist.lua	plugins/moblist.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1399">[ date ]</a>
+              <a href="thread.html#1399">[ thread ]</a>
+              <a href="subject.html#1399">[ subject ]</a>
+              <a href="author.html#1399">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Fri Oct 17 19:58:50 2008
+New Revision: 2594
+
+Log:
+loot : switched from manhatten to euklidean dist, spellbar: generalised equ=
+ip-fc-analysis and casttime calc and moved to libs, added Hook_Spell_Interr=
+upt, added a few utils for macros (dismount,dress/equip,findmob)
+
+Added:
+    trunk/lua/lib.equipment.lua
+Modified:
+    trunk/lua/lib.macrolist.lua
+    trunk/lua/lib.spellbooks.lua
+    trunk/lua/main.lua
+    trunk/lua/net/net.object.lua
+    trunk/plugins/lib.spellbar.lua
+    trunk/plugins/loot.lua
+
+Modified: trunk/lua/lib.macrolist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.macrolist.lua (original)
++++ trunk/lua/lib.macrolist.lua Fri Oct 17 19:58:50 2008
+@@ -167,6 +167,33 @@
+ 	LoadMap(gMapIndex)
+ end
+ =
+
++function MacroCmd_Dress (dresslist)
++	for k,serial in pairs(dresslist) do MacroCmd_EquipItem(serial) end
++end
++
++function MacroCmd_EquipItem (serial)
++	local item =3D GetDynamic(serial)
++	if (not item) then return end
++	if (item.iContainerSerial =3D=3D GetPlayerSerial()) then return end -- al=
+ready equipped
++	local layer =3D GetPaperdollLayerFromTileType(item.artid)
++	print(&quot;MacroCmd_EquipItem&quot;,serial,item.amount,layer)
++	Send_Take_Object(item.serial,item.amount)
++	Send_Equip_Item_Request(item.serial,layer,GetPlayerSerial())
++	return true
++end
++
++function MacroCmd_IsMounted ()
++	local playermobile =3D GetPlayerMobile()
++	return playermobile and GetMobileEquipmentItem(playermobile,kLayer_Mount)
++end
++function MacroCmd_Dismount ()
++	if (MacroCmd_IsMounted()) then Send_DoubleClick(GetPlayerSerial()) return=
+ true end -- todo : check if mounted
++end
++
++function MacroCmd_RiseText (r,g,b,text,serial)
++	serial =3D serial or GetPlayerSerial()
++	if (SpellBarRiseTextOnMob) then SpellBarRiseTextOnMob(serial,r,g,b,text) =
+end
++end
+ =
+
+ function MacroCmd_Item_Use	(item) if (item) then Send_DoubleClick(item.ser=
+ial) return item end end
+ =
+
+@@ -195,6 +222,21 @@
+ 			return item
+ 		end
+ 	end
++end
++
++function MacroCmd_FindNearestMobByName (namepart)
++	local founddist,foundmob
++	local xloc,yloc =3D GetPlayerPos()
++	for k,mobile in pairs(GetMobileList()) do =
+
++		local dist =3D dist2(xloc,yloc,mobile.xloc,mobile.yloc)
++		if ((not founddist) or dist &lt; founddist) then =
+
++			if (StringContains(AosToolTip_GetText(mobile.serial) or mobile.name,nam=
+epart)) then
++				founddist =3D dist
++				foundmob =3D mobile
++			end
++		end
++	end
++	return foundmob
+ end
+ =
+
+ -- set itemserial =3D 0 to clear
+@@ -226,11 +268,12 @@
+ 	Send_Request_SkillUse(skillid)
+ end
+ =
+
+-function MacroCmd_Spell					(spellname)
++function MacroCmd_Spell					(spellname,target)
+ 	if (not gInGameStarted) then return end
+ 	local spellid =3D GetSpellIDByName(spellname)
+ 	if (not spellid) then return MacroErrorNameMismatch(&quot;MacroCmd_Spell&quot;,spel=
+lname,gSpellIDByName) end
+ 	Send_Spell(spellid)
++	--~ if (target) then        TODO
+ end
+ =
+
+ =
+
+
+Modified: trunk/lua/lib.spellbooks.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.spellbooks.lua (original)
++++ trunk/lua/lib.spellbooks.lua Fri Oct 17 19:58:50 2008
+@@ -408,6 +408,18 @@
+ =
+
+ gMagerySpellMana =3D { 4, 6, 9, 11, 14, 20, 40, 50 }
+ =
+
++-- uses GetEquipProps() for player
++-- you should add kSpellTimeLatency for network
++function GetSpellCastTimeForPlayer (spellid)
++	local equipprop =3D GetEquipProps()
++	return GetSpellCastTime(spellid,equipprop.fc,IsBuffActive_Protection(),Is=
+BuffActive_EssenceOfWind())
++end
++
++gSpellInterruptMessages =3D { [500946 ]=3Dtrue,[502632 ]=3Dtrue,[500641 ]=
+=3Dtrue,[502625 ]=3Dtrue,[1049645]=3Dtrue, } -- notintown,fizz,disturbed,no=
+mana,toomanyfollowers
++RegisterListener(&quot;Hook_Packet_Localized_Text&quot;,function (serial,plaintext,t=
+ext_messagenum) =
+
++	if (gSpellInterruptMessages[text_messagenum]) then NotifyListener(&quot;Hook_S=
+pell_Interrupt&quot;,serial,plaintext,text_messagenum) end
++end)
++
+ =
+
+ --[[
+ 		public virtual TimeSpan GetCastDelay()
+
+Modified: trunk/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/main.lua (original)
++++ trunk/lua/main.lua Fri Oct 17 19:58:50 2008
+@@ -57,6 +57,7 @@
+ dofile(libpath .. &quot;lib.cliloc.lua&quot;)
+ dofile(libpath .. &quot;lib.macrolist.lua&quot;)
+ dofile(libpath .. &quot;lib.walking3.lua&quot;)
++dofile(libpath .. &quot;lib.equipment.lua&quot;)
+ dofile(libpath .. &quot;lib.spellbooks.lua&quot;)
+ dofile(libpath .. &quot;lib.spellinfo.lua&quot;)
+ dofile(libpath .. &quot;lib.speech.lua&quot;)
+
+Modified: trunk/lua/net/net.object.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.object.lua (original)
++++ trunk/lua/net/net.object.lua Fri Oct 17 19:58:50 2008
+@@ -2,6 +2,7 @@
+ -- see also lib.packet.lua and lib.protocol.lua
+ =
+
+ function Send_DoubleClick (iSerial)
++	print(&quot;Send_DoubleClick&quot;,sprintf(&quot;0x%08x&quot;,iSerial))
+ 	printdebug(&quot;net&quot;,sprintf(&quot;NET: Send_DoubleClick: 0x%08x\n&quot;,iSerial))
+ 	local out =3D GetSendFIFO()
+ 	out:PushNetUint8(kPacket_Double_Click)
+@@ -18,6 +19,7 @@
+ end
+ =
+
+ function Send_SingleClick (iSerial)
++	print(&quot;Send_SingleClick&quot;,sprintf(&quot;0x%08x&quot;,iSerial))
+ 	printdebug(&quot;net&quot;,sprintf(&quot;NET: Send_SingleClick: 0x%08x\n&quot;,iSerial))
+ 	local out =3D GetSendFIFO()
+ 	out:PushNetUint8(kPacket_Single_Click)
+
+Modified: trunk/plugins/lib.spellbar.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/plugins/lib.spellbar.lua (original)
++++ trunk/plugins/lib.spellbar.lua Fri Oct 17 19:58:50 2008
+@@ -1,41 +1,8 @@
+ -- displays a spellbar over the head of a char
+ =
+
+ if (not gDisabledPlugins.spellbar) then =
+
+-gSpellBarEquipPropCache =3D nil
+-gSpellBarEquipmentSerials =3D {}
+ kSpellTimeLatency =3D 150
+ =
+
+--- returns proparr=3D{fc=3D?,fcr=3D?}
+-function GetSpellBarEquipProps ()
+-	if (gSpellBarEquipPropCache) then return gSpellBarEquipPropCache end
+-	local propsum =3D {}
+-	gSpellBarEquipPropCache =3D propsum
+-	gSpellBarEquipmentSerials =3D {}
+-	local mobile =3D GetPlayerMobile()
+-	for index,layer in pairs(gLayerOrder) do =
+
+-		local item =3D GetMobileEquipmentItem(mobile,layer)
+-		if (item) then =
+
+-			gSpellBarEquipmentSerials[item.serial] =3D true
+-			local tooltip =3D AosToolTip_GetText(item.serial)
+-			if (tooltip) then =
+
+-				local props =3D ParseProps(tooltip)
+-				if (props.fcr) then propsum.fcr =3D (propsum.fcr or 0) + props.fcr end
+-				if (props.fc) then propsum.fc =3D (propsum.fc or 0) + props.fc end
+-				--~ print(&quot;+&quot;,tooltip and string.len(tooltip),gLayerTypeName[layer],to=
+oltip) =
+
+-			end
+-		end
+-	end
+-	return gSpellBarEquipPropCache
+-end
+-
+-RegisterListener(&quot;Hook_MobileEquipmentChanged&quot;,function (mobile)
+-	if (not IsPlayerMobile(mobile)) then return end
+-	gSpellBarEquipPropCache =3D nil
+-end)
+-	=
+
+-RegisterListener(&quot;Hook_ToolTipUpdate&quot;,function (serial)
+-	if (gSpellBarEquipmentSerials[serial]) then gSpellBarEquipPropCache =3D n=
+il end
+-end)
+ =
+
+ RegisterListener(&quot;Hook_HUDStep&quot;,function ()
+ 	SpellBarStep()
+@@ -58,15 +25,9 @@
+ 	local t =3D Client_GetTicks()
+ 	gSpellBarLastSpellSendTime =3D t
+ 	gSpellBarLastSpellSendID =3D spellid
+-	local spellname		=3D GetSpellNameByID(spellid)
+-	local spellcircle	=3D GetSpellCircleByID(spellid)
+-	local spellbookid	=3D GetSpellBookIDBySpellID(spellid)
+-	local equipprop		=3D GetSpellBarEquipProps()
+-	local casttime		=3D GetSpellCastTime(spellid,equipprop.fc,IsBuffActive_Pr=
+otection(),IsBuffActive_EssenceOfWind()) + kSpellTimeLatency
+-	print(&quot;spellbar:Hook_SendSpell&quot;,spellid,spellname,spellcircle,casttime,Sm=
+artDump(equipprop))
+-	SpellBarRiseTextOnMob(GetPlayerSerial(),1,1,1,spellname)
+-	if (casttime &gt; 0) then SpellBarStart(casttime) end
+-	--~ SpellBarRiseTextOnMob(GetPlayerSerial(),1,1,1,sprintf(&quot;%s(%d,%d)%s&quot;,s=
+pellname,spellcircle,spellid,IsMageSpell(spellid) and &quot;mage&quot; or &quot;&quot;)) =
+
++	SpellBarRiseTextOnMob(GetPlayerSerial(),1,1,1,GetSpellNameByID(spellid))
++	local casttime =3D GetSpellCastTimeForPlayer(spellid)
++	if (casttime &gt; 0) then SpellBarStart(casttime + kSpellTimeLatency) end
+ end)
+ =
+
+ =
+
+@@ -182,13 +143,12 @@
+ ]]--
+ =
+
+ =
+
++RegisterListener(&quot;Hook_Spell_Interrupt&quot;,function () SpellBarInterrupt() en=
+d)
++
+ --~ NotifyListener(&quot;Hook_Text&quot;,unitext_name,unitext_message) -- kPacket_Te=
+xt_Unicode
+ RegisterListener(&quot;Hook_Packet_Localized_Text&quot;,	function (serial,plaintext,=
+text_messagenum)
+ 	local short =3D gSpellbarShortMessages[text_messagenum]
+-	if (short) then
+-		SpellBarRiseTextOnMob(GetPlayerSerial(),short.r,short.g,short.b,short.tx=
+t)
+-		if (short.bInterrupt) then SpellBarInterrupt() end
+-	end
++	if (short) then SpellBarRiseTextOnMob(GetPlayerSerial(),short.r,short.g,s=
+hort.b,short.txt) end
+ 	if ((not short) and serial =3D=3D 0xFFFFFFFF) then print(&quot;Hook_Packet_Loc=
+alized_Text&quot;,serial,plaintext,text_messagenum) end
+ 	if (serial ~=3D 0xFFFFFFFF) then
+ 		local r,g,b =3D 1,1,0 -- yellow
+
+Modified: trunk/plugins/loot.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/plugins/loot.lua (original)
++++ trunk/plugins/loot.lua Fri Oct 17 19:58:50 2008
+@@ -36,7 +36,8 @@
+ 		if (DynamicIsInWorld(dynamic) and dynamic.artid_base =3D=3D kCorpseDynam=
+icArtID) then =
+
+ 			if (gLoot_TrashCorpseTypesByID[dynamic.amount] or gLootFinishedCorpses[=
+dynamic.serial]) then
+ 				LootHideCorpse(dynamic)
+-			elseif (abs(dynamic.xloc-xloc) + abs(dynamic.yloc-yloc) &lt;=3D maxdist) t=
+hen
++			elseif (dist2(xloc,yloc,dynamic.xloc,dynamic.yloc) &lt;=3D maxdist) then
++			--~ elseif (abs(dynamic.xloc-xloc) + abs(dynamic.yloc-yloc) &lt;=3D maxdis=
+t) then
+ 				res =3D dynamic
+ 			end
+ 		end
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001398.html">[Iris-commit] [IRIS] r2593 - /trunk/plugins/loot.lua
+</A></li>
+	<LI>Next message: <A HREF="001400.html">[Iris-commit] [IRIS] r2595 - in /trunk: lua/lib.macrolist.lua	plugins/moblist.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1399">[ date ]</a>
+              <a href="thread.html#1399">[ thread ]</a>
+              <a href="subject.html#1399">[ subject ]</a>
+              <a href="author.html#1399">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

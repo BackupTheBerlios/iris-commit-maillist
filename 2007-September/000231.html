@@ -1,0 +1,231 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1416 - /trunk/data/lua/lib.tilefreewalk.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2007-September/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1416%20-%20/trunk/data/lua/lib.tilefreewalk.lua&In-Reply-To=%3C20070928002131.A204F1C1817F%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000230.html">
+   <LINK REL="Next"  HREF="000232.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1416 - /trunk/data/lua/lib.tilefreewalk.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1416%20-%20/trunk/data/lua/lib.tilefreewalk.lua&In-Reply-To=%3C20070928002131.A204F1C1817F%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1416 - /trunk/data/lua/lib.tilefreewalk.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Fri Sep 28 02:21:31 CEST 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000230.html">[Iris-commit] [IRIS] r1415 - /trunk/data/lua/lib.tilefreewalk.lua
+</A></li>
+        <LI>Next message: <A HREF="000232.html">[Iris-commit] [IRIS] r1417 - in /trunk/data/lua: lib.protocol.lua	lib.tilefreewalk.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#231">[ date ]</a>
+              <a href="thread.html#231">[ thread ]</a>
+              <a href="subject.html#231">[ subject ]</a>
+              <a href="author.html#231">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Fri Sep 28 02:21:30 2007
+New Revision: 1416
+
+Log:
+working on tilefree movement...
+
+Modified:
+    trunk/data/lua/lib.tilefreewalk.lua
+
+Modified: trunk/data/lua/lib.tilefreewalk.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.tilefreewalk.lua (original)
++++ trunk/data/lua/lib.tilefreewalk.lua Fri Sep 28 02:21:30 2007
+@@ -62,7 +62,7 @@
+ 	local bTurnLeft			=3D gKeyPressed[key_left]		-- WalkTurn(-1) end
+ 	local bTurnRight		=3D gKeyPressed[key_right]	-- WalkTurn( 1) end
+ 	=
+
+-	-- rightclick+hold : walk in mouse direction
++	-- hold rightmouse button to walk in mouse direction (depends on center o=
+f screen, works good for 3rd person cam)
+ 	if (bWalkInMouseDir) then
+ 		local dx,dy,pixel_dist_from_center =3D self:GetCurrentMouseDir() =
+
+ 		--local x,y,z =3D self:MousePickPos()
+@@ -72,11 +72,22 @@
+ 		local speed =3D self:GetClientSideSpeed(dx,dy,0) * gSecondsSinceLastFram=
+e * math.min(1.0,pixel_dist_from_center / slowarea_pixels)
+ 		x =3D x + dx * speed
+ 		y =3D y + dy * speed
++		=
+
++		local rx,ry,rz =3D self:RoundPos(x,y,z)
++		local lx,ly,lz =3D self:PathPoint_GetLast()
++		if (lx ~=3D rx or ly ~=3D ry) then =
+
++			self:PathPoint_Push(rx,ry,rz)
++			-- TODO : read new surrounding height info here
++		end
++		=
+
++		-- todo : calc correct z here
++		z =3D z
++		=
+
+ 		self:SetPos_ClientSide(x,y,z)
+-		self:PathPoint_SetCur()
+ 		self:SetDebugMarker(&quot;GetPos_ClientSide&quot;, x,y,z, dx,dy,0, 1,1,0)
+ 	end
+ 	=
+
++	-- debug markers
+ 	local x,y,z =3D self:GetPos_LastConfirmed()
+ 	self:SetDebugMarker(&quot;GetPos_LastConfirmed&quot;, x,y,z, 0,0,0, 0,1,0)
+ 	local x,y,z =3D self:GetPos_LastRequested()
+@@ -87,23 +98,29 @@
+ 	-- send walk requests to server
+ 	local iTimeSinceLastWalkRequest =3D gMyTicks - self.iLastWalkRequestSendT=
+ime
+ 	local iWalkRequestInterval =3D self:GetWalkRequestInterval()
+-	-- iWalkRequestInterval =3D 200 -- debug
+ 	if (iTimeSinceLastWalkRequest &gt;=3D iWalkRequestInterval) then
+ 		if (self:PathPoint_HasNext()) then -- only check for send if we want to =
+send walk requests =
+
+ 			self.iLastWalkRequestSendTime =3D (iTimeSinceLastWalkRequest   &gt; 2*iWal=
+kRequestInterval) and gMyTicks or =
+
+-											(self.iLastWalkRequestSendTime + iWalkRequestInterval)
++											(self.iLastWalkRequestSendTime + iWalkRequestInterval) -- compe=
+nsate low framerates a bit
++			=
+
++			-- determine the &quot;next&quot; position for the request, summarize as much int=
+o one step as possible
++			local lx,ly,lz =3D self:GetPos_LastRequested()
++			local rx,ry,rz
++			local i =3D 1
++			while (self:PathPoint_HasNext()) do -- go to the furthes path point tha=
+t can be reached in one step (diag)
++				local x,y,z =3D self:PathPoint_GetNext()
++				if (math.abs(x-lx) &gt; 1 or math.abs(y-ly) &gt; 1) then break end -- adjact=
+ed ? (todo : check if walk possible ?)
++				rx,ry,rz =3D x,y,z
++				self:PathPoint_Pop()
++			end
++			self:SetPos_LastRequested(rx,ry,rz)
+ 			=
+
+ 			-- todo : send request
+-			local x,y,z =3D self:PathPoint_GetNth(1)
+-			self:PathPoint_Pop()
+-			self:SetPos_LastRequested(x,y,z)
+-			=
+
+-			print(&quot;walk request to &quot;,x,y,z,iTimeSinceLastWalkRequest,iWalkRequestIn=
+terval)
+-		=
+
++			--print(&quot;walk request to &quot;,rx,ry,rz,iTimeSinceLastWalkRequest,iWalkRequ=
+estInterval)
++		=
+
++			-- confirm here if there is no server
+ 			local bSelfConfirmAll =3D gStartGameWithoutNetwork
+-			if (bSelfConfirmAll) then self:SetPos_LastConfirmed(x,y,z) end -- debug=
+/offline mode only
+-		else
+-			print(&quot;no walk request pending&quot;)
++			if (bSelfConfirmAll) then self:SetPos_LastConfirmed(rx,ry,rz) end -- de=
+bug/offline mode only
+ 		end
+ 	end
+ end
+@@ -115,7 +132,7 @@
+ function gTileFreeWalk:GetMaxAllowedSpeed		() return self:Impl_GetMaxAllow=
+edSpeed() end
+ function gTileFreeWalk:GetMaxAllowedTurnRate	() return self:Impl_GetMaxAll=
+owedTurnRate() end =
+
+ =
+
+-function gTileFreeWalk:GetWalkRequestInterval	() return 1000/self:GetMaxAl=
+lowedSpeed() end
++function gTileFreeWalk:GetWalkRequestInterval	() return 1000/self:GetMaxAl=
+lowedSpeed() end -- in milliseconds
+ =
+
+ function gTileFreeWalk:GetClientSideTurnRate	() return self:GetMaxAllowedT=
+urnRate() end =
+
+ =
+
+@@ -208,13 +225,10 @@
+ 	self:SetDebugMarker(&quot;path&quot;..x..&quot;,&quot;..y..&quot;,&quot;..z, x,y,z, 0,0,0, 0.5,0.5,0.5)
+ end
+ function gTileFreeWalk:PathPoint_SetCur		()
+-	local x,y,z =3D self:GetPos_ClientSide_Rounded()
+-	local lx,ly,lz =3D self:PathPoint_GetLast()
+-	if (lx =3D=3D x and ly =3D=3D y and lz =3D=3D z) then return end
+-	self:PathPoint_Push(x,y,z)
+ end
+ =
+
+ -- ##### ##### ##### ##### ##### position and coordinate system conversions
++
+ =
+
+ =
+
+ function gTileFreeWalk:GetDistanceToLastConfirmedPos () =
+
+@@ -226,8 +240,7 @@
+ function gTileFreeWalk:MousePickPos 		() 			return self:Impl_MousePickPos(=
+) end
+ =
+
+ =
+
+-function gTileFreeWalk:GetPos_ClientSide_Rounded	()
+-	local x,y,z =3D self:GetPos_ClientSide()
++function gTileFreeWalk:RoundPos	(x,y,z)
+ 	local e,f =3D 0,0.5
+ 	return math.floor(x+e)+f,math.floor(y+e)+f,math.floor(z+e)+f
+ end
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000230.html">[Iris-commit] [IRIS] r1415 - /trunk/data/lua/lib.tilefreewalk.lua
+</A></li>
+	<LI>Next message: <A HREF="000232.html">[Iris-commit] [IRIS] r1417 - in /trunk/data/lua: lib.protocol.lua	lib.tilefreewalk.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#231">[ date ]</a>
+              <a href="thread.html#231">[ thread ]</a>
+              <a href="subject.html#231">[ subject ]</a>
+              <a href="author.html#231">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

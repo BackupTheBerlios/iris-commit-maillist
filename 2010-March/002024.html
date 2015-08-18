@@ -1,0 +1,363 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r3264 - in /trunk/lua:	lib.configdialog.hotkeys.lua lib.macrolist.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2010-March/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3264%20-%20in%20/trunk/lua%3A%0A%09lib.configdialog.hotkeys.lua%20lib.macrolist.lua&In-Reply-To=%3C20100302232301.5311654D0007%40simon%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="002023.html">
+   <LINK REL="Next"  HREF="002025.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r3264 - in /trunk/lua:	lib.configdialog.hotkeys.lua lib.macrolist.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3264%20-%20in%20/trunk/lua%3A%0A%09lib.configdialog.hotkeys.lua%20lib.macrolist.lua&In-Reply-To=%3C20100302232301.5311654D0007%40simon%3E"
+       TITLE="[Iris-commit] [IRIS] r3264 - in /trunk/lua:	lib.configdialog.hotkeys.lua lib.macrolist.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Wed Mar  3 00:23:01 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="002023.html">[Iris-commit] [IRIS] r3263 - in /trunk/lua: ./ gui/ net/ widgets/
+</A></li>
+        <LI>Next message: <A HREF="002025.html">[Iris-commit] [IRIS] r3265 - in /trunk: include/builder.h	src/builder_L.cpp
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2024">[ date ]</a>
+              <a href="thread.html#2024">[ thread ]</a>
+              <a href="subject.html#2024">[ subject ]</a>
+              <a href="author.html#2024">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Wed Mar  3 00:23:00 2010
+New Revision: 3264
+
+Log:
+tons of new actions for hotkeys, started object by type/id param, untested
+
+Modified:
+    trunk/lua/lib.configdialog.hotkeys.lua
+    trunk/lua/lib.macrolist.lua
+
+Modified: trunk/lua/lib.configdialog.hotkeys.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.configdialog.hotkeys.lua (original)
++++ trunk/lua/lib.configdialog.hotkeys.lua Wed Mar  3 00:23:00 2010
+@@ -61,11 +61,29 @@
+ 		=
+
+ 		=
+
+     local ew,eh =3D 200,24
++	=
+
++	-- param:text
+     local row =3D page:AddChild(&quot;HBox&quot;)
+     row:AddWidget(CreateWidgetFromXMLString(nil,&quot;&lt;UOText bold=3D1 text=3D'=
+Text:'&gt;&quot;))
++	page.box_hotkey_param_text_row =3D row
+     page.box_hotkey_param_text =3D row:AddChild(&quot;UOEditText&quot;,{width=3Dew,h=
+eight=3Deh,text=3D&quot;&quot;,name=3D&quot;hotkey_param_text&quot;,hue=3D0,bHasBackPane=3Dtrue=
+})
+ 	page.box_hotkey_param_text.on_change_text =3D function (self,text) HotKey=
+Dialog_SetParamText(text) end
+-    page.box_hotkey_param_text:SetVisible(false)
++    page.box_hotkey_param_text_row:SetVisible(false)
++	=
+
++	-- param:object
++    local row =3D page:AddChild(&quot;HBox&quot;)
++    row:AddWidget(CreateWidgetFromXMLString(nil,&quot;&lt;UOText bold=3D1 text=3D'=
+Object:'&gt;&quot;))
++	page.box_hotkey_param_object_row =3D row
++    page.box_hotkey_param_object =3D row:AddChild(&quot;Button&quot;,{label=3D&quot;???&quot;,=
+w=3D260,on_button_click=3Dfunction () =
+
++		job.create(function ()
++			local t =3D MacroCmd_JobGetTargetClientSide()
++			if (not t) then return end
++			local obj =3D GetDynamic(MacroCmd_GetStoredTarget_Serial(t) or 0)
++			if (not obj) then return end
++			HotKeyDialog_SetObject(obj.serial,obj.artid,obj.hue)
++		end)
++		end})
++    page.box_hotkey_param_object_row:SetVisible(false)
+ 	=
+
+ 	HotKeyDialog_ShowKeyIdx(1)
+ end
+@@ -86,6 +104,7 @@
+ 	HotKeyDialog_SetFlag(&quot;bAlt&quot;		,cur.bAlt	,true)
+ 	HotKeyDialog_SetFlag(&quot;bCtrl&quot;	,cur.bCtrl	,true)
+ 	HotKeyDialog_SetParamText(cur.param_text,true)
++	HotKeyDialog_SetObject(cur.param_obj_serial,cur.param_obj_artid,cur.param=
+_obj_hue)
+ end
+ =
+
+ function HotKeyDialog_GetCur () return gHotKeyData[gHotKeyDialog_CurrentKe=
+yIdx] end
+@@ -117,7 +136,8 @@
+     print(&quot;action&quot;,actiondata and actiondata.name)
+     local group =3D actiondata and actiondata.group
+     gConfigDialogPage_HotKeys.btn_action:SetText(actiondata and (group.nam=
+e..&quot;:&quot;..actiondata.name) or &quot;--select action--&quot;)
+-    gConfigDialogPage_HotKeys.box_hotkey_param_text:SetVisible(actiondata =
+and actiondata.bHasTextParam)
++    gConfigDialogPage_HotKeys.box_hotkey_param_text_row:SetVisible(actiond=
+ata and actiondata.bHasTextParam)
++    gConfigDialogPage_HotKeys.box_hotkey_param_object_row:SetVisible(actio=
+ndata and (actiondata.bHasObjectParam))
+ end
+ =
+
+ function HotKeyDialog_SetParamText(param_text,bUpdateControl)
+@@ -125,6 +145,15 @@
+ 	if (bUpdateControl) then gConfigDialogPage_HotKeys.box_hotkey_param_text:=
+SetText(param_text or &quot;&quot;) end
+ end
+ =
+
++function HotKeyDialog_SetObject(param_obj_serial,param_obj_artid,param_obj=
+_hue)
++	HotKeyDialog_SetData(&quot;param_obj_serial&quot;,param_obj_serial)
++	HotKeyDialog_SetData(&quot;param_obj_artid&quot;,param_obj_artid)
++	HotKeyDialog_SetData(&quot;param_obj_hue&quot;,param_obj_hue)
++	gConfigDialogPage_HotKeys.box_hotkey_param_object:SetText(
++		param_obj_serial and =
+
++		(&quot;serial:&quot;..hex(param_obj_serial or 0)..&quot;,artid:&quot;..hex(param_obj_artid o=
+r 0)..&quot;,hue:&quot;..tostring(param_obj_hue)) or =
+
++		&quot;-- select object --&quot;)
++end
+ =
+
+ =
+
+ -- ***** ***** ***** ***** ***** TriggerConfigHotkey
+@@ -141,9 +170,10 @@
+ 			local actiondata =3D GetHotKeyActionDataByID(hotkey.actionid)
+ 			print(&quot;TriggerConfigHotkey2&quot;,keyname,bCtrl,bAlt,bShift,&quot;action:&quot;,action=
+data)
+ 			if (actiondata and actiondata.callback) then =
+
+-				local param =
+
+-				if (actiondata.bHasTextParam) then param =3D hotkey.param_text end
+-				job.create(function () actiondata:callback(param) end) =
+
++				local a,b,c
++				if (actiondata.bHasTextParam	) then a =3D hotkey.param_text end
++				if (actiondata.bHasObjectParam	) then a,b,c =3D hotkey.param_obj_seria=
+l,hotkey.param_obj_artid,hotkey.param_obj_hue end
++				job.create(function () actiondata:callback(a,b,c) end) =
+
+ 			end
+ 			return true
+ 		end
+@@ -228,20 +258,50 @@
+         table.insert(gUOActions,action)
+         gUOActionByName[action.name] =3D action
+     end
+-    RegisterUOAction({name=3D&quot;WeaponSkill:Primary&quot;    ,callback=3Dfunction=
+ () MacroCmd_WeaponAbilityPrimary() end})
+-    RegisterUOAction({name=3D&quot;WeaponSkill:Secondary&quot;  ,callback=3Dfunction=
+ () MacroCmd_WeaponAbilitySecondary() end})
+-    RegisterUOAction({name=3D&quot;Dismount&quot;               ,callback=3Dfunction=
+ () MacroCmd_Dismount() end})
+-    RegisterUOAction({name=3D&quot;ToggleWarmode&quot;          ,callback=3Dfunction=
+ () MacroCmd_ToggleWarmode() end})
+-    RegisterUOAction({name=3D&quot;LastSpell&quot;              ,callback=3Dfunction=
+ () MacroCmd_RepeatLastSpell() end}) -- todo : targetlast option ?
+-    RegisterUOAction({name=3D&quot;LastChat&quot;               ,callback=3Dfunction=
+ () MacroCmd_RepeatLastChat() end})
+-    RegisterUOAction({name=3D&quot;LastObject&quot;             ,callback=3Dfunction=
+ () MacroCmd_RepeatLastDoubleClick() end})
+-    RegisterUOAction({name=3D&quot;SelfInterrupt(hat)&quot;     ,callback=3Dfunction=
+ () InterruptOwnSpell(MacroCmd_GetPlayerEquipment(kLayer_Helm)) end})
+-    RegisterUOAction({name=3D&quot;SelfInterrupt(robe)&quot;    ,callback=3Dfunction=
+ () InterruptOwnSpell(MacroCmd_GetPlayerEquipment(kLayer_TorsoOuter)) end})
+-    RegisterUOAction({name=3D&quot;OpenDoor(new)&quot;          ,callback=3Dfunction=
+ () MacroCmd_OpenDoors() end})
+-    RegisterUOAction({name=3D&quot;UseNearestGate&quot;         ,callback=3Dfunction=
+ () MacroCmd_UseNearbyGate() end})
+-    --~ RegisterUOAction({name=3D&quot;MyTest&quot;       		    ,bHasTextParam=3Dtru=
+e,callback=3Dfunction (actiondata,param) print(&quot;mytest&quot;,actiondata,param) e=
+nd})
+-    --~ RegisterUOAction({name=3D&quot;UseObjectByType&quot;        ,callback=3DHotk=
+eyAction_Object,bHasObjectTypeParam=3Dtrue}) -- {potions,fukija,shuriken,ba=
+ndage(old)}
+-    --~ RegisterUOAction({name=3D&quot;UseObjectByID&quot;          ,callback=3DHotk=
+eyAction_Object,bHasObjectIDParam=3Dtrue})
++    RegisterUOAction({name=3D&quot;WeaponSkill:Primary&quot;    	,callback=3Dfunctio=
+n () MacroCmd_WeaponAbilityPrimary() end})
++    RegisterUOAction({name=3D&quot;WeaponSkill:Secondary&quot;  	,callback=3Dfunctio=
+n () MacroCmd_WeaponAbilitySecondary() end})
++    RegisterUOAction({name=3D&quot;Dismount&quot;               	,callback=3Dfunctio=
+n () MacroCmd_Dismount() end})
++    RegisterUOAction({name=3D&quot;ToggleWarmode&quot;          	,callback=3Dfunctio=
+n () MacroCmd_ToggleWarmode() end})
++    RegisterUOAction({name=3D&quot;LastSpell&quot;              	,callback=3Dfunctio=
+n () MacroCmd_RepeatLastSpell() end}) -- todo : targetlast option ?
++    RegisterUOAction({name=3D&quot;LastChat&quot;               	,callback=3Dfunctio=
+n () MacroCmd_RepeatLastChat() end})
++    RegisterUOAction({name=3D&quot;LastObject&quot;             	,callback=3Dfunctio=
+n () MacroCmd_RepeatLastDoubleClick() end})
++    RegisterUOAction({name=3D&quot;SelfInterrupt(hat)&quot;     	,callback=3Dfunctio=
+n () InterruptOwnSpell(MacroCmd_GetPlayerEquipment(kLayer_Helm)) end})
++    RegisterUOAction({name=3D&quot;SelfInterrupt(robe)&quot;    	,callback=3Dfunctio=
+n () InterruptOwnSpell(MacroCmd_GetPlayerEquipment(kLayer_TorsoOuter)) end})
++    RegisterUOAction({name=3D&quot;OpenDoor(new)&quot;          	,callback=3Dfunctio=
+n () MacroCmd_OpenDoors() end})
++    RegisterUOAction({name=3D&quot;UseNearestGate&quot;         	,callback=3Dfunctio=
+n () MacroCmd_UseNearbyGate() end})
++    RegisterUOAction({name=3D&quot;UseObjectByType&quot;        	,callback=3Dfunctio=
+n (serial,artid,hue) MacroCmd_Item_Use(GetDynamic(serial or 0)) end,bHasObj=
+ectParam=3Dtrue}) -- {potions,fukija,shuriken,bandage(old)}
++    RegisterUOAction({name=3D&quot;UseObjectByID&quot;          	,callback=3Dfunctio=
+n (serial,artid,hue) if (artid) then MacroCmd_Item_UseByArtID(artid,hue) en=
+d end,bHasObjectParam=3Dtrue})
++    RegisterUOAction({name=3D&quot;MiniHealCureSelf&quot;			,callback=3Dfunction () =
+MacroCmd_MiniHealCureSelf() end})
++    RegisterUOAction({name=3D&quot;BandageSelf(builtin)&quot;		,callback=3Dfunction =
+() MacroCmd_BandageSelf() end})
++    RegisterUOAction({name=3D&quot;BandageSelf(use+target)&quot;	,callback=3Dfunctio=
+n () MacroCmd_Item_UseByArtID(0xe21) MacroCmd_QueueTargetSerial(GetPlayerSe=
+rial(),1000) end})
++    RegisterUOAction({name=3D&quot;TargetSelf&quot;					,callback=3Dfunction () Macr=
+oCmd_TargetSelfNow() end})
++    RegisterUOAction({name=3D&quot;TargetLast(dumb)&quot;			,callback=3Dfunction () =
+MacroCmd_TargetLastNow() end})
++    RegisterUOAction({name=3D&quot;TargetLast(smart)&quot;			,callback=3Dfunction ()=
+ MacroCmd_SendTargetSerial(MacroCmd_GetSmartTargetForLastSpell(),gSpellCast=
+Range) end})
++    RegisterUOAction({name=3D&quot;SelectNearest&quot;				,callback=3Dfunction () lo=
+cal m=3DMacroCmd_FindNearestMob() MobListSetMainTargetSerial(m and m.serial=
+ or 0) end})
++    RegisterUOAction({name=3D&quot;SelectRandomNonFriendly&quot;	,callback=3Dfunctio=
+n () MacroCmd_SmartSelectTarget() end}) -- pvp, random..    -- target with =
+TargetLast(Smart)
++    RegisterUOAction({name=3D&quot;AttackSelected&quot;				,callback=3Dfunction () M=
+acroCmd_AttackSelectedMobile() end}) -- melee
++    RegisterUOAction({name=3D&quot;Screenshot&quot;					,callback=3Dfunction () Macr=
+oCmd_Screenshot() end})
++    RegisterUOAction({name=3D&quot;PacketVideo&quot;				,callback=3Dfunction () Pack=
+etVideo_Recording_Toggle() end})
++    RegisterUOAction({name=3D&quot;HideAllCorpses&quot;				,callback=3Dfunction () M=
+acroCmd_HideAllCorpses() end})
++    RegisterUOAction({name=3D&quot;WalkToMousePos&quot;				,callback=3Dfunction () M=
+acroCmd_WalkToMouse() end})
++    RegisterUOAction({name=3D&quot;Walk_North&quot;					,callback=3Dfunction () Macr=
+oCmd_WalkInDir(0) end})
++    RegisterUOAction({name=3D&quot;Walk_NorthEast&quot;				,callback=3Dfunction () M=
+acroCmd_WalkInDir(1) end})
++    RegisterUOAction({name=3D&quot;Walk_East&quot;					,callback=3Dfunction () Macro=
+Cmd_WalkInDir(2) end})
++    RegisterUOAction({name=3D&quot;Walk_SouthEast&quot;				,callback=3Dfunction () M=
+acroCmd_WalkInDir(3) end})
++    RegisterUOAction({name=3D&quot;Walk_South&quot;					,callback=3Dfunction () Macr=
+oCmd_WalkInDir(4) end})
++    RegisterUOAction({name=3D&quot;Walk_SouthWest&quot;				,callback=3Dfunction () M=
+acroCmd_WalkInDir(5) end})
++    RegisterUOAction({name=3D&quot;Walk_West&quot;					,callback=3Dfunction () Macro=
+Cmd_WalkInDir(6) end})
++    RegisterUOAction({name=3D&quot;Walk_NorthWest&quot;				,callback=3Dfunction () M=
+acroCmd_WalkInDir(7) end})
++    RegisterUOAction({name=3D&quot;ToggleHouseBlendout&quot;		,callback=3Dfunction (=
+) ToggleMultiOnlyShowFloor()  end})
++    RegisterUOAction({name=3D&quot;ToggleCompass&quot;				,callback=3Dfunction () Ma=
+croCmd_Open(&quot;Compass&quot;) end})
++    RegisterUOAction({name=3D&quot;CompassZoomIn&quot;				,callback=3Dfunction () Ma=
+croCmd_ZoomCompass(1*1.5) end})
++    RegisterUOAction({name=3D&quot;CompassZoomOut&quot;				,callback=3Dfunction () M=
+acroCmd_ZoomCompass(1/1.5) end})
++    RegisterUOAction({name=3D&quot;CamZoomIn&quot;					,callback=3Dfunction () Macro=
+Cmd_CamChangeZoom( 0.3) end})
++    RegisterUOAction({name=3D&quot;CamZoomOut&quot;					,callback=3Dfunction () Macr=
+oCmd_CamChangeZoom(-0.3) end})
++    RegisterUOAction({name=3D&quot;ResyncRequest&quot;				,callback=3Dfunction () Se=
+nd_Movement_Resync_Request() end})
++    RegisterUOAction({name=3D&quot;ToggleAlwaysRun&quot;				,callback=3Dfunction () =
+gAlwaysRun =3D not gAlwaysRun end})
++	=
+
++	-- MacroCmd_UseRuneBookPreAOS , MacroCmd_UseRuneBookPostAOS  (method,idx)
+     --~ RegisterUOAction({name=3D&quot;UseItemInHand(Wands)&quot;   })
+     --~ RegisterUOAction({name=3D&quot;OpenDoor(old/preaos)&quot;   })
+     --~ RegisterUOAction({name=3D&quot;Select&quot;                 ,bHasTargetOptio=
+n=3Dtrue})
+
+Modified: trunk/lua/lib.macrolist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.macrolist.lua (original)
++++ trunk/lua/lib.macrolist.lua Wed Mar  3 00:23:00 2010
+@@ -180,6 +180,19 @@
+     local f =3D gMacroOpenCommands[dialogtype] =
+
+     if (not f) then return MacroErrorNameMismatch(&quot;MacroCmd_Open&quot;,dialogty=
+pe,gMacroOpenCommands) end
+     f() =
+
++end
++
++function MacroCmd_SmartSelectTarget ()
++	local m					=3D MacroCmd_FindNearestNonFriendlyPlayer() =
+
++	local selectedSerial	=3D m and m.serial
++	local nearlist2	=3D MacroCmd_ListNonFriendlyPlayers() =
+
++	local nearlist	=3D {}
++	for k,v in pairs(nearlist2) do table.insert(nearlist,v) end
++	local target
++	if (nearlist and countarr(nearlist) =3D=3D 1) then target =3D nearlist[1]=
+ end
++	if (nearlist and countarr(nearlist) &gt;=3D 2) then target =3D GetRandomArra=
+yElement(nearlist) end
++	if (target) then selectedSerial =3D target.serial end
++	MobListSetMainTargetSerial(selectedSerial or 0) =
+
+ end
+ =
+
+ function MacroCmd_UseNearbyGate () local gate =3D MacroCmd_Item_FindFirstN=
+earByArtID(kMoongateGateArtID,nil,1) MacroCmd_Item_Use(gate) return gate ~=
+=3D nil end
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="002023.html">[Iris-commit] [IRIS] r3263 - in /trunk/lua: ./ gui/ net/ widgets/
+</A></li>
+	<LI>Next message: <A HREF="002025.html">[Iris-commit] [IRIS] r3265 - in /trunk: include/builder.h	src/builder_L.cpp
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2024">[ date ]</a>
+              <a href="thread.html#2024">[ thread ]</a>
+              <a href="subject.html#2024">[ subject ]</a>
+              <a href="author.html#2024">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

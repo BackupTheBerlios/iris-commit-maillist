@@ -1,0 +1,233 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2191 - /trunk/lua/lib.2d.mobile.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-May/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2191%20-%20/trunk/lua/lib.2d.mobile.lua&In-Reply-To=%3C20080517023021.086951524037%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000999.html">
+   <LINK REL="Next"  HREF="001001.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2191 - /trunk/lua/lib.2d.mobile.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2191%20-%20/trunk/lua/lib.2d.mobile.lua&In-Reply-To=%3C20080517023021.086951524037%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2191 - /trunk/lua/lib.2d.mobile.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat May 17 04:30:20 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000999.html">[Iris-commit] [IRIS] r2190 - in /trunk/lua: lib.2d.map.lua lib.2d.mobile.lua lib.granny.lua main.lua
+</A></li>
+        <LI>Next message: <A HREF="001001.html">[Iris-commit] [IRIS] r2192 - in /trunk: bin/OgreMain.dll bin/Plugin_CgProgramManager.dll bin/Plugin_ParticleFX.dll bin/RenderSystem_Direct3D9.dll bin/RenderSystem_GL.dll bin/cg.dll bin/iris2.exe lua/lib.3d.renderer.lua vc8/iris.vcproj
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1000">[ date ]</a>
+              <a href="thread.html#1000">[ thread ]</a>
+              <a href="subject.html#1000">[ subject ]</a>
+              <a href="author.html#1000">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sat May 17 04:30:19 2008
+New Revision: 2191
+
+Log:
+2d mobile anim experiments
+
+Modified:
+    trunk/lua/lib.2d.mobile.lua
+
+Modified: trunk/lua/lib.2d.mobile.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.mobile.lua (original)
++++ trunk/lua/lib.2d.mobile.lua Sat May 17 04:30:19 2008
+@@ -12,6 +12,8 @@
+ =
+
+ gMobile2DTestGfx =3D nil
+ =
+
++-- todo : humans : one atlas with complete equipment, will need alpha-blit=
+ for images ?
++-- todo : mobile : load anim only on demand, e.g. only load walk anim when=
+ the mobile actually walks
+ -- returns sMatName,iWidth,iHeight,iCenterX,iCenterY,iFrames,u0,v0,u1,v1
+ function Anim2DAtlas_Load (iModelID,iAnimID,iFrame,iHue)
+ 	local iRealID =3D Anim_GetRealID(iModelID,iAnimID) =
+
+@@ -22,15 +24,18 @@
+ 	return sMatName,iWidth,iHeight,iCenterX,iCenterY,iFrames,u0,v0,u1,v1
+ end
+ =
+
++-- TODO : bMirrorX !
+ function Renderer2D:MobileGfxUpdateGeometry (gfx,iModelID,iAnimID,iFrame,i=
+Hue)
+ 	local sMatName,iWidth,iHeight,iCenterX,iCenterY,iFrames,u0,v0,u1,v1 =3D A=
+nim2DAtlas_Load(iModelID,iAnimID,iFrame,iHue)
++	--~ print(&quot;MobileGfxUpdateGeometry&quot;,iAnimID,iFrame,iWidth,iHeight,iCenter=
+X,iCenterY,iFrames)
+ 	-- MobileGfxUpdateGeometry : cen=3D  12      -11
+-	local pix2coord =3D 1 / 44
++	local zoom =3D 1
++	local pix2coord =3D zoom * 1 / 44
+ 	local x =3D -1 + ( iCenterY +iCenterX)*pix2coord -- iCenterX&lt;0=3Dright iC=
+enterY&lt;0=3Ddown
+ 	local y =3D  1 + (-iCenterY +iCenterX)*pix2coord
+ 	local z =3D  0  -- x-1,y+1 : sprites are too high normally, this moves th=
+em down =
+
+-	local w =3D k2D_ScaleW05 * iWidth
+-	local h =3D k2D_ScaleH   * iHeight
++	local w =3D k2D_ScaleW05 * iWidth * zoom
++	local h =3D k2D_ScaleH   * iHeight * zoom
+ 	gfx:SetMaterial(sMatName)
+ 	gfx:RenderableBegin(4,6,false,false,OT_TRIANGLE_LIST)
+ 	gfx:RenderableVertex(x-w,y-w,z  , u1,v1)
+@@ -40,19 +45,59 @@
+ 	gfx:RenderableIndex3(0,2,1)
+ 	gfx:RenderableIndex3(1,2,3)
+ 	gfx:RenderableEnd()
++	gfx.iMaxFrames =3D iFrames
+ end
+ =
+
+ function Renderer2D:MobileTestStep()
++	-- iAnimID : 0-4=3Dwalk down,down-left,left,up-left,up
++	=
+
++	-- iAnimID : 5-9=3Dwalk down (something in hand)
++	-- iAnimID : 10-14=3Drun
++	-- iAnimID : 15-19=3Drun (something in hand?)
++	-- iAnimID : 20-24 idle (1 frame) =
+
++	-- iAnimID : 25-29 idle anim? look from left to right
++	-- iAnimID : 30-24 idle anim? spread arms
++	-- iAnimID : 35- combat idle
++	-- iAnimID : 40- combat idle 2hand ?
++	-- iAnimID : 45- punch/bash anim
++	-- iAnimID : 50- stab anim
++	-- iAnimID : 55- punch/bash2 anim
++	-- iAnimID : 60- punch/bash 2-handed
++	-- iAnimID : 65- swing 2-handed
++	-- iAnimID : 70- stab 2-handed ?
++	-- iAnimID : 75- combat-walk-2-handed
++	-- iAnimID : 80- cast1
++	-- iAnimID : 85- cast2
++	-- iAnimID : 90- fire-bow/crossbow?
++	-- iAnimID : 95- fire-bow/crossbow?
++	-- iAnimID : 100- gethit/flinch/pain
++	-- iAnimID : 105- die backwards
++	-- iAnimID : 110- die forwards
++	-- iAnimID : 115- mount-walk-horse
++	-- iAnimID : 120- mount-walk-ostard
++	-- iAnimID : 125- mount-idle-ostard
++	-- iAnimID : 130- mount-attack-swing?-ostard
++	-- iAnimID : 135- mount-attack-bow-ostard
++	-- iAnimID : 140- mount-attack-crossbow-ostard
++	-- iAnimID : 145- mount-attack-bash?-ostard
++	-- iAnimID : 150- attack-stab?
++	-- iAnimID : 155- attack-punch?
++	-- iAnimID : 160- bow
++	-- iAnimID : 165- salute
++	-- iAnimID : 170- cough
++	=
+
++	local iModelID,iAnimID =3D 401,0
++	local iHue =3D 0x03F4 -- human skin hue (0x83F4=3D33780, but 0x8* is part=
+ial hue and turned out all gray here)
++	--~ local iHue =3D 0
++	=
+
++	=
+
+ 	if (not gMobile2DTestGfx) then
+-		local iModelID,iAnimID =3D 400,0
+-		local iHue =3D 0,0
+-
+ 		local gfx =3D CreateRootGfx3D()
+ 		gfx:SetSimpleRenderable()
+ 		gMobile2DTestGfx =3D gfx
+ 		=
+
+ 		local iRealID =3D Anim_GetRealID(iModelID,iAnimID) =
+
+-		local animinfo =3D GetAnimDataInfo(iRealID) -- o.miFrames,o.miUnknown,o.=
+miCount,o.miFrameInterval,o.miFrameStart
++		local animinfo =3D GetAnimDataInfo(iModelID) -- o.miFrames,o.miUnknown,o=
+.miCount,o.miFrameInterval,o.miFrameStart
+ 		gMobile2DTestGfx.animinfo =3D animinfo
+ 		gMobile2DTestGfx.iAnimStartTime =3D Client_GetTicks()
+ 		gMobile2DTestGfx.iFrame =3D 0
+@@ -60,15 +105,24 @@
+ 		local o =3D animinfo =
+
+ 		print(&quot;animinfo&quot;,o.miFrames,o.miUnknown,o.miCount,o.miFrameInterval,o.mi=
+FrameStart)
+ 		--animinfo        table: 0x93e5d90        -1      -1      -1      -1
+-		for k,v in pairs(o.miFrames) do print(&quot;frame&quot;,k,v) end
++		for k,v in pairs(o.miFrames) do print(&quot;frame&quot;,k,v) end -- were all -1 =
+
+ =
+
+ 		self:MobileGfxUpdateGeometry(gfx,iModelID,iAnimID,gMobile2DTestGfx.iFram=
+e,iHue)
++		print(&quot;gfx.iMaxFrames&quot;,gfx.iMaxFrames)
+ 	end
+ 	=
+
++	local gfx =3D gMobile2DTestGfx
+ 	local xloc,yloc =3D self:GetCamPos()
+ 	local x,y,z =3D self:UOPosToLocal(xloc,yloc,4)
+-	gMobile2DTestGfx:SetPosition(x,y,z)
++	gfx:SetPosition(x,y,z)
+ 	=
+
+-	local t =3D Client_GetTicks() - gMobile2DTestGfx.iAnimStartTime
++	local t =3D Client_GetTicks() - gfx.iAnimStartTime
++	local framedt =3D 200
++	local framecount =3D gfx.iMaxFrames
++	local iFrameNum =3D math.mod(math.floor(t/framedt),framecount)
++	if (gfx.iFrame ~=3D iFrameNum) then
++		gfx.iFrame  =3D iFrameNum
++		self:MobileGfxUpdateGeometry(gfx,iModelID,iAnimID,gfx.iFrame,iHue)
++	end
+ end
+ =
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000999.html">[Iris-commit] [IRIS] r2190 - in /trunk/lua: lib.2d.map.lua lib.2d.mobile.lua lib.granny.lua main.lua
+</A></li>
+	<LI>Next message: <A HREF="001001.html">[Iris-commit] [IRIS] r2192 - in /trunk: bin/OgreMain.dll bin/Plugin_CgProgramManager.dll bin/Plugin_ParticleFX.dll bin/RenderSystem_Direct3D9.dll bin/RenderSystem_GL.dll bin/cg.dll bin/iris2.exe lua/lib.3d.renderer.lua vc8/iris.vcproj
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1000">[ date ]</a>
+              <a href="thread.html#1000">[ thread ]</a>
+              <a href="subject.html#1000">[ subject ]</a>
+              <a href="author.html#1000">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

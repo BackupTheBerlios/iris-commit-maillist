@@ -1,0 +1,134 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2844 - in /trunk/lua: gui/gui.helper.lua	main.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2009-January/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2844%20-%20in%20/trunk/lua%3A%20gui/gui.helper.lua%0A%09main.lua&In-Reply-To=%3C20090108013433.B6BE91C18807%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001645.html">
+   <LINK REL="Next"  HREF="001646.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2844 - in /trunk/lua: gui/gui.helper.lua	main.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2844%20-%20in%20/trunk/lua%3A%20gui/gui.helper.lua%0A%09main.lua&In-Reply-To=%3C20090108013433.B6BE91C18807%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2844 - in /trunk/lua: gui/gui.helper.lua	main.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Thu Jan  8 02:34:33 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001645.html">[Iris-commit] [IRIS] r2843 - in /trunk: lua/lib.2d.renderer.lua lua/lib.charcreate.lua lua/lib.macrolist.lua lua/lib.net.lua lua/lib.protocol.lua lua/main.lua lua/net/net.mobile.lua lua/net/net.text.lua plugins/itemcounter.lua plugins/lib.spellbar.lua
+</A></li>
+        <LI>Next message: <A HREF="001646.html">[Iris-commit] [IRIS] r2845 - in /trunk/lua: lib.2d.renderer.lua	lib.3d.renderer.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1647">[ date ]</a>
+              <a href="thread.html#1647">[ thread ]</a>
+              <a href="subject.html#1647">[ subject ]</a>
+              <a href="author.html#1647">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Thu Jan  8 02:34:33 2009
+New Revision: 2844
+
+Log:
+cpu % display in topbar
+
+Modified:
+    trunk/lua/gui/gui.helper.lua
+    trunk/lua/main.lua
+
+Modified: trunk/lua/gui/gui.helper.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.helper.lua (original)
++++ trunk/lua/gui/gui.helper.lua Thu Jan  8 02:34:33 2009
+@@ -88,10 +88,11 @@
+ 			end
+ 		end
+ 					=
+
+-		local text =3D sprintf(&quot;%5.1ffps %dt %db gfx | OGRE:%s | LUA:%s | %i j %=
+i/%i l&quot;,
++		local text =3D sprintf(&quot;%5.1ffps %dt %db gfx | OGRE:%s | LUA:%s | cpu/(c=
+pu+gpu):%d%% | %i j %i/%i l&quot;,
+ 			fps, t, b, =
+
+ 			DisplayMemoryUsageFormatHelper(memoryusage),
+ 			DisplayMemoryUsageFormatHelper(mem_dyn), =
+
++			floor((gFrameTimeCPUFraction or 0)*100),
+ 			j, l, lu   -- #&quot;job.create()-jobs&quot;    blockloader: working/killme
+ 		)
+ 		if (not gMemoryUsageField) then
+
+Modified: trunk/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/main.lua (original)
++++ trunk/lua/main.lua Thu Jan  8 02:34:33 2009
+@@ -463,6 +463,7 @@
+ =
+
+ -- called every frame, after all timer-steppers, see Step() in lib.time.lua
+ function MainStep ()
++	local t_cpu_start =3D Client_GetTicks()
+ 	gProfiler_MainStep:Start(gEnableProfiler_MainStep)
+ 	gProfiler_MainStep:Section(&quot;LugreStep&quot;)
+ 		=
+
+@@ -525,7 +526,12 @@
+ 	=
+
+ 	gProfiler_MainStep:End()
+ =
+
++	local t_gpu_start =3D Client_GetTicks()
+ 	Client_RenderOneFrame()
++	local t_gpu_end =3D Client_GetTicks()
++	local dt_cpu =3D t_cpu_start - t_gpu_start
++	local dt_gpu =3D t_gpu_start - t_gpu_end
++	gFrameTimeCPUFraction =3D dt_cpu / ( dt_cpu + dt_gpu )
+ 	=
+
+ 	=
+
+ 	if (gMaxFPS) then =
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001645.html">[Iris-commit] [IRIS] r2843 - in /trunk: lua/lib.2d.renderer.lua lua/lib.charcreate.lua lua/lib.macrolist.lua lua/lib.net.lua lua/lib.protocol.lua lua/main.lua lua/net/net.mobile.lua lua/net/net.text.lua plugins/itemcounter.lua plugins/lib.spellbar.lua
+</A></li>
+	<LI>Next message: <A HREF="001646.html">[Iris-commit] [IRIS] r2845 - in /trunk/lua: lib.2d.renderer.lua	lib.3d.renderer.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1647">[ date ]</a>
+              <a href="thread.html#1647">[ thread ]</a>
+              <a href="subject.html#1647">[ subject ]</a>
+              <a href="author.html#1647">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

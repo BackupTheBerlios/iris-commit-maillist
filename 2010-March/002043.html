@@ -1,0 +1,263 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r3283 - /trunk/lua/lib.thread.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2010-March/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3283%20-%20/trunk/lua/lib.thread.lua&In-Reply-To=%3C20100320015730.731447A9807B%40simon%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="002042.html">
+   <LINK REL="Next"  HREF="002044.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r3283 - /trunk/lua/lib.thread.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3283%20-%20/trunk/lua/lib.thread.lua&In-Reply-To=%3C20100320015730.731447A9807B%40simon%3E"
+       TITLE="[Iris-commit] [IRIS] r3283 - /trunk/lua/lib.thread.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat Mar 20 02:57:30 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="002042.html">[Iris-commit] [IRIS] r3282 - /trunk/lua/lib.thread.lua
+</A></li>
+        <LI>Next message: <A HREF="002044.html">[Iris-commit] [IRIS] r3284 -	/trunk/data/models/materials/textures.material
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2043">[ date ]</a>
+              <a href="thread.html#2043">[ thread ]</a>
+              <a href="subject.html#2043">[ subject ]</a>
+              <a href="author.html#2043">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sat Mar 20 02:57:30 2010
+New Revision: 3283
+
+Log:
+thread fifo sending
+
+Modified:
+    trunk/lua/lib.thread.lua
+
+Modified: trunk/lua/lib.thread.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.thread.lua (original)
++++ trunk/lua/lib.thread.lua Sat Mar 20 02:57:30 2010
+@@ -1,4 +1,8 @@
+ function RunThreadTest () RunThreadTest_Main() end  --  -threadtest
++-- idea hagish : helper-class to create message-handling thread that can b=
+e serialized as option for easier debugging (decide at create if a real thr=
+ead is started or a thread-object that handles messages directly)
++
++
++
+ =
+
+ -- see lib.netmessage.lua  for message system
+ --[[
+@@ -49,9 +53,41 @@
+ =
+
+ function RunThreadTest_RegisterMessageTypes ()
+ 	RegisterNetMessageType(&quot;kThreadMessage_Debug&quot;,&quot;iis&quot;)
++	RegisterNetMessageType(&quot;kThreadMessage_TransferPointer&quot;,&quot;p&quot;)
++	RegisterNetMessageType(&quot;kThreadMessage_TransferBuffer&quot;,&quot;x&quot;)
+ end
+ =
+
+ function RunThreadTest_Main ()
++
++	if (1 =3D=3D 2) then =
+
++		local fifo =3D CreateFIFO()
++		local p =3D fifo:GetCrossThreadHandle()
++		print(&quot;GetCrossThreadHandle&quot;,p)
++		local fifo3 =3D CreateFIFO()
++		local fifo4 =3D CreateFIFO()
++		local fifo5 =3D CreateFIFO()
++		local fifo6 =3D CreateFIFO()
++		fifo3:PushPointer(p)
++		fifo4:PushPointer2(p)
++		fifo5:PushPointerTest()
++		fifo6:PushNetUint32(0x12345678)
++		print(&quot;fifo3:Size() a&quot;,fifo3:Size())
++		print(&quot;fifo3:Size() raw3&quot;,hex(fifo3:PeekNetUint8(0)),hex(fifo3:PeekNetUi=
+nt8(1)),hex(fifo3:PeekNetUint8(2)),hex(fifo3:PeekNetUint8(3)))
++		print(&quot;fifo3:Size() raw4&quot;,hex(fifo4:PeekNetUint8(0)),hex(fifo4:PeekNetUi=
+nt8(1)),hex(fifo4:PeekNetUint8(2)),hex(fifo4:PeekNetUint8(3)))
++		print(&quot;fifo3:Size() raw5&quot;,hex(fifo5:PeekNetUint8(0)),hex(fifo5:PeekNetUi=
+nt8(1)),hex(fifo5:PeekNetUint8(2)),hex(fifo5:PeekNetUint8(3)))
++		print(&quot;fifo3:Size() raw6&quot;,hex(fifo6:PeekNetUint8(0)),hex(fifo6:PeekNetUi=
+nt8(1)),hex(fifo6:PeekNetUint8(2)),hex(fifo6:PeekNetUint8(3)))
++		local p2 =3D fifo3:PopPointer()
++		print(&quot;fifo3:Size() b&quot;,fifo3:Size())
++		print(&quot;fifo pointer test p,p2=3D&quot;,p,p2,p =3D=3D p2) =
+
++		assert(p =3D=3D p2)
++		local fifo2 =3D CreateFIFOFromCrossThreadHandle(p2)
++		print(&quot;CreateFIFOFromCrossThreadHandle&quot;,fifo2)
++		print(&quot; Size&quot;,fifo2:Size())
++		fifo:PushNetUint8(123)
++		print(&quot; Size&quot;,fifo2:Size())
++	end
++	=
+
++	=
+
+ 	print(&quot;main: Threads_GetHardwareConcurrency:&quot;, Threads_GetHardwareConcurr=
+ency())
+ 	RunThreadTest_RegisterMessageTypes()
+ 	=
+
+@@ -73,6 +109,14 @@
+ 		thread:UnLockMutex()
+ 		thread:Interrupt()
+ 	end
++	=
+
++	=
+
++	local message_handlers =3D {}
++	message_handlers[kThreadMessage_TransferBuffer] =3D function (fifo)
++		print(&quot;mainthread:kThreadMessage_TransferBuffer received, data:&quot;,fifo)
++		print(FIFOHexDump(fifo))
++	end
++	=
+
+ 	=
+
+ 	local local_fifo_recv =3D CreateFIFO()
+ 	function MyRecvMessages ()
+@@ -80,7 +124,11 @@
+ 		local_fifo_recv:PushFIFOPartRaw(fifo_recv) -- move data from this_fifo_r=
+ecv to local_fifo_recv
+ 		fifo_recv:Clear()
+ 		thread:UnLockMutex()
+-		RecvNetMessages(local_fifo_recv,function (msgtype,...) print(&quot;main:msg&quot;,=
+msgtype,...) end)
++		RecvNetMessages(local_fifo_recv,function (msgtype,...) =
+
++			print(&quot;main:msg&quot;,msgtype,...) =
+
++			local handler =3D message_handlers[msgtype]
++			if (handler) then handler(...) end
++		end)
+ 	end
+ 	=
+
+ 	print(&quot;main: sleep...&quot;)
+@@ -88,14 +136,19 @@
+ 	--~ print(&quot;main: send interrupt...&quot;)
+ 	--~ thread:Interrupt()
+ 	=
+
++	=
+
+ 	for i=3D1,10 do =
+
+ 		print(&quot;main:send&quot;)
+ 		MyRecvMessages()
+ 		MySend(kThreadMessage_Debug,i,42,&quot;bla!&quot;)
++		MySend(kThreadMessage_Debug,i,42,&quot;bla2!&quot;)
++		--~ local fifo2 =3D CreateFIFO()
++		--~ local crossp =3D fifo2:GetCrossThreadHandle()
++		--~ print(&quot;sending crossp&quot;,crossp)
++		--~ MySend(kThreadMessage_TransferPointer,crossp)
++		MySend(kThreadMessage_TransferBuffer,CreateFIFO())
+ 		Client_USleep(2*1000) =
+
+ 	end
+-	=
+
+-	=
+
+ 	=
+
+ 	print(&quot;main: done, sleeping before end...&quot;)
+ 	Client_USleep(5*60*1000) =
+
+@@ -119,6 +172,21 @@
+ 		this_thread:UnLockMutex()
+ 	end
+ 	=
+
++	local message_handlers =3D {}
++	message_handlers[kThreadMessage_TransferPointer] =3D function (p) =
+
++		print(&quot;child:kThreadMessage_TransferPointer&quot;,p) =
+
++		local fifo2 =3D CreateFIFOFromCrossThreadHandle(p)
++		print(&quot; + transferred to fifo:&quot;,fifo2)
++	end
++	message_handlers[kThreadMessage_TransferBuffer] =3D function (fifo)
++		print(&quot;child:kThreadMessage_TransferBuffer received, filling and sending=
+ back&quot;,fifo)
++		fifo:PushNetUint8(0xff)
++		fifo:PushNetUint8(0x11)
++		fifo:PushNetUint8(0x22)
++		ChildThread_Send(kThreadMessage_TransferBuffer,fifo) =
+
++		print(&quot;child:kThreadMessage_TransferBuffer done&quot;)
++	end
++	=
+
+ 	=
+
+ 	local local_fifo_recv =3D CreateFIFO()
+ 	while (true) do =
+
+@@ -126,7 +194,12 @@
+ 		local_fifo_recv:PushFIFOPartRaw(this_fifo_recv) -- move data from this_f=
+ifo_recv to local_fifo_recv
+ 		this_fifo_recv:Clear()
+ 		this_thread:UnLockMutex() -- release so we don't block while processing =
+messages
+-		RecvNetMessages(local_fifo_recv,function (msgtype,...) print(&quot;child:msg&quot;=
+,msgtype,...) ChildThread_Send(kThreadMessage_Debug,99,99,&quot;answer&quot;) end)
++		RecvNetMessages(local_fifo_recv,function (msgtype,...) =
+
++				print(&quot;child:msg&quot;,msgtype,...) =
+
++				ChildThread_Send(kThreadMessage_Debug,99,99,&quot;answer&quot;) =
+
++				local handler =3D message_handlers[msgtype]
++				if (handler) then handler(...) end
++				end)
+ 		Thread_Sleep(999*1000)
+ 	end
+ 	=
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="002042.html">[Iris-commit] [IRIS] r3282 - /trunk/lua/lib.thread.lua
+</A></li>
+	<LI>Next message: <A HREF="002044.html">[Iris-commit] [IRIS] r3284 -	/trunk/data/models/materials/textures.material
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2043">[ date ]</a>
+              <a href="thread.html#2043">[ thread ]</a>
+              <a href="subject.html#2043">[ subject ]</a>
+              <a href="author.html#2043">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

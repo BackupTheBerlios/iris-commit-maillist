@@ -1,0 +1,210 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1357 - in /branches/knut: data/lua/obj/obj.dynamic.lua data/lua/obj/obj.main.lua data/lua/obj/obj.player.lua src/builder.cpp
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2007-August/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1357%20-%20in%20/branches/knut%3A%0A%20data/lua/obj/obj.dynamic.lua%20data/lua/obj/obj.main.lua%0A%20data/lua/obj/obj.player.lua%20src/builder.cpp&In-Reply-To=%3C20070822093545.0EA281C184BD%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000172.html">
+   <LINK REL="Next"  HREF="000174.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1357 - in /branches/knut: data/lua/obj/obj.dynamic.lua data/lua/obj/obj.main.lua data/lua/obj/obj.player.lua src/builder.cpp</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1357%20-%20in%20/branches/knut%3A%0A%20data/lua/obj/obj.dynamic.lua%20data/lua/obj/obj.main.lua%0A%20data/lua/obj/obj.player.lua%20src/builder.cpp&In-Reply-To=%3C20070822093545.0EA281C184BD%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1357 - in /branches/knut: data/lua/obj/obj.dynamic.lua data/lua/obj/obj.main.lua data/lua/obj/obj.player.lua src/builder.cpp">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Wed Aug 22 11:35:45 CEST 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000172.html">[Iris-commit] [IRIS] r1356 - /trunk/src/scripting.cpp
+</A></li>
+        <LI>Next message: <A HREF="000174.html">[Iris-commit] [IRIS] r1358 - /trunk/src/scripting.cpp
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#173">[ date ]</a>
+              <a href="thread.html#173">[ thread ]</a>
+              <a href="subject.html#173">[ subject ]</a>
+              <a href="author.html#173">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Wed Aug 22 11:35:44 2007
+New Revision: 1357
+
+Log:
+syncing for merge
+
+Modified:
+    branches/knut/data/lua/obj/obj.dynamic.lua
+    branches/knut/data/lua/obj/obj.main.lua
+    branches/knut/data/lua/obj/obj.player.lua
+    branches/knut/src/builder.cpp
+
+Modified: branches/knut/data/lua/obj/obj.dynamic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- branches/knut/data/lua/obj/obj.dynamic.lua (original)
++++ branches/knut/data/lua/obj/obj.dynamic.lua Wed Aug 22 11:35:44 2007
+@@ -2,9 +2,9 @@
+ 	dynamic =3D {}
+ 	dynamic.serial =3D packet.serial
+ 	dynamic.artid =3D 0
+-	dynamic.x =3D 0
+-	dynamic.y =3D 0
+-	dynamic.z =3D 0
++	dynamic.xloc =3D 0
++	dynamic.yloc =3D 0
++	dynamic.zloc =3D 0
+ 	dynamic.hue =3D 0
+ 	dynamic.amount =3D 1
+ 	dynamic.content =3D {}
+@@ -37,7 +37,7 @@
+ 	=
+
+ 	for field, value in pairs( packet ) do
+ 		if (value ~=3D dynamic[field]) then
+-			if in_array( field, {&quot;x&quot;,&quot;y&quot;,&quot;z&quot;} ) then
++			if in_array( field, {&quot;xloc&quot;,&quot;yloc&quot;,&quot;zloc&quot;} ) then
+ 				updateposition =3D true
+ 			else
+ 				updategraphic =3D true
+@@ -68,13 +68,15 @@
+ 	=
+
+ 	dynamic:deregister()
+ end
+-
++
++-- if dynamic is a container, add object to its contents
+ function DynamicAddObject( dynamic, object )
+ 	dynamic.content[ object.serial ] =3D object
+ 	object.container =3D dynamic
+ 	NotifyListener( &quot;DynamicAddedToCont&quot;..sprintf(&quot;%d&quot;,dynamic.serial), objec=
+t.serial )
+ end
+-
++
++-- if dynamic is a container, remove object from its contents
+ function DynamicRemoveObject( dynamic, object )
+ 	dynamic.content[ object.serial ] =3D nil
+ 	object.container =3D nil
+@@ -82,7 +84,8 @@
+ end
+ =
+
+ function SetContainer( dynamic, container )
+-	if (dynamic.container) then
++	if (dynamic.container) then
++		-- remove dynamic from old container
+ 		dynamic.container:removeobject( dynamic )
+ 	end
+ 	=
+
+@@ -90,7 +93,8 @@
+ 		container:addobject( dynamic )
+ 	end
+ end
+-
++
++-- TODO : is there a better place for this ? a seperate lua file for all d=
+ragdrop stuff ? container related ?
+ function DynamicGrab( dynamic, offx, offy )
+ 	SetDragItem( dynamic, offx, offy )
+ 	Send_Take_Object( dynamic.serial, dynamic.amount )
+
+Modified: branches/knut/data/lua/obj/obj.main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- branches/knut/data/lua/obj/obj.main.lua (original)
++++ branches/knut/data/lua/obj/obj.main.lua Wed Aug 22 11:35:44 2007
+@@ -14,8 +14,8 @@
+ =
+
+ function DynamicIsInWorld (dynamic) return not dynamic.container end  -- T=
+ODO : spelling of container correct ???
+ =
+
+-function GetDynamicList	() return gDynamics end -- object.isdynamic
+-function GetMobileList	() return gMobiles end -- object.ismobile
++function GetDynamicList	() assert(false,&quot;TODO, not yet supported..&quot;) retur=
+n gDynamics end -- object.isdynamic
++function GetMobileList	() assert(false,&quot;TODO, not yet supported..&quot;) return=
+ gMobiles end -- object.ismobile
+ =
+
+ gObjectList =3D {}
+ gPlayerBodySerial =3D 0
+
+Modified: branches/knut/data/lua/obj/obj.player.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- branches/knut/data/lua/obj/obj.player.lua (original)
++++ branches/knut/data/lua/obj/obj.player.lua Wed Aug 22 11:35:44 2007
+@@ -41,4 +41,4 @@
+ 			Send_DoubleClick( backpack.serial )
+ 		end
+ 	end
+-end
++end
+
+Modified: branches/knut/src/builder.cpp
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- branches/knut/src/builder.cpp (original)
++++ branches/knut/src/builder.cpp Wed Aug 22 11:35:44 2007
+@@ -275,7 +275,7 @@
+ =
+
+ =
+
+ /// WARNING ! changes size to 2^n where n &gt;=3D 4
+-bool	GenerateGumpMaterial	(cGumpLoader&amp; oGumpLoader,const char* szMatName,=
+const int iID,const bool bHasAlpha,cHueLoader* pHueLoader,const short iHue)=
+ { PROFILE
++bool	GenerateGumpMaterial	(cGumpLoader&amp; oGumpLoader,const char* szMatName,=
+const int iID,const bool bHasAlpha,cHueLoader* pHueLoader,short iHue) { PRO=
+FILE
+ 	cGump *gump =3D oGumpLoader.GetGump(iID);
+ 	if (gump =3D=3D 0) return false;
+ 	int iImgW =3D gump-&gt;GetWidth();
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000172.html">[Iris-commit] [IRIS] r1356 - /trunk/src/scripting.cpp
+</A></li>
+	<LI>Next message: <A HREF="000174.html">[Iris-commit] [IRIS] r1358 - /trunk/src/scripting.cpp
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#173">[ date ]</a>
+              <a href="thread.html#173">[ thread ]</a>
+              <a href="subject.html#173">[ subject ]</a>
+              <a href="author.html#173">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

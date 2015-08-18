@@ -1,0 +1,204 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1754 - /trunk/lua/lib.3d.map.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-January/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1754%20-%20/trunk/lua/lib.3d.map.lua&In-Reply-To=%3C20080115170824.226361C1804E%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000569.html">
+   <LINK REL="Next"  HREF="000572.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1754 - /trunk/lua/lib.3d.map.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1754%20-%20/trunk/lua/lib.3d.map.lua&In-Reply-To=%3C20080115170824.226361C1804E%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1754 - /trunk/lua/lib.3d.map.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat Jan 12 04:03:34 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000569.html">[Iris-commit] [IRIS] r1753 - in /trunk: data/base/main.material lua/lib.3d.dynamic.lua lua/lib.3d.mousepick.lua lua/lib.fallback.lua lua/lib.static.lua
+</A></li>
+        <LI>Next message: <A HREF="000572.html">[Iris-commit] [IRIS] r1755 - in /trunk/data: config.lua.dist models/models/alpha_tex_atlas.material models/models/alpha_tex_atlas_0_512.png models/models/tex_atlas.material models/models/tex_atlas_0_512.png
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#570">[ date ]</a>
+              <a href="thread.html#570">[ thread ]</a>
+              <a href="subject.html#570">[ subject ]</a>
+              <a href="author.html#570">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sat Jan 12 04:03:34 2008
+New Revision: 1754
+
+Log:
+blendout upper floors fix
+
+Modified:
+    trunk/lua/lib.3d.map.lua
+
+Modified: trunk/lua/lib.3d.map.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.map.lua (original)
++++ trunk/lua/lib.3d.map.lua Sat Jan 12 04:03:34 2008
+@@ -15,11 +15,13 @@
+ -- every block is equivalent to one MapBlock3D
+ =
+
+ function Renderer3D:ZToLayer(zloc)
+-	return math.floor(zloc / Renderer3D.giBlendOutPlayerHeight)
++	--~ return math.floor(zloc / Renderer3D.giBlendOutPlayerHeight)
++	return math.floor(zloc)
+ end
+ =
+
+ function Renderer3D:LayerToZ(zlayer)
+-	return zlayer * Renderer3D.giBlendOutPlayerHeight
++	--~ return zlayer * Renderer3D.giBlendOutPlayerHeight
++	return zlayer
+ end
+ =
+
+ function Renderer3D:UpdateMap ()
+@@ -395,19 +397,27 @@
+ function Renderer3D:BlendOutLayersAbovePlayer ()
+ 	local x,y,z =3D GetPlayerPos()
+ 	if (not z or not gStaticBlockLoader or not gGroundBlockLoader) then retur=
+n end
+-
++	=
+
++	--[[
++	osi =3D wenn dach min 18z h=C3=B6her als char, dann alles von zdach aufw=
+=C3=A4rts ausblenden
++	atm blendet iris statics aus, die 10 =C3=BCber dem char liegen
++	man geht in eine halle die ne art tronsaal sein soll, und hat keine hohen=
+ w=C3=A4nde, sondern ne sandkasten umrandung ^^
++	ich  hab f=C3=BCr iris h=C3=B6her gebaut als normal uo etagen vorsah, bei=
+ osi war 20die h=C3=B6he f=C3=BCr ne wand, =
+
++	]]--
++	=
+
+ 	local playerheadpos =3D z + self.giBlendOutPlayerHeight
+ =
+
+ 	local myLayer =3D nil
+ 	local playerIsInside =3D false
+ 	local bTerrainVisible =3D true
++	local zloc_roof =3D nil -- becomes the minimum of the statics above the p=
+layer
+ 	=
+
+ 	-- only blend out if not in first person mode
+ 	if (not Renderer3D:IsFirstPersonCam()) then =
+
+ 		=
+
+ 		-- check ground
+ 		local iPlayerGroundTileType,iPlayerGroundZLoc =3D GetAbsTile(x,y) =
+
+-		if (iPlayerGroundZLoc and iPlayerGroundZLoc &gt; playerheadpos) then player=
+IsInside =3D true bTerrainVisible =3D false end
++		if (iPlayerGroundZLoc and iPlayerGroundZLoc &gt;=3D playerheadpos) then pla=
+yerIsInside =3D true bTerrainVisible =3D false end
+ 		=
+
+ 		-- check statics
+ 		if (not playerIsInside) then
+@@ -419,7 +429,10 @@
+ 			local iTileTypeID,iX,iY,iZ,iHue
+ 			for i =3D 0,iStaticCount-1 do
+ 				iTileTypeID,iX,iY,iZ,iHue =3D gStaticBlockLoader:GetStatic(i) -- opera=
+tes on the block that was last loaded using :Load()
+-				if (iX =3D=3D iPX and iY =3D=3D iPY and iZ &gt; playerheadpos) then playe=
+rIsInside =3D true end
++				if (iX =3D=3D iPX and iY =3D=3D iPY and iZ &gt;=3D playerheadpos) then =
+
++					playerIsInside =3D true =
+
++					if ((not zloc_roof) or (zloc_roof &gt; iZ)) then zloc_roof =3D iZ end
++				end
+ 			end
+ 		end
+ =
+
+@@ -431,8 +444,9 @@
+ 					for k,v in pairs(multi.lparts) do
+ =
+
+ 						local iTileTypeID,iX,iY,iZ,iHue =3D unpack(v)
+-						if	iX =3D=3D x and iY =3D=3D y  and iZ &gt; playerheadpos then
++						if	iX =3D=3D x and iY =3D=3D y  and iZ &gt;=3D playerheadpos then
+ 							playerIsInside =3D true
++							if ((not zloc_roof) or (zloc_roof &gt; iZ)) then zloc_roof =3D iZ end
+ 						end
+ 					end
+ 				end
+@@ -443,15 +457,22 @@
+ 		if (not playerIsInside) then
+ 			for k,dynamic in pairs(GetDynamicList()) do
+ 				if (DynamicIsInWorld(dynamic)) then
+-					if (x =3D=3D dynamic.xloc and y =3D=3D dynamic.yloc and dynamic.zloc =
+&gt;<i> playerheadpos) then
+</I>+					if (x =3D=3D dynamic.xloc and y =3D=3D dynamic.yloc and dynamic.zloc =
+&gt;<i>=3D playerheadpos) then
+</I> 						playerIsInside =3D true
++						local iZ =3D dynamic.zloc
++						if ((not zloc_roof) or (zloc_roof &gt; iZ)) then zloc_roof =3D iZ end
+ 					end
+ 				end
+ 			end
+ 		end
+ =
+
+ 		-- blend out layers above player head if inside
+-		if (playerIsInside) then myLayer =3D playerheadpos end
++		--~ if (playerIsInside) then myLayer =3D zloc_roof or playerheadpos end
++		if (playerIsInside) then =
+
++			myLayer =3D playerheadpos =
+
++			if (zloc_roof) then myLayer =3D zloc_roof - 1 end
++		end
++		--~ print(&quot;blendout&quot;,playerIsInside,playerheadpos,zloc_roof)
+ 	end
+ =
+
+ 	-- only update if changed
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000569.html">[Iris-commit] [IRIS] r1753 - in /trunk: data/base/main.material lua/lib.3d.dynamic.lua lua/lib.3d.mousepick.lua lua/lib.fallback.lua lua/lib.static.lua
+</A></li>
+	<LI>Next message: <A HREF="000572.html">[Iris-commit] [IRIS] r1755 - in /trunk/data: config.lua.dist models/models/alpha_tex_atlas.material models/models/alpha_tex_atlas_0_512.png models/models/tex_atlas.material models/models/tex_atlas_0_512.png
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#570">[ date ]</a>
+              <a href="thread.html#570">[ thread ]</a>
+              <a href="subject.html#570">[ subject ]</a>
+              <a href="author.html#570">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

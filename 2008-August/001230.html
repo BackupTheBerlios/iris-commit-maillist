@@ -1,0 +1,167 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2425 - in /trunk/lua: gui/gui.helper.lua	net/net.other.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-August/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2425%20-%20in%20/trunk/lua%3A%20gui/gui.helper.lua%0A%09net/net.other.lua&In-Reply-To=%3C20080830025648.03CAC1C1867A%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001229.html">
+   <LINK REL="Next"  HREF="001231.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2425 - in /trunk/lua: gui/gui.helper.lua	net/net.other.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2425%20-%20in%20/trunk/lua%3A%20gui/gui.helper.lua%0A%09net/net.other.lua&In-Reply-To=%3C20080830025648.03CAC1C1867A%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2425 - in /trunk/lua: gui/gui.helper.lua	net/net.other.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat Aug 30 04:56:47 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001229.html">[Iris-commit] [IRIS] r2424 - /trunk/lua/net/net.partysystem.lua
+</A></li>
+        <LI>Next message: <A HREF="001231.html">[Iris-commit] [IRIS] r2426 - in /trunk/lua: lib.tilefreewalk.lua	lib.walking3.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1230">[ date ]</a>
+              <a href="thread.html#1230">[ thread ]</a>
+              <a href="subject.html#1230">[ subject ]</a>
+              <a href="author.html#1230">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sat Aug 30 04:56:47 2008
+New Revision: 2425
+
+Log:
+runebook rename now possible, implemented packet 0xC2 , server request and =
+client answer
+
+Modified:
+    trunk/lua/gui/gui.helper.lua
+    trunk/lua/net/net.other.lua
+
+Modified: trunk/lua/gui/gui.helper.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.helper.lua (original)
++++ trunk/lua/gui/gui.helper.lua Sat Aug 30 04:56:47 2008
+@@ -63,6 +63,11 @@
+ 	elseif string.sub(curtext, 1, 1) =3D=3D &quot;/&quot; then
+ 		Send_PartyChat(string.sub(curtext, 2))
+ 	else =
+
+-		Send_UnicodeSpeech(curtext) =
+
++	=
+
++		if (gUnicodeTextEntryRequest) then =
+
++			Send_Unicode_Text_Entry(curtext) =
+
++		else
++			Send_UnicodeSpeech(curtext) =
+
++		end
+ 	end
+ end =
+
+
+Modified: trunk/lua/net/net.other.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.other.lua (original)
++++ trunk/lua/net/net.other.lua Sat Aug 30 04:56:47 2008
+@@ -470,7 +470,46 @@
+ 	-- TODO : text_item ?!?
+ end
+ =
+
++
++-- server requests text entry 0xC2, e.g. rename rune
++function gPacketHandler.kPacket_Unicode_Text_Entry ()
++	local input =3D GetRecvFIFO()
++	local id	=3D input:PopNetUint8()	-- 1
++	local size	=3D input:PopNetUint16()	-- 2
++	local data =3D {}
++	data.player_serial		=3D input:PopNetUint32()
++	data.message_id			=3D input:PopNetUint32()
++	gUnicodeTextEntryRequest =3D data
++	size =3D size - 11
++	input:PopRaw(size) -- 10 zero-bytes usually
++	print(&quot;kPacket_Unicode_Text_Entry request&quot;)
++end
++
++
++-- 0xC2, like the request, see above
++-- TODO : real unicode support
++function Send_Unicode_Text_Entry (text)
++	local out =3D GetSendFIFO()
++	local textlen =3D string.len(text)
++	local unicode_bytelen =3D textlen*2
++	local size =3D 1 + 2 + 4 + 4 + 4 + 3 + unicode_bytelen + 1
++	out:PushNetUint8(kPacket_Unicode_Text_Entry)
++	out:PushNetUint16(size)
++	out:PushNetUint32(gUnicodeTextEntryRequest.player_serial)
++	out:PushNetUint32(gUnicodeTextEntryRequest.message_id)
++	out:PushNetUint32(1)
++	out:PushFilledString(gLanguage or &quot;ENU&quot;,3)
++	for i =3D 1 , textlen do
++		out:PushNetUint16(string.byte(text,i))
++	end
++	out:PushNetUint8(0) -- zero termination ??
++	gUnicodeTextEntryRequest =3D nil -- clear request
++	print(&quot;Send_Unicode_Text_Entry&quot;,text)
++	out:SendPacket()
++end
++
+ -- aka Cliloc Message Affix  : see also <A HREF="http://docs.polserver.com/packets/=">http://docs.polserver.com/packets/=</A>
+index.php?Packet=3D0xCC
++-- e.g. skilltrainer npc says how much gold he wants
+ function gPacketHandler.kPacket_Localized_Text_Plus_String () -- 0xCC
+ 	local input =3D GetRecvFIFO()
+ 	local id				=3D input:PopNetUint8()	-- 1
+@@ -527,6 +566,7 @@
+ 	--~ print(&quot;kPacket_Localized_Text_Plus_String&quot;)
+ 	--~ for k,v in pairs(data) do print(&quot;++&quot;,k,v) end
+ end
++
+ =
+
+ -- Predefined Message (localized Message) 0xC1
+ function gPacketHandler.kPacket_Localized_Text ()
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001229.html">[Iris-commit] [IRIS] r2424 - /trunk/lua/net/net.partysystem.lua
+</A></li>
+	<LI>Next message: <A HREF="001231.html">[Iris-commit] [IRIS] r2426 - in /trunk/lua: lib.tilefreewalk.lua	lib.walking3.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1230">[ date ]</a>
+              <a href="thread.html#1230">[ thread ]</a>
+              <a href="subject.html#1230">[ subject ]</a>
+              <a href="author.html#1230">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

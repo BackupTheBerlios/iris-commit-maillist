@@ -1,0 +1,208 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1482 - in /trunk/data: config.lua.dist lua/lib.3d.map.lua lua/lib.loading.lua lua/lib.static.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2007-October/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1482%20-%20in%20/trunk/data%3A%20config.lua.dist%0A%20lua/lib.3d.map.lua%20lua/lib.loading.lua%20lua/lib.static.lua&In-Reply-To=%3C20071017205055.4FD8D1C18171%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000296.html">
+   <LINK REL="Next"  HREF="000298.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1482 - in /trunk/data: config.lua.dist lua/lib.3d.map.lua lua/lib.loading.lua lua/lib.static.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1482%20-%20in%20/trunk/data%3A%20config.lua.dist%0A%20lua/lib.3d.map.lua%20lua/lib.loading.lua%20lua/lib.static.lua&In-Reply-To=%3C20071017205055.4FD8D1C18171%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1482 - in /trunk/data: config.lua.dist lua/lib.3d.map.lua lua/lib.loading.lua lua/lib.static.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Wed Oct 17 22:50:54 CEST 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000296.html">[Iris-commit] [IRIS] r1481 - in /trunk: bin/iris2.exe	data/lua/lib.static.lua
+</A></li>
+        <LI>Next message: <A HREF="000298.html">[Iris-commit] [IRIS] r1483 - in /trunk/data/lua: lib.protocol.lua lib.uodragdrop.lua main.lua net.uodragdrop.lua net/net.main.lua obj/obj.mobile.lua obj/obj.player.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#297">[ date ]</a>
+              <a href="thread.html#297">[ thread ]</a>
+              <a href="subject.html#297">[ subject ]</a>
+              <a href="author.html#297">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: sience
+Date: Wed Oct 17 22:50:53 2007
+New Revision: 1482
+
+Log:
+-upperlayer blendout is now working on multi-dynamics
+-hueing back in lib.static.lua
+
+Modified:
+    trunk/data/config.lua.dist
+    trunk/data/lua/lib.3d.map.lua
+    trunk/data/lua/lib.loading.lua
+    trunk/data/lua/lib.static.lua
+
+Modified: trunk/data/config.lua.dist
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/config.lua.dist (original)
++++ trunk/data/config.lua.dist Wed Oct 17 22:50:53 2007
+@@ -55,7 +55,7 @@
+ gSightRange	=3D 2
+ =
+
+ -- 0 Trammel, 1 Felucca, 2 Ilshenar, 3 Malas, 4 Tokuno
+-gMapIndex =3D 1
++gMapIndex =3D 0
+ =
+
+ gCompassZoomFactor =3D 1.5
+ gCompassSize =3D 150 -- in pixels on screen, set to 0 to disable
+
+Modified: trunk/data/lua/lib.3d.map.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.3d.map.lua (original)
++++ trunk/data/lua/lib.3d.map.lua Wed Oct 17 22:50:53 2007
+@@ -255,10 +255,12 @@
+ end
+ =
+
+ function Renderer3D:UpdateDynamicVisibility	(dynamic) =
+
+-	if (dynamic.lMultiChildGfx) then =
+
++	if (dynamic.lMultiChildGfx) then
+ 		-- multi
+ 		for k,child in pairs(dynamic.lMultiChildGfx) do
+-			child:SetVisible(self:IsZLayerVisible(child.zloc))
++			if (child.zloc &gt; self.giBlendOutPlayerHeight) then
++				child:SetVisible(self:IsZLayerVisible(child.zloc))
++			end
+ 		end
+ 	elseif (dynamic.gfx) then
+ 		-- normal item
+@@ -275,8 +277,9 @@
+ function Renderer3D:BlendOutLayersAbovePlayer ()
+ 	local x,y,z =3D GetPlayerPos()
+ 	if (not z or not gStaticBlockLoader) then return end
+-	=
+
++
+ 	local playerheadpos =3D z + self.giBlendOutPlayerHeight
++
+ 	local myLayer =3D nil
+ 	local playerIsInside =3D false
+ 	local bTerrainVisible =3D true
+@@ -355,6 +358,7 @@
+ 		=
+
+ 		-- update dynamics
+ 		for k,dynamic in pairs(GetDynamicList()) do if (DynamicIsInWorld(dynamic=
+)) then self:UpdateDynamicVisibility(dynamic) end end
++
+ 		-- update mobiles
+ 		for k,mobile in pairs(GetMobileList()) do self:UpdateMobileVisibility(mo=
+bile) end
+ 	end
+
+Modified: trunk/data/lua/lib.loading.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.loading.lua (original)
++++ trunk/data/lua/lib.loading.lua Wed Oct 17 22:50:53 2007
+@@ -218,7 +218,7 @@
+ -- don't load new map immediately, several mapchanges might be sent at log=
+in quickly
+ function MapChangeRequest (iMaxNewIndex)
+ 	if (gMapIndex =3D=3D iMaxNewIndex) then return end
+-	print(&quot;#### MapChangeRequest&quot;,iMaxNewIndex)
++	print(&quot;#### MapChangeRequest=3D&quot;..iMaxNewIndex)
+ 	=
+
+ 	-- unloading of all objects must happen immediately on change request, =
+
+ 	-- otherwise items sent after changerequest might be destroyed
+
+Modified: trunk/data/lua/lib.static.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.static.lua (original)
++++ trunk/data/lua/lib.static.lua Wed Oct 17 22:50:53 2007
+@@ -107,11 +107,11 @@
+ 						gManualArtMaterialLoader:CreateMatchingIfUnavailable(v)
+ 					end
+ 				end
+-				-- Wrong hueing here! Same Model (tileid) can have different hueings. =
+Hue this Model | TODO : Partitial Hue
+---				if (gHueLoader and (tonumber(iHue) &gt; 0) and (tonumber(iHue) &lt; gMaxHu=
+eValue)) then
++				-- Hue this Model | TODO : Partitial Hue
++--				if (gHueLoader) then
+ --					if( TestBit(GetStaticTileTypeFlags(iTranslatedTileTypeID) or 0,kTil=
+eDataFlag_Partial_Hue) ) then
+ --						printdebug(&quot;static&quot;,&quot;parthuedmodel=3D&quot;,iTranslatedTileTypeID)
+---					else
++--					elseif ((tonumber(iHue) &gt; 0) and (tonumber(iHue) &lt; gMaxHueValue)) t=
+hen
+ --						HueMesh(meshname,gHueLoader,iHue)
+ --					end
+ --				end
+@@ -127,6 +127,14 @@
+ 		gLegacyModelCache[iTranslatedTileTypeID..&quot;_&quot;..iHue] =3D meshname
+ 	end
+ =
+
++	-- Hue this Model | TODO : Partitial Hue
++	if ( (meshname ~=3D nil) and gHueLoader ) then
++		if( TestBit(GetStaticTileTypeFlags(iTranslatedTileTypeID) or 0,kTileData=
+Flag_Partial_Hue) ) then
++			printdebug(&quot;static&quot;,&quot;parthuedmodel=3D&quot;,iTranslatedTileTypeID)
++		elseif ((tonumber(iHue) &gt; 0) and (tonumber(iHue) &lt; gMaxHueValue)) then
++			HueMesh(meshname,gHueLoader,iHue)
++		end
++	end
+ 	return meshname
+ end
+ =
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000296.html">[Iris-commit] [IRIS] r1481 - in /trunk: bin/iris2.exe	data/lua/lib.static.lua
+</A></li>
+	<LI>Next message: <A HREF="000298.html">[Iris-commit] [IRIS] r1483 - in /trunk/data/lua: lib.protocol.lua lib.uodragdrop.lua main.lua net.uodragdrop.lua net/net.main.lua obj/obj.mobile.lua obj/obj.player.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#297">[ date ]</a>
+              <a href="thread.html#297">[ thread ]</a>
+              <a href="subject.html#297">[ subject ]</a>
+              <a href="author.html#297">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

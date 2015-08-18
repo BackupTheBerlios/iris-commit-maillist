@@ -1,0 +1,158 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2637 - in /trunk: lua/net/net.partysystem.lua	plugins/moblist.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-October/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2637%20-%20in%20/trunk%3A%20lua/net/net.partysystem.lua%0A%09plugins/moblist.lua&In-Reply-To=%3C20081023163540.72F441C18635%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001441.html">
+   <LINK REL="Next"  HREF="001443.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2637 - in /trunk: lua/net/net.partysystem.lua	plugins/moblist.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2637%20-%20in%20/trunk%3A%20lua/net/net.partysystem.lua%0A%09plugins/moblist.lua&In-Reply-To=%3C20081023163540.72F441C18635%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2637 - in /trunk: lua/net/net.partysystem.lua	plugins/moblist.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Thu Oct 23 18:35:40 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001441.html">[Iris-commit] [IRIS] r2636 - in /trunk/lua: lib.3d.walksmooth.lua lib.packetvideo.lua lib.tilefreewalk.lua main.lua obj/obj.mobile.lua
+</A></li>
+        <LI>Next message: <A HREF="001443.html">[Iris-commit] [IRIS] r2638 - /trunk/lua/lib.2d.mousepick.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1442">[ date ]</a>
+              <a href="thread.html#1442">[ thread ]</a>
+              <a href="subject.html#1442">[ subject ]</a>
+              <a href="author.html#1442">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Thu Oct 23 18:35:37 2008
+New Revision: 2637
+
+Log:
+a few improvements with uoam and party position display
+
+Modified:
+    trunk/lua/net/net.partysystem.lua
+    trunk/plugins/moblist.lua
+
+Modified: trunk/lua/net/net.partysystem.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.partysystem.lua (original)
++++ trunk/lua/net/net.partysystem.lua Thu Oct 23 18:35:37 2008
+@@ -33,10 +33,10 @@
+ -- returns xloc,yloc,iFacet,bIsOnSameFacet      =
+
+ function PartySystem_GetMemberPos (serial)
+ 	local mapindex =3D MapGetMapIndex()
++	local mob =3D GetMobile(serial)
++	if (mob) then return mob.xloc,mob.yloc,mapindex,true end
+ 	local pos =3D gPartyMemberPosList[serial]
+ 	if (pos) then return pos.xloc,pos.yloc,pos.facet,pos.facet=3D=3Dmapindex =
+end
+-	local mob =3D GetMobile(serial)
+-	if (mob) then return mob.xloc,mob.yloc,mapindex,true end
+ end
+ =
+
+ function PartySystem_UpdateMemberList (memberlist)
+
+Modified: trunk/plugins/moblist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/plugins/moblist.lua (original)
++++ trunk/plugins/moblist.lua Thu Oct 23 18:35:37 2008
+@@ -49,7 +49,7 @@
+ function gWidgetPrototype.UOMobList:UpdatePartyNameTooltip	(serial)
+ 	local widget =3D self.partyWidgetList[serial]
+ 	if (not widget) then return end
+-	widget.name =3D MobListShortenName(AosToolTip_GetText(serial) or &quot;???&quot;)
++	widget.name =3D MobListShortenName(AosToolTip_GetText(serial) or &quot;???+&quot;)
+ 	widget:SetText(widget.name)
+ end
+ =
+
+@@ -59,7 +59,7 @@
+ 	for serial,v in pairs(partylist) do
+ 		local widget =3D partyWidgetList[serial]
+ 		if ((not widget) and serial ~=3D GetPlayerSerial()) then
+-			local name =3D MobListShortenName(AosToolTip_GetText(serial) or &quot;???&quot;)
++			local name =3D MobListShortenName(AosToolTip_GetText(serial) or &quot;???#&quot;)
+ 			widget =3D gRootWidget.tooltip:CreateChild(&quot;UOText&quot;,{x=3D0,y=3D0,text=
+=3Dname,col=3D{r=3D0,g=3D1,b=3D0},bold=3Dtrue})
+ 			widget.name =3D name
+ 			partyWidgetList[serial] =3D widget
+@@ -76,7 +76,7 @@
+ function gWidgetPrototype.UOMobList:StepPartyMarkers	()
+ 	for serial,widget in pairs(self.partyWidgetList) do
+ 		local xloc,yloc,iFacet,bIsOnSameFacet =3D PartySystem_GetMemberPos(seria=
+l)
+-		local zloc =3D 0
++		local zloc =3D gPlayerZLoc or 0
+ 		=
+
+ 		if (xloc) then
+ 			local px,py =3D gCurrentRenderer:UOPosToPixelPos(xloc,yloc,zloc)
+@@ -119,7 +119,7 @@
+ -- every frame
+ function gWidgetPrototype.UOMobList:UOAMStep	()
+ 	for name,widget in pairs(self.uoamWidgetList) do -- {xloc=3D?,yloc=3D?,bI=
+sOnSameFacet=3D?}
+-		local xloc,yloc,zloc =3D widget.xloc,widget.yloc,0
++		local xloc,yloc,zloc =3D widget.xloc,widget.yloc,(gPlayerZLoc or 0)
+ 		local px,py =3D gCurrentRenderer:UOPosToPixelPos(xloc,yloc,zloc)
+ 		local w,h =3D widget:GetSize()
+ 		local minx,miny,maxx,maxy =3D 0,64,gViewportW-160,gViewportH-32
+@@ -224,8 +224,10 @@
+ 		gfx:SetPos(x,y)
+ 		local f =3D 0.5 -- bigger -&gt; longer line
+ 		local fi =3D 1 - f
+-		local x2 =3D max(minx,min(maxx-w,(px or 0)))*fi + f*gViewportW*0.5
+-		local y2 =3D max(miny,min(maxy-h,(py or 0)))*fi + f*gViewportH*0.5
++		local x =3D max(minx,min(maxx,(px or 0)))
++		local y =3D max(miny,min(maxy,(py or 0)))
++		local x2 =3D x*fi + f*gViewportW*0.5
++		local y2 =3D y*fi + f*gViewportH*0.5
+ 		gfx2:SetLineList({{x2,y2,0,x,y,0}})
+ 	end
+ end
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001441.html">[Iris-commit] [IRIS] r2636 - in /trunk/lua: lib.3d.walksmooth.lua lib.packetvideo.lua lib.tilefreewalk.lua main.lua obj/obj.mobile.lua
+</A></li>
+	<LI>Next message: <A HREF="001443.html">[Iris-commit] [IRIS] r2638 - /trunk/lua/lib.2d.mousepick.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1442">[ date ]</a>
+              <a href="thread.html#1442">[ thread ]</a>
+              <a href="subject.html#1442">[ subject ]</a>
+              <a href="author.html#1442">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

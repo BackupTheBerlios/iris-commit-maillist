@@ -1,0 +1,456 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2342 - /trunk/lua/
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-August/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2342%20-%20/trunk/lua/&In-Reply-To=%3C20080804102035.44AA31524030%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001149.html">
+   <LINK REL="Next"  HREF="001151.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2342 - /trunk/lua/</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2342%20-%20/trunk/lua/&In-Reply-To=%3C20080804102035.44AA31524030%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2342 - /trunk/lua/">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Mon Aug  4 12:20:35 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001149.html">[Iris-commit] [IRIS] r2341 - /trunk/bin/iris2.exe
+</A></li>
+        <LI>Next message: <A HREF="001151.html">[Iris-commit] [IRIS] r2343 - in /trunk/lua: lib.2d.map.lua lib.mapblock.2d.statics.lua lib.mapblock.2d.terrain.lua lib.mapblock.base.lua lib.mapblock.spawner.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1150">[ date ]</a>
+              <a href="thread.html#1150">[ thread ]</a>
+              <a href="subject.html#1150">[ subject ]</a>
+              <a href="author.html#1150">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Mon Aug  4 12:20:34 2008
+New Revision: 2342
+
+Log:
+mapl loading planning
+
+Added:
+    trunk/lua/lib.mapblock.2d.statics.lua
+    trunk/lua/lib.mapblock.3d.dynamics.lua
+    trunk/lua/lib.mapblock.3d.multis.lua
+    trunk/lua/lib.mapblock.3d.statics.lua
+    trunk/lua/lib.mapblock.3d.terrain.lua
+    trunk/lua/lib.mapblock.3d.water.lua
+    trunk/lua/lib.mapblock.base.lua
+    trunk/lua/lib.mapblock.scheduler.lua
+    trunk/lua/lib.mapblock.spawner.lua
+Modified:
+    trunk/lua/lib.2d.map.lua
+    trunk/lua/lib.artatlas.lua
+
+Modified: trunk/lua/lib.2d.map.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.map.lua (original)
++++ trunk/lua/lib.2d.map.lua Mon Aug  4 12:20:34 2008
+@@ -3,243 +3,46 @@
+ Renderer2D.pMapBlocks =3D {}
+ Renderer2D.iNextMapStep =3D 0
+ =
+
+-Renderer2D.kMapLoadRad =3D 4
+ Renderer2D.kGoodFPS =3D 25
+ Renderer2D.kGoodTicksBetweenFrames =3D 1000 / Renderer2D.kGoodFPS -- 1000=
+=3D1sec
+ Renderer2D.kMapLoadAllowedTicksPerFrame =3D Renderer2D.kGoodTicksBetweenFr=
+ames =
+
+ Renderer2D.kMapLoadStaticLoadAllowedTicks =3D Renderer2D.kGoodTicksBetween=
+Frames =
+
+-
+-
+ --~ local bWeHaveSpareTime =3D gSecondsSinceLastFrame*1000 &lt; Renderer2D.kG=
+oodTicksBetweenFrames
+ =
+
++kMapLoad_2D_Terrain_Rough		=3D {prio=3D0}
++kMapLoad_2D_Water_Rough			=3D {prio=3D1} -- similar to rough water, just o=
+ne poly per block
++kMapLoad_2D_Statics_Rough		=3D {prio=3D2}
++kMapLoad_2D_Multis_Rough		=3D {prio=3D3}
++kMapLoad_2D_Terrain_Detail		=3D {prio=3D4}
++kMapLoad_2D_Water_Detail		=3D {prio=3D5}
++kMapLoad_2D_Statics_Detail		=3D {prio=3D6}
++kMapLoad_2D_Multis_Detail		=3D {prio=3D7}
++kMapLoad_2D_Dynamics			=3D {prio=3D8}
+ =
+
+--- map load jobs, sorted by priority
+-k2DMapJob =3D {}
+-k2DMapJob.TerrainGfx	=3D {fPrio=3D1.00} -- load&amp;gfx in one step, quick
+-k2DMapJob.StaticList	=3D {fPrio=3D2.00} -- data from file, index
+-k2DMapJob.StaticLoad	=3D {fPrio=3D2.01} -- load textures to texatlas etc ,=
+ might be done in multiple steps
+-k2DMapJob.StaticGfx		=3D {fPrio=3D2.02} =
+
+-k2DMapJob.WaterLoad		=3D {fPrio=3D3.00} -- load ground info
+-k2DMapJob.WaterCalc		=3D {fPrio=3D3.01}
+-k2DMapJob.WaterGfx		=3D {fPrio=3D3.02}
+-k2DMapJob.Idle			=3D {fPrio=3D9.99}
+-for k,v in pairs(k2DMapJob) do v.totaltime =3D 0 v.totalcount =3D 0 end --=
+ TODO : profiling ?
+-
+-
++dofile(libpath .. &quot;lua/lib.mapblock.2d.statics.lua&quot;)
++--~ dofile(libpath .. &quot;lua/lib.mapblock.2d.terrain.lua&quot;)
++--~ dofile(libpath .. &quot;lua/lib.mapblock.2d.water.lua&quot;)
++cMapBlock_2D_Terrain	=3D CreateClass(cMapBlock)
++cMapBlock_2D_Water		=3D CreateClass(cMapBlock)
+ =
+
+ function Renderer2D:MapStep	()
++	if (not self.bMapLoadSystemInitialized) then
++		self.bMapLoadSystemInitialized =3D true
++		self.map2d_scheduler =3D CreateScheduler()
++		self.map2d_spawners =3D {}
++		self.map2d_spawners.terrain		=3D CreateMapBlockSpawner(cMapBlock_2D_Terr=
+ain)
++		self.map2d_spawners.statics		=3D CreateMapBlockSpawner(cMapBlock_2D_Stat=
+ics)
++		self.map2d_spawners.water		=3D CreateMapBlockSpawner(cMapBlock_2D_Water)
++	end
+ 	self:MobileTestStep()
+-	local iCurTicks =3D Client_GetTicks()
+-	if (iCurTicks &lt; Renderer2D.iNextMapStep) then return end
+-	Renderer2D.iNextMapStep =3D iCurTicks + 0.1*Renderer2D.kGoodTicksBetweenF=
+rames -- often, but small steps
+-	=
+
+-	-- do some work until we run out of time
+-	local iAllowedTimeEnd =3D iCurTicks + Renderer2D.kMapLoadAllowedTicksPerF=
+rame
+-	=
+
+-	-- check if the cam moved and blocks nearby have to be initialized
+-	local xloc,yloc =3D self:GetCamPos()
+-	local bx,by =3D math.floor(xloc/8 - 0.5),math.floor(yloc/8 - 0.5)
+-	if (self.pMapFocusBlockX ~=3D bx or self.pMapFocusBlockY ~=3D by) then =
+
+-		--~ print(&quot;Renderer2D:MapStep focus:&quot;,bx*8,by*8)
+-		self.pMapFocusBlockX =3D bx
+-		self.pMapFocusBlockY =3D by
+-		local r =3D Renderer2D.kMapLoadRad
+-		for ax =3D -r,r do
+-		for ay =3D -r,r do
+-			self:MapBlockInitIfNeeded(bx+ax,by+ay)
+-		end
+-		end
+-		self:MapDestroyBlocksOutsideRange()
+-	end
+-	=
+
+-	-- sort blocks by priority
+-	table.sort(self.pMapBlocks,Renderer2D.MapBlockCmpPrio)
+-
+-	-- step all blocks until we run out of time
+-	for k,block in ipairs(self.pMapBlocks) do =
+
+-		if (self:MapBlockStep(block)) then -- returns true if something was done=
+, otherwise don't check time
+-			--~ return -- one job per frame should be enough
+-			if (Client_GetTicks() &gt; iAllowedTimeEnd) then return end -- we ran out =
+of time
+-		end
+-	end
+ end
+ =
+
+--- returns true if a &lt; b
+-function Renderer2D.MapBlockCmpPrio(a,b) return a.pJob.fPrio &lt; b.pJob.fPri=
+o end
++-- TODO : mousepick, group statics by material
++-- TODO : blendout-upper-floors : cFastBatch::cSubBatch::SetDisplayRange()=
+ : raw access to index
+ =
+
+-function Renderer2D:MapBlockInitIfNeeded (bx,by) =
+
+-	if (not self:MapGetBlock(bx,by)) then self:MapInitBlock(bx,by) end
+-end
++-- statics : if (block.pStaticGroupGfx) then for k,v in pairs(block.pStati=
+cGroupGfx) do v:Destroy() end block.pStaticGroupGfx =3D nil end
++-- terrain : block.gfx_terrain =3D MakeMultiTexTerrainGfx(block.bx * bla,b=
+lock.by * bla) -- kMultiTexTerrainChunkSize
++-- terrain : if (block.gfx_terrain) then block.gfx_terrain:Destroy() block=
+.gfx_terrain =3D nil end
++-- water : block.terrain[10*ty+tx] =3D MapGetGround(block.bx*8+tx,block.by=
+*8+ty)
++-- water : analyze terrain infos and determine where water should be, Filt=
+erIsMapWater(tiletype) -- 3D: chunk:SetWaterZ(tx,ty,z) ??
+ =
+
+-function Renderer2D:MapGetBlock		(bx,by) for k,block in pairs(self.pMapBlo=
+cks) do if (block.bx =3D=3D bx and block.by =3D=3D by) then return block en=
+d end end
+-function Renderer2D:MapInitBlock	(bx,by) table.insert(self.pMapBlocks,{bx=
+=3Dbx,by=3Dby,pJob=3Dk2DMapJob.TerrainGfx}) end
+-
+-
+-function Renderer2D:MapDestroyBlocksOutsideRange	() =
+
+-	local newarr =3D {}
+-	local bx =3D self.pMapFocusBlockX
+-	local by =3D self.pMapFocusBlockY
+-	local r =3D Renderer2D.kMapLoadRad
+-	=
+
+-	-- check all blocks and decide what to do
+-	for k,block in pairs(self.pMapBlocks) do =
+
+-		if (block.bx &gt;=3D bx-r and block.bx &lt;=3D bx+r and =
+
+-			block.by &gt;=3D by-r and block.by &lt;=3D by+r) then
+-			-- inside, kept
+-			table.insert(newarr,block)
+-		else
+-			-- outside, destroyed
+-			self:MapDestroyBlockData(block)
+-		end
+-	end
+-	=
+
+-	self.pMapBlocks =3D newarr =
+
+-end
+-
+--- mapchange etc
+-function Renderer2D:MapClear	()
+-	for k,block in pairs(self.pMapBlocks) do self:MapDestroyBlockData(block) =
+end
+-	self.pMapBlocks =3D {}
+-end
+-
+--- doesn't remove the block from the list, only destroys data
+-function Renderer2D:MapDestroyBlockData	(block) =
+
+-	ArtAtlasUnLock(block) -- release atlas mat lock
+-	if (block.gfx_terrain) then block.gfx_terrain:Destroy() block.gfx_terrain=
+ =3D nil end
+-	if (block.pStaticGroupGfx) then for k,v in pairs(block.pStaticGroupGfx) d=
+o v:Destroy() end block.pStaticGroupGfx =3D nil end
+-end
+-
+-function Renderer2D:MapBlockStep	(block) =
+
+-	local job =3D block.pJob
+-	if (not job.fun) then return end
+-	local tstart =3D Client_GetTicks() -- profiling
+-	job.fun(block) =
+
+-	job.totaltime  =3D job.totaltime  + (Client_GetTicks() - tstart)
+-	job.totalcount =3D job.totalcount + 1
+-	return true =
+
+-end
+-
+--- terrain : load and create gfx
+-function k2DMapJob.TerrainGfx.fun	(block)
+-	--~ print(&quot;MapBlockStep terrain&quot;,block.bx,block.by)
+-	if ((block.bx % kMultiTexTerrainChunkSize) =3D=3D 0 and (block.by % kMult=
+iTexTerrainChunkSize) =3D=3D 0) then
+-		block.gfx_terrain =3D MakeMultiTexTerrainGfx(block.bx,block.by)
+-	end
+-	block.pJob =3D k2DMapJob.StaticList
+-end
+-
+--- statics : load infos from file
+-function k2DMapJob.StaticList.fun	(block)
+-	block.statics =3D MapGetBlockStatics(block.bx,block.by)
+-	block.pStaticAtlasMats =3D {} -- [iTileTypeID][iHue] =3D atlasmat (see Ar=
+tAtlasLoadAndLock)
+-	block.pStaticGroups =3D {}
+-	block.iStaticLoadingIndex =3D 1
+-	block.iStaticLoadingIndexMax =3D table.getn(block.statics)
+-	block.pJob =3D k2DMapJob.StaticLoad
+-end
+-
+--- statics : analyze, load textures to atlas
+-function k2DMapJob.StaticLoad.fun	(block)
+-	-- load atlas : artid-hue
+-	local iBlockLoadTicks =3D Client_GetTicks()
+-	for i =3D block.iStaticLoadingIndex,block.iStaticLoadingIndexMax do
+-		block.iStaticLoadingIndex =3D i+1
+-		local static =3D block.statics[i]
+-		local iTileTypeID	=3D static.artid
+-		local iHue			=3D static.hue
+-		=
+
+-		local arr =3D block.pStaticAtlasMats[iTileTypeID]
+-		if (not arr) then arr =3D {} block.pStaticAtlasMats[iTileTypeID] =3D arr=
+ end
+-		=
+
+-		-- get/load atlas mat
+-		local pAtlasPiece =3D arr[iHue]
+-		local bCheckTime =3D false
+-		if (not pAtlasPiece) then
+-			pAtlasPiece =3D ArtAtlasLoadAndLock(iTileTypeID+0x4000,iHue,block)
+-			arr[iHue] =3D pAtlasPiece
+-			bCheckTime =3D true
+-		end
+-		=
+
+-		-- add to matname group
+-		if (pAtlasPiece) then
+-			local atlas =3D pAtlasPiece.atlas
+-			local group =3D block.pStaticGroups[atlas]
+-			if (not group) then group =3D {} block.pStaticGroups[atlas] =3D group e=
+nd
+-			=
+
+-			table.insert(group,static)
+-		end
+-		=
+
+-		-- if we are out of time, exit for now, and continue loading in the next=
+ frame
+-		if (bCheckTime and Client_GetTicks() - iBlockLoadTicks &gt; Renderer2D.kMap=
+LoadStaticLoadAllowedTicks) then return end --  print(&quot;k2DMapJob.StaticLoad=
+ split&quot;)
+-	end
+-	block.pJob =3D k2DMapJob.StaticGfx
+-end
+-
+--- statics : create gfx
+-function k2DMapJob.StaticGfx.fun	(block) =
+
+-	block.pStaticGroupGfx =3D {}
+-	-- -so 1420,1550
+-	-- -so 552,2088
+-	-- -so 632,1488
+-	for atlas,group in pairs(block.pStaticGroups) do
+-		local matname =3D ArtAtlasLoadMaterial(atlas,Renderer2D.kAtlasBaseMateri=
+al)
+-		-- TODO : sort by z for blendout upper floors
+-		local spritecount =3D table.getn(group)
+-		local x,y,z =3D gCurrentRenderer:UOPosToLocal(block.bx*8,block.by*8,0)
+-		local gfx =3D CreateRootGfx3D()
+-		table.insert(block.pStaticGroupGfx,gfx)
+-		gfx:SetPosition(x,y,z)
+-		gfx:SetSimpleRenderable()
+-		gfx:SetMaterial(matname)
+-		=
+
+-		-- generate geometry
+-		local vc =3D 4*spritecount
+-		local ic =3D 6*spritecount
+-		gfx:RenderableBegin(vc,ic,false,false,OT_TRIANGLE_LIST)
+-		vc =3D 0
+-		for k,static in pairs(group) do
+-			local pAtlasPiece =3D block.pStaticAtlasMats[static.artid][static.hue] =
+-- u0 v0 u1 v1 w h
+-			local pTileType =3D GetStaticTileType(static.artid)
+-			local x,y,z =3D -static.tx,static.ty,static.zloc*0.1 -- static : {zloc=
+=3D?,artid=3D?,hue=3D?,xloc=3D?,yloc=3D?,tx=3D?,ty=3D?,bIsStatic=3Dtrue}
+-			local fOrderCorrection =3D (0.05*pTileType.iSortBonus2D + 0.005*pTileTy=
+pe.miHeight + 0.001*static.iBlockIndex)  -- + =3D nearer to cam      -- gue=
+ss this works ok for now, but far from ideal
+-			x =3D x +  -1 * fOrderCorrection - 1  -- ox-1,oy+1 : sprites are too hi=
+gh normally, this moves them down =
+
+-			y =3D y +   1 * fOrderCorrection + 1
+-			z =3D z + kSq2 * fOrderCorrection
+-			local w =3D k2D_ScaleW05 * pAtlasPiece.w
+-			local h =3D k2D_ScaleH   * pAtlasPiece.h
+-			gfx:RenderableVertex(x-w,y-w,z  , pAtlasPiece.u1,pAtlasPiece.v1)
+-			gfx:RenderableVertex(x+w,y+w,z  , pAtlasPiece.u0,pAtlasPiece.v1)
+-			gfx:RenderableVertex(x-w,y-w,z+h, pAtlasPiece.u1,pAtlasPiece.v0)
+-			gfx:RenderableVertex(x+w,y+w,z+h, pAtlasPiece.u0,pAtlasPiece.v0)
+-			gfx:RenderableIndex3(vc+0,vc+2,vc+1)
+-			gfx:RenderableIndex3(vc+1,vc+2,vc+3)
+-			vc =3D vc + 4
+-		end
+-		gfx:RenderableEnd()
+-	end
+-	block.pJob =3D k2DMapJob.WaterLoad
+-end
+-
+--- water : load terrain infos from file
+-function k2DMapJob.WaterLoad.fun	(block) =
+
+-	block.terrain =3D {}
+-	for ty =3D 0,7 do
+-	for tx =3D 0,7 do
+-		block.terrain[10*ty+tx] =3D MapGetGround(block.bx*8+tx,block.by*8+ty)
+-	end
+-	end
+-	block.pJob =3D k2DMapJob.WaterCalc
+-end
+-
+--- water : analyze terrain infos and determine where water should be
+-function k2DMapJob.WaterCalc.fun	(block)
+-	-- FilterIsMapWater(tiletype) -- 3D: chunk:SetWaterZ(tx,ty,z) ??
+-	block.pJob =3D k2DMapJob.WaterGfx
+-end
+-
+--- water : create gfx
+-function k2DMapJob.WaterGfx.fun		(block)
+-	block.pJob =3D k2DMapJob.Idle
+-end
+-
+-
+
+Modified: trunk/lua/lib.artatlas.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.artatlas.lua (original)
++++ trunk/lua/lib.artatlas.lua Mon Aug  4 12:20:34 2008
+@@ -22,7 +22,7 @@
+ function ArtAtlasLoadAndLock (iTileTypeID,iHue,pLockKeeper)
+ 	local n =3D iTileTypeID..&quot;_&quot;..iHue
+ 	local o =3D gArtAtlasCache[n] =
+
+-	if (o ~=3D nil) then print(&quot;cache hit&quot;) return o end
++	if (o ~=3D nil) then return o end
+ 	gArtAtlasCache[n] =3D false
+ 	=
+
+ 	-- load image
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001149.html">[Iris-commit] [IRIS] r2341 - /trunk/bin/iris2.exe
+</A></li>
+	<LI>Next message: <A HREF="001151.html">[Iris-commit] [IRIS] r2343 - in /trunk/lua: lib.2d.map.lua lib.mapblock.2d.statics.lua lib.mapblock.2d.terrain.lua lib.mapblock.base.lua lib.mapblock.spawner.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1150">[ date ]</a>
+              <a href="thread.html#1150">[ thread ]</a>
+              <a href="subject.html#1150">[ subject ]</a>
+              <a href="author.html#1150">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

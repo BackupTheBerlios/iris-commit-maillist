@@ -1,0 +1,461 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2492 - in /trunk/lua: lib.2d.dynamic.lua lib.2d.map.lua lib.2d.renderer.lua lib.2d.spriteblock.lua lib.3d.map.lua lib.blendout.lua main.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-October/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2492%20-%20in%20/trunk/lua%3A%20lib.2d.dynamic.lua%0A%20lib.2d.map.lua%20lib.2d.renderer.lua%20lib.2d.spriteblock.lua%20lib.3d.map.lua%0A%20lib.blendout.lua%20main.lua&In-Reply-To=%3C20081002141400.671761524030%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001296.html">
+   <LINK REL="Next"  HREF="001298.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2492 - in /trunk/lua: lib.2d.dynamic.lua lib.2d.map.lua lib.2d.renderer.lua lib.2d.spriteblock.lua lib.3d.map.lua lib.blendout.lua main.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2492%20-%20in%20/trunk/lua%3A%20lib.2d.dynamic.lua%0A%20lib.2d.map.lua%20lib.2d.renderer.lua%20lib.2d.spriteblock.lua%20lib.3d.map.lua%0A%20lib.blendout.lua%20main.lua&In-Reply-To=%3C20081002141400.671761524030%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2492 - in /trunk/lua: lib.2d.dynamic.lua lib.2d.map.lua lib.2d.renderer.lua lib.2d.spriteblock.lua lib.3d.map.lua lib.blendout.lua main.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Thu Oct  2 16:14:00 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001296.html">[Iris-commit] [IRIS] r2491 - in /trunk: lua/gui/gui.trade.lua lua/lib.uoanim.lua plugins/hudenemylist.lua
+</A></li>
+        <LI>Next message: <A HREF="001298.html">[Iris-commit] [IRIS] r2493 - in /trunk/lua: lib.2d.dynamic.lua lib.2d.map.lua lib.2d.spriteblock.lua lib.mapblock.2d.statics.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1297">[ date ]</a>
+              <a href="thread.html#1297">[ thread ]</a>
+              <a href="subject.html#1297">[ subject ]</a>
+              <a href="author.html#1297">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Thu Oct  2 16:14:00 2008
+New Revision: 2492
+
+Log:
+2d : blendout code generalized and used for 2d mulits and dynamics
+
+Added:
+    trunk/lua/lib.blendout.lua
+Modified:
+    trunk/lua/lib.2d.dynamic.lua
+    trunk/lua/lib.2d.map.lua
+    trunk/lua/lib.2d.renderer.lua
+    trunk/lua/lib.2d.spriteblock.lua
+    trunk/lua/lib.3d.map.lua
+    trunk/lua/main.lua
+
+Modified: trunk/lua/lib.2d.dynamic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.dynamic.lua (original)
++++ trunk/lua/lib.2d.dynamic.lua Thu Oct  2 16:14:00 2008
+@@ -7,20 +7,41 @@
+ function Renderer2D:AddCorpseItem					(item) =
+
+ 	print(&quot;TODO:Renderer2D:AddCorpseItem&quot;)
+ end
+-function Renderer2D:AddMultiItem					(item) =
+
++
++function Renderer2D:UpdateDynamicBlendOut			(item,minzloc,maxzloc) =
+
++	if item.artid &gt;=3D gMulti_ID then =
+
++		-- multi
++		self:UpdateMultiItemGfx(item)
++	else
++		local iBlendOutMinZ,iBlendOutMaxZ =3D self:BlendoutGetVisibleRange()
++		local zloc =3D item.zloc
++		local bVisible =3D zloc &gt;=3D iBlendOutMinZ and zloc &lt;=3D iBlendOutMaxZ
++		if (item.gfx2d) then item.gfx2d:SetVisible(bVisible) end
++	end
++end
++
++function Renderer2D:UpdateMultiItemGfx				(item) =
+
+ 	gDebugLastMultiItem =3D item
+ 	local multi =3D item.multi
+ 	if (not multi) then print(&quot;Renderer2D:AddMultiItem error:no multi data&quot;) =
+return end
+ 	=
+
+ 	-- create spriteblock
+-	local spriteblock =3D cUOSpriteBlock:New()
+-	item.gfx2d =3D spriteblock
++	local spriteblock =3D item.gfx2d
++	if (not spriteblock) then
++		spriteblock =3D cUOSpriteBlock:New()
++		item.gfx2d =3D spriteblock
++	else
++		spriteblock:Clear()
++	end
+ 	=
+
+ 	-- add multi parts
+ 	local totalpartnum =3D #multi.lparts
+ 	local itemxloc =3D item.xloc
+ 	local itemyloc =3D item.yloc
+ 	local itemzloc =3D item.zloc
++	=
+
++	local iBlendOutMinZ,iBlendOutMaxZ =3D self:BlendoutGetVisibleRange()
++		=
+
+ 	for k,part in pairs(multi.lparts) do
+ 		local iTileTypeID,xloc,yloc,zloc,iHue =3D unpack(part) -- see Multi_AddP=
+artHelper
+ 		local tx =3D xloc-itemxloc
+@@ -30,10 +51,12 @@
+ 		local sortty =3D yloc-floor(yloc/8)*8
+ 		local sorttz =3D zloc
+ 		local fIndexRel =3D k / totalpartnum
+-		local sprite =3D spriteblock:AddArtSprite(tx,ty,tz,iTileTypeID,iHue,Calc=
+SortBonus(iTileTypeID,sorttx,sortty,sorttz,fIndexRel,1),item)
+-		sprite.xloc =3D xloc -- mousepicking
+-		sprite.yloc =3D yloc
+-		sprite.zloc =3D zloc
++		if (zloc &gt;=3D iBlendOutMinZ and zloc &lt;=3D iBlendOutMaxZ) then
++			local sprite =3D spriteblock:AddArtSprite(tx,ty,tz,iTileTypeID,iHue,Cal=
+cSortBonus(iTileTypeID,sorttx,sortty,sorttz,fIndexRel,1),item)
++			sprite.xloc =3D xloc -- mousepicking
++			sprite.yloc =3D yloc
++			sprite.zloc =3D zloc
++		end
+ 	end
+ 	spriteblock:Build(Renderer2D.kSpriteBaseMaterial)
+ 	local x,y,z =3D gCurrentRenderer:UOPosToLocal(itemxloc,itemyloc,itemzloc*=
+kRenderer2D_ZScale)
+@@ -48,7 +71,7 @@
+ 		print(&quot;ERROR: artid missing!!!!\n&quot;)
+ 	elseif item.artid &gt;=3D gMulti_ID then =
+
+ 		-- multi
+-		self:AddMultiItem(item)
++		self:UpdateMultiItemGfx(item)
+ 	else
+ 		local spriteblock =3D cUOSpriteBlock:New()
+ 		item.gfx2d =3D spriteblock
+
+Modified: trunk/lua/lib.2d.map.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.map.lua (original)
++++ trunk/lua/lib.2d.map.lua Thu Oct  2 16:14:00 2008
+@@ -45,6 +45,39 @@
+ 	end
+ end
+ =
+
++function Renderer2D:BlendOutLayersAbovePlayer	()
++	local x,y,z =3D GetPlayerPos()
++	if (not z or not gStaticBlockLoader or not gGroundBlockLoader) then retur=
+n end
++	=
+
++	local myLayer =3D nil
++	local bTerrainVisible =3D true
++	=
+
++	--~ if (self:CamModeAllowsBlendout()) then ... end   -- don't blend out i=
+n freecam ?
++	myLayer,bTerrainVisible =3D CalcBlendOutZ()
++	=
+
++	=
+
++	-- only update if changed
++	if (self.giBlendOutCurZ ~=3D myLayer or self.gbBlendOutTerrainVisible ~=
+=3D bTerrainVisible) then
++		self.giBlendOutCurZ =3D myLayer
++		--~ print(&quot;Renderer2D:BlendOutLayersAbovePlayer&quot;,myLayer,bTerrainVisible)
++		=
+
++		local a,b =3D self:BlendoutGetVisibleRange()
++		for k,dynamic in pairs(GetDynamicList()) do if (DynamicIsInWorld(dynamic=
+)) then self:UpdateDynamicBlendOut(dynamic,a,b) end end
++	end
++	--[[
++	gCurrentRenderer:BlendoutGetVisibleRange()
++	mapblock:SetDisplayRange
++	Renderer2D:BlendOutLayersAbovePlayer
++	]]--
++end
++
++-- returns fMinZ,fMaxZ
++function Renderer2D:BlendoutGetVisibleRange ()
++	local fMinZ =3D -1000
++	local fMaxZ =3D (self.giBlendOutCurZ or 1000) -- inclusive
++	return fMinZ,fMaxZ
++end
++
+ function Renderer2D:MapStep		()
+ 	self:MobileTestStep()
+ 	=
+
+
+Modified: trunk/lua/lib.2d.renderer.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.renderer.lua (original)
++++ trunk/lua/lib.2d.renderer.lua Thu Oct  2 16:14:00 2008
+@@ -179,7 +179,6 @@
+ function Renderer2D:NotifyHPChange				(mobile, value) end
+ function Renderer2D:NotifyManaChange			(mobile, value) end
+ function Renderer2D:NotifyPlayerTeleported		() end
+-function Renderer2D:BlendOutLayersAbovePlayer	() end
+ function Renderer2D:ClearMapCache				() self:MapClear() end
+ =
+
+ function Renderer2D:TerrainRayIntersect_Hit		(...) end -- ??? might not be=
+ needed
+
+Modified: trunk/lua/lib.2d.spriteblock.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.spriteblock.lua (original)
++++ trunk/lua/lib.2d.spriteblock.lua Thu Oct  2 16:14:00 2008
+@@ -11,6 +11,12 @@
+ 	self.pTileTypeAtlasMats =3D {} -- self.pTileTypeAtlasMats[iTileTypeID][iH=
+ue] =3D pAtlasPiece (see ArtAtlasLoadAndLock)
+ 	self.pGroupGfx =3D {}
+ 	self.pSpritesByAtlas =3D {}
++	self.bVisible =3D true
++end
++
++function cUOSpriteBlock:SetVisible (bVisible) =
+
++	self.bVisible =3D bVisible
++	if (self.rootgfx) then self.rootgfx:SetVisible(bVisible) end
+ end
+ =
+
+ function cUOSpriteBlock:SetPosition (x,y,z) =
+
+@@ -23,7 +29,13 @@
+ function cUOSpriteBlock:Destroy () self:Clear() end
+ =
+
+ function cUOSpriteBlock:Clear ()
+-	if (self.pGroupGfx) then for k,v in pairs(self.pGroupGfx) do v:Destroy() =
+end self.pGroupGfx =3D {} end
++	if (self.pGroupGfx) then =
+
++		for k,v in pairs(self.pGroupGfx) do =
+
++			if (v =3D=3D self.rootgfx) then self.rootgfx =3D nil end
++			v:Destroy() =
+
++		end =
+
++		self.pGroupGfx =3D {} =
+
++	end
+ 	if (self.rootgfx) then self.rootgfx:Destroy() self.rootgfx =3D nil end
+ 	self.pSpritesByAtlas =3D {}
+ end
+@@ -42,6 +54,7 @@
+ -- returns dist,sprite   if hit, or nil if not hit.    sprite=3D{artid=3D?=
+,hue=3D?,data=3D?} (see AddArtSprite)
+ function cUOSpriteBlock:RayPick (rx,ry,rz, rvx,rvy,rvz)
+ 	if (not self.bBuilt) then return end
++	if (not self.bVisible) then return end
+ 	rx =3D rx - self.x
+ 	ry =3D ry - self.y
+ 	rz =3D rz - self.z
+@@ -261,6 +274,7 @@
+ 			gfx:RenderableEnd()
+ 		end
+ 	end
++	self:SetVisible(self.bVisible)
+ 	self.bBuilt =3D true
+ end
+ =
+
+
+Modified: trunk/lua/lib.3d.map.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.map.lua (original)
++++ trunk/lua/lib.3d.map.lua Thu Oct  2 16:14:00 2008
+@@ -6,7 +6,6 @@
+ Renderer3D.giMapOriginX =3D 0
+ Renderer3D.giMapOriginY =3D 0
+ Renderer3D.ROBMAP_CHUNK_SIZE =3D 2
+-Renderer3D.giBlendOutPlayerHeight =3D 18	--eriminator: es galt grob, alles=
+ was 18z =C3=AF=C2=BF=C2=BDberm char war wurd ausgebledent
+ Renderer3D.giBlendOutCurZ =3D nil
+ =
+
+ Renderer3D.kGoodFPS =3D 25
+@@ -96,69 +95,13 @@
+ 	ich  hab f=C3=AF=C2=BF=C2=BDr iris h=C3=AF=C2=BF=C2=BDher gebaut als norm=
+al uo etagen vorsah, bei osi war 20die h=C3=AF=C2=BF=C2=BDhe f=C3=AF=C2=BF=
+=C2=BDr ne wand, =
+
+ 	]]--
+ 	=
+
+-	local playerheadpos =3D z + self.giBlendOutPlayerHeight
+ =
+
+ 	local myLayer =3D nil
+-	local playerIsInside =3D false
+ 	local bTerrainVisible =3D true
+-	local zloc_roof =3D nil -- becomes the minimum of the statics above the p=
+layer
+ 	=
+
+ 	-- only blend out if not in first person mode or in freecam
+ 	if (Renderer3D:CamModeAllowsBlendout()) then =
+
+-		=
+
+-		-- check ground
+-		local iPlayerGroundTileType,iPlayerGroundZLoc =3D GetAbsTile(x,y) =
+
+-		if (iPlayerGroundZLoc and iPlayerGroundZLoc &gt;=3D playerheadpos) then pla=
+yerIsInside =3D true bTerrainVisible =3D false end
+-		=
+
+-		-- check statics
+-		if (not playerIsInside) then
+-			local l =3D MapGetStatics(x,y)
+-			=
+
+-			for k,v in pairs(l) do
+-				if v.zloc &gt;=3D playerheadpos then
+-					playerIsInside =3D true =
+
+-					if ((not zloc_roof) or (zloc_roof &gt; v.zloc)) then zloc_roof =3D v.zlo=
+c end
+-				end
+-			end
+-		end
+-
+-		-- check multis
+-		if (not playerIsInside) then
+-			local iTileTypeID,iX,iY,iZ,iHue
+-			local multi
+-			for k,v in pairs(gMultis) do
+-				multi =3D k
+-				if multi.lparts then
+-					for k,v in pairs(multi.lparts) do
+-						iTileTypeID,iX,iY,iZ,iHue =3D unpack(v)
+-						if	iX =3D=3D x and iY =3D=3D y  and iZ &gt;=3D playerheadpos then
+-							playerIsInside =3D true
+-							if ((not zloc_roof) or (zloc_roof &gt; iZ)) then zloc_roof =3D iZ end
+-						end
+-					end
+-				end
+-			end
+-		end
+-
+-		-- check dynamics to detect dynamic houseroofs and other stuff above the=
+ head
+-		if (not playerIsInside) then
+-			local iZ
+-			for k,dynamic in pairs(GetDynamicsAtPosition(x,y)) do
+-				if (dynamic.zloc &gt;=3D playerheadpos) then
+-					playerIsInside =3D true
+-					iZ =3D dynamic.zloc
+-					if ((not zloc_roof) or (zloc_roof &gt; iZ)) then zloc_roof =3D iZ end
+-				end
+-			end
+-		end
+-
+-		-- blend out layers above player head if inside
+-		--~ if (playerIsInside) then myLayer =3D zloc_roof or playerheadpos end
+-		if (playerIsInside) then =
+
+-			myLayer =3D playerheadpos =
+
+-			--~ if (zloc_roof) then myLayer =3D zloc_roof - 1 end
+-		end
+-		--~ print(&quot;blendout&quot;,playerIsInside,playerheadpos,zloc_roof)
++		myLayer,bTerrainVisible =3D CalcBlendOutZ()
+ 	end
+ 	=
+
+ 	-- a bit of tolerance to avoid rebatching all the time for uneven floors =
+... not needed anymore with fastbatch blendout
+@@ -220,7 +163,7 @@
+ =
+
+ --[[
+ function Renderer3D:LayerToZ(zlayer)
+-	--~ return zlayer * Renderer3D.giBlendOutPlayerHeight
++	--~ return zlayer * kBlendOutPlayerHeight
+ 	return zlayer
+ end
+ =
+
+@@ -231,7 +174,7 @@
+ end
+ =
+
+ function Renderer3D:ZToLayer(zloc)
+-	--~ return math.floor(zloc / Renderer3D.giBlendOutPlayerHeight)
++	--~ return math.floor(zloc / kBlendOutPlayerHeight)
+ 	return math.floor(zloc)
+ end
+ ]]--
+
+Modified: trunk/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/main.lua (original)
++++ trunk/lua/main.lua Thu Oct  2 16:14:00 2008
+@@ -86,6 +86,7 @@
+ dofile(libpath .. &quot;lib.uoutils.lua&quot;)
+ dofile(libpath .. &quot;lib.desktop.lua&quot;)
+ dofile(libpath .. &quot;lib.uoanim.lua&quot;)
++dofile(libpath .. &quot;lib.blendout.lua&quot;)
+ =
+
+ dofile(libpath .. &quot;gui/gui.main.lua&quot;)
+ dofile(libpath .. &quot;obj/obj.main.lua&quot;)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001296.html">[Iris-commit] [IRIS] r2491 - in /trunk: lua/gui/gui.trade.lua lua/lib.uoanim.lua plugins/hudenemylist.lua
+</A></li>
+	<LI>Next message: <A HREF="001298.html">[Iris-commit] [IRIS] r2493 - in /trunk/lua: lib.2d.dynamic.lua lib.2d.map.lua lib.2d.spriteblock.lua lib.mapblock.2d.statics.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1297">[ date ]</a>
+              <a href="thread.html#1297">[ thread ]</a>
+              <a href="subject.html#1297">[ subject ]</a>
+              <a href="author.html#1297">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

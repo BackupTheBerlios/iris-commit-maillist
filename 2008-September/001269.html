@@ -1,0 +1,1312 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2464 - in /trunk/lua: lib.2d.dynamic.lua lib.2d.mobile.lua lib.2d.renderer.lua lib.2d.spriteblock.lua lib.3d.dynamic.lua lib.artatlas.lua lib.boat.lua lib.mapblock.2d.statics.lua lib.walking3.lua net/net.multi.lua obj/obj.dynamic.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-September/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2464%20-%20in%20/trunk/lua%3A%20lib.2d.dynamic.lua%0A%20lib.2d.mobile.lua%20lib.2d.renderer.lua%20lib.2d.spriteblock.lua%0A%20lib.3d.dynamic.lua%20lib.artatlas.lua%20lib.boat.lua%0A%20lib.mapblock.2d.statics.lua%20lib.walking3.lua%20net/net.multi.lua%0A%20obj/obj.dynamic.lua&In-Reply-To=%3C20080921032710.805E11C18042%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001268.html">
+   <LINK REL="Next"  HREF="001270.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2464 - in /trunk/lua: lib.2d.dynamic.lua lib.2d.mobile.lua lib.2d.renderer.lua lib.2d.spriteblock.lua lib.3d.dynamic.lua lib.artatlas.lua lib.boat.lua lib.mapblock.2d.statics.lua lib.walking3.lua net/net.multi.lua obj/obj.dynamic.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2464%20-%20in%20/trunk/lua%3A%20lib.2d.dynamic.lua%0A%20lib.2d.mobile.lua%20lib.2d.renderer.lua%20lib.2d.spriteblock.lua%0A%20lib.3d.dynamic.lua%20lib.artatlas.lua%20lib.boat.lua%0A%20lib.mapblock.2d.statics.lua%20lib.walking3.lua%20net/net.multi.lua%0A%20obj/obj.dynamic.lua&In-Reply-To=%3C20080921032710.805E11C18042%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2464 - in /trunk/lua: lib.2d.dynamic.lua lib.2d.mobile.lua lib.2d.renderer.lua lib.2d.spriteblock.lua lib.3d.dynamic.lua lib.artatlas.lua lib.boat.lua lib.mapblock.2d.statics.lua lib.walking3.lua net/net.multi.lua obj/obj.dynamic.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sun Sep 21 05:27:10 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001268.html">[Iris-commit] [IRIS] r2463 - in /trunk/lua: lib.2d.map.lua lib.2d.spriteblock.lua lib.mapblock.2d.terrain.lua
+</A></li>
+        <LI>Next message: <A HREF="001270.html">[Iris-commit] [IRIS] r2465 - /trunk/bin/iris2.exe
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1269">[ date ]</a>
+              <a href="thread.html#1269">[ thread ]</a>
+              <a href="subject.html#1269">[ subject ]</a>
+              <a href="author.html#1269">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sun Sep 21 05:27:09 2008
+New Revision: 2464
+
+Log:
+multi-precalc decupled from 3d-dynamic,  combined CreateDynamicGfx and AddD=
+ynamicItem, and seperated corpse and multi construction. 2d : sorting impro=
+ved, z-scaling adjusted to pixel correct (for items, not yet for terrain), =
+spriteblock generalised and now used by multis and dynamics as well
+
+Modified:
+    trunk/lua/lib.2d.dynamic.lua
+    trunk/lua/lib.2d.mobile.lua
+    trunk/lua/lib.2d.renderer.lua
+    trunk/lua/lib.2d.spriteblock.lua
+    trunk/lua/lib.3d.dynamic.lua
+    trunk/lua/lib.artatlas.lua
+    trunk/lua/lib.boat.lua
+    trunk/lua/lib.mapblock.2d.statics.lua
+    trunk/lua/lib.walking3.lua
+    trunk/lua/net/net.multi.lua
+    trunk/lua/obj/obj.dynamic.lua
+
+Modified: trunk/lua/lib.2d.dynamic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.dynamic.lua (original)
++++ trunk/lua/lib.2d.dynamic.lua Sun Sep 21 05:27:09 2008
+@@ -1,35 +1,70 @@
+ -- dynamics (items,doors,...)
++
++function Renderer2D:UpdateMultiData					(item) =
+
++	print(&quot;TODO:Renderer2D:UpdateMultiData&quot;)
++end
+ =
+
+ function Renderer2D:RemoveDynamicItem				(item) =
+
+ 	if (item.gfx2d) then item.gfx2d:Destroy() item.gfx2d =3D nil end
+ 	ArtAtlasUnLock(item)
+ end
++function Renderer2D:AddCorpseItem					(item) =
+
++	print(&quot;TODO:Renderer2D:AddCorpseItem&quot;)
++end
++function Renderer2D:AddMultiItem					(item) =
+
++	gDebugLastMultiItem =3D item
++	local multi =3D item.multi
++	if (not multi) then print(&quot;Renderer2D:AddMultiItem error:no multi data&quot;) =
+return end
++	=
+
++	-- create spriteblock
++	local spriteblock =3D cUOSpriteBlock:New()
++	item.gfx2d =3D spriteblock
++	=
+
++	-- add multi parts
++	local totalpartnum =3D #multi.lparts
++	local itemxloc =3D item.xloc
++	local itemyloc =3D item.yloc
++	local itemzloc =3D item.zloc
++	for k,part in pairs(multi.lparts) do
++		local iTileTypeID,xloc,yloc,zloc,iHue =3D unpack(part) -- see Multi_AddP=
+artHelper
++		local tx =3D xloc-itemxloc
++		local ty =3D yloc-itemyloc
++		local tz =3D zloc-itemzloc
++		local fIndexRel =3D k / totalpartnum
++		spriteblock:AddSprite(tx,ty,tz,iTileTypeID,iHue,CalcSortBonus(iTileTypeI=
+D,tx,tz,tz,fIndexRel),item)
++	end
++	spriteblock:Build(Renderer2D.kSpriteBaseMaterial)
++	local x,y,z =3D gCurrentRenderer:UOPosToLocal(itemxloc,itemyloc,itemzloc*=
+kRenderer2D_ZScale)
++	spriteblock:SetPosition(x,y,z)
++end
++
+ function Renderer2D:AddDynamicItem					(item) =
+
+-	local gfx =3D CreateRootGfx3D()
+-	item.gfx2d =3D gfx
+-	gfx:SetSimpleRenderable()
+-	local iTileTypeID,iHue =3D item.artid+0x4000,item.hue
+-	local sMatName,iWidth,iHeight,iCenterX,iCenterY,u0,v0,u1,v1 =3D ArtAtlasL=
+oadAndLockDirect(iTileTypeID,iHue,item,Renderer2D.kAtlasBaseMaterial)
+-	if (not sMatName) then return end
+-	local zoom =3D 1
+-	local pix2coord =3D zoom * 1 / 44
+-	local x =3D -1 + ( iCenterY +iCenterX)*pix2coord -- iCenterX&lt;0=3Dright iC=
+enterY&lt;0=3Ddown
+-	local y =3D  1 + (-iCenterY +iCenterX)*pix2coord
+-	local z =3D  0  -- x-1,y+1 : sprites are too high normally, this moves th=
+em down =
+
+-	local w =3D k2D_ScaleW05 * iWidth * zoom
+-	local h =3D k2D_ScaleH   * iHeight * zoom
+-	gfx:SetMaterial(sMatName)
+-	gfx:RenderableBegin(4,6,false,false,OT_TRIANGLE_LIST)
+-	gfx:RenderableVertex(x-w,y-w,z  , u1,v1)
+-	gfx:RenderableVertex(x+w,y+w,z  , u0,v1)
+-	gfx:RenderableVertex(x-w,y-w,z+h, u1,v0)
+-	gfx:RenderableVertex(x+w,y+w,z+h, u0,v0)
+-	gfx:RenderableIndex3(0,2,1)
+-	gfx:RenderableIndex3(1,2,3)
+-	gfx:RenderableEnd()
+-	=
+
+-	self:UpdateDynamicItemPos(item)
++	if (item.artid_base =3D=3D kCorpseDynamicArtID) then
++		-- corpse
++		self:AddCorpseItem(item)
++	elseif not item.artid then
++		print(&quot;ERROR: artid missing!!!!\n&quot;)
++	elseif item.artid &gt;=3D gMulti_ID then =
+
++		-- multi
++		self:AddMultiItem(item)
++	else
++		local spriteblock =3D cUOSpriteBlock:New()
++		item.gfx2d =3D spriteblock
++		=
+
++		local tx,ty,tz,fIndexRel =3D 0,0,0,0
++		local iTileTypeID	=3D item.artid
++		local iHue			=3D item.hue
++		spriteblock:AddSprite(tx,ty,tz,iTileTypeID,iHue,CalcSortBonus(iTileTypeI=
+D,tx,tz,tz,fIndexRel),item)
++		spriteblock:Build(Renderer2D.kSpriteBaseMaterial)
++		local x,y,z =3D gCurrentRenderer:UOPosToLocal(item.xloc,item.yloc,item.z=
+loc*kRenderer2D_ZScale)
++		spriteblock:SetPosition(x,y,z)
++	end
+ end
+-function Renderer2D:UpdateDynamicItemPos			(item) =
+
+-	if (item.gfx2d) then item.gfx2d:SetPosition(self:UOPosToLocal(item.xloc,i=
+tem.yloc,item.zloc * 0.1)) end
++
++function Renderer2D:UpdateDynamicItemPos			(item)
++	if (not Renderer2D.bDebugWarnUpdateDynamicItemPos) then
++		Renderer2D.bDebugWarnUpdateDynamicItemPos =3D true
++		print(&quot;todo : 2dmode : UpdateDynamicItemPos&quot;)
++	end
++	--~ if (item.gfx2d) then print(&quot;Renderer2D:UpdateDynamicItemPos: fixme, z=
+scale !=3D 0.1&quot;) item.gfx2d:SetPosition(self:UOPosToLocal(item.xloc,item.yl=
+oc,item.zloc * 0.1)) end
+ end
+
+Modified: trunk/lua/lib.2d.mobile.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.mobile.lua (original)
++++ trunk/lua/lib.2d.mobile.lua Sun Sep 21 05:27:09 2008
+@@ -1,8 +1,4 @@
+ -- mobiles (animals,players,monsters,npcs..)
+-
+-kSq2			=3D math.sqrt(2)
+-k2D_ScaleH		=3D kSq2 / 44
+-k2D_ScaleW05	=3D 0.5 / 44 -- 0.5 : applied left and right
+ =
+
+ -- main updater, create, position ...
+ function Renderer2D:UpdateMobile				(mobile) =
+
+
+Modified: trunk/lua/lib.2d.renderer.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.renderer.lua (original)
++++ trunk/lua/lib.2d.renderer.lua Sun Sep 21 05:27:09 2008
+@@ -7,7 +7,15 @@
+ =
+
+ Renderer2D =3D {}
+ =
+
+-Renderer2D.kAtlasBaseMaterial =3D &quot;renderer2dbillboard&quot;
++Renderer2D.kSpriteBaseMaterial =3D &quot;renderer2dbillboard&quot;
++kSq2					=3D math.sqrt(2)
++k2D_ScaleH				=3D kSq2 / 44
++k2D_ScaleW05			=3D 0.5 / 44 -- 0.5 : applied left and right
++kRenderer2D_Inv44		=3D 1/44
++kRenderer2D_Sin45		=3D 0.5*kSq2 -- sin(45)
++kRenderer2D_ZScale		=3D 4 * kRenderer2D_Inv44 / kRenderer2D_Sin45 -- zloc=
+=3D1 means 4 pixels 0.12856486930664
++kRenderer2D_XPixelScale	=3D kRenderer2D_Inv44 * 0.5 =
+
++kRenderer2D_YPixelScale	=3D kRenderer2D_Inv44 / kRenderer2D_Sin45
+ =
+
+ dofile(libpath .. &quot;lib.2d.cam.lua&quot;)
+ dofile(libpath .. &quot;lib.2d.map.lua&quot;)
+
+Modified: trunk/lua/lib.2d.spriteblock.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.spriteblock.lua (original)
++++ trunk/lua/lib.2d.spriteblock.lua Sun Sep 21 05:27:09 2008
+@@ -8,16 +8,22 @@
+ cUOSpriteBlock =3D CreateClass()
+ function cUOSpriteBlock:New () local c =3D CreateClassInstance(cUOSpriteBl=
+ock) return c end
+ function cUOSpriteBlock:Init ()
+-	self.pStaticAtlasMats =3D {} -- self.pStaticAtlasMats[iTileTypeID][iHue] =
+=3D pAtlasPiece (see ArtAtlasLoadAndLock)
++	self.pTileTypeAtlasMats =3D {} -- self.pTileTypeAtlasMats[iTileTypeID][iH=
+ue] =3D pAtlasPiece (see ArtAtlasLoadAndLock)
+ 	self.pGroupGfx =3D {}
+ 	self.pSpritesByAtlas =3D {}
+-end
+-
+-function cUOSpriteBlock:CamStep(t,xloc,yloc,zloc) end
++	self.rootgfx =3D CreateRootGfx3D()
++end
++
++function cUOSpriteBlock:SetPosition (x,y,z) =
+
++	self.x =3D x
++	self.y =3D y
++	self.z =3D z
++	self.rootgfx:SetPosition(x,y,z) =
+
++end
+ =
+
+ function cUOSpriteBlock:Destroy ()
+ 	if (self.pGroupGfx) then for k,v in pairs(self.pGroupGfx) do v:Destroy() =
+end self.pGroupGfx =3D nil end
+-	self.bx =3D nil
++	if (self.rootgfx) then self.rootgfx:Destroy() self.rootgfx =3D nil end
+ end
+ =
+
+ function TileOffsetToPixelOffset (tx,ty)
+@@ -31,14 +37,13 @@
+ 	return bitmask:TestBit(floor(px),floor(py))
+ end
+ =
+
+--- returns dist,sprite   if hit, or nil if not hit.    sprite=3D{artid=3D?=
+,hue=3D?,static=3D?}
++-- returns dist,sprite   if hit, or nil if not hit.    sprite=3D{artid=3D?=
+,hue=3D?,data=3D?} (see AddSprite)
+ function cUOSpriteBlock:RayPick (rx,ry,rz, rvx,rvy,rvz)
+ 	local bx,by =3D self.bx,self.by
+ 	if (not bx) then return end
+-	local x,y,z =3D gCurrentRenderer:UOPosToLocal(bx*8,by*8,0)  -- self.pGrou=
+pGfx position
+-	rx =3D rx - x
+-	ry =3D ry - y
+-	rz =3D rz - z
++	rx =3D rx - self.x
++	ry =3D ry - self.y
++	rz =3D rz - self.z
+ 	=
+
+ 	local founddist,foundsprite
+ 	=
+
+@@ -75,99 +80,90 @@
+ 	return founddist,foundsprite
+ end
+ =
+
++function CalcSortBonus (artid,tx,ty,zloc,fIndexRel)
++	--~ prio1 =3D zloc + iSortBonus2D				iSortBonus2D in {2,3,4,6} (+1 for dy=
+namic)
++	--~ prio2 =3D miHeight						in [0,100]
++	--~ prio3 =3D (hue&gt;0) and 1007 or 7
++	--~ prio4 =3D fIndexRel						in [0,1]
++	--~ prio5 =3D tx								in [0,7]
++	local pTileType =3D GetStaticTileType(artid)
++	return				1.000 * (zloc + pTileType.iSortBonus2D) + -- zloc + =
+
++						1.000 * (pTileType.miHeight/100) +
++						0.000 * (fIndexRel) +
++						0.005 * (tx / 8)
++end
++
++
++-- static comes from MapGetBlockStatics(bx,by) : {zloc=3D?,artid=3D?,hue=
+=3D?,xloc=3D?,yloc=3D?,tx=3D?,ty=3D?,bx=3D?,by=3D?,bIsStatic=3Dtrue}
++function cUOSpriteBlock:AddStatic (static)
++	local artid =3D static.artid
++	local tx =3D static.tx
++	local ty =3D static.ty
++	local zloc =3D static.zloc
++	self:AddSprite(tx,ty,zloc,artid,static.hue,CalcSortBonus(artid,tx,ty,zloc=
+,static.fBlockIndexRel),static)
++end
+ =
+
+ =
+
+ -- load textures to atlas, artid-hue
+--- static comes from MapGetBlockStatics(bx,by)
+--- {zloc=3D?,artid=3D?,hue=3D?,xloc=3D?,yloc=3D?,tx=3D?,ty=3D?,bx=3D?,by=
+=3D?,bIsStatic=3Dtrue}
+-function cUOSpriteBlock:AddStatic (static)
+-	local iTileTypeID	=3D static.artid
+-	local iHue			=3D static.hue
+-	=
+
+-	iHue =3D 0
+-	=
+
+-	local arr =3D self.pStaticAtlasMats[iTileTypeID]
+-	if (not arr) then arr =3D {} self.pStaticAtlasMats[iTileTypeID] =3D arr e=
+nd
++function cUOSpriteBlock:AddSprite (tx,ty,zloc,artid,hue,sortbonus,data)
++	sortbonus =3D sortbonus or 0
++	hue =3D hue or 0
++	local arr =3D self.pTileTypeAtlasMats[artid]
++	if (not arr) then arr =3D {} self.pTileTypeAtlasMats[artid] =3D arr end
+ 	=
+
+ 	-- get/load atlas mat
+-	local pAtlasPiece =3D arr[iHue]
++	local pAtlasPiece =3D arr[hue]
+ 	if (not pAtlasPiece) then
+-		pAtlasPiece =3D ArtAtlasLoadAndLock(iTileTypeID+0x4000,iHue,self) -- .at=
+las,u0,v0,u1,v1,w,h
+-		arr[iHue] =3D pAtlasPiece
++		pAtlasPiece =3D ArtAtlasLoadAndLock(artid+0x4000,hue,self) -- .atlas,u0,=
+v0,u1,v1,w,h
++		arr[hue] =3D pAtlasPiece
+ 	end
+ 	=
+
+ 	-- add to matname group
+-	if (pAtlasPiece) then
+-		local atlas =3D pAtlasPiece.atlas
+-		local group =3D self.pSpritesByAtlas[atlas]
+-		if (not group) then group =3D {} self.pSpritesByAtlas[atlas] =3D group e=
+nd
+-		local pw =3D pAtlasPiece.w
+-		local ph =3D pAtlasPiece.h
+-		local tx =3D static.tx
+-		local ty =3D static.ty
+-		local zloc =3D static.zloc
+-		local pTileType =3D GetStaticTileType(static.artid)
+-		=
+
+-		--~ prio1 =3D zloc + iSortBonus2D				iSortBonus2D in {2,3,4,6} (+1 for d=
+ynamic)
+-		--~ prio2 =3D miHeight						in [0,100]
+-		--~ prio3 =3D (static.hue&gt;0) and 1007 or 7
+-		--~ prio4 =3D static.fBlockIndexRel			in [0,1]
+-		--~ prio5 =3D static.tx						in [0,7]
+-		=
+
+-		-- z : in [-1;1] visible
+-		local sortbonus =3D	0.1000 * (zloc + pTileType.iSortBonus2D) +	=
+
+-							0.1000 * (pTileType.miHeight/100) +
+-							0.0000 * (static.fBlockIndexRel) +
+-							0.0005 * (static.tx / 8)
+-		=
+
+-		local x,y,z =3D -tx,ty,zloc*0.1
+-		local sortadd =3D sortbonus
+-		local movedown =3D 1 -- ox-1,oy+1 : sprites are too high normally, this =
+moves them down =
+
+-		x =3D x +   -1 * sortadd - movedown  =
+
+-		y =3D y +    1 * sortadd + movedown
+-		z =3D z + kSq2 * sortadd
+-		local inv44 =3D 1/44
+-		local xa =3D inv44 * pw * 0.5
+-		local za =3D inv44 * ph * 2.0 / kSq2						=
+
+-		=
+
+-		--~ local xa =3D k2D_ScaleW05 * pw * 2
+-		--~ local za =3D k2D_ScaleH   * ph * 2 / kSq2
+-		--~ k2D_ScaleH		=3D kSq2 / 44
+-		--~ k2D_ScaleW05	=3D 0.5 / 44 -- 0.5 : applied left and right
+-		--~ local sin45 =3D 0.5*kSq2
+-		=
+
+-			=
+
+-			=
+
+-		local px,py =3D TileOffsetToPixelOffset(tx,ty)
+-		local sprite =3D {
+-			x =3D x,
+-			y =3D y,
+-			z =3D z,
+-			xa =3D xa,
+-			za =3D za,
+-			u0 =3D pAtlasPiece.u0,
+-			v0 =3D pAtlasPiece.v0,
+-			u1 =3D pAtlasPiece.u1,
+-			v1 =3D pAtlasPiece.v1,
+-			pw =3D pw, -- in pixels
+-			ph =3D ph, -- in pixels
+-			--~ px =3D floor(px - pw*0.5 				 ),
+-			--~ py =3D floor(py - ph	 - 4*static.zloc ), -- 1 z-unit =3D 4 pixels u=
+pwards in the original client
+-			hue =3D static.hue,
+-			artid =3D static.artid, -- for mousepicking
+-			static =3D static
+-		}
+-		table.insert(group,sprite)
+-	else
+-		print(&quot;warning, cUOSpriteBlock:AddStatic failed&quot;,iTileTypeID,iHue)
+-	end
+-end
+-
+-
+-function cUOSpriteBlock:Build 	(bx,by,basemat)
+-	self.bx =3D bx
+-	self.by =3D by
+-	=
+
++	if (not pAtlasPiece) then
++		print(&quot;warning, cUOSpriteBlock:AddSprite failed&quot;,artid,hue)
++		return
++	end
++	=
+
++	local atlas =3D pAtlasPiece.atlas
++	local group =3D self.pSpritesByAtlas[atlas]
++	if (not group) then group =3D {} self.pSpritesByAtlas[atlas] =3D group end
++	local pw =3D pAtlasPiece.w
++	local ph =3D pAtlasPiece.h
++	=
+
++	=
+
++	local x,y,z =3D -tx,ty,zloc * kRenderer2D_ZScale
++	local sortadd =3D sortbonus * kRenderer2D_ZScale
++	local movedown =3D kSq2 -- ox-1,oy+1 : sprites are too high normally, thi=
+s moves them down =
+
++	x =3D x +   -1 * sortadd - movedown  =
+
++	y =3D y +    1 * sortadd + movedown
++	z =3D z + kSq2 * sortadd
++	local xa =3D pw * kRenderer2D_XPixelScale
++	local za =3D ph * kRenderer2D_YPixelScale			=
+
++	=
+
++	--~ local px,py =3D TileOffsetToPixelOffset(tx,ty)
++	local sprite =3D {
++		x =3D x,
++		y =3D y,
++		z =3D z,
++		xa =3D xa,
++		za =3D za,
++		u0 =3D pAtlasPiece.u0,
++		v0 =3D pAtlasPiece.v0,
++		u1 =3D pAtlasPiece.u1,
++		v1 =3D pAtlasPiece.v1,
++		pw =3D pw, -- in pixels
++		ph =3D ph, -- in pixels
++		--~ px =3D floor(px - pw*0.5 		  ),
++		--~ py =3D floor(py - ph	 - 4*zloc ), -- 1 z-unit =3D 4 pixels upwards i=
+n the original client
++		hue =3D hue,
++		artid =3D artid, -- for mousepicking
++		data =3D data
++	}
++	table.insert(group,sprite)
++end
++
++
++function cUOSpriteBlock:Build 	(basemat)
+ 	-- for 3d statics
+ 	-- statics : create gfx
+ 	-- -so 1420,1550
+@@ -175,13 +171,10 @@
+ 	-- -so 632,1488
+ 	for atlas,group in pairs(self.pSpritesByAtlas) do
+ 		local matname =3D ArtAtlasLoadMaterial(atlas,basemat)
+-		--~ matname =3D &quot;BaseWhiteNoLighting&quot;
+ 		-- TODO : sort by z for blendout upper floors
+ 		local spritecount =3D #group
+-		local x,y,z =3D gCurrentRenderer:UOPosToLocal(bx*8,by*8,0)
+-		local gfx =3D CreateRootGfx3D()
++		local gfx =3D self.rootgfx:CreateChild()
+ 		table.insert(self.pGroupGfx,gfx)
+-		gfx:SetPosition(x,y,z)
+ 		gfx:SetSimpleRenderable()
+ 		gfx:SetMaterial(matname)
+ 		=
+
+
+Modified: trunk/lua/lib.3d.dynamic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.dynamic.lua (original)
++++ trunk/lua/lib.3d.dynamic.lua Sun Sep 21 05:27:09 2008
+@@ -13,11 +13,6 @@
+ =
+
+ Renderer3D.gFastBatchDynamicsMap =3D CreateArray2D()
+ Renderer3D.gFastBatchDynamicsMapDestroyListener =3D nil
+-
+--- helperfunction for CreateDynamicGfx. Please use always for function call
+-function Renderer3D:AddDynamicItem( item )
+-	self:CreateDynamicGfx(item)
+-end
+ =
+
+ -- for fastbatch
+ function Renderer3D:UpdateDynamicDisplayRange ()
+@@ -260,94 +255,6 @@
+ end
+ =
+
+ =
+
+--- creates the geometry of the given multi and stores the gfx object in th=
+is multi
+-function Renderer3D:CreateMultiGraphic	(serial, multi)
+-	-- add dynamic items to render blocks or queue for delayed add
+-	if self.map3d_spawners and self.map3d_spawners.multis then =
+
+-		self.map3d_spawners.multis:AddMulti(serial, multi)
+-	end
+-	=
+
+-	--[[
+-	-- only run one build process per multi
+-	if multi.mbBuildRunning then return end
+-	multi.mbBuildRunning =3D true
+-	=
+
+-	-- build job
+-	job.create(function()
+-		if not multi.staticGeometry or not multi.staticGeometry:IsAlive() then
+-			multi.staticGeometry =3D CreateRootGfx3D()
+-		end
+-
+-		job.yield()
+-		-- terminate?
+-		if multi.mbCancelBuildAndDestroy then multi.staticGeometry:Destroy() ret=
+urn end
+-					=
+
+-		-- load mesh buffers
+-		for k,v in pairs(multi.lparts) do
+-			-- get tile
+-			local iTileTypeID,iX,iY,iZ,iHue =3D unpack(v)
+-			-- and mesh
+-			local meshname =3D GetMeshName(iTileTypeID)
+-			-- and try to load it
+-			if meshname then =
+
+-				GetMeshBuffer(meshname)
+-			end
+-		end
+-		=
+
+-		job.yield()
+-		-- terminate?
+-		if multi.mbCancelBuildAndDestroy then multi.staticGeometry:Destroy() ret=
+urn end
+-
+-		-- build geometry
+-		multi.staticGeometry:SetFastBatch()
+-
+-		for k,v in pairs(multi.lparts) do
+-			local x,y,z
+-			local qw,qx,qy,qz
+-			local xadd,yadd,zadd
+-
+-			local iTileTypeID,iX,iY,iZ,iHue =3D unpack(v)
+-			=
+
+-			local meshname =3D GetMeshName(iTileTypeID)
+-
+-			if meshname then
+-				xadd,yadd,zadd =3D FilterPositionXYZ(iTileTypeID)
+-				x,y,z =3D Renderer3D:UOPosToLocal(iX + xadd,iY + yadd,iZ * 0.1 + zadd) =
+
+-				qw,qx,qy,qz =3D GetStaticMeshOrientation(iTileTypeID)
+-
+-				local r,g,b,a =3D 1,1,1,1
+-				if (gHueLoader and iHue &gt; 0) then
+-					r,g,b =3D gHueLoader:GetColor(iHue - 1,31) -- get first color
+-				end
+-
+-				local meshbuffer =3D GetMeshBuffer(meshname)
+-
+-				local orderval =3D iZ -- used for blendout later (fastbatch feature)
+-				multi.staticGeometry:FastBatch_AddMeshBuffer(meshbuffer, orderval, x,y=
+,z, qw,qx,qy,qz, -1,1,1, r,g,b,a)
+-
+-				local mousepick =3D {
+-					xadd=3Dxadd,yadd=3Dyadd,zadd=3Dzadd,qw=3Dqw,qx=3Dqx,qy=3Dqy,qz=3Dqz,
+-					sx=3D-1,sy=3D1,sz=3D1,x=3Dx,y=3Dy,z=3Dz,meshbuffer=3Dmeshbuffer,
+-					iTileTypeID =3D iTileTypeID,
+-					iHue =3D iHue,
+-					iBlockX =3D math.floor(x/8), iBlockY =3D math.floor(y/8),
+-				}
+-				=
+
+-				v.mousepick =3D mousepick
+-			end
+-		end
+-
+-		multi.staticGeometry:FastBatch_Build()
+-
+-		multi.staticGeometry:SetCastShadows(gDynamicsCastShadows)
+-		=
+
+-		multi.mbBuildRunning =3D false
+-
+-		-- terminate?
+-		if multi.mbCancelBuildAndDestroy then multi.staticGeometry:Destroy() ret=
+urn end
+-	end, nil, 1)
+-	]]
+-end
+ =
+
+ -- destroys the multi gfx static geometry
+ function Renderer3D:DestroyMultiGraphic	(multi)
+@@ -365,26 +272,46 @@
+ 	]]
+ end
+ =
+
+-function Renderer3D:Multi_AddPartHelper	(multi, iTileTypeID,iX,iY,iZ,iHue)
+-	table.insert(multi.lparts, {iTileTypeID,iX,iY,iZ,iHue})
+-	=
+
+-	-- calc aabb
+-	multi.minx =3D math.min(multi.minx or iX, iX)
+-	multi.maxx =3D math.max(multi.maxx or iX, iX)
+-	multi.miny =3D math.min(multi.miny or iY, iY)
+-	multi.maxy =3D math.max(multi.maxy or iY, iY)
+-	=
+
+-	-- setup fast access cache for walking
+-	if (not multi.cache) then multi.cache =3D {} end
+-	local myarr =3D multi.cache[iX..&quot;,&quot;..iY]
+-	--~ print(&quot;######## Renderer3D:Multi_AddPartHelper addcache&quot;,multi)
+-	if (not myarr) then myarr =3D {} multi.cache[iX..&quot;,&quot;..iY] =3D myarr end
+-	table.insert(myarr,{iZ=3DiZ,iTileTypeID=3DiTileTypeID,xloc=3DiX,yloc=3DiY=
+,zloc=3DiZ,artid=3DiTileTypeID,iHue=3DiHue}) =
+
+-	-- also used by W3_ForAllMultiPartsAtPos
++-- multi / house =
+
++-- creates the geometry of the given multi and stores the gfx object in th=
+is multi
++function Renderer3D:AddMultiItem( item )
++	printdebug(&quot;multi&quot;, sprintf(&quot;Multi detected with ARTID&quot;,item.artid,vardum=
+p(item)) )
++	if (not item.multi) then =
+
++		printdebug(&quot;missing&quot;,sprintf(&quot;Renderer3D:AddMultiItem: failed loading (m=
+ulti): artid=3D%i z_typename=3D%s\n&quot;,item.artid or -1,GetStaticTileTypeName=
+(item.artid) or &quot;&quot;))
++		return
++	end
++	-- add dynamic items to render blocks or queue for delayed add
++	if self.map3d_spawners and self.map3d_spawners.multis then =
+
++		self.map3d_spawners.multis:AddMulti(item.serial,item.multi)
++	end
++end
++
++function Renderer3D:AddCorpseItem( item )
++	printdebug(&quot;corpse&quot;,&quot;AddDynamicItem corpse&quot;,item.amount)
++	local bodyid =3D item.amount
++	local hue =3D item.hue
++	local equip =3D {}
++	local bMoving,bTurning,bWarMode,bRunFlag =3D false,false,false,false
++	item.corpsegfx =3D CreateBodyGfx()
++	item.corpsegfx:SetCorpse()
++	item.corpsegfx:MarkForUpdate(bodyid,hue,equip)
++	item.corpsegfx:Update()
++	item.corpsegfx:SetState(bMoving,bTurning,bWarMode,bRunFlag)
++	item.gfx =3D item.corpsegfx.modelgfx
++	item.gfx:SetCastShadows(gDynamicsCastShadows)
++	--~ item.gfx:SetOrientation(qw,qx,qy,qz) -- GetStaticMeshOrientation(item=
+.artid)
++
++	-- just add the dynamic as a scene node
++	=
+
++	item.gfx:SetRenderingDistance(self.gDynamicMaxRenderDist)
++	-- set's position and add's xadd,yadd,zadd corrections
++	self:UpdateDynamicItemPos(item, true)
++	-- updates the layer-visibility
++	self:UpdateDynamicVisibility(item)
+ end
+ =
+
+ -- TODO: Multis &amp; Serversidemultis don't recognize kTileDataFlag_LightSour=
+ce yet
+-function Renderer3D:CreateDynamicGfx( item )
++function Renderer3D:AddDynamicItem( item )
+ 	assert(not item.gfx)
+ =
+
+ 	item.artid =3D CheckIfBoat(item.artid)
+@@ -392,120 +319,14 @@
+ 	-- FILTER: get correction
+ 	item.xadd,item.yadd,item.zadd =3D FilterPositionXYZ(item.artid)
+ 	=
+
+-	-- check if corpse
+-	local bCorpse =3D item.artid_base =3D=3D kCorpseDynamicArtID
+-	=
+
+-	local bCorpseGFX =3D false
+-	if (bCorpse) then
++	if (item.artid_base =3D=3D kCorpseDynamicArtID) then
+ 		-- corpse
+-		printdebug(&quot;corpse&quot;,&quot;CreateDynamicGfx corpse&quot;,item.amount)
+-		bCorpseGFX =3D true
+-		=
+
+-		local bodyid =3D item.amount
+-		local hue =3D item.hue
+-		local equip =3D {}
+-		local bMoving,bTurning,bWarMode,bRunFlag =3D false,false,false,false
+-		item.corpsegfx =3D CreateBodyGfx()
+-		item.corpsegfx:SetCorpse()
+-		item.corpsegfx:MarkForUpdate(bodyid,hue,equip)
+-		item.corpsegfx:Update()
+-		item.corpsegfx:SetState(bMoving,bTurning,bWarMode,bRunFlag)
+-		item.gfx =3D item.corpsegfx.modelgfx
+-		item.gfx:SetCastShadows(gDynamicsCastShadows)
+-		--~ item.gfx:SetOrientation(qw,qx,qy,qz) -- GetStaticMeshOrientation(ite=
+m.artid)
+-	=
+
+-		-- just add the dynamic as a scene node
+-		=
+
+-		item.gfx:SetRenderingDistance(self.gDynamicMaxRenderDist)
+-		-- set's position and add's xadd,yadd,zadd corrections
+-		self:UpdateDynamicItemPos(item, true)
+-		-- updates the layer-visibility
+-		self:UpdateDynamicVisibility(item)
+-	end
+-	=
+
+-	if (bCorpseGFX) then
+-		-- already handled above
++		self:AddCorpseItem(item)
+ 	elseif not item.artid then
+ 		print(&quot;ERROR: artid missing!!!!\n&quot;)
+ 	elseif item.artid &gt;=3D gMulti_ID then =
+
+-		-- Multis
+-		print(&quot;######## Renderer3D:CreateDynamicGfx:Multi&quot;,item.artid-gMulti_ID,=
+item.xloc,item.yloc,item.zloc)
+-	=
+
+-		printdebug(&quot;multi&quot;,&quot;-----------------------------&quot;)
+-		printdebug(&quot;multi&quot;, sprintf(&quot;Multi detected with ARTID&quot;,item.artid,vardu=
+mp(item)) )
+-
+-		-- Serverside Multi Check (Custom Multi)
+-		if (item.lTile) then
+-			printdebug(&quot;multi&quot;,&quot;Serverside Multi detected&quot;)
+-
+-			local iTileTypeID,iX,iY,iZ
+-			local iHue
+-			local multi =3D {}
+-			multi.lparts =3D {}
+-			=
+
+-			print(&quot;+serverside&quot;,#item.lTile)
+-			for k,v in pairs(item.lTile) do
+-				-- create part
+-				iTileTypeID =3D v.artid
+-				iHue =3D 0				--&lt;- TODO: hueing is WRONG !! Every part of an multi can=
+ have its own hue!
+-
+-				-- generate absolute coords
+-				iX =3D item.xloc + v.x + item.xadd
+-				iY =3D item.yloc + v.y + item.yadd
+-				iZ =3D item.zloc + v.z + item.zadd
+-				=
+
+-				-- add part
+-				self:Multi_AddPartHelper(multi, iTileTypeID,iX,iY,iZ,iHue)
+-			end
+-
+-			item.multi =3D multi
+-			item.gfx =3D nil
+-			gMultis[multi] =3D true
+-			=
+
+-			Renderer3D:CreateMultiGraphic(item.serial, multi)
+-			=
+
+-		-- Clientside Multi Check
+-		elseif gMultiLoader then
+-			printdebug(&quot;multi&quot;,&quot;Clientside Multi detected&quot;)
+-			=
+
+-			local multi =3D {}
+-			multi.id =3D item.artid - gMulti_ID
+-
+-			local parts =3D gMultiLoader:CountMultiParts(multi.id)
+-			print(&quot;+clientside&quot;,parts)
+-			multi.lparts =3D {}
+-			=
+
+-			-- read out parts
+-			printdebug(&quot;multi&quot;,&quot;Renderer3D:CreateDynamicGfx: multi id&quot;,multi.id,&quot;pa=
+rts&quot;,parts)
+-
+-			local iTileTypeID,iX,iY,iZ,iFlags
+-			local iHue
+-			for p =3D 0, parts-1 do
+-				iTileTypeID,iX,iY,iZ,iFlags =3D gMultiLoader:GetMultiParts(multi.id,p)
+-				iHue =3D 0				--&lt;- TODO: hueing is WORNG !! Every part of an multi can=
+ have its own hue!
+-				=
+
+-				-- generate absolute coords
+-				iX =3D item.xloc + iX + item.xadd
+-				iY =3D item.yloc + iY + item.yadd
+-				iZ =3D item.zloc + iZ + item.zadd
+-				=
+
+-				printdebug(&quot;multi&quot;,&quot;part&quot;,p,&quot;:&quot;,iTileTypeID,iX,iY,iZ,iFlags)
+-				=
+
+-				-- skip invisible parts
+-				if iFlags =3D=3D 1 then
+-					-- add part
+-					self:Multi_AddPartHelper(multi, iTileTypeID,iX,iY,iZ,iHue)
+-				end
+-			end
+-			=
+
+-			item.multi =3D multi
+-			item.gfx =3D nil
+-			gMultis[multi] =3D true
+-
+-			Renderer3D:CreateMultiGraphic(item.serial, multi)
+-		else =
+
+-			printdebug(&quot;missing&quot;,sprintf(&quot;Renderer3D:CreateDynamicGfx: failed loadi=
+ng mesh for dynamic (multi): artid=3D%i z_typename=3D%s\n&quot;,item.artid or -1=
+,GetStaticTileTypeName(item.artid) or &quot;&quot;))
+-		end
++		-- multi
++		self:AddMultiItem(item)
+ 	else
+ 		-- normal 1 part object
+ 		local artid =3D item.artid
+
+Modified: trunk/lua/lib.artatlas.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.artatlas.lua (original)
++++ trunk/lua/lib.artatlas.lua Sun Sep 21 05:27:09 2008
+@@ -120,6 +120,7 @@
+ 	local matname =3D atlas.mats[basematerial]
+ 	if (not matname) then =
+
+ 		matname =3D CloneMaterial(basematerial)
++		if (not matname) then print(&quot;ArtAtlasLoadMaterial: failed to clone basem=
+at&quot;,basematerial) return end
+ 		SetTexture(matname,atlas.texname)
+ 		--~ SetSceneBlend(matname,0,0,0)
+ 		--~ SetDepthWriteEnabled(matname,0,0,1)
+
+Modified: trunk/lua/lib.boat.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.boat.lua (original)
++++ trunk/lua/lib.boat.lua Sun Sep 21 05:27:09 2008
+@@ -26,7 +26,7 @@
+ Fallback: Dynamic created : artID =3D 16057	- hatch
+ =
+
+ =
+
+-Renderer3D:CreateDynamicGfx: multi id   2       parts   38
++Renderer3D:AddDynamicItem: multi id   2       parts   38
+ part    0       :       16098   365     1148    -120    0	- mast
+ part    1       :       15947   365     1144    -120    0	- tillerman
+ part    2       :       16057   365     1152    -120    0	- hatch
+
+Modified: trunk/lua/lib.mapblock.2d.statics.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mapblock.2d.statics.lua (original)
++++ trunk/lua/lib.mapblock.2d.statics.lua Sun Sep 21 05:27:09 2008
+@@ -1,11 +1,6 @@
+ cMapBlock_2D_Statics	=3D CreateClass(cMapBlockGrid)
+ cMapBlock_2D_Statics.iBlockSize		=3D 8 -- in tiles
+ cMapBlock_2D_Statics.iLoadRadius	=3D 4 -- in iBlockSize-blocks
+-
+-function cMapBlock_2D_Statics:ShortStep (t,xloc,yloc,zloc)
+-	if (self.spriteblock) then self.spriteblock:CamStep(t,xloc,yloc,zloc) end
+-	cMapBlock.ShortStep(self,t,xloc,yloc,zloc)
+-end
+ =
+
+ function cMapBlock_2D_Statics:ClearDetail ()
+ 	if (self.spriteblock) then self.spriteblock:Destroy() self.spriteblock =
+=3D nil end
+@@ -13,20 +8,18 @@
+ =
+
+ -- returns dist,sprite   if hit, or nil if not hit.    sprite=3D{artid=3D?=
+,hue=3D?,static=3D?}
+ function cMapBlock_2D_Statics:RayPick (rx,ry,rz, rvx,rvy,rvz) =
+
+-	local spriteblock =3D self.spriteblock =
+
+-	if (not spriteblock) then return end
+-	return spriteblock:RayPick(rx,ry,rz, rvx,rvy,rvz) =
+
++	if (not self.spriteblock) then return end
++	return self.spriteblock:RayPick(rx,ry,rz, rvx,rvy,rvz) =
+
+ end
+ =
+
+ function cMapBlock_2D_Statics:WorkStep_LoadDetail ()
+ 	-- statics : load infos from file
+ 	self.statics =3D MapGetBlockStatics(self.bx,self.by)
++	self:YieldIfOverTime()
+ 	=
+
+ 	-- create spriteblock
+ 	local spriteblock =3D cUOSpriteBlock:New()
+ 	self.spriteblock =3D spriteblock
+-	=
+
+-	self:YieldIfOverTime()
+ 	=
+
+ 	-- preload statics
+ 	for i,static in pairs(self.statics) do =
+
+@@ -36,5 +29,7 @@
+ 	=
+
+ 	-- construct geometry
+ 	self:Yield()
+-	spriteblock:Build(self.bx,self.by,Renderer2D.kAtlasBaseMaterial)
++	spriteblock:Build(Renderer2D.kSpriteBaseMaterial)
++	local x,y,z =3D gCurrentRenderer:UOPosToLocal(self.bx*8,self.by*8,0)
++	spriteblock:SetPosition(x,y,z)
+ end
+
+Modified: trunk/lua/lib.walking3.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.walking3.lua (original)
++++ trunk/lua/lib.walking3.lua Sun Sep 21 05:27:09 2008
+@@ -103,7 +103,7 @@
+ 	local n =3D xloc..&quot;,&quot;..yloc
+ 	for multi,v in pairs(gMultis) do =
+
+ 		--~ print(&quot;W3_ForAllMultiPartsAtPos&quot;,multi,multi.lparts,#multi.lparts,mu=
+lti.cache)
+-		local cache =3D multi.cache and multi.cache[n] -- see Renderer3D:Multi_A=
+ddPartHelper =
+
++		local cache =3D multi.cache and multi.cache[n] -- see Multi_AddPartHelpe=
+r =
+
+ 		if (cache) then for k,item in pairs(cache) do fun(item,param) end end
+ 	end
+ end
+
+Modified: trunk/lua/net/net.multi.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.multi.lua (original)
++++ trunk/lua/net/net.multi.lua Sun Sep 21 05:27:09 2008
+@@ -270,33 +270,155 @@
+ 	if (dyn) then
+ 		--print(&quot;CH: Old custom house found&quot;)
+ 		-- check if customhousemulti already exists
+-		if (dyn.customhouserevision) then
+-			if (customhouserevision~=3Ddyn.customhouserevision) then
+-				--print(&quot;CH: Houserevision not equal -&gt; reset&quot;)
+-				-- update revision
+-				dyn.customhouserevision=3Dcustomhouserevision
+-				--create a new house
+-
+-				-- just a Temp. Fix until 2D Renderer supports AddDynamicItem Serversi=
+de Multis
+-				if (gCurrentRenderer=3D=3DRenderer3D) then
+-					gCurrentRenderer:RemoveDynamicItem( dyn )
+-					dyn.lTile=3DlTile
+-					gCurrentRenderer:AddDynamicItem( dyn )
+-				end
++		if ((not dyn.customhouserevision) or customhouserevision~=3Ddyn.customho=
+userevision) then
++			-- dyn.customhouserevision ~=3D nil : print(&quot;CH: Houserevision not equa=
+l -&gt; reset&quot;)
++			-- dyn.customhouserevision =3D=3D nil : print(&quot;CH: No Houserevision fou=
+nd (only Clientside Stairs found)) -&gt; new&quot;)
++			-- update revision
++			dyn.customhouserevision =3D customhouserevision
++			=
+
++			-- update house visuals
++			gCurrentRenderer:RemoveDynamicItem( dyn )
++			dyn.lTile=3DlTile
++			UpdateMultiData(dyn)
++			gCurrentRenderer:AddDynamicItem( dyn )
++		end
++	end
++end
++
++function UpdateMultiData (item)
++	local iTileTypeID,iX,iY,iZ,iFlags
++	local iHue =3D 0
++	local multi =3D {}
++	multi.lparts =3D {}
++		=
+
++
++	if (item.lTile) then
++		-- Serverside Multi
++		printdebug(&quot;multi&quot;,&quot;Serverside Multi detected&quot;)
++		for k,v in pairs(item.lTile) do
++			Multi_AddPartHelper(item,multi, v.artid,v.x,v.y,v.z)
++		end
++	elseif gMultiLoader then
++		-- Clientside Multi
++		printdebug(&quot;multi&quot;,&quot;Clientside Multi detected&quot;)
++		=
+
++		multi.id =3D item.artid - gMulti_ID
++		local partnum =3D gMultiLoader:CountMultiParts(multi.id)
++		for p =3D 0, partnum-1 do
++			local iTileTypeID,iX,iY,iZ,iFlags =3D gMultiLoader:GetMultiParts(multi.=
+id,p)
++			-- skip invisible parts
++			if iFlags =3D=3D 1 then Multi_AddPartHelper(item,multi, iTileTypeID,iX,=
+iY,iZ) end
++		end
++	else
++		print(&quot;UpdateMultiData : failed&quot;,item.artid)
++		return
++	end
++		=
+
++	item.multi =3D multi
++	gMultis[multi] =3D true
++end
++
++function Multi_AddPartHelper	(item,multi, iTileTypeID,iX,iY,iZ,iHue)
++	iHue =3D iHue or 0
++	local xloc =3D item.xloc + iX
++	local yloc =3D item.yloc + iY
++	local zloc =3D item.zloc + iZ
++	table.insert(multi.lparts, {iTileTypeID,xloc,yloc,zloc,iHue})
++	=
+
++	-- calc aabb
++	multi.minx =3D math.min(multi.minx or xloc, xloc)
++	multi.maxx =3D math.max(multi.maxx or xloc, xloc)
++	multi.miny =3D math.min(multi.miny or yloc, yloc)
++	multi.maxy =3D math.max(multi.maxy or yloc, yloc)
++	=
+
++	-- setup fast access cache for walking
++	if (not multi.cache) then multi.cache =3D {} end
++	local myarr =3D multi.cache[xloc..&quot;,&quot;..yloc]
++	if (not myarr) then myarr =3D {} multi.cache[xloc..&quot;,&quot;..yloc] =3D myarr e=
+nd
++	table.insert(myarr,{iZ=3Dzloc,iTileTypeID=3DiTileTypeID,xloc=3Dxloc,yloc=
+=3Dyloc,zloc=3Dzloc,artid=3DiTileTypeID,iHue=3DiHue}) =
+
++	-- also used by W3_ForAllMultiPartsAtPos
++end
++
++
++
++--[[
++-- OBSOLETE, old multi building code from 3d.dynamic.lua
++-- only run one build process per multi
++if multi.mbBuildRunning then return end
++multi.mbBuildRunning =3D true
++
++-- build job
++job.create(function()
++	if not multi.staticGeometry or not multi.staticGeometry:IsAlive() then
++		multi.staticGeometry =3D CreateRootGfx3D()
++	end
++
++	job.yield()
++	-- terminate?
++	if multi.mbCancelBuildAndDestroy then multi.staticGeometry:Destroy() retu=
+rn end
++				=
+
++	-- load mesh buffers
++	for k,v in pairs(multi.lparts) do
++		-- get tile
++		local iTileTypeID,iX,iY,iZ,iHue =3D unpack(v)
++		-- and mesh
++		local meshname =3D GetMeshName(iTileTypeID)
++		-- and try to load it
++		if meshname then =
+
++			GetMeshBuffer(meshname)
++		end
++	end
++	=
+
++	job.yield()
++	-- terminate?
++	if multi.mbCancelBuildAndDestroy then multi.staticGeometry:Destroy() retu=
+rn end
++
++	-- build geometry
++	multi.staticGeometry:SetFastBatch()
++
++	for k,v in pairs(multi.lparts) do
++		local x,y,z
++		local qw,qx,qy,qz
++		local xadd,yadd,zadd
++
++		local iTileTypeID,iX,iY,iZ,iHue =3D unpack(v)
++		=
+
++		local meshname =3D GetMeshName(iTileTypeID)
++
++		if meshname then
++			xadd,yadd,zadd =3D FilterPositionXYZ(iTileTypeID)
++			x,y,z =3D Renderer3D:UOPosToLocal(iX + xadd,iY + yadd,iZ * 0.1 + zadd) =
+
++			qw,qx,qy,qz =3D GetStaticMeshOrientation(iTileTypeID)
++
++			local r,g,b,a =3D 1,1,1,1
++			if (gHueLoader and iHue &gt; 0) then
++				r,g,b =3D gHueLoader:GetColor(iHue - 1,31) -- get first color
+ 			end
+-			-- else already in serversidemulti cache and load form here.
+-		else
+-			--print(&quot;CH: No Houserevision found (only Clientside Stairs found)) -&gt; =
+new&quot;)
+-			--if not add revision to dynamic-multi
+-			dyn.customhouserevision=3Dcustomhouserevision
+-			-- create a new house
+-
+-			-- just a Temp. Fix until 2D Renderer supports AddDynamicItem Serversid=
+e Multis
+-			if (gCurrentRenderer=3D=3DRenderer3D) then
+-				gCurrentRenderer:RemoveDynamicItem( dyn )
+-				dyn.lTile=3DlTile
+-				gCurrentRenderer:AddDynamicItem( dyn )
+-			end
+-		end
+-	end
+-end
++
++			local meshbuffer =3D GetMeshBuffer(meshname)
++
++			local orderval =3D iZ -- used for blendout later (fastbatch feature)
++			multi.staticGeometry:FastBatch_AddMeshBuffer(meshbuffer, orderval, x,y,=
+z, qw,qx,qy,qz, -1,1,1, r,g,b,a)
++
++			local mousepick =3D {
++				xadd=3Dxadd,yadd=3Dyadd,zadd=3Dzadd,qw=3Dqw,qx=3Dqx,qy=3Dqy,qz=3Dqz,
++				sx=3D-1,sy=3D1,sz=3D1,x=3Dx,y=3Dy,z=3Dz,meshbuffer=3Dmeshbuffer,
++				iTileTypeID =3D iTileTypeID,
++				iHue =3D iHue,
++				iBlockX =3D math.floor(x/8), iBlockY =3D math.floor(y/8),
++			}
++			=
+
++			v.mousepick =3D mousepick
++		end
++	end
++
++	multi.staticGeometry:FastBatch_Build()
++
++	multi.staticGeometry:SetCastShadows(gDynamicsCastShadows)
++	=
+
++	multi.mbBuildRunning =3D false
++
++	-- terminate?
++	if multi.mbCancelBuildAndDestroy then multi.staticGeometry:Destroy() retu=
+rn end
++end, nil, 1)
++]]--
+
+Modified: trunk/lua/obj/obj.dynamic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/obj/obj.dynamic.lua (original)
++++ trunk/lua/obj/obj.dynamic.lua Sun Sep 21 05:27:09 2008
+@@ -86,7 +86,7 @@
+ 	=
+
+ 	-- corspe   =
+
+ 	-- if (dynamicdata and dynamicdata.artid_base =3D=3D kCorpseDynamicArtID)=
+ then ... end =
+
+-	-- nothing needs to be done for here, see gCurrentRenderer:AddDynamicItem=
+/CreateDynamicGfx
++	-- nothing needs to be done for here, see gCurrentRenderer:AddDynamicItem
+ 	=
+
+ 	-- self is mobile equipment
+ 	local mobile =3D mobile or GetMobile(self.iContainerSerial)
+@@ -147,6 +147,7 @@
+ 	-- only create WorldGfx if item IS IN WORLD (and not in inside a containe=
+r, or being a container itself like shop stuff)
+ 	if (bIsInWorld) then =
+
+ 		self.bWorldGfxInitialised =3D true
++		UpdateMultiData(self)
+ 		gCurrentRenderer:AddDynamicItem(self) -- create new gfx
+ 		gCurrentRenderer:UpdateDynamicItemPos(self)
+ 	end
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001268.html">[Iris-commit] [IRIS] r2463 - in /trunk/lua: lib.2d.map.lua lib.2d.spriteblock.lua lib.mapblock.2d.terrain.lua
+</A></li>
+	<LI>Next message: <A HREF="001270.html">[Iris-commit] [IRIS] r2465 - /trunk/bin/iris2.exe
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1269">[ date ]</a>
+              <a href="thread.html#1269">[ thread ]</a>
+              <a href="subject.html#1269">[ subject ]</a>
+              <a href="author.html#1269">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

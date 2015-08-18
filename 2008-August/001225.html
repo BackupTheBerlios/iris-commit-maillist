@@ -1,0 +1,215 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2420 - /trunk/lua/gui/gui.paperdoll.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-August/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2420%20-%20/trunk/lua/gui/gui.paperdoll.lua&In-Reply-To=%3C20080827231412.E125A1524030%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001224.html">
+   <LINK REL="Next"  HREF="001226.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2420 - /trunk/lua/gui/gui.paperdoll.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2420%20-%20/trunk/lua/gui/gui.paperdoll.lua&In-Reply-To=%3C20080827231412.E125A1524030%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2420 - /trunk/lua/gui/gui.paperdoll.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Thu Aug 28 01:14:12 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001224.html">[Iris-commit] [IRIS] r2419 - /trunk/lua/net/net.other.lua
+</A></li>
+        <LI>Next message: <A HREF="001226.html">[Iris-commit] [IRIS] r2421 - /trunk/lua/net/net.partysystem.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1225">[ date ]</a>
+              <a href="thread.html#1225">[ thread ]</a>
+              <a href="subject.html#1225">[ subject ]</a>
+              <a href="author.html#1225">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: sience
+Date: Thu Aug 28 01:14:12 2008
+New Revision: 2420
+
+Log:
+-code cleaned a bit
+
+Modified:
+    trunk/lua/gui/gui.paperdoll.lua
+
+Modified: trunk/lua/gui/gui.paperdoll.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.paperdoll.lua (original)
++++ trunk/lua/gui/gui.paperdoll.lua Thu Aug 28 01:14:12 2008
+@@ -407,45 +407,39 @@
+ 	ClosePaperdoll(paperdoll)
+ end
+ =
+
+--- TODO : Clean
++-- called from kPacket_Open_Paperdoll, TogglePlayerPaperdoll and OpenPaper=
+doll
++function HandleOpenPaperdoll (paperdoll)
++	paperdoll.mobileserial	=3D paperdoll.serial
++	paperdoll.Close =3D ClosePaperdoll
++	=
+
++	-- close old paperdoll
++	local oldpaperdoll =3D gPaperdolls[paperdoll.mobileserial]
++	if (oldpaperdoll) then oldpaperdoll:Close() end =
+
++	=
+
++	-- register paperdoll
++	gPaperdolls[paperdoll.mobileserial] =3D paperdoll
++	=
+
++	RebuildPaperdoll(paperdoll)
++end
++
++-- toggles the player paperdoll
+ function TogglePlayerPaperdoll ()
+-	if (gPlayerBodySerial and gPaperdolls[gPlayerBodySerial]) then
+-		gPaperdolls[gPlayerBodySerial]:Close()
+-	else
+-		-- open player paperdoll
+-		local playermobile =3D GetPlayerMobile()
+-		=
+
+-		if (playermobile) then =
+
+-			-- Send_DoubleClick(playermobile.serial)
++	local playermobile =3D GetPlayerMobile()
++
++	if (playermobile.serial and gPaperdolls[playermobile.serial]) then
++		gPaperdolls[playermobile.serial]:Close()
++	elseif (playermobile) then
++		local paperdoll =3D {}
++		paperdoll.serial=3D playermobile.serial
++		paperdoll.name	=3D playermobile.name
++		paperdoll.flag	=3D 0
+ 			=
+
+-			Send_ClientQuery(gRequest_States,playermobile.serial)
+-			Send_ClientQuery(gRequest_Skills,playermobile.serial)
+-			--[[ response on pol: already implemented look net.objects.lua
+-			NET: ProtocolPacketRecvHandler typeid=3D0x11,size=3D66,typename=3DkPack=
+et_Mobile_Stats
+-			NET (todo): Mobile_Stats id: 17 Size: 66 PlayerID: 1707739 Name: Admin
+-			NET: ProtocolPacketRecvHandler typeid=3D0x3a,size=3D349,typename=3DkPac=
+ket_Skills
+-			(see net/net.skill.lua)
+-			]]--
+-			=
+
+-			local serial =3D playermobile.serial
+-			local p =3D gPaperdolls[serial]
+-			=
+
+-			if p then
+-				p:Close()
+-			else
+-				local paperdoll =3D {}
+-				paperdoll.serial	=3D serial
+-				paperdoll.name		=3D playermobile.name
+-				paperdoll.flag		=3D 0
+-				=
+
+-				HandleOpenPaperdoll(paperdoll)
+-			end
+-		end
++		HandleOpenPaperdoll(paperdoll)
+ 	end
+ end
+ =
+
+ -- open/reposition the requested paperdoll
+-function OpenPaperdoll(x,y,serial)
++function OpenPaperdoll (x,y,serial)
+ 	local p =3D gPaperdolls[serial]
+ 			=
+
+ 	if p then
+@@ -465,39 +459,3 @@
+ 		p.dialog.rootwidget.gfx:SetPos(x, y)
+ 	end
+ end
+-
+--- called from kPacket_Open_Paperdoll
+-function HandleOpenPaperdoll	(paperdoll)
+-	paperdoll.mobileserial	=3D paperdoll.serial
+-	paperdoll.Close =3D ClosePaperdoll
+-	=
+
+-	-- close old paperdoll
+-	local oldpaperdoll =3D gPaperdolls[paperdoll.mobileserial]
+-	if (oldpaperdoll) then oldpaperdoll:Close() end =
+
+-	=
+
+-	-- register paperdoll
+-	gPaperdolls[paperdoll.mobileserial] =3D paperdoll
+-	=
+
+-	RebuildPaperdoll(paperdoll)
+-end
+-
+---[[
+-
+-possibly interesting net-packets : 0x2E 0x78 0x0F
+-
+-anim gumps (papderdoll) von 0xc350 -&gt; 0xeeff
+-erst ab 0xc4e4 gehts mit grafiken los
+-
+-see also oldiris/src/gui/Paperdoll.cpp
+-see also oldiris/src/loaders/PaperdollBuilder.cpp
+-see also oldiris/src/loaders/GumpLoader.cpp
+-
+-iris.csl
+-	net_statusrequest(charid);
+-	paperdoll_refresh
+-	=
+
+-  int layerOrder[0x18] =3D { =
+
+-  };   =
+
+-]]--
+-
+-
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001224.html">[Iris-commit] [IRIS] r2419 - /trunk/lua/net/net.other.lua
+</A></li>
+	<LI>Next message: <A HREF="001226.html">[Iris-commit] [IRIS] r2421 - /trunk/lua/net/net.partysystem.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1225">[ date ]</a>
+              <a href="thread.html#1225">[ thread ]</a>
+              <a href="subject.html#1225">[ subject ]</a>
+              <a href="author.html#1225">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

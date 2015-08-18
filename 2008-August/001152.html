@@ -1,0 +1,323 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2344 - in /trunk/lua: lib.2d.map.lua lib.mapblock.2d.statics.lua lib.mapblock.2d.terrain.lua lib.mapblock.base.lua lib.mapblock.scheduler.lua lib.mapblock.spawner.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-August/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2344%20-%20in%20/trunk/lua%3A%20lib.2d.map.lua%0A%20lib.mapblock.2d.statics.lua%20lib.mapblock.2d.terrain.lua%0A%20lib.mapblock.base.lua%20lib.mapblock.scheduler.lua%20lib.mapblock.spawner.lua&In-Reply-To=%3C20080804112654.5895D1C185D8%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001151.html">
+   <LINK REL="Next"  HREF="001153.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2344 - in /trunk/lua: lib.2d.map.lua lib.mapblock.2d.statics.lua lib.mapblock.2d.terrain.lua lib.mapblock.base.lua lib.mapblock.scheduler.lua lib.mapblock.spawner.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2344%20-%20in%20/trunk/lua%3A%20lib.2d.map.lua%0A%20lib.mapblock.2d.statics.lua%20lib.mapblock.2d.terrain.lua%0A%20lib.mapblock.base.lua%20lib.mapblock.scheduler.lua%20lib.mapblock.spawner.lua&In-Reply-To=%3C20080804112654.5895D1C185D8%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2344 - in /trunk/lua: lib.2d.map.lua lib.mapblock.2d.statics.lua lib.mapblock.2d.terrain.lua lib.mapblock.base.lua lib.mapblock.scheduler.lua lib.mapblock.spawner.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Mon Aug  4 13:26:53 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001151.html">[Iris-commit] [IRIS] r2343 - in /trunk/lua: lib.2d.map.lua lib.mapblock.2d.statics.lua lib.mapblock.2d.terrain.lua lib.mapblock.base.lua lib.mapblock.spawner.lua
+</A></li>
+        <LI>Next message: <A HREF="001153.html">[Iris-commit] [IRIS] r2345 - in /trunk/lua: lib.mapblock.2d.statics.lua lib.mapblock.2d.terrain.lua lib.mapblock.base.lua lib.mapblock.spawner.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1152">[ date ]</a>
+              <a href="thread.html#1152">[ thread ]</a>
+              <a href="subject.html#1152">[ subject ]</a>
+              <a href="author.html#1152">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Mon Aug  4 13:26:52 2008
+New Revision: 2344
+
+Log:
+maploader works for 2d renderer
+
+Modified:
+    trunk/lua/lib.2d.map.lua
+    trunk/lua/lib.mapblock.2d.statics.lua
+    trunk/lua/lib.mapblock.2d.terrain.lua
+    trunk/lua/lib.mapblock.base.lua
+    trunk/lua/lib.mapblock.scheduler.lua
+    trunk/lua/lib.mapblock.spawner.lua
+
+Modified: trunk/lua/lib.2d.map.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.map.lua (original)
++++ trunk/lua/lib.2d.map.lua Mon Aug  4 13:26:52 2008
+@@ -19,26 +19,40 @@
+ kMapLoad_2D_Multis_Detail		=3D {prio=3D7}
+ kMapLoad_2D_Dynamics			=3D {prio=3D8}
+ =
+
++dofile(libpath .. &quot;lib.mapblock.scheduler.lua&quot;)
++dofile(libpath .. &quot;lib.mapblock.spawner.lua&quot;)
++dofile(libpath .. &quot;lib.mapblock.base.lua&quot;)
+ dofile(libpath .. &quot;lib.mapblock.2d.statics.lua&quot;)
+ dofile(libpath .. &quot;lib.mapblock.2d.terrain.lua&quot;)
+ --~ dofile(libpath .. &quot;lib.mapblock.2d.water.lua&quot;)
+ cMapBlock_2D_Water		=3D CreateClass(cMapBlock)
+ =
+
+-function Renderer2D:MapStep	()
++cMapBlock_2D_Terrain.kLOD_Detail		=3D kMapLoad_2D_Terrain_Detail
++cMapBlock_2D_Terrain.kLOD_Rough			=3D kMapLoad_2D_Terrain_Rough
++cMapBlock_2D_Statics.kLOD_Detail		=3D kMapLoad_2D_Statics_Detail
++cMapBlock_2D_Statics.kLOD_Rough			=3D kMapLoad_2D_Statics_Rough
++
++
++function Renderer2D:MapStep		()
+ 	if (not self.bMapLoadSystemInitialized) then
+ 		self.bMapLoadSystemInitialized =3D true
+-		self.map2d_scheduler =3D CreateScheduler()
++		local scheduler =3D CreateScheduler()
++		self.map2d_scheduler =3D scheduler
+ 		self.map2d_spawners =3D {}
+-		self.map2d_spawners.terrain		=3D CreateMapBlockSpawner(cMapBlock_2D_Terr=
+ain)
+-		self.map2d_spawners.statics		=3D CreateMapBlockSpawner(cMapBlock_2D_Stat=
+ics)
+-		--~ self.map2d_spawners.water		=3D CreateMapBlockSpawner(cMapBlock_2D_Wa=
+ter)
++		self.map2d_spawners.terrain		=3D CreateMapBlockSpawner(cMapBlock_2D_Terr=
+ain,scheduler)
++		self.map2d_spawners.statics		=3D CreateMapBlockSpawner(cMapBlock_2D_Stat=
+ics,scheduler)
++		--~ self.map2d_spawners.water		=3D CreateMapBlockSpawner(cMapBlock_2D_Wa=
+ter,scheduler)
+ 	end
+ 	self:MobileTestStep()
+ 	=
+
+ 	local t =3D Client_GetTicks()
+ 	local xloc,yloc,zloc =3D self:GetCamPos()
+ 	for k,spawner in pairs(self.map2d_spawners) do spawner:Step(t,xloc,yloc,z=
+loc) end
+-	self.map2d_scheduler:Step()
++	self.map2d_scheduler:Step(xloc,yloc,zloc)
++end
++
++function Renderer2D:MapClear	()
++	for k,spawner in pairs(self.map2d_spawners or {}) do spawner:Clear() end
+ end
+ =
+
+ -- TODO : mousepick, group statics by material
+
+Modified: trunk/lua/lib.mapblock.2d.statics.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mapblock.2d.statics.lua (original)
++++ trunk/lua/lib.mapblock.2d.statics.lua Mon Aug  4 13:26:52 2008
+@@ -7,10 +7,12 @@
+ cMapBlock_2D_Statics.iLoadRadius	=3D 4 -- in iBlockSize-blocks
+ =
+
+ function cMapBlock_2D_Statics:ClearDetail ()
++	print(&quot;cMapBlock_2D_Statics:ClearDetail&quot;)
+ 	if (self.pStaticGroupGfx) then for k,v in pairs(self.pStaticGroupGfx) do =
+v:Destroy() end self.pStaticGroupGfx =3D nil end
+ end
+ =
+
+ function cMapBlock_2D_Statics:WorkStep_LoadDetail ()
++	print(&quot;cMapBlock_2D_Statics:WorkStep_LoadDetail&quot;)
+ 	-- statics : load infos from file
+ 	local block =3D self
+ 	block.statics =3D MapGetBlockStatics(block.bx,block.by)
+
+Modified: trunk/lua/lib.mapblock.2d.terrain.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mapblock.2d.terrain.lua (original)
++++ trunk/lua/lib.mapblock.2d.terrain.lua Mon Aug  4 13:26:52 2008
+@@ -3,10 +3,12 @@
+ cMapBlock_2D_Terrain.iLoadRadius	=3D 3 -- in iBlockSize-blocks
+ =
+
+ function cMapBlock_2D_Terrain:ClearDetail ()
++	print(&quot;cMapBlock_2D_Terrain:ClearDetail&quot;)
+ 	if (self.gfx_terrain) then self.gfx_terrain:Destroy() self.gfx_terrain =
+=3D nil end
+ end
+ =
+
+ function cMapBlock_2D_Terrain:WorkStep_LoadDetail ()
++	print(&quot;cMapBlock_2D_Terrain:WorkStep_LoadDetail&quot;)
+ 	local bs =3D kMultiTexTerrainChunkSize
+ 	self.gfx_terrain =3D MakeMultiTexTerrainGfx(self.bx * bs,self.by * bs)
+ end
+
+Modified: trunk/lua/lib.mapblock.base.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mapblock.base.lua (original)
++++ trunk/lua/lib.mapblock.base.lua Mon Aug  4 13:26:52 2008
+@@ -10,6 +10,7 @@
+ function cMapBlock:Init			(bx,by)		=
+
+ 	self.bx =3D bx
+ 	self.by =3D by
++	self.prio =3D kSchedulerIdlePriority
+ 	self.co =3D coroutine.create(self.WorkThread) =
+
+ end
+ =
+
+@@ -41,13 +42,19 @@
+ function cMapBlock:Clear () self:ClearRough() self:ClearDetail() end -- re=
+move all gfx
+ =
+
+ -- called every frame, instant actions (destroy gfx), evaluate priority =
+
+-function cMapBlock:ShortStep (t)
++function cMapBlock:ShortStep (t,xloc,yloc,zloc)
+ 	if ((self.iNextLODUpdate or 0) &lt; t) then
+ 		self.iNextLODUpdate =3D t + self.kLODUpdateInterval
+-		local camdist =3D MapGetDistToCam(self.centerx,self.centery)
++		=
+
++		local bx =3D floor(xloc/self.iBlockSize + 0.5)
++		local by =3D floor(yloc/self.iBlockSize + 0.5)
++		=
+
++		local camdist =3D hypot(	(self.bx + 0.5)*self.iBlockSize-xloc,
++								(self.by + 0.5)*self.iBlockSize-yloc)
+ 		local newlod
+ 		if (	camdist &lt;  self.kMaxDist_Detail ) then newlod =3D self.kLOD_Detail =
+
+ 		elseif (camdist &lt;  self.kMaxDist_Visible) then newlod =3D self.kLOD_Roug=
+h end
++		if (newlod or 1) then print(&quot;cMapBlock:ShortStep&quot;,newlod,camdist,self.kM=
+axDist_Detail) end
+ 		=
+
+ 		if (newlod ~=3D self.lod) then =
+
+ 			self:SetPriority(newlod and newlod.prio or kSchedulerIdlePriority)
+
+Modified: trunk/lua/lib.mapblock.scheduler.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mapblock.scheduler.lua (original)
++++ trunk/lua/lib.mapblock.scheduler.lua Mon Aug  4 13:26:52 2008
+@@ -19,14 +19,14 @@
+ end
+ =
+
+ -- internal, search current index in list
+-function cScheduler:_FindProcessPos	(process) for k,process2 in ipairs(sel=
+f.pProcessList) do if (process2 =3D=3D process) then return k end end =
+
++function cScheduler:_FindProcessPos	(process) for k,process2 in ipairs(sel=
+f.pProcessList) do if (process2 =3D=3D process) then return k end end end =
+
+ =
+
+-function cScheduler:Step		()
++function cScheduler:Step		(xloc,yloc,zloc)
+ 	local t =3D Client_GetTicks()
+ 	local t_end =3D t + self.kAllowedTicksPerFrame
+ 	=
+
+ 	-- shortsteps, re-evaluate prio, release gfx
+-	for k,process in ipairs(self.pProcessList) do process:ShortStep(t) end =
+
++	for k,process in ipairs(self.pProcessList) do process:ShortStep(t,xloc,yl=
+oc,zloc) end =
+
+ 	=
+
+ 	-- sort by priority
+ 	table.sort(self.pProcessList,self.CmpProcess)
+
+Modified: trunk/lua/lib.mapblock.spawner.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mapblock.spawner.lua (original)
++++ trunk/lua/lib.mapblock.spawner.lua Mon Aug  4 13:26:52 2008
+@@ -15,12 +15,12 @@
+ =
+
+ -- creates new blocks in area near cam if needed, releases old blocks
+ -- params : time, focuspos
+-function cMapBlockSpawner:Step	(t,x,y,z) =
+
++function cMapBlockSpawner:Step	(t,xloc,yloc) =
+
+ 	if ((self.iNextStep or 0) &gt; t) then return end
+ 	self.iNextStep =3D t + self.kStepInterval
+ 	=
+
+-	local bx =3D floor(x/self.iBlockSize + 0.5)
+-	local by =3D floor(y/self.iBlockSize + 0.5)
++	local bx =3D floor(xloc/self.iBlockSize + 0.5)
++	local by =3D floor(yloc/self.iBlockSize + 0.5)
+ 	if (self.pMapFocusBlockX ~=3D bx or =
+
+ 		self.pMapFocusBlockY ~=3D by) then =
+
+ 		self.pMapFocusBlockX =3D bx
+@@ -57,7 +57,8 @@
+ 	for block,v in pairs(self.pMapBlocks) do if (block.bx =3D=3D bx and block=
+.by =3D=3D by) then return block end end =
+
+ end
+ =
+
+-function cMapBlockSpawner:CreateMapBlock	(bx,by) =
+
++function cMapBlockSpawner:CreateMapBlock	(bx,by)
++	print(&quot;cMapBlockSpawner:CreateMapBlock&quot;,bx,by)
+ 	local block =3D CreateClassInstance(self.pBlockClass)
+ 	block:Init(bx,by)
+ 	=
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001151.html">[Iris-commit] [IRIS] r2343 - in /trunk/lua: lib.2d.map.lua lib.mapblock.2d.statics.lua lib.mapblock.2d.terrain.lua lib.mapblock.base.lua lib.mapblock.spawner.lua
+</A></li>
+	<LI>Next message: <A HREF="001153.html">[Iris-commit] [IRIS] r2345 - in /trunk/lua: lib.mapblock.2d.statics.lua lib.mapblock.2d.terrain.lua lib.mapblock.base.lua lib.mapblock.spawner.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1152">[ date ]</a>
+              <a href="thread.html#1152">[ thread ]</a>
+              <a href="subject.html#1152">[ subject ]</a>
+              <a href="author.html#1152">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

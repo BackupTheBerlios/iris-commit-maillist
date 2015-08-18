@@ -1,0 +1,1397 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r3092 - in /trunk/lua: ./ net/
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2009-August/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3092%20-%20in%20/trunk/lua%3A%20./%20net/&In-Reply-To=%3C20090808123825.1865E7A980FF%40simon%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001854.html">
+   <LINK REL="Next"  HREF="001856.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r3092 - in /trunk/lua: ./ net/</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3092%20-%20in%20/trunk/lua%3A%20./%20net/&In-Reply-To=%3C20090808123825.1865E7A980FF%40simon%3E"
+       TITLE="[Iris-commit] [IRIS] r3092 - in /trunk/lua: ./ net/">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat Aug  8 14:38:24 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001854.html">[Iris-commit] [IRIS] r3091 - /trunk/lua/lib.null.renderer.lua
+</A></li>
+        <LI>Next message: <A HREF="001856.html">[Iris-commit] [IRIS] r3093 - /trunk/lua/main.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1855">[ date ]</a>
+              <a href="thread.html#1855">[ thread ]</a>
+              <a href="subject.html#1855">[ subject ]</a>
+              <a href="author.html#1855">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: sience
+Date: Sat Aug  8 14:38:24 2009
+New Revision: 3092
+
+Log:
+-last network packages seperated and moved to /net folder
+-weapon abilities seperated from network packets and moved to lib.weaponabi=
+lity.lua
+
+Added:
+    trunk/lua/lib.weaponability.lua
+    trunk/lua/net/net.book.lua
+    trunk/lua/net/net.huepicker.lua
+    trunk/lua/net/net.objectpicker.lua
+    trunk/lua/net/net.tooltips.lua
+Modified:
+    trunk/lua/lib.book.lua
+    trunk/lua/lib.equipment.lua
+    trunk/lua/lib.huepicker.lua
+    trunk/lua/lib.keybinds.lua
+    trunk/lua/lib.objectpicker.lua
+    trunk/lua/lib.uotooltip.lua
+    trunk/lua/main.lua
+    trunk/lua/net/net.aoscommand.lua
+    trunk/lua/net/net.effect.lua
+    trunk/lua/net/net.main.lua
+
+Modified: trunk/lua/lib.book.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.book.lua (original)
++++ trunk/lua/lib.book.lua Sat Aug  8 14:38:24 2009
+@@ -10,66 +10,8 @@
+ --~ PacketHandlers.Register( 0x66,  0, true, new OnPacketReceive( ContentC=
+hange ) );
+ --~ PacketHandlers.Register( 0x93, 99, true, new OnPacketReceive( OldHeade=
+rChange ) );
+ =
+
+---[[
+-### kPacket_Book_Info header:   {author=3D&quot;Ghongolas&quot;,authorlen=3D10=3D0x0=
+a,title=3D&quot;a book&quot;,unknown=3D1,numpages=3D20=3D0x14,writable=3D1,serial=3D0=
+x41b0a207,titlelen=3D7,}
+-### kPacket_Book_Contents pages:  {numpages=3D20=3D0x14,serial=3D0x41b0a20=
+7,pages=3D{
+-    1=3D{numlines=3D0,pagenum=3D1,lines=3D{},},
+-    2=3D{numlines=3D0,pagenum=3D2,lines=3D{},},
+-    ....
+-    20=3D{numlines=3D0,pagenum=3D20=3D0x14,lines=3D{},},},}
+-]]--
+-
+ gBooks =3D {}
+-
+ RegisterWidgetClass(&quot;UOBookDialog&quot;)
+-
+-function gPacketHandler.kPacket_Book_Info () -- 0xd4 : runuo:BookHeader
+-    local input     =3D GetRecvFIFO()
+-    local id        =3D input:PopNetUint8()
+-    local size      =3D input:PopNetUint16()  -- 2
+-    local data      =3D {}
+-    data.serial     =3D input:PopNetUint32()
+-    data.unknown    =3D input:PopNetUint8() -- runuo:always 1
+-    data.writable   =3D input:PopNetUint8() =
+
+-    data.numpages   =3D input:PopNetUint16() =
+
+-    data.titlelen   =3D input:PopNetUint16() =
+
+-    data.title      =3D input:PopFilledString(data.titlelen)
+- =
+
+-    data.authorlen  =3D input:PopNetUint16() =
+
+-    data.author     =3D input:PopFilledString(data.authorlen)
+-    local book =3D gBooks[data.serial]
+-    if (not book) then book =3D {} gBooks[data.serial] =3D book end
+-    book.header =3D data
+-    --~ print(&quot;### kPacket_Book_Info header:&quot;,SmartDump(data))
+-end
+-
+-function gPacketHandler.kPacket_Book_Contents () -- 0x66
+-    local input     =3D GetRecvFIFO()
+-    local id        =3D input:PopNetUint8()
+-    local size      =3D input:PopNetUint16()  -- 2
+-    local data      =3D {}
+-    data.serial     =3D input:PopNetUint32()
+-    data.numpages   =3D input:PopNetUint16()
+-    data.pages      =3D {}
+-    size =3D size - (3+4+2)
+-    for i=3D1,data.numpages do =
+
+-        local page =3D {}
+-        page.pagenum    =3D input:PopNetUint16()
+-        page.numlines   =3D input:PopNetUint16()
+-        page.lines      =3D {}
+-        size =3D size - 4
+-        for j=3D1,page.numlines do =
+
+-            page.lines[j],size =3D FIFO_PopZeroTerminatedString(input,size)
+-        end
+-        data.pages[page.pagenum] =3D page
+-    end
+-            =
+
+-    local book =3D gBooks[data.serial]
+-    if (not book) then book =3D {} gBooks[data.serial] =3D book end
+-    book.pagedata =3D data
+-    --~ print(&quot;### kPacket_Book_Contents pages:&quot;,size,SmartDump(data,4))
+-    UpdateBookDialog(book)
+-end
+ =
+
+ function UpdateBookDialog (book)
+     local text =3D &quot;&quot;
+@@ -89,33 +31,6 @@
+     --~ print(&quot;#### book : &quot;,text)
+     book.plaintext =3D text
+     book.dialog =3D GetDesktopWidget():CreateChild(&quot;UOBookDialog&quot;,book)
+-end
+-
+--- ***** ***** ***** ***** ***** UOBookDialog widget
+-
+-function UOBookTest ()
+-    Load_Font() -- iris specific
+-    local book =3D {}
+-    book.header =3D {author=3D&quot;Staff of Vetus-Mundus&quot;,authorlen=3D22,title=
+=3D&quot;a small introduction&quot;,unknown=3D1,numpages=3D15,writable=3D0,serial=3D0=
+x4040c1ce,titlelen=3D21,}
+-    book.pagedata =3D {numpages=3D15,serial=3D0x4040c1ce,pages=3D{
+-        {numlines=3D8,pagenum=3D1,lines=3D{&quot;We welcome thee&quot;,&quot;traveler&quot;,&quot;&quot;=
+,&quot;we're glad to see&quot;,&quot;thy journey led&quot;,&quot;thee to Vetus Mundus&quot;,&quot;The gods of =
+this&quot;,&quot;&quot;,},},
+-        {numlines=3D8,pagenum=3D2,lines=3D{&quot;world will not bother&quot;,&quot;with m=
+uch rules,&quot;,&quot;nonetheless&quot;,&quot;there's something to&quot;,&quot;follow here.&quot;,&quot;Rules are =
+as listened:&quot;,&quot;'One can do whatever&quot;,&quot;&quot;,},},
+-        {numlines=3D8,pagenum=3D3,lines=3D{&quot;provides fun. Note,&quot;,&quot;that PvP=
+ is only&quot;,&quot;possible on the facette&quot;,&quot;called felucca.&quot;,&quot;The second rule is:&quot;=
+,&quot;'We all treat each other&quot;,&quot;with respect', the gods&quot;,&quot;&quot;,},},
+-        {numlines=3D8,pagenum=3D4,lines=3D{&quot;don't wish to hear&quot;,&quot;excessive=
+ slang, nor&quot;,&quot;any indignities&quot;,&quot;from the mortal&quot;,&quot;or speaking to&quot;,&quot;oneself.=
+ Dost you wish&quot;,&quot;to live peacefully&quot;,&quot;&quot;,},},
+-        {numlines=3D8,pagenum=3D5,lines=3D{&quot;here on Vetus Mundus, &quot;,&quot;it's =
+indispensable&quot;,&quot;to follow this rule.&quot;,&quot;&quot;,&quot;To make thy beginning&quot;,&quot;as comfor=
+table as possible,&quot;,&quot;we will grant thee some&quot;,&quot;&quot;,},},
+-        {numlines=3D8,pagenum=3D6,lines=3D{&quot;commands. Listen carefully.&quot;,&quot;=
+To communicate with other&quot;,&quot;mortal in the public&quot;,&quot;Channel, one has to use&quot;=
+,&quot;the following&quot;,&quot;Combination:&quot;,&quot;.c (thy message)&quot;,&quot;&quot;,},},
+-        {numlines=3D8,pagenum=3D7,lines=3D{&quot;This will refer thy&quot;,&quot;message =
+to the&quot;,&quot;public channel.&quot;,&quot;One can use:&quot;,&quot;.pm (name)(message)&quot;,&quot;to send a&quot;,=
+&quot;private message to&quot;,&quot;&quot;,},},
+-        {numlines=3D8,pagenum=3D8,lines=3D{&quot;another mortal,&quot;,&quot;which only c=
+an be read&quot;,&quot;by him or her. It&quot;,&quot;will arrive him or her&quot;,&quot;even if he or she=
+ is&quot;,&quot;not in our world&quot;,&quot;at the moment. It will&quot;,&quot;&quot;,},},
+-        {numlines=3D8,pagenum=3D9,lines=3D{&quot;be sent to him or her&quot;,&quot;as soo=
+n as he visits&quot;,&quot;our world the next time.&quot;,&quot;If thee can gather the&quot;,&quot;pleasu=
+re to join a guild&quot;,&quot;someday, thee can send &quot;,&quot;them a message with the&quot;,&quot;&quot;,=
+},},
+-        {numlines=3D8,pagenum=3D10,lines=3D{&quot;following command:&quot;,&quot;.g (mess=
+age).&quot;,&quot;This message can only&quot;,&quot;be read by thy&quot;,&quot;guildmates.&quot;,&quot;There are se=
+veral other&quot;,&quot;commands availabe,&quot;,&quot;&quot;,},},
+-        {numlines=3D8,pagenum=3D11,lines=3D{&quot;which can be shown by&quot;,&quot;typin=
+g .help.&quot;,&quot;If thee has any further.&quot;,&quot;questions, don't hesitate&quot;,&quot;to ask ou=
+r gods,&quot;,&quot;as they surely will&quot;,&quot;grant you as much help&quot;,&quot;&quot;,},},
+-        {numlines=3D8,pagenum=3D12,lines=3D{&quot;they can give.&quot;,&quot;&quot;,&quot;Last we w=
+ant to add&quot;,&quot;the following rules:&quot;,&quot;Bugusing is not allowed&quot;,&quot;and won't be =
+tolerated.&quot;,&quot;If thy find a bug,&quot;,&quot;&quot;,},},
+-        {numlines=3D8,pagenum=3D13,lines=3D{&quot;make sure to report&quot;,&quot;it as s=
+oon as possible&quot;,&quot;to us. Bugusing will be&quot;,&quot;punished with a ban.&quot;,&quot;We'd lik=
+e to add something&quot;,&quot;to the choice of your name:&quot;,&quot;discriminatory or&quot;,&quot;&quot;,},=
+},
+-        {numlines=3D8,pagenum=3D14,lines=3D{&quot;racialist names,&quot;,&quot;as well as=
+ names &quot;,&quot;from the third reich &quot;,&quot;will be deleted immediately&quot;,&quot;and be bann=
+ed.&quot;,&quot;&quot;,&quot;&quot;,&quot;&quot;,},},
+-        {numlines=3D8,pagenum=3D15,lines=3D{&quot;&quot;,&quot;&quot;,&quot;&quot;,&quot;&quot;,&quot;Signed:&quot;,&quot;The sta=
+ff of&quot;,&quot;Vetus Mundus&quot;,&quot;&quot;,},},
+-        },}                                   =
+
+-    --~ print(&quot;######&quot;,SmartDump(book,4))
+-    UpdateBookDialog(book) =
+
+ end
+                                         =
+
+ function gWidgetPrototype.UOBookDialog:Init (parentwidget,params)
+@@ -146,3 +61,40 @@
+ =
+
+ function gWidgetPrototype.UOBookDialog:on_mouse_left_down   () self:BringT=
+oFront() self:StartMouseMove() end
+ function gWidgetPrototype.UOBookDialog:on_mouse_right_down  () self:Destro=
+y() end
++
++-- ***** ***** ***** ***** ***** UOBookDialog widget
++--[[
++### kPacket_Book_Info header:   {author=3D&quot;Ghongolas&quot;,authorlen=3D10=3D0x0=
+a,title=3D&quot;a book&quot;,unknown=3D1,numpages=3D20=3D0x14,writable=3D1,serial=3D0=
+x41b0a207,titlelen=3D7,}
++### kPacket_Book_Contents pages:  {numpages=3D20=3D0x14,serial=3D0x41b0a20=
+7,pages=3D{
++    1=3D{numlines=3D0,pagenum=3D1,lines=3D{},},
++    2=3D{numlines=3D0,pagenum=3D2,lines=3D{},},
++    ....
++    20=3D{numlines=3D0,pagenum=3D20=3D0x14,lines=3D{},},},}
++]]--
++
++--[[
++function UOBookTest ()
++    Load_Font() -- iris specific
++    local book =3D {}
++    book.header =3D {author=3D&quot;Staff of Vetus-Mundus&quot;,authorlen=3D22,title=
+=3D&quot;a small introduction&quot;,unknown=3D1,numpages=3D15,writable=3D0,serial=3D0=
+x4040c1ce,titlelen=3D21,}
++    book.pagedata =3D {numpages=3D15,serial=3D0x4040c1ce,pages=3D{
++        {numlines=3D8,pagenum=3D1,lines=3D{&quot;We welcome thee&quot;,&quot;traveler&quot;,&quot;&quot;=
+,&quot;we're glad to see&quot;,&quot;thy journey led&quot;,&quot;thee to Vetus Mundus&quot;,&quot;The gods of =
+this&quot;,&quot;&quot;,},},
++        {numlines=3D8,pagenum=3D2,lines=3D{&quot;world will not bother&quot;,&quot;with m=
+uch rules,&quot;,&quot;nonetheless&quot;,&quot;there's something to&quot;,&quot;follow here.&quot;,&quot;Rules are =
+as listened:&quot;,&quot;'One can do whatever&quot;,&quot;&quot;,},},
++        {numlines=3D8,pagenum=3D3,lines=3D{&quot;provides fun. Note,&quot;,&quot;that PvP=
+ is only&quot;,&quot;possible on the facette&quot;,&quot;called felucca.&quot;,&quot;The second rule is:&quot;=
+,&quot;'We all treat each other&quot;,&quot;with respect', the gods&quot;,&quot;&quot;,},},
++        {numlines=3D8,pagenum=3D4,lines=3D{&quot;don't wish to hear&quot;,&quot;excessive=
+ slang, nor&quot;,&quot;any indignities&quot;,&quot;from the mortal&quot;,&quot;or speaking to&quot;,&quot;oneself.=
+ Dost you wish&quot;,&quot;to live peacefully&quot;,&quot;&quot;,},},
++        {numlines=3D8,pagenum=3D5,lines=3D{&quot;here on Vetus Mundus, &quot;,&quot;it's =
+indispensable&quot;,&quot;to follow this rule.&quot;,&quot;&quot;,&quot;To make thy beginning&quot;,&quot;as comfor=
+table as possible,&quot;,&quot;we will grant thee some&quot;,&quot;&quot;,},},
++        {numlines=3D8,pagenum=3D6,lines=3D{&quot;commands. Listen carefully.&quot;,&quot;=
+To communicate with other&quot;,&quot;mortal in the public&quot;,&quot;Channel, one has to use&quot;=
+,&quot;the following&quot;,&quot;Combination:&quot;,&quot;.c (thy message)&quot;,&quot;&quot;,},},
++        {numlines=3D8,pagenum=3D7,lines=3D{&quot;This will refer thy&quot;,&quot;message =
+to the&quot;,&quot;public channel.&quot;,&quot;One can use:&quot;,&quot;.pm (name)(message)&quot;,&quot;to send a&quot;,=
+&quot;private message to&quot;,&quot;&quot;,},},
++        {numlines=3D8,pagenum=3D8,lines=3D{&quot;another mortal,&quot;,&quot;which only c=
+an be read&quot;,&quot;by him or her. It&quot;,&quot;will arrive him or her&quot;,&quot;even if he or she=
+ is&quot;,&quot;not in our world&quot;,&quot;at the moment. It will&quot;,&quot;&quot;,},},
++        {numlines=3D8,pagenum=3D9,lines=3D{&quot;be sent to him or her&quot;,&quot;as soo=
+n as he visits&quot;,&quot;our world the next time.&quot;,&quot;If thee can gather the&quot;,&quot;pleasu=
+re to join a guild&quot;,&quot;someday, thee can send &quot;,&quot;them a message with the&quot;,&quot;&quot;,=
+},},
++        {numlines=3D8,pagenum=3D10,lines=3D{&quot;following command:&quot;,&quot;.g (mess=
+age).&quot;,&quot;This message can only&quot;,&quot;be read by thy&quot;,&quot;guildmates.&quot;,&quot;There are se=
+veral other&quot;,&quot;commands availabe,&quot;,&quot;&quot;,},},
++        {numlines=3D8,pagenum=3D11,lines=3D{&quot;which can be shown by&quot;,&quot;typin=
+g .help.&quot;,&quot;If thee has any further.&quot;,&quot;questions, don't hesitate&quot;,&quot;to ask ou=
+r gods,&quot;,&quot;as they surely will&quot;,&quot;grant you as much help&quot;,&quot;&quot;,},},
++        {numlines=3D8,pagenum=3D12,lines=3D{&quot;they can give.&quot;,&quot;&quot;,&quot;Last we w=
+ant to add&quot;,&quot;the following rules:&quot;,&quot;Bugusing is not allowed&quot;,&quot;and won't be =
+tolerated.&quot;,&quot;If thy find a bug,&quot;,&quot;&quot;,},},
++        {numlines=3D8,pagenum=3D13,lines=3D{&quot;make sure to report&quot;,&quot;it as s=
+oon as possible&quot;,&quot;to us. Bugusing will be&quot;,&quot;punished with a ban.&quot;,&quot;We'd lik=
+e to add something&quot;,&quot;to the choice of your name:&quot;,&quot;discriminatory or&quot;,&quot;&quot;,},=
+},
++        {numlines=3D8,pagenum=3D14,lines=3D{&quot;racialist names,&quot;,&quot;as well as=
+ names &quot;,&quot;from the third reich &quot;,&quot;will be deleted immediately&quot;,&quot;and be bann=
+ed.&quot;,&quot;&quot;,&quot;&quot;,&quot;&quot;,},},
++        {numlines=3D8,pagenum=3D15,lines=3D{&quot;&quot;,&quot;&quot;,&quot;&quot;,&quot;&quot;,&quot;Signed:&quot;,&quot;The sta=
+ff of&quot;,&quot;Vetus Mundus&quot;,&quot;&quot;,},},
++        },}                                   =
+
++    --~ print(&quot;######&quot;,SmartDump(book,4))
++    UpdateBookDialog(book) =
+
++end
++]]
+
+Modified: trunk/lua/lib.equipment.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.equipment.lua (original)
++++ trunk/lua/lib.equipment.lua Sat Aug  8 14:38:24 2009
+@@ -5,6 +5,22 @@
+ =
+
+ gEquipPropCache =3D nil
+ gEquipmentSerials =3D {}
++
++gShortProps =3D {}
++gShortProps.fcr		=3D {num=3D&quot;faster cast recovery &quot;}
++gShortProps.fc		=3D {num=3D&quot;faster casting &quot;}
++
++-- returns props=3D{fcr=3D?,fc=3D?,...}
++function ParseProps (tooltip) =
+
++	local res =3D {}
++	for k,v in pairs(gShortProps) do
++		if (v.num) then
++			local a,b,num =3D string.find(tooltip,v.num..&quot;(%d+)&quot;)
++			if (num) then res[k] =3D tonumber(num) end
++		end
++	end
++	return res
++end
+ =
+
+ -- returns proparr=3D{fc=3D?,fcr=3D?}
+ function GetEquipProps ()
+
+Modified: trunk/lua/lib.huepicker.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.huepicker.lua (original)
++++ trunk/lua/lib.huepicker.lua Sat Aug  8 14:38:24 2009
+@@ -27,41 +27,9 @@
+ RegisterWidgetClass(&quot;UOHuePicker&quot;)
+ RegisterWidgetClass(&quot;UOHuePickerButton&quot;)
+ =
+
+-function gPacketHandler.kPacket_Hue_Picker () -- 0x95
+-    local input     =3D GetRecvFIFO()
+-    local id        =3D input:PopNetUint8()
+-    local data      =3D {}
+-    data.serial     =3D input:PopNetUint32()
+-    data.unknown    =3D input:PopNetUint16() -- always zero on runuo
+-    data.itemid     =3D input:PopNetUint16() -- not on uogamers-hybrid:pre=
+aos?
+-    ShowHuePicker(data)
+-end
+-
+--- value =3D itemid from request ?  but ignored by runuo
+-function SendHuePickerResponse (serial,value,hue) -- 0x95 kPacket_Hue_Pick=
+er =
+
+-    local out =3D GetSendFIFO()
+-    out:PushNetUint8(kPacket_Hue_Picker)
+-    out:PushNetUint32(serial)
+-    out:PushNetUint16(value)
+-    out:PushNetUint16(hue) -- &amp; 0x3FFF  in runuo ...  see also Utility.Cli=
+pDyedHue   max(2,min(1001,hue)
+-    out:SendPacket()
+-end
+-
+ function ShowHuePicker (data) GetDesktopWidget():CreateChild(&quot;UOHuePicker&quot;=
+,data) end
+ =
+
+ -- ***** ***** ***** ***** ***** UOHuePicker widget
+-
+-function HueTest ()
+-    Load_Hue()
+-    ShowHuePicker({serial=3D0x1234,itemid=3D0x4567})
+-    --~ for hue =3D 1,102 do =
+
+-        --~ local r,g,b =3D GetHueColor(hue-1)
+-        --~ local txt =3D sprintf(&quot;0x%04x:%03x,&quot;,hue,floor(r*16)*16*16+flo=
+or(g*16)*16+floor(b*16))
+-        --~ print(txt)
+-    --~ end
+-    --~ os.exit(0)
+-end
+-                                        =
+
+ function gWidgetPrototype.UOHuePicker:Init (parentwidget,params)
+     self:InitAsGroup(parentwidget,params)
+     self.items =3D {}
+@@ -106,4 +74,17 @@
+ end
+ =
+
+ function gWidgetPrototype.UOHuePickerButton:on_button_click () self:GetPar=
+ent():ChooseHue(self.params.hue) end
+-        =
+
++
++--[[
++function HueTest ()
++    Load_Hue()
++    ShowHuePicker({serial=3D0x1234,itemid=3D0x4567})
++    --~ for hue =3D 1,102 do =
+
++        --~ local r,g,b =3D GetHueColor(hue-1)
++        --~ local txt =3D sprintf(&quot;0x%04x:%03x,&quot;,hue,floor(r*16)*16*16+flo=
+or(g*16)*16+floor(b*16))
++        --~ print(txt)
++    --~ end
++    --~ os.exit(0)
++end
++]]--
++       =
+
+
+Modified: trunk/lua/lib.keybinds.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.keybinds.lua (original)
++++ trunk/lua/lib.keybinds.lua Sat Aug  8 14:38:24 2009
+@@ -119,12 +119,13 @@
+         Bind(&quot;f9&quot;,      function (state) if (not gActiveEditText) then if =
+(state &gt; 0) then
+             if (gCompositor) then
+                 print(&quot;remove compositor&quot;)
+-                OgreRemoveCompositor(GetMainViewport(),&quot;B&amp;W&quot;)
++                OgreRemoveCompositor(GetMainViewport(), &quot;ssao&quot;)
+                 gCompositor =3D false
+             else
+                 print(&quot;add compositor&quot;)
+-                OgreAddCompositor(GetMainViewport(), &quot;B&amp;W&quot;)
++                OgreAddCompositor(GetMainViewport(), &quot;ssao&quot;)
+                 gCompositor =3D true
++                --mgr.ssao-&gt;addListener(&amp;ssaoParamUpdater);
+             end
+          end end end)
+ =
+
+
+Modified: trunk/lua/lib.objectpicker.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.objectpicker.lua (original)
++++ trunk/lua/lib.objectpicker.lua Sat Aug  8 14:38:24 2009
+@@ -1,54 +1,12 @@
+--- clienside object list dialog, crafting gumps on pre-aos-pol
+--- example shard : <A HREF="http://zulu2000.nsn3.net/">http://zulu2000.nsn3.net/</A>
++--[[ ***** see Iris2 COPYING for license info ***** ]]--
++--[[ \brief
++			clienside object list dialog, crafting gumps on pre-aos-pol
++			example shard : <A HREF="http://zulu2000.nsn3.net/">http://zulu2000.nsn3.net/</A>
++]]--
+ =
+
+---~ packet  typeid=3D0x7c,size=3D90,typename=3DkPacket_Object_Picker
+-
+--- opens a dialogbox displaying multiple choices, client sends response as=
+ 0x7D
+-function gPacketHandler.kPacket_Object_Picker() -- 0x7C
+-	local input =3D GetRecvFIFO()
+-	local popped_start =3D input:GetTotalPopped()
+-	local id =3D input:PopNetUint8()
+-	local size =3D input:PopNetUint16()
+-	local data =3D {}
+-	data.dialogid		=3D input:PopNetUint32() -- echo'd back to server in 0x7d
+-	data.menuid			=3D input:PopNetUint16() -- echo'd back to server in 0x7d  =
+   runuo:0
+-	data.questionlen	=3D input:PopNetUint8()
+-	data.questiontxt	=3D &quot;&quot;
+-	if (data.questionlen &gt; 0) then =
+
+-		data.questiontxt =3D input:PopFilledString(data.questionlen)
+-	end
+-	local sizeleft =3D size - 1 - 2 - 4 - 2 - 1 - data.questionlen
+-	data.entrynum		=3D input:PopNetUint8()
+-	print(&quot;kPacket_Object_Picker&quot;,SmartDump(data))
+-	data.entrylist =3D {}
+-	for i =3D 1,data.entrynum do
+-		if (sizeleft &lt;=3D 0) then break end
+-		local entry =3D {}
+-		entry.artid		=3D input:PopNetUint16() -- (e.ItemID &amp; 0x3FFF)
+-		entry.hue		=3D 0
+-		sizeleft =3D sizeleft - 2
+-		if (entry.artid &gt; 0) then =
+
+-			entry.hue		=3D input:PopNetUint16()
+-			sizeleft =3D sizeleft - 2
+-		end
+-		entry.namelen	=3D input:PopNetUint8()
+-		entry.name		=3D &quot;&quot;
+-		sizeleft =3D sizeleft - 1
+-		entry.namelen =3D min(entry.namelen,sizeleft)
+-		sizeleft =3D sizeleft - entry.namelen
+-		--~ print()
+-		=
+
+-		if (entry.namelen &gt; 0) then entry.name =3D input:PopFilledString(entry.n=
+amelen) end
+-		print(&quot;kPacket_Object_Picker entry&quot;,SmartDump(entry))
+-		table.insert(data.entrylist,entry)
+-	end
+-	=
+
+-	OpenObjectPicker(data)
+-end
+ =
+
+ function OpenObjectPicker(data)
+ 	local question =3D (data.questiontxt ~=3D &quot;&quot;) and data.questiontxt or &quot;pi=
+ck one:&quot;
+-
+ 	local a =3D {}
+ 	local b =3D {}
+ 	local c =3D {}
+@@ -65,84 +23,6 @@
+ 	local dialog =3D guimaker.MakeTableDlg(rows,100,10,true,true,gGuiDefaultS=
+tyleSet,&quot;window&quot;)
+ end
+ =
+
+---[[
+-kPacket_Object_Picker   {entrynum=3D4,questionlen=3D28=3D0x1c,questiontxt=
+=3D&quot;What would you like to make?&quot;,unknown=3D0,serial=3D0,}
+-kPacket_Object_Picker entry     {hue=3D0,artid=3D5141=3D0x1415,name=3D&quot;Arm=
+ors&quot;,namelen=3D6,}
+-kPacket_Object_Picker entry     {hue=3D0,artid=3D7029=3D0x1b75,name=3D&quot;Shi=
+elds&quot;,namelen=3D7,}
+-kPacket_Object_Picker entry     {hue=3D0,artid=3D3915=3D0x0f4b,name=3D&quot;Wea=
+pons&quot;,namelen=3D7,}
+-kPacket_Object_Picker entry     {hue=3D0,artid=3D5402=3D0x151a,name=3D&quot;Dec=
+orations&quot;,namelen=3D11=3D0x0b,}
+-
+-
+-BYTE[1] cmd  =
+
+-BYTE[4] dialogID (echoed back from 7C packet)
+-BYTE[2] menuid (echoed back from 7C packet)
+-BYTE[2] 1-based index of choice
+-BYTE[2] model # of choice
+-BYTE[2] color
+-
+-
+-]]--
+-
+-
+--- response to 0x7C
+-function Send_Picked_Object (dialogid,menuid,choice,artid,hue) -- 0x7D
+-	local out =3D GetSendFIFO()
+-	out:PushNetUint8(kPacket_Picked_Object)
+-	out:PushNetUint32(dialogid)
+-	out:PushNetUint16(menuid)
+-	out:PushNetUint16(choice) -- 1based
+-	out:PushNetUint16(artid)
+-	out:PushNetUint16(hue)
+-	out:SendPacket()
+-end
+-
+-
+-
+-
+---~ gPacketType.kPacket_String_Query									=3D { id=3D0xAB }
+---~ gPacketType.kPacket_String_Response									=3D { id=3D0xAC }
+--- text entry dialog ? comes at the end of pre-aos crafter gump ?
+--- response =3D 0xAC
+-function gPacketHandler.kPacket_String_Query() -- 0xAB
+-	local input =3D GetRecvFIFO()
+-	local popped_start =3D input:GetTotalPopped()
+-	local id =3D input:PopNetUint8()
+-	local size =3D input:PopNetUint16()
+-	local data =3D {}
+-	data.id			=3D input:PopNetUint32()
+-	data.parentid	=3D input:PopNetUint8()
+-	data.buttonid	=3D input:PopNetUint8()
+-	data.textlen	=3D input:PopNetUint16() -- ??? not quite sure about the mea=
+ning, but one byte was too few
+-	data.text		=3D input:PopFilledString(data.textlen)
+-	--~ local datalenleft2 =3D size-1-2-4-1-1-1-data.textlen
+-	--~ for i=3D0,datalenleft2-1 do local v =3D input:PeekNetUint8(i) print(&quot;=
++&quot;,i,v,sprintf(&quot;%c&quot;,v)) end
+-	=
+
+-	data.cancel		=3D input:PopNetUint8() -- (0=3Ddisable, 1=3Denable)
+-	data.style		=3D input:PopNetUint8() -- (0=3Ddisable, 1=3Dnormal, 2=3Dnume=
+rical)
+-	data.format		=3D input:PopNetUint32() -- (if style 1, max text len, if st=
+yle2, max numeric value)
+-	data.text2len	=3D input:PopNetUint8()
+-	=
+
+-	data.datalenleft =3D size-1-2-4-1-1-2-data.textlen-1-1-4-1
+-	data.text2		=3D (data.datalenleft &gt; 0) and input:PopFilledString(data.dat=
+alenleft) or &quot;&quot;
+-	HandleStringQuery(data)
+-	--~ print(&quot;kPacket_String_Query&quot;,SmartDump(data))
+-	--[[
+-	kPacket_String_Query    {
+-		datalenleft=3D2
+-		id=3D0x00039bcb
+-		parentid=3D0
+-		buttonid=3D0
+-		textlen=3D24=3D0x18
+-		text=3D&quot;How many loops? [0-100]&quot;
+-		cancel=3D1
+-		style=3D1
+-		format=3D4
+-		text2=3D&quot;&quot;
+-		text2len=3D0
+-		}
+-	]]--
+-end
+-
+ function HandleStringQuery (data)
+ 	print(&quot;HandleStringQuery&quot;,data.id,data.parentid,data.buttonid)
+ 	local rows =3D {
+@@ -157,20 +37,3 @@
+ 		}
+ 	local dialog =3D guimaker.MakeTableDlg(rows,100,100,false,true,gGuiDefaul=
+tStyleSet,&quot;window&quot;)
+ end
+-
+--- response to 0xAB
+-function Send_String_Query_Response (id,mytype,myidx,response) -- 0xAC
+-	local responselen =3D string.len(response)
+-	local out =3D GetSendFIFO()
+-	out:PushNetUint8(kPacket_String_Response)
+-	out:PushNetUint16(responselen+3+1+1+4+2+1)
+-	out:PushNetUint32(id)
+-	out:PushNetUint8(mytype)
+-	out:PushNetUint8(myidx)
+-	out:PushNetUint8(0) -- unknown
+-	out:PushNetUint8(0) -- unknown
+-	out:PushNetUint8(0) -- unknown
+-	out:PushFilledString(response,responselen)
+-	out:SendPacket()
+-	-- doesn't seemt to work yet =3D(
+-end
+
+Modified: trunk/lua/lib.uotooltip.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.uotooltip.lua (original)
++++ trunk/lua/lib.uotooltip.lua Sat Aug  8 14:38:24 2009
+@@ -1,81 +1,22 @@
++--[[ ***** see Iris2 COPYING for license info ***** ]]--
++--[[ \brief
++			handles ToolTips
++]]--
++
++gMyNextToolTipCycleCount =3D 0
++
++gAosToolTipHash =3D {}
++gAosToolTipText =3D {}
++gAosToolTipRequested =3D {}
++
+ gUOToolTipSerial =3D nil
+ gUOToolTipDialog =3D nil
+-
+ kToolTipHashMask =3D 0x3fffFFFF
+ =
+
+-
+-gShortProps =3D {}
+-gShortProps.fcr		=3D {num=3D&quot;faster cast recovery &quot;}
+-gShortProps.fc		=3D {num=3D&quot;faster casting &quot;}
+-
+--- returns props=3D{fcr=3D?,fc=3D?,...}
+-function ParseProps (tooltip) =
+
+-	local res =3D {}
+-	for k,v in pairs(gShortProps) do
+-		if (v.num) then
+-			local a,b,num =3D string.find(tooltip,v.num..&quot;(%d+)&quot;)
+-			if (num) then res[k] =3D tonumber(num) end
+-		end
+-	end
+-	return res
+-end
+-
+-
+-
+-
+-
+-function StartUOToolTipAtMouse_Serial (serial)
+-	if (gUOToolTipSerial =3D=3D serial) then return end
+-	CloseOldUOToolTip()
+-	gUOToolTipSerial =3D serial
+-	if (not serial) then return end
+-	=
+
+-	local item =3D GetDynamic(serial)
+-	if (item and item.multi) then return end -- no tooltips for multi parts
+-	=
+
+-	local iMouseX,iMouseY =3D GetMousePos()
+-	gUOToolTipDialog =3D gRootWidget.tooltip:CreateChild(&quot;UOToolTip&quot;,{serial=
+=3Dserial,x=3DiMouseX,y=3DiMouseY+32})
+-	return gUOToolTipDialog
+-end
+-
+-function CloseOldUOToolTip ()
+-	if (gUOToolTipDialog) then =
+
+-		if (gUOToolTipDialog:IsAlive()) then gUOToolTipDialog:Destroy() end
+-		gUOToolTipDialog =3D nil =
+
+-	end
+-	gUOToolTipSerial =3D nil
+-end
+-
+-function StartUOToolTipAtMouse_Text (text)
+-	CloseOldUOToolTip()
+-	local iMouseX,iMouseY =3D GetMousePos()
+-	gUOToolTipDialog =3D gRootWidget.tooltip:CreateChild(&quot;UOToolTip&quot;,{text=3D=
+text,x=3DiMouseX,y=3DiMouseY+32})
+-	return gUOToolTipDialog
+-end
+-
+-
+-function GetToolTipTextForSerial (serial) =
+
+-	if (not serial) then return end
+-	local item =3D GetDynamic(serial)
+-	local res =3D GetItemTooltipOrLabel(serial)
+-	if (not res) then =
+
+-		local mobile =3D GetMobile(serial)
+-		if (mobile) then return mobile.name end
+-		if (item) then =
+
+-			res =3D string.gsub(GetStaticTileTypeName(item.artid) or &quot;&quot;,&quot;%%s%%&quot;,(it=
+em.amount &gt; 1) and &quot;s&quot; or &quot;&quot;)
+-		end
+-	end
+-	if (item and item.amount &gt; 1 and (not IsCorpseArtID(item.artid))) then =
+
+-		res =3D item.amount .. &quot; &quot; .. string.gsub(res,&quot;: *%d+$&quot;,&quot;&quot;)
+-	end
+-	return res
+-end
+-
+-
++------------------------------------------------------------------------
+ =
+
+ -- if clilochash is wrong, request new megacliloc tooltip from server
+ -- used in function gPacketHandler.kPacket_AOSObjProp()  &amp;  gPacketHandler=
+.kPacket_Generic_Command()
+-gMyNextToolTipCycleCount =3D 0
+ function Send_ToolTipRequest(objserial)
+ 	if (gDisableAosToolTipRequests) then return end
+ 	=
+
+@@ -96,31 +37,8 @@
+ 	Send_ToolTipRequest_Aux(objserial)
+ end
+ =
+
+-function Send_ToolTipRequest_Aux(objserial)
+-	local out =3D GetSendFIFO()
+-	out:PushNetUint8(kPacket_Generic_Command)
+-	out:PushNetUint16(hex2num(&quot;0x0009&quot;))
+-	out:PushNetUint16(hex2num(&quot;0x0010&quot;))
+-	out:PushNetUint32(objserial)
+-	out:SendPacket()
+-end
++------------------------------------------------------------------------
+ =
+
+---Client -&gt; Server: 0xD6 (AOSToolTip), frequ: 1, len: 0x07
+---word	- Packet Size
+---loop	- Item Info; count =3D (Packet Size-3)/4
+---dword	- Serial
+---endloop	- Item Info
+-function Send_AosToolTipRequest(objserial)
+-	local out =3D GetSendFIFO()
+-	out:PushNetUint8(kPacket_Mega_Cliloc) -- 0xD6 runuo : BatchQueryProperties
+-	out:PushNetUint16(7) -- packetsize
+-	out:PushNetUint32(objserial)
+-	out:SendPacket()
+-end
+-
+-gAosToolTipHash =3D {}
+-gAosToolTipText =3D {}
+-gAosToolTipRequested =3D {}
+ function AosToolTip_GetHash (serial) return gAosToolTipHash[serial] end
+ function AosToolTip_GetText (serial,bNoRequest) =
+
+ 	local tip =3D gAosToolTipText[serial]
+@@ -137,80 +55,50 @@
+ 	gAosToolTipRequested =3D {}
+ end
+ =
+
+--- Newer packet as of late 2004.
+--- Is now used on OSI to handle the Revision of Tooltips instead of the or=
+iginal 0xBF methods it appears.
+--- server sends these automatically when a new object appears, doesn't hav=
+e to be requested
+-function gPacketHandler.kPacket_AOSObjProp()	--0xDC (9 bytes)
+-	local input =3D GetRecvFIFO()
+-	local id =3D input:PopNetUint8()
+-	local objserial =3D input:PopNetUint32()			--Item/Mob-Serial
+-	local objrevision_hash =3D input:PopNetUint32()
+-	local hash =3D BitwiseAND(objrevision_hash,kToolTipHashMask)
+-	--~ print(&quot;kPacket_AOSObjProp&quot;,SmartDump(objserial))
+-	printdebug(&quot;net&quot;,sprintf(&quot;NET: AOSObjProp objserial=3D0x%08x hash=3D0x%08=
+x\n&quot;,objserial,hash))
+-	if (AosToolTip_GetHash(objserial) ~=3D hash) then
+-		AosToolTip_SetHash(objserial,hash)
+-		-- print(&quot;Send_ToolTipRequest&quot;,objserial,hash)
+-		Send_ToolTipRequest(objserial)
++------------------------------------------------------------------------
++
++function CloseOldUOToolTip ()
++	if (gUOToolTipDialog) then =
+
++		if (gUOToolTipDialog:IsAlive()) then gUOToolTipDialog:Destroy() end
++		gUOToolTipDialog =3D nil =
+
+ 	end
++	gUOToolTipSerial =3D nil
+ end
+ =
+
+--- Mega Cliloc - server sends new Clilocs - just add them to the Cliloc
+--- TODO : this cliloc additions might be local to a specific mobile, e.g. =
+vendor or container...
+-function gPacketHandler.kPacket_Mega_Cliloc()	--0xD6
+-	local input				=3D GetRecvFIFO()
+-	local id				=3D input:PopNetUint8()
+-	local size				=3D input:PopNetUint16()
+-	local data =3D {}
+-	data.unknown1			=3D input:PopNetUint16()	--0x0001 or 0x4000 !?
+-	local serial			=3D input:PopNetUint32()	--Serial of item/creature
+-	data.unknown2			=3D input:PopNetUint16()	--0x0000 !?
+-	data.objrevision_hash	=3D input:PopNetUint32()	--another serial? hash? we=
+ird flags ? position ? 0x030c0ca3
+-	local hash =3D BitwiseAND(data.objrevision_hash,kToolTipHashMask) =
+
+-		-- objrevision_hash in old iris code : obj/character-&gt;SetAOSTooltipID(li=
+stID);
++function StartUOToolTipAtMouse_Serial (serial)
++	if (gUOToolTipSerial =3D=3D serial) then return end
++	CloseOldUOToolTip()
++	gUOToolTipSerial =3D serial
++	if (not serial) then return end
+ 	=
+
+-	local totaltext =3D &quot;&quot;
+-	local bFirst =3D true
++	local item =3D GetDynamic(serial)
++	if (item and item.multi) then return end -- no tooltips for multi parts
+ 	=
+
+-	while true do =
+
+-		local cliloc_id =3D input:PopNetUint32()
+-		if (cliloc_id =3D=3D 0x00000000) then break end
+-		local cliloctext =3D gClilocLoader and gClilocLoader:Get(cliloc_id) or &quot;&quot;
+-		=
+
+-		local number_of_unicode_chars =3D input:PopNetUint16() / 2
+-		local text =3D &quot;&quot;
+-		local totalparamtext =3D &quot;&quot;
+-		local debugtxt =3D &quot;&quot;
+-		local params =3D {}
+-		for i =3D 1,number_of_unicode_chars do  -- read unicode text and split b=
+y 0x09 =3D tab
+-			local head =3D input:PopUint8()
+-			local data =3D input:PopUint8()
+-			local c =3D ((head~=3D0) and string.char(head) or &quot;?&quot;)
+-			if (head =3D=3D 9 and data =3D=3D 0) then -- delimiter =3D tab=3D0x09
+-				table.insert(params,text)
+-				text =3D &quot;&quot;
+-			else
+-				text =3D text..c
+-			end
+-			totalparamtext =3D totalparamtext..c
+-			debugtxt =3D debugtxt..&quot;(&quot;..head..&quot;,&quot;..data..&quot;:&quot;..c..&quot;)&quot;
+-		end
+-		table.insert(params,text)
+-		=
+
+-		local text =3D string.gsub(ParameterizedClilocText(cliloc_id,params),&quot;&lt;b=
+r&gt;&quot;,&quot;\n&quot;)
+-		=
+
+-		if (bFirst) then bFirst =3D false else totaltext =3D totaltext..&quot;\n&quot; end
+-		totaltext =3D totaltext..text
+-		--~ printf(&quot;NET: Mega_Cliloc LINE : text=3D'%s' clilocbase=3D'%s' totalp=
+aramtext=3D'%s' debug=3D%s\n&quot;,text,cliloctext,totalparamtext,debugtxt)
+-	end
+-	printdebug(&quot;net&quot;, sprintf(&quot;NET: Mega_Cliloc : serial=3D%d u3=3D%d text=3D=
+'%s'\n&quot;,serial,hash,totaltext) )
+-	--~ print(&quot;recv-tooltip&quot;,SmartDump(serial),hash=3D=3DAosToolTip_GetHash(s=
+erial),sprintf(&quot;0x%08x&quot;,hash),sprintf(&quot;0x%08x&quot;,AosToolTip_GetHash(serial) o=
+r 0),SmartDump(data.unknown2),SmartDump(data.unknown1),totaltext and string=
+.len(totaltext))
+-	AosToolTip_SetHash(serial,hash)
+-	AosToolTip_SetText(serial,totaltext)
+-	NotifyListener(&quot;Hook_ToolTipUpdate&quot;,serial,data)
+-	=
+
+-	--~ print(&quot;gPacketHandler.kPacket_Mega_Cliloc&quot;,serial,string.gsub(totalte=
+xt,&quot;\n&quot;,&quot;;&quot;))
++	local iMouseX,iMouseY =3D GetMousePos()
++	gUOToolTipDialog =3D gRootWidget.tooltip:CreateChild(&quot;UOToolTip&quot;,{serial=
+=3Dserial,x=3DiMouseX,y=3DiMouseY+32})
++	return gUOToolTipDialog
+ end
+ =
+
++function StartUOToolTipAtMouse_Text (text)
++	CloseOldUOToolTip()
++	local iMouseX,iMouseY =3D GetMousePos()
++	gUOToolTipDialog =3D gRootWidget.tooltip:CreateChild(&quot;UOToolTip&quot;,{text=3D=
+text,x=3DiMouseX,y=3DiMouseY+32})
++	return gUOToolTipDialog
++end
+ =
+
+-
++function GetToolTipTextForSerial (serial) =
+
++	if (not serial) then return end
++	local item =3D GetDynamic(serial)
++	local res =3D GetItemTooltipOrLabel(serial)
++	if (not res) then =
+
++		local mobile =3D GetMobile(serial)
++		if (mobile) then return mobile.name end
++		if (item) then =
+
++			res =3D string.gsub(GetStaticTileTypeName(item.artid) or &quot;&quot;,&quot;%%s%%&quot;,(it=
+em.amount &gt; 1) and &quot;s&quot; or &quot;&quot;)
++		end
++	end
++	if (item and item.amount &gt; 1 and (not IsCorpseArtID(item.artid))) then =
+
++		res =3D item.amount .. &quot; &quot; .. string.gsub(res,&quot;: *%d+$&quot;,&quot;&quot;)
++	end
++	return res
++end
+
+Modified: trunk/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/main.lua (original)
++++ trunk/lua/main.lua Sat Aug  8 14:38:24 2009
+@@ -110,6 +110,7 @@
+ dofile(libpath .. &quot;lib.registry.slow.lua&quot;)
+ dofile(libpath .. &quot;lib.proxy.lua&quot;)
+ dofile(libpath .. &quot;lib.randomname.lua&quot;)
++dofile(libpath .. &quot;lib.weaponability.lua&quot;)
+ =
+
+ dofile(libpath .. &quot;gui/gui.main.lua&quot;)
+ dofile(libpath .. &quot;obj/obj.main.lua&quot;)
+
+Modified: trunk/lua/net/net.aoscommand.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.aoscommand.lua (original)
++++ trunk/lua/net/net.aoscommand.lua Sat Aug  8 14:38:24 2009
+@@ -1,12 +1,48 @@
+--- combatskills/weaponskills =
+
+--- <A HREF="http://uo.stratics.com/content/arms-armor/specialmoves.php">http://uo.stratics.com/content/arms-armor/specialmoves.php</A>
+--- <A HREF="http://uo.stratics.com/content/arms-armor/special_moves_chart.shtml">http://uo.stratics.com/content/arms-armor/special_moves_chart.shtml</A>
+--- runuo : WeaponAbility.cs:319: ClearCurrentAbility : send ClearWeaponAbi=
+lity.Instance 0xBF 0x21
++--[[ ***** see Iris2 COPYING for license info ***** ]]--
++--[[ \brief
++			handles Combat- &amp; Weaponskills network packages
++			see also:
++			lib.weaponability.lua
++
++			see:
++			runuo : WeaponAbility.cs:319: ClearCurrentAbility : send ClearWeaponAbi=
+lity.Instance 0xBF 0x21
++]]--
+ =
+
+ kPacket_AOS_Command_WeaponAbilityRequest	=3D hex2num(&quot;0x19&quot;)	-- Client -&gt; =
+Server message
+ kPacket_AOS_Command_GuildGumpRequest		=3D hex2num(&quot;0x28&quot;)	-- Client -&gt; Ser=
+ver message
+ kPacket_AOS_Command_QuestGumpRequest		=3D hex2num(&quot;0x32&quot;)	-- Client -&gt; Ser=
+ver message
+ =
+
++--12:25:58.812 Client -&gt; Server: 0xD7 (AOSStuff), frequ: 1, len: 0x0F
++--D7 0F00 00000001 0019 00000000 05 0A
++--Send Quest, Guild Button req. to Server -&gt; Server returns a Serverside G=
+ump
++function Send_AOSCommand(subcmd,mobile_serial,weaponability)
++	local weaponabilitytype =3D weaponability or 0
++	=
+
++	local out =3D GetSendFIFO()
++	out:PushNetUint8(kPacket_AOS_Command)
++
++	if (subcmd =3D=3D kPacket_AOS_Command_QuestGumpRequest) then
++		out:PushNetUint16(hex2num(&quot;0x0A&quot;))
++		out:PushNetUint32(mobile_serial)
++		out:PushNetUint16(subcmd)
++		out:PushNetUint8(hex2num(&quot;0x0A&quot;))
++	elseif (subcmd =3D=3D kPacket_AOS_Command_GuildGumpRequest) then
++		out:PushNetUint16(hex2num(&quot;0x0A&quot;))
++		out:PushNetUint32(mobile_serial)
++		out:PushNetUint16(subcmd)
++		out:PushNetUint8(hex2num(&quot;0x0A&quot;))
++	elseif (subcmd =3D=3D kPacket_AOS_Command_WeaponAbilityRequest) then
++		out:PushNetUint16(hex2num(&quot;0x0F&quot;))
++		out:PushNetUint32(mobile_serial)
++		out:PushNetUint16(subcmd)
++		out:PushNetUint32(0)
++		out:PushNetUint8(weaponabilitytype)
++		out:PushNetUint8(hex2num(&quot;0x0A&quot;))
++	end
++
++	out:SendPacket()
++	printdebug(&quot;mobile&quot;,sprintf(&quot;NET: kPacket_AOS_Command: mobile_serial=3D0x=
+%08x ability=3D%d\n&quot;,mobile_serial,weaponabilitytype))
++end
+ =
+
+ --[[
+ Packet Build: BYTE[1] cmd =
+
+@@ -54,260 +90,3 @@
+ 0x1C =3D Serpent Arrow =
+
+ 0x1D =3D Force of Nature
+ ]]--
+---12:25:58.812 Client -&gt; Server: 0xD7 (AOSStuff), frequ: 1, len: 0x0F
+---D7 0F00 00000001 0019 00000000 05 0A
+---Send Quest, Guild Button req. to Server -&gt; Server returns a Serverside G=
+ump
+-function Send_AOSCommand(subcmd,mobile_serial,weaponability)
+-	local weaponabilitytype =3D weaponability or 0
+-	=
+
+-	local out =3D GetSendFIFO()
+-	out:PushNetUint8(kPacket_AOS_Command)
+-
+-	if (subcmd =3D=3D kPacket_AOS_Command_QuestGumpRequest) then
+-		out:PushNetUint16(hex2num(&quot;0x0A&quot;))
+-		out:PushNetUint32(mobile_serial)
+-		out:PushNetUint16(subcmd)
+-		out:PushNetUint8(hex2num(&quot;0x0A&quot;))
+-	elseif (subcmd =3D=3D kPacket_AOS_Command_GuildGumpRequest) then
+-		out:PushNetUint16(hex2num(&quot;0x0A&quot;))
+-		out:PushNetUint32(mobile_serial)
+-		out:PushNetUint16(subcmd)
+-		out:PushNetUint8(hex2num(&quot;0x0A&quot;))
+-	elseif (subcmd =3D=3D kPacket_AOS_Command_WeaponAbilityRequest) then
+-		out:PushNetUint16(hex2num(&quot;0x0F&quot;))
+-		out:PushNetUint32(mobile_serial)
+-		out:PushNetUint16(subcmd)
+-		out:PushNetUint32(0)
+-		out:PushNetUint8(weaponabilitytype)
+-		out:PushNetUint8(hex2num(&quot;0x0A&quot;))
+-	end
+-
+-	out:SendPacket()
+-	printdebug(&quot;mobile&quot;,sprintf(&quot;NET: kPacket_AOS_Command: mobile_serial=3D0x=
+%08x ability=3D%d\n&quot;,mobile_serial,weaponabilitytype))
+-end
+-
+-
+-gWeaponAbilityIcons =3D {}
+-gActiveWeaponAbility =3D 0
+-gLastSelectedWeaponAbility =3D 0
+-gLastWeaponAbilityClearT =3D 0
+-
+--- should only be called by ToggleWeaponAbility
+-function Send_AOSCommand_WeaponAbility	(weaponabilityid)
+-	local mobile_serial =3D GetPlayerSerial()
+-	if (not mobile_serial) then return end
+-	--~ print(&quot;##### WeaponAbility send&quot;,floor(Client_GetTicks()/1000),weapon=
+abilityid)
+-	Send_AOSCommand(kPacket_AOS_Command_WeaponAbilityRequest, mobile_serial, =
+weaponabilityid)
+-	gActiveWeaponAbility =3D weaponabilityid
+-	gLastSelectedWeaponAbility =3D weaponabilityid
+-	UpdateWeaponAbilityIcons()
+-end
+-
+--- changes or deactivates weapon ability
+-function ToggleWeaponAbility (weaponabilityid)
+-	if (gActiveWeaponAbility =3D=3D weaponabilityid) then weaponabilityid =3D=
+ 0 end
+-	Send_AOSCommand_WeaponAbility(weaponabilityid)
+-end
+-
+--- send from server via kPacket_Generic_SubCommand_Ability_Icon
+-function EndWeaponAbility ()
+-	--~ print(&quot;##### WeaponAbility  end&quot;,floor(Client_GetTicks()/1000))
+-	gActiveWeaponAbility =3D 0
+-	gLastWeaponAbilityClearT =3D Client_GetTicks()
+-	UpdateWeaponAbilityIcons()
+-end
+-
+-
+-RegisterStepper(function ()
+-	-- warning : manacost is much higher if used more often than every 3s
+-	if (not gReActivateWeaponAbilityInterval) then return end
+-	if (gActiveWeaponAbility ~=3D 0) then return end
+-	if (gLastSelectedWeaponAbility =3D=3D 0) then return end
+-	local t =3D Client_GetTicks()
+-	if (t - gLastWeaponAbilityClearT &gt; gReActivateWeaponAbilityInterval) then
+-		gLastWeaponAbilityClearT =3D t
+-		Send_AOSCommand_WeaponAbility(gLastSelectedWeaponAbility)
+-	end
+-end)
+-
+-function GetWeaponSpecialsForMobile (mobile) =
+
+-	if (not mobile) then return end
+-	local item1 =3D GetMobileEquipmentItem(mobile,gLayerType.kLayer_OneHanded)
+-	local item2 =3D GetMobileEquipmentItem(mobile,gLayerType.kLayer_TwoHanded=
+) -- might be shield,lantern...
+-	local artid =3D (item1 and item1.artid) or (item2 and item2.artid) or 0 -=
+- 0 if barehanded
+-	local skills =3D glWeaponAbilitiesWeapons[artid] or glWeaponAbilitiesWeap=
+ons[0] -- could have a nonweapon in second hand : fall back to barehanded
+-	if skills then return skills.first,skills.second end
+-end =
+
+-
+--- icon hueing
+-function UpdateWeaponAbilityIcons ()
+-	for weaponabilityid,widget in pairs(gWeaponAbilityIcons) do =
+
+-		if (widget:IsAlive()) then =
+
+-			widget.gfx_main:ChangeParams({hue=3D(weaponabilityid =3D=3D gActiveWeap=
+onAbility) and gQuickCastClickedHue or gQuickCastNormalHue})
+-		end
+-	end
+-end
+-
+-
+---[[
+-objectId,primaryAbility,secondaryAbility,primaryId,secondaryId
+-0,DISARM,PARALYZING_BLOW,5,11
+-3568,WHIRLWIND_STRIKE,PARALYZING_BLOW ,13,11
+-3569,WHIRLWIND_STRIKE,PARALYZING_BLOW ,13,11
+-3570,DISMOUNT,DISARM ,6,5
+-3571,DISMOUNT,DISARM ,6,5
+-3572,DISMOUNT,DISARM ,6,5
+-3573,DISMOUNT,DISARM ,6,5
+-3713,CRUSHING_BLOW,DISARM ,4,5
+-3714,CRUSHING_BLOW,DISARM ,4,5
+-3717,DOUBLESTRIKE,DISARM ,7,5
+-3718,DOUBLESTRIKE,DISARM ,7,5
+-3719,BLEED_ATTACK,DISMOUNT ,2,6
+-3720,BLEED_ATTACK,DISMOUNT ,2,6
+-3721,DOUBLESTRIKE,CONCUSSION_BLOW ,7,3
+-3722,DOUBLESTRIKE,CONCUSSION_BLOW ,7,3
+-3778,BLEED_ATTACK,INFECTING ,2,8
+-3779,BLEED_ATTACK,INFECTING ,2,8
+-3780,SHADOWSTRIKE,DISARM ,12,5
+-3781,SHADOWSTRIKE,DISARM ,12,5
+-3907,ARMOR_IGNORE,DISARM ,1,5
+-3908,ARMOR_IGNORE,DISARM ,1,5
+-3909,BLEED_ATTACK,MORTALSTRIKE ,2,9
+-3910,BLEED_ATTACK,MORTALSTRIKE ,2,9
+-3911,BLEED_ATTACK,CONCUSSION_BLOW ,2,3
+-3912,BLEED_ATTACK,CONCUSSION_BLOW ,2,3
+-3913,CRUSHING_BLOW,DISMOUNT ,4,6
+-3914,CRUSHING_BLOW,DISMOUNT ,4,6
+-3915,DOUBLESTRIKE,WHIRLWIND_STRIKE ,7,13
+-3916,DOUBLESTRIKE,WHIRLWIND_STRIKE ,7,13
+-3917,PARALYZING_BLOW,DISMOUNT ,11,6
+-3918,PARALYZING_BLOW,DISMOUNT ,11,6
+-3919,CONCUSSION_BLOW,MORTALSTRIKE ,3,9
+-3920,CONCUSSION_BLOW,MORTALSTRIKE ,3,9
+-3921,INFECTING,SHADOWSTRIKE ,8,12
+-3922,INFECTING,SHADOWSTRIKE ,8,12
+-3932,CONCUSSION_BLOW,DISARM ,3,5
+-3933,CONCUSSION_BLOW,DISARM ,3,5
+-3934,CRUSHING_BLOW,ARMOR_IGNORE ,4,1
+-3935,CRUSHING_BLOW,ARMOR_IGNORE ,4,1
+-3936,ARMOR_IGNORE,CONCUSSION_BLOW ,1,3
+-3937,ARMOR_IGNORE,CONCUSSION_BLOW ,1,3
+-3938,ARMOR_IGNORE,PARALYZING_BLOW ,1,11
+-3939,ARMOR_IGNORE,PARALYZING_BLOW ,1,11
+-4020,CRUSHING_BLOW,SHADOWSTRIKE ,4,12
+-4021,CRUSHING_BLOW,SHADOWSTRIKE ,4,12
+-5039,ARMOR_IGNORE,BLEED_ATTACK ,1,2
+-5040,ARMOR_IGNORE,BLEED_ATTACK ,1,2
+-5041,PARALYZING_BLOW,MORTALSTRIKE ,11,9
+-5042,PARALYZING_BLOW,MORTALSTRIKE ,11,9
+-5043,SHADOWSTRIKE,DISMOUNT ,12,6
+-5044,SHADOWSTRIKE,DISMOUNT ,12,6
+-5045,DOUBLESTRIKE,PARALYZING_BLOW ,7,11
+-5046,DOUBLESTRIKE,PARALYZING_BLOW ,7,11
+-5047,ARMOR_IGNORE,CONCUSSION_BLOW ,1,3
+-5048,ARMOR_IGNORE,CONCUSSION_BLOW ,1,3
+-5049,CRUSHING_BLOW,PARALYZING_BLOW ,4,11
+-5050,CRUSHING_BLOW,PARALYZING_BLOW ,4,11
+-5091,CRUSHING_BLOW,SHADOWSTRIKE ,4,12
+-5092,CRUSHING_BLOW,SHADOWSTRIKE ,4,12
+-5108,CRUSHING_BLOW,DISARM ,4,5
+-5109,CRUSHING_BLOW,DISARM ,4,5
+-5110,INFECTING,DISARM ,8,5
+-5111,INFECTING,DISARM ,8,5
+-5112,CONCUSSION_BLOW,PARALYZING_BLOW ,3,11
+-5113,CONCUSSION_BLOW,PARALYZING_BLOW ,3,11
+-5114,WHIRLWIND_STRIKE,BLEED_ATTACK ,13,2
+-5115,WHIRLWIND_STRIKE,BLEED_ATTACK ,13,2
+-5116,MOVING_SHOT,DISMOUNT ,10,6
+-5117,MOVING_SHOT,DISMOUNT ,10,6
+-5118,DOUBLESTRIKE,ARMOR_IGNORE ,7,1
+-5119,DOUBLESTRIKE,ARMOR_IGNORE ,7,1
+-5120,ARMOR_IGNORE,INFECTING ,1,8
+-5121,ARMOR_IGNORE,INFECTING ,1,8
+-5122,SHADOWSTRIKE,MORTALSTRIKE ,12,9
+-5123,SHADOWSTRIKE,MORTALSTRIKE ,12,9
+-5124,BLEED_ATTACK,DISARM ,2,5
+-5125,BLEED_ATTACK,DISARM ,2,5
+-5126,CRUSHING_BLOW,BLEED_ATTACK ,4,2
+-5127,CRUSHING_BLOW,BLEED_ATTACK ,4,2
+-5176,WHIRLWIND_STRIKE,CRUSHING_BLOW ,13,4
+-5177,WHIRLWIND_STRIKE,CRUSHING_BLOW ,13,4
+-5178,CRUSHING_BLOW,CONCUSSION_BLOW ,4,3
+-5179,CRUSHING_BLOW,CONCUSSION_BLOW ,4,3
+-5180,ARMOR_IGNORE,MORTALSTRIKE ,1,9
+-5181,ARMOR_IGNORE,MORTALSTRIKE ,1,9
+-5182,WHIRLWIND_STRIKE,CONCUSSION_BLOW ,13,3
+-5183,WHIRLWIND_STRIKE,CONCUSSION_BLOW ,13,3
+-5184,BLEED_ATTACK,SHADOWSTRIKE ,2,12
+-5185,BLEED_ATTACK,SHADOWSTRIKE ,2,12
+-5186,DOUBLESTRIKE,SHADOWSTRIKE ,7,12
+-5187,DOUBLESTRIKE,SHADOWSTRIKE ,7,12
+-9914,BLEED_ATTACK,PARALYZING_BLOW ,2,11
+-9915,PARALYZING_BLOW,MORTALSTRIKE ,11,9
+-9916,CRUSHING_BLOW,MORTALSTRIKE ,4,9
+-9917,ARMOR_IGNORE,DISMOUNT ,1,6
+-9918,PARALYZING_BLOW,INFECTING ,11,8
+-9919,DOUBLESTRIKE,INFECTING ,7,8
+-9920,DISMOUNT,CONCUSSION_BLOW ,6,3
+-9921,DOUBLESTRIKE,MORTALSTRIKE ,7,9
+-9922,ARMOR_IGNORE,MOVING_SHOT ,1,10
+-9923,DOUBLESTRIKE,MOVING_SHOT ,7,10
+-9924,BLEED_ATTACK,PARALYZING_BLOW ,2,11
+-9925,PARALYZING_BLOW,MORTALSTRIKE ,11,9
+-9926,CRUSHING_BLOW,MORTALSTRIKE ,4,9
+-9927,ARMOR_IGNORE,DISMOUNT ,1,6
+-9928,PARALYZING_BLOW,INFECTING ,11,8
+-9929,DOUBLESTRIKE,INFECTING ,7,8
+-9930,DISMOUNT,CONCUSSION_BLOW ,6,3
+-9931,DOUBLESTRIKE,MORTALSTRIKE ,7,9
+-9932,ARMOR_IGNORE,MOVING_SHOT ,1,10
+-9933,DOUBLESTRIKE,MOVING_SHOT ,7,10
+-10146,CRUSHING_BLOW,RIDINGSWIPE ,4,14
+-10147,FEINT,BLOCK ,20,16
+-10148,FRENZIEDWHIRLWIND,DOUBLESTRIKE ,15,7
+-10149,ARMORPIERCE,DOUBLESHOT ,23,22
+-10150,FRENZIEDWHIRLWIND,CRUSHING_BLOW ,15,4
+-10151,DEFENSEMASTERY,FRENZIEDWHIRLWIND ,17,15
+-10152,FEINT,NERVESTRIKE ,20,18
+-10153,FEINT,DOUBLESTRIKE ,20,7
+-10155,DUALWIELD,TALONSTRIKE ,21,19
+-10157,WHIRLWIND_STRIKE,DEFENSEMASTERY ,13,17
+-10158,BLOCK,FEINT ,16,20
+-10159,BLOCK,ARMORPIERCE ,16,23
+-10221,CRUSHING_BLOW,RIDINGSWIPE ,4,14
+-10222,FEINT,BLOCK ,20,16
+-10223,FRENZIEDWHIRLWIND,DOUBLESTRIKE ,15,7
+-10224,ARMORPIERCE,DOUBLESHOT ,23,22
+-10225,FRENZIEDWHIRLWIND,CRUSHING_BLOW ,15,4
+-10226,DEFENSEMASTERY,FRENZIEDWHIRLWIND ,17,15
+-10227,FEINT,NERVESTRIKE ,20,18
+-10228,FEINT,DOUBLESTRIKE ,20,7
+-10230,DUALWIELD,TALONSTRIKE ,21,19
+-10232,WHIRLWIND_STRIKE,DEFENSEMASTERY ,13,17
+-10233,BLOCK,FEINT ,16,20
+-10234,BLOCK,ARMORPIERCE ,16,23
+-11550,FORCE_ARROW,SERPENT_ARROW ,25,28
+-11551,LIGHTNING_ARROW,PSYCHIC_ATTACK ,26,27
+-11552,PSYCHIC_ATTACK,BLEED_ATTACK ,27,2
+-11553,INFECTING,SHADOWSTRIKE ,8,12
+-11554,FEINT,ARMOR_IGNORE ,20,1
+-11555,DISARM,BLADEWEAVE ,5,24
+-11556,CONCUSSION_BLOW,CRUSHING_BLOW ,3,4
+-11557,BLOCK,FORCE_OF_NATURE ,16,29
+-11558,DISARM,BLADEWEAVE ,5,24
+-11559,WHIRLWIND_STRIKE,BLADEWEAVE ,13,24
+-11560,DISARM,CRUSHING_BLOW ,5,4
+-11561,DEFENSEMASTERY,BLADEWEAVE ,17,24
+-11562,FORCE_ARROW,SERPENT_ARROW ,25,28
+-11563,LIGHTNING_ARROW,PSYCHIC_ATTACK ,26,27
+-11564,PSYCHIC_ATTACK,BLEED_ATTACK ,27,2
+-11565,INFECTING,SHADOWSTRIKE ,8,12
+-11566,FEINT,ARMOR_IGNORE ,20,1
+-11567,DISARM,BLADEWEAVE ,5,24
+-11568,CONCUSSION_BLOW,CRUSHING_BLOW ,3,4
+-11569,BLOCK,FORCE_OF_NATURE ,16,29
+-11570,DISARM,BLADEWEAVE ,5,24
+-11571,WHIRLWIND_STRIKE,BLADEWEAVE ,13,24
+-11572,DISARM,CRUSHING_BLOW ,5,4
+-11573,DEFENSEMASTERY,BLADEWEAVE,17,24
+-]]--
+
+Modified: trunk/lua/net/net.effect.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.effect.lua (original)
++++ trunk/lua/net/net.effect.lua Sat Aug  8 14:38:24 2009
+@@ -1,8 +1,12 @@
++--[[ ***** see Iris2 COPYING for license info ***** ]]--
++--[[ \brief
++			handles Effect network packages
++]]--
++
+ kEffectType_FromSourceToDest =3D 0
+ kEffectType_LightningStrikeAtSource =3D 1
+ kEffectType_StayAtCurrentPosition =3D 2
+ kEffectType_FollowSource =3D 3
+-
+ =
+
+ --[[ used for  RunUO-2.0-SVN/Server/Effects.cs:55:  public static bool Sen=
+dParticlesTo( NetState state )
+ 		return ( m_ParticleSupportType =3D=3D ParticleSupportType.Full || (m_Par=
+ticleSupportType =3D=3D ParticleSupportType.Detect &amp;&amp; state.IsUOTDClient) );
+
+Modified: trunk/lua/net/net.main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.main.lua (original)
++++ trunk/lua/net/net.main.lua Sat Aug  8 14:38:24 2009
+@@ -22,6 +22,10 @@
+ dofile(libpath .. &quot;net/net.trade.lua&quot;)
+ dofile(libpath .. &quot;net/net.uoam.lua&quot;)
+ dofile(libpath .. &quot;net/net.walk.lua&quot;)
++dofile(libpath .. &quot;net/net.book.lua&quot;)
++dofile(libpath .. &quot;net/net.huepicker.lua&quot;)
++dofile(libpath .. &quot;net/net.objectpicker.lua&quot;)
++dofile(libpath .. &quot;net/net.tooltips.lua&quot;)
+ =
+
+ -- only things that have at least 2 packets get its own file, everything e=
+lse is handled here:
+ dofile(libpath .. &quot;net/net.packethandlers.lua&quot;)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001854.html">[Iris-commit] [IRIS] r3091 - /trunk/lua/lib.null.renderer.lua
+</A></li>
+	<LI>Next message: <A HREF="001856.html">[Iris-commit] [IRIS] r3093 - /trunk/lua/main.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1855">[ date ]</a>
+              <a href="thread.html#1855">[ thread ]</a>
+              <a href="subject.html#1855">[ subject ]</a>
+              <a href="author.html#1855">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

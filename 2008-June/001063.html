@@ -1,0 +1,562 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2254 - in /trunk/lua: gui/gui.gumpparser.lua gui/gui.healthbar.lua gui/gui.journal.lua gui/gui.paperdoll.lua gui/gui.quit.lua gui/gui.securetrade.lua gui/gui.skill.lua gui/gui.status.lua lib.loading.lua main.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-June/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2254%20-%20in%20/trunk/lua%3A%20gui/gui.gumpparser.lua%0A%20gui/gui.healthbar.lua%20gui/gui.journal.lua%20gui/gui.paperdoll.lua%0A%20gui/gui.quit.lua%20gui/gui.securetrade.lua%20gui/gui.skill.lua%0A%20gui/gui.status.lua%20lib.loading.lua%20main.lua&In-Reply-To=%3C20080627213455.A7FAC1C180A4%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001062.html">
+   <LINK REL="Next"  HREF="001064.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2254 - in /trunk/lua: gui/gui.gumpparser.lua gui/gui.healthbar.lua gui/gui.journal.lua gui/gui.paperdoll.lua gui/gui.quit.lua gui/gui.securetrade.lua gui/gui.skill.lua gui/gui.status.lua lib.loading.lua main.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2254%20-%20in%20/trunk/lua%3A%20gui/gui.gumpparser.lua%0A%20gui/gui.healthbar.lua%20gui/gui.journal.lua%20gui/gui.paperdoll.lua%0A%20gui/gui.quit.lua%20gui/gui.securetrade.lua%20gui/gui.skill.lua%0A%20gui/gui.status.lua%20lib.loading.lua%20main.lua&In-Reply-To=%3C20080627213455.A7FAC1C180A4%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2254 - in /trunk/lua: gui/gui.gumpparser.lua gui/gui.healthbar.lua gui/gui.journal.lua gui/gui.paperdoll.lua gui/gui.quit.lua gui/gui.securetrade.lua gui/gui.skill.lua gui/gui.status.lua lib.loading.lua main.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Fri Jun 27 23:34:55 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001062.html">[Iris-commit] [IRIS] r2253 - /trunk/lua/lib.3d.dynamic.lua
+</A></li>
+        <LI>Next message: <A HREF="001064.html">[Iris-commit] [IRIS] r2255 - in /trunk/lua: lib.3d.dynamic.lua	lib.3d.map.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1063">[ date ]</a>
+              <a href="thread.html#1063">[ thread ]</a>
+              <a href="subject.html#1063">[ subject ]</a>
+              <a href="author.html#1063">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Fri Jun 27 23:34:54 2008
+New Revision: 2254
+
+Log:
+guisystem : started gump-parser test environment, loading split so test env=
+ironments can easily load just the parts they need for faster startup
+
+Modified:
+    trunk/lua/gui/gui.gumpparser.lua
+    trunk/lua/gui/gui.healthbar.lua
+    trunk/lua/gui/gui.journal.lua
+    trunk/lua/gui/gui.paperdoll.lua
+    trunk/lua/gui/gui.quit.lua
+    trunk/lua/gui/gui.securetrade.lua
+    trunk/lua/gui/gui.skill.lua
+    trunk/lua/gui/gui.status.lua
+    trunk/lua/lib.loading.lua
+    trunk/lua/main.lua
+
+Modified: trunk/lua/gui/gui.gumpparser.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.gumpparser.lua (original)
++++ trunk/lua/gui/gui.gumpparser.lua Fri Jun 27 23:34:54 2008
+@@ -8,6 +8,51 @@
+ Description:  Similar to xmfhtmlgumpcolor command, but the parameter order=
+ is different and an additionally [argument]
+ entry enclosed with @'s can be used. With this you can specify texts that =
+will be added to the CliLoc entry.
+ ]]--
++
++
++function GumpParserTest ()
++	Client_RenderOneFrame() -- first frame rendered with ogre, needed for ini=
+t of viewport size
++	GetMainViewport():SetBackCol(0.5,0.5,0.5)
++	=
+
++	Load_Font() -- iris specific
++	Load_Hue()
++	Load_ArtMap()
++	Load_Gump()	=
+
++	--[[
++	kClientSideGump_HealthBar_Own		=3D healthbarGump -- own, includes mana,sta
++	kClientSideGump_HealthBar_Other		=3D npchealthGump -- other, only hp
++	kClientSideGump_Status =3D statusGump -- big status dialog showing own de=
+x,weight,luck...
++	kClientSideGump_Quit =3D quitGump -- do you really want to quit ?
++	kClientSideGump_Paperdoll_Own	=3D playerPaperdoll -- own paperdoll, inclu=
+ding buttons like quest,skills..
++	kClientSideGump_Paperdoll_Other	=3D npcPaperdoll -- paperdoll of someone =
+else, no buttons
++	kClientSideGump_SecureTrade	=3D securetrading -- trade dialog with left(o=
+wn-offer) and right(other-offer) boxes and two agree checkboxes
++	kClientSideGump_Skill_Quick		=3D quickskillGump	-- ??? only two pictures,=
+ maybe the hot-button ?
++	kClientSideGump_Skill			=3D skillGump			-- the big skill list dialog with=
+ up/down/lock boxes, grab icons and scrollbar
++	kClientSideGump_Journal			=3D journalGump	-- a very simple message log in=
+ papyrus-scroll look
++	]]--
++	local dialog =3D GumpParser(kClientSideGump_Paperdoll_Own,true)
++	=
+
++	GUITest_MainLoop()
++	os.exit(0)
++end
++
++
++
++--[[
++conversion to new guisystem :  =
+
++MakeSortedDialog
++CreatePlainEditText
++MakeText
++MakeBorderGump
++MakeBorderGumpPart
++MakeGumpButtonFunctionOnClick
++MakeGumpButton
++MakeGumpCheckBox
++MakeArtGumpPart
++MakeWrappedClippedText
++onMouseDown
++]]--
++
+ =
+
+ gServerSideGump =3D {}
+ gGumpPosition =3D {}
+
+Modified: trunk/lua/gui/gui.healthbar.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.healthbar.lua (original)
++++ trunk/lua/gui/gui.healthbar.lua Fri Jun 27 23:34:54 2008
+@@ -39,6 +39,10 @@
+ 	[0] =3D &quot;npc_name&quot;,
+ }
+ =
+
++
++kClientSideGump_HealthBar_Own		=3D healthbarGump -- own, includes mana,sta
++kClientSideGump_HealthBar_Other		=3D npchealthGump -- other, only hp
++                       =
+
+ -- list of all open stats dialogs serial-&gt;dialog
+ gHealthbarDialogs =3D {}
+ =
+
+
+Modified: trunk/lua/gui/gui.journal.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.journal.lua (original)
++++ trunk/lua/gui/gui.journal.lua Fri Jun 27 23:34:54 2008
+@@ -69,6 +69,8 @@
+  [5]	=3D function (widget,mousebutton) end,
+ }
+ =
+
++kClientSideGump_Journal			=3D journalGump	-- a very simple message log in =
+papyrus-scroll look
++
+ gJournalEntries =3D {}
+ gJournalExtendedEntries =3D {}
+ gJournalDialog =3D nil
+
+Modified: trunk/lua/gui/gui.paperdoll.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.paperdoll.lua (original)
++++ trunk/lua/gui/gui.paperdoll.lua Fri Jun 27 23:34:54 2008
+@@ -104,6 +104,12 @@
+ 		  end
+ }
+ =
+
++
++
++kClientSideGump_Paperdoll_Own	=3D playerPaperdoll -- own paperdoll, includ=
+ing buttons like quest,skills..
++kClientSideGump_Paperdoll_Other	=3D npcPaperdoll -- paperdoll of someone e=
+lse, no buttons
++
++
+ -- base body gump ids
+ local kGumpBaseId_Male	=3D 50000
+ local kGumpBaseId_Female=3D 60000
+
+Modified: trunk/lua/gui/gui.quit.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.quit.lua (original)
++++ trunk/lua/gui/gui.quit.lua Fri Jun 27 23:34:54 2008
+@@ -22,6 +22,8 @@
+  [1]	=3D function (widget,mousebutton) if (mousebutton =3D=3D 1) then Term=
+inate() end end,
+ }
+ =
+
++kClientSideGump_Quit =3D quitGump -- do you really want to quit ?
++
+ gQuitDialog =3D nil
+ function OpenQuit()
+ 	if not(gQuitDialog) then
+
+Modified: trunk/lua/gui/gui.securetrade.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.securetrade.lua (original)
++++ trunk/lua/gui/gui.securetrade.lua Fri Jun 27 23:34:54 2008
+@@ -15,6 +15,8 @@
+ 	[0] =3D &quot;me&quot;,
+ 	[1] =3D &quot;unknown&quot;,
+ }
++
++kClientSideGump_SecureTrade	=3D securetrading -- trade dialog with left(ow=
+n-offer) and right(other-offer) boxes and two agree checkboxes
+ =
+
+ -- handles secure trading between players
+ -- see also net.uodragdrop.lua for container like droparea
+
+Modified: trunk/lua/gui/gui.skill.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.skill.lua (original)
++++ trunk/lua/gui/gui.skill.lua Fri Jun 27 23:34:54 2008
+@@ -54,6 +54,9 @@
+ quickskillGump.textline =3D {
+ }
+ =
+
++kClientSideGump_Skill_Quick		=3D quickskillGump	-- ??? only two pictures, =
+maybe the hot-button ?
++kClientSideGump_Skill			=3D skillGump			-- the big skill list dialog with =
+up/down/lock boxes, grab icons and scrollbar
++
+ -- global player skill stuff list, see SkillUpdate for details
+ gPlayerSkills =3D nil
+ =
+
+
+Modified: trunk/lua/gui/gui.status.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.status.lua (original)
++++ trunk/lua/gui/gui.status.lua Fri Jun 27 23:34:54 2008
+@@ -55,6 +55,8 @@
+ 	[21] =3D &quot;status_energres&quot;,
+ }
+ =
+
++kClientSideGump_Status =3D statusGump -- big status dialog showing own dex=
+,weight,luck...
++
+ -- toggles the display of the extended aos stats
+ gStatusAosDialog_LastPositionX =3D nil
+ gStatusAosDialog_LastPositionY =3D nil
+
+Modified: trunk/lua/lib.loading.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.loading.lua (original)
++++ trunk/lua/lib.loading.lua Fri Jun 27 23:34:54 2008
+@@ -33,16 +33,13 @@
+ end
+ =
+
+ =
+
+-
+--- load basic data before login
+-function LoadBasicData ()	=
+
+-	InitFallBacks()
+-	=
+
++function Load_Hue		()
+ 	if (gHueLoaderType) then
+ 		LoadingProfile(&quot;init HueLoader&quot;)
+ 		gHueLoader =3D CreateHueLoader(gHueLoaderType,CorrectPath( Addfilepath(g=
+HuesFile) ) )
+ 	end
+-		=
+
++end
++function Load_ArtMap	()
+ 	if (gArtMapLoaderType) then
+ 		LoadingProfile(&quot;init ArtMapLoader&quot;)
+ 		gArtMapLoader =3D CreateArtMapLoader(gArtMapLoaderType,CorrectPath( Addf=
+ilepath(gArtidxFile) ),CorrectPath( Addfilepath(gArtFile) ))
+@@ -50,13 +47,14 @@
+ --		LoadingProfile(&quot;init ManualArtMaterialLoader&quot;)
+ --		gManualArtMaterialLoader =3D CreateManualArtMaterialLoader(&quot;uo_art_%i&quot;=
+,&quot;tex_base_alpha&quot;,gArtMapLoader,true,true,false)
+ 	end
+-		=
+
++end
++function Load_Gump		()
+ 	if (gGumpLoaderType) then
+ 		LoadingProfile(&quot;init GumpLoader&quot;)
+ 		gGumpLoader =3D CreateGumpLoader(gGumpLoaderType,CorrectPath( Addfilepat=
+h(gGumpidxFile) ),CorrectPath( Addfilepath(gGumpFile) ))
+ 	end
+ end
+-
++	=
+
+ function LoadTexAtlas ()
+ 	-- load texture atlas mappings
+ 	-- high, med, low
+@@ -98,8 +96,7 @@
+ end
+ =
+
+ -- load bigger data chunks while menu is visible
+-function PreLoad ()
+-	--DebugCallLogStartIgnore()
++function Load_Font ()
+ 	if (gUniFontLoaderType) then
+ 		LoadingProfile(&quot;init unifonts&quot;)
+ 		-- TODO : fonts.mul  needed as well ??
+@@ -115,7 +112,9 @@
+ 			gUniFontHeight[i] =3D CreateUniFontTexture(gUniFontLoaderList[i],gUniFo=
+ntName[i])
+ 		end
+ 	end
+-	=
+
++end
++
++function Load_Cliloc ()
+ 	if (gClilocLoaderType) then
+ 		LoadingProfile(&quot;init ClilocLoader&quot;)
+ 		local localisation_file =3D nil
+@@ -131,19 +130,24 @@
+ --			gIntLocLoaders[i] =3D CreateClilocLoader(gClilocLoaderType,CorrectPat=
+h( Addfilepath(filenamebase..&quot;enu&quot;) ),localisation_file)
+ --		end
+ 	end
+-
++end
++
++function Load_Stitchin ()
+ 	if (gStitchinLoaderType) then
+ 		LoadingProfile(&quot;init StitchinLoader&quot;)
+ 		gStitchinLoader =3D CreateStitchinLoader(gStitchinLoaderType,CorrectPath=
+( Addfilepath(gStitchinFile) ))
+ 	end
+-
++end
++function Load_Speech () =
+
+ 	if (gSpeechLoaderType) then
+ 		LoadingProfile(&quot;init SpeechLoader&quot;)
+ 		if (gSpeechSupport) then
+ 			gSpeechLoader =3D CreateSpeechLoader(gSpeechLoaderType,CorrectPath( Add=
+filepath(gSpeechFile) ),true)
+ 		end
+ 	end
+-
++end
++
++function Load_TileType () =
+
+ 	if (gTileTypeLoaderType) then
+ 		LoadingProfile(&quot;init TileTypeLoader&quot;)
+ 		gTileTypeLoader =3D CreateTileTypeLoader(gTileTypeLoaderType,CorrectPath=
+( Addfilepath(gTiledataFile) ))
+@@ -158,38 +162,49 @@
+ 			end
+ 		end
+ 	end
+-	=
+
++end
++
++function Load_TexMap () =
+
+ 	if (gTexMapLoaderType) then
+ 		LoadingProfile(&quot;init TexMapLoader&quot;)
+ 		gTexMapLoader =3D CreateTexMapLoader(gTexMapLoaderType,CorrectPath( Addf=
+ilepath(gTexidxFile) ),CorrectPath( Addfilepath(gTexmapsFile) ))
+ 	end
+-
++end
++
++function Load_Multi () =
+
+ 	if (gMultiLoaderType) then
+ 		LoadingProfile(&quot;init MultiLoader&quot;)
+ 		gMultiLoader =3D CreateMultiLoader(gMultiLoaderType,CorrectPath( Addfile=
+path(gMultiidxFile) ),CorrectPath( Addfilepath(gMultiFile) ))
+ 	end
+-	=
+
++end
++
++function Load_Sound () =
+
+ 	if (gSoundLoaderType and gUseEffect) then
+ 		LoadingProfile(&quot;init SoundLoader&quot;)
+ 		gSoundLoader =3D CreateSoundLoader(gSoundLoaderType,CorrectPath( Addfile=
+path(gSoundidxFile) ),CorrectPath( Addfilepath(gSoundFile) ))
+ 		SoundInit(gUseSoundSystem,22050)
+ 	end
+-	=
+
++end
++
++function Load_Anim () =
+
+ 	if (gAnimLoaderType) then
+ 		LoadingProfile(&quot;init AnimLoader&quot;)
+ 		gAnimLoader =3D CreateAnimLoader(gAnimLoaderType,200,200,CorrectPath( Ad=
+dfilepath(gAnimidxFile) ),CorrectPath( Addfilepath(gAnimFile) ))		=
+
+ 	end
+-	=
+
+ 	if (gAnimDataLoaderType) then
+ 		LoadingProfile(&quot;init AnimDataLoader&quot;)
+ 		gAnimDataLoader =3D CreateAnimDataLoader(gAnimDataLoaderType,CorrectPath=
+( Addfilepath(gAnimdataFile) ))
+ 	end
+-	=
+
++end
++
++function Load_RadarColor () =
+
+ 	if (gRadarColorLoaderType) then
+ 		LoadingProfile(&quot;init RadarColorLoader&quot;)
+ 		gRadarColorLoader =3D CreateRadarColorLoader(gRadarColorLoaderType,Corre=
+ctPath( Addfilepath(gRadarcolFile) ))
+ 	end
+-
++end
++
++function Load_EquipConf () =
+
+ 	LoadingProfile(&quot;parsing Equipconv.def&quot;)
+ 	-- only parse the file if it exists
+ 	if file_exists(CorrectPath( Addfilepath(gEquipconvFile) )) then
+@@ -197,12 +212,34 @@
+ 	else
+ 		gDefFile_EquiqConv =3D nil
+ 	end
+-	=
+
++end
++
++function Load_Granny () =
+
+ 	if (gGrannyLoaderType) then
+ 		LoadingProfile(&quot;init GrannyLoader&quot;)
+ 		gGrannyLoader =3D CreateGrannyLoader(gGrannyLoaderType)
+ 	end
+-	=
+
++end
++
++
++function PreLoad ()
++	--DebugCallLogStartIgnore()
++	Load_Font()
++	Load_Cliloc()
++	Load_Speech()
++	Load_TileType()
++	Load_TexMap()
++	Load_Multi()
++	Load_Sound()
++	Load_Anim()
++	Load_RadarColor()
++	Load_EquipConf()
++	Load_Stitchin()
++	Load_Granny()
++	Load_Hue()
++	Load_ArtMap()
++	Load_Gump()	=
+
++
+ 	if gPreloadStaticMesh then
+ 		LoadingProfile(&quot;preload static meshes&quot;)
+ 		PreloadAllStaticMesh()
+
+Modified: trunk/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/main.lua (original)
++++ trunk/lua/main.lua Fri Jun 27 23:34:54 2008
+@@ -300,6 +300,7 @@
+ 	-- if (false) then TestZLib() end
+ 	-- if (false) then TestUniFontLoader() end
+ 	if (gCommandLineSwitches[&quot;-guitest&quot;]) then GUITest() end
++	if (gCommandLineSwitches[&quot;-gumptest&quot;]) then GumpParserTest() end
+ 	-------------------------------------------------------------------------=
+---------------------------------
+ =
+
+ 	-- maybe we should check here if in offline or online mode!?
+@@ -308,8 +309,7 @@
+ 	LoadingProfile(&quot;init basic gui&quot;)
+ 	CreateIrisLogo()
+ =
+
+-	LoadBasicData()
+-	=
+
++	InitFallBacks()
+ 	InitArtFilter()
+ 	=
+
+ 	Client_RenderOneFrame() -- first frame rendered with ogre, needed for ini=
+t of viewport size
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001062.html">[Iris-commit] [IRIS] r2253 - /trunk/lua/lib.3d.dynamic.lua
+</A></li>
+	<LI>Next message: <A HREF="001064.html">[Iris-commit] [IRIS] r2255 - in /trunk/lua: lib.3d.dynamic.lua	lib.3d.map.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1063">[ date ]</a>
+              <a href="thread.html#1063">[ thread ]</a>
+              <a href="subject.html#1063">[ subject ]</a>
+              <a href="author.html#1063">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

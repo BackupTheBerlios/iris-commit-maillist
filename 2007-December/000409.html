@@ -1,0 +1,539 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1591 - in /trunk/data/lua: lib.cliloc.lua net.other.lua net/net.packethandlers.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2007-December/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1591%20-%20in%20/trunk/data/lua%3A%20lib.cliloc.lua%0A%20net.other.lua%20net/net.packethandlers.lua&In-Reply-To=%3C20071202120015.364411C186EE%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000406.html">
+   <LINK REL="Next"  HREF="000408.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1591 - in /trunk/data/lua: lib.cliloc.lua net.other.lua net/net.packethandlers.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1591%20-%20in%20/trunk/data/lua%3A%20lib.cliloc.lua%0A%20net.other.lua%20net/net.packethandlers.lua&In-Reply-To=%3C20071202120015.364411C186EE%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1591 - in /trunk/data/lua: lib.cliloc.lua net.other.lua net/net.packethandlers.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sun Dec  2 12:07:57 CET 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000406.html">[Iris-commit] [IRIS] r1590 - in /trunk/data: config.lua.dist	lua/net.other.lua
+</A></li>
+        <LI>Next message: <A HREF="000408.html">[Iris-commit] [IRIS] r1592 -	/trunk/data/lua/net/net.packethandlers.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#409">[ date ]</a>
+              <a href="thread.html#409">[ thread ]</a>
+              <a href="subject.html#409">[ subject ]</a>
+              <a href="author.html#409">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sun Dec  2 12:07:55 2007
+New Revision: 1591
+
+Log:
+aos tooltipp parser, generalized ParameterizedClilocText
+
+Modified:
+    trunk/data/lua/lib.cliloc.lua
+    trunk/data/lua/net.other.lua
+    trunk/data/lua/net/net.packethandlers.lua
+
+Modified: trunk/data/lua/lib.cliloc.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.cliloc.lua (original)
++++ trunk/data/lua/lib.cliloc.lua Sun Dec  2 12:07:55 2007
+@@ -85,6 +85,15 @@
+ 	return loader
+ end
+ =
+
++
++
++function ParameterizedClilocText (cliloc_id,param_arr) =
+
++	local text_base =3D gClilocLoader and gClilocLoader:Get(cliloc_id) or (&quot;u=
+nknown_cliloc_&quot;..cliloc_id)
++	local res =3D string.gsub(text_base,&quot;~([1-9]+)_[^~]+~&quot;,function (num) ret=
+urn param_arr[tonumber(num)] end) -- replaces ~1_BLA~ by param_arr[1]
++	return res
++end
++
++
+ --[[
+ -- TODO : port old iris code :  --- see also function gPacketHandler.kPack=
+et_Localized_Text () in net.other.lua
+ std::string cClilocLoader::GetMessageWithArguments (int id, int args_num, =
+vector &lt; std::string &gt; &amp;args)
+
+Modified: trunk/data/lua/net.other.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/net.other.lua (original)
++++ trunk/data/lua/net.other.lua Sun Dec  2 12:07:55 2007
+@@ -420,57 +420,10 @@
+ 	local text_messagenum =3D input:PopNetUint32()
+ 	local text_charname =3D input:PopFilledString(30)
+ 	local text_params =3D input:PopUnicodeLEString((size - 48 - 2)/2)	--littl=
+e-endian_ unicode string, tabs ('\t') seperate the arguments. Null Terminat=
+ed 0x0000
+-	local text_terminator =3D input:PopNetUint16()
+-	=
+
+-	local text_base =3D gClilocLoader and gClilocLoader:Get(text_messagenum) =
+or (&quot;unknown_cliloc_&quot;..text_messagenum)	--cliloc build
+-	local plaintext =3D text_base
+-	if (string.find(text_base,&quot;~&quot;)) then
+-		print(&quot;DEBUG&quot;,aToken,bToken,text_base)
+--- TODO is it possile, that ~2 comes first and ~1 follows?
+-		-- split at the ~1_*~
+-		local aToken=3Dstrsplit(&quot;~[1-9]_[^~]+~&quot;,text_base)
+-		-- and at \t
+-		local bToken=3Dstrsplit(&quot;\t&quot;,text_params)
+-		=
+
+-		if aToken and bToken then
+-			-- glue the two arrays together (like a zip)
+-			local s =3D &quot;&quot;
+-			-- for k,v in pairs(aToken) do print(&quot;A[&quot;..k..&quot;]: &quot;..v) end
+-			-- for k,v in pairs(bToken) do print(&quot;B[&quot;..k..&quot;]: &quot;..v) end
+-			local last =3D 0
+-			for k,v in pairs(bToken) do =
+
+-				s =3D s .. aToken[k] .. bToken[k] =
+
+-				last =3D k
+-			end
+-			s =3D s .. aToken[last+1]
+-			=
+
+-			-- if there are #NUMBER parts in the string, it seems that you have to =
+look the up in the cliloc stuff
+-			-- string.find (s, pattern [, init [, plain]])
+-			-- string.gsub (s, pat, repl [, n])
+-			-- string.sub (s, i [, j])
+-			local finished
+-			repeat
+-				finished =3D 1
+-				local first, last =3D string.find(s, &quot;#[0-9]+&quot;)
+-				if first then
+-					-- found some, so im not finished here
+-					finished =3D 0
+-					-- read out the number without #
+-					local number =3D string.sub(s,first + 1,last)
+-					local repl =3D gClilocLoader:Get(number) or (&quot;unknown_cliloc_&quot;..numbe=
+r)
+-					-- and replace all patterns #number with the cliloc text
+-					s =3D string.gsub (s, &quot;#&quot;..number, repl)
+-				end
+-			until finished =3D=3D 1
+-			plaintext =3D s
+-		else
+-			local text_message =3D sprintf(&quot;%s [%s]&quot;,text_base,text_params)
+-			plaintext =3D string.gsub(text_message,&quot;&lt;br&gt;&quot;,&quot;\n&quot;)
+-		end
+-	else
+-		local text_message =3D sprintf(&quot;%s [%s]&quot;,text_base,text_params)
+-		plaintext =3D string.gsub(text_message,&quot;&lt;br&gt;&quot;,&quot;\n&quot;)
+-	end
++	local text_terminator =3D input:PopNetUint16() -- probably the seperator =
+unicode char for text_params, &quot;\t&quot; is hardcoded below, string.char(math.flo=
+or(terminator)/256)
++	=
+
++	local plaintext =3D string.gsub(ParameterizedClilocText(text_messagenum,s=
+trsplit(&quot;\t&quot;,text_params)),&quot;&lt;br&gt;&quot;,&quot;\n&quot;)
++	=
+
+ 	-- TODO : Display as TOOLTIP !
+ 	plaintext =3D UnicodeFix(plaintext)
+ 	AddFadeLines(sprintf(&quot;%s: %s&quot;,text_charname,plaintext)) -- TODO : color,f=
+ont,...
+
+Modified: trunk/data/lua/net/net.packethandlers.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/net/net.packethandlers.lua (original)
++++ trunk/data/lua/net/net.packethandlers.lua Sun Dec  2 12:07:55 2007
+@@ -125,247 +125,76 @@
+ 	out:SendPacket()
+ end
+ =
+
++gAosToolTipHash =3D {}
++gAosToolTipText =3D {}
++function AosToolTip_GetHash (serial) return gAosToolTipHash[serial] end
++function AosToolTip_SetHash (serial,hash) gAosToolTipHash[serial] =3D hash=
+ end
++function AosToolTip_GetText (serial) return gAosToolTipText[serial] end
++function AosToolTip_SetText (serial,text) gAosToolTipText[serial] =3D text=
+ end
++
+ -- Newer packet as of late 2004.
+ -- Is now used on OSI to handle the Revision of Tooltips instead of the or=
+iginal 0xBF methods it appears.
++-- server sends these automatically when a new object appears, doesn't hav=
+e to be requested
+ function gPacketHandler.kPacket_AOSObjProp()	--0xDC (9 bytes)
+ 	local input =3D GetRecvFIFO()
+ 	local id =3D input:PopNetUint8()
+ 	local objserial =3D input:PopNetUint32()			--Item/Mob-Serial
+ 	local objrevision_hash =3D input:PopNetUint32()
+-	printdebug(&quot;net&quot;, sprintf(&quot;NET: AOSObjProp objserial=3D0x%08x objrevision=
+_hash=3D0x%08x\n&quot;,
+-								objserial,objrevision_hash) )
+-	Send_AosToolTipRequest(objserial)
++	printdebug(&quot;net&quot;,sprintf(&quot;NET: AOSObjProp objserial=3D0x%08x objrevision_=
+hash=3D0x%08x\n&quot;,objserial,objrevision_hash))
++	if (AosToolTip_GetHash(objserial) ~=3D objrevision_hash) then
++		print(&quot;Send_AosToolTipRequest&quot;,objserial,objrevision_hash)
++		AosToolTip_SetHash(objserial,objrevision_hash)
++		Send_AosToolTipRequest(objserial)
++	end
+ end
+ =
+
+ -- Mega Cliloc - server sends new Clilocs - just add them to the Cliloc
+ -- TODO : this cliloc additions might be local to a specific mobile, e.g. =
+vendor or container...
+ function gPacketHandler.kPacket_Mega_Cliloc()	--0xD6
+-	local input =3D GetRecvFIFO()
+-	local id =3D input:PopNetUint8()
+-	local size =3D input:PopNetUint16()
+-	local temp1 =3D input:PopNetUint16()			--0x0001 or 0x4000 !?
+-	local item_serial =3D input:PopNetUint32()	--Serial of item/creature
+-	local temp2 =3D input:PopNetUint16()			--0x0000 !?
+-	local serial =3D input:PopNetUint32()	--Serial of item/creature in all te=
+sts.
+-												--This could be the serial of the item the entry to appear ove=
+r!?
++	local input			=3D GetRecvFIFO()
++	local id			=3D input:PopNetUint8()
++	local size			=3D input:PopNetUint16()
++	local unknown1		=3D input:PopNetUint16()	--0x0001 or 0x4000 !?
++	local serial		=3D input:PopNetUint32()	--Serial of item/creature
++	local unknown2		=3D input:PopNetUint16()	--0x0000 !?
++	local unknown3		=3D input:PopNetUint32()	--another serial? hash? weird fl=
+ags ? position ? 0x030c0ca3
++		-- unknown3 in old iris code : obj/character-&gt;SetAOSTooltipID(listID);
++	=
+
++	local totaltext =3D &quot;&quot;
++	local bFirst =3D true
++	=
+
+ 	while true do =
+
+ 		local cliloc_id =3D input:PopNetUint32()
+ 		if (cliloc_id =3D=3D hex2num(&quot;0x00000000&quot;)) then break end
++		local cliloctext =3D gClilocLoader and gClilocLoader:Get(cliloc_id) or &quot;&quot;
+ 		=
+
+-		local cliloc_size =3D input:PopNetUint16()
+-		local textline =3D &quot;&quot;
+-		if (cliloc_size &gt; 0) then
+-			textline =3D input:PopUnicodeString(cliloc_size/2)			 =
+
+-			gClilocLoader:Set(cliloc_id,textline) -- register in cliloc
++		local number_of_unicode_chars =3D input:PopNetUint16() / 2
++		local text =3D &quot;&quot;
++		local totalparamtext =3D &quot;&quot;
++		local debugtxt =3D &quot;&quot;
++		local params =3D {}
++		for i =3D 1,number_of_unicode_chars do  -- read unicode text and split b=
+y 0x09 =3D tab
++			local head =3D input:PopUint8()
++			local data =3D input:PopUint8()
++			local c =3D ((head~=3D0) and string.char(head) or &quot;?&quot;)
++			if (head =3D=3D 9 and data =3D=3D 0) then -- delimiter =3D tab=3D0x09
++				table.insert(params,text)
++				text =3D &quot;&quot;
++			else
++				text =3D text..c
++			end
++			totalparamtext =3D totalparamtext..c
++			debugtxt =3D debugtxt..&quot;(&quot;..head..&quot;,&quot;..data..&quot;:&quot;..c..&quot;)&quot;
+ 		end
+-		printf(&quot;NET: Mega_Cliloc : id=3D%d 0x%08x len=3D%d text=3D%s\n&quot;,cliloc_i=
+d,cliloc_id,cliloc_size,textline)
++		table.insert(params,text)
++		=
+
++		local text =3D string.gsub(ParameterizedClilocText(cliloc_id,params),&quot;&lt;b=
+r&gt;&quot;,&quot;\n&quot;)
++		=
+
++		if (bFirst) then bFirst =3D false else totaltext =3D totaltext..&quot;\n&quot; end
++		totaltext =3D totaltext..text
++		--~ printf(&quot;NET: Mega_Cliloc LINE : text=3D'%s' clilocbase=3D'%s' totalp=
+aramtext=3D'%s' debug=3D%s\n&quot;,text,cliloctext,totalparamtext,debugtxt)
+ 	end
+-end
+-
+-
+--- <A HREF="http://necrotoolz.sourceforge.net/kairpacketguide/packetd6.htm">http://necrotoolz.sourceforge.net/kairpacketguide/packetd6.htm</A>
+--- 0x0009 as seperator for args
+---[[
+-void cClient::Act_AOSTooltip (cPacket * packet) // kPacket_Mega_Cliloc han=
+dler
+-{
+-
+-  if (!Config::GetAOSToolTips())
+-    return;
+-  if ( !Config::GetClilocs() )
+-    return;
+-  packet-&gt;SetPosition (5);
+-  Uint32 id =3D packet-&gt;GetDword (); // corresponds to item_serial  in the=
+ above code
+-  Uint16 unkn =3D packet-&gt;GetWord ();
+-  Uint32 listID =3D packet-&gt;GetDword (); // corresponds to serial  above
+-  cCharacter *character =3D NULL;
+-  cDynamicObject *obj =3D NULL;
+-
+-  character =3D pCharacterList.Get (id);
+-  obj =3D pDynamicObjectList.Get (id);
+-
+-  if (character)
+-      {
+-        character-&gt;ClearAOSTooltip ();
+-        character-&gt;SetAOSTooltipID (listID); --- unknown what this is for,=
+ seems to always be =3D id
+-      }
+-  if (obj)
+-      {
+-        obj-&gt;ClearAOSTooltip ();
+-        obj-&gt;SetAOSTooltipID (listID);
+-      }
+-
+-  Uint32 clilocID;
+-  do
+-      {
+-        clilocID =3D packet-&gt;GetDword ();
+-        if (!clilocID)
+-          break;
+-
+-        Uint16 textlen =3D packet-&gt;GetWord ();
+-
+-        char *arguments;
+-        arguments =3D new char[textlen];
+-        packet-&gt;GetData (arguments, textlen);
+-
+-        char *str2 =3D new char[(textlen / 2) + 1];
+-        int idx2 =3D 0;
+-        for (int i =3D 0; i &lt; textlen; i++)
+-            {
+-              if (arguments[i] !=3D 0)
+-                str2[i / 2] =3D arguments[i];
+-            }
+-        str2[textlen / 2] =3D 0;
+-
+-
+-        vector &lt; std::string &gt; arglist;
+-        std::string arg_string =3D std::string (str2);
+-        char tab[2];
+-        tab[0] =3D 9;
+-        tab[1] =3D 0;
+-        std::string delim =3D std::string (tab);
+-
+-
+-        stringSplit (arglist, arg_string, delim);
+-
+-
+-        std::string message =3D
+-          pClilocLoader.GetMessageWithArguments ((int) clilocID,
+-                                                  (int) arglist.size (),
+-                                                  arglist);  -- see lib.cl=
+iloc.lua for comment with the old code for this, =
+
+-																 --- see also function gPacketHandler.kPacket_Localized_Te=
+xt () in net.other.lua
+-
+-        if (character)
+-          character-&gt;AddAOSTooltip (message);
+-
+-        if (obj)
+-          obj-&gt;AddAOSTooltip (message);
+-
+-          delete[] str2;
+-          delete[] arguments;
+-      }
+-  while (clilocID !=3D 0);
+-
+-}
+-]]--
+-
+---[[
+-std::string cClilocLoader::GetMessageWithArguments (int id, int args_num, =
+vector &lt; std::string &gt; &amp;args)
+-{
+-
+-	vector &lt; std::string &gt; splitted_str;
+-	std::string word;
+-
+-	std::string ret_msg =3D &quot;&quot;;
+-	std::string message =3D GetMessage (id);
+-	char *tags =3D new char[message.size () + 1];
+-	memset(tags,0,message.size ()+1);
+-	strcpy (tags, message.c_str ());
+-
+-
+-	char *tag =3D strtok (tags, &quot;~~&quot;);
+-
+-	while (tag !=3D NULL)
+-	{
+-		char *copy_str =3D new char[strlen (tag) + 1];
+-		copy_str[strlen (tag)] =3D 0;
+-		strcpy (copy_str, tag);
+-		splitted_str.push_back (string (copy_str));
+-		tag =3D strtok (NULL, &quot;~~&quot;);
+-		delete[] copy_str;
+-	}
+-
+-	int args_index =3D 0;
+-	for (unsigned int i =3D 0; i &lt; splitted_str.size (); i++)
+-	{
+-
+-		word =3D splitted_str.at (i);
+-
+-		if (word.empty ())
+-			continue;
+-
+-		char *newstr =3D (char *) word.c_str ();
+-
+-		if (((newstr[0] &gt;=3D 0x30) &amp;&amp; (newstr[0] &lt;=3D 0x39)) &amp;&amp; newstr[1] =3D=3D=
+ 95)
+-		{
+-			word =3D args.at (args_index);
+-			args_index++;
+-			if (word[0] =3D=3D 35)
+-			{
+-				std::string sub =3D word.substr (1);
+-				int msgid =3D atoi (sub.c_str ());
+-				word =3D GetMessage (msgid);
+-			}
+-		}
+-		ret_msg +=3D word;
+-		// HARKON: why delete?
+-		// delete[] newstr;
+-	}
+-
+-
+-	delete[] tags;
+-	delete[] tag;
+-
+-	return ret_msg;
+-}
+-]]--
+-
+-
+---[[
+-var tooltip =3D 0;
+-
+-net_onaostooltip(const id, const count, const x, const y)
+-{
+-//log(&quot;TOOLTIP&quot;);
+-	control_close(tooltip);
+-	=
+
+-	if(id =3D=3D 0) {
+-		control_close(tooltip);
+-		//tooltip =3D 0;
+-		return;
+-	}
+-
+-	tooltip =3D gui_addcontainer(x+10,y+10,100,100);
+-	=
+
+-	if(tooltip &gt; 6000000){
+-		control_close(tooltip);
+-		return;
+-	}
+-	=
+
+-	gui_setcontainer(tooltip);
+-	=
+
+-	var gump =3D gui_addgump(0,0,0x588,0);
+-
+-	control_setsize(gump, 80, 15 * count);
+-	control_setalpha(gump, 220);
+-	gui_setcontainershape(gump);
+-	=
+
+-	var message, lab, highlight, labheight;
+-	var maxsize =3D 0;
+-	var yalign =3D 0;
+-
+-	for(var i =3D 0; i &lt; count; i++) {
+-		message =3D net_getaostooltip(id, i);
+-//log(&quot;MSG: &quot; + message);
+-		highlight =3D char_gethighlighthue(id);
+-		lab =3D gui_addlabel(1, yalign, message, 1);
+-		var labsize =3D label_getwidth(lab);
+-		labheight =3D label_getheight(lab);
+-		if(labsize&gt;maxsize)
+-			maxsize =3D labsize;
+-		=
+
+-		if(i =3D=3D 0) {
+-			if(highlight !=3D -1)
+-				label_sethue(lab, highlight);
+-			else
+-				label_sethue(lab, 55);
+-		}
+-		=
+
+-		yalign +=3D labheight + 2;
+-	}
+-
+-	control_setsize(gump, maxsize + 1, (labheight + 2) * count);
+-	control_setalpha(gump, 170);
+-	gui_setcontainershape(gump);
+-	gui_setcontainer();
+-}
+-]]--
++	printf(&quot;NET: Mega_Cliloc : serial=3D%d,%d text=3D'%s'\n&quot;,serial_1,serial_=
+2,totaltext)
++	AosToolTip_SetText(serial_1,totaltext)
++end
++
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000406.html">[Iris-commit] [IRIS] r1590 - in /trunk/data: config.lua.dist	lua/net.other.lua
+</A></li>
+	<LI>Next message: <A HREF="000408.html">[Iris-commit] [IRIS] r1592 -	/trunk/data/lua/net/net.packethandlers.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#409">[ date ]</a>
+              <a href="thread.html#409">[ thread ]</a>
+              <a href="subject.html#409">[ subject ]</a>
+              <a href="author.html#409">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

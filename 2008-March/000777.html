@@ -1,0 +1,3162 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1965 - in /trunk/lua: ./ gui/ net/
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-March/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1965%20-%20in%20/trunk/lua%3A%20./%20gui/%20net/&In-Reply-To=%3C20080316211150.BB3CA152402A%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000776.html">
+   <LINK REL="Next"  HREF="000778.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1965 - in /trunk/lua: ./ gui/ net/</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1965%20-%20in%20/trunk/lua%3A%20./%20gui/%20net/&In-Reply-To=%3C20080316211150.BB3CA152402A%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1965 - in /trunk/lua: ./ gui/ net/">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sun Mar 16 22:11:49 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000776.html">[Iris-commit] [IRIS] r1964 - /trunk/lua/lib.uodragdrop.lua
+</A></li>
+        <LI>Next message: <A HREF="000778.html">[Iris-commit] [IRIS] r1966 - in /trunk/lua/gui: gui.container.lua gui.main.lua gui.pagedialog.lua gui.widget.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#777">[ date ]</a>
+              <a href="thread.html#777">[ thread ]</a>
+              <a href="subject.html#777">[ subject ]</a>
+              <a href="author.html#777">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: sience
+Date: Sun Mar 16 22:11:48 2008
+New Revision: 1965
+
+Log:
+-all clientgumps are working
+-heavy updates to gumps
+-gui.trade.lua and gui.spellbook.lua seperated from libs
+
+Added:
+    trunk/lua/gui/gui.spellbook.lua
+    trunk/lua/gui/gui.trade.lua
+Modified:
+    trunk/lua/gui/gui.gumpparser.lua
+    trunk/lua/gui/gui.healthbar.lua
+    trunk/lua/gui/gui.hotbar.lua
+    trunk/lua/gui/gui.journal.lua
+    trunk/lua/gui/gui.main.lua
+    trunk/lua/gui/gui.paperdoll.lua
+    trunk/lua/gui/gui.quit.lua
+    trunk/lua/gui/gui.securetrade.lua
+    trunk/lua/gui/gui.skill.lua
+    trunk/lua/gui/gui.status.lua
+    trunk/lua/lib.spellbooks.lua
+    trunk/lua/lib.uoids.lua
+    trunk/lua/net.trade.lua
+    trunk/lua/net/net.other.lua
+
+Modified: trunk/lua/gui/gui.gumpparser.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.gumpparser.lua (original)
++++ trunk/lua/gui/gui.gumpparser.lua Sun Mar 16 22:11:48 2008
+@@ -107,7 +107,7 @@
+ 		end
+ 	end
+ =
+
+---	printdebug(&quot;gump&quot;,&quot;formated-html-string: &quot;..msg.text)
++	printdebug(&quot;gump&quot;,&quot;HtmlParser return message: &quot;..msg.text)
+ 	return msg
+ end
+ =
+
+@@ -134,25 +134,25 @@
+ 	else
+ 		printdebug(&quot;gump&quot;,&quot;CloseServerSideGump dialogId=3D&quot;..dialogId..&quot; buttonI=
+d=3Dnil&quot;)
+ 	end
+-	=
+
++
+ 	local dialog =3D gServerSideGump[dialogId]
+ 	if (not dialog) then printdebug(&quot;gump&quot;,&quot;CloseServerSideGump : dialog not =
+found=3D&quot;,dialogId) return end
+-	=
+
++
+ 	local params =3D ServerSideGump_GetParams(dialogId)
+ 	GumpReturnMsg(playerId, dialogId, buttonId, params)
+-	=
+
+-	--print(&quot;CloseServerSideGump:dialogID=3D&quot;..dialogId)
++
++	printdebug(&quot;gump&quot;,&quot;ServerSideGump Dialog closed: dialogID=3D&quot;..dialogId)
+ 	dialog:Close()
+ end
+ =
+
+ function GumpParser(Gumpdata, Clientsidemode)
++	if (not gGumpLoader) then return end
++
+ 	local htext_correction=3D5
+-
+-	if (not gGumpLoader) then return end
+ =
+
+ 	-- close already existing dialog with the same id
+ 	if not(Clientsidemode) and gServerSideGump[Gumpdata.dialogId] then
+-		CloseServerSideGump(Gumpdata.playerid, Gumpdata.dialogId, 0)
++		CloseServerSideGump(Gumpdata.playerid, Gumpdata.dialogId, 0, Clientsidem=
+ode)
+ 	end
+ =
+
+ 	-- create new Dialog
+@@ -235,7 +235,7 @@
+ =
+
+ 	-- init pagenum of basic widgets =
+
+ 	for k,widget in pairs(dialog.childs) do widget.pagenum =3D 0 end
+-		=
+
++
+ 	-- now construct widgets in an orderly per page fashion
+ 	local curparent =3D dialog.rootwidget
+ 	local pageorder =3D {}
+@@ -262,7 +262,7 @@
+ 				printdebug(&quot;gump&quot;,&quot;todo - Generic Gump Command: group&quot;)
+ 			-----------------------------------------------------------------------=
+---------------------
+ 			--resizepic &lt;x&gt; &lt;y&gt; &lt;gumpid&gt; &lt;width&gt; &lt;height&gt;
+-			elseif ((command =3D=3D &quot;resizepic&quot;) and (table.getn(bToken)&gt;=3D 6)) th=
+en
++			elseif ((command =3D=3D &quot;resizepic&quot;) and (table.getn(bToken) &gt;=3D 6)) t=
+hen
+ 				printdebug(&quot;gump&quot;,&quot;x=3D&quot;..bToken[2]..&quot; y=3D&quot;..bToken[3]..&quot; gumpid=3D&quot;.=
+.bToken[4]..&quot; width=3D&quot;..bToken[5]..&quot; height=3D&quot;..bToken[6])
+ 				if (tonumber(bToken[4])~=3D0) then
+ 					local widgetarr =3D MakeBorderGump(curparent,bToken[4],bToken[2],bTok=
+en[3],bToken[5],bToken[6])
+@@ -272,46 +272,57 @@
+ 						end
+ 					end
+ 				end
++				if (Clientsidemode) then dialog.controls[ bToken[7] ] =3D widget end
++
+ 			--xmfhtmlgump &lt;x&gt; &lt;y&gt; &lt;width&gt; &lt;height&gt; &lt;Cliloc Message ID&gt; &lt;background&gt;=
+ &lt;scrollbar&gt;
+ 			--Description:	&lt;background&gt; and &lt;scrollbar&gt; can be 0 or 1 and define wh=
+ether the background is transparent and
+ 			--				a scrollbar s displayed.
+ 			-- TODO : width, height, background, scrollbar
+-			elseif ((command =3D=3D &quot;xmfhtmlgump&quot;) and (table.getn(bToken)&gt;=3D 8)) =
+then
++			elseif ((command =3D=3D &quot;xmfhtmlgump&quot;) and (table.getn(bToken) &gt;=3D 8))=
+ then
+ 				local msg =3D HtmlParser( gClilocLoader and gClilocLoader:Get(bToken[6=
+]) or &quot;no_cliloc&quot; )
+ 				printdebug(&quot;gump&quot;,&quot;Cliloc Msg (&quot;..bToken[6]..&quot;): &quot;..msg.text)
+ 				local widget =3D guimaker.MakeWrappedClippedText (curparent, bToken[2]=
+, bToken[3]+htext_correction,
+ 																bToken[4], bToken[5], UnicodeFix(msg.text), msg.charh, {1.=
+0,1.0,1.0,1.0},
+ 																msg.center, msg.div, gFontNameDefault)
++				if (Clientsidemode) then dialog.controls[ bToken[9] ] =3D widget end
++
+ 			--xmfhtmlgumpcolor &lt;x&gt; &lt;y&gt; &lt;width&gt; &lt;height&gt; &lt;cliloc-nr&gt; &lt;background&gt; &lt;s=
+crollbar&gt; &lt;color&gt;
+ 			--Description:	&lt;background&gt; and &lt;scrollbar&gt; can be 0 or 1 and define wh=
+ether the background is transparent and
+ 			--				a scrollbar s displayed.
+ 			-- TODO : background, scrollbar, HUE-color
+-			elseif ((command =3D=3D &quot;xmfhtmlgumpcolor&quot;) and (table.getn(bToken)&gt;=3D=
+ 9)) then
++			elseif ((command =3D=3D &quot;xmfhtmlgumpcolor&quot;) and (table.getn(bToken) &gt;=
+=3D 9)) then
+ 				local msg =3D HtmlParser(  gClilocLoader and gClilocLoader:Get(bToken[=
+6]) or &quot;no_cliloc&quot; )
+ 				printdebug(&quot;gump&quot;,&quot;Cliloc Msg (&quot;..bToken[6]..&quot;): &quot;..msg.text)
+ 				local widget =3D guimaker.MakeWrappedClippedText (curparent, bToken[2]=
+, bToken[3]+htext_correction,
+ 																bToken[4], bToken[5], UnicodeFix(msg.text), msg.charh, {1.=
+0,1.0,1.0,1.0},
+ 																msg.center, msg.div, gFontNameDefault)
++				if (Clientsidemode) then dialog.controls[ bToken[10] ] =3D widget end
++
+ 			--gumppic &lt;x&gt; &lt;y&gt; &lt;gumpid&gt; [hue=3D353]
+ 			--Description:  Adds a graphic to the gump, where &lt;id&gt; ist the graphic =
+id of an item.
+ 			--				Optionaly there is a color parameter. =
+
+ 			-- TODO : HUE
+-			elseif ((command =3D=3D &quot;gumppic&quot;) and (table.getn(bToken)&gt;=3D 4)) then
++			elseif ((command =3D=3D &quot;gumppic&quot;) and (table.getn(bToken) &gt;=3D 4)) then
+ 				local huenumber =3D 0
+ 				if (bToken[5] =3D=3D hue) then huenumber=3DbToken[6] end
+ 				local widget =3D MakeBorderGumpPart( curparent, bToken[4], bToken[2], =
+bToken[3], 0, 0, 0, tonumber(huenumber) )
+ 				widget.mbIgnoreMouseOver =3D false
+-				if (Clientsidemode) then if (bToken[5]) then dialog.controls[bToken[5]=
+] =3D widget end end
+-				--if (bToken[8]) then printdebug(&quot;gump&quot;,&quot;gumppic class=3D&quot;..bToken[8])=
+ end
++				-- in clientmode no hueing is used yet (because of different hue defin=
+itions)
++				if (Clientsidemode) then dialog.controls[bToken[5]] =3D widget end
++
+ 			--gumppictiled &lt;x&gt; &lt;y&gt; &lt;width&gt; &lt;height&gt; &lt;gumpid&gt;
+ 			--Description:  Similar to GumpPic, but the gumppic is tiled to the giv=
+en &lt;height&gt; and &lt;width&gt;.
+-			elseif ((command =3D=3D &quot;gumppictiled&quot;) and (table.getn(bToken)&gt;=3D 6))=
+ then
++			elseif ((command =3D=3D &quot;gumppictiled&quot;) and (table.getn(bToken) &gt;=3D 6)=
+) then
+ 				local widget =3D MakeBorderGumpPart(curparent, bToken[6], bToken[2], b=
+Token[3], bToken[4], bToken[5])
+ 				widget.mbIgnoreMouseOver =3D false
++				if (Clientsidemode) then dialog.controls[bToken[7]] =3D widget end
++
+ 			--checkertrans &lt;x&gt; &lt;y&gt; &lt;width&gt; &lt;height&gt;
+ 			--Description:  Creates a transparent rectangle on position &lt;x,y&gt; using=
+ &lt;width&gt; and &lt;height&gt;.
+-			elseif ((command =3D=3D &quot;checkertrans&quot;) and (table.getn(bToken)&gt;=3D 5))=
+ then
++			elseif ((command =3D=3D &quot;checkertrans&quot;) and (table.getn(bToken) &gt;=3D 5)=
+) then
+ 				printdebug(&quot;gump&quot;,&quot;todo - checkertrans&quot;)
++				if (Clientsidemode) then dialog.controls[bToken[6]] =3D widget end
++
+ 				-- TODO : set correct Alpha Value
+ 				--SetDialogAlpha(dialog, 1.0)
+ 			--text &lt;x&gt; &lt;y&gt; &lt;hue&gt; &lt;textline-id&gt;
+@@ -322,8 +333,8 @@
+ =
+
+ 				local widget =3D guimaker.MakeText (curparent, bToken[2], bToken[3]+ht=
+ext_correction, UnicodeFix(text),
+ 													gFontGumpSize, {190/255,237/255,231/255,1.0}, gFontNameDefaul=
+t)
+-
+-				if (Clientsidemode) then if (bToken[6]) then dialog.controls[bToken[6]=
+] =3D widget end end
++				if (Clientsidemode) then dialog.controls[bToken[6]] =3D widget end
++
+ 			--Button &lt;x&gt; &lt;y&gt; &lt;released-id&gt; &lt;pressed-id&gt; &lt;quit&gt; &lt;page-id&gt; &lt;return-va=
+lue&gt;
+ 			--Description:  Adds a button to the gump with the specified coordinate=
+s and button graphics.
+ 			--				&lt;released-id&gt; and &lt;pressed-id&gt; specify the buttongraphic. If pres=
+sed check for &lt;return-value&gt;.
+@@ -332,9 +343,11 @@
+ 				if (Clientsidemode) then
+ 					local widget =3D MakeGumpButtonFunctionOnClick (curparent,bToken[4],b=
+Token[4],bToken[5],bToken[2],bToken[3],
+ 																	nil,nil,Gumpdata.functions[ tonumber(bToken[8]) ])
++					widget.page			=3D tonumber(bToken[7])
++					dialog.controls[ bToken[9] ] =3D widget
+ 				else
+ 					local widget =3D MakeGumpButton (curparent,bToken[4],bToken[4],bToken=
+[5],bToken[2],bToken[3],nil,nil,false)
+-					if (bToken[8]) then widget.returnmsg =3D bToken[8] end
++					if (bToken[8]) then widget.returnmsg =3D tonumber(bToken[8]) end
+ 					widget.page			=3D tonumber(bToken[7])
+ 					widget.onLeftClick =3D function (widget)
+ 											if (widget.page &gt; 0 and not(widget.page &gt; table.getn(pages)) ) =
+then
+@@ -353,12 +366,17 @@
+ 			--				&lt;tile-x&gt; and &lt;tile-y&gt; define the coordinates of the tile graphic =
+and are relative to &lt;x&gt; and &lt;y&gt;.
+ 			--{ buttontileart 432 248 9010 9010 1 0 33 1352 0 100 20 }
+ 			elseif ((command =3D=3D &quot;buttontileart&quot;) and (table.getn(bToken)&gt;=3D 12=
+)) then
+-				local widget =3D MakeGumpButton (curparent,bToken[4],bToken[4],bToken[=
+5],bToken[2],bToken[3])
+-				local widgetart =3D MakeArtGumpPart (curparent,bToken[9],bToken[2]+bTo=
+ken[11],bToken[3]+bToken[12],0,0,0,bToken[10])
+-				if (bToken[8]) then widget.returnmsg =3D tonumber(bToken[8]) end
+-				widget.page			=3D tonumber(bToken[7])
+-
+-				if not(Clientsidemode) then
++				if (Clientsidemode) then
++					local widget =3D MakeGumpButtonFunctionOnClick (curparent,bToken[4],b=
+Token[4],bToken[5],bToken[2],bToken[3],
++																	nil,nil,Gumpdata.functions[ tonumber(bToken[8]) ])
++					local widgetart =3D MakeArtGumpPart (curparent,bToken[9],bToken[2]+bT=
+oken[11],bToken[3]+bToken[12],0,0,0,bToken[10])
++					widget.page			=3D tonumber(bToken[7])
++					dialog.controls[bToken[13]] =3D widget
++				else
++					local widget =3D MakeGumpButton (curparent,bToken[4],bToken[4],bToken=
+[5],bToken[2],bToken[3])
++					local widgetart =3D MakeArtGumpPart (curparent,bToken[9],bToken[2]+bT=
+oken[11],bToken[3]+bToken[12],0,0,0,bToken[10])
++					if (bToken[8]) then widget.returnmsg =3D tonumber(bToken[8]) end
++					widget.page			=3D tonumber(bToken[7])
+ 					widget.onLeftClick =3D function (widget)
+ 											if (widget.page &gt; 0 and not(widget.page &gt; table.getn(pages)) ) =
+then
+ 												printdebug(&quot;gump&quot;,&quot;Parsegump buttontileart: Switch to Page &quot;..=
+widget.page..&quot;/&quot;..table.getn(pages))
+@@ -369,6 +387,7 @@
+ 											end
+ 										end
+ 				end
++
+ 			--textentry &lt;x&gt; &lt;y&gt; &lt;width&gt; &lt;height&gt; &lt;hue&gt; &lt;return-value&gt; &lt;default-text=
+-id&gt;
+ 			--Description:  Defines an area where the &lt;default-text-id&gt; is displaye=
+d.
+ 			--				The player can modify this data. To get this data check the &lt;retu=
+rn-value&gt;.
+@@ -382,26 +401,28 @@
+ 				widget.returnmsg =3D tonumber(bToken[7])
+ 				widget.returndefid =3D tonumber(bToken[8])
+ =
+
+-				if not(Clientsidemode) then
+-					widget.onMouseDown =3D function (widget,mousebutton)
+-												if (mousebutton =3D=3D 1) then
+-													widget:Activate()
+-												end
+-										   end
+-					widget.onMouseLeave =3D function (widget)
+-												widget:Deactivate()
+-											end
+-				end
++				widget.onMouseDown =3D function (widget,mousebutton)
++										if (mousebutton =3D=3D 1) then
++											widget:Activate()
++									 	end
++									 end
++				widget.onMouseLeave =3D function (widget) widget:Deactivate() end
++				if (Clientsidemode) then dialog.controls[ bToken[9] ] =3D widget end
+ 				table.insert(dialog.uo_text,widget)
++
+ 			--tilepic &lt;x&gt; &lt;y&gt; &lt;id&gt;
+ 			--Description:  Adds a Tilepicture to the gump. &lt;id&gt; defines the tile g=
+raphic-id.
+ 			elseif ((command =3D=3D &quot;tilepic&quot;) and (table.getn(bToken)&gt;=3D4)) then
+ 				local widget =3D MakeArtGumpPart (curparent, bToken[4], bToken[2], bTo=
+ken[3])
++				if (Clientsidemode) then dialog.controls[ bToken[5] ] =3D widget end
++
+ 			--TilePicHue &lt;x&gt; &lt;y&gt; &lt;id&gt; &lt;hue&gt;
+ 			--Description:  Similar to the tilepic command, but with an additional =
+hue parameter.
+ 			-- TODO : HUE
+ 			elseif ((command =3D=3D &quot;tilepichue&quot;) and (table.getn(bToken)&gt;=3D5)) th=
+en
+ 				local widget =3D MakeArtGumpPart (curparent, bToken[4], bToken[2], bTo=
+ken[3], 0, 0, 0, bToken[5])
++				if (Clientsidemode) then dialog.controls[ bToken[6] ] =3D widget end
++
+ 			--croppedtext &lt;x&gt; &lt;y&gt; &lt;width&gt; &lt;height&gt; &lt;color&gt; &lt;text-id&gt;
+ 			--Description:  Adds a text field to the gump. This is similar to the t=
+ext command,
+ 			--but the text is cropped to the defined area.
+@@ -411,7 +432,8 @@
+ 				local widget =3D guimaker.MakeWrappedClippedText (curparent, bToken[2]=
+, bToken[3]+htext_correction,
+ 																bToken[4], bToken[5], UnicodeFix(msg.text), msg.charh, {92=
+/255,92/255,178/255,1.0},
+ 																msg.center, msg.div, gFontNameDefault)
+-				if (Clientsidemode) then if (bToken[8]) then dialog.controls[bToken[8]=
+] =3D widget end end
++				if (Clientsidemode) then dialog.controls[ bToken[8] ] =3D widget end
++
+ 			--radio &lt;x&gt; &lt;y&gt; &lt;released gumpid&gt; &lt;pressed gumpid&gt; &lt;status&gt; &lt;return-val=
+ue&gt;
+ 			--Description:  Same as Checkbox, but only one Radiobutton can be press=
+ed at the same time, except they are per linked via the 'Group' command.
+ 			-- TODO : make radio buttons work
+@@ -434,22 +456,21 @@
+ 				widget.mat_normal 	=3D GetGumpMat(radio_norm)
+ 				widget.mat_pressed 	=3D GetGumpMat(radio_down)
+ =
+
++				widget.onMouseDown	=3D function (widget,mousebutton)
++										if (mousebutton =3D=3D 1) then
++											if (widget.state=3D=3D0) then
++												widget.gfx:SetMaterial(widget.mat_pressed)
++												widget.state=3D1
++											else
++												widget.gfx:SetMaterial(widget.mat_normal)
++												widget.state=3D0
++											end
++											printdebug(&quot;gump&quot;,&quot;RadioButton changed : id=3D&quot;..widget.returnm=
+sg..&quot; state=3D&quot;..widget.state)
++										end
++									   end
++				if (Clientsidemode) then dialog.controls[ bToken[8] ] =3D widget end
+ 				table.insert(dialog.uo_radio,widget)
+ =
+
+-				if not(Clientsidemode) then
+-					widget.onMouseDown	=3D function (widget,mousebutton)
+-											if (mousebutton =3D=3D 1) then
+-												if (widget.state=3D=3D0) then
+-													widget.gfx:SetMaterial(widget.mat_pressed)
+-													widget.state=3D1
+-												else
+-													widget.gfx:SetMaterial(widget.mat_normal)
+-													widget.state=3D0
+-												end
+-												printdebug(&quot;gump&quot;,&quot;RadioButton changed : id=3D&quot;..widget.return=
+msg..&quot; state=3D&quot;..widget.state)
+-											end
+-										  end
+-				end
+ 			--checkbox &lt;x&gt; &lt;y&gt; &lt;released-id&gt; &lt;pressed-id&gt; &lt;status&gt; &lt;return-value&gt;
+ 			--Description:  Adds a CheckBox to the gump. Multiple CheckBoxes can be=
+ pressed at the same time.
+ 			--				Check the &lt;return-value&gt; if you want to know which CheckBoxes wer=
+e selected.
+@@ -471,24 +492,22 @@
+ 				widget.mbIgnoreMouseOver =3D false
+ 				widget.mat_normal 	=3D GetGumpMat(check_norm)
+ 				widget.mat_pressed 	=3D GetGumpMat(check_down)
++
++				widget.onMouseDown	=3D function (widget,mousebutton)
++										if (mousebutton =3D=3D 1) then
++											if (widget.state=3D=3D0) then
++												widget.gfx:SetMaterial(widget.mat_pressed)
++												widget.state=3D1
++											else
++												widget.gfx:SetMaterial(widget.mat_normal)
++												widget.state=3D0
++											end
++											printdebug(&quot;gump&quot;,&quot;Checkbox changed : id=3D&quot;..widget.returnmsg.=
+.&quot; state=3D&quot;..widget.state)
++										end
++									  end
++				if (Clientsidemode) then dialog.controls[ bToken[8] ] =3D widget end
+ 				table.insert(dialog.uo_check,widget)
+ =
+
+-				if not(Clientsidemode) then
+-					widget.onMouseDown	=3D function (widget,mousebutton)
+-											if (mousebutton =3D=3D 1) then
+-												if (widget.state=3D=3D0) then
+-													widget.gfx:SetMaterial(widget.mat_pressed)
+-													widget.state=3D1
+-												else
+-													widget.gfx:SetMaterial(widget.mat_normal)
+-													widget.state=3D0
+-												end
+-												printdebug(&quot;gump&quot;,&quot;Checkbox changed : id=3D&quot;..widget.returnmsg=
+..&quot; state=3D&quot;..widget.state)
+-											end
+-										  end
+-				else
+-					if (bToken[7]) then dialog.controls[bToken[7]] =3D widget end
+-				end
+ 			--HtmlGump &lt;x&gt; &lt;y&gt; &lt;width&gt; &lt;height&gt; &lt;text-id&gt; &lt;background&gt; &lt;scrollbar&gt;
+ 			--Description:  Defines a text-area where Html-commands are allowed.
+ 			--				&lt;background&gt; and &lt;scrollbar&gt; can be 0 or 1 and define whether the=
+ background is transparent and a scrollbar is displayed.
+@@ -498,6 +517,8 @@
+ 				local widget =3D guimaker.MakeWrappedClippedText (curparent, bToken[2]=
+, bToken[3]+htext_correction,
+ 																bToken[4], bToken[5], msg.text, msg.charh, {1.0,1.0,1.0,1.=
+0},
+ 																msg.center, msg.div, gFontNameDefault)
++				if (Clientsidemode) then dialog.controls[ bToken[8] ] =3D widget end
++
+ 			--tooltip &lt;cliloc-nr&gt;
+ 			--Description:  Adds to the previous layoutarray entry a Tooltip with t=
+he in [cliloc-nr] defined Cliloc entry.
+ 			-- TODO : display tooltip
+
+Modified: trunk/lua/gui/gui.healthbar.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.healthbar.lua (original)
++++ trunk/lua/gui/gui.healthbar.lua Sun Mar 16 22:11:48 2008
+@@ -1,18 +1,15 @@
+--- list of all open stats dialogs serial-&gt;dialog
+-gHealthbarDialogs =3D {}
+-
+ -- Created 09.03.2008 16:33:50, with GumpStudio &amp; Iris2 Lua Export Plugin
+ -- Exported Iris2 GumpExporter ver 1.0.
+ local healthbarGump =3D {}
+-healthbarGump.dialogId =3D 1234
++healthbarGump.dialogId =3D 2000001
+ healthbarGump.x =3D 0
+ healthbarGump.y =3D 0
+ healthbarGump.Data =3D
+ 	 &quot;{ page 0 }&quot; ..
+ 	 &quot;{ gumppic 0 0 2051 healthbar }&quot; ..
+-	 &quot;{ gumppic 35 11 2053 }&quot; ..
+-	 &quot;{ gumppic 35 25 2053 }&quot; ..
+-	 &quot;{ gumppic 35 39 2053 }&quot; ..
++	 &quot;{ gumppic 35 11 2053 hitsred }&quot; ..
++	 &quot;{ gumppic 35 25 2053 manared }&quot; ..
++	 &quot;{ gumppic 35 39 2053 stamred }&quot; ..
+ 	 &quot;{ gumppic 35 11 2054 hitsbar }&quot; ..
+ 	 &quot;{ gumppic 35 25 2054 manabar }&quot; ..
+ 	 &quot;{ gumppic 35 39 2054 stambar }&quot;
+@@ -22,18 +19,21 @@
+ -- Created 09.03.2008 16:52:23, with GumpStudio &amp; Iris2 Lua Export Plugin
+ -- Exported Iris2 GumpExporter ver 1.0.
+ local npchealthGump =3D {}
+-npchealthGump.dialogId =3D 1234
++npchealthGump.dialogId =3D 2000002
+ npchealthGump.x =3D 0
+ npchealthGump.y =3D 60
+ npchealthGump.Data =3D
+ 	 &quot;{ page 0 }&quot; ..
+ 	 &quot;{ gumppic 0 0 2052 healthbar }&quot; ..
+-	 &quot;{ gumppic 35 38 2053 }&quot; ..
++	 &quot;{ gumppic 35 38 2053 hitsred }&quot; ..
+ 	 &quot;{ gumppic 35 38 2054 hitsbar }&quot; ..
+ 	 &quot;{ text 20 10 0 0 npcname }&quot;
+ npchealthGump.textline =3D {
+ 	[0] =3D &quot;npc_name&quot;,
+ }
++
++-- list of all open stats dialogs serial-&gt;dialog
++gHealthbarDialogs =3D {}
+ =
+
+ -- sets the current stats bar in %, dont use this directly
+ local function SetStatsBar(name,x)
+@@ -128,22 +128,20 @@
+ 	if mobile =3D=3D nil then return end
+ 	if (gHealthbarDialogs[mobile.serial]) then return end -- already open =
+
+ 	=
+
+-	--local dialog =3D CreateGumpDlgFromGfm(IsPlayerMobile(mobile) and datapa=
+th..&quot;gfm/healthbar.gfm&quot; or datapath..&quot;gfm/healthbar_npc.gfm&quot;)
+ 	local dialog =3D GumpParser( IsPlayerMobile(mobile) and healthbarGump or =
+npchealthGump, true )
+ =
+
+-	-- set default parameter
+-	x =3D x or healthbarGump.x
+-	y =3D y or healthbarGump.y
++	-- save mobile info to dialog
++	dialog.mobile =3D mobile
+ =
+
+-	-- widgets in this dialog handle mouse
+-	for k,v in pairs(dialog.childs) do v.mbIgnoreMouseOver =3D false end
+-
++	-- overwrite the dialog close function from gumpparser
++	dialog.Close =3D function (dialog)
++					CloseHealthbar(dialog.mobile)
++				   end
++	-- overwrite the onMouseDown function from gumpparser
+ 	dialog.onMouseDown =3D function (widget,mousebutton)
+ 		if (mousebutton =3D=3D 2) then widget.dialog:Close() end
+ 		if (mousebutton =3D=3D 1) then widget.dialog:BringToFront() gui.StartMov=
+eDialog(widget.dialog.rootwidget) end
+ 	end
+-	dialog.Close =3D function (dialog) CloseHealthbar(dialog.mobile) end -- d=
+ie zeile ist neu =
+
+-	dialog.mobile =3D mobile  -- die zeile ist neu
+ =
+
+ 	local r,g,b =3D GetNotorietyColor(mobile.notoriety)
+ =
+
+
+Modified: trunk/lua/gui/gui.hotbar.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.hotbar.lua (original)
++++ trunk/lua/gui/gui.hotbar.lua Sun Mar 16 22:11:48 2008
+@@ -15,7 +15,7 @@
+ 		gHotbarDialog:Close()
+ 	else
+ 		-- ..........do something before hotbar creation (get spells/items ?!)
+-		gHotbarDialog =3D guimaker.MakeSortedDialog()	--guimaker.MyCreateDialog()
++		gHotbarDialog =3D guimaker.MakeSortedDialog()
+ 		gHotbarDialog.rootwidget =3D guimaker.MakePlane(gHotbarDialog,gNewGuiSty=
+le..&quot;/hotbar&quot;,0,0,515,65)
+ =
+
+ 		-- restore last positoin if available
+
+Modified: trunk/lua/gui/gui.journal.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.journal.lua (original)
++++ trunk/lua/gui/gui.journal.lua Sun Mar 16 22:11:48 2008
+@@ -1,24 +1,73 @@
+---[[
+-function RegisterJournalEntryType (name) _G[&quot;kEntryType_&quot;..name] =3D name =
+end
+-
+--- TODO : maybe  gEntryTypeHandler.Chat =3D function (type,arr) return {r,=
+g,b},sprintf(&quot;&quot;,arr[1],arr[2]) end
+-RegisterJournalEntryType(&quot;Chat&quot;)
+-RegisterJournalEntryType(&quot;TextMessage&quot;)
+-RegisterJournalEntryType(&quot;ServerMessage&quot;)
+-RegisterJournalEntryType(&quot;PickUpItem&quot;)
+-RegisterJournalEntryType(&quot;DropItem&quot;)
+-RegisterJournalEntryType(&quot;EquipItem&quot;)
+-RegisterJournalEntryType(&quot;UnequipItem&quot;)
+-RegisterJournalEntryType(&quot;Trade&quot;)
+-RegisterJournalEntryType(&quot;DoubleClick&quot;)
+-RegisterJournalEntryType(&quot;Use&quot;)
+-RegisterJournalEntryType(&quot;Death&quot;)
+-RegisterJournalEntryType(&quot;WarMode&quot;)
+-
+-function JournalAddEntry (entrytype,...)
+-	-- TODO : vararg params
+-end
+-]]--
++-- Created 09.03.2008 12:25:56, with GumpStudio &amp; Iris2 Lua Export Plugin
++-- Exported Iris2 GumpExporter ver 1.0.
++local journalGump =3D {}
++journalGump.dialogId =3D 3000001
++journalGump.x =3D 10
++journalGump.y =3D 50
++journalGump.Data =3D
++	 &quot;{ page 0 }&quot; ..
++	 &quot;{ gumppic 4 27 2080 xx1 }&quot; ..
++	 &quot;{ gumppic 21 64 2081 xx2 }&quot; ..
++	 &quot;{ gumppic 21 134 2082 xx3 }&quot; ..
++	 &quot;{ gumppic 23 204 2083 xx4 }&quot; ..
++	 &quot;{ gumppic 118 36 2090 xx5 }&quot; ..
++	 &quot;{ gumppic 38 65 2091 xx6 }&quot; ..
++	 &quot;{ gumppic 38 183 2091 xx7 }&quot; ..
++	 &quot;{ button 139 4 2093 2093 1 0 0 journalminimize }&quot; ..
++	 &quot;{ button 139 235 2094 2095 1 1 1 journalresize }&quot; ..
++	 &quot;{ button 260 77 2088 2088 1 0 2 xx8 }&quot; ..
++	 &quot;{ button 254 61 2084 2084 1 0 3 xx9 }&quot; ..
++	 &quot;{ button 254 181 2085 2085 1 0 4 xx10 }&quot; ..
++	 &quot;{ button 241 181 2092 2092 1 0 5 xx11 }&quot;
++journalGump.textline =3D {
++}
++journalGump.functions =3D {
++ -- journalminimize
++ [0]	=3D function (widget,mousebutton)
++ 			local pref =3D gJournalDialog_Pref
++			pref.x,pref.y =3D gJournalDialog.rootwidget.gfx:GetPos()
++			local left,top,w,h =3D gJournalDialog:GetLTWH()
++			pref.dx,pref.dy =3D w,h
++			if (mousebutton =3D=3D 2) then widget.dialog:Close() end
++			if (mousebutton =3D=3D 1) then ToggleJournal_Small() end
++		end,
++ -- journalresize
++ [1]	=3D function (widget,mousebutton) =
+
++            if (mousebutton =3D=3D 1) then
++                widget.gfx:SetMaterial(widget.mat_pressed)
++                gJournalResizeStartX,gJournalResizeStartY =3D GetMousePos()
++                if (true) then
++                    gui.bMouseBlocked =3D true
++                    RegisterStepper(function ()
++                        local x,y =3D GetMousePos()
++                        local dx =3D 2.0*(x-gJournalResizeStartX)
++                        --local dx =3D 0
++                        gJournalDialog:ResizeDelta(dx,(y-gJournalResizeSta=
+rtY))
++                        gJournalResizeStartX,gJournalResizeStartY =3D x,y
++                        JournalUpdateText()
++                        =
+
++                        if (gKeyPressed[key_mouse1]) then
++                            return false -- continue stepping
++                        else
++                            gui.bMouseBlocked =3D false
++                            local left,top,w,h =3D gJournalDialog:GetLTWH()
++                            local bx1,by1,bx2,by2 =3D JournalGetTextBorder=
+()
++                            local iw,ih =3D w-bx1-bx2	, h-by1-by2
++							local pref =3D gJournalDialog_Pref
++                            pref.dx,pref.dy =3D w,h
++                            pref.x,pref.y =3D gJournalDialog.rootwidget.gf=
+x:GetPos()
++                            return true -- terminate
++                        end
++                    end)
++                end =
+
++            end -- if
++        end,
++ -- btn
++ [2]	=3D function (widget,mousebutton) end,
++ [3]	=3D function (widget,mousebutton) end,
++ [4]	=3D function (widget,mousebutton) end,
++ [5]	=3D function (widget,mousebutton) end,
++}
+ =
+
+ gJournalEntries =3D {}
+ gJournalDialog =3D nil
+@@ -29,33 +78,54 @@
+ gJournalMaxVisIdx =3D nil
+ gJournalMinimized =3D false
+ =
+
+--- Created 09.03.2008 12:25:56, with GumpStudio &amp; Iris2 Lua Export Plugin
+--- Exported Iris2 GumpExporter ver 1.0.
+-local journalGump =3D {}
+-journalGump.dialogId =3D 1234567
+-journalGump.x =3D 10
+-journalGump.y =3D 50
+-journalGump.Data =3D
+-	 &quot;{ page 0 }&quot; ..
+-	 &quot;{ gumppic 4 27 2080 }&quot; ..
+-	 &quot;{ gumppic 21 64 2081 }&quot; ..
+-	 &quot;{ gumppic 21 134 2082 }&quot; ..
+-	 &quot;{ gumppic 23 204 2083 }&quot; ..
+-	 &quot;{ gumppic 118 36 2090 }&quot; ..
+-	 &quot;{ gumppic 38 65 2091 }&quot; ..
+-	 &quot;{ gumppic 38 183 2091 }&quot; ..
+-	 &quot;{ button 139 4 2093 2093 1 0 journalminimize }&quot; ..
+-	 &quot;{ button 139 235 2094 2095 1 0 journalresize }&quot; ..
+-	 &quot;{ button 260 77 2088 2088 1 0 0 }&quot; ..
+-	 &quot;{ button 254 61 2084 2084 1 0 0 }&quot; ..
+-	 &quot;{ button 254 181 2085 2085 1 0 0 }&quot; ..
+-	 &quot;{ button 241 181 2092 2092 1 0 0 }&quot;
+-journalGump.textline =3D {
+-}
+-
+-local function JournalGetTextBorder () return 40,80,40,50 end
+-
+-local function JournalUpdateText ()
++local function RestoreLastState()
++    -- restore last position if available
++    local pref =3D gJournalDialog_Pref
++    local dialog =3D gJournalDialog
++    if (dialog and gJournalMinimized =3D=3D false) then =
+
++        dialog.rootwidget.gfx:SetPos((pref.x or 0),(pref.y or 0)) =
+
++
++        --dialog:SetDimensions((pref.dx or dialog.resize_max_total_x),(pre=
+f.dy or dialog.resize_max_total_y))
++        pref.dx =3D (pref.dx or dialog.resize_max_total_x) - dialog.rootwi=
+dget.gfx:GetWidth()
++        pref.dy =3D (pref.dy or dialog.resize_max_total_y) - dialog.rootwi=
+dget.gfx:GetHeight()
++        dialog:ResizeDelta(pref.dx,pref.dy)  -- =
+
++        --dialog:ResizeMaximize()
++
++        JournalUpdateText()
++    end
++end
++
++local function CreateJournal_Small ()
++	gJournalDialog =3D guimaker.MakeSortedDialog()
++	local pref =3D gJournalDialog_Pref
++
++	local dialog =3D gJournalDialog
++	dialog.Close 		=3D function(dialog)
++        	gJournalDialog:SetVisible(false)
++        	gJournalDialog:Destroy()
++        	gJournalDialog =3D nil
++	end
++
++	dialog.onMouseDown =3D function (widget,mousebutton)
++			if (mousebutton =3D=3D 2) then gJournalDialog:Close() end
++			if (mousebutton =3D=3D 1) then
++				widget.dialog:BringToFront()
++				gui.StartMoveDialog(widget.dialog.rootwidget)
++            end
++	end
++
++	local root =3D dialog.rootwidget
++	MakeBorderGumpPart( root, 2096, (pref.x or 0), (pref.y or 0))
++
++	for k,widget in pairs(dialog.childs) do
++            widget.mbIgnoreMouseOver =3D false
++    end
++end
++
++-- ----------------------------------------------- End of local functions =
+-----------------------------
++function JournalGetTextBorder () return 40,80,40,50 end
++
++function JournalUpdateText ()
+ 	if (not gJournalDialog or not gJournalEntries) then return end
+ 	local widget =3D gJournalDialog.maintext
+ =
+
+@@ -118,51 +188,20 @@
+ 	end
+ end
+ =
+
+-local function RestoreLastState()
+-    -- restore last position if available
+-    local pref =3D gJournalDialog_Pref
+-    local dialog =3D gJournalDialog
+-    if (dialog and gJournalMinimized =3D=3D false) then =
+
+-        dialog.rootwidget.gfx:SetPos((pref.x or 0),(pref.y or 0)) =
+
+-        =
+
+-        --dialog:SetDimensions((pref.dx or dialog.resize_max_total_x),(pre=
+f.dy or dialog.resize_max_total_y))
+-        pref.dx =3D (pref.dx or dialog.resize_max_total_x) - dialog.rootwi=
+dget.gfx:GetWidth()
+-        pref.dy =3D (pref.dy or dialog.resize_max_total_y) - dialog.rootwi=
+dget.gfx:GetHeight()
+-        dialog:ResizeDelta(pref.dx,pref.dy)  -- =
+
+-        --dialog:ResizeMaximize()
+-        =
+
+-        JournalUpdateText()
+-    end
+-end
+-
+-local function CreateJournal_Small ()
+-	gJournalDialog =3D guimaker.MakeSortedDialog()
+-	local pref =3D gJournalDialog_Pref
+-
+-	local dialog =3D gJournalDialog
+-	dialog.Close 		=3D function(dialog)
+-        	gJournalDialog:SetVisible(false)
+-        	gJournalDialog:Destroy()
+-        	gJournalDialog =3D nil
+-	end
+-
+-	dialog.onMouseDown =3D function (widget,mousebutton)
+-			if (mousebutton =3D=3D 2) then gJournalDialog:Close() end
+-			if (mousebutton =3D=3D 1) then
+-				widget.dialog:BringToFront()
+-				gui.StartMoveDialog(widget.dialog.rootwidget)
+-            end
+-	end
+-
+-	local root =3D dialog.rootwidget
+-	MakeBorderGumpPart( root, 2096, (pref.x or 0), (pref.y or 0))
+-
+-	for k,widget in pairs(dialog.childs) do
+-            widget.mbIgnoreMouseOver =3D false
+-    end
+-end
+-
+-local function ToggleJournal_Small () -- produces a small journal scroll i=
+con
++function JournalAddText (name,message)
++	local sys =3D &quot;System&quot;
++	local mytext =3D message	=
+
++	-- strip &quot;System:&quot;
++	local a,b =3D string.find(name, sys, 1, false)
++	if not string.find(name, sys, 1, true) then =
+
++		mytext =3D name..&quot;&gt; &quot;..mytext
++	end   	=
+
++	table.insert(gJournalEntries,mytext)
++	JournalUpdateText()
++end
++
++-- produces a small journal scroll icon
++function ToggleJournal_Small ()
+ 	local pref =3D gJournalDialog_Pref
+ 	if (gJournalDialog) then  =
+
+         pref.x, pref.y =3D gJournalDialog.rootwidget.gfx:GetPos()
+@@ -174,20 +213,7 @@
+ 	end
+ end
+ =
+
+--- ----------------------------------------------- End of local functions =
+-----------------------------
+-
+-function JournalAddText (name,message)
+-	local sys =3D &quot;System&quot;
+-	local mytext =3D message	=
+
+-	-- strip &quot;System:&quot;	=
+
+-	local a,b =3D string.find(name, sys, 1, false)
+-	if not string.find(name, sys, 1, true) then =
+
+-		mytext =3D name..&quot;&gt; &quot;..mytext
+-	end   	=
+
+-	table.insert(gJournalEntries,mytext)
+-	JournalUpdateText()
+-end
+-
++-- produces a big journal scroll
+ function ToggleJournal ()
+ 	local pref =3D gJournalDialog_Pref
+ 	if (gJournalDialog and (gJournalMinimized=3D=3Dfalse)) then
+@@ -201,8 +227,27 @@
+         end
+         gJournalMinimized =3D false
+         =
+
+-        -- gJournalDialog =3D CreateGumpDlgFromGfm(datapath..&quot;gfm/journal.=
+gfm&quot;)
+-        gJournalDialog =3D GumpParser( journalGump, true )
++        local dialog =3D GumpParser( journalGump, true )
++
++        -- save journaldialog as global Journal
++        gJournalDialog =3D dialog
++
++        -- overwrite the Close function from gumpparser
++        dialog.Close =3D function (dialog) =
+
++            pref.x,pref.y =3D gJournalDialog.rootwidget.gfx:GetPos()
++		    local left,top,w,h =3D gJournalDialog:GetLTWH()
++		    pref.dx,pref.dy =3D w,h
++
++        	gJournalDialog:SetVisible(false)
++            gJournalDialog:Destroy() =
+
++            gJournalDialog =3D nil             =
+
++        end
++
++        -- overwrite the onMouseDown function from gumpparser
++        dialog.onMouseDown =3D function (widget,mousebutton)
++            if (mousebutton =3D=3D 2) then widget.dialog:Close() end
++            if (mousebutton =3D=3D 1) then widget.dialog:BringToFront() gu=
+i.StartMoveDialog(widget.dialog.rootwidget) end
++        end
+ =
+
+         -- create text
+         local parent =3D gJournalDialog.rootwidget
+@@ -220,23 +265,6 @@
+ =
+
+         printdebug(&quot;gump&quot;,(pref.dx or &quot;dx=3Dnil &quot;)..&quot; -dxy- &quot;..(pref.dy or=
+ &quot;dy=3Dnil&quot;))
+         printdebug(&quot;gump&quot;,(pref.x or &quot;x=3Dnil &quot;)..&quot; -xy- &quot;..(pref.y or &quot;y=
+=3Dnil&quot;))
+-        =
+
+-        -- TODO : init journal dialog
+-        local dialog =3D gJournalDialog
+-        dialog.Close =3D function (dialog) =
+
+-            pref.x,pref.y =3D gJournalDialog.rootwidget.gfx:GetPos()
+-		    local left,top,w,h =3D gJournalDialog:GetLTWH()
+-		    pref.dx,pref.dy =3D w,h
+-
+-        	gJournalDialog:SetVisible(false)
+-            gJournalDialog:Destroy() =
+
+-            gJournalDialog =3D nil             =
+
+-        end
+-        =
+
+-        dialog.onMouseDown =3D function (widget,mousebutton)
+-            if (mousebutton =3D=3D 2) then widget.dialog:Close() end
+-            if (mousebutton =3D=3D 1) then widget.dialog:BringToFront() gu=
+i.StartMoveDialog(widget.dialog.rootwidget) end
+-        end
+             =
+
+         -- resize limits
+         dialog.resize_min_total_x,dialog.resize_min_total_y =3D 0,-66	 -- =
+-20,-66
+@@ -248,54 +276,6 @@
+             widget.bResizeNoScaleX =3D (widget.node and widget.node.attr.b=
+ResizeNoScaleX =3D=3D &quot;true&quot;)
+             widget.bResizeNoScaleY =3D (widget.node and widget.node.attr.b=
+ResizeNoScaleY =3D=3D &quot;true&quot;)
+         end
+-			=
+
+-        -- minimize btn
+-		local widget =3D dialog.controls[&quot;journalminimize&quot;]
+-		widget.onMouseDown 		=3D function (widget,mousebutton)
+-			pref.x,pref.y =3D gJournalDialog.rootwidget.gfx:GetPos()
+-			local left,top,w,h =3D gJournalDialog:GetLTWH()
+-			pref.dx,pref.dy =3D w,h
+-			if (mousebutton =3D=3D 2) then widget.dialog:Close() end
+-			if (mousebutton =3D=3D 1) then ToggleJournal_Small() end
+-		end
+-        =
+
+-        -- resize btn
+-		local widget =3D dialog.controls[&quot;journalresize&quot;]
+-		widget.onMouseDown              =3D function (widget,mousebutton) =
+
+-            if (mousebutton =3D=3D 1) then
+-                widget.gfx:SetMaterial(widget.mat_pressed)
+-                gJournalResizeStartX,gJournalResizeStartY =3D GetMousePos()
+-                if (true) then
+-                    gui.bMouseBlocked =3D true
+-                    RegisterStepper(function ()
+-                        local x,y =3D GetMousePos()
+-                        --AddFadeLines(sprintf(&quot;resize %d,%d&quot;,2.0*(x-gJour=
+nalResizeStartX),(y-gJournalResizeStartY)))
+-                        --AddFadeLines(sprintf(&quot;resize %d,%d&quot;,gJournalDial=
+og.resize_x_total or 0,gJournalDialog.resize_y_total or 0))
+-                        local dx =3D 2.0*(x-gJournalResizeStartX)
+-                        --local dx =3D 0
+-                        gJournalDialog:ResizeDelta(dx,(y-gJournalResizeSta=
+rtY))
+-                        gJournalResizeStartX,gJournalResizeStartY =3D x,y
+-                        JournalUpdateText()
+-                        =
+
+-                        if (gKeyPressed[key_mouse1]) then
+-                            return false -- continue stepping
+-                        else
+-                            gui.bMouseBlocked =3D false
+-                            local left,top,w,h =3D gJournalDialog:GetLTWH()
+-                            local bx1,by1,bx2,by2 =3D JournalGetTextBorder=
+()
+-                            local iw,ih =3D w-bx1-bx2	, h-by1-by2
+-                            pref.dx,pref.dy =3D w,h
+-                            pref.x,pref.y =3D gJournalDialog.rootwidget.gf=
+x:GetPos()
+-                            --printdebug(&quot;gump&quot;,(pref.dx or &quot;dx=3Dnil &quot;)..=
+&quot; -idxy- &quot;..(pref.dy or &quot;dy=3Dnil&quot;))
+-                            --printdebug(&quot;gump&quot;,(pref.x or &quot;x=3Dnil &quot;)..&quot; =
+-xy- &quot;..(pref.y or &quot;y=3Dnil&quot;))
+-                            =
+
+-                            return true -- terminate
+-                        end
+-                    end)
+-                end =
+
+-            end -- if
+-        end -- function
+-
+ --[[
+ 		-- TODO: WRONG !!!! gives exceptions
+         -- scrollbutton
+@@ -327,16 +307,35 @@
+                 JournalUpdateText()
+             end -- if
+ 		end -- function
+-]]--	=
+
+-            =
+
++]]--    =
+
+         JournalUpdateText()
+     else
+         gJournalDialog:Close()
+     end -- if
+-    =
+
++
+     -- restore last posion and dimension if available
+-    RestoreLastState()	=
+
+-    =
+
+-    -- widget.onMouseUp 		=3D function (widget,mousebutton) if (mousebutto=
+n =3D=3D 1) then widget.gfx:SetMaterial(widget.mat_normal) end end
+-	=
+
++    RestoreLastState()
++
+ end	-- function
++
++--[[
++function RegisterJournalEntryType (name) _G[&quot;kEntryType_&quot;..name] =3D name =
+end
++
++-- TODO : maybe  gEntryTypeHandler.Chat =3D function (type,arr) return {r,=
+g,b},sprintf(&quot;&quot;,arr[1],arr[2]) end
++RegisterJournalEntryType(&quot;Chat&quot;)
++RegisterJournalEntryType(&quot;TextMessage&quot;)
++RegisterJournalEntryType(&quot;ServerMessage&quot;)
++RegisterJournalEntryType(&quot;PickUpItem&quot;)
++RegisterJournalEntryType(&quot;DropItem&quot;)
++RegisterJournalEntryType(&quot;EquipItem&quot;)
++RegisterJournalEntryType(&quot;UnequipItem&quot;)
++RegisterJournalEntryType(&quot;Trade&quot;)
++RegisterJournalEntryType(&quot;DoubleClick&quot;)
++RegisterJournalEntryType(&quot;Use&quot;)
++RegisterJournalEntryType(&quot;Death&quot;)
++RegisterJournalEntryType(&quot;WarMode&quot;)
++
++function JournalAddEntry (entrytype,...)
++	-- TODO : vararg params
++end
++]]--
+
+Modified: trunk/lua/gui/gui.main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.main.lua (original)
++++ trunk/lua/gui/gui.main.lua Sun Mar 16 22:11:48 2008
+@@ -1,4 +1,8 @@
+-dofile(libpath .. &quot;gui/gui.widget.lua&quot;)
++-- TODO
++--dofile(libpath .. &quot;gui/gui.widget.lua&quot;)
++--dofile(libpath .. &quot;gui/gui.container.lua&quot;)
++--dofile(libpath .. &quot;gui/gui.pagedialog.lua&quot;)
++
+ dofile(libpath .. &quot;gui/gui.helper.lua&quot;)
+ dofile(libpath .. &quot;gui/gui.gumpparser.lua&quot;)
+ dofile(libpath .. &quot;gui/gui.paperdoll.lua&quot;)
+@@ -10,7 +14,5 @@
+ dofile(libpath .. &quot;gui/gui.healthbar.lua&quot;)
+ dofile(libpath .. &quot;gui/gui.securetrade.lua&quot;)
+ dofile(libpath .. &quot;gui/gui.skill.lua&quot;)
+-
+--- TODO
+-dofile(libpath .. &quot;gui/gui.container.lua&quot;)
+-dofile(libpath .. &quot;gui/gui.pagedialog.lua&quot;)
++dofile(libpath .. &quot;gui/gui.spellbook.lua&quot;)
++dofile(libpath .. &quot;gui/gui.trade.lua&quot;)
+
+Modified: trunk/lua/gui/gui.paperdoll.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.paperdoll.lua (original)
++++ trunk/lua/gui/gui.paperdoll.lua Sun Mar 16 22:11:48 2008
+@@ -1,3 +1,5 @@
++-- TODO : admin char paperdoll body broken : bodyid,bodygumpid =3D     987=
+     0x03db  : body gump id unknown unknown  ( GM admin robe)
++-- TODO : gump.def must be parsed, simple format
+ -- packet handlers for paperdolls (clother and equipment of player, npcs..)
+ -- see also lib.packet.lua and lib.protocol.lua
+ -- see also net.mobile.lua, especially kPacket_Equipped_MOB
+@@ -6,23 +8,22 @@
+ -- Created 08.03.2008 12:25:56, with GumpStudio &amp; Iris2 Lua Export Plugin
+ -- Exported Iris2 GumpExporter ver 1.0.
+ local playerPaperdoll =3D {}
+-playerPaperdoll.dialogId =3D 7493484
++playerPaperdoll.dialogId =3D 1000001
+ playerPaperdoll.x =3D 120
+ playerPaperdoll.y =3D 100
+ playerPaperdoll.Data =3D
+  &quot;{ page 0 }&quot; ..
+- &quot;{ gumppic 4 4 2000 }&quot; ..
+- &quot;{ button 187 50 2031 2032 1 0 0 }&quot; ..
+- &quot;{ button 187 76 2006 2007 1 0 1 }&quot; ..
+--- &quot;{ croppedtext 36 263 200 40 0 0 paperdollname }&quot; ..
++ &quot;{ gumppic 4 4 2000 paperdollpic }&quot; ..
++ &quot;{ button 187 50 2031 2032 1 0 0 btnhelp }&quot; ..
++ &quot;{ button 187 76 2006 2007 1 0 1 btnoptions }&quot; ..
+  &quot;{ text 36 263 0 0 paperdollname }&quot; ..
+- &quot;{ button 84 6 113 113 1 0 2 }&quot; ..
+- &quot;{ button 187 102 2009 2010 1 0 3 }&quot; ..
+- &quot;{ button 187 130 22453 22455 1 0 4 }&quot; ..
+- &quot;{ button 187 156 2015 2016 1 0 5 }&quot; ..
+- &quot;{ button 187 181 22450 22452 1 0 6 }&quot; ..
+- &quot;{ button 187 205 2021 2022 1 0 7 }&quot; ..
+- &quot;{ button 187 233 2027 2028 1 0 8 }&quot;
++ &quot;{ button 84 6 113 113 1 0 2 btnvirtues }&quot; ..
++ &quot;{ button 187 102 2009 2010 1 0 3 btnquit }&quot; ..
++ &quot;{ button 187 130 22453 22455 1 0 4 btnquests }&quot; ..
++ &quot;{ button 187 156 2015 2016 1 0 5 btnskills }&quot; ..
++ &quot;{ button 187 181 22450 22452 1 0 6 btnguild }&quot; ..
++ &quot;{ button 187 205 2021 2022 1 0 7 btnpeace }&quot; ..
++ &quot;{ button 187 233 2027 2028 1 0 8 btnstatus }&quot;
+ playerPaperdoll.textline =3D {
+  [0] =3D &quot;paperdoll_name&quot;,
+ }
+@@ -82,15 +83,14 @@
+ -- Created 08.03.2008 12:25:56, with GumpStudio &amp; Iris2 Lua Export Plugin
+ -- Exported Iris2 GumpExporter ver 1.0.
+ local npcPaperdoll =3D {}
+-npcPaperdoll.dialogId =3D 89878734
++npcPaperdoll.dialogId =3D 1000002
+ npcPaperdoll.x =3D 120
+ npcPaperdoll.y =3D 100
+ npcPaperdoll.Data =3D
+  &quot;{ page 0 }&quot; ..
+- &quot;{ gumppic 4 4 2001 }&quot; ..
+--- &quot;{ croppedtext 36 263 200 40 0 0 paperdollname }&quot; ..
++ &quot;{ gumppic 4 4 2001 paperdollpic }&quot; ..
+  &quot;{ text 36 263 0 0 paperdollname }&quot; ..
+- &quot;{ button 187 233 2027 2028 1 0 0 }&quot;
++ &quot;{ button 187 233 2027 2028 1 0 0 btnstatus }&quot;
+ npcPaperdoll.textline =3D {
+  [0] =3D &quot;paperdoll_name&quot;,
+ }
+@@ -104,46 +104,16 @@
+ 		  end
+ }
+ =
+
++-- base body gump ids
+ local kGumpBaseId_Male	=3D 50000
+ local kGumpBaseId_Female=3D 60000
+ =
+
+--- WARNING ! this is not a complete list (see gLayerType for that) , e.g. =
+kLayer_Mound =3D 0x19 is not in here
+-gLayerOrder =3D {
+-	hex2num(&quot;0x09&quot;),					   -- - N/A (not used)
+-    hex2num(&quot;0x14&quot;),                       -- - Back (Cloak)
+-    hex2num(&quot;0x10&quot;),                       -- - Facial Hair
+-    hex2num(&quot;0x12&quot;),                       -- - Earrings
+-    hex2num(&quot;0x04&quot;),                       -- - Leg Covering (including Pa=
+nts&quot;), Shorts&quot;), Bone/Chain/Ring legs)
+-    hex2num(&quot;0x0E&quot;),                       -- - Bracelet
+-    hex2num(&quot;0x03&quot;),                       -- - Foot Covering/Armor
+-    hex2num(&quot;0x08&quot;),                       -- - Ring
+-    hex2num(&quot;0x18&quot;),                       -- - Legs (inner)(Leg Armor)
+-    hex2num(&quot;0x05&quot;),                       -- - Chest Clothing/Female Ches=
+t Armor
+-    hex2num(&quot;0x0D&quot;),                       -- - Torso (inner)(Chest Armor)
+-    hex2num(&quot;0x11&quot;),                       -- - Torso (Middle)(Surcoat&quot;), =
+Tunic&quot;), Full Apron&quot;), Sash)
+-    hex2num(&quot;0x0A&quot;),                       -- - Neck Covering/Armor
+-    hex2num(&quot;0x13&quot;),                       -- - Arm Covering/Armor
+-    hex2num(&quot;0x07&quot;),                       -- - Hand Covering/Armor
+-    hex2num(&quot;0x17&quot;),                       -- - Legs (outer)(Skirt/Kilt)
+-    hex2num(&quot;0x0B&quot;),                       -- - Hair
+-    hex2num(&quot;0x16&quot;),                       -- - Torso (outer)(Robe)
+-    hex2num(&quot;0x06&quot;),                       -- - Head Covering/Armor
+-    hex2num(&quot;0x0C&quot;),                       -- - Waist (Half-Apron)
+-    hex2num(&quot;0x01&quot;),                       -- - Single-Hand item/weapon
+-    hex2num(&quot;0x02&quot;),                       -- - Two-Hand item/weapon (incl=
+uding Shield)
+-    hex2num(&quot;0x15&quot;),                       -- - BackPack
+-    hex2num(&quot;0x0F&quot;)
+-}
+-
+--- TODO : admin char paperdoll body broken : bodyid,bodygumpid =3D     987=
+     0x03db  : body gump id unknown unknown  ( GM admin robe)
+--- TODO : gump.def must be parsed, simple format
++-- initial body positon in gump
++local BodyWidget_x	=3D 9
++local BodyWidget_y	=3D 19
+ =
+
+ gPaperdolls =3D {}
+ =
+
+--- from old iris code, src/gui/Paperdoll.cpp, returns bodygumpid,base_id
+--- base_id is usually 50000 for male and 60000 for female models
+--- TODO : we should put this in a seperate file for easy editing
+--- TODO : maybe this comes from Models.txt
+ local function GetPaperdollBodyAndBaseID (bodyid)
+ 	local bodygumpid =3D nil
+ 	local base_id =3D kGumpBaseId_Male
+@@ -214,9 +184,9 @@
+ 	return bodygumpid,base_id
+ end
+ =
+
+--- don't call this directly, use RebuildPaperdoll() instead (need to rebui=
+ld completely on change because of layerorder)
+-local function CreatePaperdollItemWidget(paperdoll,item,base_id)
+-	-- item fields : serial artid layer hue (=3D-1 if not set)
++-- Don't call this directly, use RebuildPaperdoll() instead (need to rebui=
+ld completely on change because of layerorder)
++-- item fields : serial artid layer hue (=3D-1 if not set)
++local function CreatePaperdollItemWidget(paperdoll, item, base_id)
+ 	local dialog =3D paperdoll.dialog
+ 	local animid =3D nil
+ 	local typename =3D &quot;&quot;
+@@ -227,32 +197,30 @@
+ 	end
+ =
+
+ 	if (not animid) then
+-		print(&quot;WARNING : CreatePaperdollItemWidget : unknown itemtype -&gt; forced =
+Crash&quot;)
++		print(&quot;WARNING : CreatePaperdollItemWidget : unknown animid -&gt; forced Cr=
+ash&quot;)
+ 		Crash()
+ 		-- TODO : dummy gfx ?
+ 	end
+-	=
+
+-	-- fallback to female
++
++	-- Fallback to female
+ 	-- TODO : SiENcE : local gumpid =3D animid+50000
+ 	local gumpid =3D animid+base_id
+ 	if (GetGumpMat(gumpid) =3D=3D &quot;&quot; and base_id =3D=3D kGumpBaseId_Female) t=
+hen gumpid =3D animid+kGumpBaseId_Male end -- fallback to male
+ 	if (item.layer =3D=3D kLayer_Backpack) then gumpid =3D animid+kGumpBaseId=
+_Male end -- no female backpack ;)
+-	=
+
+-	--print(&quot;CreatePaperdollItemWidget&quot;,gumpid,item.layer,animid,base_id)
+-	local xoff,yoff =3D 9,19
+-	local widget =3D MakeBorderGumpPart(dialog.rootwidget, gumpid, xoff, yoff=
+ , 0, 0, 0, item.hue)
++
++	local widget =3D MakeBorderGumpPart(dialog.rootwidget, gumpid, BodyWidget=
+_x, BodyWidget_y, 0, 0, 0, item.hue)
+ =
+
+ 	widget.mbIgnoreMouseOver =3D false
+ 	widget.uoPaperdoll =3D paperdoll
+ 	widget.item =3D item
+ 	item.widget =3D widget
+ =
+
++	widget.onMouseDown =3D function (widget,mousebutton) end
++
++	-- TODO : find a cleaner solution to override the mousepick tipp
+ 	widget.onMouseEnter =3D function () -- item tooltip (clientside,debuginfo=
+s)
+-							-- TODO : find a cleaner solution to override the mousepick tipp
+ 							local name =3D GetStaticTileTypeName(item.artid) or &quot;&quot;
+ 							info =3D sprintf(&quot;equipment %s (artid=3D%04x=3D%d)&quot;,name,item.artid=
+,item.artid)
+-							--print(&quot;CreatePaperdollItemWidget onMouseEnter &quot;,name,vardump(item=
+))
+-							-- interesting ? local t =3D GetStaticTileType(item.artid) -- t.miA=
+nimID
+ 							gCurrentRenderer.gMousePickTippOverride =3D info
+ 							Client_SetBottomLine(gCurrentRenderer.gMousePickTippOverride)
+ 						end
+@@ -261,8 +229,7 @@
+ 		gCurrentRenderer.gMousePickTippOverride =3D false
+ 		Client_SetBottomLine(&quot;&quot;)
+ 	end
+-	widget.onMouseDown =3D function (widget,mousebutton) end
+-	=
+
++
+ 	if (gTooltipSupport) then
+ 		widget.tooltip_offx =3D kUOToolTippOffX
+ 		widget.tooltip_offy =3D kUOToolTippOffY
+@@ -305,7 +272,7 @@
+ 	paperdoll.mobile =3D mobile
+ 	paperdoll.bIsPlayer =3D IsPlayerMobile(mobile)
+ 	=
+
+-	-- create paperdoll dialog if neccessary
++	-- create paperdoll dialog for player or mobile if neccessary
+ 	local dialog =3D paperdoll.dialog
+ 	if (not dialog) then
+ 		if (paperdoll.bIsPlayer) then
+@@ -314,9 +281,11 @@
+ 			dialog =3D GumpParser( npcPaperdoll, true )
+ 		end
+ =
+
++		-- save paperdolldialog as paperdoll
+ 		paperdoll.dialog =3D dialog
+ 		dialog.uoPaperdoll =3D paperdoll
+ =
+
++		-- overwrite the onMouseDown function from gumpparser
+ 		dialog.onMouseDown =3D function (widget,mousebutton)
+ 			if (mousebutton =3D=3D 2) then ClosePaperdoll(paperdoll) end
+ 			if (mousebutton =3D=3D 1) then widget.dialog:BringToFront() gui.StartMo=
+veDialog(widget.dialog.rootwidget) end
+@@ -332,11 +301,18 @@
+ 			widget.mat_over 	=3D GetGumpMat(hex2num(&quot;0x7EA&quot;))
+ 			widget.gfx:SetMaterial(widget.mat_normal)
+ 		end
+-	end
+-	=
+
++	else
++		local widget =3D dialog.controls[&quot;btnpeace&quot;]
++		if (widget) then
++			widget.mat_normal 	=3D GetGumpMat(hex2num(&quot;0x7E5&quot;))
++			widget.mat_pressed 	=3D GetGumpMat(hex2num(&quot;0x7E6&quot;))
++			widget.mat_over 	=3D GetGumpMat(hex2num(&quot;0x7E7&quot;))
++			widget.gfx:SetMaterial(widget.mat_normal)
++		end
++	end
++
++	-- update paperdoll name and color
+ 	local r,g,b =3D GetNotorietyColor(paperdoll.mobile.notoriety)
+-
+-	-- update paperdoll name
+ 	dialog.controls[&quot;paperdollname&quot;].gfx:SetCharHeight(gFontGumpSize + 2)
+ 	dialog.controls[&quot;paperdollname&quot;].gfx:SetColour( {r,g,b,1.0} )
+ 	dialog.controls[&quot;paperdollname&quot;].gfx:SetFont(gFontNameDefault)
+@@ -344,7 +320,7 @@
+ =
+
+ 	-- remove old item widgets
+ 	DestroyPaperdollItemWidgets(paperdoll)
+-	=
+
++
+ 	-- create bodywidget and item widgets
+ 	if (mobile) then
+ 		local bodyid =3D mobile.artid
+@@ -358,7 +334,7 @@
+ 		=
+
+ 		-- create bodywidget
+ 		if (bodygumpid) then
+-			dialog.bodywidget =3D MakeBorderGumpPart(dialog.rootwidget,bodygumpid,9=
+,19 , 0, 0, 0,skinhue)
++			dialog.bodywidget =3D MakeBorderGumpPart(dialog.rootwidget, bodygumpid,=
+ BodyWidget_x, BodyWidget_y, 0, 0, 0, skinhue)
+ 		else =
+
+ 			--print(&quot;Open_Paperdoll : unknown bodyid &quot;,bodyid,sprintf(&quot;0x%04x&quot;,body=
+id))
+ 			-- TODO : fallback/default bodyid ?
+@@ -371,7 +347,7 @@
+ 			if (item) then CreatePaperdollItemWidget(paperdoll,item,base_id) end
+ 		end
+ 	end
+-	=
+
++
+ 	if (mobile and mobile.name ~=3D paperdoll.name) then =
+
+ 		mobile.name =3D paperdoll.name =
+
+ 		mobile:Update()
+
+Modified: trunk/lua/gui/gui.quit.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.quit.lua (original)
++++ trunk/lua/gui/gui.quit.lua Sun Mar 16 22:11:48 2008
+@@ -1,16 +1,16 @@
+ -- Created 12.03.2008 16:40:10, with GumpStudio &amp; Iris2 Lua Export Plugin
+ -- Exported Iris2 GumpExporter ver 1.0.
+ local quitGump =3D {}
+-quitGump.dialogId =3D 34436564
++quitGump.dialogId =3D 9000001
+ quitGump.x =3D 100
+ quitGump.y =3D 100
+ quitGump.Data =3D
+ 	 &quot;{ page 0 }&quot; ..
+-	 &quot;{ gumppic 0 0 2070 }&quot; ..
+-	 &quot;{ button 36 78 2071 2072 1 0 0 }&quot; ..
+-	 &quot;{ button 99 78 2074 2075 1 0 1 }&quot; ..
+-	 &quot;{ text 70 25 0 0 }&quot; ..
+-	 &quot;{ text 44 42 0 1 }&quot;
++	 &quot;{ gumppic 0 0 2070 quitpic }&quot; ..
++	 &quot;{ button 36 78 2071 2072 1 0 0 btnquit }&quot; ..
++	 &quot;{ button 99 78 2074 2075 1 0 1 btncancel }&quot; ..
++	 &quot;{ text 70 25 0 0 quittext }&quot; ..
++	 &quot;{ text 44 42 0 1 quituo }&quot;
+ quitGump.textline =3D {
+ 	[0] =3D &quot;Quit&quot;,
+ 	[1] =3D &quot;Ultima Online?&quot;,
+@@ -25,6 +25,7 @@
+ function OpenQuit()
+ 	local dialog =3D GumpParser( quitGump, true )
+ =
+
++	-- overwrite the onMouseDown function from gumpparser
+ 	dialog.onMouseDown =3D function (widget,mousebutton)
+ 		if (mousebutton =3D=3D 2) then widget.dialog:Close() end
+ 		if (mousebutton =3D=3D 1) then widget.dialog:BringToFront() gui.StartMov=
+eDialog(widget.dialog.rootwidget) end
+
+Modified: trunk/lua/gui/gui.securetrade.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.securetrade.lua (original)
++++ trunk/lua/gui/gui.securetrade.lua Sun Mar 16 22:11:48 2008
+@@ -1,3 +1,21 @@
++-- Created 11.03.2008 16:55:39, with GumpStudio &amp; Iris2 Lua Export Plugin
++-- Exported Iris2 GumpExporter ver 1.0.
++local securetrading =3D {}
++securetrading.dialogId =3D 4000001
++securetrading.x =3D 0
++securetrading.y =3D 0
++securetrading.Data =3D
++	 &quot;{ page 0 }&quot; ..
++	 &quot;{ gumppic 0 0 2150 securepic }&quot; ..
++	 &quot;{ checkbox 52 30 2151 2153 0 cbmy }&quot; ..
++	 &quot;{ checkbox 268 162 2151 2153 0 cbtheir }&quot; ..
++	 &quot;{ text 85 36 0 0 namemy }&quot; ..
++	 &quot;{ text 70 166 0 1 nametheir }&quot;
++securetrading.textline =3D {
++	[0] =3D &quot;me&quot;,
++	[1] =3D &quot;unknown&quot;,
++}
++
+ -- handles secure trading between players
+ -- see also net.uodragdrop.lua for container like droparea
+ -- see also net.trade.lua for trade with npcs / shop / vendor...
+@@ -5,29 +23,9 @@
+ -- see also old iris trade.csl or so  callback_OnTradeCheck callback_OnTra=
+deStart
+ -- secure trade is started by dragdrop onto player .. server sends start w=
+ith two containers
+ =
+
+--- Created 11.03.2008 16:55:39, with GumpStudio &amp; Iris2 Lua Export Plugin
+--- Exported Iris2 GumpExporter ver 1.0.
+-local securetrading =3D {}
+-securetrading.dialogId =3D 34567
+-securetrading.x =3D 0
+-securetrading.y =3D 0
+-securetrading.Data =3D
+-	 &quot;{ page 0 }&quot; ..
+-	 &quot;{ gumppic 0 0 2150 }&quot; ..
+-	 &quot;{ checkbox 52 30 2151 2153 0 cbmy }&quot; ..
+-	 &quot;{ checkbox 268 162 2151 2153 0 cbtheir }&quot; ..
+-	 &quot;{ text 85 36 0 0 }&quot; ..
+-	 &quot;{ text 70 166 0 1 }&quot; ..
+-	 &quot;&quot; =
+
+-securetrading.textline =3D {
+-	[0] =3D &quot;namemy&quot;,
+-	[1] =3D &quot;nametheir&quot;,
+-}
+-
+ kSecTradeAction_Start =3D 0
+ kSecTradeAction_Cancel =3D 1
+ kSecTradeAction_ChangeCheck =3D 2
+-
+ =
+
+ kSecureTradeContainerPos_LeftX =3D 50 -- left is my
+ kSecureTradeContainerPos_LeftY =3D 90
+@@ -49,8 +47,6 @@
+ =
+
+ 	local addx,addy =3D kSecureTradeContainerPos_LeftX,kSecureTradeContainerP=
+os_LeftY
+ 	if (not bIsMyStuff) then addx,addy =3D kSecureTradeContainerPos_RightX,kS=
+ecureTradeContainerPos_RightY end
+-	=
+
+-	--print(&quot;SecureTradeRebuildContainerWidgets&quot;,mysectrade.id,bIsMyStuff)
+ 	=
+
+ 	local parent =3D mysectrade.dialog.rootwidget
+ 	for k,item in pairs(container:GetContent()) do
+@@ -92,23 +88,8 @@
+ 				gCurrentRenderer.gMousePickTippOverride =3D info
+ 				Client_SetBottomLine(gCurrentRenderer.gMousePickTippOverride)
+ 			end
+-			=
+
+ 		end
+ 	end
+-	=
+
+-	--[[
+-	SecureTradeObjectToObjectHook(item)
+-	=
+
+-	item.serial =3D input:PopNetUint32()
+-	item.artid =3D input:PopNetUint16()
+-	item.artid_addstack =3D input:PopNetUint8()
+-	item.amount =3D input:PopNetUint16()
+-	item.xloc =3D input:PopNetUint16()
+-	item.yloc =3D input:PopNetUint16()
+-	item.iContainerSerial =3D input:PopNetUint32()
+-	item.hue =3D input:PopNetUint16()
+-	printf(&quot;NET : kPacket_Object_to_Object : container=3D0x%08x item=3D0x%08x=
+ artid=3D0x%04x amount=3D%d\n&quot;,item.iContainerSerial,item.serial,item.artid=
+,item.amount)
+-	]]--
+ end
+ =
+
+ -- triggered when anything is changed,added or removed in/from a container
+@@ -128,10 +109,6 @@
+ end
+ =
+
+ function RecvSecureTrade (sectrade) -- handles data from kPacket_SecureTra=
+de
+-	printf(&quot;RecvSecureTrade action=3D%d, s1=3D0x%08x,s2=3D0x%08x,s3=3D0x%08x =
+name=3D%s\n&quot;,
+-		sectrade.action,sectrade.serial1,sectrade.serial2,sectrade.serial3,sectr=
+ade.name or &quot;&quot;)
+-	=
+
+-	-- GetStaticTileType(hex2num(&quot;0x0f52&quot;))
+ 	if (sectrade.action =3D=3D kSecTradeAction_Start) then
+ 		-- construct sectrade object
+ 		local mysectrade =3D {}
+@@ -154,30 +131,28 @@
+ 		local old =3D gSecureTrades[mysectrade.id]
+ 		if (old) then old:Close() end
+ 		gSecureTrades[mysectrade.id] =3D mysectrade
+-		=
+
++
+ 		-- show dialog
+-		--local dialog =3D CreateGumpDlgFromGfm(datapath..&quot;gfm/secure_trade.gfm&quot;)
+ 		local dialog =3D GumpParser( securetrading, true )
+ =
+
+-		for k,v in pairs(dialog.childs) do v.mbIgnoreMouseOver =3D false end
+-		mysectrade.dialog =3D dialog =
+
+-		dialog.uoSecureTrade =3D mysectrade =
+
+-		dialog.rootwidget.gfx:SetPos(120,100)
++		mysectrade.dialog =3D dialog
++		dialog.uoSecureTrade =3D mysectrade
++
++		-- overwrite the onMouseDown function from gumpparser
+ 		dialog.onMouseDown =3D function (widget,mousebutton)
+ 			if (mousebutton =3D=3D 2) then widget.dialog.uoSecureTrade:Cancel() end
+ 			if (mousebutton =3D=3D 1) then widget.dialog:BringToFront() gui.StartMo=
+veDialog(widget.dialog.rootwidget) end
+ 		end
+-		=
+
+-		-- update name display name
++
++		-- update gump text fields
+ 		dialog.controls[&quot;namemy&quot;].gfx:SetText(GetPlayerName() or &quot;me&quot;)
+ 		dialog.controls[&quot;nametheir&quot;].gfx:SetText(sectrade.name or &quot;unknown&quot;)
+-		-- ./net.paperdoll.lua:55:	dialog =3D CreateGumpDlgFromGfm(...)
+-		-- cb_my cb_their  normal=3D'0x867' checked=3D'0x869' -- todo :  $209 $2=
+08 gumpids ?
+-		=
+
+-		dialog.controls[&quot;cbmy&quot;].onChange =3D function (widget,bChecked) =
+
+-			--print(&quot;Send_SecureTrade_ChangeAgree&quot;,widget.dialog.uoSecureTrade.id,b=
+Checked)
+-			Send_SecureTrade_ChangeAgree(widget.dialog.uoSecureTrade.id,bChecked an=
+d 1 or 0)
+-		end
++
++		-- create function for checkbox
++		dialog.controls[&quot;cbmy&quot;].onChange =3D function (widget,bChecked)
++												Send_SecureTrade_ChangeAgree(widget.dialog.uoSecureTrade.id,bC=
+hecked and 1 or 0)
++										   end
++
+ 		SecureTradeRebuildContainers(mysectrade)
+ 	elseif (sectrade.action =3D=3D kSecTradeAction_Cancel) then
+ 		local mysectrade =3D gSecureTrades[sectrade.serial1]
+@@ -187,7 +162,6 @@
+ 		if (mysectrade) then =
+
+ 			local myOK 		=3D sectrade.serial2 ~=3D 0
+ 			local theirOK 	=3D sectrade.serial3 ~=3D 0
+-			--print(&quot;Recv_SecureTrade_ChangeAgree&quot;,mysectrade.id,myOK,theirOK)
+ 			if (myOK and theirOK) then
+ 				-- trade finished
+ 				mysectrade:Close()
+@@ -198,18 +172,4 @@
+ 			end
+ 		end
+ 	end
+-	=
+
+-	--[[
+-	hagish serial =3D serial=3D0x00005c55 =3D 23637
+-	ghouly serial =3D serial=3D0x0002f31e =3D 193310
+-	=
+
+-	RecvSecureTrade action=3D2, s1=3D0x40104009
+-	NET : kPacket_Object_to_Object : container=3D0x00005c55 item=3D0x40104008=
+ artid=3D0x1e5e amount=3D1
+-	RecvSecureTrade action=3D2, s1=3D0x40104009
+-	NET : kPacket_Object_to_Object : container=3D0x0002f31e item=3D0x40104009=
+ artid=3D0x1e5e amount=3D1
+-	RecvSecureTrade action=3D0, s1=3D0x00005c55,s2=3D0x40104009,s3=3D0x401040=
+08 name=3DTizi
+-	RecvSecureTrade action=3D2, s1=3D0x40104009
+-	RecvSecureTrade action=3D2, s1=3D0x40104009
+-	NET : kPacket_Object_to_Object : container=3D0x40104008 item=3D0x400a68fc=
+ artid=3D0x0f52 amount=3D1
+-	]]--
+ end
+
+Modified: trunk/lua/gui/gui.skill.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.skill.lua (original)
++++ trunk/lua/gui/gui.skill.lua Sun Mar 16 22:11:48 2008
+@@ -1,35 +1,56 @@
+ -- Created 11.03.2008 16:09:57, with GumpStudio &amp; Iris2 Lua Export Plugin
+ -- Exported Iris2 GumpExporter ver 1.0.
+ local skillGump =3D {}
+-skillGump.dialogId =3D 1234
+-skillGump.x =3D 0
+-skillGump.y =3D 0
++skillGump.dialogId =3D 5000001
++skillGump.x =3D 25
++skillGump.y =3D 25
+ skillGump.Data =3D
+ 	 &quot;{ page 0 }&quot; ..
+-	 &quot;{ gumppic 23 311 2083 }&quot; ..
+-	 &quot;{ gumppic 21 241 2082 }&quot; ..
+-	 &quot;{ gumppic 42 273 2102 }&quot; ..
+-	 &quot;{ gumppictiled 21 64 263 177 2081 }&quot; ..
+-	 &quot;{ gumppic 4 27 2080 }&quot; ..
+-	 &quot;{ gumppic 120 37 2100 }&quot; ..
+-	 &quot;{ button 139 342 2094 2095 1 0 0 }&quot; ..
+-	 &quot;{ gumppic 44 62 2091 }&quot; ..
+-	 &quot;{ button 255 61 2084 2084 1 0 skillscrollup }&quot; ..
+-	 &quot;{ button 255 291 2085 2085 1 0 skillscrolldown }&quot; ..
+-	 &quot;{ button 139 4 2093 2093 1 0 skillclose }&quot; ..
+-	 &quot;{ button 259 76 2088 2088 1 0 skillscroll }&quot;
++	 &quot;{ gumppic 23 311 2083 xx1 }&quot; ..
++	 &quot;{ gumppic 21 241 2082 xx2 }&quot; ..
++	 &quot;{ gumppic 42 273 2102 xx3 }&quot; ..
++	 &quot;{ gumppictiled 21 64 263 177 2081 xx4 }&quot; ..
++	 &quot;{ gumppic 4 27 2080 xx5 }&quot; ..
++	 &quot;{ gumppic 120 37 2100 xx6 }&quot; ..
++	 &quot;{ button 139 342 2094 2095 1 0 0 skillresize }&quot; ..
++	 &quot;{ gumppic 44 62 2091 xx7 }&quot; ..
++	 &quot;{ button 255 61 2084 2084 1 0 1 skillscrollup }&quot; ..
++	 &quot;{ button 255 291 2085 2085 1 0 2 skillscrolldown }&quot; ..
++	 &quot;{ button 139 4 2093 2093 1 0 3 skillclose }&quot; ..
++	 &quot;{ button 259 76 2088 2088 1 0 4 skillscroll }&quot;
+ skillGump.textline =3D {
+ }
++skillGump.functions =3D {
++ -- skillresize (not implemented yet)
++ [0]	=3D function (widget,mousebutton) end,
++ -- skillscrollup
++ [1]	=3D function (widget,mousebutton) if (mousebutton =3D=3D 1) then widg=
+et.dialog:Scroll(-3) end end,
++ -- skillscrolldown
++ [2]	=3D function (widget,mousebutton) if (mousebutton =3D=3D 1) then widg=
+et.dialog:Scroll(3) end end,
++ -- skillclose
++ [3]	=3D function (widget,mousebutton)
++ 			if (mousebutton =3D=3D 1) then =
+
++				widget.gfx:SetMaterial(widget.mat_pressed)
++				-- TODO: toggle to gump-id 0x839 on upper right corner (moveable) ... =
+on doubleclick open skills again
++				gSkillDialog:Close()
++		 	end
++		  end,
++ -- skillscroll
++ [4]	=3D function (widget,mousebutton)
++			if (mousebutton =3D=3D 1) then widget.dialog:BringToFront() gui.StartMo=
+veDialog(widget) end
++		  end,
++}
++
+ -- Created 11.03.2008 15:41:19, with GumpStudio &amp; Iris2 Lua Export Plugin
+ -- Exported Iris2 GumpExporter ver 1.0.
+ local quickskillGump =3D {}
+-quickskillGump.dialogId =3D 234567
++quickskillGump.dialogId =3D 5000002
+ quickskillGump.x =3D 0
+ quickskillGump.y =3D 0
+ quickskillGump.Data =3D
+ 	 &quot;{ page 0 }&quot; ..
+-	 &quot;{ gumppic 0 0 2445 }&quot; ..
+-	 &quot;{ gumppic 5 5 2362 }&quot;
++	 &quot;{ gumppic 0 0 2445 xx1 }&quot; ..
++	 &quot;{ gumppic 5 5 2362 xx2 }&quot;
+ quickskillGump.textline =3D {
+ }
+ =
+
+@@ -65,12 +86,46 @@
+ 	end
+ end
+ =
+
++glQuickCastDialog =3D {}
++-- creates a quickcast button at the given position
++function CreateQuickCastButton (x,y,name,fun)
++	quickskillGump.x=3Dx
++	quickskillGump.y=3Dy
++	local dialog =3D GumpParser( quickskillGump, true )
++	=
+
++	-- overrride dialog close function from gumpparser
++	dialog.Close =3D function (dialog)
++		table.foreach (table, function (k,v) if v =3D=3D dialog then table.remov=
+e(glQuickCastDialog,k) end end)
++		dialog:Destroy()
++	end
++	-- overwrite the onMouseDown function from gumpparser
++	dialog.onMouseDown =3D function (widget,mousebutton)
++		if (mousebutton =3D=3D 2) then widget.dialog:Close() end
++		if (mousebutton =3D=3D 1) then widget.dialog:BringToFront() gui.StartMov=
+eDialog(widget.dialog.rootwidget) end
++	end
++
++	if string.len(name) &gt; 10 then
++		name =3D string.sub(name,0,12)..&quot;..&quot; =
+
++	end
++	=
+
++	local text =3D guimaker.MakeText(dialog.rootwidget, 20, 5, name, gFontGum=
+pSize, {1.0,1.0,1.0,1.0}, gFontNameDefault)
++	local w,h =3D text.gfx:GetDimensions()
++	-- cast text button
++	local b =3D 2
++	local button =3D 	guimaker.MakeButton(dialog.rootwidget, 20+b, 5+b, w-2*b=
+, h-2*b, {0,0,0,0.0})
++	button.gfx:SetVisible(true)
++	button.mbIgnoreMouseOver =3D false
++	button.onLeftClick =3D function (widget) fun() end
++
++	table.insert(glQuickCastDialog,dialog)
++end
++
+ gSkillDialog_LastPositionX =3D nil
+ gSkillDialog_LastPositionY =3D nil
+ gSkillDialog_LastPositionScrollIndex =3D nil
+ function ToggleSkill ()
+ 	if (gSkillDialog) then
+-		-- store current positoin
++		-- store current position
+ 		gSkillDialog_LastPositionX, gSkillDialog_LastPositionY =3D gSkillDialog.=
+rootwidget.gfx:GetPos()
+ 		-- and close
+ 		gSkillDialog:Close()
+@@ -82,43 +137,33 @@
+ 		=
+
+ 		local scrollbar_h =3D scrollbar_y_end - scrollbar_y_start
+ 	=
+
+-		-- gSkillDialog =3D CreateGumpDlgFromGfm(datapath..&quot;gfm/skill.gfm&quot;)
+-		gSkillDialog =3D GumpParser( skillGump, true )
+-		=
+
++		local dialog =3D GumpParser( skillGump, true )
++		=
+
++		gSkillDialog =3D dialog
++	=
+
+ 		-- restore last positoin if available
+ 		if gSkillDialog_LastPositionX and gSkillDialog_LastPositionY then gSkill=
+Dialog.rootwidget.gfx:SetPos(gSkillDialog_LastPositionX, gSkillDialog_LastP=
+ositionY) end
+-		=
+
+-		-- TODO : init Skill dialog
+-		local dialog =3D gSkillDialog
++
+ 		dialog.Close =3D function (dialog)
+ 			gSkillDialog:Destroy()
+ 			gSkillDialog =3D nil
+ 		end
++
++		-- overwrite the onMouseDown function from gumpparser
+ 		dialog.onMouseDown =3D function (widget,mousebutton)
+ 			if (mousebutton =3D=3D 2) then widget.dialog:Close() end
+ 			if (mousebutton =3D=3D 1) then widget.dialog:BringToFront() gui.StartMo=
+veDialog(widget.dialog.rootwidget) end
+ 		end
+-		=
+
++	=
+
+ 		-- xml attributes to resize params
+ 		for k,widget in pairs(dialog.childs) do
+ 			widget.mbIgnoreMouseOver =3D false
+ 			if (widget.node and widget.node.attr.bResizeNoScaleX =3D=3D &quot;true&quot;) the=
+n widget.bResizeNoScaleX =3D true end
+ 			if (widget.node and widget.node.attr.bResizeNoScaleY =3D=3D &quot;true&quot;) the=
+n widget.bResizeNoScaleY =3D true end
+ 		end
+-		=
+
+-		-- close button
+-		local widget =3D dialog.controls[&quot;skillclose&quot;]
+-		widget.onMouseDown 		=3D function (widget,mousebutton) if (mousebutton =
+=3D=3D 1) then =
+
+-			widget.gfx:SetMaterial(widget.mat_pressed)
+-			-- TODO: toggle to gump-id 0x839 on upper right corner (moveable) ... o=
+n doubleclick open skills again
+-			gSkillDialog:Close()
+-		end end
+-		=
+
++
+ 		-- scrollbar middle button
+ 		local widget =3D dialog.controls[&quot;skillscroll&quot;]
+-		widget.onMouseDown 		=3D function (widget,mousebutton)
+-			if (mousebutton =3D=3D 1) then widget.dialog:BringToFront() gui.StartMo=
+veDialog(widget) end
+-		end
+ 		-- custom move/drag setpos for handling middle part of the scrollbar
+ 		widget.CustomMoveSetPos =3D function(widget,x,y)
+ 			local ny =3D y
+@@ -134,13 +179,6 @@
+ 			-- set position
+ 			widget.gfx:SetPos(scrollbar_x,ny)
+ 		end
+-		=
+
+-		-- scroll buttons
+-		local widget =3D dialog.controls[&quot;skillscrollup&quot;]
+-		widget.onMouseDown 		=3D function (widget,mousebutton) if (mousebutton =
+=3D=3D 1) then dialog:Scroll(-3) end end
+-
+-		local widget =3D dialog.controls[&quot;skillscrolldown&quot;]
+-		widget.onMouseDown 		=3D function (widget,mousebutton) if (mousebutton =
+=3D=3D 1) then dialog:Scroll(3) end end
+ =
+
+ 		-- functions handling the up/down/lock switch
+ 		-- state: (0=3Dup, 1=3Ddown, 2=3Dlocked)
+@@ -280,7 +318,6 @@
+ 					skill.button_use_drag.onMouseDown =3D function (widget,mousebutton)
+ 						if (mousebutton =3D=3D 1) then =
+
+ 							skill.button_use_drag.mStartX,skill.button_use_drag.mStartY =3D ski=
+ll.button_use_drag.gfx:GetPos()
+-							--print(&quot;start&quot;,skill.button_use_drag.mStartX,skill.button_use_drag=
+.mStartY)
+ 							skill.button_use_drag.dialog:BringToFront() =
+
+ 							gui.StartMoveDialog(skill.button_use_drag) =
+
+ 						end
+@@ -305,105 +342,16 @@
+ 				table.insert(dialog.lSkill,skill)
+ 			end
+ 		end
+-		=
+
++
+ 		-- scroll to last position if available
+ 		if gSkillDialog_LastPositionScrollIndex then =
+
+ 			dialog:ScrollToIndex(gSkillDialog_LastPositionScrollIndex)
+ 		else
+ 			dialog:ScrollToIndex(0)
+ 		end
+-		=
+
+-		-- minimize btn
+-		--[[
+-		local widget =3D dialog.controls[&quot;skill_minimize&quot;]
+-		widget.onMouseDown 		=3D function (widget,mousebutton) if (mousebutton =
+=3D=3D 1) then =
+
+-			widget.gfx:SetMaterial(widget.mat_pressed)
+-			gSkillDialog:ResizeMinimize()
+-		end end
+-		]]--
+-		=
+
++
+ 		-- resize limits
+ 		dialog.resize_min_total_x,dialog.resize_min_total_y =3D -100,-66
+ 		dialog.resize_max_total_x,dialog.resize_max_total_y =3D 334,212
+-		=
+
+-		-- resize btn
+-		--[[
+-		local widget =3D dialog.controls[&quot;skill_resize&quot;]
+-		widget.onMouseDown 		=3D function (widget,mousebutton) if (mousebutton =
+=3D=3D 1) then =
+
+-			widget.gfx:SetMaterial(widget.mat_pressed)
+-			gSkillResizeStartX,gSkillResizeStartY =3D GetMousePos()
+-			if (true) then
+-				gui.bMouseBlocked =3D true
+-				RegisterStepper(function ()
+-					local x,y =3D GetMousePos()
+-					--AddFadeLines(sprintf(&quot;resize %d,%d&quot;,2.0*(x-gSkillResizeStartX),(y-g=
+SkillResizeStartY)))
+-					--AddFadeLines(sprintf(&quot;resize %d,%d&quot;,gSkillDialog.resize_x_total or =
+0,gSkillDialog.resize_y_total or 0))
+-					local dx =3D 2.0*(x-gSkillResizeStartX)
+-					--local dx =3D 0
+-					gSkillDialog:ResizeDelta(dx,(y-gSkillResizeStartY))
+-					gSkillResizeStartX,gSkillResizeStartY =3D x,y
+-					if (gKeyPressed[key_mouse1]) then
+-						return false -- continue stepping
+-					else
+-						gui.bMouseBlocked =3D false
+-						return true -- terminate
+-					end
+-				end)
+-			end
+-		end end
+-		]]--
+-		=
+
+-		-- widget.onMouseDown 		=3D function (widget,mousebutton) if (mousebutto=
+n =3D=3D 1) then widget.gfx:SetMaterial(widget.mat_normal) end end
+-	=
+
+-		-- show first page
+-		-- ShowSkillPage(0)
+-		=
+
+-		=
+
+ 	end
+ end
+-
+-glQuickCastDialog =3D {}
+--- creates a quickcast button at the given position
+-function CreateQuickCastButton (x,y,name,fun)
+-	-- local dialog =3D CreateGumpDlgFromGfm(datapath..&quot;gfm/quickcast.gfm&quot;)
+-	local dialog =3D GumpParser( quickskillGump, true )
+-
+-	-- handle mouse events
+-	for k,v in pairs(dialog.childs) do v.mbIgnoreMouseOver =3D false end
+-	=
+
+-	-- dialog base functions
+-	dialog.Close =3D function (dialog)
+-		table.foreach (table, function (k,v) if v =3D=3D dialog then table.remov=
+e(glQuickCastDialog,k) end end)
+-		dialog:Destroy()
+-	end
+-
+-	dialog.onMouseDown =3D function (widget,mousebutton)
+-		if (mousebutton =3D=3D 2) then widget.dialog:Close() end
+-		if (mousebutton =3D=3D 1) then widget.dialog:BringToFront() gui.StartMov=
+eDialog(widget.dialog.rootwidget) end
+-	end
+-
+-	if string.len(name) &gt; 10 then
+-		name =3D string.sub(name,0,12)..&quot;..&quot; =
+
+-	end
+-	=
+
+-	local root =3D dialog.rootwidget
+-	=
+
+-	root.gfx:SetPos(x,y)
+-	=
+
+-	local text =3D guimaker.MakeText(root, 20, 5, name, gFontGumpSize, {1.0,1=
+.0,1.0,1.0}, gFontNameDefault)
+-	local w,h =3D text.gfx:GetDimensions()
+-	--print(&quot;size&quot;,text,w,h)
+-	=
+
+-	-- cast text button
+-	local b =3D 2
+-	local button =3D 	guimaker.MakeButton(root, 20+b, 5+b, w-2*b, h-2*b, {0,0=
+,0,0.0})
+-	button.gfx:SetVisible(true)
+-	button.mbIgnoreMouseOver =3D false
+-	=
+
+-	button.onLeftClick =3D function (widget)
+-		--print(&quot;click&quot;)
+-		fun()
+-	end
+-	=
+
+-	table.insert(glQuickCastDialog,dialog)
+-end
+
+Modified: trunk/lua/gui/gui.status.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.status.lua (original)
++++ trunk/lua/gui/gui.status.lua Sun Mar 16 22:11:48 2008
+@@ -1,12 +1,12 @@
+ -- Created 09.03.2008 15:05:13, with GumpStudio &amp; Iris2 Lua Export Plugin
+ -- Exported Iris2 GumpExporter ver 1.0.
+ local statusGump =3D {}
+-statusGump.dialogId =3D 1234
++statusGump.dialogId =3D 6000001
+ statusGump.x =3D 0
+ statusGump.y =3D 0
+ statusGump.Data =3D
+ 	 &quot;{ page 0 }&quot; ..
+-	 &quot;{ gumppic 0 0 10860 }&quot; ..
++	 &quot;{ gumppic 0 0 10860 statuspic }&quot; ..
+ 	 &quot;{ text 54 44 0 0 statusname }&quot; ..
+ 	 &quot;{ text 88 71 0 1 statusstr }&quot; ..
+ 	 &quot;{ text 88 99 0 2 statusdex }&quot; ..
+@@ -76,8 +76,6 @@
+ 		-- request stats update of player body
+ 		if gPlayerBodySerial then Send_ClientQuery(gRequest_States,gPlayerBodySe=
+rial) end
+ =
+
+-		-- old gfm file
+-		-- gStatusAosDialog =3D CreateGumpDlgFromGfm(datapath..&quot;gfm/status_aos.g=
+fm&quot;)
+ 		gStatusAosDialog =3D GumpParser( statusGump, true )
+ =
+
+ 		-- restore last positoin if available
+@@ -89,6 +87,8 @@
+ 			gStatusAosDialog:Destroy()
+ 			gStatusAosDialog =3D nil
+ 		end
++		=
+
++		-- overwrite the onMouseDown function from gumpparser
+ 		dialog.onMouseDown =3D function (widget,mousebutton)
+ 			if (mousebutton =3D=3D 2) then widget.dialog:Close() end
+ 			if (mousebutton =3D=3D 1) then widget.dialog:BringToFront() gui.StartMo=
+veDialog(widget.dialog.rootwidget) end
+
+Modified: trunk/lua/lib.spellbooks.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.spellbooks.lua (original)
++++ trunk/lua/lib.spellbooks.lua Sun Mar 16 22:11:48 2008
+@@ -2,9 +2,9 @@
+ -- TODO: update definition needed
+ =
+
+ gSpellbookExpansion =3D {}
+-gSpellbookExpansion[&quot;AOS&quot;]=3D hex2num(&quot;0x00&quot;)		--Mage, Necromancer and Pal=
+adin spells
+-gSpellbookExpansion[&quot;SE&quot;]=3D hex2num(&quot;0x01&quot;)		--Samurai and Ninja Spells
+-gSpellbookExpansion[&quot;ML&quot;]=3D hex2num(&quot;0x02&quot;)		--Spellweaving Spells
++gSpellbookExpansion[&quot;AOS&quot;]	=3D hex2num(&quot;0x00&quot;)		--Mage, Necromancer and Pa=
+ladin spells
++gSpellbookExpansion[&quot;SE&quot;]	=3D hex2num(&quot;0x01&quot;)		--Samurai and Ninja Spells
++gSpellbookExpansion[&quot;ML&quot;]	=3D hex2num(&quot;0x02&quot;)		--Spellweaving Spells
+ =
+
+ --RunUO1 old_spellbook Items
+ --[[
+@@ -53,274 +53,6 @@
+ 	return matrix
+ end
+ =
+
+-gAvailSpellbooks =3D {}
+-function Open_Spellbook(spellbook)
+-	local dialog =3D gAvailSpellbooks[spellbook.serial]
+-	if (dialog and not(spellbook.old)) then
+-		printf(&quot;Spellbook Container already exists. Delete this Container. seria=
+l=3D0x%08x\n&quot;,spellbook.serial)
+-		dialog:SetVisible(false)
+-		gAvailSpellbooks[dialog.spellbookserial]=3Dnil
+-		dialog =3D nil
+-	end
+-	if (not(dialog)) then
+-		dialog =3D guimaker.MakeSortedDialog()
+-		dialog.Close =3D function (dialog)
+-			-- TODO : close this properly, destroy widgets etc... =
+
+-			dialog:SetVisible(false)
+-			gAvailSpellbooks[dialog.spellbookserial]=3Dnil
+-			dialog =3D nil
+-		end
+-
+-		--Mapping for Old_Spellbook package
+-		if (spellbook.old) then
+-			if (spellbook.itemid =3D=3D hex2num(&quot;0xffff&quot;)) then
+-				-- check and get invisible spellbook container with spellbook items (s=
+crolls)
+-				local container =3D GetOrCreateContainer(spellbook.serial)
+-				spellbook.matrix =3D Convert_Spellbookcontainer(spellbook.matrix,conta=
+iner)
+-				spellbook.itemid =3D MageSpellbook
+-			end
+-		end
+-
+-		--base( Core.AOS ? 0x22C5 : 0xEFA )  - if AoS take Runebook otherwise Sp=
+ellbook
+-		if (gSpellBooks[spellbook.itemid]) then
+-			dialog.gumpid =3D gSpellBooks[spellbook.itemid].gumpid
+-			dialog.spellbookserial=3Dspellbook.serial
+-			gAvailSpellbooks[dialog.spellbookserial] =3D dialog
+-		else
+-			print(&quot;SpellbookID=3D(&quot;..spellbook.itemid..&quot;) not found (maybe old_spel=
+lbook packet)!&quot;)
+-		end
+-	=
+
+-		if	(dialog.gumpid) then
+-			dialog.rootwidget.gfx:SetPos(gXGumppos or 200,gYGumppos or 100)
+-			dialog.controls =3D {} -- associative list of controlls, key=3Dname of =
+controll
+-			dialog.childs =3D {} -- all controls, also those without name
+-	=
+
+-			dialog.onMouseDown =3D function (widget,mousebutton)
+-	               					if (mousebutton =3D=3D 2) then dialog:Close() print(&quot;=
+Destroy Spellbook!&quot;) end
+-	               					if (mousebutton =3D=3D 1) then widget.dialog:BringToF=
+ront() gui.StartMoveDialog(widget.dialog.rootwidget) end
+-	               				end
+-	        dialog.onMouseUp =3D function (widget,mousebutton)
+-										gXGumppos=3Dwidget.gfx:GetDerivedLeft()
+-										gYGumppos=3Dwidget.gfx:GetDerivedTop()
+-	       						end
+-	=
+
+-			-- Hide all except page 0 and pagenum
+-			dialog.ShowPage =3D function (dialog,pagenum)
+-				local myc =3D 0
+-				for k,widget in pairs(dialog.childs) do if (widget.pagenum =3D=3D page=
+num) then myc =3D myc + 1 end end
+-				--print(&quot;dialog.ShowPage&quot;,pagenum,myc)
+-				=
+
+-				for k,widget in pairs(dialog.childs) do =
+
+-					widget.gfx:SetVisible((widget.pagenum =3D=3D 0) or (widget.pagenum =
+=3D=3D pagenum))
+-				end
+-			end
+-			local curparent =3D dialog.rootwidget
+-	=
+
+-			local pages =3D {}
+-			dialog.pages =3D pages
+-	=
+
+-			-- Backpage 0 --------------------------------------
+-			local curpage =3D guimaker.MakePage(0)
+-			pages[0] =3D curpage
+-	=
+
+-			local backpane =3D MakeBorderGumpPart(curparent,dialog.gumpid,0,0)
+-			backpane.mbIgnoreMouseOver =3D false
+-	=
+
+-			-- add all newly created widgets to current page
+-			local myc =3D 0
+-			for k,widget in pairs(dialog.childs) do =
+
+-				if (not widget.pagenum) then
+-					myc =3D myc + 1
+-					widget.pagenum =3D curpage.pagenum
+-					table.insert(curpage.pagewidgets,widget)
+-				end
+-			end
+-			-- Backpage 0 End ----------------------------------
+-	=
+
+-			local rightspacer=3D0
+-			local top_align=3D0
+-			local pageside=3D0
+-			local fix_layout=3D0
+-			local pagenumber=3D1
+-	=
+
+-			local bHasNonZero =3D false
+-			for k,v in pairs(spellbook.matrix) do if (tonumber(v) ~=3D 0) then bHas=
+NonZero  =3D true end end
+-			local circlenumber=3Dtable.getn(gSpellBooks[spellbook.itemid].circles)
+-			local available_spells=3D0
+-	=
+
+-			for circle=3D1, circlenumber do
+-				local spellnumber=3Dtable.getn(gSpellBooks[spellbook.itemid].spells[ci=
+rcle])
+-	=
+
+-				local page =3D pages[pagenumber]
+-				if (not(page)) then
+-					page =3D guimaker.MakePage(pagenumber)
+-					pages[pagenumber] =3D page
+-				end
+-				=
+
+-				-- Pageselektor left
+-				if (page.pagenum~=3D1) then
+-					local browse_back =3D MakeGumpButton (curparent, hex2num(&quot;0x8bb&quot;), he=
+x2num(&quot;0x8bb&quot;), hex2num(&quot;0x8bb&quot;), 48, 8,nil,nil,false)
+-					browse_back.page=3Dpagenumber-1
+-					browse_back.onLeftClick =3D function (widget)
+-													if (widget.page &gt; 0 and not(widget.page &gt; table.getn(pages)) =
+) then
+-														widget.dialog:ShowPage(browse_back.page)
+-													end
+-											end
+-					end				=
+
+-				-- Pageselektor right
+-				-- check if spell follows
+-				if (bHasNonZero) then
+-					local browse_forward =3D MakeGumpButton (curparent, hex2num(&quot;0x8bc&quot;),=
+ hex2num(&quot;0x8bc&quot;), hex2num(&quot;0x8bc&quot;), 322, 8,nil,nil,false)
+-					browse_forward.page=3Dpagenumber+1
+-					browse_forward.onLeftClick =3D function (widget)
+-												if (widget.page &gt; 0 and not(widget.page &gt; table.getn(pages)) )=
+ then
+-													widget.dialog:ShowPage(browse_forward.page)
+-												end
+-											end
+-				end
+-				-- Pageselektors on bottom
+-	 			for i=3D1, circlenumber/2 do
+-	 				local btn_gumpid=3Dhex2num(&quot;0x8b0&quot;)+i+(circlenumber/2)*pageside
+-	 				local btn_x=3D24+165*pageside+i*35
+-					local pageselector =3D MakeGumpButton (curparent, btn_gumpid, btn_gum=
+pid, btn_gumpid, btn_x, 175,nil,nil,false)
+-					pageselector.page=3DgSpellBooks[spellbook.itemid].pages[i+(circlenumb=
+er/2)*pageside]
+-					pageselector.onLeftClick =3D function (widget)
+-												if (widget.page &gt; 0 and not(widget.page &gt; table.getn(pages)) )=
+ then
+-													widget.dialog:ShowPage(pageselector.page)
+-												end
+-											end
+-				end
+-
+-				-- Circle Names
+-				local circlename =3D guimaker.MakeText (curparent, 90 + rightspacer, 2=
+0,
+-														gSpellBooks[spellbook.itemid].circles[circle], 14,
+-														{255/255,255/255,255/255,1.0}, gFontNameDefault)
+-	=
+
+-				-- counter for available spells
+-				local spellcounter=3D0
+-
+-				for spell=3D1, spellnumber do
+-					if (TestBit(spellbook.matrix[circle], BitwiseSHL(1,spell-1))) then
+-						-- increase number of available spells
+-						spellcounter=3Dspellcounter+1
+-						local spellbutton =3D MakeBorderGumpPart(curparent, hex2num(&quot;0x837&quot;)=
+, 60 + rightspacer, 20+((spellcounter+1)*15) - top_align)
+-						spellbutton.spell=3Dspell+(circle-1)*spellnumber
+-						spellbutton.mbIgnoreMouseOver =3D false
+-						spellbutton.onLeftClick =3D function (widget)
+-													Send_Spell(spellbutton.spell+gSpellBooks[spellbook.itemid].st=
+artindex,gSpellbookExpansion[&quot;AOS&quot;])
+-												end
+-						local spellname =3D guimaker.MakeText (curparent, 80 + rightspacer, =
+20+((spellcounter+1)*15) - top_align,
+-															gSpellBooks[spellbook.itemid].spells[circle][spell], gFontG=
+umpSize,
+-															{190/255,237/255,231/255,1.0}, gFontNameDefault)
+-					end
+-			  	end
+-
+-				-- add all newly created widgets to current page
+-				local myc =3D 0
+-				for k,widget in pairs(dialog.childs) do =
+
+-					if (not widget.pagenum) then
+-						myc =3D myc + 1
+-						widget.pagenum =3D page.pagenum
+-						table.insert(page.pagewidgets,widget)
+-					end
+-				end
+-				--print(&quot;ServerSideGump page &quot;,page.pagenum,&quot; childs: &quot;,myc)
+-				if (rightspacer=3D=3D0) then rightspacer=3D150 else rightspacer=3D0 end
+-				if (pageside=3D=3D0) then pageside=3D1 else pageside=3D0 end
+-				if (math.mod(circle,2)=3D=3D0) then pagenumber=3Dpagenumber+1 end
+-				available_spells=3Davailable_spells+spellcounter
+-			end
+-	=
+
+-			pageside=3D0
+-			rightspacer=3D0
+-			local index_end=3Dpagenumber-1
+-			=
+
+-			-- counter for available spells
+-			local spellcounter=3D0
+-
+-			for circle=3D1, circlenumber do
+-				local spellnumber=3Dtable.getn(gSpellBooks[spellbook.itemid].spells[ci=
+rcle])
+-			=
+
+-				for spell=3D1, spellnumber do
+-					if (TestBit(spellbook.matrix[circle], BitwiseSHL(1,spell-1))) then
+-						-- increase number of available spells
+-						spellcounter=3Dspellcounter+1
+-
+-						local page =3D pages[pagenumber]
+-						if (not(page)) then
+-							page =3D guimaker.MakePage(pagenumber)
+-							pages[pagenumber] =3D page
+-						end
+-						-- Pageselektor left
+-						if (page.pagenum~=3D1) then
+-							local browse_back =3D MakeGumpButton (curparent, hex2num(&quot;0x8bb&quot;), =
+hex2num(&quot;0x8bb&quot;), hex2num(&quot;0x8bb&quot;), 48, 8,nil,nil,false)
+-							browse_back.page=3Dpagenumber-1
+-							browse_back.onLeftClick =3D function (widget)
+-															if (widget.page &gt; 0 and not(widget.page &gt; table.getn(pages)=
+) ) then
+-																widget.dialog:ShowPage(browse_back.page)
+-															end
+-													end
+-						end				=
+
+-						-- Pageselektor right
+-						-- check for last-page
+-						if (spellcounter &lt; available_spells-1) then
+-							local browse_forward =3D MakeGumpButton (curparent, hex2num(&quot;0x8bc&quot;=
+), hex2num(&quot;0x8bc&quot;), hex2num(&quot;0x8bc&quot;), 322, 8,nil,nil,false)
+-							browse_forward.page=3Dpagenumber+1
+-							browse_forward.onLeftClick =3D function (widget)
+-														if (widget.page &gt; 0 and not(widget.page &gt; table.getn(pages))=
+ ) then
+-															widget.dialog:ShowPage(browse_forward.page)
+-														end
+-													end
+-						end
+-		=
+
+-						-- Calc SpellIcon GumpID
+-						local spelliconid=3DgSpellBooks[spellbook.itemid].iconoffset + ((cir=
+cle-1) * spellnumber) + spell-1
+-						-- Circle Names
+-						local circlename =3D guimaker.MakeText (curparent, 85 + rightspacer,=
+ 15 - top_align,
+-																gSpellBooks[spellbook.itemid].circles[circle], 14,
+-																{255/255,255/255,255/255,1.0}, gFontNameDefault)
+-						local spellname =3D guimaker.MakeText (curparent, 85 + rightspacer, =
+30 - top_align,
+-																gSpellBooks[spellbook.itemid].spells[circle][spell], 14,
+-																{190/255,237/255,231/255,1.0}, gFontNameDefault)
+-						local spellicon =3D MakeGumpButton (curparent, spelliconid, spellico=
+nid, spelliconid,
+-																75 + rightspacer, 50,nil,nil,false)
+-						local reagents =3D guimaker.MakeText (curparent, 75 + rightspacer, 1=
+08 - top_align,
+-																&quot;Reagents:&quot;, 13,
+-																{190/255,237/255,231/255,1.0}, gFontNameDefault)
+-						-- Display Reagentz
+-						if (gSpellBooks[spellbook.itemid].spell_reags[circle][spell]) then
+-							for reag=3D1, table.getn( gSpellBooks[spellbook.itemid].spell_reags=
+[circle][spell] ) do
+-								local reagentname=3D gSpellBooks[spellbook.itemid].reagenz[ gSpell=
+Books[spellbook.itemid].spell_reags[circle][spell][reag] ]
+-								local reagentzia =3D guimaker.MakeText (curparent, 75 + rightspace=
+r, 112 + reag*14 - top_align,
+-																		reagentname, gFontGumpSize,
+-																		{190/255,237/255,231/255,1.0}, gFontNameDefault)
+-							end
+-						end
+-		=
+
+-						-- add all newly created widgets to current page
+-						local myc =3D 0
+-						for k,widget in pairs(dialog.childs) do =
+
+-							if (not widget.pagenum) then
+-								myc =3D myc + 1
+-								widget.pagenum =3D page.pagenum
+-								table.insert(page.pagewidgets,widget)
+-							end
+-						end
+-						--print(&quot;Spellbook page &quot;,page.pagenum,&quot; childs: &quot;,myc)
+-						--print(gSpellBooks[spellbook.itemid].spells[circle][spell])
+-						--print(&quot;pageside=3D&quot;..pageside)
+-						--print(&quot;pagenumber=3D&quot;..pagenumber)
+-						if (rightspacer=3D=3D0) then rightspacer=3D150 else rightspacer=3D0 =
+end
+-						if (pageside=3D=3D0) then pageside=3D1 else pageside=3D0 end
+-						if (pageside=3D=3D0) then pagenumber=3Dpagenumber+1 end
+-					end
+-				end
+-			end
+-			dialog:ShowPage(1)
+-		end
+-	end
+-end
+-
+ --[[
+ Spell ID:	0x91 - 0x96 - Samurai Spells,
+ 			0xF5 - 0xFC - Ninja Spells,
+@@ -333,7 +65,6 @@
+ BushidoSpellbook		=3D hex2num(&quot;0x238C&quot;) --dialog.gumpid =3D hex2num(&quot;0x2B0=
+7&quot;)
+ NinjitsuSpellbook		=3D hex2num(&quot;0x23A0&quot;) --dialog.gumpid =3D hex2num(&quot;0x2B=
+06&quot;)
+ SpellweavingSpellbook	=3D hex2num(&quot;0x2D50&quot;)	--dialog.gumpid =3D hex2num(&quot;0=
+x2B2F&quot;)
+-
+ --WeaponAbilityBook		=3D hex2num(&quot;0x2B02&quot;)
+ =
+
+ gSpellBooks =3D {}
+
+Modified: trunk/lua/lib.uoids.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.uoids.lua (original)
++++ trunk/lua/lib.uoids.lua Sun Mar 16 22:11:48 2008
+@@ -145,7 +145,35 @@
+ for k,v in pairs(gLayerType) do _G[k] =3D v end -- make names available as=
+ global constants
+ gLayerTypeName =3D {}
+ for k,v in pairs(gLayerType) do gLayerTypeName[v] =3D k end -- make names =
+available as global constants
+-	=
+
++
++-- WARNING ! this is not a complete list (see gLayerType for that) , e.g. =
+kLayer_Mound =3D 0x19 is not in here
++gLayerOrder =3D {
++	hex2num(&quot;0x09&quot;),					   -- - N/A (not used)
++    hex2num(&quot;0x14&quot;),                       -- - Back (Cloak)
++    hex2num(&quot;0x10&quot;),                       -- - Facial Hair
++    hex2num(&quot;0x12&quot;),                       -- - Earrings
++    hex2num(&quot;0x04&quot;),                       -- - Leg Covering (including Pa=
+nts&quot;), Shorts&quot;), Bone/Chain/Ring legs)
++    hex2num(&quot;0x0E&quot;),                       -- - Bracelet
++    hex2num(&quot;0x03&quot;),                       -- - Foot Covering/Armor
++    hex2num(&quot;0x08&quot;),                       -- - Ring
++    hex2num(&quot;0x18&quot;),                       -- - Legs (inner)(Leg Armor)
++    hex2num(&quot;0x05&quot;),                       -- - Chest Clothing/Female Ches=
+t Armor
++    hex2num(&quot;0x0D&quot;),                       -- - Torso (inner)(Chest Armor)
++    hex2num(&quot;0x11&quot;),                       -- - Torso (Middle)(Surcoat&quot;), =
+Tunic&quot;), Full Apron&quot;), Sash)
++    hex2num(&quot;0x0A&quot;),                       -- - Neck Covering/Armor
++    hex2num(&quot;0x13&quot;),                       -- - Arm Covering/Armor
++    hex2num(&quot;0x07&quot;),                       -- - Hand Covering/Armor
++    hex2num(&quot;0x17&quot;),                       -- - Legs (outer)(Skirt/Kilt)
++    hex2num(&quot;0x0B&quot;),                       -- - Hair
++    hex2num(&quot;0x16&quot;),                       -- - Torso (outer)(Robe)
++    hex2num(&quot;0x06&quot;),                       -- - Head Covering/Armor
++    hex2num(&quot;0x0C&quot;),                       -- - Waist (Half-Apron)
++    hex2num(&quot;0x01&quot;),                       -- - Single-Hand item/weapon
++    hex2num(&quot;0x02&quot;),                       -- - Two-Hand item/weapon (incl=
+uding Shield)
++    hex2num(&quot;0x15&quot;),                       -- - BackPack
++    hex2num(&quot;0x0F&quot;)
++}
++
+ -- Tiledata Flags
+ kTileDataFlag_Background		=3D hex2num(&quot;0x00000001&quot;)
+ kTileDataFlag_Weapon			=3D hex2num(&quot;0x00000002&quot;) -- set for weapons AND sh=
+ields (7035)
+
+Modified: trunk/lua/net.trade.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net.trade.lua (original)
++++ trunk/lua/net.trade.lua Sun Mar 16 22:11:48 2008
+@@ -1,48 +1,11 @@
+--- trading with npcs can be triggered by typing &quot;vendor buy&quot; for example
+--- or by choosing buy from the contextmenu of the mobile (rightclick here,=
+ aos-feature, not supported by pol?)
+--- see also net.other.lua (for context/popup-menu)
+--- see also lib.uoids.lua for special layertypes (kLayer_NPCBuyRestock,NPC=
+BuyNoRestock,NPCSellContainer)
+--- see also net.container.lua for special containers =
+
+--- see also net.securetrade.lua for secure trading between players
+-
+---[[
+-gLayerType.kLayer_NPCBuyRestock 	=3D hex2num(&quot;0x1A&quot;) -- container	=
+
+-gLayerType.kLayer_NPCBuyNoRestock 	=3D hex2num(&quot;0x1B&quot;) -- container	=
+
+-gLayerType.kLayer_NPCSellContainer	=3D hex2num(&quot;0x1C&quot;)
+-gLayerType.kLayer_PCBankBox 		=3D hex2num(&quot;0x1D&quot;)
+-
+-TODO : catch  kPacket_Open_Container  layertype
+-
+-PlainGuiSendChat        vendor buy
+-NET: ProtocolPacketRecvHandler typeid=3D0x2e,size=3D15,typename=3DkPacket_=
+Equip_Item -- kLayer_NPCBuyRestock
+-NET: ProtocolPacketRecvHandler typeid=3D0x2e,size=3D15,typename=3DkPacket_=
+Equip_Item -- kLayer_NPCBuyNoRestock
+-NET: ProtocolPacketRecvHandler typeid=3D0x3c,size=3D404,typename=3DkPacket=
+_Container_Contents
+-NET: ProtocolPacketRecvHandler typeid=3D0x74,size=3D435,typename=3DkPacket=
+_Shop_Data
+-NET: ProtocolPacketRecvHandler typeid=3D0x3c,size=3D5,typename=3DkPacket_C=
+ontainer_Contents
+-NET: ProtocolPacketRecvHandler typeid=3D0x74,size=3D8,typename=3DkPacket_S=
+hop_Data
+-NET: ProtocolPacketRecvHandler typeid=3D0x24,size=3D7,typename=3DkPacket_O=
+pen_Container
+-NET: ProtocolPacketRecvHandler typeid=3D0x11,size=3D66,typename=3DkPacket_=
+Mobile_Stats (gold?)
+-
+-
+-]]--
+-
+-gShop =3D {}
+-
+-
+-function CompareSerialAsc  (a,b) return a.serial &lt; b.serial end
+-function CompareSerialDesc (a,b) return a.serial &gt; b.serial end
+-
+--- common initialisation for kPacket_Shop_Data(buy) and kPacket_Shop_Sell
+-function ShopCommonInit (shop)
+-	shop.Cancel =3D function (shop) =
+
+-		-- TODO : send cancel message to server ?
+-		shop:Close()
+-	end
+-	shop.Close =3D function (shop)
+-		if (shop.dialog_list)	then shop.dialog_list:Destroy()	shop.dialog_list  =
+=3D nil end
+-		if (shop.dialog_bill)	then shop.dialog_bill:Destroy()	shop.dialog_bill =
+=3D nil end
+-		gShop[shop.shopContainerID or shop.shopMobileID] =3D nil
+-	end
++-- helper function
++function GetShopMobileID (shop)
++	if (shop.shopMobileID) then return shop.shopMobileID end -- only set for =
+sell-shop
++	local shopContainerItem =3D GetObjectBySerial(shop.shopContainerID)
++	if (not shopContainerItem) then printf(&quot;FATAL : GetShopMobileID : shopCon=
+tainerItem not found %08x\n&quot;,shop.shopContainerID) return end
++	local shopmobile =3D shopContainerItem.mobile
++	if (not shopmobile) then printf(&quot;FATAL : GetShopMobileID : shopmobile not=
+ found for container %08x\n&quot;,shop.shopContainerID) return end
++	return shopmobile.serial
+ end
+ =
+
+ -- lists all items that the player can sell to a specific vendor
+@@ -62,8 +25,6 @@
+ 	shop.goods =3D {}
+ 	ShopCommonInit(shop)
+ 	=
+
+-	--AddFadeLines(sprintf(&quot;Open_SellShop id=3D0x%08x goodcount=3D%d&quot;,shop.sh=
+opMobileID,shop.goodcount))
+-	=
+
+ 	if (shop.goodcount &gt; 0) then
+ 		local playerBackpackContainer =3D GetPlayerBackPackContainer()
+ 		local playerMobile =3D GetPlayerMobile()
+@@ -118,8 +79,6 @@
+ 			local nameint =3D tonumber(good.name)
+ 			if (nameint and good.name =3D=3D &quot;&quot;..nameint) then good.name =3D gClilo=
+cLoader:Get(nameint) or (&quot;unknown_cliloc_&quot;..nameint) end
+ 			shop.goods[i] =3D good
+-			--local itemname =3D GetStaticTileTypeName(good.itemartid) or &quot;unknown&quot;
+-			--AddFadeLines(sprintf(&quot;SellShop_Good %d %s %s&quot;,good.price,good.name,it=
+emname))
+ 		end
+ 		=
+
+ 		OpenShopDialog(shop)
+@@ -152,8 +111,6 @@
+ 	shop.goodcount	=3D input:PopNetUint8()
+ 	shop.goods =3D {}
+ 	ShopCommonInit(shop)
+-	=
+
+-	--AddFadeLines(sprintf(&quot;Open_Shop id=3D0x%08x&quot;,shop.shopContainerID))
+ 	=
+
+ 	if (shop.goodcount &gt; 0) then
+ 		-- get associated container (probably on one of the special layers, kLay=
+er_NPCBuyRestock or NPCBuyNoRestock)
+@@ -195,8 +152,6 @@
+ 			local nameint =3D tonumber(good.name)
+ 			if (nameint and good.name =3D=3D &quot;&quot;..nameint) then good.name =3D gClilo=
+cLoader:Get(nameint) or (&quot;unknown_cliloc_&quot;..nameint) end
+ 			shop.goods[i] =3D good
+-			--local itemname =3D GetStaticTileTypeName(good.itemartid)
+-			--AddFadeLines(sprintf(&quot;Shop_Good %d %s %s&quot;,good.price,good.name,itemna=
+me or &quot;&quot;))
+ 		end
+ 		=
+
+ 		OpenShopDialog(shop)
+@@ -206,7 +161,6 @@
+ 	end
+ 	RememberShop(shop)
+ end
+-
+ =
+
+ -- close the shopgump for buy and sellshop
+ -- same messagetype also used for SendBuyAccept
+@@ -215,214 +169,11 @@
+ 	local id =3D input:PopNetUint8()
+ 	local size =3D input:PopNetUint16()
+ 	local shopMobileID =3D input:PopNetUint32()
+-	printf(&quot;CLOSE SHOP %08x\n&quot;,shopMobileID)
++	printdebug(&quot;net&quot;,sprintf(&quot;kPacket_Accept_Offer (close-shop): shopMobileID=
+=3D0x%08x\n&quot;,shopMobileID))
+ 	for k,shop in pairs(gShop) do  -- can be more than one on pol
+-		--printf(&quot;shop containerid=3D%08x mobileid=3D%08x\n&quot;,shop.shopContainerI=
+D,GetShopMobileID(shop))
+ 		if (shopMobileID =3D=3D GetShopMobileID(shop)) then shop:Close() end
+ 	end
+ 	input:PopRaw(size - (1 + 2 + 4)) -- drop the rest, usually just a byte wi=
+th 0
+-end
+-
+--- empty dummy placeholder, might be interesting to remember prices and go=
+ods later =3D)
+-function RememberShop (shop) end
+-
+--- player gold has changed, update bill window
+-function TradeUpdatePlayerGold ()
+-	for k,shop in pairs(gShop) do
+-		if (shop.dialog_bill) then
+-			shop.dialog_bill.gold.gfx:SetText(GetPlayerGold())
+-		end
+-	end
+-end
+-
+--- npc trading
+--- see also old iris trade.csl : net_buywindow
+--- used for both buy and sell  npc-shop
+-function OpenShopDialog (shop) =
+
+-	print(&quot;Shop_Data&quot;,vardump(shop))
+-	=
+
+-	-- create shop dialog
+-	local dialog_list	=3D guimaker.MakeSortedDialog()
+-	local dialog_bill	=3D guimaker.MakeSortedDialog()
+-	dialog_list.uoShop	=3D shop
+-	dialog_bill.uoShop	=3D shop
+-	shop.dialog_list	=3D dialog_list
+-	shop.dialog_bill	=3D dialog_bill
+-	shop.defaultOnMouseDown =3D function (widget,mousebutton)
+-		if (mousebutton =3D=3D 2) then widget.dialog.uoShop:Cancel() end
+-		if (mousebutton =3D=3D 1) then widget.dialog:BringToFront() gui.StartMov=
+eDialog(widget.dialog.rootwidget) end
+-	end
+-	shop.AddToBill	=3D ShopAddToBill
+-	shop.Accept		=3D ShopAccept
+-	dialog_list.onMouseDown	=3D shop.defaultOnMouseDown
+-	dialog_bill.onMouseDown	=3D shop.defaultOnMouseDown
+-	=
+
+-	=
+
+-	-- TODO : seperator gumpid wrong
+-	-- TODO : red mark on right upper dialog side missing
+-	-- TODO : total/available gold texts wrong
+-	=
+
+-	-- gui_addgump		(const x, const y, const gump, [ const flags ])
+-	-- gui_addbutton	(const x, const y, [ const normal, const mouseover, cons=
+t pressed ])
+-	-- gui_addcontainer	(const x, const y, const width, const height)
+-	-- gui_addlabel		(const x, const y, const text, [ const font, const hue ])
+-	=
+
+-	-- shop inventory
+-	dialog_list.rootwidget.gfx:SetPos(150, 10)
+-	local widget 		=3D MakeBorderGumpPart(	dialog_list.rootwidget,hex2num(&quot;0x=
+870&quot;),0,0)
+-	local browse_up		=3D MakeGumpButton(		dialog_list.rootwidget,hex2num(&quot;0x8=
+24&quot;), hex2num(&quot;0x824&quot;), hex2num(&quot;0x824&quot;),231, 48)
+-	local browse_down	=3D MakeGumpButton(		dialog_list.rootwidget,hex2num(&quot;0x=
+825&quot;), hex2num(&quot;0x825&quot;), hex2num(&quot;0x825&quot;),231, 193)
+-	local separator1 	=3D MakeBorderGumpPart(	dialog_list.rootwidget,hex2num(=
+&quot;0x82B&quot;),25, 105)
+-	local separator2 	=3D MakeBorderGumpPart(	dialog_list.rootwidget,hex2num(=
+&quot;0x82B&quot;),25, 165)
+-	browse_up.onLeftClick	=3D function (widget) widget.dialog:PrevPage() end
+-	browse_down.onLeftClick =3D function (widget) widget.dialog:NextPage() end
+-
+-	-- bill
+-	dialog_bill.rootwidget.gfx:SetPos(315, 228)
+-	local gump2			=3D MakeBorderGumpPart(	dialog_bill.rootwidget,hex2num(&quot;0x8=
+71&quot;),0,0)
+-	local browse_up2	=3D MakeGumpButton(		dialog_bill.rootwidget,hex2num(&quot;0x8=
+24&quot;), hex2num(&quot;0x824&quot;), hex2num(&quot;0x824&quot;),231, 49) =
+
+-	local browse_down2	=3D MakeGumpButton(		dialog_bill.rootwidget,hex2num(&quot;0=
+x825&quot;), hex2num(&quot;0x825&quot;), hex2num(&quot;0x825&quot;),231,158)
+-	local accept		=3D MakeGumpButton(		dialog_bill.rootwidget,hex2num(&quot;0x5c&quot;)=
+ , hex2num(&quot;0x5c&quot;) , hex2num(&quot;0x5c&quot;) , 22,188)
+-	dialog_bill.total	=3D guimaker.MakeText(	dialog_bill.rootwidget, 70, 173,=
+&quot;0&quot;,gFontGumpSize,{1.0,1.0,1.0,1.0}, nil, gFontNameDefault)
+-	dialog_bill.gold 	=3D guimaker.MakeText(	dialog_bill.rootwidget,190, 173,=
+GetPlayerGold(),gFontGumpSize,{1.0,1.0,1.0,1.0}, nil, gFontNameDefault)
+-	browse_up2.onLeftClick		=3D function (widget) widget.dialog:PrevPage() end
+-	browse_down2.onLeftClick	=3D function (widget) widget.dialog:NextPage() e=
+nd
+-	accept.onLeftClick			=3D function (widget) widget.dialog.uoShop:Accept() =
+end
+-		=
+
+-	for k,v in pairs(dialog_list.childs) do v.mbIgnoreMouseOver =3D false end
+-	for k,v in pairs(dialog_bill.childs) do v.mbIgnoreMouseOver =3D false end
+-	=
+
+-	-- fill shop with items
+-	-- TODO : scroll area, but this more &quot;original&quot; pagewise scrolling should=
+ remain as option
+-	dialog_list.curpagewidgets =3D {}
+-	dialog_list.curpage =3D nil
+-	dialog_list.RebuildCurrentPage	=3D ShopListRebuildCurrentPage
+-	dialog_list.ShowPage 			=3D ShopListShowPage
+-	dialog_list:ShowPage(0)
+-	dialog_list.NextPage =3D function (dialog_list) dialog_list:ShowPage(dial=
+og_list.curpage + 1)	end
+-	dialog_list.PrevPage =3D function (dialog_list) dialog_list:ShowPage(dial=
+og_list.curpage - 1) end
+-	=
+
+-	dialog_bill.curpagewidgets =3D {}
+-	dialog_bill.curpage =3D nil
+-	dialog_bill.RebuildCurrentPage	=3D ShopBillRebuildCurrentPage
+-	dialog_bill.ShowPage 			=3D ShopBillShowPage
+-	dialog_bill:ShowPage(0)
+-	dialog_bill.NextPage =3D function (dialog_bill) dialog_bill:ShowPage(dial=
+og_bill.curpage + 1)	end
+-	dialog_bill.PrevPage =3D function (dialog_bill) dialog_bill:ShowPage(dial=
+og_bill.curpage - 1) end
+-end
+-
+-
+--- build one page for shop inventor dialog
+-function ShopListShowPage (dialog,pagenum)
+-	local perpage	=3D 3
+-	local shop		=3D dialog.uoShop
+-	local goodcount	=3D shop.goodcount
+-	local lastpage	=3D math.floor((goodcount-1)/perpage)
+-	pagenum			=3D math.max(0,math.min(pagenum,lastpage))
+-	if (dialog.curpage =3D=3D pagenum) then return end
+-	for k,widget in pairs(dialog.curpagewidgets) do widget:Destroy() end
+-	dialog.curpage =3D pagenum
+-	dialog.curpagewidgets =3D {}
+-	=
+
+-	-- fill shop dialog with items
+-	local i =3D 0
+-	local pageoff =3D pagenum * perpage
+-	for k,good in pairs(shop.goods) do =
+
+-		if (i &gt;=3D pageoff and i &lt; pageoff + perpage) then
+-			local y =3D 60 * (i - pageoff)
+-			local itemmodel	=3D MakeArtGumpPart(  dialog.rootwidget,					good.itema=
+rtid,25, 75 + y, 0, 0, 0, good.itemhue)
+-			local it_name 	=3D guimaker.MakeText(dialog.rootwidget, 80, 75 + y,		go=
+od.name				, gFontGumpSize, {1.0,1.0,1.0,1.0}, gFontNameDefault)
+-			local it_price 	=3D guimaker.MakeText(dialog.rootwidget, 80, 75 + y + 1=
+2,	good.price .. &quot; Gold&quot;	, gFontGumpSize, {1.0,1.0,1.0,1.0}, gFontNameDefau=
+lt)
+-			local avail 	=3D guimaker.MakeText(dialog.rootwidget,210, 75 + y,		good=
+.itemamount - good.tradeamount , gFontGumpSize, {1.0,1.0,1.0,1.0}, gFontNam=
+eDefault)
+-			itemmodel.good =3D good
+-			itemmodel.mbIgnoreMouseOver =3D false
+-			itemmodel.onMouseDown =3D function (widget,mousebutton) if (mousebutton=
+ =3D=3D 1) then widget.dialog.uoShop:AddToBill(widget.good,1) end end
+-			=
+
+-			table.insert(dialog.curpagewidgets,itemmodel)
+-			table.insert(dialog.curpagewidgets,it_name)
+-			table.insert(dialog.curpagewidgets,it_price)
+-			table.insert(dialog.curpagewidgets,avail)
+-		end
+-		i =3D i + 1
+-	end
+-end
+-
+--- build one page for bill dialog
+--- see also trade.csl handler_onartmousedown from old iris
+-function ShopBillShowPage (dialog,pagenum)
+-	local perpage	=3D 4
+-	local shop		=3D dialog.uoShop
+-	local goodcount	=3D 0
+-	for k,good in pairs(shop.goods) do if (good.tradeamount &gt; 0) then goodcou=
+nt =3D goodcount + 1 end end
+-	=
+
+-	local lastpage	=3D math.floor((goodcount-1)/perpage)
+-	pagenum			=3D math.max(0,math.min(pagenum,lastpage))
+-	if (dialog.curpage =3D=3D pagenum) then return end
+-	for k,widget in pairs(dialog.curpagewidgets) do widget:Destroy() end
+-	dialog.curpage =3D pagenum
+-	dialog.curpagewidgets =3D {}
+-	=
+
+-	-- fill bill with items
+-	local i =3D 0
+-	local pageoff =3D pagenum * perpage
+-	local totalprice =3D 0
+-	for k,good in pairs(shop.goods) do if (good.tradeamount &gt; 0) then
+-		totalprice =3D totalprice + good.tradeamount * good.price
+-		if (i &gt;=3D pageoff and i &lt; pageoff + perpage) then
+-			local y =3D 25 * (i - pageoff)
+-					=
+
+-			local incr		=3D MakeGumpButton(	dialog.rootwidget, hex2num(&quot;0x37&quot;), hex=
+2num(&quot;0x37&quot;), hex2num(&quot;0x37&quot;), 170, 65 + y) =
+
+-			local decr		=3D MakeGumpButton(	dialog.rootwidget, hex2num(&quot;0x38&quot;), hex=
+2num(&quot;0x38&quot;), hex2num(&quot;0x38&quot;), 195, 65 + y) =
+
+-			local name		=3D guimaker.MakeText(dialog.rootwidget,70, 65 + y,good.nam=
+e			,gFontGumpSize, {1.0,1.0,1.0,1.0}, gFontNameDefault) =
+
+-			local amount	=3D guimaker.MakeText(dialog.rootwidget,30, 65 + y,good.tr=
+adeamount	,gFontGumpSize, {1.0,1.0,1.0,1.0}, gFontNameDefault) =
+
+-	=
+
+-			incr.good =3D good
+-			decr.good =3D good
+-			incr.onMouseDown =3D function (widget,mousebutton) if (mousebutton =3D=
+=3D 1) then widget.dialog.uoShop:AddToBill(widget.good, 1) end end
+-			decr.onMouseDown =3D function (widget,mousebutton) if (mousebutton =3D=
+=3D 1) then widget.dialog.uoShop:AddToBill(widget.good,-1) end end
+-
+-			table.insert(dialog.curpagewidgets,incr)
+-			table.insert(dialog.curpagewidgets,decr)
+-			table.insert(dialog.curpagewidgets,name)
+-			table.insert(dialog.curpagewidgets,amount)
+-		end
+-		i =3D i + 1
+-	end end
+-	=
+
+-	-- update total price
+-	dialog.total.gfx:SetText(totalprice)
+-end
+-
+-function ShopListRebuildCurrentPage (dialog)
+-	local mypage =3D dialog.curpage
+-	dialog.curpage =3D nil
+-	dialog:ShowPage(mypage)
+-end
+-
+-function ShopBillRebuildCurrentPage (dialog)
+-	local mypage =3D dialog.curpage
+-	dialog.curpage =3D nil
+-	dialog:ShowPage(mypage)
+-end
+-
+-function ShopAddToBill (shop,good,amount)
+-	amount =3D amount or 1
+-	--AddFadeLines(sprintf(&quot;ShopAddToBill 0x%08x %s&quot;,good.itemserial,good.nam=
+e))
+-	local newamount =3D math.max(0,math.min(good.itemamount,good.tradeamount =
++ amount))
+-	if (good.tradeamount ~=3D newamount) then
+-		good.tradeamount =3D newamount
+-		shop.dialog_bill:RebuildCurrentPage() =
+
+-		shop.dialog_list:RebuildCurrentPage() -- adjust availcount
+-	end
+-end
+-
+-function GetShopMobileID (shop)
+-	if (shop.shopMobileID) then return shop.shopMobileID end -- only set for =
+sell-shop
+-	local shopContainerItem =3D GetObjectBySerial(shop.shopContainerID)
+-	if (not shopContainerItem) then printf(&quot;FATAL : GetShopMobileID : shopCon=
+tainerItem not found %08x\n&quot;,shop.shopContainerID) return end
+-	local shopmobile =3D shopContainerItem.mobile
+-	if (not shopmobile) then printf(&quot;FATAL : GetShopMobileID : shopmobile not=
+ found for container %08x\n&quot;,shop.shopContainerID) return end
+-	return shopmobile.serial
+ end
+ =
+
+ --This is sent by the client to buy items from a vendor.
+@@ -433,7 +184,7 @@
+ 	local out =3D GetSendFIFO()
+ 	local numitems =3D goods and table.getn(goods) or 0
+ 	local shopMobileID =3D GetShopMobileID(shop)
+-	printf(&quot;SendBuyAccept : numitems=3D%d shopContainerID=3D0x%08x mobileseri=
+al=3D0x%08x\n&quot;,numitems,shop.shopContainerID,shopMobileID)
++	printdebug(&quot;net&quot;,sprintf(&quot;SendBuyAccept : numitems=3D%d shopContainerID=
+=3D0x%08x mobileserial=3D0x%08x\n&quot;,numitems,shop.shopContainerID,shopMobile=
+ID))
+ 	local len =3D 8 + (numitems * 7)
+ 	out:PushNetUint8(kPacket_Accept_Offer)
+ 	out:PushNetUint16(len)
+@@ -447,11 +198,10 @@
+ 		out:PushNetUint8(kLayer_NPCBuyRestock)	-- The shop layer that the item i=
+s in (usually 0x1A =3D kLayer_NPCBuyRestock).
+         out:PushNetUint32(good.itemserial)	-- object serial form buy conta=
+iner
+         out:PushNetUint16(good.tradeamount)	-- amount
+-		print(&quot;item&quot;,sprintf(&quot;0x%08x&quot;,good.itemserial),good.tradeamount)
++		printdebug(&quot;net&quot;,sprintf(&quot;item : itemserial=3D0x%08x tradeamount=3D0x%04=
+x\n&quot;,good.itemserial,good.tradeamount))
+ 	end	end
+ 	out:SendPacket()
+ end
+-
+ =
+
+ -- send to finish the npc-sell shop
+ -- similar to SendBuyAccept, but there are a few differences
+@@ -459,7 +209,7 @@
+ 	local out =3D GetSendFIFO()
+ 	local numitems =3D goods and table.getn(goods) or 0
+ 	local shopMobileID =3D GetShopMobileID(shop)
+-	printf(&quot;SendSellAccept : numitems=3D%d mobileserial=3D0x%08x\n&quot;,numitems,=
+shopMobileID)
++	printdebug(&quot;net&quot;,sprintf(&quot;SendSellAccept : numitems=3D%d mobileserial=3D0=
+x%08x\n&quot;,numitems,shopMobileID))
+ 	local len =3D 9 + (numitems * 6)
+ 	out:PushNetUint8(kPacket_Shop_Offer)
+ 	out:PushNetUint16(len)
+@@ -468,24 +218,17 @@
+ 	if (goods) then for k,good in pairs(goods) do
+         out:PushNetUint32(good.itemserial)	-- object serial
+         out:PushNetUint16(good.tradeamount)	-- amount
+-		print(&quot;item&quot;,sprintf(&quot;0x%08x&quot;,good.itemserial),good.tradeamount)
++		printdebug(&quot;net&quot;,sprintf(&quot;item : itemserial=3D0x%08x tradeamount=3D0x%04=
+x\n&quot;,good.itemserial,good.tradeamount))
+ 	end	end
+ 	out:SendPacket()
+ end
+ =
+
+-function ShopAccept (shop)
+-	local goods =3D {}
+-	for k,good in pairs(shop.goods) do if (good.tradeamount &gt; 0) then
+-		table.insert(goods,good)
+-	end end
+-	=
+
+-	if (shop.isSellShop) then
+-		SendSellAccept(shop,goods)
+-	else
+-		SendBuyAccept(shop,goods)
+-	end
+-end
+-
++-- trading with npcs can be triggered by typing &quot;vendor buy&quot; for example
++-- or by choosing buy from the contextmenu of the mobile (rightclick here,=
+ aos-feature, not supported by pol?)
++-- see also net.other.lua (for context/popup-menu)
++-- see also lib.uoids.lua for special layertypes (kLayer_NPCBuyRestock,NPC=
+BuyNoRestock,NPCSellContainer)
++-- see also net.container.lua for special containers =
+
++-- see also net.securetrade.lua for secure trading between players
+ =
+
+ --[[ strange things :
+ 	-- strange thing from runuo : base( 0x74 ) kPacket_Shop_Data :  m_Stream.=
+Write( (int)(BuyPack =3D=3D null ? Serial.MinusOne : BuyPack.Serial) );
+@@ -516,6 +259,3 @@
+ 			}
+ 		}
+ ]]--
+-
+-
+-
+
+Modified: trunk/lua/net/net.other.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.other.lua (original)
++++ trunk/lua/net/net.other.lua Sun Mar 16 22:11:48 2008
+@@ -117,7 +117,7 @@
+ 	local id =3D input:PopNetUint8()
+ 	local size =3D input:PopNetUint16()
+ 	local subcmd =3D input:PopNetUint16()
+---	printf(&quot;NET: Generic_Command id: 0x%02x size: %i subcmd: %i\n&quot;,id,size,=
+subcmd)
++	printdebug(&quot;net&quot;,sprintf(&quot;NET: kPacket_Generic_Command size=3D0x%04x subc=
+md=3D0x%04x\n&quot;,size,subcmd))
+ =
+
+ 	-- FastWalkInit : 6 keys (runuo's fifosize 0-255)
+ 	if (subcmd =3D=3D kPacket_Generic_SubCommand_FastWalkInit) then -- 0x01
+@@ -137,8 +137,9 @@
+ 	if (subcmd =3D=3D kPacket_Generic_SubCommand_CloseGenericGump) then -- 0x=
+04
+ 		local dialogId =3D input:PopNetUint32()
+ 		local buttonId =3D input:PopNetUint32()
+-		CloseServerSideGump(dialogId,buttonId)
+-		--print(&quot;NET: 0xbf sub=3D0x04 Close Gump - Servermessage&quot;)
++		local playermobile =3D GetPlayerMobile()
++		CloseServerSideGump(playermobile.serial,dialogId,buttonId)
++		printdebug(&quot;net&quot;,sprintf(&quot;NET: kPacket_Generic_SubCommand_CloseGenericGu=
+mp (0xbf sub=3D0x04)&quot;))
+ 	end
+ =
+
+ 	-- Party System
+@@ -255,7 +256,8 @@
+ 		spellbook.matrix[6] =3D input:PopNetUint8()
+ 		spellbook.matrix[7] =3D input:PopNetUint8()
+ 		spellbook.matrix[8] =3D input:PopNetUint8()
+-		printf(&quot;NET: New_Spellbook: serial=3D0x%08x itemId=3D0x%04x offset=3D0x%=
+04x\n&quot;,spellbook.serial, spellbook.itemid, spellbook.scrolloffset)
++		printdebug(&quot;net&quot;,sprintf(&quot;NET: kPacket_Generic_SubCommand_NewSpellbook s=
+erial=3D0x%08x itemId=3D0x%04x offset=3D0x%04x\n&quot;,
++								spellbook.serial, spellbook.itemid, spellbook.scrolloffset))
+ 		Open_Spellbook(spellbook)
+ 	end
+ =
+
+@@ -263,6 +265,8 @@
+ 	if (subcmd =3D=3D kPacket_Generic_SubCommand_RevisionCustomHouse) then	--=
+ 0x1D
+ 		local customhouseserial =3D input:PopNetUint32()
+ 		local customhouserevision =3D input:PopNetUint32()
++		printdebug(&quot;net&quot;,sprintf(&quot;NET: kPacket_Generic_SubCommand_RevisionCustom=
+House customhouseserial=3D0x%08x customhouserevision=3D0x%08x\n&quot;,
++								customhouseserial, customhouserevision))
+ =
+
+ 		local dyn =3D GetDynamic(customhouseserial)
+ 		-- check if houserevision exists
+@@ -271,11 +275,11 @@
+ 				-- compare new_houserevisiont with old_houserevision, if different cha=
+nge to new
+ 				if (customhouserevision~=3Ddyn.customhouserevision) then
+ 					Send_CustomHouseRevision(customhouseserial)
+-					print(&quot;CH: Old Custom House Revision request New&quot;)
++					printdebug(&quot;net&quot;,sprintf(&quot;NET: old-customhouse -&gt; request new revisio=
+n\n&quot;))
+ 				end
+ 			else
+ 				Send_CustomHouseRevision(customhouseserial)
+-				print(&quot;CH: Old Custom House Revision request New&quot;)
++				printdebug(&quot;net&quot;,sprintf(&quot;NET: old-customhouse -&gt; request new revision=
+\n&quot;))
+ 			end
+ 		end
+ 	end
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000776.html">[Iris-commit] [IRIS] r1964 - /trunk/lua/lib.uodragdrop.lua
+</A></li>
+	<LI>Next message: <A HREF="000778.html">[Iris-commit] [IRIS] r1966 - in /trunk/lua/gui: gui.container.lua gui.main.lua gui.pagedialog.lua gui.widget.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#777">[ date ]</a>
+              <a href="thread.html#777">[ thread ]</a>
+              <a href="subject.html#777">[ subject ]</a>
+              <a href="author.html#777">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,562 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1960 - in /trunk/lua: gui/gui.gumpparser.lua gui/gui.healthbar.lua gui/gui.paperdoll.lua lib.protocol.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-March/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1960%20-%20in%20/trunk/lua%3A%20gui/gui.gumpparser.lua%0A%20gui/gui.healthbar.lua%20gui/gui.paperdoll.lua%20lib.protocol.lua&In-Reply-To=%3C20080313223611.A2EC11524013%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000771.html">
+   <LINK REL="Next"  HREF="000773.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1960 - in /trunk/lua: gui/gui.gumpparser.lua gui/gui.healthbar.lua gui/gui.paperdoll.lua lib.protocol.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1960%20-%20in%20/trunk/lua%3A%20gui/gui.gumpparser.lua%0A%20gui/gui.healthbar.lua%20gui/gui.paperdoll.lua%20lib.protocol.lua&In-Reply-To=%3C20080313223611.A2EC11524013%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1960 - in /trunk/lua: gui/gui.gumpparser.lua gui/gui.healthbar.lua gui/gui.paperdoll.lua lib.protocol.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Thu Mar 13 23:36:08 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000771.html">[Iris-commit] [IRIS] r1959 - /trunk/lua/lib.unifont.lua
+</A></li>
+        <LI>Next message: <A HREF="000773.html">[Iris-commit] [IRIS] r1961 - in /trunk/lua: gui/gui.quit.lua	lib.3d.renderer.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#772">[ date ]</a>
+              <a href="thread.html#772">[ thread ]</a>
+              <a href="subject.html#772">[ subject ]</a>
+              <a href="author.html#772">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: sience
+Date: Thu Mar 13 23:36:07 2008
+New Revision: 1960
+
+Log:
+-gumps update, button functions moved to gumparray
+-paperdoll &amp; healthbar are working , skill &amp; journalgump not yet
+
+Modified:
+    trunk/lua/gui/gui.gumpparser.lua
+    trunk/lua/gui/gui.healthbar.lua
+    trunk/lua/gui/gui.paperdoll.lua
+    trunk/lua/lib.protocol.lua
+
+Modified: trunk/lua/gui/gui.gumpparser.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.gumpparser.lua (original)
++++ trunk/lua/gui/gui.gumpparser.lua Thu Mar 13 23:36:07 2008
+@@ -160,11 +160,6 @@
+ =
+
+ 	-- set Dialog ID / Serial
+ 	dialog.dialogId =3D Gumpdata.dialogId
+-	=
+
+-	-- if dialogid is a clientside dialog (found in clientside dialoglist)...=
+ turn of send packets and turn on function handler
+-	--if dialog.dialogId =3D &quot;paperdoll&quot; then
+-	--	gClientsideManualGump=3Dtrue
+-	--end
+ =
+
+ 	dialog.Close =3D function (dialog)
+ 		gGumpPosition[dialog.dialogId] =3D { x=3Ddialog.rootwidget.gfx:GetDerive=
+dLeft() , y=3Ddialog.rootwidget.gfx:GetDerivedTop() }
+@@ -181,7 +176,13 @@
+ 	dialog.uo_text =3D {}
+ =
+
+ 	dialog.onMouseDown =3D function (widget,mousebutton)
+-		if (mousebutton =3D=3D 2) then CloseServerSideGump(Gumpdata.playerid, Gu=
+mpdata.dialogId, 0) end
++		if (mousebutton =3D=3D 2) then
++			if (Clientsidemode) then
++				-- TODO: close clientside gump here !!!!!!!!
++			else
++				CloseServerSideGump(Gumpdata.playerid, Gumpdata.dialogId, 0)
++			end
++		end
+ 		if (mousebutton =3D=3D 1) then widget.dialog:BringToFront() gui.StartMov=
+eDialog(widget.dialog.rootwidget) end
+ 	end
+ =
+
+@@ -328,21 +329,20 @@
+ 			--				&lt;released-id&gt; and &lt;pressed-id&gt; specify the buttongraphic. If pres=
+sed check for &lt;return-value&gt;.
+ 			--				Use &lt;page-id&gt; to switch between pages and &lt;quit&gt;=3D1/0 to close t=
+he gump.
+ 			elseif ((command =3D=3D &quot;button&quot;) and (table.getn(bToken)&gt;=3D 7)) then	=
+-- &gt;=3D7 because pol buttons returns 7 or 8 arguments
+-				local widget =3D MakeGumpButton (curparent,bToken[4],bToken[4],bToken[=
+5],bToken[2],bToken[3],nil,nil,false)
+-				if (bToken[8]) then widget.returnmsg =3D bToken[8] end
+-				widget.page			=3D tonumber(bToken[7])
+-
+ 				if (Clientsidemode) then
+-					dialog.controls[widget.returnmsg] =3D widget
++					local widget =3D MakeGumpButtonFunctionOnClick (curparent,bToken[4],b=
+Token[4],bToken[5],bToken[2],bToken[3],
++																	nil,nil,Gumpdata.functions[ tonumber(bToken[8]) ])
+ 				else
++					local widget =3D MakeGumpButton (curparent,bToken[4],bToken[4],bToken=
+[5],bToken[2],bToken[3],nil,nil,false)
++					if (bToken[8]) then widget.returnmsg =3D bToken[8] end
++					widget.page			=3D tonumber(bToken[7])
+ 					widget.onLeftClick =3D function (widget)
+ 											if (widget.page &gt; 0 and not(widget.page &gt; table.getn(pages)) ) =
+then
+ 												printdebug(&quot;gump&quot;,&quot;Parsegump Button: Switch to Page &quot;..widget.=
+page..&quot;/&quot;..table.getn(pages))
+ 												widget.dialog:ShowPage(widget.page)
+ 											elseif (widget.returnmsg) then
+ 												printdebug(&quot;gump&quot;,&quot;Button pressed -&gt; Send button return_messag=
+e: &quot;..widget.returnmsg)
+-												GumpReturnMsg(Gumpdata.playerid, Gumpdata.dialogId, widget.ret=
+urnmsg, ServerSideGump_GetParams(Gumpdata.dialogId))
+-												widget.dialog:Close()
++												CloseServerSideGump(Gumpdata.playerid, Gumpdata.dialogId, widg=
+et.returnmsg)
+ 											end
+ 										end
+ 				end
+@@ -360,15 +360,12 @@
+ =
+
+ 				if not(Clientsidemode) then
+ 					widget.onLeftClick =3D function (widget)
+-											if (widget.returnmsg) then
+-												printdebug(&quot;gump&quot;,&quot;Button pressed -&gt; Send buttontileart return=
+_message: &quot;..widget.returnmsg)
+-												GumpReturnMsg(Gumpdata.playerid, Gumpdata.dialogId, widget.ret=
+urnmsg, ServerSideGump_GetParams(Gumpdata.dialogId))
+-											end
+ 											if (widget.page &gt; 0 and not(widget.page &gt; table.getn(pages)) ) =
+then
+-												printdebug(&quot;gump&quot;,&quot;Parsegump Button: Switch to Page &quot;..widget.=
+page..&quot;/&quot;..table.getn(pages))
++												printdebug(&quot;gump&quot;,&quot;Parsegump buttontileart: Switch to Page &quot;..=
+widget.page..&quot;/&quot;..table.getn(pages))
+ 												widget.dialog:ShowPage(widget.page)
+ 											else
+-												widget.dialog:Close()
++												printdebug(&quot;gump&quot;,&quot;Parsegump buttontileart: pressed -&gt; Send bu=
+tton return_message: &quot;..widget.returnmsg)
++												CloseServerSideGump(Gumpdata.playerid, Gumpdata.dialogId, widg=
+et.returnmsg)
+ 											end
+ 										end
+ 				end
+@@ -524,11 +521,11 @@
+ 		printdebug(&quot;gump&quot;,&quot;ServerSideGump page &quot;,page.pagenum,&quot; childs: &quot;,myc)
+ 	end
+ =
+
++	-- hide all except page 0 and 1
++	dialog:ShowPage(1)
++
+ 	if not(Clientsidemode) then
+ 		gServerSideGump[Gumpdata.dialogId] =3D dialog
+-	=
+
+-		-- hide all except page 0 and 1
+-		dialog:ShowPage(1)
+ 	else
+ 		return dialog
+ 	end
+
+Modified: trunk/lua/gui/gui.healthbar.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.healthbar.lua (original)
++++ trunk/lua/gui/gui.healthbar.lua Thu Mar 13 23:36:07 2008
+@@ -24,7 +24,7 @@
+ local npchealthGump =3D {}
+ npchealthGump.dialogId =3D 1234
+ npchealthGump.x =3D 0
+-npchealthGump.y =3D 0
++npchealthGump.y =3D 60
+ npchealthGump.Data =3D
+ 	 &quot;{ page 0 }&quot; ..
+ 	 &quot;{ gumppic 0 0 2052 healthbar }&quot; ..
+@@ -137,9 +137,7 @@
+ =
+
+ 	-- widgets in this dialog handle mouse
+ 	for k,v in pairs(dialog.childs) do v.mbIgnoreMouseOver =3D false end
+-	=
+
+-	dialog.rootwidget.gfx:SetPos(x,y)
+-	=
+
++
+ 	dialog.onMouseDown =3D function (widget,mousebutton)
+ 		if (mousebutton =3D=3D 2) then widget.dialog:Close() end
+ 		if (mousebutton =3D=3D 1) then widget.dialog:BringToFront() gui.StartMov=
+eDialog(widget.dialog.rootwidget) end
+
+Modified: trunk/lua/gui/gui.paperdoll.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.paperdoll.lua (original)
++++ trunk/lua/gui/gui.paperdoll.lua Thu Mar 13 23:36:07 2008
+@@ -6,44 +6,106 @@
+ -- Created 08.03.2008 12:25:56, with GumpStudio &amp; Iris2 Lua Export Plugin
+ -- Exported Iris2 GumpExporter ver 1.0.
+ local playerPaperdoll =3D {}
+-playerPaperdoll.dialogId =3D 1234
+-playerPaperdoll.x =3D 10
+-playerPaperdoll.x =3D 10
++playerPaperdoll.dialogId =3D 7493484
++playerPaperdoll.x =3D 120
++playerPaperdoll.y =3D 100
+ playerPaperdoll.Data =3D
+  &quot;{ page 0 }&quot; ..
+  &quot;{ gumppic 4 4 2000 }&quot; ..
+- &quot;{ button 187 50 2031 2032 1 0 btnhelp }&quot; ..
+- &quot;{ button 187 76 2006 2007 1 0 btnoptions }&quot; ..
++ &quot;{ button 187 50 2031 2032 1 0 0 }&quot; ..
++ &quot;{ button 187 76 2006 2007 1 0 1 }&quot; ..
+ -- &quot;{ croppedtext 36 263 200 40 0 0 paperdollname }&quot; ..
+  &quot;{ text 36 263 0 0 paperdollname }&quot; ..
+- &quot;{ button 84 6 113 113 1 0 btnvirtues }&quot; ..
+- &quot;{ button 187 102 2009 2010 1 0 btnquit }&quot; ..
+- &quot;{ button 187 130 22453 22455 1 0 btnquests }&quot; ..
+- &quot;{ button 187 156 2015 2016 1 0 btnskills }&quot; ..
+- &quot;{ button 187 181 22450 22452 1 0 btnguild }&quot; ..
+- &quot;{ button 187 205 2021 2022 1 0 btnpeace }&quot; ..
+- &quot;{ button 187 233 2027 2028 1 0 btnstatus }&quot;
++ &quot;{ button 84 6 113 113 1 0 2 }&quot; ..
++ &quot;{ button 187 102 2009 2010 1 0 3 }&quot; ..
++ &quot;{ button 187 130 22453 22455 1 0 4 }&quot; ..
++ &quot;{ button 187 156 2015 2016 1 0 5 }&quot; ..
++ &quot;{ button 187 181 22450 22452 1 0 6 }&quot; ..
++ &quot;{ button 187 205 2021 2022 1 0 7 }&quot; ..
++ &quot;{ button 187 233 2027 2028 1 0 8 }&quot;
+ playerPaperdoll.textline =3D {
+  [0] =3D &quot;paperdoll_name&quot;,
+ }
++playerPaperdoll.functions =3D {
++ -- help
++ [0]	=3D function (widget,mousebutton) if (mousebutton =3D=3D 1) then Send=
+_RequestHelp() end end,
++ -- options
++ [1]	=3D function (widget,mousebutton) end,
++ -- virtues
++ [2]	=3D function (widget,mousebutton)
++			if (mousebutton =3D=3D 1) then
++				local playermobile =3D GetPlayerMobile()
++				--warning ! playerserial might be wrong here, usually this param is th=
+e gump-serial&quot;
++				GumpReturnMsg(playermobile.serial, hex2num(&quot;0x000001CD&quot;), hex2num(&quot;0x0=
+0000001&quot;), nil, hex2num(&quot;0x00000001&quot;), playermobile.serial)
++			end
++		  end,
++ -- quit
++ [3]	=3D function (widget,mousebutton) if (mousebutton =3D=3D 1) then Open=
+Quit() end end,
++ -- quests
++ [4]	=3D function (widget,mousebutton)
++			if (mousebutton =3D=3D 1) then
++				Send_AOSCommand(kPacket_AOS_Command_QuestGumpRequest,gPlayerBodySerial)
++			end
++		  end,
++ -- skills
++ [5]	=3D function (widget,mousebutton) if (mousebutton =3D=3D 1) then Togg=
+leSkill() end end,
++ -- guild
++ [6]	=3D function (widget,mousebutton)
++			if (mousebutton =3D=3D 1) then
++				Send_AOSCommand(kPacket_AOS_Command_GuildGumpRequest,gPlayerBodySerial)
++			end
++		  end,
++ -- peace
++ [7]	=3D function (widget,mousebutton)
++			if (mousebutton =3D=3D 1) then
++				if (gActWarmode=3D=3DgWarmode_Normal) then
++					Send_CombatMode(gWarmode_Combat)
++					widget.mat_normal 	=3D GetGumpMat(hex2num(&quot;0x7E8&quot;))
++					widget.mat_pressed 	=3D GetGumpMat(hex2num(&quot;0x7E9&quot;))
++					widget.mat_over 	=3D GetGumpMat(hex2num(&quot;0x7EA&quot;))
++				else
++					Send_CombatMode(gWarmode_Normal)
++					widget.mat_normal 	=3D GetGumpMat(hex2num(&quot;0x7E5&quot;))
++					widget.mat_pressed 	=3D GetGumpMat(hex2num(&quot;0x7E6&quot;))
++					widget.mat_over 	=3D GetGumpMat(hex2num(&quot;0x7E7&quot;))
++				end
++			end
++		  end,
++ -- status
++ [8]	=3D function (widget,mousebutton)
++ 			if (mousebutton =3D=3D 1) then
++ 				ToggleStatusAos()
++ 			end
++ 		  end,
++}
++
+ -- Created 08.03.2008 12:25:56, with GumpStudio &amp; Iris2 Lua Export Plugin
+ -- Exported Iris2 GumpExporter ver 1.0.
+ local npcPaperdoll =3D {}
+-npcPaperdoll.dialogId =3D 1235
+-npcPaperdoll.x =3D 10
+-npcPaperdoll.x =3D 10
++npcPaperdoll.dialogId =3D 89878734
++npcPaperdoll.x =3D 120
++npcPaperdoll.y =3D 100
+ npcPaperdoll.Data =3D
+  &quot;{ page 0 }&quot; ..
+  &quot;{ gumppic 4 4 2001 }&quot; ..
+ -- &quot;{ croppedtext 36 263 200 40 0 0 paperdollname }&quot; ..
+  &quot;{ text 36 263 0 0 paperdollname }&quot; ..
+- &quot;{ button 187 233 2027 2028 1 0 btnstatus }&quot;
++ &quot;{ button 187 233 2027 2028 1 0 0 }&quot;
+ npcPaperdoll.textline =3D {
+  [0] =3D &quot;paperdoll_name&quot;,
+ }
++npcPaperdoll.functions =3D {
++ -- status
++ [0]	=3D function (widget,mousebutton)
++			if (mousebutton =3D=3D 1) then
++				widget.gfx:SetMaterial(widget.mat_pressed)
++				OpenHealthbar(widget.dialog.uoPaperdoll.mobile)
++			end
++		  end
++}
+ =
+
+ local kGumpBaseId_Male	=3D 50000
+-local kGumpBaseId_Female	=3D 60000
++local kGumpBaseId_Female=3D 60000
+ =
+
+ -- WARNING ! this is not a complete list (see gLayerType for that) , e.g. =
+kLayer_Mound =3D 0x19 is not in here
+ gLayerOrder =3D {
+@@ -246,126 +308,22 @@
+ 	-- create paperdoll dialog if neccessary
+ 	local dialog =3D paperdoll.dialog
+ 	if (not dialog) then
+-		-- old gfm
+-		-- ---------------------------------------------------------------------=
+-----
+---		dialog =3D CreateGumpDlgFromGfm(paperdoll.bIsPlayer and datapath..&quot;gfm=
+/player_paperdoll.gfm&quot; or datapath..&quot;gfm/npc_paperdoll.gfm&quot;)
+-		-- new gumpparser
+-		-- ---------------------------------------------------------------------=
+-----
+ 		if (paperdoll.bIsPlayer) then
+ 			dialog =3D GumpParser( playerPaperdoll, true )
+ 		else
+ 			dialog =3D GumpParser( npcPaperdoll, true )
+ 		end
+-		-- ---------------------------------------------------------------------=
+-----
+ =
+
+ 		paperdoll.dialog =3D dialog
+ 		dialog.uoPaperdoll =3D paperdoll
+-		dialog.rootwidget.gfx:SetPos(120,100)
+-		=
+
++
+ 		dialog.onMouseDown =3D function (widget,mousebutton)
+-			if (mousebutton =3D=3D 2) then widget.dialog.uoPaperdoll:Close() end
++			if (mousebutton =3D=3D 2) then ClosePaperdoll(paperdoll) end
+ 			if (mousebutton =3D=3D 1) then widget.dialog:BringToFront() gui.StartMo=
+veDialog(widget.dialog.rootwidget) end
+ 		end
+-
+-		if (paperdoll.bIsPlayer) then
+-			-- requests VirtuesGump
+-			dialog.controls[&quot;btnvirtues&quot;].onMouseDown =3D function (widget,mousebut=
+ton)
+-														if (mousebutton =3D=3D 1) then
+-															widget.gfx:SetMaterial(widget.mat_pressed)
+-															print(&quot;btn_virtues,GumpReturnMsg : warning ! playerserial m=
+ight be wrong here, usually this param is the gump-serial&quot;)
+-															GumpReturnMsg(gPlayerBodySerial, hex2num(&quot;0x000001CD&quot;),
+-																		  hex2num(&quot;0x00000001&quot;), nil,
+-																		  hex2num(&quot;0x00000001&quot;), gPlayerBodySerial)
+-														end
+-													end
+-
+-			-- requests AosStats		=
+
+-			dialog.controls[&quot;btnstatus&quot;].onMouseDown =3D function (widget,mousebutt=
+on)
+-														if (mousebutton =3D=3D 1) then
+-															widget.gfx:SetMaterial(widget.mat_pressed)
+-															ToggleStatusAos()
+-														end
+-													end
+-
+-			-- request QuestGump (must be supported by Serversidegumps)
+-			dialog.controls[&quot;btnquests&quot;].onMouseDown =3D function (widget,mousebutt=
+on)
+-															if (mousebutton =3D=3D 1) then
+-																widget.gfx:SetMaterial(widget.mat_pressed)
+-																Send_AOSCommand(kPacket_AOS_Command_QuestGumpRequest,gPlay=
+erBodySerial)
+-															end
+-														end
+-
+-			-- request GuildGump (must be supported by Serversidegumps)
+-			dialog.controls[&quot;btnguild&quot;].onMouseDown =3D function (widget,mousebutto=
+n)
+-															if (mousebutton =3D=3D 1) then
+-																widget.gfx:SetMaterial(widget.mat_pressed)
+-																Send_AOSCommand(kPacket_AOS_Command_GuildGumpRequest,gPlay=
+erBodySerial)
+-															end
+-														end
+-
+-			-- request Warmode and change the Peace/Warmode Button visual
+-			dialog.controls[&quot;btnpeace&quot;].onMouseDown =3D function (widget,mousebutto=
+n)
+-															if (gActWarmode=3D=3DgWarmode_Normal) then
+-																Send_CombatMode(gWarmode_Combat)
+-																widget.mat_normal 	=3D GetGumpMat(hex2num(&quot;0x7E8&quot;))
+-																widget.mat_pressed 	=3D GetGumpMat(hex2num(&quot;0x7E9&quot;))
+-																widget.mat_over 	=3D GetGumpMat(hex2num(&quot;0x7EA&quot;))
+-																widget.gfx:SetMaterial(widget.mat_pressed)
+-															else
+-																Send_CombatMode(gWarmode_Normal)
+-																widget.mat_normal 	=3D GetGumpMat(hex2num(&quot;0x7E5&quot;))
+-																widget.mat_pressed 	=3D GetGumpMat(hex2num(&quot;0x7E6&quot;))
+-																widget.mat_over 	=3D GetGumpMat(hex2num(&quot;0x7E7&quot;))
+-																widget.gfx:SetMaterial(widget.mat_pressed)
+-															end
+-														end
+-			-- request HelpGump (must be supported by Serversidegumps)
+-			dialog.controls[&quot;btnhelp&quot;].onMouseDown =3D function (widget,mousebutton)
+-															if (mousebutton =3D=3D 1) then
+-																widget.gfx:SetMaterial(widget.mat_pressed)
+-																Send_RequestHelp()
+-															end
+-														end
+-			-- request skill gump
+-			dialog.controls[&quot;btnskills&quot;].onMouseDown =3D function (widget,mousebutt=
+on)
+-															if (mousebutton =3D=3D 1) then
+-																widget.gfx:SetMaterial(widget.mat_pressed)
+-																ToggleSkill()
+-															end
+-														end
+-			dialog.controls[&quot;btnquit&quot;].onMouseDown =3D function (widget,mousebutton)
+-															if (mousebutton =3D=3D 1) then
+-																OpenQuit()
+-															end
+-														end
+---			dialog.controls[&quot;btnscroll&quot;].onMouseDown =3D function (widget,mousebu=
+tton)
+---															if (mousebutton =3D=3D 1) then
+---																AddFadeLines(&quot;btn_scroll&quot;)
+---															end
+---														end
+---			dialog.controls[&quot;btnparty&quot;].onMouseDown =3D function (widget,mousebut=
+ton)
+---															if (mousebutton =3D=3D 1) then
+---																AddFadeLines(&quot;btn_party&quot;)
+---															end
+---														end
+---			dialog.controls[&quot;btnspecialAbilities&quot;].onMouseDown =3D function (widg=
+et,mousebutton)
+---															if (mousebutton =3D=3D 1) then
+---																AddFadeLines(&quot;btn_specialAbilities&quot;)
+---															end
+---														end
+-
+-		else
+-			dialog.controls[&quot;btnstatus&quot;].onMouseDown =3D function (widget,mousebutt=
+on)
+-															if (mousebutton =3D=3D 1) then
+-																widget.gfx:SetMaterial(widget.mat_pressed)
+-																OpenHealthbar(widget.dialog.uoPaperdoll.mobile)
+-															end
+-														end
+-		end
+-		for k,v in pairs(dialog.childs) do v.mbIgnoreMouseOver =3D false end
+-	end
+-
+-	-- visually change the Peace/Warmode Button when opening the Paperdoll
++	end
++
++	-- visually change the Peace/Warmode Button when opening the Paperdoll wh=
+en in combat mode
+ 	if (gActWarmode=3D=3DgWarmode_Combat) then
+ 		local widget =3D dialog.controls[&quot;btnpeace&quot;]
+ 		if (widget) then
+@@ -432,12 +390,10 @@
+ 	if (gPlayerBodySerial and gPaperdolls[gPlayerBodySerial]) then
+ 		gPaperdolls[gPlayerBodySerial]:Close()
+ 	else
+-		--printf(&quot;opening player paperdoll&quot;)
+-
++		-- open player paperdoll
+ 		local playermobile =3D GetPlayerMobile()
+ 		=
+
+ 		if (playermobile) then =
+
+-			--print(&quot;player serial&quot;,playermobile.serial)
+ 			Send_DoubleClick(playermobile.serial)
+ 			=
+
+ 			Send_ClientQuery(gRequest_States,playermobile.serial)
+
+Modified: trunk/lua/lib.protocol.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.protocol.lua (original)
++++ trunk/lua/lib.protocol.lua Thu Mar 13 23:36:07 2008
+@@ -159,7 +159,6 @@
+ =
+
+ -- request serverside helppage
+ function Send_RequestHelp()
+-	print(&quot;NET: Send_RequestHelp&quot;)
+ 	local out =3D GetSendFIFO()
+ 	out:PushNetUint8(kPacket_Request_Assistance)
+ 	for i=3D1, 257 do
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000771.html">[Iris-commit] [IRIS] r1959 - /trunk/lua/lib.unifont.lua
+</A></li>
+	<LI>Next message: <A HREF="000773.html">[Iris-commit] [IRIS] r1961 - in /trunk/lua: gui/gui.quit.lua	lib.3d.renderer.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#772">[ date ]</a>
+              <a href="thread.html#772">[ thread ]</a>
+              <a href="subject.html#772">[ subject ]</a>
+              <a href="author.html#772">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

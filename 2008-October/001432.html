@@ -1,0 +1,293 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2627 - /trunk/lua/lib.packetvideo.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-October/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2627%20-%20/trunk/lua/lib.packetvideo.lua&In-Reply-To=%3C20081022212044.A3DD11C1863F%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001431.html">
+   <LINK REL="Next"  HREF="001433.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2627 - /trunk/lua/lib.packetvideo.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2627%20-%20/trunk/lua/lib.packetvideo.lua&In-Reply-To=%3C20081022212044.A3DD11C1863F%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2627 - /trunk/lua/lib.packetvideo.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Wed Oct 22 23:20:44 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001431.html">[Iris-commit] [IRIS] r2626 - in /trunk: bin/iris2.exe	lua/lib.3d.dynamic.lua
+</A></li>
+        <LI>Next message: <A HREF="001433.html">[Iris-commit] [IRIS] r2628 - in /trunk/lua: lib.3d.mousepick.lua lib.3d.renderer.lua lib.packetvideo.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1432">[ date ]</a>
+              <a href="thread.html#1432">[ thread ]</a>
+              <a href="subject.html#1432">[ subject ]</a>
+              <a href="author.html#1432">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Wed Oct 22 23:20:44 2008
+New Revision: 2627
+
+Log:
+packetvideo load/save working
+
+Modified:
+    trunk/lua/lib.packetvideo.lua
+
+Modified: trunk/lua/lib.packetvideo.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.packetvideo.lua (original)
++++ trunk/lua/lib.packetvideo.lua Wed Oct 22 23:20:44 2008
+@@ -11,24 +11,34 @@
+ kPacketVideoChunkType_Pos	=3D 3
+ =
+
+ gPacketVideoKnownBlockSend =3D {}
+-gPacketVideoKnownBlockSend[kPacket_Single_Click] =3D true
+ gPacketVideoKnownBlockSend[kPacket_ExtBundledPacket] =3D true -- request p=
+arty pos
++gPacketVideoKnownBlockSend[kPacket_Generic_Command] =3D true -- ??
++gPacketVideoKnownBlockSend[kPacket_Take_Object] =3D true -- looter
++gPacketVideoKnownBlockSend[kPacket_Double_Click] =3D true -- looter
++gPacketVideoKnownBlockSend[kPacket_Single_Click] =3D true -- mobname reque=
+st
+ =
+
+ gPacketVideoNoPlaybackPackets =3D {}
+ gPacketVideoNoPlaybackPackets[kPacket_Ping] =3D true
+ gPacketVideoNoPlaybackPackets[kPacket_Accept_Movement_Resync_Request] =3D =
+true
+ gPacketVideoNoPlaybackPackets[kPacket_Block_Movement] =3D true
++gPacketVideoNoPlaybackPackets[kPacket_Target] =3D true
++
++gPacketVideoFileName =3D &quot;../myvid.ipv&quot;
+ =
+
+ =
+
+-
+-
+-function PacketVideo_Recording_Start() PacketVideo_ClearData() gPacketVide=
+oRecording =3D true end
++function PacketVideo_Recording_Start() =
+
++	gPacketVideoFileName =3D &quot;../myvid.&quot;..(os.time() or Client_GetTicks())..&quot;=
+.ipv&quot;
++	PacketVideo_ClearData() =
+
++	gPacketVideoRecording =3D true =
+
++end
+ function PacketVideo_Recording_End() gPacketVideoRecording =3D false end
+ =
+
+ =
+
+ function PacketVideo_Playback() =
+
+ 	if (not gPacketVideoData[1]) then return end
+ 	job.create(function()
++		local oldpos =3D {gPlayerXLoc,gPlayerYLoc,gPlayerZLoc,gPlayerDir}
++		local oldfacet =3D MapGetMapIndex()
+ 		print(&quot;### packetvideo playback start&quot;,#gPacketVideoData)
+ 		gPacketVideoPlaybackRunning =3D true
+ 		local playback_start_t =3D Client_GetTicks()
+@@ -36,15 +46,16 @@
+ 		for k,chunk in pairs(gPacketVideoData) do
+ 			local t =3D Client_GetTicks()
+ 			local framet =3D chunk.t - record_start_t + playback_start_t
+-			print(&quot;### packetvideo playback step, wait=3D&quot;,framet,chunk.chunktype)
++			--~ print(&quot;### packetvideo playback step, wait=3D&quot;,framet,chunk.chunkty=
+pe)
+ 			if (framet &gt; t) then job.wait(framet-t) end
+ 			=
+
+ 			if (chunk.chunktype =3D=3D kPacketVideoChunkType_Recv) then
+-				local iId =3D chunk.data:PeekNetUint8(0)
++				local headlen =3D 1+4+4
++				local iId =3D chunk.data:PeekNetUint8(headlen)
+ 				if (not gPacketVideoNoPlaybackPackets[iId]) then =
+
+ 					local fifo =3D CreateFIFO()
+-					fifo:PushFIFOPartRaw(chunk.data)
+-					print(&quot;playback packet&quot;,chunk.data:Size(),fifo:Size())
++					fifo:PushFIFOPartRaw(chunk.data,headlen)
++					--~ print(&quot;playback packet&quot;,chunk.data:Size(),fifo:Size())
+ 					local iPacketSize =3D fifo:Size()
+ 					HandlePacket(fifo,iId,iPacketSize)
+ 					fifo:Destroy()
+@@ -57,12 +68,23 @@
+ 		end
+ 		gPacketVideoPlaybackRunning =3D false
+ 		print(&quot;### packetvideo playback end&quot;)
++		MapChangeRequest(oldfacet)
++		SetPlayerPos(unpack(oldpos)) =
+
++		Send_Movement_Resync_Request()
+ 	end)
+ end
+ =
+
+ =
+
+ =
+
+-
++RegisterListener(&quot;Hook_StartInGame&quot;,function ()
++	local pv =3D gCommandLineSwitches[&quot;-pv&quot;]
++	if (not pv) then return end
++	local filename =3D gCommandLineArguments[pv+1]
++	if (filename) then =
+
++		PacketVideo_Load(filename)
++		--~ PacketVideo_Playback()
++	end
++end)
+ =
+
+ -- ***** ***** ***** ***** ***** hooks
+ =
+
+@@ -73,24 +95,84 @@
+ 	gPacketVideoData =3D {} =
+
+ end
+ =
+
++function MyPeek32	(fifo,offset)
++	-- should be fifo:PeekNetUint32(1)
++	return	fifo:PeekNetUint8(offset+0) +
++			fifo:PeekNetUint8(offset+1)*256 +
++			fifo:PeekNetUint8(offset+2)*256*256 +
++			fifo:PeekNetUint8(offset+3)*256*256*256 =
+
++end
++
++function PacketVideo_Load	(filename)
++	PacketVideo_ClearData()
++	local fifo =3D CreateFIFO()
++	fifo:ReadFromFile(filename)
++	print(&quot;### packetvideo load&quot;,filename,fifo:Size())
++	while fifo:Size() &gt; 0 do
++		local ctype	=3D fifo:PeekNetUint8(0)
++		local t		=3D MyPeek32(fifo,1)
++		local hex =3D &quot;&quot;
++		for i=3D0,1+4+4 do hex =3D hex .. sprintf(&quot;%02x &quot;,fifo:PeekNetUint8(i)) =
+end
++		--~ print(&quot;pv load step&quot;,ctype,t,fifo:PeekNetUint32(1+4),hex)
++		if (ctype =3D=3D kPacketVideoChunkType_Recv or =
+
++			ctype =3D=3D kPacketVideoChunkType_Send) then
++			local len	=3D MyPeek32(fifo,1+4)
++			local data =3D CreateFIFO()
++			data:PushFIFOPartRaw(fifo,0,len+1+4+4)
++			table.insert(gPacketVideoData,{chunktype=3Dctype,t=3Dt,data=3Ddata})
++			fifo:PopRaw(1+4+4+len)
++		elseif (ctype =3D=3D kPacketVideoChunkType_Pos) then
++			fifo:PopRaw(1+4)
++			local xloc		=3D fifo:PopNetUint16()
++			local yloc		=3D fifo:PopNetUint16()
++			local zloc		=3D fifo:PopNetInt16()
++			local fulldir	=3D fifo:PopNetUint8()
++			table.insert(gPacketVideoData,{chunktype=3Dctype,t=3Dt,data=3D{xloc,ylo=
+c,zloc,fulldir}})
++		end      =
+
++	end
++	fifo:Destroy()
++end
++
+ function PacketVideo_LogRecv(fifo,len)
+ 	if (not gPacketVideoRecording) then return end
++	local ctype =3D kPacketVideoChunkType_Recv
++	local t =3D Client_GetTicks()
+ 	local data =3D CreateFIFO()
++	data:PushUint8(ctype)
++	data:PushUint32(t)
++	data:PushUint32(len)
+ 	data:PushFIFOPartRaw(fifo,0,len)
+-	assert(data:Size() =3D=3D len)
+-	table.insert(gPacketVideoData,{chunktype=3DkPacketVideoChunkType_Recv,t=
+=3DClient_GetTicks(),data=3Ddata})
++	table.insert(gPacketVideoData,{chunktype=3Dctype,t=3Dt,data=3Ddata})
++	if (gPacketVideoFileName) then data:AppendToFile(gPacketVideoFileName) end
+ end
+ =
+
+ function PacketVideo_LogSend(fifo,len)
+ 	if (not gPacketVideoRecording) then return end
++	local ctype =3D kPacketVideoChunkType_Send
++	local t =3D Client_GetTicks()
+ 	local data =3D CreateFIFO()
++	data:PushUint8(ctype)
++	data:PushUint32(t)
++	data:PushUint32(len)
+ 	data:PushFIFOPartRaw(fifo,0,len)
+-	table.insert(gPacketVideoData,{chunktype=3DkPacketVideoChunkType_Send,t=
+=3DClient_GetTicks(),data=3Ddata})
++	table.insert(gPacketVideoData,{chunktype=3Dctype,t=3Dt,data=3Ddata})
++	if (gPacketVideoFileName) then data:AppendToFile(gPacketVideoFileName) end
+ end
+ =
+
+ function PacketVideo_LogPlayerPos(xloc,yloc,zloc,fulldir)
+ 	if (not gPacketVideoRecording) then return end
+-	table.insert(gPacketVideoData,{chunktype=3DkPacketVideoChunkType_Pos,t=3D=
+Client_GetTicks(),data=3D{xloc,yloc,zloc,fulldir}})
++	local ctype =3D kPacketVideoChunkType_Pos
++	local t =3D Client_GetTicks()
++	local data =3D CreateFIFO()
++	data:PushUint8(ctype)
++	data:PushUint32(t)
++	data:PushNetUint16(xloc)
++	data:PushNetUint16(yloc)
++	data:PushNetInt16(zloc)
++	data:PushNetUint8(fulldir)
++	table.insert(gPacketVideoData,{chunktype=3Dctype,t=3Dt,data=3D{xloc,yloc,=
+zloc,fulldir}})
++	if (gPacketVideoFileName) then data:AppendToFile(gPacketVideoFileName) end
++	data:Destroy()
+ end
+ =
+
+ function PacketVideo_BlockSend(fifo) =
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001431.html">[Iris-commit] [IRIS] r2626 - in /trunk: bin/iris2.exe	lua/lib.3d.dynamic.lua
+</A></li>
+	<LI>Next message: <A HREF="001433.html">[Iris-commit] [IRIS] r2628 - in /trunk/lua: lib.3d.mousepick.lua lib.3d.renderer.lua lib.packetvideo.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1432">[ date ]</a>
+              <a href="thread.html#1432">[ thread ]</a>
+              <a href="subject.html#1432">[ subject ]</a>
+              <a href="author.html#1432">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,595 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2496 - in /trunk: include/data_anim.h lua/lib.2d.mobile.lua lua/lib.2d.spriteblock.lua lua/lib.mapblock.2d.statics.lua lua/lib.uoanim.lua src/data_anim_L.cpp
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-October/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2496%20-%20in%20/trunk%3A%20include/data_anim.h%0A%20lua/lib.2d.mobile.lua%20lua/lib.2d.spriteblock.lua%0A%20lua/lib.mapblock.2d.statics.lua%20lua/lib.uoanim.lua%20src/data_anim_L.cpp&In-Reply-To=%3C20081002211854.87F7B1524030%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001300.html">
+   <LINK REL="Next"  HREF="001302.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2496 - in /trunk: include/data_anim.h lua/lib.2d.mobile.lua lua/lib.2d.spriteblock.lua lua/lib.mapblock.2d.statics.lua lua/lib.uoanim.lua src/data_anim_L.cpp</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2496%20-%20in%20/trunk%3A%20include/data_anim.h%0A%20lua/lib.2d.mobile.lua%20lua/lib.2d.spriteblock.lua%0A%20lua/lib.mapblock.2d.statics.lua%20lua/lib.uoanim.lua%20src/data_anim_L.cpp&In-Reply-To=%3C20081002211854.87F7B1524030%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2496 - in /trunk: include/data_anim.h lua/lib.2d.mobile.lua lua/lib.2d.spriteblock.lua lua/lib.mapblock.2d.statics.lua lua/lib.uoanim.lua src/data_anim_L.cpp">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Thu Oct  2 23:18:54 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001300.html">[Iris-commit] [IRIS] r2495 - /trunk/bin/iris2.exe
+</A></li>
+        <LI>Next message: <A HREF="001302.html">[Iris-commit] [IRIS] r2497 - in /trunk/lua: lib.2d.dynamic.lua lib.2d.mobile.lua lib.uoanim.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1301">[ date ]</a>
+              <a href="thread.html#1301">[ thread ]</a>
+              <a href="subject.html#1301">[ subject ]</a>
+              <a href="author.html#1301">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Thu Oct  2 23:18:53 2008
+New Revision: 2496
+
+Log:
+fixed/secured 2d anim loader, added getframecount, generalized 2dmobile-add=
+sprite a bit and added part of it to 2d-spriteblock, will soon be used for =
+corpses and effect-anims as well,  extended uoanim lua code a bit
+
+Modified:
+    trunk/include/data_anim.h
+    trunk/lua/lib.2d.mobile.lua
+    trunk/lua/lib.2d.spriteblock.lua
+    trunk/lua/lib.mapblock.2d.statics.lua
+    trunk/lua/lib.uoanim.lua
+    trunk/src/data_anim_L.cpp
+
+Modified: trunk/include/data_anim.h
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/include/data_anim.h (original)
++++ trunk/include/data_anim.h Thu Oct  2 23:18:53 2008
+@@ -25,32 +25,54 @@
+ 			mCenterY =3D 0;
+ 			mFrames =3D 0;
+ 		}
+-		int	GetWidth () { return mWidth; }
+-		int	GetHeight () { return mHeight; }
+-		int GetTexWidth () { return mTexWidth; }
+-		int GetTexHeight () { return mTexHeight; }
+-		int GetCenterX () { return mCenterX; }
+-		int GetCenterY () { return mCenterY; }
+-		int GetFrames() { return mFrames; }
++		int	GetWidth		() { return mWidth; } 		///&lt; only valid after Decode!
++		int	GetHeight		() { return mHeight; } 		///&lt; only valid after Decode!
++		int GetTexWidth		() { return mTexWidth; } 	///&lt; only valid after Decode!
++		int GetTexHeight	() { return mTexHeight; } 	///&lt; only valid after Decode!
++		int GetCenterX		() { return mCenterX; } 	///&lt; only valid after Decode!
++		int GetCenterY		() { return mCenterY; } 	///&lt; only valid after Decode!
++		=
+
++		inline bool	CheckReadAdress (const char* p,const int iNeededSize,const c=
+har* szContext) {
++			if (!mpRawIndex || p &lt; mpRawData || p + iNeededSize &gt; mpRawData + mpRaw=
+Index-&gt;miLength) {
++				printf(&quot;cAnim::CheckReadAdress(offset=3D%d,neededsize=3D%d,context=3D'=
+%s') failed datalen=3D%d miID=3D%d\n&quot;,
++					(int)(p-mpRawData),(int)iNeededSize,szContext,
++					(int)(mpRawIndex ? mpRawIndex-&gt;miLength : 0),(int)miID);
++				return false;
++			}
++			return true;
++		}
++		=
+
++		// accesses data, also valid before decode
++		int GetFrames() { =
+
++			const char*	pMyRawData =3D mpRawData;
++			pMyRawData +=3D 512;
++			if (!CheckReadAdress(pMyRawData,4,&quot;GetFrames&quot;)) return 0;
++			mFrames =3D *(uint32 *)pMyRawData;
++			return mFrames; =
+
++		}
++		=
+
+ 		=
+
+ 		/// allocates and returns a 16-bit buffer in the pBuffer param, backgrou=
+nd/transparency =3D 0
+ 		/// bTexSize : if true, output size will be 2^n
+ 		template &lt;class _T&gt; bool Decode(short* &amp;pBuffer, const int iFrame, _T&amp; f=
+ilter, short* ColorTable,bool bTexSize=3Dtrue) { PROFILE
++			if (!mpRawData) return false;
++			if (!mpRawIndex) return false;
+ 			const char*	pMyRawData =3D mpRawData;
+ 			uint16* Palette =3D (uint16 *)pMyRawData;
+ 			pMyRawData +=3D 512;
+ =
+
++			=
+
++			if (!CheckReadAdress(pMyRawData,4,&quot;Decode:mFrames&quot;)) return false;
+ 			mFrames =3D *(uint32 *)pMyRawData;
+ 			pMyRawData +=3D 4;
++			if (iFrame &gt;=3D mFrames) return false;
+ =
+
++			if (!CheckReadAdress(pMyRawData,4*(iFrame+1),&quot;Decode:LookupList-base&quot;))=
+ return false;
+ 			uint32* LookupList =3D (uint32 *)pMyRawData;
+ 			=
+
+-			if (iFrame &gt;=3D mFrames) {
+-				return false;
+-			}
+-
+ 			pMyRawData +=3D LookupList[ iFrame ] - 4;
+ =
+
++			if (!CheckReadAdress(pMyRawData,2*4,&quot;Decode:looked-up-frame&quot;)) return f=
+alse;
+ 			mCenterX =3D *(int16 *)pMyRawData;
+ 			pMyRawData +=3D 2;
+ 			mCenterY =3D *(int16 *)pMyRawData;
+@@ -79,6 +101,7 @@
+ 			int		iBufferSize =3D 2*mTexWidth*mTexHeight;
+ 			memset( pBuffer, 0, iBufferSize );
+ =
+
++			CheckReadAdress(pMyRawData,4,&quot;Decode:FrameHead&quot;);
+ 			uint32 Header =3D *(uint32 *)pMyRawData;
+ 			pMyRawData +=3D 4;
+ =
+
+@@ -98,6 +121,7 @@
+ 				int16 PX =3D xOffset + mCenterX;
+ 				int16 PY =3D yOffset + mCenterY + mHeight;
+ =
+
++				if (!CheckReadAdress(pMyRawData,xRun,&quot;Decode:FrameRun&quot;)) break;
+ 				unsigned char* RunPixels =3D (unsigned char*)pMyRawData;
+ 				pMyRawData +=3D xRun;
+ =
+
+@@ -108,6 +132,7 @@
+ 					}
+ 				}
+ =
+
++				if (!CheckReadAdress(pMyRawData,4,&quot;Decode:FrameHead2&quot;)) break;
+ 				Header =3D *(uint32 *)pMyRawData;
+ 				pMyRawData +=3D 4;
+ 			}
+
+Modified: trunk/lua/lib.2d.mobile.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.mobile.lua (original)
++++ trunk/lua/lib.2d.mobile.lua Thu Oct  2 23:18:53 2008
+@@ -15,7 +15,7 @@
+ =
+
+ function My2DMobileDebug (a)
+ 	local playermobile =3D GetPlayerMobile()
+-	gMy2DMobileDebug =3D (gMy2DMobileDebug or 766) + a
++	gMy2DMobileDebug =3D (gMy2DMobileDebug or 200) + a
+ 	playermobile.artid =3D gMy2DMobileDebug
+ 	print(&quot;My2DMobileDebug&quot;,gMy2DMobileDebug)
+ 	Renderer2D:UpdateMobile(playermobile)
+@@ -55,16 +55,7 @@
+ 	local sortty =3D yloc-floor(yloc/8)*8
+ 	local sorttz =3D zloc
+ 	local parts =3D {}
+-	local iMobileDir =3D DirWrap(mobile.dir)
+-	local iDirAdd,bMirrorX =3D 0,false
+-	if (iMobileDir =3D=3D 3) then iDirAdd =3D 0 end
+-	if (iMobileDir =3D=3D 4) then iDirAdd =3D 1 end
+-	if (iMobileDir =3D=3D 5) then iDirAdd =3D 2 end
+-	if (iMobileDir =3D=3D 6) then iDirAdd =3D 3 end
+-	if (iMobileDir =3D=3D 7) then iDirAdd =3D 4 end
+-	if (iMobileDir =3D=3D 0) then iDirAdd =3D 3 bMirrorX =3D true end
+-	if (iMobileDir =3D=3D 1) then iDirAdd =3D 2 bMirrorX =3D true end
+-	if (iMobileDir =3D=3D 2) then iDirAdd =3D 1 bMirrorX =3D true end
++	local iDirAdd,bMirrorX =3D GetAnimDirAdd(DirWrap(mobile.dir))
+ 	=
+
+ 	local mount	=3D mobile:GetEquipmentAtLayer(kLayer_Mount)
+ 	--~ table.insert(parts,{self:GetMobileMountModelAndHue(mobile)}) -- kLaye=
+r_Mount
+@@ -76,46 +67,27 @@
+ 			local item =3D GetMobileEquipmentItem(mobile,layer)
+ 			if (item) then =
+
+ 				local t =3D GetStaticTileType(item.artid)
+-				local iFallBack
+-				if (layer =3D=3D kLayer_TorsoOuter) then iFallBack =3D 469 end -- stan=
+dard robe
+-				if (t and t.miAnimID and t.miAnimID &gt; 0) then table.insert(parts,{t.mi=
+AnimID,item.hue,iFallBack}) end
++				local iFallBackModel
++				if (layer =3D=3D kLayer_TorsoOuter) then iFallBackModel =3D 469 end --=
+ standard robe
++				if (t and t.miAnimID and t.miAnimID &gt; 0) then table.insert(parts,{t.mi=
+AnimID,item.hue,iFallBackModel}) end
+ 			end
+ 		end
+ 	end
+ 	=
+
+ 	for k,v in pairs(parts) do =
+
+-		local iModelID,iHue,iFallBack =3D unpack(v)
+-		if iModelID then
++		local iModelID,iHue,iFallBackModel =3D unpack(v)
++		if iModelID then =
+
+ 			local iLoaderIndex =3D 1
+ 			iModelID,iHue,iLoaderIndex =3D UOAnimTranslateBodyID(iModelID,iHue)
+-		=
+
+ 			iIndex =3D iIndex + 1 =
+
+ 			fIndexRel =3D 200 * (1 - 1/iIndex) -- dirty hack to avoid zbuffer flick=
+er
+-			iHue			=3D BitwiseAND(iHue,0x7fff) -- 0x03F4 : human skin hue (0x83F4=
+=3D33780, but 0x8* is partial hue and turned out all gray here)
++			=
+
+ 			local iAnimID =3D gMy2DMobileDebugAnim or Anim_GetIdleAnim(iModelID,mou=
+nt) + iDirAdd
+-			local iFrame =3D ((gMy2DDebugFrame or 0) / 5) % 5
+-			local pAtlasPiece =3D Anim2DAtlas_LoadAtlasPiece(iModelID,iAnimID,iFram=
+e,iHue,iLoaderIndex)
+-			if (not pAtlasPiece) then
+-				--~ print(&quot;&gt;1&quot;,mobile.artid,mobile.flag,mobile.hue)
+-				--~ print(&quot;&gt;2&quot;,SmartDump(GetStaticTileType(mobile.artid)))
+-				--~ print(&quot;&gt;3&quot;,SmartDump(GetStaticTileType(mobile.artid+9830)))
+-				--~ local info =3D GetAnimDataInfo(iModelID)
+-				--~ print(&quot;GetAnimDataInfo()&quot;,SmartDump(info))
+-				if (iFallBack) then
+-					print(&quot;warning, Renderer2D:UpdateMobile load uoanim failed&quot;,iModelID,=
+iAnimID,iFrame,iHue,mobile.artid)
+-					iModelID =3D iFallBack -- replace unknown by standard model (13=3Devo=
+rtex)
+-					pAtlasPiece	=3D Anim2DAtlas_LoadAtlasPiece(iModelID,iAnimID,iFrame,iH=
+ue,iLoaderIndex)
+-				end
+-			end
+-			if (pAtlasPiece) then
+-				local sprite =3D spriteblock:AddSpriteEx(tx,ty,tz,CalcSortBonus(nil,so=
+rttx,sortty,sorttz,fIndexRel,4),mobile,pAtlasPiece,bMirrorX)
+-				sprite.bMirrorX =3D bMirrorX
+-				sprite.uoanim_ModelID		=3D iModelID
+-				sprite.uoanim_AnimID		=3D iAnimID
+-				sprite.uoanim_Frame			=3D iFrame
+-				sprite.uoanim_LoaderIndex	=3D iLoaderIndex
+-				sprite.hue =3D iHue
+-			end
++			local iFrameCount =3D Anim2D_GetFrameCount(Anim_GetRealID(iModelID,iAni=
+mID),iLoaderIndex) or 1000
++			if (iFrameCount &lt; 1) then iFrameCount =3D 1 end
++			local iFrame =3D floor((gMy2DDebugFrame or 0) / 15) % iFrameCount
++			local iFallBackAnim =3D iFallBackModel and Anim_GetIdleAnim(iFallBackMo=
+del)
++			spriteblock:AddAnim(tx,ty,tz,iModelID,iHue,iLoaderIndex,iFallBackModel,=
+iFallBackAnim,iAnimID,iFrame,bMirrorX,CalcSortBonus(nil,sorttx,sortty,sortt=
+z,fIndexRel,4),mobile) =
+
+ 		end
+ 	end
+ 	spriteblock:Build(Renderer2D.kSpriteBaseMaterial,false)
+@@ -134,9 +106,9 @@
+ function Renderer2D:MobileStartServerSideAnim	(animdata) end
+ =
+
+ function Renderer2D:MobileTestStep()
+-	--~ local playermobile =3D GetPlayerMobile()
++	local playermobile =3D GetPlayerMobile()
+ 	--~ print(&quot;playermobile.dir&quot;,playermobile and DirWrap(playermobile.dir)) =
+
+-	--~ gMy2DDebugFrame =3D (gMy2DDebugFrame or 0) + 1
++	--~ gMy2DDebugFrame =3D floor(gMy2DDebugFrame or 0) + 1
+ 	--~ Renderer2D:UpdateMobileGfx(GetPlayerMobile())
+ 	if true then return end
+ 	=
+
+
+Modified: trunk/lua/lib.2d.spriteblock.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.spriteblock.lua (original)
++++ trunk/lua/lib.2d.spriteblock.lua Thu Oct  2 23:18:53 2008
+@@ -128,6 +128,45 @@
+ 	self:AddArtSprite(tx,ty,zloc,artid,static.hue,CalcSortBonus(artid,tx,ty,z=
+loc,static.fBlockIndexRel),static)
+ end
+ =
+
++-- local iDirAdd,bMirrorX =3D GetAnimDirAdd(iDir)
++function GetAnimDirAdd (iDir)
++	if (iDir =3D=3D 3) then return 0,false end
++	if (iDir =3D=3D 4) then return 1,false end
++	if (iDir =3D=3D 5) then return 2,false end
++	if (iDir =3D=3D 6) then return 3,false end
++	if (iDir =3D=3D 7) then return 4,false end
++	if (iDir =3D=3D 0) then return 3,true end
++	if (iDir =3D=3D 1) then return 2,true end
++	if (iDir =3D=3D 2) then return 1,true end
++	return 0,false
++end
++
++function cUOSpriteBlock:AddAnim (tx,ty,tz,iTranslatedModelID,iHue,iLoaderI=
+ndex,iFallBackModel,iFallBackAnim,iAnimID,iFrame,bMirrorX,sortbonus,data)
++	iHue =3D BitwiseAND(iHue or 0,0x7fff) -- 0x03F4 : human skin hue (0x83F4=
+=3D33780, but 0x8* is partial hue and turned out all gray here)
++	local pAtlasPiece =3D Anim2DAtlas_LoadAtlasPiece(iTranslatedModelID,iAnim=
+ID,iFrame,iHue,iLoaderIndex)
++	if (not pAtlasPiece) then
++		if (iFallBackModel) then
++			gMobile2DWarned =3D gMobile2DWarned or {}
++			local n =3D iTranslatedModelID..&quot;,&quot;..iAnimID
++			if (not gMobile2DWarned[n]) then gMobile2DWarned[n] =3D true
++				print(&quot;warning, Renderer2D:UpdateMobile load uoanim failed&quot;,iTranslate=
+dModelID,iAnimID,iFrame,iHue,data.artid)
++			end
++			iTranslatedModelID	=3D iFallBackModel -- replace unknown by standard mo=
+del (13=3Devortex)
++			iAnimID				=3D iFallBackAnim
++			pAtlasPiece			=3D Anim2DAtlas_LoadAtlasPiece(iTranslatedModelID,iAnimID=
+,iFrame,iHue,iLoaderIndex)
++		end
++	end
++	if (pAtlasPiece) then
++		local sprite =3D self:AddSpriteEx(tx,ty,tz,sortbonus,data,pAtlasPiece,bM=
+irrorX)
++		sprite.bMirrorX =3D bMirrorX
++		sprite.uoanim_ModelID		=3D iTranslatedModelID
++		sprite.uoanim_AnimID		=3D iAnimID
++		sprite.uoanim_Frame			=3D iFrame
++		sprite.uoanim_LoaderIndex	=3D iLoaderIndex
++		sprite.hue =3D iHue
++		return sprite
++	end
++end
+ =
+
+ -- load textures to atlas, artid-hue
+ function cUOSpriteBlock:AddArtSprite (tx,ty,zloc,artid,hue,sortbonus,data)
+
+Modified: trunk/lua/lib.mapblock.2d.statics.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mapblock.2d.statics.lua (original)
++++ trunk/lua/lib.mapblock.2d.statics.lua Thu Oct  2 23:18:53 2008
+@@ -18,7 +18,7 @@
+ 	local iBlendOutMinZ,iBlendOutMaxZ =3D gCurrentRenderer:BlendoutGetVisible=
+Range()
+ 	if (self.iBlendOutMinZ =3D=3D iBlendOutMinZ and
+ 		self.iBlendOutMaxZ =3D=3D iBlendOutMaxZ) then return end -- no change
+-	print(&quot;cMapBlock_2D_Statics:RebuildForBlendout&quot;,iBlendOutMinZ,iBlendOutMa=
+xZ)
++	--~ print(&quot;cMapBlock_2D_Statics:RebuildForBlendout&quot;,iBlendOutMinZ,iBlendO=
+utMaxZ)
+ 	self.iBlendOutMinZ =3D iBlendOutMinZ
+ 	self.iBlendOutMaxZ =3D iBlendOutMaxZ
+ 	=
+
+
+Modified: trunk/lua/lib.uoanim.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.uoanim.lua (original)
++++ trunk/lua/lib.uoanim.lua Thu Oct  2 23:18:53 2008
+@@ -22,7 +22,48 @@
+  42M anim5.mul
+  =
+
+  =
+
++ corpseanim    model     anim     framecount
++ corpseanim    400     105     x		diebackwards
++ corpseanim    400     110     x		dieforward
++ corpseanim		1       10      x		diebackwards
++ corpseanim		1       15      x		dieforward
+      iCurrentId =3D (iBaseId + GetAnimDataInfo(iBaseId).miFrames[ iCurrent=
+Frame ])
++	 =
+
++200 	 0	walk
++200 	 5	run
++200 	10	idle
++200 	15	eat(horse)? die?
++200 	20	idleanim?(horse:nodge-head)
++200 	25	attack1
++200 	30	attack2
++200 	35	gethit?
++200 	40	dieside?
++200 	45	gethit?cast?
++200 	50	gethit?cast?
++200 	55	idlenaim?
++200 	60	dieside?
++
++2		 0	walk
++2		 5	idle
++2		10	dieback
++2		15	dieforward
++2		20	attack
++2		25	attack2
++2		30	attack3
++2		35	?
++2		40	?
++2		45	?
++2		50	gethit
++2		55	pickupitem
++2		60	?
++2		65	?
++2		70	?
++2		75	idlenaim?
++2		80	idlenaim?
++2		85	idlenaim?
++2		90	eat/idlenaim?
++
++
+ ]]--
+ =
+
+ --[[
+@@ -167,6 +208,16 @@
+ 	end =
+
+ end
+ =
+
++gAnimFrameCountCache =3D {}
++function Anim2D_GetFrameCount (iRealID,iLoaderIndex)
++	local n =3D iRealID..&quot;,&quot;..iLoaderIndex
++	local o =3D gAnimFrameCountCache[n] =
+
++	if (o ~=3D nil) then return o end
++	local o =3D gAnimLoader[iLoaderIndex or 1]:GetNumberOfFrames(iRealID)
++	gAnimFrameCountCache[n] =3D o or false
++	return o
++end
++
+ =
+
+ -- returns atlaspiece
+ function Anim2DAtlas_LoadAtlasPiece (iModelID,iAnimID,iFrame,iHue,iLoaderI=
+ndex)
+@@ -177,8 +228,10 @@
+ 	=
+
+ 	-- load frame image
+ 	local iRealID =3D Anim_GetRealID(iModelID,iAnimID) =
+
++	--~ local iFrameCount =3D Anim2D_GetFrameCount(iRealID,iLoaderIndex)
++	--~ iFrame =3D iFrame % iFrameCount
+ 	local img,iWidth,iHeight,iCenterX,iCenterY,iFrames =3D ExportAnimFrameToI=
+mage(iRealID,iFrame,iHue,iLoaderIndex)
+-	if (not img) then print(&quot;Anim2DAtlas_Load : dead anim &quot;,iModelID,iAnimID,=
+iFrame,iHue) end
++	--~ if (not img) then print(&quot;Anim2DAtlas_Load : dead anim &quot;,iModelID,iAni=
+mID,iFrame,iHue) end
+ 	if (not img) then gAnimAtlasCache[n] =3D false return end
+ 		=
+
+ 	-- add to atlas
+@@ -218,11 +271,16 @@
+ =
+
+ =
+
+ function Anim_GetIdleAnim (iModelID,bHasMount)
+-	if (iModelID &lt; kAnimIDRangeLen_HighDetailed									) then return 0 end -=
+- 2+5*2=3Drat ?
+-	if (iModelID &lt; kAnimIDRangeLen_HighDetailed + kAnimIDRangeLen_LowDetailed=
+	) then return 0 end -- 2+5*2=3Drat ?
++	if (iModelID &lt; kAnimIDRangeLen_HighDetailed									) then return 10 end
++	if (iModelID &lt; kAnimIDRangeLen_HighDetailed + kAnimIDRangeLen_LowDetailed=
+	) then return  5 end
+ 	return bHasMount and 125 or 20  -- Human
+ 	--~ return 20 -- Human
+-end	=
+
++end
++function Anim_GetCorpseAnim (iModelID)
++	if (iModelID &lt; kAnimIDRangeLen_HighDetailed									) then return bForwar=
+d and 15 or 10 end
++	if (iModelID &lt; kAnimIDRangeLen_HighDetailed + kAnimIDRangeLen_LowDetailed=
+	) then return 40 end -- 60?
++	return bForward and 110 or 105 -- human
++end
+ =
+
+ function Anim_GetModelCategory (iModelID)
+ 	if (iModelID &lt; kAnimIDRangeLen_HighDetailed									) then return 1 end
+@@ -392,6 +450,6 @@
+ -- iAnimID : 155- attack-punch?
+ -- iAnimID : 160- bow
+ -- iAnimID : 165- salute
+--- iAnimID : 170- cough
++-- iAnimID : 170- cough/eat/drinkpot?
+ ]]--
+ =
+
+
+Modified: trunk/src/data_anim_L.cpp
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/src/data_anim_L.cpp (original)
++++ trunk/src/data_anim_L.cpp Thu Oct  2 23:18:53 2008
+@@ -65,6 +65,7 @@
+ 			REGISTER_METHOD(CreateBitMask);
+ 			REGISTER_METHOD(GetAnimType);
+ 			REGISTER_METHOD(ExportToImage);
++			REGISTER_METHOD(GetNumberOfFrames);
+ 			#undef REGISTER_METHOD
+ 		}
+ =
+
+@@ -88,6 +89,15 @@
+ 			return cLuaBind&lt;cBitMask&gt;::CreateUData(L,pTarget);
+ 		}
+ 		=
+
++		/// returns iFrameNum on success
++		/// int		GetNumberOfFrames	(iRealID)
++		static int	GetNumberOfFrames	(lua_State *L) { PROFILE =
+
++			int			iRealID			=3D luaL_checkint(L,2);
++			cAnim *anim =3D checkudata_alive(L)-&gt;GetAnim( iRealID );
++			if (!anim) return 0;
++			lua_pushnumber(L,anim-&gt;GetFrames());
++			return 1;
++		}
+ 		=
+
+ 		/// return true on success
+ 		/// loads an anim frame into a Ogre::Image (lua wrapper : cImage)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001300.html">[Iris-commit] [IRIS] r2495 - /trunk/bin/iris2.exe
+</A></li>
+	<LI>Next message: <A HREF="001302.html">[Iris-commit] [IRIS] r2497 - in /trunk/lua: lib.2d.dynamic.lua lib.2d.mobile.lua lib.uoanim.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1301">[ date ]</a>
+              <a href="thread.html#1301">[ thread ]</a>
+              <a href="subject.html#1301">[ subject ]</a>
+              <a href="author.html#1301">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

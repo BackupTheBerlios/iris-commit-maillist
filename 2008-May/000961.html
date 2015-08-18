@@ -1,0 +1,1463 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2151 - in /trunk: include/builder_common.h include/data.h lua/lib.uoanim.lua src/builder.cpp src/builder_anim.cpp src/builder_art.cpp src/builder_font.cpp src/builder_gump.cpp src/builder_map.cpp src/builder_tex.cpp
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-May/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2151%20-%20in%20/trunk%3A%20include/builder_common.h%0A%20include/data.h%20lua/lib.uoanim.lua%20src/builder.cpp%20src/builder_anim.cpp%0A%20src/builder_art.cpp%20src/builder_font.cpp%20src/builder_gump.cpp%0A%20src/builder_map.cpp%20src/builder_tex.cpp&In-Reply-To=%3C20080508232310.7F3F6153C00D%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000960.html">
+   <LINK REL="Next"  HREF="000962.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2151 - in /trunk: include/builder_common.h include/data.h lua/lib.uoanim.lua src/builder.cpp src/builder_anim.cpp src/builder_art.cpp src/builder_font.cpp src/builder_gump.cpp src/builder_map.cpp src/builder_tex.cpp</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2151%20-%20in%20/trunk%3A%20include/builder_common.h%0A%20include/data.h%20lua/lib.uoanim.lua%20src/builder.cpp%20src/builder_anim.cpp%0A%20src/builder_art.cpp%20src/builder_font.cpp%20src/builder_gump.cpp%0A%20src/builder_map.cpp%20src/builder_tex.cpp&In-Reply-To=%3C20080508232310.7F3F6153C00D%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2151 - in /trunk: include/builder_common.h include/data.h lua/lib.uoanim.lua src/builder.cpp src/builder_anim.cpp src/builder_art.cpp src/builder_font.cpp src/builder_gump.cpp src/builder_map.cpp src/builder_tex.cpp">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Fri May  9 01:23:09 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000960.html">[Iris-commit] [IRIS] r2150 - in /trunk: data/config.lua.dist data/models/models/textures_skipped_in_atlas.txt lua/gui/gui.healthbar.lua lua/gui/gui.paperdoll.lua lua/net/net.packethandlers.lua
+</A></li>
+        <LI>Next message: <A HREF="000962.html">[Iris-commit] [IRIS] r2152 - in /trunk: include/ src/
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#961">[ date ]</a>
+              <a href="thread.html#961">[ thread ]</a>
+              <a href="subject.html#961">[ subject ]</a>
+              <a href="author.html#961">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Fri May  9 01:23:09 2008
+New Revision: 2151
+
+Log:
+added option to anim2d to disable 2^n size of the output, split builder.cpp=
+ into multiple files
+
+Added:
+    trunk/include/builder_common.h
+    trunk/src/builder_anim.cpp
+    trunk/src/builder_art.cpp
+    trunk/src/builder_font.cpp
+    trunk/src/builder_gump.cpp
+    trunk/src/builder_map.cpp
+    trunk/src/builder_tex.cpp
+Modified:
+    trunk/include/data.h
+    trunk/lua/lib.uoanim.lua
+    trunk/src/builder.cpp
+
+Modified: trunk/include/data.h
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/include/data.h (original)
++++ trunk/include/data.h Fri May  9 01:23:09 2008
+@@ -852,8 +852,9 @@
+ 			int GetCenterY () { return mCenterY; }
+ 			int GetFrames() { return mFrames; }
+ 			=
+
+-			/// allocates and returns a buffer in the pBuffer param
+-			template &lt;class _T&gt; bool Decode(short* &amp;pBuffer, const int iFrame, _T&amp; =
+filter, short* ColorTable) { PROFILE
++			/// allocates and returns a 16-bit buffer in the pBuffer param, backgro=
+und/transparency =3D 0
++			/// bTexSize : if true, output size will be 2^n
++			template &lt;class _T&gt; bool Decode(short* &amp;pBuffer, const int iFrame, _T&amp; =
+filter, short* ColorTable,bool bTexSize=3Dtrue) { PROFILE
+ 				const char*	pMyRawData =3D mpRawData;
+ 				uint16* Palette =3D (uint16 *)pMyRawData;
+ 				pMyRawData +=3D 512;
+@@ -878,13 +879,19 @@
+ 				mHeight =3D *(uint16 *)pMyRawData;
+ 				pMyRawData +=3D 2;
+ 				=
+
+-				mTexWidth =3D 1;
+-				while (mTexWidth &lt; mWidth) {
+-					mTexWidth =3D mTexWidth &lt;&lt; 1;
+-				}
+-				mTexHeight =3D 1;
+-				while (mTexHeight &lt; mHeight) {
+-					mTexHeight =3D mTexHeight &lt;&lt; 1;
++				if (bTexSize) {
++					mTexWidth =3D 1;
++					while (mTexWidth &lt; mWidth) {
++						mTexWidth =3D mTexWidth &lt;&lt; 1;
++					}
++					mTexHeight =3D 1;
++					while (mTexHeight &lt; mHeight) {
++						mTexHeight =3D mTexHeight &lt;&lt; 1;
++					}
++				} else {
++					// for image output when used in a texatlas
++					mTexWidth =3D mWidth;
++					mTexHeight =3D mHeight;
+ 				}
+ =
+
+ 				pBuffer =3D new short[mTexWidth*mTexHeight];
+
+Modified: trunk/lua/lib.uoanim.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.uoanim.lua (original)
++++ trunk/lua/lib.uoanim.lua Fri May  9 01:23:09 2008
+@@ -1,6 +1,25 @@
+ -- 2d char anim graphics
+ =
+
++kAnim_IdRangeLen_HighDetailed	=3D 200  -- mHighDetailed
++kAnim_IdRangeLen_LowDetailed	=3D 200  -- mLowDetailed
++
++-- iID is probably bodyid, and animid the animation ? ported from varans c=
+ode
++function Anim_GetRealID (iID,iAnimID) =
+
++	if (iID &lt; kAnim_IdRangeLen_HighDetailed) then return iAnimID + iID*110 end
++	if (iID &lt; kAnim_IdRangeLen_HighDetailed + kAnim_IdRangeLen_LowDetailed) t=
+hen
++		return iAnimID + kAnim_IdRangeLen_HighDetailed*110 + (iID-kAnim_IdRangeL=
+en_HighDetailed)*65
++	end
++	return iAnimID + kAnim_IdRangeLen_HighDetailed*110 + kAnim_IdRangeLen_Low=
+Detailed*65 + (iID-kAnim_IdRangeLen_HighDetailed-kAnim_IdRangeLen_LowDetail=
+ed)*175
++end
++
++
++
++
+ --[[
++
++TODO : rewrite  cAnim::Decode  :  to not use 2^n width	 and to extract mor=
+e than one frame ?
++	Decode(short* &amp;pBuffer, const int iFrame, _T&amp; filter, short* ColorTable,b=
+ool bTexSize=3Dtrue)  -- use bTexSize=3Dfalse here
++
+ gAnimLoader   mHighDetailed   mLowDetailed  : 200,200,
+ gAnimDataLoader
+ =
+
+@@ -22,21 +41,33 @@
+ 2.0K animinfo.mul
+ 186M anim.mul
+ =
+
++	=
+
+ =
+
+-
+-class cAnim : public cIndexedRawData     : commmon baseclass used by all, =
+members : =
+
++class cAnim : public cIndexedRawData     : common baseclass used by all, m=
+embers : =
+
+ 		eDataType	miDataType;
+ 		int			miID;
+ 		RawIndex*	mpRawIndex; ///&lt; memory not owned by this class
+ 		char*		mpRawData; 	///&lt; memory not owned by this class
++	int	GetWidth () { return mWidth; }
++	int	GetHeight () { return mHeight; }
++	int GetTexWidth () { return mTexWidth; }
++	int GetTexHeight () { return mTexHeight; }
++	int GetCenterX () { return mCenterX; }
++	int GetCenterY () { return mCenterY; }
++	int GetFrames() { return mFrames; }
++	... Decode ...
+ 	=
+
+-		cAnimLoader (const int iHighDetailed, const int iLowDetailed) {};
+-		RawAnimData*		cAnimDataLoader::GetAnimDataType		(const int iID);
++cAnimLoader (const int iHighDetailed, const int iLowDetailed) {};
++virtual	cAnim*	cAnimLoader::GetAnim	(const int iID)
++
++RawAnimData*		cAnimDataLoader::GetAnimDataType		(const int iID);
+ 		=
+
+ builder.cpp :
+-	void	GenerateAnimBitMask	(cAnimLoader&amp; oAnimLoader, const int iID, const =
+int iAnimID, const int iFrame, cBitMask&amp; bitmask);
+-	bool	GenerateAnimMaterial				(cAnimLoader&amp; oAnimLoader		,const char* szMa=
+tName,const int iID,const int iAnimID,const int iFrame, int&amp; iWidth, int&amp; i=
+Height, int&amp; iCenterX, int&amp; iCenterY, int&amp; iFrames, cHueLoader* pHueLoader,=
+ short iHue);
++	void	GenerateAnimBitMask		(cAnimLoader&amp; oAnimLoader, const int iID, const=
+ int iAnimID, const int iFrame, cBitMask&amp; bitmask);
++	bool	GenerateAnimMaterial	(cAnimLoader&amp; oAnimLoader, const char* szMatNam=
+e,const int iID,const int iAnimID,const int iFrame, int&amp; iWidth, int&amp; iHeig=
+ht, int&amp; iCenterX, int&amp; iCenterY, int&amp; iFrames, cHueLoader* pHueLoader, sho=
+rt iHue);
+ =
+
++		bitmask.SetDataFrom16BitImage(pImgRaw,anim-&gt;GetTexWidth(),anim-&gt;GetTexHe=
+ight());
++		=
+
+ 	struct RawAnimData {
+ 		int8 miFrames[64];
+ 		char miUnknown;
+
+Modified: trunk/src/builder.cpp
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/src/builder.cpp (original)
++++ trunk/src/builder.cpp Fri May  9 01:23:09 2008
+@@ -1,85 +1,9 @@
+-#include &quot;lugre_prefix.h&quot;
+-#include &quot;builder.h&quot;
+-#include &quot;data.h&quot;
+-#include &quot;lugre_ogrewrapper.h&quot;
+-#include &quot;lugre_scripting.h&quot;
+-#include &quot;lugre_bitmask.h&quot;
+-#include &quot;lugre_robstring.h&quot;
+-#include &lt;Ogre.h&gt;
+-#include &lt;OgreFont.h&gt;
+-#include &lt;OgreFontManager.h&gt;
+-#include &lt;OgreBitwise.h&gt;
+-#include &lt;map&gt;
++#include &quot;builder_common.h&quot;
+ =
+
+ =
+
+-using namespace Lugre;
+-
+-/// color format conversion from Ogre::PF_A1R5G5B5 to Ogre::PF_A8R8G8B8
+-/// maps [0x00,0x1f] to [0x00,0xff] for rgb
+-/// maps [0x00,0x01] to [0x00,0xff] for alpha
+-inline uint32		Color16To32	(const uint16 x) {
+-	return	((x &amp; 0x8000)?0xff000000:0x00000000) | // alpha
+-			(uint32(float(0xff)*float((x &gt;&gt; 10) &amp; 0x1F)/float(0x1f)) &lt;&lt; 16) | // r
+-			(uint32(float(0xff)*float((x &gt;&gt;  5) &amp; 0x1F)/float(0x1f)) &lt;&lt; 8) | // g
+-			(uint32(float(0xff)*float((x &gt;&gt;  0) &amp; 0x1F)/float(0x1f)) &lt;&lt; 0); // b
+-	// using float instead of &lt;&lt;3 to map 0 to 0 and max to max
+-}
+ =
+
+ void	ColorBuffer16To32	(const int iWidth,const int iHeight,const uint16* p=
+In,uint32* pOut) {
+ 	for (uint32* pOutEnd =3D &amp;pOut[iWidth*iHeight];pOut&lt;pOutEnd;++pIn,++pOut)=
+ *pOut =3D Color16To32(*pIn);
+-}
+-
+-
+-/// file type of output determined by ending, ogre supports also .png, .jp=
+g, .tga etc...
+-/// example : w=3D896,h=3D512,map=3Dyouruodir/map0.mul,radar=3Dyouruodir/r=
+adarcol.mul
+-void	WriteMapImageToFile		(cGroundBlockLoader&amp; oGroundBlockLoader,cRadarCo=
+lorLoader&amp; radarColors,cStaticBlockLoader* pStaticBlockLoader,const char* s=
+zOutPath,const bool bBig) { PROFILE
+-	int iMapImgW =3D oGroundBlockLoader.miMapW * (bBig?8:1);
+-	int iMapImgH =3D oGroundBlockLoader.miMapH * (bBig?8:1);
+-	=
+
+-	short	*pMapImgRaw16 =3D new short[iMapImgW*iMapImgH];
+-	uint32	*pMapImgRaw32 =3D new uint32[iMapImgW*iMapImgH];
+-	=
+
+-	//short *pMapImgRaw =3D new short[iMapImgW*iMapImgH] ;
+-	//delete [] pMapImgRaw;
+-	=
+
+-	GenerateMapImageRaw(0,0,iMapImgW,iMapImgH,oGroundBlockLoader,radarColors,=
+pStaticBlockLoader,pMapImgRaw16,bBig);
+-	ColorBuffer16To32(iMapImgW,iMapImgH,(uint16*)pMapImgRaw16,pMapImgRaw32);
+-	Ogre::Image img; =
+
+-	//Ogre::PixelFormat	eFormat =3D Ogre::PF_A1R5G5B5;
+-	Ogre::PixelFormat	eFormat =3D Ogre::PF_A8R8G8B8;
+-	=
+
+-	/*Ogre::DataStreamPtr imgstream(new Ogre::MemoryDataStream(pMapImgRaw16,i=
+MapImgW*iMapImgH*sizeof(short)));
+-	img.loadRawData( imgstream, iMapImgW, iMapImgH, eFormat ); // long : PF_A=
+8R8G8B8
+-	=
+
+-	// PF_A8R8G8B8
+-	*/
+-	assert((iMapImgW*iMapImgH*sizeof(uint32)) =3D=3D Ogre::PixelUtil::getMemo=
+rySize(iMapImgW,iMapImgH,1,eFormat));
+-	img.loadDynamicImage((Ogre::uchar*)pMapImgRaw32,iMapImgW,iMapImgH,1,eForm=
+at);
+-	img.save(szOutPath);
+-
+-	delete [] pMapImgRaw16;
+-	delete [] pMapImgRaw32;
+-}
+-
+-Ogre::TexturePtr	GenerateTexture_16Bit	(const char* szMatName,short* pBuf,=
+const int iWidth,const int iHeight)
+-{PROFILE
+-	assert(pBuf &amp;&amp; &quot;buffer not set&quot;);
+-		=
+
+-	uint32	*pBuf32 =3D new uint32[iWidth*iHeight];
+-	ColorBuffer16To32(iWidth,iHeight,(uint16*)pBuf,(uint32*)pBuf32);
+-	=
+
+-	Ogre::DataStreamPtr imgstream(new Ogre::MemoryDataStream(pBuf32,iWidth*iH=
+eight*sizeof(uint32)));
+-	//Ogre::Image img; =
+
+-	//img.loadRawData( imgstream, iWidth, iHeight, Ogre::PF_A1R5G5B5 ); // lo=
+ng : PF_A8R8G8B8
+-	//Ogre::TextureManager::getSingleton().loadImage( szMatName ,Ogre::Resour=
+ceGroupManager::DEFAULT_RESOURCE_GROUP_NAME, img );
+-
+-	Ogre::TexturePtr t =3D Ogre::TextureManager::getSingleton().loadRawData(s=
+zMatName,
+-		Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME,
+-		imgstream, iWidth, iHeight, Ogre::PF_A8R8G8B8 ); // long : PF_A8R8G8B8 s=
+hort : PF_A1R5G5B5
+-
+-	delete [] pBuf32;
+-
+-	return t;
+ }
+ =
+
+ bool	GenerateMaterial_16Bit	(const char* szMatName,short* pBuf,const int i=
+Width,const int iHeight,const bool bPixelExact,const bool bHasAlpha,const b=
+ool bEnableLighting,const bool bEnableDepthWrite,const bool bClamp) { PROFI=
+LE
+@@ -107,547 +31,12 @@
+ 	return true;
+ }
+ =
+
+-
+-bool	GenerateMapMaterial		(cGroundBlockLoader&amp; oGroundBlockLoader,cRadarCo=
+lorLoader&amp; radarColors,const char* szMatName,const bool bBig) { PROFILE
+-	int iMapImgMinW =3D oGroundBlockLoader.miMapW * (bBig?8:1);
+-	int iMapImgMinH =3D oGroundBlockLoader.miMapH * (bBig?8:1);
+-	int iMapImgW =3D 16; while (iMapImgW &lt; iMapImgMinW) iMapImgW *=3D 2; // t=
+exture must be potence of 2
+-	int iMapImgH =3D 16; while (iMapImgH &lt; iMapImgMinH) iMapImgH *=3D 2; // t=
+exture must be potence of 2
+-	//iMapImgW =3D iMapImgH =3D 512;
+-	short *pMapImgRaw =3D new short[iMapImgW*iMapImgH] ;
+-	=
+
+-	//printf(&quot;GenerateMapMaterial %s : %dx%d\n&quot;,szMatName,iMapImgW,iMapImgH);
+-	GenerateMapImageRaw(0,0,iMapImgW,iMapImgH,oGroundBlockLoader,radarColors,=
+0,pMapImgRaw,bBig);
+-	GenerateMaterial_16Bit(szMatName,pMapImgRaw,iMapImgW,iMapImgH,true,false,=
+false,false);
+-	=
+
+-	delete [] pMapImgRaw;
+-	return true;
+-}
+-
+-
+-
+-void	GenerateArtBitMask	(cArtMapLoader&amp; oArtMapLoader,	const int iID,cBitM=
+ask&amp; bitmask) { PROFILE
+-	bitmask.Reset();
+-	cArtMap *art =3D oArtMapLoader.GetArtMap(iID);
+-	//printf(&quot;GenerateArtBitMask for id%d : %08x\n&quot;,iID,art);
+-	if (art =3D=3D 0) return;
+-	int iImgW =3D art-&gt;GetWidth();
+-	int iImgH =3D art-&gt;GetHeight();
+-	=
+
+-	short *pImgRaw =3D new short[iImgW*iImgH];
+-	memset(pImgRaw,0,2*iImgW*iImgH);
+-	cSetHighBitFilter Filter;
+-	art-&gt;Decode(pImgRaw,iImgW*2,Filter,0);
+-	bitmask.SetDataFrom16BitImage(pImgRaw,iImgW,iImgH);
+-
+-	delete [] pImgRaw;
+-}
+-
+-void	GenerateGumpBitMask	(cGumpLoader&amp; oGumpLoader,		const int iID,cBitMas=
+k&amp; bitmask) { PROFILE
+-	bitmask.Reset();
+-	cGump *gump =3D oGumpLoader.GetGump(iID);
+-	if (gump =3D=3D 0) return;
+-	int iImgW =3D gump-&gt;GetWidth();
+-	int iImgH =3D gump-&gt;GetHeight();
+-	short *pImgRaw =3D new short[iImgW*iImgH] ;
+-	memset(pImgRaw,0,2*iImgW*iImgH);
+-	cSetHighBitFilter Filter;
+-	gump-&gt;Decode(pImgRaw,iImgW*2,Filter,0);
+-	bitmask.SetDataFrom16BitImage(pImgRaw,iImgW,iImgH);
+-	delete [] pImgRaw;
+-}
+-
+-void	GenerateAnimBitMask	(cAnimLoader&amp; oAnimLoader, const int iID, const i=
+nt iAnimID, const int iFrame, cBitMask&amp; bitmask) { PROFILE
+-	bitmask.Reset();
+-
+-	int RealID;
+-	if (iID &lt; oAnimLoader.mHighDetailed) {
+-		RealID =3D iID*110;
+-	} else if (iID &lt; oAnimLoader.mHighDetailed + oAnimLoader.mLowDetailed) {
+-		RealID =3D oAnimLoader.mHighDetailed*110 + (iID-oAnimLoader.mHighDetaile=
+d)*65;
+-	} else {
+-		RealID =3D oAnimLoader.mHighDetailed*110 + oAnimLoader.mLowDetailed*65 +=
+ (iID-oAnimLoader.mHighDetailed-oAnimLoader.mLowDetailed)*175;
+-	}
+-	RealID +=3D iAnimID;
+-
+-	cAnim *anim =3D oAnimLoader.GetAnim( RealID );
+-
+-	if (!anim) {
+-		return;
+-	}
+-
+-	cSetHighBitFilter Filter;
+-	short *pImgRaw =3D 0;
+-	if (anim-&gt;Decode( pImgRaw, iFrame, Filter, 0 )) {
+-		bitmask.SetDataFrom16BitImage(pImgRaw,anim-&gt;GetTexWidth(),anim-&gt;GetTexHe=
+ight());
+-		delete [] pImgRaw;
+-	}
+-}
+-
+-/// generates a raw buffer containing the artmap image data, you need to d=
+elete this buffer (delete []) by yourself
+-/// this function will store the image size in iTexW and iTexH
+-/// if bPixelExact is true, the result width and height will be increased =
+to be a power of two, to avoid texture-scaling artifacts
+-short *GenerateArtRaw(cArtMapLoader&amp; oArtMapLoader, const int iID, const b=
+ool bPixelExact, const bool bInvertY, const bool bInvertX, cHueLoader* pHue=
+Loader,const short iHue, int &amp;iTexW, int &amp;iTexH) { PROFILE
+-	cArtMap *art =3D oArtMapLoader.GetArtMap(iID);
+-	if (art =3D=3D 0) return 0;
+-	int iImgW =3D art-&gt;GetWidth();
+-	int iImgH =3D art-&gt;GetHeight();
+-	iTexW =3D iImgW;
+-	iTexH =3D iImgH;
+-	if (bPixelExact) {
+-		iTexW =3D iTexH =3D 16;
+-		while (iTexW &lt; iImgW) iTexW &lt;&lt;=3D 1;
+-		while (iTexH &lt; iImgH) iTexH &lt;&lt;=3D 1;
+-	}
+-	=
+
+-	short *pImgRaw =3D new short[iTexW*iTexH] ;
+-	memset(pImgRaw,0,2*iTexW*iTexH);
+-	if( iHue &amp;&amp; pHueLoader ) {
+-		cHueFilter Filter;
+-		short* ColorTable =3D pHueLoader-&gt;GetHue( iHue-1 )-&gt;GetColors();
+-		art-&gt;Decode(pImgRaw,iTexW*2,Filter,ColorTable);
+-	} else {
+-		cSetHighBitFilter Filter;
+-		art-&gt;Decode(pImgRaw,iTexW*2,Filter,0);
+-	}
+-	=
+
+-	if (bInvertY) { // invert y, TODO : move this to decode
+-		short swap;
+-		for (int y=3D0;y&lt;iImgH/2;++y) {
+-			for (int x=3D0;x&lt;iImgW;++x) {
+-				swap =3D pImgRaw[y*iTexW+x];
+-				pImgRaw[y*iTexW+x] =3D pImgRaw[(iImgH-1-y)*iTexW+x];
+-				pImgRaw[(iImgH-1-y)*iTexW+x] =3D swap;
+-			}
+-		}
+-	}
+-	if (bInvertX) { =
+
+-		// todo ..
+-	}
+-	=
+
+-	return pImgRaw;
+-}
+-
+-/// WARNING ! bPixelExact changes size to 2^n where n &gt;=3D 4
+-bool	GenerateArtMaterial	(cArtMapLoader&amp; oArtMapLoader,const char* szMatNa=
+me,const int iID,const bool bPixelExact,const bool bInvertY,const bool bInv=
+ertX,const bool bHasAlpha,const bool bEnableLighting,const bool bEnableDept=
+hWrite,cHueLoader* pHueLoader,const short iHue) { PROFILE
+-	int iTexW, iTexH;
+-	=
+
+-	short *pImgRaw =3D GenerateArtRaw(oArtMapLoader, iID,bPixelExact, bInvert=
+Y, bInvertX, pHueLoader, iHue, iTexW, iTexH);
+-
+-	if(pImgRaw =3D=3D 0){
+-		printf(&quot;ERROR could not create art raw id=3D%i\n&quot;,iID);
+-		return false;
+-	}
+-	=
+
+-	GenerateMaterial_16Bit(szMatName,pImgRaw,iTexW,iTexH,bPixelExact,bHasAlph=
+a,bEnableLighting,bEnableDepthWrite);
+-	=
+
+-	delete [] pImgRaw;
+-	=
+
+-	return true;
+-}
+-
+-// TODO : dublicate : WriteArtMapToImage
+-bool	GenerateArtImage(Ogre::Image &amp;image, cArtMapLoader&amp; oArtMapLoader,con=
+st int iID,const bool bPixelExact,const bool bInvertY,const bool bInvertX,c=
+HueLoader* pHueLoader,const short iHue) { PROFILE
+-	int iTexW, iTexH;
+-	=
+
+-	short *pImgRaw =3D GenerateArtRaw(oArtMapLoader, iID,bPixelExact, bInvert=
+Y, bInvertX, pHueLoader, iHue, iTexW, iTexH);
+-
+-	if(pImgRaw =3D=3D 0){
+-		printf(&quot;ERROR could not create art raw id=3D%i\n&quot;,iID);
+-		return false;
+-	}
+-
+-	uint32	*pBuf32 =3D new uint32[iTexW*iTexH];
+-	ColorBuffer16To32(iTexW,iTexH,(uint16*)pImgRaw,(uint32*)pBuf32);
+-	=
+
+-	Ogre::DataStreamPtr imgstream(new Ogre::MemoryDataStream(pBuf32,iTexW*iTe=
+xH*sizeof(uint32)));
+-	//Ogre::Image img; =
+
+-	//img.loadRawData( imgstream, iWidth, iHeight, Ogre::PF_A1R5G5B5 ); // lo=
+ng : PF_A8R8G8B8
+-	//Ogre::TextureManager::getSingleton().loadImage( szMatName ,Ogre::Resour=
+ceGroupManager::DEFAULT_RESOURCE_GROUP_NAME, img );
+-
+-	image.loadRawData(imgstream, iTexW, iTexH, Ogre::PF_A8R8G8B8 ); // long :=
+ PF_A8R8G8B8 short : PF_A1R5G5B5
+-	=
+
+-	//printf(&quot;GenerateArtImage: w=3D%i h=3D%i\n&quot;,iTexW,iTexH);
+-	=
+
+-	delete [] pBuf32;
+-	delete [] pImgRaw;
+-	=
+
+-	return true;
+-}
+-
+-
+-/// WARNING ! changes size to 2^n where n &gt;=3D 4
+-bool	GenerateGumpMaterial	(cGumpLoader&amp; oGumpLoader,const char* szMatName,=
+const int iID,const bool bHasAlpha,cHueLoader* pHueLoader,short iHue) { PRO=
+FILE
+-	cGump *gump =3D oGumpLoader.GetGump(iID);
+-	if (gump =3D=3D 0) return false;
+-	int iImgW =3D gump-&gt;GetWidth();
+-	int iImgH =3D gump-&gt;GetHeight();
+-	int iTexW =3D iImgW;
+-	int iTexH =3D iImgH;
+-	if (1) { // gumps are always pixel-exact
+-		iTexW =3D iTexH =3D 16;
+-		while (iTexW &lt; iImgW) iTexW &lt;&lt;=3D 1;
+-		while (iTexH &lt; iImgH) iTexH &lt;&lt;=3D 1;
+-	}
+-	short *pImgRaw =3D new short[iTexW*iTexH] ;
+-	memset(pImgRaw,0,2*iTexW*iTexH);
+-	if( iHue &amp;&amp; pHueLoader ) {
+-		bool PartialHue =3D (iHue &amp; 0x8000);
+-		iHue =3D iHue &amp; 0x7FFF;
+-		short* ColorTable =3D pHueLoader-&gt;GetHue( iHue-1 )-&gt;GetColors();
+-
+-		if (PartialHue) {
+-			cPartialHueFilter Filter;
+-			gump-&gt;Decode(pImgRaw,iTexW*2,Filter,ColorTable);
+-		} else {
+-			cHueFilter Filter;
+-			gump-&gt;Decode(pImgRaw,iTexW*2,Filter,ColorTable);
+-		}
+-	} else {
+-		cSetHighBitFilter Filter;
+-		gump-&gt;Decode(pImgRaw,iTexW*2,Filter,0);
+-	}
+-	=
+
+-	// make gumps with non 2^n size a bit tilable (not completely correct, bu=
+t its good a start)
+-	if (1) {
+-		int x,y;
+-		for (y=3D0;y&lt;iTexH;++y)
+-		for (x=3D0;x&lt;iTexW;++x) {
+-			if (x &gt;=3D iImgW || y &gt;=3D iImgH) =
+
+-				pImgRaw[y*iTexW+x] =3D pImgRaw[(y%iImgH)*iTexW+(x%iImgW)];
+-		}
+-	}
+-	bool bPixelExact =3D true;
+-	bool bEnableLighting =3D false;
+-	bool bEnableDepthWrite =3D false;
+-	bool bClamp =3D false;
+-	GenerateMaterial_16Bit(szMatName,pImgRaw,iTexW,iTexH,bPixelExact,bHasAlph=
+a,bEnableLighting,bEnableDepthWrite,bClamp);
+-	=
+
+-	delete [] pImgRaw;
+-	=
+
+-	return true;
+-}
+-
+-bool	WriteArtMapToFile	(cArtMapLoader&amp; oArtMapLoader,const char* szFilePat=
+h,const int iID,cHueLoader* pHueLoader,const short iHue) {
+-	Ogre::Image img;
+-	if (!WriteArtMapToImage(img,oArtMapLoader,iID,pHueLoader,iHue)) return fa=
+lse;
+-	img.save(szFilePath);
+-	return true;
+-}
+-
+-// TODO : dublicate : GenerateArtImage
+-bool	WriteArtMapToImage					(Ogre::Image&amp; pDest,cArtMapLoader&amp; oArtMapLoad=
+er,const int iID,cHueLoader* pHueLoader,const short iHue) {
+-	int iImgW, iImgH;
+-	bool bPixelExact =3D false; // setting this to true would lead to image s=
+ize being increased until a multiple of 2 is reached
+-	bool bInvertX =3D false;
+-	bool bInvertY =3D false;
+-	=
+
+-	short *pImgRaw =3D GenerateArtRaw(oArtMapLoader, iID,bPixelExact, bInvert=
+Y, bInvertX, pHueLoader, iHue, iImgW, iImgH);
+-
+-	if (pImgRaw =3D=3D 0){
+-		printf(&quot;ERROR in WriteArtMapToImage, could not create art raw id=3D%i\n&quot;=
+,iID);
+-		return false;
+-	}
+-	=
+
+-	// convert from 16 to 32 bits
+-	uint32	*pBuf32 =3D new uint32[iImgW*iImgH];
+-	ColorBuffer16To32(iImgW,iImgH,(uint16*)pImgRaw,(uint32*)pBuf32);
+-	delete [] pImgRaw;
+-	=
+
+-	pDest.loadDynamicImage((Ogre::uchar*)pBuf32,iImgW,iImgH,1,Ogre::PF_A8R8G8=
+B8,true); // autoDelete pBuf32
+-	return true;
+-}
+-
+-bool	WriteTexMapToFile	(cTexMapLoader&amp; oTexMapLoader,const char* szFilePat=
+h,const int iID,cHueLoader* pHueLoader,const short iHue) { PROFILE
+-	//~ printf(&quot;WriteTexMapToFile path=3D%s id=3D%d hueloader=3D0x%x hue=3D%d=
+\n&quot;,szFilePath,iID,(int)pHueLoader,iHue);
+-	cTexMap *texmap =3D oTexMapLoader.GetTexMap(iID);
+-	if (texmap =3D=3D 0) return false;
+-	int iImgW =3D texmap-&gt;GetWidth();
+-	int iImgH =3D texmap-&gt;GetHeight();
+-	//~ printf(&quot;WriteTexMapToFile w=3D%d h=3D%d texmap=3D0x%x\n&quot;,iImgW,iImgH,=
+texmap);
+-	//~ printf(&quot;WriteTexMapToFile mpRawData=3D0x%x mpRawIndex=3D0x%x\n &quot;,(int=
+)texmap-&gt;mpRawData,(int)texmap-&gt;mpRawIndex);
+-	//~ if (texmap-&gt;mpRawIndex) {
+-		//~ RawIndex* p =3D texmap-&gt;mpRawIndex;	=
+
+-		//~ printf(&quot;WriteTexMapToFile miOffset=3D0x%x miLength=3D0x%x miExtra=3D=
+0x%x\n &quot;,(int)p-&gt;miOffset,(int)p-&gt;miLength,(int)p-&gt;miExtra);
+-	//~ }
+-	=
+
+-	short *pImgRaw =3D new short[iImgW*iImgH] ;
+-	memset(pImgRaw,0,2*iImgW*iImgH); // not really needed here, as the format=
+ does not allow empty pixels, but safe is safe
+-	if( iHue &amp;&amp; pHueLoader ) {
+-		cHueFilter Filter;
+-		short* ColorTable =3D pHueLoader-&gt;GetHue( iHue-1 )-&gt;GetColors();
+-		texmap-&gt;Decode(pImgRaw,Filter,ColorTable);
+-	} else {
+-		cSetHighBitFilter Filter;
+-		texmap-&gt;Decode(pImgRaw,Filter,0);
+-	}
+-
+-	uint32	*pBuf32 =3D new uint32[iImgW*iImgH];
+-	ColorBuffer16To32(iImgW,iImgH,(uint16*)pImgRaw,(uint32*)pBuf32);
+-	Ogre::DataStreamPtr imgstream(new Ogre::MemoryDataStream(pBuf32,iImgW*iIm=
+gH*sizeof(uint32)));
+-	=
+
+-	Ogre::Image image;
+-	image.loadRawData(imgstream, iImgW, iImgH, Ogre::PF_A8R8G8B8 ); // long :=
+ PF_A8R8G8B8 short : PF_A1R5G5B5
+-	image.save(szFilePath);
+-	=
+
+-	delete [] pBuf32;
+-	delete [] pImgRaw;
+-	=
+
+-	return true;
+-}
+-
+-bool	GenerateTexMapMaterial	(cTexMapLoader&amp; oTexMapLoader,const char* szMa=
+tName,const int iID,const bool bHasAlpha,const bool bEnableLighting,const b=
+ool bEnableDepthWrite,const bool bPixelExact,cHueLoader* pHueLoader,const s=
+hort iHue) { PROFILE
+-	cTexMap *texmap =3D oTexMapLoader.GetTexMap(iID);
+-	if (texmap =3D=3D 0) return false;
+-	int iImgW =3D texmap-&gt;GetWidth();
+-	int iImgH =3D texmap-&gt;GetHeight();
+-
+-	short *pImgRaw =3D new short[iImgW*iImgH] ;
+-	memset(pImgRaw,0,2*iImgW*iImgH); // not really needed here, as the format=
+ does not allow empty pixels, but safe is safe
+-	if( iHue &amp;&amp; pHueLoader ) {
+-		cHueFilter Filter;
+-		short* ColorTable =3D pHueLoader-&gt;GetHue( iHue-1 )-&gt;GetColors();
+-		texmap-&gt;Decode(pImgRaw,Filter,ColorTable);
+-	} else {
+-		cSetHighBitFilter Filter;
+-		texmap-&gt;Decode(pImgRaw,Filter,0);
+-	}
+-
+-	GenerateMaterial_16Bit(szMatName,pImgRaw,iImgW,iImgH,bPixelExact,bHasAlph=
+a,bEnableLighting,bEnableDepthWrite);
+-	=
+
+-	delete [] pImgRaw;
+-	=
+
+-	return true;
+-}
+-
+-bool	GenerateAnimMaterial	(cAnimLoader&amp; oAnimLoader,const char* szMatName,=
+const int iID,const int iAnimID,const int iFrame, int&amp; iWidth, int&amp; iHeight=
+, int&amp; iCenterX, int&amp; iCenterY, int&amp; iFrames, cHueLoader* pHueLoader, short=
+ iHue) { PROFILE
+-	int RealID;
+-	if (iID &lt; oAnimLoader.mHighDetailed) {
+-		RealID =3D iID*110;
+-	} else if (iID &lt; oAnimLoader.mHighDetailed + oAnimLoader.mLowDetailed) {
+-		RealID =3D oAnimLoader.mHighDetailed*110 + (iID-oAnimLoader.mHighDetaile=
+d)*65;
+-	} else {
+-		RealID =3D oAnimLoader.mHighDetailed*110 + oAnimLoader.mLowDetailed*65 +=
+ (iID-oAnimLoader.mHighDetailed-oAnimLoader.mLowDetailed)*175;
+-	}
+-
+-	RealID +=3D iAnimID;
+-
+-	cAnim *anim =3D oAnimLoader.GetAnim( RealID );
+-
+-	if (!anim) {
+-		return false;
+-	}
+-
+-	short *pImgRaw =3D 0;
+-	if( iHue &amp;&amp; pHueLoader ) {
+-		bool PartialHue =3D (iHue &amp; 0x8000);
+-		iHue =3D iHue &amp; 0x7FFF;
+-		=
+
+-		short* ColorTable =3D pHueLoader-&gt;GetHue( iHue-1 )-&gt;GetColors();
+-
+-		if (PartialHue) {
+-			cPartialHueFilter Filter;
+-			if (!anim-&gt;Decode( pImgRaw, iFrame, Filter, ColorTable )) {
+-				return false;
+-			}
+-		} else {
+-			cHueFilter Filter;
+-			if (!anim-&gt;Decode( pImgRaw, iFrame, Filter, ColorTable )) {
+-				return false;
+-			}
+-		}
+-	} else {
+-		cSetHighBitFilter Filter;
+-		if (!anim-&gt;Decode( pImgRaw, iFrame, Filter, 0 )) {
+-			return false;
+-		}
+-	}
+-
+-	iWidth =3D anim-&gt;GetWidth();
+-	iHeight =3D anim-&gt;GetHeight();
+-	iCenterX =3D anim-&gt;GetCenterX();
+-	iCenterY =3D anim-&gt;GetCenterY();
+-	iFrames =3D anim-&gt;GetFrames();
+-
+-	bool bHasAlpha =3D true;
+-	bool bPixelExact =3D true;
+-	bool bEnableLighting =3D false;
+-	bool bEnableDepthWrite =3D false;
+-	bool bClamp =3D false;
+-	GenerateMaterial_16Bit(szMatName,pImgRaw,anim-&gt;GetTexWidth(),anim-&gt;GetTex=
+Height(),bPixelExact,bHasAlpha,bEnableLighting,bEnableDepthWrite,bClamp);
+-	=
+
+-	delete [] pImgRaw;
+-
+-	return true;
+-}
+-
+-/// render radar map for dbx,dby blocks starting at bx0,by0
+-bool	GenerateRadarImage		(Ogre::Image&amp; pDest,const int bx0,const int by0,c=
+onst int dbx,const int dby,cGroundBlockLoader&amp; oGroundBlockLoader, cStaticB=
+lockLoader&amp; oStaticBlockLoader, cRadarColorLoader&amp; oRadarColorLoader) {
+-	int iImgW =3D dbx*8;
+-	int iImgH =3D dby*8;
+-	if (iImgW &lt;=3D 0 || iImgH &lt;=3D 0) return false;
+-	=
+
+-	// prepare vars
+-	uint32* pBuf =3D new uint32[iImgW*iImgH];
+-	int heightmap[8*8]; // like a z-buffer, for statics
+-	=
+
+-	// iterate over blocks
+-	for (int ay=3D0;ay&lt;dby;++ay)
+-	for (int ax=3D0;ax&lt;dbx;++ax) {
+-		// first step, ground
+-		cGroundBlock* pGroundBlock =3D oGroundBlockLoader.GetGroundBlock(bx0+ax,=
+by0+ay);
+-		if (pGroundBlock) {
+-			for (int ty=3D0;ty&lt;8;++ty)
+-			for (int tx=3D0;tx&lt;8;++tx) {
+-				heightmap[ty*8+tx] =3D pGroundBlock-&gt;mpRawGroundBlock-&gt;mTiles[ty][tx].=
+miZ;
+-				pBuf[(ay*8+ty)*iImgW+ax*8+tx] =3D Color16To32( oRadarColorLoader.GetCo=
+l16( pGroundBlock-&gt;mpRawGroundBlock-&gt;mTiles[ty][tx].miTileType ) );
+-			}
+-		} else {
+-			for (int ty=3D0;ty&lt;8;++ty)
+-			for (int tx=3D0;tx&lt;8;++tx) {
+-				heightmap[ty*8+tx] =3D -128;
+-				pBuf[(ay*8+ty)*iImgW+ax*8+tx] =3D 0;
+-			}
+-		}
+-		=
+
+-		// second step, statics
+-		cStaticBlock* pStaticBlock =3D oStaticBlockLoader.GetStaticBlock(bx0+ax,=
+by0+ay);
+-		if (pStaticBlock) {
+-			for( int s=3D0; s&lt;pStaticBlock-&gt;Count(); s++ ) {
+-				int tx =3D pStaticBlock-&gt;mpRawStaticList[s].miX;
+-				int ty =3D pStaticBlock-&gt;mpRawStaticList[s].miY;
+-				int tz =3D pStaticBlock-&gt;mpRawStaticList[s].miZ;
+-				int iTileType =3D pStaticBlock-&gt;mpRawStaticList[s].miTileID;
+-				//~ int iHue =3D pStaticBlock-&gt;mpRawStaticList[s].miHue; // TODO ? mod=
+ify radar-color using hueloader ? is this needed ?
+-				if (heightmap[ty*8+tx] &lt;=3D tz) {
+-					heightmap[ty*8+tx] =3D  tz;
+-					pBuf[(ay*8+ty)*iImgW+ax*8+tx] =3D Color16To32( oRadarColorLoader.GetC=
+ol16( 0x4000 + iTileType ) );
+-				}
+-			}
+-		}
+-	}
+-	pDest.loadDynamicImage((Ogre::uchar*)pBuf,iImgW,iImgH,1,Ogre::PF_A8R8G8B8=
+,true); // autoDelete pBuf32
+-	return true;
+-}
+-
+-Ogre::TexturePtr	GenerateRadarImageRaw (int iPosX, int iPosY, cGroundBlock=
+Loader&amp; oGroundBlockLoader, cStaticBlockLoader&amp; oStaticBlockLoader, cRadarC=
+olorLoader&amp; oRadarColorLoader, const char* szMatName) { PROFILE
+-	short* pRawBuffer =3D new short[64*64];
+-	memset( pRawBuffer, 0, 64*64*2 );
+-
+-	signed char heightmap[8*8];
+-	for( int by=3D0; by &lt; 8; by++ ) {
+-		for( int bx=3D0; bx &lt; 8; bx++ ) {
+-			cGroundBlock* pGroundBlock =3D oGroundBlockLoader.GetGroundBlock(iPosX/=
+8 + bx, iPosY/8 + by);
+-			if (pGroundBlock) {
+-				for( int y=3D0; y &lt; 8; y++ ) {
+-					for( int x=3D0; x &lt; 8; x++ ) {
+-						heightmap[y*8+x] =3D pGroundBlock-&gt;mpRawGroundBlock-&gt;mTiles[y][x].mi=
+Z;
+-						pRawBuffer[(by*8+y)*64+bx*8+x] =3D oRadarColorLoader.GetCol16( pGrou=
+ndBlock-&gt;mpRawGroundBlock-&gt;mTiles[y][x].miTileType );
+-					}
+-				}
+-			} else {
+-				for( int y=3D0; y &lt; 8; y++ ) {
+-					for( int x=3D0; x &lt; 8; x++ ) {
+-						heightmap[y*8+x] =3D -128;
+-					}
+-				}
+-			}
+-
+-			cStaticBlock* pStaticBlock =3D oStaticBlockLoader.GetStaticBlock(iPosX/=
+8 + bx, iPosY/8 + by);
+-			if (pStaticBlock) {
+-				for( int s=3D0; s&lt;pStaticBlock-&gt;Count(); s++ ) {
+-					char pBx =3D pStaticBlock-&gt;mpRawStaticList[s].miX;
+-					char pBy =3D pStaticBlock-&gt;mpRawStaticList[s].miY;
+-					signed char pBz =3D pStaticBlock-&gt;mpRawStaticList[s].miZ;
+-					short pBid =3D pStaticBlock-&gt;mpRawStaticList[s].miTileID;
+-					short pBHue =3D pStaticBlock-&gt;mpRawStaticList[s].miHue;
+-					if( pStaticBlock-&gt;mpRawStaticList[s].miZ &gt;=3D heightmap[pBy*8+pBx] ) {
+-						heightmap[pBy*8+pBx] =3D pBz;
+-						pRawBuffer[(by*8+pBy)*64+bx*8+pBx] =3D oRadarColorLoader.GetCol16( 0=
+x4000 + pBid );
+-					}
+-				}
+-			}
+-		}
+-	}
+-
+-	bool bHasAlpha =3D false;
+-	bool bPixelExact =3D true;
+-	bool bEnableLighting =3D false;
+-	bool bEnableDepthWrite =3D false;
+-	bool bClamp =3D false;
+-	Ogre::TexturePtr TexPointer =3D GenerateTexture_16Bit( szMatName, pRawBuf=
+fer, 64, 64 );
+-
+-	delete [] pRawBuffer;
+-
+-	return TexPointer;
+-}
+-
+-/// TODO : warning : area outside map (or where oGroundBlockLoader.Get ret=
+urns 0) is not changed
+-/// writes iImgW * iImgH SHORTs to pBuffer, in the format Ogre::PF_A1R5G5B=
+5 (16 bit)
+-/// if (bBig) { 1 pixel for every tile (8x8 per mapblock) } else { 1 pixel=
+ for every mapblock : left-top-tile [0][0] }
+-/// iLeftTileNum,iTopTileNum is where the left,top of the image will be on=
+ the world map, in tile coords
+-/// tilecoords =3D map-block-coords * 8
+-void	GenerateMapImageRaw	(int iLeftTileNum,int iTopTileNum,int iImgW,int i=
+ImgH,cGroundBlockLoader&amp; oGroundBlockLoader,cRadarColorLoader&amp; radarCols,cS=
+taticBlockLoader* pStaticBlockLoader,short* pRawBuffer,bool bBig) { PROFILE
+-	if (!pRawBuffer) return;
+-	if (bBig) {
+-		int i,mx,my,tx,ty,imgx,imgy;
+-		cGroundBlock* pGroundBlock;
+-		// +7 : round upwards
+-		for (mx=3DiLeftTileNum/8;mx&lt;(iLeftTileNum+iImgW+7)/8;++mx)
+-		for (my=3D iTopTileNum/8;my&lt;( iTopTileNum+iImgH+7)/8;++my) {
+-			pGroundBlock =3D oGroundBlockLoader.GetGroundBlock(mx,my);
+-			imgy =3D my*8-iTopTileNum;
+-			imgx =3D mx*8-iLeftTileNum;
+-			if (imgy &lt; 0 || imgy &gt;=3D iImgH) continue;
+-			if (imgx &lt; 0 || imgx &gt;=3D iImgW) continue;
+-			for (ty=3D0;ty&lt;8;++ty) for (tx=3D0;tx&lt;8;++tx) {
+-				pRawBuffer[iImgW*imgy+imgx] =3D pGroundBlock ? radarCols.GetCol16(pGro=
+undBlock-&gt;mpRawGroundBlock-&gt;mTiles[ty][tx].miTileType) : 0;
+-			}
+-			// TODO : broken.... (only one pixel per block ? should be 8)
+-			// TODO : statics
+-		}
+-	} else { // not big =
+
+-		int i,mx,my,tx,ty;
+-		int iLeftBlockNum =3D iLeftTileNum/8;
+-		int  iTopBlockNum =3D  iTopTileNum/8;
+-		short	block[8*8];
+-		uint16	avgcol;
+-		cGroundBlock* pGroundBlock;
+-		for (mx=3DiLeftBlockNum;mx&lt;iLeftBlockNum+iImgW;++mx)
+-		for (my=3D iTopBlockNum;my&lt; iTopBlockNum+iImgH;++my) {
+-			pGroundBlock =3D oGroundBlockLoader.GetGroundBlock(mx,my);
+-			for (ty=3D0;ty&lt;8;++ty) for (tx=3D0;tx&lt;8;++tx)
+-				block[tx+8*ty] =3D pGroundBlock ? radarCols.GetCol16(pGroundBlock-&gt;mpR=
+awGroundBlock-&gt;mTiles[ty][tx].miTileType) : 0;
+-			cStaticBlock* pStaticBlock =3D pStaticBlockLoader ? pStaticBlockLoader-=
+&gt;<i>GetStaticBlock(mx,my) : 0;
+</I>-			if (pStaticBlock) for (i=3D0;i&lt;pStaticBlock-&gt;Count();++i) {
+-				RawStatic&amp; s =3D pStaticBlock-&gt;mpRawStaticList[i]; // .miTileID .miX .=
+miY .miZ .miHue);
+-				short col =3D radarCols.GetCol16(s.miTileID + 0x4000);
+-				if (col !=3D 0 &amp;&amp; s.miX &gt;=3D 0 &amp;&amp; s.miY &gt;=3D 0 &amp;&amp; s.miX &lt; 8 &amp;&amp; s.miY &lt;=
+ 8) block[s.miX+8*s.miY] =3D col;
+-			}
+-			float r =3D 0;
+-			float g =3D 0;
+-			float b =3D 0;
+-			for (ty=3D0;ty&lt;8;++ty) for (tx=3D0;tx&lt;8;++tx) {
+-				uint16 x =3D *(uint16*)&amp;block[tx+8*ty];
+-				r +=3D float((x &gt;&gt; 10) &amp; 0x1F)/float(0x1f);
+-				g +=3D float((x &gt;&gt;  5) &amp; 0x1F)/float(0x1f);
+-				b +=3D float((x &gt;&gt;  0) &amp; 0x1F)/float(0x1f);
+-			}
+-			avgcol =3D	(uint16(float(0x1f)*(r/64.0)) &lt;&lt; 10) | // r
+-						(uint16(float(0x1f)*(g/64.0)) &lt;&lt;  5) | // g
+-						(uint16(float(0x1f)*(b/64.0)) &lt;&lt;  0);  // b
+-			pRawBuffer[iImgW*(my-iTopBlockNum)+(mx-iLeftBlockNum)] =3D *(short*)&amp;av=
+gcol;
+-		}
+-	}
+-}
+-
+-/*
+ Ogre::TexturePtr	GenerateTexture_16Bit	(const char* szMatName,short* pBuf,=
+const int iWidth,const int iHeight)
+ {PROFILE
+ 	assert(pBuf &amp;&amp; &quot;buffer not set&quot;);
+ 		=
+
+ 	uint32	*pBuf32 =3D new uint32[iWidth*iHeight];
+-	ColorBuffer16To32(iWidth,iHeight,pBuf,pBuf32);
++	ColorBuffer16To32(iWidth,iHeight,(uint16*)pBuf,(uint32*)pBuf32);
+ 	=
+
+ 	Ogre::DataStreamPtr imgstream(new Ogre::MemoryDataStream(pBuf32,iWidth*iH=
+eight*sizeof(uint32)));
+ 	//Ogre::Image img; =
+
+@@ -661,351 +50,4 @@
+ 	delete [] pBuf32;
+ =
+
+ 	return t;
+-}*/
+-
+-Ogre::FontPtr	GenerateUniFont	(cUniFontFileLoader&amp; oUniFontFileLoader, con=
+st char *szName, =
+
+-	const int code_first, const int code_last,
+-	const float letter_r, const float letter_g, const float letter_b, const f=
+loat letter_a,
+-	const float border_r, const float border_g, const float border_b, const f=
+loat border_a,
+-	const float free_r, const float free_g, const float free_b, const float f=
+ree_a){ PROFILE
+-
+-	int first =3D code_first,last =3D code_last;
+-
+-	// borders
+-	if(first &lt; 0)first =3D 0;
+-	if(last &gt;=3D oUniFontFileLoader.GetLetterNumbers())last =3D oUniFontFileL=
+oader.GetLetterNumbers() - 1;
+-	if(last &lt; first)last =3D first;
+-	=
+
+-	// number of letters to load
+-	unsigned int letters =3D last - first + 1;
+-
+-	std::map&lt;const char *,Ogre::Rectangle&gt; lCache;
+-
+-	// max letter size (without border space)
+-	unsigned int maxw =3D oUniFontFileLoader.GetMaxWidth();
+-	unsigned int maxh =3D oUniFontFileLoader.GetMaxHeight();
+-	// size + border (fontborder and freepixel)
+-	// 6 + 2
+-	unsigned int letw =3D maxw + 4;
+-	unsigned int leth =3D maxh + 4;
+-	// offset to the start of maxletter size
+-	unsigned int letx =3D 4;
+-	unsigned int lety =3D 4;
+-	// size of the texture that stores all letter images (2^n)
+-	unsigned int texw =3D 1;
+-	unsigned int texh =3D 1;
+-	// OBSOLETE 16*16 is enough space to store all 255 letters
+-	//int size =3D sqrt(float(oUniFontFileLoader.GetLetterNumbers())*oUniFont=
+FileLoader.GetLetterUsage());
+-	int size =3D (int)((float)mymax(letw,leth) * sqrt(float(letters)));
+-	texw =3D Ogre::Bitwise::firstPO2From(size);
+-	texh =3D Ogre::Bitwise::firstPO2From(size);
+-	=
+
+-	// imagebuffer
+-	unsigned int buffersize =3D Ogre::PixelUtil::getMemorySize(texw,texh,1,Og=
+re::PF_A4R4G4B4);
+-	char *buffer =3D new char[buffersize];
+-	// zero the buffer
+-	memset(buffer,0,buffersize);
+-	=
+
+-	// position of the current letter in the texture in pixels
+-	unsigned int posx =3D 0;
+-	unsigned int posy =3D 0;
+-	=
+
+-	// TODO create manual loader for this resource
+-	Ogre::FontPtr font =3D Ogre::FontManager::getSingleton().create(szName,Og=
+re::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME);
+-	=
+
+-	font-&gt;setType(Ogre::FT_IMAGE);
+-	=
+
+-	unsigned short *p =3D (unsigned short *)buffer;
+-	=
+
+-	// paint all letters in the texture
+-	const RawUniFontFileLetterHeader *hd;
+-	const char *data;
+-
+-	for(int i =3D first;i &lt;=3D last; ++i){
+-		//if(i % 10 =3D=3D 0 || i =3D=3D first || i =3D=3D last)printf(&quot;[%05.1f%=
+%] code=3D%d posx=3D%d posy=3D%d texw=3D%d texh=3D%d\n&quot;,100.0*float(i - cod=
+e_first)/float(letters),i,posx,posy,texw,texh);
+-
+-		// get letter data
+-		hd =3D oUniFontFileLoader.GetLetterHeader(i);
+-		data =3D oUniFontFileLoader.GetLetterData(i);
+-
+-		//printf(&quot;check letter %i at %x\n&quot;,i,data);
+-
+-		// skip if invalid offset
+-		if(data =3D=3D 0)continue;
+-
+-		// letter already rendered?
+-		if(lCache.find(data) =3D=3D lCache.end()){
+-			// decode letter and store in image
+-
+-			// iterator over all pixels (letw,leth)
+-			for(int x =3D 0;x &lt; letw; ++x)
+-			for(int y =3D 0;y &lt; leth; ++y){
+-				// calculate letter space to letter data buffer space
+-				int dx =3D x - letx - hd-&gt;miXOffset;
+-				int dy =3D y - lety - hd-&gt;miYOffset;
+-				// calc position of the pixel in the image buffer
+-				int ix =3D posx + x;
+-				int iy =3D posy + y;
+-				// read out pixel
+-				float r,g,b,a;
+-				=
+
+-				if(oUniFontFileLoader.IsPixelBorder(data,hd-&gt;miWidth,hd-&gt;miHeight,dx,d=
+y)){
+-					r =3D border_r; g =3D border_g; b =3D border_b; a =3D border_a;
+-				} else if(oUniFontFileLoader.IsPixelInside(data,hd-&gt;miWidth,hd-&gt;miHeig=
+ht,dx,dy)){
+-					r =3D letter_r; g =3D letter_g; b =3D letter_b; a =3D letter_a;
+-				} else {
+-					r =3D free_r; g =3D free_g; b =3D free_b; a =3D free_a;
+-				}
+-				=
+
+-				// store color in image
+-				Ogre::PixelUtil::packColour(r,g,b,a,Ogre::PF_A4R4G4B4,&amp;p[ix + iy*texw]=
+);			=
+
+-			}
+-			=
+
+-			// left and right borders of the letter in pixels
+-			int l =3D posx + letx + hd-&gt;miXOffset - 1;
+-			int r =3D posx + letx + hd-&gt;miXOffset + hd-&gt;miWidth + 1;
+-			=
+
+-			// set glyphe text coords
+-			float u1 =3D float(l)/float(texw);
+-			float v1 =3D float(posy + lety - 1)/float(texh);
+-			float u2 =3D float(r)/float(texw);
+-			float v2 =3D float(posy + lety + maxh + 1)/float(texh);
+-			font-&gt;setGlyphTexCoords(i,u1,v1,u2,v2,float(texw)/float(texh));  =
+
+-			=
+
+-			//printf(&quot;%c: u1=3D%f v1=3D%f u2=3D%f v2=3D%f\n&quot;,i,u1,v1,u2,v2);
+-			//printf(&quot;   u1=3D%f v1=3D%f u2=3D%f v2=3D%f\n&quot;,u1*float(texw),v1*float=
+(texh),u2*float(texw),v2*float(texh));
+-			//printf(&quot;   h=3D%d\n&quot;,int((v2-v1)*float(texh)));
+-			=
+
+-			// move window in texture to next free space
+-			posx +=3D letw;
+-			if(posx + letw &gt;=3D texw){
+-				// oki one line is full, so move the window to the next
+-				posx =3D 0;
+-				posy +=3D leth;
+-			}
+-
+-			// store generated rect under data pointer in cache
+-			{
+-				Ogre::Rectangle r;
+-				r.left =3D u1;r.right =3D u2;
+-				r.top =3D v1;r.bottom =3D v2;
+-				lCache[data] =3D r;
+-			}
+-		} else {
+-			// use already written part if the image
+-			Ogre::Rectangle r(lCache.find(data)-&gt;second);
+-			// set glyphe text coords
+-			font-&gt;setGlyphTexCoords(i,r.left,r.top,r.right,r.bottom,float(texw)/flo=
+at(texh));
+-		}
+-	}
+-
+-	// create image
+-	Ogre::Image img;
+-	img.loadDynamicImage((Ogre::uchar *)buffer,texw,texh,Ogre::PF_A4R4G4B4);
+-	=
+
+-	//img.resize(texw*2,texh*2,Ogre::Image::FILTER_NEAREST);
+-	=
+
+-	// save on disk
+-	/*
+-	printf(&quot;save image...\n&quot;);
+-	std::string filename =3D std::string(szName) + std::string(&quot;.png&quot;);
+-	img.save(filename);
+-	printf(&quot;done\n&quot;);
+-	*/
+-	=
+
+-	// generate texture name from the fontname
+-	std::string sTexName =3D std::string(szName) + std::string(&quot;_tex&quot;);
+-
+-	// create texture from image
+-	Ogre::TexturePtr t =3D Ogre::TextureManager::getSingleton().loadImage(sTe=
+xName,Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME,
+-		img,Ogre::TEX_TYPE_2D,0);
+-	=
+
+-	/*
+-	Ogre::DataStreamPtr imgstream(new Ogre::MemoryDataStream(buffer,buffersiz=
+e));
+-	Ogre::TexturePtr t =3D Ogre::TextureManager::getSingleton().loadRawData(s=
+TexName,
+-		Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME,
+-		imgstream, texw, texh, Ogre::PF_A4R4G4B4 );*/
+-	=
+
+-	// assign texture to font
+-	font-&gt;setSource(sTexName);
+-	=
+
+-	font-&gt;load();
+-	=
+
+-	delete [] buffer;
+-	=
+
+-	// set additional mterial parameter
+-	Ogre::MaterialPtr material =3D font-&gt;getMaterial();
+-	Ogre::TextureUnitState *texLayer =3D material-&gt;getTechnique(0)-&gt;getPass(0=
+)-&gt;getTextureUnitState(0);
+-	=
+
+-	texLayer-&gt;setTextureFiltering(Ogre::TFO_NONE);
+-	=
+
+-	//texLayer-&gt;setTextureAddressingMode( Ogre::TextureUnitState::TAM_CLAMP );
+-	//material-&gt;setSceneBlending( SBT_ADD );
+-	//material-&gt;getTechnique(0)-&gt;getPass(0)-&gt;setCullingMode( Ogre::CULL_NONE =
+) ;
+-	//material-&gt;getTechnique(0)-&gt;getPass(0)-&gt;setManualCullingMode( Ogre::MANU=
+AL_CULL_NONE ) ;
+-	//material-&gt;getTechnique(0)-&gt;getPass(0)-&gt;setLightingEnabled( false );
+-	//material-&gt;setDepthWriteEnabled( false );
+-	//material-&gt;setDepthCheckEnabled( bEnableDepthWrite );
+-	=
+
+-	return font;
+ }
+-
+-bool	WriteFontGlyphToImage				(Ogre::Image&amp; pDest,cUniFontFileLoader&amp; oUni=
+FontFileLoader,const int iCharCode,
+-	const Ogre::ColourValue&amp; vInner,
+-	const Ogre::ColourValue&amp; vBorder,
+-	const Ogre::ColourValue&amp; vBackground) {
+-	RawUniFontFileLetterHeader*	pHead =3D oUniFontFileLoader.GetLetterHeader(=
+	iCharCode);
+-	const char*					pData =3D oUniFontFileLoader.GetLetterData(	iCharCode);
+-	if (!pData) return false;
+-
+-	int b =3D 2; // image border around the raw font data
+-	int w =3D b + pHead-&gt;miWidth	+ b;  // border on all sides, 2 for
+-	int h =3D b + pHead-&gt;miHeight	+ b;
+-	if (w =3D=3D 0 || h =3D=3D 0) return false;
+-		=
+
+-	Ogre::PixelFormat iFormat =3D Ogre::PF_BYTE_RGBA; // Ogre::PF_BYTE_BGRA;
+-	Ogre::uint32* pBuf =3D new Ogre::uint32[w*h];
+-	for (int y=3D0;y&lt;h;++y)
+-	for (int x=3D0;x&lt;w;++x) {
+-		bool bInside =3D 				oUniFontFileLoader.IsPixelInside(pData,pHead-&gt;miWid=
+th,pHead-&gt;miHeight,x-b,y-b);
+-		bool bBorder =3D !bInside &amp;&amp;	oUniFontFileLoader.IsPixelBorder(pData,pHea=
+d-&gt;miWidth,pHead-&gt;miHeight,x-b,y-b);
+-		Ogre::PixelUtil::packColour(bInside?vInner:(bBorder?vBorder:vBackground)=
+,iFormat,&amp;pBuf[y*w+x]); // write to buffer
+-	}
+-	pDest.loadDynamicImage((Ogre::uchar*)pBuf,w,h,1,iFormat,true); // autoDel=
+ete
+-	return true;
+-}
+-
+-
+-bool	GenerateHeightMap(cGroundBlockLoader* oGroundBlockLoader, const int i=
+BlockX, const int iBlockY, signed char* fValues ) { PROFILE
+-	int OldBX =3D -1;
+-	int OldBY =3D -1;
+-	cGroundBlock* Block =3D 0;
+-	for( int y=3D0; y&lt;=3D8; y++ ) {
+-		for( int x=3D0; x&lt;=3D8; x++ ) {
+-			int NewBX =3D iBlockX + x/8;
+-			int NewBY =3D iBlockY + y/8;
+-			int TileX =3D x % 8;
+-			int TileY =3D y % 8;
+-
+-			if (OldBX !=3D NewBX || OldBY !=3D NewBY) {
+-				Block =3D oGroundBlockLoader-&gt;GetGroundBlock( NewBX, NewBY );
+-				OldBX =3D NewBX;
+-				OldBY =3D NewBY;
+-			}
+-			=
+
+-			if (Block) {
+-				fValues[y*9+x] =3D Block-&gt;mpRawGroundBlock-&gt;mTiles[TileY][TileX].miZ;
+-			} else {
+-				fValues[y*9+x] =3D 0;
+-			}
+-		}
+-	}
+-	return true;
+-}
+-
+-bool	GenerateNormals(cGroundBlockLoader* oGroundBlockLoader, const int iBl=
+ockX, const int iBlockY, float* fValues ) { PROFILE
+-	signed char heightmap[11][11];
+-
+-	int OldBX =3D -1;
+-	int OldBY =3D -1;
+-	cGroundBlock* Block =3D 0;
+-	for( int y=3D-1; y&lt;=3D9; y++ ) {
+-		for( int x=3D-1; x&lt;=3D9; x++ ) {
+-			int NewBX =3D iBlockX + (8 + x)/8 - 1;
+-			int NewBY =3D iBlockY + (8 + y)/8 - 1;
+-			int TileX =3D (x + 8) % 8;
+-			int TileY =3D (y + 8) % 8;
+-
+-			if (OldBX !=3D NewBX || OldBY !=3D NewBY) {
+-				Block =3D oGroundBlockLoader-&gt;GetGroundBlock( NewBX, NewBY );
+-				OldBX =3D NewBX;
+-				OldBY =3D NewBY;
+-			}
+-			=
+
+-			if (Block) {
+-				heightmap[x+1][y+1] =3D Block-&gt;mpRawGroundBlock-&gt;mTiles[TileX][TileY].=
+miZ;
+-			} else {
+-				heightmap[x+1][y+1] =3D 0;
+-			}
+-		}
+-	}
+-
+-	Ogre::Vector3 NormalMap[10][10][4];
+-	for( int y=3D-1; y&lt;=3D8; y++ ) {
+-		for( int x=3D-1; x&lt;=3D8; x++ ) {
+-			signed char cell =3D heightmap[x+1][y+1];
+-			signed char left =3D heightmap[x+1][y+2];
+-			signed char right =3D heightmap[x+2][y+1];
+-			signed char bottom =3D heightmap[x+2][y+2];
+-
+-			if (cell =3D=3D left &amp;&amp; cell =3D=3D right &amp;&amp; cell =3D=3D bottom) {
+-				NormalMap[x+1][y+1][0] =3D Ogre::Vector3( 0, 0, 1 );
+-				NormalMap[x+1][y+1][1] =3D Ogre::Vector3( 0, 0, 1 );
+-				NormalMap[x+1][y+1][2] =3D Ogre::Vector3( 0, 0, 1 );
+-				NormalMap[x+1][y+1][3] =3D Ogre::Vector3( 0, 0, 1 );
+-			} else {
+-				Ogre::Vector3 v1, v2;
+-				v1 =3D Ogre::Vector3( -22, 22, (cell-right)*4 );
+-				v2 =3D Ogre::Vector3( -22, -22, (left-cell)*4 );
+-//				NormalMap[x+1][y+1][0] =3D v1.crossProduct( v2 ).normalise();
+-//bugfix Arahil
+-				NormalMap[x+1][y+1][0] =3D v1.crossProduct( v2 );
+-				NormalMap[x+1][y+1][0].normalise();
+-
+-				v1 =3D Ogre::Vector3( 22, 22, (right-bottom)*4 );
+-				v2 =3D Ogre::Vector3( -22, 22, (cell-right)*4 );
+-//				NormalMap[x+1][y+1][1] =3D v1.crossProduct( v2 ).normalise();
+-//bugfix Arahil
+-				NormalMap[x+1][y+1][1] =3D v1.crossProduct( v2 );
+-				NormalMap[x+1][y+1][1].normalise();
+-
+-				v1 =3D Ogre::Vector3( 22, -22, (bottom-left)*4 );
+-				v2 =3D Ogre::Vector3( 22, 22, (right-bottom)*4 );
+-//				NormalMap[x+1][y+1][2] =3D v1.crossProduct( v2 ).normalise();
+-//bugfix Arahil
+-				NormalMap[x+1][y+1][2] =3D v1.crossProduct( v2 );
+-				NormalMap[x+1][y+1][2].normalise();
+-
+-				v1 =3D Ogre::Vector3( -22, -22, (left-cell)*4 );
+-				v2 =3D Ogre::Vector3( 22, -22, (bottom-left)*4 );
+-//				NormalMap[x+1][y+1][3] =3D v1.crossProduct( v2 ).normalise();
+-//bugfix Arahil
+-				NormalMap[x+1][y+1][3] =3D v1.crossProduct( v2 );
+-				NormalMap[x+1][y+1][3].normalise();
+-			}
+-		}
+-	}
+-
+-	for( int y=3D0; y&lt;=3D7; y++ ) {
+-		for( int x=3D0; x&lt;=3D7; x++ ) {
+-			Ogre::Vector3 v;
+-			v =3D NormalMap[x][y][2] + NormalMap[x][y+1][1] + NormalMap[x+1][y][3] =
++ NormalMap[x+1][y+1][0];
+-			v.normalise();
+-			fValues[((y*8+x)*4+0)*3+0] =3D v.x;
+-			fValues[((y*8+x)*4+0)*3+1] =3D v.y;
+-			fValues[((y*8+x)*4+0)*3+2] =3D v.z;
+-
+-			v =3D NormalMap[x+1][y][2] + NormalMap[x+1][y+1][1] + NormalMap[x+2][y]=
+[3] + NormalMap[x+2][y+1][0];
+-			v.normalise();
+-			fValues[((y*8+x)*4+1)*3+0] =3D v.x;
+-			fValues[((y*8+x)*4+1)*3+1] =3D v.y;
+-			fValues[((y*8+x)*4+1)*3+2] =3D v.z;
+-
+-//			v =3D NormalMap[x+1][y+1][2] + NormalMap[x][y+2][1] + NormalMap[x+2][=
+y][3] + NormalMap[x+2][y+2][0];
+-//Patch from Arahil
+-			v =3D NormalMap[x+1][y+1][2] + NormalMap[x+1][y+2][1] + NormalMap[x+2][=
+y+1][3] + NormalMap[x+2][y+2][0];
+-			v.normalise();
+-			fValues[((y*8+x)*4+2)*3+0] =3D v.x;
+-			fValues[((y*8+x)*4+2)*3+1] =3D v.y;
+-			fValues[((y*8+x)*4+2)*3+2] =3D v.z;
+-
+-			v =3D NormalMap[x][y+1][2] + NormalMap[x][y+2][1] + NormalMap[x+1][y+1]=
+[3] + NormalMap[x+1][y+2][0];
+-			v.normalise();
+-			fValues[((y*8+x)*4+3)*3+0] =3D v.x;
+-			fValues[((y*8+x)*4+3)*3+1] =3D v.y;
+-			fValues[((y*8+x)*4+3)*3+2] =3D v.z;
+-		}
+-	}
+-
+-	return true;
+-}
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000960.html">[Iris-commit] [IRIS] r2150 - in /trunk: data/config.lua.dist data/models/models/textures_skipped_in_atlas.txt lua/gui/gui.healthbar.lua lua/gui/gui.paperdoll.lua lua/net/net.packethandlers.lua
+</A></li>
+	<LI>Next message: <A HREF="000962.html">[Iris-commit] [IRIS] r2152 - in /trunk: include/ src/
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#961">[ date ]</a>
+              <a href="thread.html#961">[ thread ]</a>
+              <a href="subject.html#961">[ subject ]</a>
+              <a href="author.html#961">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

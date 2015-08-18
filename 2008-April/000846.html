@@ -1,0 +1,334 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2035 - in /trunk: data/config.lua.dist lua/lib.walking2.lua lua/lib.walking3.lua lua/main.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-April/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2035%20-%20in%20/trunk%3A%20data/config.lua.dist%0A%20lua/lib.walking2.lua%20lua/lib.walking3.lua%20lua/main.lua&In-Reply-To=%3C20080407005325.3F44D1C1872C%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000845.html">
+   <LINK REL="Next"  HREF="000847.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2035 - in /trunk: data/config.lua.dist lua/lib.walking2.lua lua/lib.walking3.lua lua/main.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2035%20-%20in%20/trunk%3A%20data/config.lua.dist%0A%20lua/lib.walking2.lua%20lua/lib.walking3.lua%20lua/main.lua&In-Reply-To=%3C20080407005325.3F44D1C1872C%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2035 - in /trunk: data/config.lua.dist lua/lib.walking2.lua lua/lib.walking3.lua lua/main.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Mon Apr  7 02:53:20 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000845.html">[Iris-commit] [IRIS] r2034 - in /trunk: lua/lib.3d.dynamic.lua lua/lib.data.lua lua/lib.loading.lua lua/lib.protocol.lua lua/lib.uoutils.lua lua/lib.walking2.lua lua/lib.walking3.lua lua/main.lua src/data_L.cpp
+</A></li>
+        <LI>Next message: <A HREF="000847.html">[Iris-commit] [IRIS] r2036 - in /trunk/lua: lib.walking3.lua	main.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#846">[ date ]</a>
+              <a href="thread.html#846">[ thread ]</a>
+              <a href="subject.html#846">[ subject ]</a>
+              <a href="author.html#846">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Mon Apr  7 02:53:15 2008
+New Revision: 2035
+
+Log:
+working on walk3
+
+Modified:
+    trunk/data/config.lua.dist
+    trunk/lua/lib.walking2.lua
+    trunk/lua/lib.walking3.lua
+    trunk/lua/main.lua
+
+Modified: trunk/data/config.lua.dist
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/config.lua.dist (original)
++++ trunk/data/config.lua.dist Mon Apr  7 02:53:15 2008
+@@ -465,3 +465,5 @@
+ =
+
+ -- &quot;ultralow&quot;, &quot;low&quot;, &quot;med&quot;, &quot;high&quot;, &quot;ultrahigh&quot;, &quot;none&quot;
+ -- gGraphicProfile =3D &quot;med&quot;
++
++gUseWalk3 =3D false
+
+Modified: trunk/lua/lib.walking2.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.walking2.lua (original)
++++ trunk/lua/lib.walking2.lua Mon Apr  7 02:53:15 2008
+@@ -378,7 +378,7 @@
+ -- Can walk the tile, the tile's height and if the tile's a stair
+ -- (about 30 in int, or 3.0 in float (*0.1) is the height of a door)
+ -- two values are returned: is walkable, new Z Level
+-function GetNearestGroundLevel (xloc,yloc,iStartZ,iDir)
++function GetNearestGroundLevel_W2 (xloc,yloc,iStartZ,iDir)
+ 	if (gMyTicks &gt; gWalkScanCacheTime) then gWalkScanCacheTime =3D gMyTicks +=
+ 2000 gWalkScanCache =3D {} end
+ 	local cachename =3D sprintf(&quot;%d,%d,%d,%d&quot;,xloc,yloc,iStartZ,iDir)
+ 	local cache =3D gWalkScanCache[cachename]
+
+Modified: trunk/lua/lib.walking3.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.walking3.lua (original)
++++ trunk/lua/lib.walking3.lua Mon Apr  7 02:53:15 2008
+@@ -1,16 +1,8 @@
+ -- started but not yet finished walk-code : client-side collision, based o=
+n RunUO1 code (used by vetus-mundus for example)
+ -- TODO : walk2 : bridge =3D kTileDataFlag_StairBack or kTileDataFlag_Stai=
+rRight or bridge ???
+-
+-
+---[[
+-replaces the old GetNearestGroundLevel, was used like
+-
+-function WalkStep_CanWalkInDir	(iDir) =
+
+-	iDir =3D DirWrap(iDir)
+-	return (GetNearestGroundLevel(gPlayerXLoc + GetDirX(iDir),gPlayerYLoc + G=
+etDirY(iDir),gPlayerZLoc,iDir))
+-	--(return value was bClientSidePassable,zloc)
+-end
+-]]--
++-- TODO : season translation
++
++
+ =
+
+ =
+
+ kTileFlag =3D {}
+@@ -31,6 +23,35 @@
+ gW3CacheBlocks =3D {}
+ gW3ItemTypeFlagsCache =3D {}
+ kW3CacheBlocks_MaxSqDist =3D 8*8
++
++-- returns bClientSidePassable,zloc
++function GetNearestGroundLevel (xloc,yloc,iStartZ,iDir)
++	if (gUseWalk3) then return GetNearestGroundLevel_W3(xloc,yloc,iStartZ,iDi=
+r) end
++	return GetNearestGroundLevel_W2(xloc,yloc,iStartZ,iDir)
++end
++
++--[[
++replaces the old GetNearestGroundLevel, was used like
++
++function WalkStep_CanWalkInDir	(iDir) =
+
++	iDir =3D DirWrap(iDir)
++	return (GetNearestGroundLevel(gPlayerXLoc + GetDirX(iDir),gPlayerYLoc + G=
+etDirY(iDir),gPlayerZLoc,iDir))
++	--(return value was bClientSidePassable,zloc)
++end
++]]--
++
++-- returns bMoveIsOk,newZ
++function GetNearestGroundLevel_W3 (xloc,yloc,iStartZ,iDir)
++	local playermobile =3D GetPlayerMobile()
++	if (not playermobile) then return false end
++	local playerbodyid =3D playermobile.artid
++	local mobile =3D {zloc=3DiStartZ,CanSwim=3Dfalse,CantWalk=3Dfalse,Alive=
+=3Dtrue,Body=3D{BodyID=3Dplayerbodyid},IsDeadBondedPet=3Dfalse}
++	local posx,posy,posz,d =3D xloc,yloc,iStartZ,iDir
++	local bMoveIsOk,newZ =3D W3_CheckMovement( mobile, posx,posy,posz, d)
++	return bMoveIsOk,newZ
++end
++
++
+ =
+
+ =
+
+ function W3_GetCacheBlock (xloc,yloc)
+@@ -51,11 +72,9 @@
+ 		end
+ 	end
+ 	=
+
+-	-- init block
++	-- statics
+ 	b.statics =3D {}
+ 	for y =3D 0,7 do for x =3D 0,7 do b.statics[x..&quot;,&quot;..y] =3D {} end end
+-	=
+
+-	-- load statics
+ 	gStaticBlockLoader:Load(bx,by) -- following gStaticBlockLoader commands o=
+perate on this loaded block
+ 	local iStaticCount =3D gStaticBlockLoader:Count()
+ 	for i =3D 0,iStaticCount-1 do
+@@ -64,6 +83,7 @@
+ 		table.insert(b.statics[xloc..&quot;,&quot;..yloc],{zloc=3DiZ,artid=3DiTileTypeID,b=
+IsStatic=3Dtrue})
+ 	end
+ 	=
+
++	-- ground
+ 	b.ground =3D {}
+ 	for ty =3D 0,7 do
+ 	for tx =3D 0,7 do
+@@ -87,52 +107,22 @@
+ function W3_ItemIsMovable		(item)		return not item.bIsStatic end
+ =
+
+ =
+
+-function W3_ForAllMultiPartsAtPos	(xloc,yloc,multi_item,fun,param)
+-	assert(false,&quot;TODO&quot;)
+-	local mycache =3D multi.cache
++-- handles clientside and serverside multis (no difference for us, just th=
+e way they are loaded)
++function W3_ForAllMultiPartsAtPos	(xloc,yloc,item,fun,param)
++	local multidata =3D item.multi
++	local mycache =3D multi.w3_cache
+ 	if (not mycache) then
+ 		mycache =3D {}
+-		multi.cache =3D mycache
++		multi.w3_cache =3D mycache
+ 		for k,v in pairs(multi.lparts or {}) do
+ 			local iTileTypeID,iX,iY,iZ,iHue =3D unpack(v)
+-			local myarr =3D mycache[iX..&quot;,&quot;..iY]
+-			if (not myarr) then myarr =3D {}   mycache[iX..&quot;,&quot;..iY] =3D myarr end
+-			table.insert(myarr,{iZ=3DiZ,iTileTypeID=3DiTileTypeID,iHue=3DiHue})
+-		end
+-	end
+-	return mycache[xloc..&quot;,&quot;..yloc] or {}
+-	-- TODO : clientside multi
+-	-- TODO : serverside multi
+-	--~ see also lib.3d.dynamic.lua:114:	if item.artid &gt;=3D gMulti_ID then
+-	--~ see also lib.3d.dynamic.lua:151:	multi.id =3D item.artid - gMulti_ID
+-	=
+
+-	-- TODO : consider multis as well ! (serverside &amp; clientside)   , walk2:G=
+etMultiPartsAtPos()
+-	--  lua/net/net.multi.lua gMultiLoader kPacket_Generic_SubCommand_Revisio=
+nCustomHouse kPacket_Target_Multi
+-	--- lua/lib.3d.dynamic.lua gMultis
+-	--- lua/lib.3d.map.lua:510 : multi.lparts
+-	--[[ =
+
+-			/cavern/code/iris/lua/lib.3d.dynamic.lua:114:	if item.artid &gt;=3D gMulti=
+_ID then
+-			/cavern/code/iris/lua/lib.3d.dynamic.lua:151:	multi.id =3D item.artid -=
+ gMulti_ID
+-			/cavern/code/iris/lua/lib.3d.dynamic.lua:144:	gMultis[multi] =3D true
+-			/cavern/code/iris/lua/lib.3d.dynamic.lua:184:	gMultis[multi] =3D true
+-			/cavern/code/iris/lua/lib.3d.dynamic.lua:388:	gMultis[dynamic.multi] =
+=3D nil =
+
+-			/cavern/code/iris/lua/lib.3d.map.lua:497:	if (gMultis) then
+-			/cavern/code/iris/lua/lib.3d.map.lua:502:	for k,v in pairs(gMultis) do
+-			/cavern/code/iris/lua/lib.3d.map.lua:658:	for k,v in pairs(gMultis) do
+-			=
+
+-			for k,v in pairs(gMultis) do
+-				multi =3D k
+-				if multi.lparts then
+-					for k,v in pairs(multi.lparts) do
+-						iTileTypeID,iX,iY,iZ,iHue =3D unpack(v)
+-						if	iX =3D=3D x and iY =3D=3D y  and iZ &gt;=3D playerheadpos then
+-							playerIsInside =3D true
+-							if ((not zloc_roof) or (zloc_roof &gt; iZ)) then zloc_roof =3D iZ end
+-						end
+-					end
+-				end
+-			end
+-	]]--
++			local n =3D iX..&quot;,&quot;..iY
++			local myarr =3D mycache[n]
++			if (not myarr) then myarr =3D {} mycache[n] =3D myarr end
++			table.insert(myarr,{zloc=3DiZ,artid=3DiTileTypeID,bIsStatic=3Dtrue})
++		end
++	end
++	for k,item in pairs(mycache[xloc..&quot;,&quot;..yloc]) do fun(item,param) end
+ end
+ =
+
+ -- considers statics, dynamics and multis
+@@ -153,8 +143,6 @@
+ =
+
+ =
+
+ =
+
+-function W3_GetMobile			(irismobile)			assert(false,&quot;TODO&quot;) return {zloc=
+=3D0,CanSwim=3Dfalse,CantWalk=3Dfalse,Alive=3Dtrue,Body=3D{BodyID=3D123},Is=
+DeadBondedPet=3Dfalse} end
+-
+ -- returns min,avg,max of 4 vertices
+ function W3_GetAverageZ			(xloc,yloc)			=
+
+ 	-- /cavern/RunUO1.0/src/Map.cs:173:        public void GetAverageZ
+@@ -182,8 +170,7 @@
+ =
+
+ =
+
+ --- bMoveIsOk,newZ =3D CheckMovement( Mobile mobile, Point3D loc, Directio=
+n d, out int newZ )
+--- see also RunUO1.0/Scripts/Engines/Pathing/Movement.cs : CheckMovement a=
+nd Check
+--- TODO : see also RunUO1.0/src/Mobile.cs : Move : checks items(dynamics?)=
+ and mobiles
++-- see also RunUO1.0/Scripts/Engines/Pathing/Movement.cs : CheckMovement a=
+nd Check  and  RunUO1.0/src/Mobile.cs
+ function W3_CheckMovement( mobile, posx,posy,posz, d)
+ 	d =3D DirWrap(d) -- alsor removes runflag
+ 	local moveIsOk,newZ =3D false,0
+
+Modified: trunk/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/main.lua (original)
++++ trunk/lua/main.lua Mon Apr  7 02:53:15 2008
+@@ -54,6 +54,7 @@
+ dofile(libpath .. &quot;lib.cliloc.lua&quot;)
+ dofile(libpath .. &quot;lib.macrolist.lua&quot;)
+ dofile(libpath .. &quot;lib.walking2.lua&quot;)
++dofile(libpath .. &quot;lib.walking3.lua&quot;)
+ dofile(libpath .. &quot;lib.spellbooks.lua&quot;)
+ dofile(libpath .. &quot;lib.speech.lua&quot;)
+ dofile(libpath .. &quot;lib.granny.lua&quot;)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000845.html">[Iris-commit] [IRIS] r2034 - in /trunk: lua/lib.3d.dynamic.lua lua/lib.data.lua lua/lib.loading.lua lua/lib.protocol.lua lua/lib.uoutils.lua lua/lib.walking2.lua lua/lib.walking3.lua lua/main.lua src/data_L.cpp
+</A></li>
+	<LI>Next message: <A HREF="000847.html">[Iris-commit] [IRIS] r2036 - in /trunk/lua: lib.walking3.lua	main.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#846">[ date ]</a>
+              <a href="thread.html#846">[ thread ]</a>
+              <a href="subject.html#846">[ subject ]</a>
+              <a href="author.html#846">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

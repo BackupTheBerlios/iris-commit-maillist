@@ -1,0 +1,229 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r3186 - /trunk/scripts/luabindheader.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2009-December/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3186%20-%20/trunk/scripts/luabindheader.lua&In-Reply-To=%3C20091210220935.BA2507A9812A%40simon%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001945.html">
+   <LINK REL="Next"  HREF="001947.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r3186 - /trunk/scripts/luabindheader.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3186%20-%20/trunk/scripts/luabindheader.lua&In-Reply-To=%3C20091210220935.BA2507A9812A%40simon%3E"
+       TITLE="[Iris-commit] [IRIS] r3186 - /trunk/scripts/luabindheader.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Thu Dec 10 23:09:35 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001945.html">[Iris-commit] [IRIS] r3185 - /trunk/lib.premake.lua
+</A></li>
+        <LI>Next message: <A HREF="001947.html">[Iris-commit] [IRIS] r3187 - /trunk/lua/lib.granny.debug.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1946">[ date ]</a>
+              <a href="thread.html#1946">[ thread ]</a>
+              <a href="subject.html#1946">[ subject ]</a>
+              <a href="author.html#1946">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Thu Dec 10 23:09:35 2009
+New Revision: 3186
+
+Log:
+enhanced luabind generator, added ogre::entity
+
+Modified:
+    trunk/scripts/luabindheader.lua
+
+Modified: trunk/scripts/luabindheader.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/scripts/luabindheader.lua (original)
++++ trunk/scripts/luabindheader.lua Thu Dec 10 23:09:35 2009
+@@ -3,36 +3,43 @@
+ -- TODO: ,(ParamLight::LightTypes(L,2),ParamInt(L,3))  Light::LightTypes  =
+ ParamLightTypes
+ -- TODO:LUABIND_PrefixConstant(Ogre::SceneManager,SCRQM_INCLUD)  -- E fehl=
+t  SCRQM_INCLUDE,
+ =
+
++gBoundPointerClasses =3D {}
+ function Main ()
+ 	local basepath =3D &quot;/usr/local/include/OGRE/&quot;
+-	for k,arr in pairs({	{basepath..&quot;OgreLight.h&quot;				,&quot;Light&quot;},	=
+
+-							{basepath..&quot;OgreSceneManager.h&quot;			,&quot;SceneManager&quot;},
+-							{basepath..&quot;OgreFrustum.h&quot;				,&quot;Frustum&quot;},
+-							{basepath..&quot;OgreCamera.h&quot;				,&quot;Camera&quot;},
+-							{basepath..&quot;OgreSceneNode.h&quot;			,&quot;SceneNode&quot;},
+-							{basepath..&quot;OgreNode.h&quot;					,&quot;Node&quot;},
+-							{basepath..&quot;OgreMovableObject.h&quot;		,&quot;MovableObject&quot;},
+-							{basepath..&quot;OgreRenderable.h&quot;			,&quot;Renderable&quot;},
++	=
+
++	local classes =3D {		{basepath..&quot;OgreLight.h&quot;				,&quot;Light&quot;			,{&quot;MovableObj=
+ect&quot;}},	=
+
++							{basepath..&quot;OgreSceneManager.h&quot;			,&quot;SceneManager&quot;		},
++							{basepath..&quot;OgreFrustum.h&quot;				,&quot;Frustum&quot;			},
++							{basepath..&quot;OgreCamera.h&quot;				,&quot;Camera&quot;			,{&quot;Frustum&quot;}}, -- Renderab=
+le,MovableObject}
++							{basepath..&quot;OgreSceneNode.h&quot;			,&quot;SceneNode&quot;		,{&quot;Node&quot;,&quot;Renderable&quot;}=
+},
++							{basepath..&quot;OgreNode.h&quot;					,&quot;Node&quot;				,{&quot;Renderable&quot;}},
++							{basepath..&quot;OgreMovableObject.h&quot;		,&quot;MovableObject&quot;	},
++							{basepath..&quot;OgreRenderable.h&quot;			,&quot;Renderable&quot;		},
++							{basepath..&quot;OgreVertexIndexData.h&quot;		,&quot;VertexData&quot;		},
++							{basepath..&quot;OgreVertexIndexData.h&quot;		,&quot;IndexData&quot;		},
+ 							=
+
+-							{basepath..&quot;OgreResource.h&quot;				,&quot;Resource&quot;},
+-							=
+
+-							{basepath..&quot;OgreSkeleton.h&quot;				,&quot;Skeleton&quot;},
+-							{basepath..&quot;OgreBone.h&quot;					,&quot;Bone&quot;},
+-							{basepath..&quot;OgreAnimation.h&quot;			,&quot;Animation&quot;},
+-							{basepath..&quot;OgreMesh.h&quot;					,&quot;Mesh&quot;},
+-							{basepath..&quot;OgreSubMesh.h&quot;				,&quot;SubMesh&quot;},
+-							{basepath..&quot;OgreVertexIndexData.h&quot;		,&quot;VertexData&quot;},
+-							{basepath..&quot;OgreVertexIndexData.h&quot;		,&quot;IndexData&quot;},
++							{basepath..&quot;OgreResource.h&quot;				,&quot;Resource&quot;			},
++							{basepath..&quot;OgreSkeleton.h&quot;				,&quot;Skeleton&quot;			,{&quot;Resource&quot;}},
++							{basepath..&quot;OgreBone.h&quot;					,&quot;Bone&quot;				,{&quot;Node&quot;,&quot;Renderable&quot;}},
++							{basepath..&quot;OgreAnimation.h&quot;			,&quot;Animation&quot;		},
++							{basepath..&quot;OgreMesh.h&quot;					,&quot;Mesh&quot;				,{&quot;Resource&quot;}},
++							{basepath..&quot;OgreSubMesh.h&quot;				,&quot;SubMesh&quot;			},
++									=
+
++							{basepath..&quot;OgreEntity.h&quot;				,&quot;Entity&quot;			,{&quot;MovableObject&quot;}},
+ 							=
+
+ 							=
+
+ 							--~ {basepath..&quot;OgreRenderOperation.h&quot;		,&quot;RenderOperation&quot;},	-- cus=
+tom binding made, not good for auto-bind
+ 							--~ {basepath..&quot;OgreHardwareVertexBuffer.h&quot;	,&quot;VertexDeclaration&quot;},	=
+-- custom binding made, not good for auto-bind
++							--~ GenerateBinding(RobMovable,{MovableObject})
++							--~ GenerateBinding(RobRenderable,{Renderable})
+ 							=
+
+-						}) do
+-		local filepath,classname =3D unpack(arr)
++						}
++	for k,arr in pairs(classes) do
++		local filepath,classname,parentclassnames =3D unpack(arr)
+ 		local c =3D {}
+ 		c.code =3D LoadHeader(filepath,classname)
+ 		c.classname =3D classname
++		gBoundPointerClasses[classname] =3D true
+ 		_G[classname] =3D c
+ 	end
+ 	=
+
+@@ -42,28 +49,13 @@
+ 	gOutLines =3D {}
+ =
+
+ 	RegisterVarTypes()
+-	GenerateBinding(Light,{MovableObject})
+-	GenerateBinding(SceneManager)
+-	GenerateBinding(Frustum)
+-	GenerateBinding(Camera,{Frustum}) -- Renderable,MovableObject}
+-	GenerateBinding(SceneNode,{Node,Renderable})
+-	GenerateBinding(Node,{Renderable})
+-	GenerateBinding(MovableObject	)
+-	GenerateBinding(Renderable)
+-	GenerateBinding(VertexData)
+-	GenerateBinding(IndexData)
+-	=
+
+-	GenerateBinding(Resource)
+-	GenerateBinding(Skeleton,{Resource})
+-	GenerateBinding(Bone,{Node,Renderable})
+-	GenerateBinding(Animation)
+-	GenerateBinding(Mesh,{Resource})
+-	GenerateBinding(SubMesh)
+-	--~ GenerateBinding(RenderOperation)
+-	--~ GenerateBinding(VertexDeclaration)
+-	=
+
+-	--~ GenerateBinding(RobMovable,{MovableObject})
+-	--~ GenerateBinding(RobRenderable,{Renderable})
++	=
+
++	for k,arr in pairs(classes) do
++		local filepath,classname,parentclassnames =3D unpack(arr)
++		local parentclasses =3D {}
++		for k,parentclassname in ipairs(parentclassnames or {}) do table.insert(=
+parentclasses,_G[parentclassname]) end
++		GenerateBinding(_G[classname],parentclasses)
++	end
+ 	=
+
+ 	-- output to file
+ 	local outlines =3D gOutLines
+@@ -124,22 +116,10 @@
+ 		gReader[k] =3D &quot;Param&quot;..k
+ 	end
+ =
+
+-	gBoundPointerClasses =3D {}
+-	gBoundPointerClasses.SceneNode			=3D true
+-	gBoundPointerClasses.Node				=3D true
+-	gBoundPointerClasses.MovableObject		=3D true
+-	gBoundPointerClasses.Renderable			=3D true
++	-- gBoundPointerClasses
+ 	gBoundPointerClasses.RenderQueue		=3D true
+-	gBoundPointerClasses.RenderOperation		=3D true
+-	gBoundPointerClasses.SceneManager		=3D true
++	gBoundPointerClasses.RenderOperation	=3D true
+ 	gBoundPointerClasses.Viewport			=3D true
+-	gBoundPointerClasses.Camera				=3D true
+-	gBoundPointerClasses.Light				=3D true
+-	gBoundPointerClasses.Skeleton			=3D true
+-	gBoundPointerClasses.Bone				=3D true
+-	gBoundPointerClasses.Animation			=3D true
+-	gBoundPointerClasses.SubMesh			=3D true
+-	gBoundPointerClasses.Mesh				=3D true
+ 	for k,v in pairs(gBoundPointerClasses) do =
+
+ 		gPusher[k..&quot;*&quot;] =3D &quot;Push&quot;..k
+ 		gReader[k..&quot;*&quot;] =3D &quot;Param&quot;..k
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001945.html">[Iris-commit] [IRIS] r3185 - /trunk/lib.premake.lua
+</A></li>
+	<LI>Next message: <A HREF="001947.html">[Iris-commit] [IRIS] r3187 - /trunk/lua/lib.granny.debug.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1946">[ date ]</a>
+              <a href="thread.html#1946">[ thread ]</a>
+              <a href="subject.html#1946">[ subject ]</a>
+              <a href="author.html#1946">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

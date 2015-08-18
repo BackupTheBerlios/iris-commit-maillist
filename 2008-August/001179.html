@@ -1,0 +1,163 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2372 - /trunk/lua/lib.mapblock.3d.water.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-August/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2372%20-%20/trunk/lua/lib.mapblock.3d.water.lua&In-Reply-To=%3C20080814135434.4F9741C18259%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001178.html">
+   <LINK REL="Next"  HREF="001180.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2372 - /trunk/lua/lib.mapblock.3d.water.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2372%20-%20/trunk/lua/lib.mapblock.3d.water.lua&In-Reply-To=%3C20080814135434.4F9741C18259%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2372 - /trunk/lua/lib.mapblock.3d.water.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Thu Aug 14 15:54:34 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001178.html">[Iris-commit] [IRIS] r2371 - in /trunk/lua: lib.3d.map.lua lib.mapblock.3d.statics.lua lib.mapblock.3d.terrain.lua lib.mapblock.3d.water.lua
+</A></li>
+        <LI>Next message: <A HREF="001180.html">[Iris-commit] [IRIS] r2373 - in /trunk: data/models/models/to_004000/mdl_003215.mesh data/models/models/to_004000/mdl_003216.mesh data/models/models/to_004000/mdl_003217.mesh data/models/models/to_004000/mdl_003512.mesh lua/filter/filter.art.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1179">[ date ]</a>
+              <a href="thread.html#1179">[ thread ]</a>
+              <a href="subject.html#1179">[ subject ]</a>
+              <a href="author.html#1179">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: hagish
+Date: Thu Aug 14 15:54:33 2008
+New Revision: 2372
+
+Log:
+water working
+
+Modified:
+    trunk/lua/lib.mapblock.3d.water.lua
+
+Modified: trunk/lua/lib.mapblock.3d.water.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mapblock.3d.water.lua (original)
++++ trunk/lua/lib.mapblock.3d.water.lua Thu Aug 14 15:54:33 2008
+@@ -24,7 +24,14 @@
+ function cMapBlock_3D_Water:SetWaterZWithoutBorder	(tx, ty, z)
+ 	if not self.mWaterZMap then self.mWaterZMap =3D {} end
+ 	=
+
+-	Array2DSet(self.mWaterZMap, tx,ty, math.max(Array2DGet(self.mWaterZMap, t=
+x,ty) or z, z))
++	if =
+
++		tx &gt;=3D 0 and =
+
++		tx &lt; self.iBlockSize and =
+
++		ty &gt;=3D 0 and =
+
++		ty &lt; self.iBlockSize
++	then =
+
++		Array2DSet(self.mWaterZMap, tx,ty, math.max(Array2DGet(self.mWaterZMap, =
+tx,ty) or z, z))
++	end
+ end
+ =
+
+ function cMapBlock_3D_Water:SetWaterZ	(tx, ty, z)
+@@ -62,6 +69,7 @@
+ =
+
+ 	for x =3D 0,blocks-1 do
+ 		for y =3D 0,blocks-1 do
++			-- check static block
+ 			local l =3D MapGetBlockStatics(iBlockUO_X+x,iBlockUO_Y+y)
+ =
+
+ 			for k,s in pairs(l) do =
+
+@@ -71,17 +79,24 @@
+ 					-- uo tile pos
+ 					local xloc,yloc =3D (iBlockUO_X+x)*8+iX,(iBlockUO_Y+y)*8+iY
+ 					--~ print(&quot;DEBUG&quot;,&quot;water&quot;,x,y,basex,basey,xloc,yloc,iZ)
+-					if =
+
+-						xloc &gt;=3D self.bx * self.iBlockSize and =
+
+-						xloc &lt; (self.bx+1) * self.iBlockSize and =
+
+-						yloc &gt;=3D self.by * self.iBlockSize and =
+
+-						yloc &lt; (self.by+1) * self.iBlockSize
+-					then =
+
+-						self:SetWaterZ(xloc-basex,yloc-basey,iZ)					=
+
++					self:SetWaterZ(xloc-basex,yloc-basey,iZ)					=
+
++					self:YieldIfOverTime()
++				end
++			end =
+
++			=
+
++			-- check ground block
++			for lx =3D 0,7 do
++				for ly =3D 0,7 do
++					local tiletype,z =3D gGroundBlockLoader:GetTile(iBlockUO_X+x,iBlockUO=
+_Y+y,lx,ly)
++					local xloc,yloc =3D (iBlockUO_X+x)*8+lx,(iBlockUO_Y+y)*8+ly
++					=
+
++					if tiletype and FilterIsMapWater(tiletype) then
++						self:SetWaterZ(xloc-basex,yloc-basey,z)					=
+
+ 						self:YieldIfOverTime()
+ 					end
+ 				end
+-			end =
+
++			end
++			=
+
+ 	end end
+ 	=
+
+ 	self:Yield()
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001178.html">[Iris-commit] [IRIS] r2371 - in /trunk/lua: lib.3d.map.lua lib.mapblock.3d.statics.lua lib.mapblock.3d.terrain.lua lib.mapblock.3d.water.lua
+</A></li>
+	<LI>Next message: <A HREF="001180.html">[Iris-commit] [IRIS] r2373 - in /trunk: data/models/models/to_004000/mdl_003215.mesh data/models/models/to_004000/mdl_003216.mesh data/models/models/to_004000/mdl_003217.mesh data/models/models/to_004000/mdl_003512.mesh lua/filter/filter.art.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1179">[ date ]</a>
+              <a href="thread.html#1179">[ thread ]</a>
+              <a href="subject.html#1179">[ subject ]</a>
+              <a href="author.html#1179">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,213 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2585 - in /trunk: lua/lib.spellbooks.lua plugins/lib.spellbar.lua plugins/moblist.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-October/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2585%20-%20in%20/trunk%3A%20lua/lib.spellbooks.lua%0A%20plugins/lib.spellbar.lua%20plugins/moblist.lua&In-Reply-To=%3C20081015213902.534261524030%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001389.html">
+   <LINK REL="Next"  HREF="001391.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2585 - in /trunk: lua/lib.spellbooks.lua plugins/lib.spellbar.lua plugins/moblist.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2585%20-%20in%20/trunk%3A%20lua/lib.spellbooks.lua%0A%20plugins/lib.spellbar.lua%20plugins/moblist.lua&In-Reply-To=%3C20081015213902.534261524030%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2585 - in /trunk: lua/lib.spellbooks.lua plugins/lib.spellbar.lua plugins/moblist.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Wed Oct 15 23:39:02 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001389.html">[Iris-commit] [IRIS] r2584 - /trunk/plugins/moblist.lua
+</A></li>
+        <LI>Next message: <A HREF="001391.html">[Iris-commit] [IRIS] r2586 - in /trunk: lua/lib.macrolist.lua	plugins/moblist.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1390">[ date ]</a>
+              <a href="thread.html#1390">[ thread ]</a>
+              <a href="subject.html#1390">[ subject ]</a>
+              <a href="author.html#1390">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Wed Oct 15 23:39:02 2008
+New Revision: 2585
+
+Log:
+moblist : line from player to target, casttime calc fixed for ninjistu and =
+bushido(instant)
+
+Modified:
+    trunk/lua/lib.spellbooks.lua
+    trunk/plugins/lib.spellbar.lua
+    trunk/plugins/moblist.lua
+
+Modified: trunk/lua/lib.spellbooks.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.spellbooks.lua (original)
++++ trunk/lua/lib.spellbooks.lua Wed Oct 15 23:39:02 2008
+@@ -389,6 +389,9 @@
+ -- bProtectionBuffActive : see IsBuffActive_Protection() IsBuffActive_Esse=
+nceOfWind()
+ -- see also RunUO-2.0-SVN/Scripts/Spells/Base/Spell.cs:647:	public virtual=
+ TimeSpan GetCastDelay()
+ function GetSpellCastTime (spellid,fc,bBuffActive_Protection,bBuffActive_E=
+ssenceOfWind)
++	local spellbookid =3D GetSpellBookIDBySpellID(spellid)
++	if (spellbookid =3D=3D NinjitsuSpellbook) then return 0 end
++	if (spellbookid =3D=3D BushidoSpellbook) then return 0 end
+ 	--~ TODO : fcmax =3D 2 ,   (castskill=3Dchiv&amp;&amp;magery&lt;70):fcmax=3D4
+ 	--~ TODO : if( EssenceOfWindSpell.IsDebuffed( m_Caster ) ) fc -=3D Essenc=
+eOfWindSpell.GetFCMalus( m_Caster );
+ 	fc =3D min(fc or 0,2)
+
+Modified: trunk/plugins/lib.spellbar.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/plugins/lib.spellbar.lua (original)
++++ trunk/plugins/lib.spellbar.lua Wed Oct 15 23:39:02 2008
+@@ -65,7 +65,7 @@
+ 	local casttime		=3D GetSpellCastTime(spellid,equipprop.fc,IsBuffActive_Pr=
+otection(),IsBuffActive_EssenceOfWind()) + kSpellTimeLatency
+ 	print(&quot;spellbar:Hook_SendSpell&quot;,spellid,spellname,spellcircle,casttime,Sm=
+artDump(equipprop))
+ 	SpellBarRiseTextOnMob(GetPlayerSerial(),1,1,1,spellname)
+-	SpellBarStart(casttime)	=
+
++	if (casttime &gt; 0) then SpellBarStart(casttime) end
+ 	--~ SpellBarRiseTextOnMob(GetPlayerSerial(),1,1,1,sprintf(&quot;%s(%d,%d)%s&quot;,s=
+pellname,spellcircle,spellid,IsMageSpell(spellid) and &quot;mage&quot; or &quot;&quot;)) =
+
+ end)
+ =
+
+@@ -171,7 +171,13 @@
+ -- other system messages
+ gSpellbarShortMessages[500112] =3D {r=3D0,g=3D0.5,b=3D0,txt=3D&quot;goardzone o=
+n&quot;			} -- You are now under the protection of the town guards. =
+
+ gSpellbarShortMessages[500113] =3D {r=3D0.5,g=3D0,b=3D0,txt=3D&quot;goardzone o=
+ff&quot;			} -- You have left the protection of the town guards.     =
+
+-
++gSpellbarShortMessages[501942] =3D {r=3D0.5,g=3D0.5,b=3D0.5,txt=3D&quot;locatio=
+n blocked&quot;	} -- That location is blocked.           =
+
++
++--[[
++Hook_Packet_Localized_Text      4294967295      You prepare to hit your op=
+ponent with a Death Strike.   1063091
++Hook_Packet_Localized_Text      4294967295      You inflict a Death Strike=
+ upon your opponent!  1063094  (different message for 2nd..)
++Hook_Packet_Localized_Text      4294967295      You missed your opponent w=
+ith a Death Strike.   1070779  =
+
++]]--
+ =
+
+ =
+
+ --~ NotifyListener(&quot;Hook_Text&quot;,unitext_name,unitext_message) -- kPacket_Te=
+xt_Unicode
+
+Modified: trunk/plugins/moblist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/plugins/moblist.lua (original)
++++ trunk/plugins/moblist.lua Wed Oct 15 23:39:02 2008
+@@ -26,6 +26,7 @@
+ 	for i=3D1,kMobList_MaxCat do self.catgroup[i] =3D self:CreateChild(&quot;Group=
+&quot;) end
+ 	=
+
+ 	self.gfx_maintarget =3D gRootWidget.tooltip:CreateChild(&quot;UOText&quot;,{x=3D0,y=
+=3D0,text=3D&quot;&quot;,col=3D{r=3D1,g=3D0,b=3D0},bold=3Dtrue})
++	self.gfx_maintarget_line =3D gRootWidget.tooltip:CreateChild(&quot;LineList&quot;,{=
+matname=3D&quot;BaseWhiteNoLighting&quot;,bDynamic=3Dtrue,r=3D1,g=3D0,b=3D0})
+ 	=
+
+ 	local vw,vh =3D GetViewportSize()
+ 	self:SetPos(vw-kMobList_CatW,230)
+@@ -71,12 +72,15 @@
+ 	if (serial =3D=3D 0 or serial =3D=3D GetPlayerSerial()) then serial =3D n=
+il end
+ 	self.maintarget_serial =3D serial
+ 	print(&quot;UOMobList:SetMainTarget&quot;,serial,name)
+-	local gfx =3D self.gfx_maintarget
++	local gfx  =3D self.gfx_maintarget
++	local gfx2 =3D self.gfx_maintarget_line
+ 	if (self.maintarget_serial) then
+ 		gfx:SetVisible(true)
++		gfx2:SetVisible(true)
+ 		gfx:SetText(name)
+ 	else
+ 		gfx:SetVisible(false)
++		gfx2:SetVisible(false)
+ 	end
+ end
+ =
+
+@@ -111,13 +115,19 @@
+ 			zloc =3D self.maintarget_last_zloc
+ 		end
+ 		local zadd =3D 10
+-		local gfx =3D self.gfx_maintarget
+-		local px,py =3D gCurrentRenderer:UOPosToPixelPos(xloc,yloc,zloc+zadd)
++		local gfx  =3D self.gfx_maintarget
++		local gfx2 =3D self.gfx_maintarget_line
++		local px,py =3D gCurrentRenderer:UOPosToPixelPos(xloc,yloc,zloc)
+ 		local w,h =3D gfx:GetSize()
+-		local minx,miny,maxx,maxy =3D 0,64,gViewportW-200,gViewportH-32
+-		local x =3D max(minx,min(maxx-w,px or 0))
+-		local y =3D max(miny,min(maxy-h,py or 0))
++		local minx,miny,maxx,maxy =3D 0,64,gViewportW-160,gViewportH-32
++		local x =3D max(minx,min(maxx-w,(px or 0)-0.5*w))
++		local y =3D max(miny,min(maxy-h,(py or 0)))
+ 		gfx:SetPos(x,y)
++		local f =3D 0.5 -- bigger -&gt; longer line
++		local fi =3D 1 - f
++		local x2 =3D max(minx,min(maxx-w,(px or 0)))*fi + f*gViewportW*0.5
++		local y2 =3D max(miny,min(maxy-h,(py or 0)))*fi + f*gViewportH*0.5
++		gfx2:SetLineList({{x2,y2,0,x,y,0}})
+ 	end
+ end
+ =
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001389.html">[Iris-commit] [IRIS] r2584 - /trunk/plugins/moblist.lua
+</A></li>
+	<LI>Next message: <A HREF="001391.html">[Iris-commit] [IRIS] r2586 - in /trunk: lua/lib.macrolist.lua	plugins/moblist.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1390">[ date ]</a>
+              <a href="thread.html#1390">[ thread ]</a>
+              <a href="subject.html#1390">[ subject ]</a>
+              <a href="author.html#1390">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

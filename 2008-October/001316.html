@@ -1,0 +1,284 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2511 - in /trunk: lua/ lua/net/ lua/widgets/	plugins/
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-October/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2511%20-%20in%20/trunk%3A%20lua/%20lua/net/%20lua/widgets/%0A%09plugins/&In-Reply-To=%3C20081004203228.F14031C186AB%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001315.html">
+   <LINK REL="Next"  HREF="001317.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2511 - in /trunk: lua/ lua/net/ lua/widgets/	plugins/</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2511%20-%20in%20/trunk%3A%20lua/%20lua/net/%20lua/widgets/%0A%09plugins/&In-Reply-To=%3C20081004203228.F14031C186AB%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2511 - in /trunk: lua/ lua/net/ lua/widgets/	plugins/">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat Oct  4 22:32:28 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001315.html">[Iris-commit] [IRIS] r2510 - in /trunk/lua: lib.2d.dynamic.lua lib.2d.map.lua lib.2d.mousepick.lua lib.2d.renderer.lua
+</A></li>
+        <LI>Next message: <A HREF="001317.html">[Iris-commit] [IRIS] r2512 - /trunk/lua/widgets/widget.uotooltip.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1316">[ date ]</a>
+              <a href="thread.html#1316">[ thread ]</a>
+              <a href="subject.html#1316">[ subject ]</a>
+              <a href="author.html#1316">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sat Oct  4 22:32:28 2008
+New Revision: 2511
+
+Log:
+2d tooltips, text is ok, but no background yet
+
+Added:
+    trunk/lua/lib.uotooltip.lua
+    trunk/lua/widgets/widget.uotooltip.lua
+Modified:
+    trunk/lua/lib.2d.mousepick.lua
+    trunk/lua/lib.2d.renderer.lua
+    trunk/lua/lib.mousepick.lua
+    trunk/lua/main.lua
+    trunk/lua/net/net.multi.lua
+    trunk/lua/widgets/widget.uocontaineritem.lua
+    trunk/lua/widgets/widget.uotext.lua
+    trunk/plugins/hudenemylist.lua
+
+Modified: trunk/lua/lib.2d.mousepick.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.mousepick.lua (original)
++++ trunk/lua/lib.2d.mousepick.lua Sat Oct  4 22:32:28 2008
+@@ -1,3 +1,22 @@
++
++Renderer2D.gNextMousePickStep =3D 0
++Renderer2D.gMousePickStepInterval =3D 400
++Renderer2D.gUOToolTipOverride =3D true
++
++-- not every frame, but regularly
++function Renderer2D:MousePickStep		()
++	local t =3D Client_GetTicks()
++	if (self.gNextMousePickStep &gt; t) then return end
++	self.gNextMousePickStep =3D t + self.gMousePickStepInterval
++	=
+
++	local serial
++	if (not gKeyPressed[key_mouse_right]) then
++		serial =3D GetMouseHitSerial(true) -- executes mousepick
++		if (serial =3D=3D 0) then serial =3D nil end
++	end
++	=
+
++	SetUOToolTipAtMouse(serial)
++end
+ =
+
+ function Renderer2D:MousePick_Scene () =
+
+ 	-- raypick
+@@ -89,7 +108,6 @@
+ end
+ =
+
+ =
+
+-function Renderer2D:MousePickStep		() end -- obsolete, don't do mousepicki=
+ng every frame
+ =
+
+ =
+
+ function Renderer2D:DestroyMousePickItemBySerial (serial)
+
+Modified: trunk/lua/lib.2d.renderer.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.renderer.lua (original)
++++ trunk/lua/lib.2d.renderer.lua Sat Oct  4 22:32:28 2008
+@@ -135,6 +135,7 @@
+ 	self:MapStep()
+ 	self:HUDFX_MainStep()
+ 	self:Dynamics_MainStep()
++	self:MousePickStep()
+ end
+ =
+
+ function Renderer2D:CamKeyDown						(key) end
+
+Modified: trunk/lua/lib.mousepick.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mousepick.lua (original)
++++ trunk/lua/lib.mousepick.lua Sat Oct  4 22:32:28 2008
+@@ -21,6 +21,7 @@
+ 	Renderer3D.gMousePickFoundHit_ExactX =3D false
+ 	=
+
+ 	local widget =3D MousePick_GUI()
++	gMousePickFoundHitWidget =3D widget
+ 	=
+
+ 	-- 3d mousepicking, only if no widget hit
+ 	if (not widget) then gCurrentRenderer:MousePick_Scene() end
+@@ -62,6 +63,15 @@
+ 			gMousePickFoundHit =3D {}
+ 			gMousePickFoundHit.hittype =3D kMousePickHitType_Container
+ 			gMousePickFoundHit.container =3D widget.dialog.uoContainer
++			gMousePickFoundHit.is2DHit =3D true
++		elseif widget.mobile then
++			local mobile =3D widget.mobile
++			gMousePickFoundHit =3D {}
++			gMousePickFoundHit.hittype =3D kMousePickHitType_Mobile
++			gMousePickFoundHit.mobile =3D mobile
++			gMousePickFoundHit.hit_xloc =3D mobile.xloc
++			gMousePickFoundHit.hit_yloc =3D mobile.yloc
++			gMousePickFoundHit.hit_zloc =3D mobile.zloc
+ 			gMousePickFoundHit.is2DHit =3D true
+ 		end
+ 	end
+
+Modified: trunk/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/main.lua (original)
++++ trunk/lua/main.lua Sat Oct  4 22:32:28 2008
+@@ -87,6 +87,7 @@
+ dofile(libpath .. &quot;lib.uoutils.lua&quot;)
+ dofile(libpath .. &quot;lib.desktop.lua&quot;)
+ dofile(libpath .. &quot;lib.uoanim.lua&quot;)
++dofile(libpath .. &quot;lib.uotooltip.lua&quot;)
+ dofile(libpath .. &quot;lib.blendout.lua&quot;)
+ =
+
+ dofile(libpath .. &quot;gui/gui.main.lua&quot;)
+
+Modified: trunk/lua/net/net.multi.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.multi.lua (original)
++++ trunk/lua/net/net.multi.lua Sat Oct  4 22:32:28 2008
+@@ -286,7 +286,7 @@
+ end
+ =
+
+ function UpdateMultiData (item)
+-	local iTileTypeID,iX,iY,iZ,iFlags
++	if item.artid &lt; gMulti_ID then return end
+ 	local iHue =3D 0
+ 	local multi =3D {}
+ 	multi.lparts =3D {}
+
+Modified: trunk/lua/widgets/widget.uocontaineritem.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/widgets/widget.uocontaineritem.lua (original)
++++ trunk/lua/widgets/widget.uocontaineritem.lua Sat Oct  4 22:32:28 2008
+@@ -59,6 +59,7 @@
+ function gWidgetPrototype.UOContainerItemWidget:on_mouse_right_down	() end
+ =
+
+ function gWidgetPrototype.UOContainerItemWidget:on_simple_tooltip	()
++	if (gCurrentRenderer.gUOToolTipOverride) then return end -- if this is tr=
+ue, then the rendererer handles tooltips
+ 	local tooltiptext =3D AosToolTip_GetText(self.item.serial) or &quot;&quot;
+ 	return (tooltiptext .. &quot; \n &quot;) or &quot;?&quot; -- add newline, workaround for tool=
+tip sizecalc bug
+ end
+
+Modified: trunk/lua/widgets/widget.uotext.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/widgets/widget.uotext.lua (original)
++++ trunk/lua/widgets/widget.uotext.lua Sat Oct  4 22:32:28 2008
+@@ -12,7 +12,7 @@
+ =
+
+ RegisterWidgetClass(&quot;UOText&quot;,&quot;Text&quot;)
+ =
+
+--- param : x,y,width,height,cliloc_id/textline_id,background=3D0/1=3Dtrans=
+parent?,scrollbar=3D0/1=3Ddisplayed,hue,bold=3Dfalse,crop=3Dfalse,html=3Dfa=
+lse
++-- param : x,y,width,height,text/cliloc_id/textline_id,background=3D0/1=3D=
+transparent?,scrollbar=3D0/1=3Ddisplayed,hue,bold=3Dfalse,crop=3Dfalse,html=
+=3Dfalse
+ -- bold=3Doutlined_font: false for xmfhtmlgump,htmlgump, true for croppedt=
+ext, example : runebook gump : kGumpSample_RuneBook
+ -- crop : disables autowrap
+ -- html : parse uo html like &lt;BASEFONT&gt; &lt;BIG&gt;....
+
+Modified: trunk/plugins/hudenemylist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/plugins/hudenemylist.lua (original)
++++ trunk/plugins/hudenemylist.lua Sat Oct  4 22:32:28 2008
+@@ -101,8 +101,10 @@
+ 	bar.widget_bg.tooltip_offx =3D kUOToolTippOffX -- Both defined at
+ 	bar.widget_bg.tooltip_offy =3D kUOToolTippOffY -- obj.container.lua
+ 	bar.widget_bg.stylesetname =3D gGuiDefaultStyleSet
++	bar.widget_bg.mobile =3D body -- for mousepick
+ 	bar.widget_bg.on_simple_tooltip =3D function (widget) =
+
+-		return (body.name) or &quot;?&quot; =
+
++		if (gCurrentRenderer.gUOToolTipOverride) then return end -- if this is t=
+rue, then the rendererer handles tooltips
++		return AosToolTip_GetText(body.serial) or body.name or &quot;?&quot; =
+
+ 	end =
+
+ 	-- Ende Tooltip Mod
+ =
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001315.html">[Iris-commit] [IRIS] r2510 - in /trunk/lua: lib.2d.dynamic.lua lib.2d.map.lua lib.2d.mousepick.lua lib.2d.renderer.lua
+</A></li>
+	<LI>Next message: <A HREF="001317.html">[Iris-commit] [IRIS] r2512 - /trunk/lua/widgets/widget.uotooltip.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1316">[ date ]</a>
+              <a href="thread.html#1316">[ thread ]</a>
+              <a href="subject.html#1316">[ subject ]</a>
+              <a href="author.html#1316">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

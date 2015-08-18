@@ -1,0 +1,147 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2794 - /trunk/include/data_artmap.h
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-December/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2794%20-%20/trunk/include/data_artmap.h&In-Reply-To=%3C20081215155422.A25D71C187F1%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001597.html">
+   <LINK REL="Next"  HREF="001599.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2794 - /trunk/include/data_artmap.h</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2794%20-%20/trunk/include/data_artmap.h&In-Reply-To=%3C20081215155422.A25D71C187F1%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2794 - /trunk/include/data_artmap.h">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Mon Dec 15 16:54:22 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001597.html">[Iris-commit] [IRIS] r2793 - in /trunk/lua: lib.configdialog.lua	main.lua
+</A></li>
+        <LI>Next message: <A HREF="001599.html">[Iris-commit] [IRIS] r2795 - in /trunk/lua: lib.configdialog.lua lib.protocol.lua widgets/widget.uocheckbox.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1598">[ date ]</a>
+              <a href="thread.html#1598">[ thread ]</a>
+              <a href="subject.html#1598">[ subject ]</a>
+              <a href="author.html#1598">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Mon Dec 15 16:54:21 2008
+New Revision: 2794
+
+Log:
+bugfix : fixed signed/unsigned crash in art.mul loader for big images (happ=
+ened for &gt;32kb per image)
+
+Modified:
+    trunk/include/data_artmap.h
+
+Modified: trunk/include/data_artmap.h
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/include/data_artmap.h (original)
++++ trunk/include/data_artmap.h Mon Dec 15 16:54:21 2008
+@@ -12,6 +12,8 @@
+ 	// <A HREF="http://uo.stratics.com/heptazane/fileformats.shtml#3.4">http://uo.stratics.com/heptazane/fileformats.shtml#3.4</A>
+ 	template &lt;class _T&gt; void Decode( short *pBuffer, const int iPitch, _T&amp; fi=
+lter, short* ColorTable ) { PROFILE	///&lt; decodes the art image into a pixel=
+buffer (1short/pixel), pitch=3DLength of a surface scanline in bytes
+ 		int		iBufferSize =3D iPitch*GetHeight();
++		//~ memset(pBuffer,0,iBufferSize);
++		//~ printf(&quot;cArtMap::Decode %d\n&quot;,miID);
+ 		=
+
+ 		if( miID &lt; 0x4000 ){ // TODO : if (Flag &gt; $FFFF or Flag =3D=3D 0) instea=
+d of check id ??  flag=3D*(short *)(mpRawData) , but seems the docs are wro=
+ng here
+ 			//map tile format, 44x44 pixel
+@@ -45,10 +47,11 @@
+ 		} else {
+ 			//run tile format
+ 			//reading width and height but skipping a strange 4byte header
+-			short *input =3D (short *)(mpRawData+4);
++			uint16 *input =3D (uint16 *)(mpRawData+4);
+ 			int width =3D input[0];
+ 			int height =3Dinput[1];
+ 			int streamloc =3D 2+height;
++			//~ printf(&quot;w=3D%d,h=3D%d,streamloc=3D%d\n&quot;,width,height,streamloc);
+ 			int index;
+ =
+
+ 			int X=3D0;
+@@ -56,24 +59,27 @@
+ 			for ( Y=3D0; Y &lt; height; ++Y ){
+ 				X=3D0;
+ 				index =3D (2 +Y);
+-				short offset;
+-				offset =3D input[index] ;
++				uint16 offset =3D input[index] ; // unsigned !
+ 				index =3D streamloc + offset;
+-				short xOffset =3D 1;
+-				short xRun =3D 1;
++				uint16 xOffset =3D 1;
++				uint16 xRun =3D 1;
+ 				short runColor;
+ 											=
+
++				//~ printf(&quot;Y=3D%d,offset=3D%d\n&quot;,(int)Y,(int)offset);
+ 				while ( xOffset+xRun !=3D0 ){
+-					xOffset =3D input[index];
++					xOffset =3D input[index]; // unsigned !
+ 					++index;
+-					xRun =3D input[index];
++					xRun =3D input[index]; // unsigned !
+ 					++index;
++					//~ printf(&quot;xOffset=3D%d,xRun=3D%d,X=3D%d\n&quot;,(int)xOffset,(int)xRun,(=
+int)X);
++					if (xRun &gt; width) { printf(&quot;cArtMap::Decode : bad xRun=3D%d (w=3D%d)\=
+n&quot;,(int)xRun,(int)width); return; }
+ 					if ( (xOffset+xRun!=3D0) ){
+ 						X+=3DxOffset;
+ 						for ( short jj=3D0; jj &lt; xRun; ++jj ){
+ 							runColor=3D (0x7FFF &amp; input[index]);
+ 							++index;
+ 							short *pixel =3D (short *) (((char *)(pBuffer + X)) + (Y*iPitch));
++							if (X &lt; 0 || X &gt;=3D width) { printf(&quot;cArtMap::Decode : X=3D%d out o=
+f bounds (w=3D%d)\n&quot;,(int)X,(int)width); return; }
+ 							if ( runColor !=3D 0 ) //is this check really necessary?
+ 								SecureWrite(pixel,filter( runColor, ColorTable ),pBuffer,iBufferSi=
+ze,&quot;cArtMap::Decode_C&quot;,miID);
+ 							++X;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001597.html">[Iris-commit] [IRIS] r2793 - in /trunk/lua: lib.configdialog.lua	main.lua
+</A></li>
+	<LI>Next message: <A HREF="001599.html">[Iris-commit] [IRIS] r2795 - in /trunk/lua: lib.configdialog.lua lib.protocol.lua widgets/widget.uocheckbox.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1598">[ date ]</a>
+              <a href="thread.html#1598">[ thread ]</a>
+              <a href="subject.html#1598">[ subject ]</a>
+              <a href="author.html#1598">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

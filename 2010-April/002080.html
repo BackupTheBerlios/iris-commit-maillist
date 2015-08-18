@@ -1,0 +1,507 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r3320 - in /trunk: lua/lib.granny.debug.lua lua/lib.granny.loader.lua lua/lib.granny.types.lua lua/lib.granny.wrap.lua lua/lib.protocol.lua plugins/itemcounter.lua plugins/loot.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2010-April/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3320%20-%20in%20/trunk%3A%20lua/lib.granny.debug.lua%0A%20lua/lib.granny.loader.lua%20lua/lib.granny.types.lua%20lua/lib.granny.wrap.lua%0A%20lua/lib.protocol.lua%20plugins/itemcounter.lua%20plugins/loot.lua&In-Reply-To=%3C20100425141929.D83817A9817C%40simon%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="002079.html">
+   <LINK REL="Next"  HREF="002081.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r3320 - in /trunk: lua/lib.granny.debug.lua lua/lib.granny.loader.lua lua/lib.granny.types.lua lua/lib.granny.wrap.lua lua/lib.protocol.lua plugins/itemcounter.lua plugins/loot.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3320%20-%20in%20/trunk%3A%20lua/lib.granny.debug.lua%0A%20lua/lib.granny.loader.lua%20lua/lib.granny.types.lua%20lua/lib.granny.wrap.lua%0A%20lua/lib.protocol.lua%20plugins/itemcounter.lua%20plugins/loot.lua&In-Reply-To=%3C20100425141929.D83817A9817C%40simon%3E"
+       TITLE="[Iris-commit] [IRIS] r3320 - in /trunk: lua/lib.granny.debug.lua lua/lib.granny.loader.lua lua/lib.granny.types.lua lua/lib.granny.wrap.lua lua/lib.protocol.lua plugins/itemcounter.lua plugins/loot.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sun Apr 25 16:19:29 CEST 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="002079.html">[Iris-commit] [IRIS] r3319 - in /trunk/lua: lib.granny.anim.lua lib.granny.debug.lua lib.granny.wrap.lua
+</A></li>
+        <LI>Next message: <A HREF="002081.html">[Iris-commit] [IRIS] r3321 - in /trunk/lua: lib.net.lua lib.packet.lua lib.protocol.lua lib.proxy.lua lib.razorpacketvideo.lua net/net.login.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2080">[ date ]</a>
+              <a href="thread.html#2080">[ thread ]</a>
+              <a href="subject.html#2080">[ subject ]</a>
+              <a href="author.html#2080">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sun Apr 25 16:19:29 2010
+New Revision: 3320
+
+Log:
+grannylua stuff, loot-plugin : stop while targetcursor active, some packetl=
+oggin utils
+
+Modified:
+    trunk/lua/lib.granny.debug.lua
+    trunk/lua/lib.granny.loader.lua
+    trunk/lua/lib.granny.types.lua
+    trunk/lua/lib.granny.wrap.lua
+    trunk/lua/lib.protocol.lua
+    trunk/plugins/itemcounter.lua
+    trunk/plugins/loot.lua
+
+Modified: trunk/lua/lib.granny.debug.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.granny.debug.lua (original)
++++ trunk/lua/lib.granny.debug.lua Sun Apr 25 16:19:29 2010
+@@ -49,6 +49,7 @@
+ 	gCurrentRenderer =3D Renderer3D   =
+
+ 	Load_Granny() -- needs Renderer3D
+ 	Load_Stitchin()
++	Load_TileType()
+ 	=
+
+ 	--~ self:PrintBrokenGrannyInfos()
+ 	--~ self:ClearGrannyOverrides()
+@@ -59,16 +60,29 @@
+ 	--~ local modelid =3D 257 -- DreadHorn
+ 	--~ local modelid =3D 791 -- giant_beetle
+ 	local modelid =3D 200 -- standard horse
++	print(&quot;=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D loading platemail debug : bro=
+ken texture or texcoords in offline mode&quot;)
++	--~ local modelid =3D GetStaticTileType(5141).miAnimID -- platemail, brok=
+en in offline mode   lib.offlinemode.lua : equipmentdata[plate_chest.layer]=
+ =3D plate_chest
++	--~ print(&quot;GetStaticTileType&quot;,SmartDump(GetStaticTileType(5141)))
++	--~ assert(modelid)
+ 	--~ local modelid =3D 0x101
+ 	local animid =3D 1
+ 	gGrannyAnimEnabled =3D true
+-	self:MakeOldGranny(modelid,animid)
++	--~ self:MakeOldGranny(modelid,animid)
+ 	self:MakeNewGranny(modelid,animid)
+ 	=
+
+-	print(&quot;&quot;)
++	DumpGrannyLuaProfileInfo()
+ 	=
+
+ 	self:StartMainLoop()
+ end
++
++function DumpGrannyLuaProfileInfo ()
++	local arr =3D {}
++	for k,v in pairs(gGrannyLuaLoaderProfileCountStructRead) do table.insert(=
+arr,{name=3Dk,count=3Dv}) end
++	print(&quot;gGrannyLuaLoaderProfileCountStructRead&quot;,#arr)
++	table.sort(arr,function (a,b) return a.count &lt; b.count end)
++	for k,o in ipairs(arr) do print(&quot;grannyprofile&quot;,o.count,o.name) end
++end
++--~ InvokeLater(10000,function () DumpGrannyLuaProfileInfo() os.exit(0) en=
+d)
+ =
+
+ =
+
+ 	=
+
+@@ -89,7 +103,11 @@
+ 	gfx:SetPosition(1,0,0)
+ 	if (animid) then body:StartAnimLoop(animid) end
+ 	=
+
+-	gsOldGrannyMeshName =3D body.modelparts[1]:GetEntity():getMesh():getName()
++    local skeleton =3D GetOrCreateSkeleton(artid) -- skeleton is determine=
+d by the bodyid, not possible from the wearables
++	assert(skeleton,&quot;skeleton=3Dnil -&gt; cannot test wearables/armor here???&quot;)
++	=
+
++	print(&quot;MakeOldGranny body.modelparts&quot;,SmartDump(body.modelparts))
++	gsOldGrannyMeshName =3D body.modelparts[1] and body.modelparts[1]:GetEnti=
+ty():getMesh():getName()
+ 	=
+
+ 	--~ if (gDebugMenuAnimIndex &gt;=3D 0) then body:StartAnimLoop(gDebugMenuAni=
+mIndex) end
+ 	--~ body:StartAnimLoop(1)
+@@ -185,6 +203,8 @@
+ 	print(&quot;granny_debug&quot;,&quot;&gt;&quot;..tostring(matname)..&quot;&lt;&quot;,&quot;&gt;&quot;..tostring(matname_ol=
+d)..&quot;&lt;&quot;)
+ 	assert(matname =3D=3D matname_old) =
+
+ 	=
+
++	=
+
++	GrannyDebugCompareWithOldLoader(pGrannyLoader,old_GetGrannyModelLoader)
+ 	=
+
+ 	=
+
+ 	local szMatName =3D matname
+
+Modified: trunk/lua/lib.granny.loader.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.granny.loader.lua (original)
++++ trunk/lua/lib.granny.loader.lua Sun Apr 25 16:19:29 2010
+@@ -168,7 +168,11 @@
+ 	self:_FreeFIFO()
+ end
+ =
+
++gGrannyLuaLoaderProfileCountStructRead =3D {}
+ function cGrannyFile:Read (offset,structname) =
+
++	local quick =3D gGrannyLuaQuickLoadStruct[structname]
++	if (quick) then return quick(self,offset) end
++	gGrannyLuaLoaderProfileCountStructRead[structname] =3D (gGrannyLuaLoaderP=
+rofileCountStructRead[structname] or 0) + 1
+ 	local quickfifo =3D self.quickfifo
+ 	local structsize =3D self.size[structname] assert(structsize)
+ 	assert(offset &gt;=3D 0,&quot;AssertSize : negative offset : &quot;..offset)
+@@ -399,6 +403,7 @@
+ end
+ =
+
+ function cGrannyFile:ReadArray (sStructName,iOffset,iArraySize) =
+
++	gGrannyLuaLoaderProfileCountStructRead[sStructName..&quot;Arr&quot;] =3D (gGrannyLu=
+aLoaderProfileCountStructRead[sStructName..&quot;Arr&quot;] or 0) + 1
+ 	local res =3D {}
+ 	local iStructSize =3D self.size[sStructName]
+ 	local num =3D floor(iArraySize/iStructSize)
+
+Modified: trunk/lua/lib.granny.types.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.granny.types.lua (original)
++++ trunk/lua/lib.granny.types.lua Sun Apr 25 16:19:29 2010
+@@ -119,6 +119,33 @@
+ 		end
+ 		self.size[structname] =3D size
+ 	end
++end
++
++gGrannyLuaQuickLoadStruct =3D {}
++
++-- TODO ?
++-- cGrannyFile:Read and *arr ? gGrannyLuaLoaderProfileCountStructRead
++function gGrannyLuaQuickLoadStruct:Quaternion ()
++	--~ self.structs.Quaternion float x,y,z,w
++	TODO()
++	local quickfifo =3D self.quickfifo
++	local structsize =3D self.size[structname] assert(structsize)
++	assert(offset &gt;=3D 0,&quot;AssertSize : negative offset : &quot;..offset)
++	local missing =3D offset+structsize - self.miBufSize assert(missing &lt;=3D =
+0,&quot;AssertSize : buffer too small, expected &quot;..missing..&quot; more bytes miBufSi=
+ze=3D&quot;..tostring(self.miBufSize)..&quot; structsize=3D&quot;..tostring(structsize))
++	local res =3D {}
++	res.x =3D peekfun(quickfifo,0)
++	res.y =3D peekfun(quickfifo,4)
++	res.z =3D peekfun(quickfifo,8)
++	res.w =3D peekfun(quickfifo,12)
++	local struct =3D self.structs[structname]
++	for k,memberdef in ipairs(struct) do =
+
++		local basetype,name,arraysize =3D unpack(memberdef)
++		local basetypesize =3D basetype.size
++		local peekfun =3D basetype.peekfunx
++			res[name] =3D peekfun(quickfifo,offset)
++			offset =3D offset + basetypesize =
+
++	end
++	return res
+ end
+ =
+
+ function cGrannyFile:DefineTypeNames ()
+
+Modified: trunk/lua/lib.granny.wrap.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.granny.wrap.lua (original)
++++ trunk/lua/lib.granny.wrap.lua Sun Apr 25 16:19:29 2010
+@@ -6,48 +6,10 @@
+ 	--~ function LoadGranny (file) return LoadGrannyLua_ByFilePath_DebugCompa=
+reWithOldLoader(file) end
+ 	=
+
+ 	function LoadGrannyLua_ByFilePath_DebugCompareWithOldLoader (file)
+-		local res =3D LoadGrannyLua_ByFilePath(file) =
+
+-		=
+
+-			=
+
+-		-- test granny_L.cpp param api
+-		if (res) then =
+
+-			local grannyA =3D _Old_Cpp_LoadGranny(file)
+-			local grannyB =3D res
+-			assert(grannyA,&quot;old granny loader failed&quot;)
+-			local MyTest =3D function (name,...)
+-				local resA =3D {grannyA[name](grannyA,...)}
+-				local resB =3D {grannyB[name](grannyB,...)}
+-				--~ for k,v in ipairs(resA) do print(&quot;MyTest&quot;,name,k,(resB[k] =3D=3D v=
+) and &quot;--ok--&quot; or &quot;#FAIL#&quot;,&quot;A(&quot;..tostring(v)..&quot;)&quot;,&quot;B(&quot;..tostring(resB[k])..=
+&quot;)&quot;) end
+-				for k,v in ipairs(resA) do print(&quot;MyTest&quot;,name,k,(resB[k] =3D=3D v) an=
+d &quot;--ok--&quot; or &quot;#FAIL#&quot;,&quot;A(&quot;..tostring(v)..&quot;)&quot;,&quot;B(&quot;..tostring(resB[k])..&quot;)&quot;)=
+ assert(resB[k] =3D=3D v)  end
+-				return unpack(resA)
+-			end
+-			--~ granny:GetTextureID(index)
+-			=
+
+-			local textchunkcount  =3D MyTest(&quot;GetTextChunkCount&quot;)
+-			for i =3D 0,textchunkcount-1 do
+-				local chunksize =3D MyTest(&quot;GetTextChunkSize&quot;,i)
+-				for j =3D 0,chunksize-1 do MyTest(&quot;GetText&quot;,i,j) end
+-			end
+-			=
+
+-			local paramgroupcount =3D MyTest(&quot;GetParamGroupCount&quot;)
+-			for i =3D 0,paramgroupcount-1 do
+-				local groupsize =3D MyTest(&quot;GetParamGroupSize&quot;,i)
+-				for j =3D 0,groupsize-1 do
+-					local key,value =3D MyTest(&quot;GetParam&quot;,i,j)
+-				end
+-			end
+-		=
+
+-			MyTest(&quot;GetSubMeshCount&quot;)
+-			local texidcount =3D MyTest(&quot;GetTextureIDCount&quot;)
+-			for i =3D 0,texidcount-1 do
+-				MyTest(&quot;GetTextureID&quot;,i)
+-			end
+-			=
+
+-			print(&quot;=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D granny_L param =
+api test done&quot;)
+-		end
+-		=
+
++		local res =3D LoadGrannyLua_ByFilePath(file)
++		GrannyDebugCompareWithOldLoader(res,_Old_Cpp_LoadGranny(file))
+ 		return res
+-	end
++	end	=
+
+ end
+ =
+
+ function LoadGrannyLua (artid) return LoadGrannyLua_ByFilePath(GetGrannyFi=
+lePath(artid)) end
+@@ -55,6 +17,44 @@
+ function LoadGrannyLua_ByFilePath (filepath)
+ 	local grn =3D cGrannyFile:New()
+ 	if (grn:LoadFile(filepath)) then return WrapGrannyLoaderNew(grn) end
++end
++
++
++
++function GrannyDebugCompareWithOldLoader (grannyA,grannyB)
++	-- test granny_L.cpp param api
++	if (not grannyA) then return end
++	assert(grannyA,&quot;old granny loader failed&quot;)
++	local MyTest =3D function (name,...)
++		local resA =3D {grannyA[name](grannyA,...)}
++		local resB =3D {grannyB[name](grannyB,...)}
++		--~ for k,v in ipairs(resA) do print(&quot;MyTest&quot;,name,k,(resB[k] =3D=3D v) =
+and &quot;--ok--&quot; or &quot;#FAIL#&quot;,&quot;A(&quot;..tostring(v)..&quot;)&quot;,&quot;B(&quot;..tostring(resB[k])..&quot;)=
+&quot;) end
++		for k,v in ipairs(resA) do print(&quot;MyTest&quot;,name,k,(resB[k] =3D=3D v) and =
+&quot;--ok--&quot; or &quot;#FAIL#&quot;,&quot;A(&quot;..tostring(v)..&quot;)&quot;,&quot;B(&quot;..tostring(resB[k])..&quot;)&quot;) a=
+ssert(resB[k] =3D=3D v)  end
++		return unpack(resA)
++	end
++	--~ granny:GetTextureID(index)
++	=
+
++	local textchunkcount  =3D MyTest(&quot;GetTextChunkCount&quot;)
++	for i =3D 0,textchunkcount-1 do
++		local chunksize =3D MyTest(&quot;GetTextChunkSize&quot;,i)
++		for j =3D 0,chunksize-1 do MyTest(&quot;GetText&quot;,i,j) end
++	end
++	=
+
++	local paramgroupcount =3D MyTest(&quot;GetParamGroupCount&quot;)
++	for i =3D 0,paramgroupcount-1 do
++		local groupsize =3D MyTest(&quot;GetParamGroupSize&quot;,i)
++		for j =3D 0,groupsize-1 do
++			local key,value =3D MyTest(&quot;GetParam&quot;,i,j)
++		end
++	end
++
++	MyTest(&quot;GetSubMeshCount&quot;)
++	local texidcount =3D MyTest(&quot;GetTextureIDCount&quot;)
++	for i =3D 0,texidcount-1 do
++		MyTest(&quot;GetTextureID&quot;,i)
++	end
++	=
+
++	print(&quot;=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D granny_L param ap=
+i test done&quot;)
+ end
+ =
+
+ =
+
+
+Modified: trunk/lua/lib.protocol.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.protocol.lua (original)
++++ trunk/lua/lib.protocol.lua Sun Apr 25 16:19:29 2010
+@@ -78,10 +78,11 @@
+ 		if (not gNoLogPackets_ByPacket[iId]) then -- log on
+ 			printdebug(&quot;net&quot;,sprintf(&quot;NET: ProtocolPacketRecvHandler &quot;..packet_debu=
+ginfo))
+ 			if (gEnablePacketDebug_Short) then =
+
++				-- see also gConsolePacketLog_Short
+ 				if (iBFSubCmd and gNoLogPackets_BySubCmd and gNoLogPackets_BySubCmd[iB=
+FSubCmd]) then
+ 					-- skip
+ 				else =
+
+-					print(&quot;packet&quot;,packet_debuginfo) =
+
++					print(&quot;packet&quot;,gMyTicks,packet_debuginfo) =
+
+ 				end
+ 			end
+ 			if (gbPacketLogToFadeLines) then GuiAddChatLine(&quot;recv &quot;..packet_debugin=
+fo) end
+@@ -115,20 +116,23 @@
+ 	if (len =3D=3D 0) then print(&quot;LogPacket len=3D0&quot;,direction) end
+ 	if (gConsolePacketLog_Short and len &gt;=3D 1) then
+ 		local cmd =3D fifo:PeekNetUint8(0)
+-		local cmdtxt =3D sprintf(&quot;0x%02x&quot;,cmd)
+-		local sPacketTypeName =3D gPacketTypeId2Name[cmd] or &quot;??&quot; -- get packet-=
+type-name
+-		local iPacketSize =3D gPacketSizeByID[cmd] =
+
+-		if (iPacketSize =3D=3D 0 and len &gt;=3D 3) then iPacketSize =3D fifo:PeekN=
+etUint16(1) end
+-		=
+
+-		local info =3D {}
+-		if (cmd =3D=3D kPacket_Generic_Command and len &gt;=3D 5) then =
+
+-			local subcmd =3D fifo:PeekNetUint16(3)
+-			table.insert(info,sprintf(&quot;sumcmd=3D0x%04x:%s&quot;,subcmd,tostring(gGeneric=
+SubCommandNamesByID[subcmd])))
+-		end
+-		table.insert(info,&quot;size=3D&quot;..tostring(len))
+-		if (iPacketSize ~=3D len) then table.insert(info,&quot;!!!SIZE MISMATCH!!!:&quot;.=
+.tostring(len)..&quot;&lt;&gt;&quot;..tostring(iPacketSize)) end
+-		=
+
+-		print(&quot;LogPacket&quot;,direction,cmdtxt,sPacketTypeName,table.concat(info,&quot; &quot;=
+))
++		if (not gNoLogPackets_ByPacket[cmd]) then =
+
++			local cmdtxt =3D sprintf(&quot;0x%02x&quot;,cmd)
++			local sPacketTypeName =3D gPacketTypeId2Name[cmd] or &quot;??&quot; -- get packet=
+-type-name
++			local iPacketSize =3D gPacketSizeByID[cmd] =
+
++			if (iPacketSize =3D=3D 0 and len &gt;=3D 3) then iPacketSize =3D fifo:Peek=
+NetUint16(1) end
++			=
+
++			local info =3D {}
++			if (cmd =3D=3D kPacket_Generic_Command and len &gt;=3D 5) then =
+
++				local subcmd =3D fifo:PeekNetUint16(3)
++				table.insert(info,sprintf(&quot;sumcmd=3D0x%04x:%s&quot;,subcmd,tostring(gGeneri=
+cSubCommandNamesByID[subcmd])))
++			end
++			table.insert(info,&quot;size=3D&quot;..tostring(len))
++			if (iPacketSize ~=3D len) then table.insert(info,&quot;!!!SIZE MISMATCH!!!:&quot;=
+..tostring(len)..&quot;&lt;&gt;&quot;..tostring(iPacketSize)) end
++			=
+
++			print(&quot;LogPacket&quot;,gMyTicks - (gLastConsoleLogPacket or gMyTicks),direct=
+ion,cmdtxt,sPacketTypeName,table.concat(info,&quot; &quot;))
++			gLastConsoleLogPacket =3D gMyTicks
++		end
+ 	end
+ 	if (not gLogPackets or not (len &gt; 0)) then return end
+ 	local cmd =3D fifo:PeekNetUint8(0)
+
+Modified: trunk/plugins/itemcounter.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/plugins/itemcounter.lua (original)
++++ trunk/plugins/itemcounter.lua Sun Apr 25 16:19:29 2010
+@@ -39,6 +39,7 @@
+ 		{name=3D&quot;strpot&quot;		,artid=3D0xF09,	usagetype=3DkItemCounterUsageType_UseI=
+nHand},
+ 	},
+ 	-- individual
++	{{name=3D&quot;blankscroll&quot;	,artid=3D0xef3}},
+ 	{{name=3D&quot;board&quot;			,artid=3D0x1bd7}},
+ 	{{name=3D&quot;log&quot;			,artid=3D0x1bdd}},
+ 	{{name=3D&quot;ore&quot;			,artid=3D0x19b9}},
+
+Modified: trunk/plugins/loot.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/plugins/loot.lua (original)
++++ trunk/plugins/loot.lua Sun Apr 25 16:19:29 2010
+@@ -461,7 +461,7 @@
+ 	=
+
+ 	-- open nearby corpse
+ 	local corpses =3D LootPlugin_FindNearbyCorpses()
+-	if (#corpses &gt; 0) then
++	if (#corpses &gt; 0 and (not IsTargetModeActive())) then
+ 		local corpse =3D GetRandomArrayElement(corpses)
+ 		MyLootLog(&quot;Send_DoubleClick&quot;,corpse.serial)
+ 		Send_DoubleClick(corpse.serial)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="002079.html">[Iris-commit] [IRIS] r3319 - in /trunk/lua: lib.granny.anim.lua lib.granny.debug.lua lib.granny.wrap.lua
+</A></li>
+	<LI>Next message: <A HREF="002081.html">[Iris-commit] [IRIS] r3321 - in /trunk/lua: lib.net.lua lib.packet.lua lib.protocol.lua lib.proxy.lua lib.razorpacketvideo.lua net/net.login.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2080">[ date ]</a>
+              <a href="thread.html#2080">[ thread ]</a>
+              <a href="subject.html#2080">[ subject ]</a>
+              <a href="author.html#2080">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

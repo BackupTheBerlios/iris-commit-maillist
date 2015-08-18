@@ -1,0 +1,176 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2572 - in /trunk: data/config.lua.dist lua/net/net.aoscommand.lua lua/net/net.other.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-October/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2572%20-%20in%20/trunk%3A%20data/config.lua.dist%0A%20lua/net/net.aoscommand.lua%20lua/net/net.other.lua&In-Reply-To=%3C20081014200004.36CAC1C1865D%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001376.html">
+   <LINK REL="Next"  HREF="001378.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2572 - in /trunk: data/config.lua.dist lua/net/net.aoscommand.lua lua/net/net.other.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2572%20-%20in%20/trunk%3A%20data/config.lua.dist%0A%20lua/net/net.aoscommand.lua%20lua/net/net.other.lua&In-Reply-To=%3C20081014200004.36CAC1C1865D%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2572 - in /trunk: data/config.lua.dist lua/net/net.aoscommand.lua lua/net/net.other.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Tue Oct 14 21:34:45 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001376.html">[Iris-commit] [IRIS] r2571 - in /trunk/lua: lib.cursor.lua	lib.mousepick.lua
+</A></li>
+        <LI>Next message: <A HREF="001378.html">[Iris-commit] [IRIS] r2573 - /trunk/plugins/lib.spellbar.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1377">[ date ]</a>
+              <a href="thread.html#1377">[ thread ]</a>
+              <a href="subject.html#1377">[ subject ]</a>
+              <a href="author.html#1377">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Tue Oct 14 21:34:45 2008
+New Revision: 2572
+
+Log:
+added config gReActivateWeaponAbilityInterval to reactivate weapon abilitie=
+s automatically
+
+Modified:
+    trunk/data/config.lua.dist
+    trunk/lua/net/net.aoscommand.lua
+    trunk/lua/net/net.other.lua
+
+Modified: trunk/data/config.lua.dist
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/config.lua.dist (original)
++++ trunk/data/config.lua.dist Tue Oct 14 21:34:45 2008
+@@ -492,3 +492,4 @@
+ -- gDisabledPlugins.hudenemylist =3D true
+ =
+
+ gAlwaysRun =3D false
++-- gReActivateWeaponAbilityInterval =3D 3100  -- don't reactivate if nil
+
+Modified: trunk/lua/net/net.aoscommand.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.aoscommand.lua (original)
++++ trunk/lua/net/net.aoscommand.lua Tue Oct 14 21:34:45 2008
+@@ -88,15 +88,18 @@
+ =
+
+ =
+
+ gWeaponAbilityIcons =3D {}
+-gActiveWeaponAbility =3D nil
++gActiveWeaponAbility =3D 0
++gLastSelectedWeaponAbility =3D 0
++gLastWeaponAbilityClearT =3D 0
+ =
+
+ -- should only be called by ToggleWeaponAbility
+ function Send_AOSCommand_WeaponAbility	(weaponabilityid)
+ 	local mobile_serial =3D GetPlayerSerial()
+ 	if (not mobile_serial) then return end
+-	print(&quot;##### WeaponAbility send&quot;,weaponabilityid)
++	--~ print(&quot;##### WeaponAbility send&quot;,floor(Client_GetTicks()/1000),weapon=
+abilityid)
+ 	Send_AOSCommand(kPacket_AOS_Command_WeaponAbilityRequest, mobile_serial, =
+weaponabilityid)
+ 	gActiveWeaponAbility =3D weaponabilityid
++	gLastSelectedWeaponAbility =3D weaponabilityid
+ 	UpdateWeaponAbilityIcons()
+ end
+ =
+
+@@ -108,14 +111,24 @@
+ =
+
+ -- send from server via kPacket_Generic_SubCommand_Ability_Icon
+ function EndWeaponAbility ()
+-	print(&quot;##### WeaponAbility end&quot;)
+-	if (gReActivateWeaponAbility and gActiveWeaponAbility ~=3D 0) then -- war=
+ning : manacost is much higher if used more often than every 3s
+-		Send_AOSCommand_WeaponAbility(gActiveWeaponAbility)
+-	else
+-		gActiveWeaponAbility =3D 0
+-		UpdateWeaponAbilityIcons()
++	--~ print(&quot;##### WeaponAbility  end&quot;,floor(Client_GetTicks()/1000))
++	gActiveWeaponAbility =3D 0
++	gLastWeaponAbilityClearT =3D Client_GetTicks()
++	UpdateWeaponAbilityIcons()
++end
++
++
++RegisterStepper(function ()
++	-- warning : manacost is much higher if used more often than every 3s
++	if (not gReActivateWeaponAbilityInterval) then return end
++	if (gActiveWeaponAbility ~=3D 0) then return end
++	if (gLastSelectedWeaponAbility =3D=3D 0) then return end
++	local t =3D Client_GetTicks()
++	if (t - gLastWeaponAbilityClearT &gt; gReActivateWeaponAbilityInterval) then
++		gLastWeaponAbilityClearT =3D t
++		Send_AOSCommand_WeaponAbility(gLastSelectedWeaponAbility)
+ 	end
+-end
++end)
+ =
+
+ -- icon hueing
+ function UpdateWeaponAbilityIcons ()
+
+Modified: trunk/lua/net/net.other.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.other.lua (original)
++++ trunk/lua/net/net.other.lua Tue Oct 14 21:34:45 2008
+@@ -403,6 +403,7 @@
+ =
+
+ -- sends iris specific infos to the server, in response to kPacket_Generic=
+_SubCommand_IrisInfo
+ function Send_IrisInfo()
++	print(&quot;Send_IrisInfo&quot;)
+ 	local out =3D GetSendFIFO()
+ 	out:PushNetUint8(kPacket_Generic_Command)
+ 	out:PushNetUint16(0x06)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001376.html">[Iris-commit] [IRIS] r2571 - in /trunk/lua: lib.cursor.lua	lib.mousepick.lua
+</A></li>
+	<LI>Next message: <A HREF="001378.html">[Iris-commit] [IRIS] r2573 - /trunk/plugins/lib.spellbar.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1377">[ date ]</a>
+              <a href="thread.html#1377">[ thread ]</a>
+              <a href="subject.html#1377">[ subject ]</a>
+              <a href="author.html#1377">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

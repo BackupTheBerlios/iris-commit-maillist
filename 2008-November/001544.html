@@ -1,0 +1,720 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2740 - in /trunk: data/base/ data/models/materials/ data/models/models/to_001000/ lua/
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-November/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2740%20-%20in%20/trunk%3A%20data/base/%0A%20data/models/materials/%20data/models/models/to_001000/%20lua/&In-Reply-To=%3C20081119101520.0D0111C187E5%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001543.html">
+   <LINK REL="Next"  HREF="001545.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2740 - in /trunk: data/base/ data/models/materials/ data/models/models/to_001000/ lua/</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2740%20-%20in%20/trunk%3A%20data/base/%0A%20data/models/materials/%20data/models/models/to_001000/%20lua/&In-Reply-To=%3C20081119101520.0D0111C187E5%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2740 - in /trunk: data/base/ data/models/materials/ data/models/models/to_001000/ lua/">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Wed Nov 19 11:15:19 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001543.html">[Iris-commit] [IRIS] r2739 - in /trunk: premake premake.lua
+</A></li>
+        <LI>Next message: <A HREF="001545.html">[Iris-commit] [IRIS] r2741 - in /trunk: bin/OgreMain.dll bin/Plugin_CgProgramManager.dll bin/Plugin_ParticleFX.dll bin/RenderSystem_Direct3D9.dll bin/RenderSystem_GL.dll bin/cg.dll bin/iris2.exe data/models/materials/textures.material vc8/iris.vcproj
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1544">[ date ]</a>
+              <a href="thread.html#1544">[ thread ]</a>
+              <a href="subject.html#1544">[ subject ]</a>
+              <a href="author.html#1544">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: hagish
+Date: Wed Nov 19 11:15:19 2008
+New Revision: 2740
+
+Log:
+reworked lights in 3d renderer
+
+Added:
+    trunk/lua/lib.3d.light.lua
+Modified:
+    trunk/data/base/main.material
+    trunk/data/models/materials/textures.material
+    trunk/data/models/models/to_001000/mdl_000002.mesh
+    trunk/lua/config_declarations.lua
+    trunk/lua/lib.3d.dynamic.lua
+    trunk/lua/lib.3d.renderer.lua
+    trunk/lua/lib.3d.tilebatch.lua
+    trunk/lua/lib.light.lua
+    trunk/lua/lib.mapblock.3d.statics.lua
+    trunk/lua/lib.mapblock.3d.terrain.lua
+    trunk/lua/lib.mapblock.scheduler.lua
+    trunk/lua/lib.static.lua
+
+Modified: trunk/data/base/main.material
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/base/main.material (original)
++++ trunk/data/base/main.material Wed Nov 19 11:15:19 2008
+@@ -456,27 +456,30 @@
+ 			// alpha_rejection less 128
+ 			alpha_rejection greater 128
+ 			lighting off
+-			ambient 1.0 1.0 1.0
+-			diffuse 1.0 1.0 1.0
++			ambient 1.0 1.0 1.0 1.0
++			diffuse 1.0 1.0 1.0 1.0
+ 		}
+ 	}
+ }
+ =
+
+ material staticfallbackatlas
+ {
+-	technique
+-	{
+-		pass
+-		{
++	receive_shadows off
++	=
+
++	technique
++	{
++		pass
++		{
++			lighting on
++			ambient 1.0 1.0 1.0
++			diffuse 1.0 1.0 1.0
++
+ 			cull_hardware none
+ 			cull_software none
+ =
+
+ 			scene_blend alpha_blend
+ 			// alpha_rejection less 128
+ 			alpha_rejection greater 128
+-			lighting off
+-			ambient 1.0 1.0 1.0
+-			diffuse 1.0 1.0 1.0
+ 		}
+ 	}
+ }
+
+Modified: trunk/data/models/materials/textures.material
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/models/materials/textures.material (original)
++++ trunk/data/models/materials/textures.material Wed Nov 19 11:15:19 2008
+@@ -12,16 +12,15 @@
+ 		pass Decal
+ 		{
+ 			lighting on
+-			ambient 1.0 1.0 1.0 1.0
+-			diffuse 1.0 1.0 1.0 1.0
++			//ambient 1.0 1.0 1.0 1.0
++			//diffuse 1.0 1.0 1.0 1.0
++			ambient vertexcolour
++			diffuse vertexcolour
+ =
+
+ 			// needed for xmirror fix
+ 			//cull_hardware anticlockwise
+ 			//cull_software front
+ 			=
+
+-			ambient vertexcolour
+-			diffuse vertexcolour
+-
+ 			texture_unit
+ 			{
+ 				filtering anisotropic
+
+Modified: trunk/data/models/models/to_001000/mdl_000002.mesh
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+Binary files - no diff available.
+
+Modified: trunk/lua/config_declarations.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/config_declarations.lua (original)
++++ trunk/lua/config_declarations.lua Wed Nov 19 11:15:19 2008
+@@ -19,7 +19,7 @@
+ gConfig:DeclareString(&quot;gClientVersion&quot;, &quot;protocol&quot;, &quot;client version&quot;, 'Cli=
+ent Identification String (try other version for example &quot;4.0.11c5&quot;)', &quot;6.0=
+.1.6&quot;)
+ =
+
+ -- Camera Rotation - Input stuff use: &quot;mouse1&quot;, &quot;mouse2&quot; or &quot;mouse3&quot;
+-gInput_CamMouseButton =3D GetNamedKey(&quot;mouse1&quot;)
++gInput_CamMouseButton =3D GetNamedKey(&quot;mouse3&quot;)
+ =
+
+ gConfig:DeclareBoolean(&quot;gUseConstantCameraRotation&quot;, &quot;input&quot;, &quot;mouse camer=
+a rotation&quot;, 'mouse camera rotation', true)
+ =
+
+@@ -113,14 +113,14 @@
+ =
+
+ -- Fog of War
+ gConfig:DeclareBoolean(&quot;gUseDistanceFog&quot;, &quot;client&quot;, &quot;distance fog&quot;, 'enabl=
+e/disable fog', true)
+-gConfig:DeclareFloat(&quot;gFogValue&quot;, &quot;client&quot;, &quot;fog value&quot;, 'distance from ca=
+m', 16)
++gConfig:DeclareFloat(&quot;gFogValue&quot;, &quot;client&quot;, &quot;fog value&quot;, 'distance from ca=
+m', 24)
+ gConfig:DeclareFloat(&quot;gFogcolorred&quot;, &quot;client&quot;, &quot;fog color r&quot;, 'TODO', 0)
+ gConfig:DeclareFloat(&quot;gFogcolorgreen&quot;, &quot;client&quot;, &quot;fog color g&quot;, 'TODO', 0)
+ gConfig:DeclareFloat(&quot;gFogcolorblue&quot;, &quot;client&quot;, &quot;fog color b&quot;, 'TODO', 0)
+ =
+
+ -- Sun Light
+-gSunLightDirection =3D {x=3D1,y=3D1,z=3D-1}
+-gSunLightDiffuse =3D {r=3D1.0,g=3D1.0,b=3D1.0}
++gSunLightDirection =3D {x=3D1.1,y=3D1.1,z=3D-1}
++gSunLightDiffuse =3D {r=3D1.0,g=3D1.0,b=3D0.9}
+ gSunLightSpecular =3D {r=3D1.0,g=3D1.0,b=3D1.0}
+ =
+
+ -- Ambient Light
+@@ -128,7 +128,7 @@
+ =
+
+ -- Soundeffects &amp; Music
+ -- gUseSoundSystem =3D &quot;openal&quot;
+-gConfig:DeclareEnum(&quot;gUseSoundSystem&quot;, &quot;sound&quot;, &quot;sound system&quot;, 'TODO', &quot;f=
+mod&quot;,{&quot;fmod&quot;,&quot;openal&quot;})
++gConfig:DeclareEnum(&quot;gUseSoundSystem&quot;, &quot;sound&quot;, &quot;sound system&quot;, 'TODO', &quot;a=
+ny&quot;,{&quot;any&quot;,&quot;fmod&quot;,&quot;openal&quot;})
+ gConfig:DeclareBoolean(&quot;gUseEffect&quot;, &quot;sound&quot;, &quot;effects&quot;, 'enable/disable s=
+ound effects', true)
+ gConfig:DeclareBoolean(&quot;gUseMusic&quot;, &quot;sound&quot;, &quot;music&quot;, 'enable/disable musi=
+c', true)
+ =
+
+@@ -485,6 +485,8 @@
+ =
+
+ gConfig:DeclareBoolean(&quot;gLogStatsToFile&quot;, &quot;debug&quot;, &quot;log stats to file&quot;, 'd=
+umps statistical informations into stats.dat', false)
+ =
+
++gConfig:DeclareFloat(&quot;gMaxFPS&quot;, &quot;gfx&quot;, &quot;max fps&quot;, 'upper fps limit', 50)
++
+ =
+
+ =
+
+ -- port me to new config system ! (or extend system for complex stuff)
+
+Modified: trunk/lua/lib.3d.dynamic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.dynamic.lua (original)
++++ trunk/lua/lib.3d.dynamic.lua Wed Nov 19 11:15:19 2008
+@@ -400,7 +400,7 @@
+ 		if (gLightsources) then
+ 			if( arrtiletype and TestBit(arrtiletype.miFlags or 0,kTileDataFlag_Ligh=
+tSource) ) then
+ 				local x,y,z =3D Renderer3D:UOPosToLocal(item.xloc,item.yloc,(item.zloc=
++arrtiletype.miHeight) * 0.1)
+-				item.lightname =3D Renderer3D:AddPointLight(x-0.5,y+0.5,z+1, 0.3,0.3,0=
+.2, 0.3,0.3,0.2, 5.0,0.1,0.1,0.0)
++				item.lightname =3D Renderer3D:AddStandartUOPointLight(x,y,z)
+ 			end
+ 		end
+ 		=
+
+
+Modified: trunk/lua/lib.3d.renderer.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.renderer.lua (original)
++++ trunk/lua/lib.3d.renderer.lua Wed Nov 19 11:15:19 2008
+@@ -15,6 +15,7 @@
+ dofile(libpath .. &quot;lib.3d.dynamicspawner.lua&quot;)
+ dofile(libpath .. &quot;lib.3d.multispawner.lua&quot;)
+ dofile(libpath .. &quot;lib.3d.waterspawner.lua&quot;)
++dofile(libpath .. &quot;lib.3d.light.lua&quot;)
+ =
+
+ gRendererList[ &quot;Renderer3D&quot; ] =3D Renderer3D
+ =
+
+@@ -57,6 +58,8 @@
+ 	gTileFreeWalk:Init()
+ 		=
+
+ 	self.gbActive =3D true
++	self.mfPersonalLight =3D 0
++	self.mfSunLight =3D 1
+ end
+ =
+
+ function Renderer3D:DeInit ()
+@@ -71,6 +74,12 @@
+ 	self:DeInitMap()
+ 		=
+
+ 	self.gbActive =3D false
++	=
+
++	-- remove players personal light
++	if self.mPersonalLightName then
++		Client_RemoveLight(self.mPersonalLightName)
++		self.mPersonalLightName =3D nil
++	end
+ end
+ =
+
+ -- called by main.lua
+@@ -137,6 +146,7 @@
+ 	end
+ =
+
+ 	self:MapStep()
++	self:UpdateLight()
+ end
+ =
+
+ function Renderer3D:SetLastConfirmedUOPos(xloc,yloc,zloc) gTileFreeWalk:Im=
+pl_SetLastConfirmedUOPos(xloc,yloc,zloc) end -- walk
+@@ -296,6 +306,15 @@
+ 	end
+ end
+ =
+
++function Renderer3D.CalculatePointLightAttenuation (radius)
++	local r =3D radius
++	local c =3D 1
++	local l =3D 2/radius
++	local q =3D 0.0025
++	return r*4, c, l, q
++end
++
++
+ function Renderer3D:UpdateMapEnvironment (hour,minute,second)
+ 	if (gCaelumSystem) then
+ 	    -- Sunrise with visible moon.
+@@ -350,19 +369,37 @@
+ 	GetMainCam():SetAspectRatio(vp:GetActualWidth() / vp:GetActualHeight())
+ end
+ =
+
++
++function Renderer3D:AddStandartUOPointLight	(x,y,z,r)
++	r =3D r or 5
++
++	return self:AddPointLight(
++		x-0.5,y+0.5,z+1-16, 	-- pos
++		1,1,1, 			-- diffuse
++		1,1,1, 			-- specular
++		Renderer3D.CalculatePointLightAttenuation(r))		-- attenuation
++end
++
++
+ -- adds a point light source
+ -- Diffuse dr,dg,db
+ -- Specular sr,sg,sb
+ -- Attenuation ar,ag,ab,aa
+ function Renderer3D:AddPointLight	(x,y,z, dr,dg,db, sr,sg,sb, ar,ag,ab,aa)
+-	local name =3D Client_AddPointLight(x,y,z, dr,dg,db, sr,sg,sb, ar,ag,ab,a=
+a)
+-	Light_SetCastShadows(name, gLightsCastShadows)
++	local name
++	if gMergePointLights then
++		name =3D x..&quot;_&quot;..y..&quot;_&quot;..z
++		GetMergePointLightBlock(x,y,z):AddLight(x,y,z)
++	else
++		name =3D Client_AddPointLight(x,y,z, dr,dg,db, sr,sg,sb, ar,ag,ab,aa)
++		Light_SetCastShadows(name, gLightsCastShadows)
++	end
+ 	=
+
+ 	if gShowLightDebug then
+ 		-- create mesh and debug marker list
+ 		if not gLightDebugMesh then
+-			local r =3D 0.5
+-			gLightDebugMesh =3D MakeSphereMesh(11,11,r,r,r)
++			local r =3D 0.25
++			gLightDebugMesh =3D MakeSphereMesh(7,7,r,r,r)
+ 			gLightDebugMeshList =3D {}
+ 		end
+ 		=
+
+@@ -377,11 +414,14 @@
+ end
+ =
+
+ function Renderer3D:RemovePointLight	(name)
+-	Client_RemoveLight(name)
+-	=
+
+-	if gLightDebugMeshList and gLightDebugMeshList[name] then
+-		gLightDebugMeshList[name]:Destroy()
+-	end
++	if gMergePointLights then
++		local x,y,z =3D unpack(strsplit(&quot;_&quot;,name))
++		GetMergePointLightBlock(x,y,z):RemoveLight(x,y,z)
++	else
++		Client_RemoveLight(name)
++	end
++	=
+
++	DestroyIfAlive(gLightDebugMeshList and gLightDebugMeshList[name])
+ end
+ =
+
+ -- hook to add artid based particle effects
+@@ -680,6 +720,7 @@
+ 	self:UpdateLight()
+ end
+ =
+
++
+ -- sets the personal light level, intensity=3D0 -&gt; dark, intensity=3D1 -&gt; =
+bright
+ function Renderer3D:SetPersonalLight		(mobile, intensity) =
+
+ 	self.mfPersonalLight =3D intensity
+@@ -687,7 +728,44 @@
+ end
+ =
+
+ function Renderer3D:UpdateLight	()
+-	local f =3D math.max(self.mfSunLight or 0, self.mfPersonalLight or 0)
+-	f =3D f / 2
+-	Client_SetAmbientLight(f, f, f, 1)
+-end
++	local a =3D self.mfSunLight or 0
++	local p =3D self.mfPersonalLight or 0
++	=
+
++	local x,y,z =3D gTileFreeWalk:GetExactLocalPos()
++	=
+
++	-- create personal light on demand
++	if not self.mPersonalLightName then
++		self.mPersonalLightName =3D Client_AddPointLight(
++			x-0.5,y+0.5,z+1, 	-- pos
++			1,1,1, 				-- diffuse
++			1,1,1, 				-- specular
++			5.0,0.5,0.5,0.0)		-- attenuation
++	end
++
++	-- update personal light
++	p =3D Clamp(p / 0.5,0,1)
++	Client_SetLightPosition(self.mPersonalLightName, x,y,z+2)
++	Client_SetLightDiffuseColor(self.mPersonalLightName, p,p,p)
++	Client_SetLightSpecularColor(self.mPersonalLightName, p,p,p)
++	Client_SetLightAttenuation(self.mPersonalLightName, Renderer3D.CalculateP=
+ointLightAttenuation(5))
++	Light_SetCastShadows(self.mPersonalLightName, false)
++	=
+
++	if (not(gCaelumSystem)) then
++		-- update ambient light
++		a =3D Clamp(a / 2,0,1)
++		if gAmbientLight then
++			Client_SetAmbientLight(gAmbientLight.r*a, gAmbientLight.g*a, gAmbientLi=
+ght.b*a,1)
++		end
++		=
+
++		-- update directional Sun Light
++		if gDirectionalLightSun and gDirectionalLightSun then
++			local xyz =3D gSunLightDirection		=
+
++			=
+
++			local rgb =3D gSunLightDiffuse		=
+
++			Client_SetLightDiffuseColor(gDirectionalLightSun,rgb.r*a,rgb.g*a,rgb.b*=
+a)
++			=
+
++			local rgb =3D gSunLightSpecular		=
+
++			Client_SetLightSpecularColor(gDirectionalLightSun,rgb.r*a,rgb.g*a,rgb.b=
+*a)
++		end
++	end
++end
+
+Modified: trunk/lua/lib.3d.tilebatch.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.tilebatch.lua (original)
++++ trunk/lua/lib.3d.tilebatch.lua Wed Nov 19 11:15:19 2008
+@@ -230,7 +230,7 @@
+ 	if (gLightsources) then
+ 		local arrtiletype =3D GetStaticTileType(iTileTypeID)
+ 		if( arrtiletype and TestBit(arrtiletype.miFlags or 0,kTileDataFlag_Light=
+Source) ) then
+-			entity.lightname =3D Renderer3D:AddPointLight(entity.x-0.5,entity.y+0.5=
+,entity.z+1+arrtiletype.miHeight, 0.3,0.3,0.0, 0.3,0.3,0.0, 5.0,0.1,0.1,0.0)
++			entity.lightname =3D Renderer3D:AddStandartUOPointLight(entity.x,entity=
+.y,entity.z+arrtiletype.miHeight)
+ 		end
+ 	end
+ =
+
+
+Modified: trunk/lua/lib.light.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.light.lua (original)
++++ trunk/lua/lib.light.lua Wed Nov 19 11:15:19 2008
+@@ -6,12 +6,18 @@
+ 		not(gShadowTechnique =3D=3D &quot;texture_additive_integrated&quot;)) then
+ 		=
+
+ 		-- Sun Light
+-		local xyz =3D gSunLightDirection		gDirectionalLightSun =3D Client_AddDir=
+ectionalLight(xyz.x,xyz.y,xyz.z)
+-		local rgb =3D gSunLightDiffuse		Client_SetLightDiffuseColor(gDirectional=
+LightSun,rgb.r,rgb.g,rgb.b)
+-		local rgb =3D gSunLightSpecular		Client_SetLightSpecularColor(gDirection=
+alLightSun,rgb.r,rgb.g,rgb.b)
++		local xyz =3D gSunLightDirection		=
+
++		gDirectionalLightSun =3D Client_AddDirectionalLight(xyz.x,xyz.y,xyz.z)
++		=
+
++		local rgb =3D gSunLightDiffuse		=
+
++		Client_SetLightDiffuseColor(gDirectionalLightSun,rgb.r,rgb.g,rgb.b)
++		=
+
++		local rgb =3D gSunLightSpecular		=
+
++		Client_SetLightSpecularColor(gDirectionalLightSun,rgb.r,rgb.g,rgb.b)
+ 	end
+ =
+
+ 	-- Ambient Light
+-	local rgb =3D gAmbientLight			Client_SetAmbientLight(rgb.r,rgb.g,rgb.b, 1=
+.0)
++	local rgb =3D gAmbientLight			=
+
++	Client_SetAmbientLight(rgb.r,rgb.g,rgb.b, 1)
+ end
+ =
+
+
+Modified: trunk/lua/lib.mapblock.3d.statics.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mapblock.3d.statics.lua (original)
++++ trunk/lua/lib.mapblock.3d.statics.lua Wed Nov 19 11:15:19 2008
+@@ -16,8 +16,8 @@
+ cMapBlock_3D_Statics	=3D CreateClass(cMapBlockGrid)
+ cMapBlock_3D_Statics.iBlockSize		=3D 8*2 -- in tiles
+ cMapBlock_3D_Statics.iLoadRadius	=3D 8 -- in iBlockSize-blocks
+-cMapBlock_3D_Statics.kMaxDist_Visible		=3D cMapBlock_3D_Statics.iBlockSize=
+ * 4 -- camdist in tiles  see mapblock.base for default
+-cMapBlock_3D_Statics.kMaxDist_Detail		=3D cMapBlock_3D_Statics.iBlockSize =
+* 2 -- camdist in tiles
++cMapBlock_3D_Statics.kMaxDist_Visible		=3D cMapBlock_3D_Statics.iBlockSize=
+ * 8 -- camdist in tiles  see mapblock.base for default
++cMapBlock_3D_Statics.kMaxDist_Detail		=3D cMapBlock_3D_Statics.iBlockSize =
+* 4 -- camdist in tiles
+ =
+
+ -- forall entities fun(entity)
+ function cMapBlock_3D_Statics:ForAllEntities (fun)
+
+Modified: trunk/lua/lib.mapblock.3d.terrain.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mapblock.3d.terrain.lua (original)
++++ trunk/lua/lib.mapblock.3d.terrain.lua Wed Nov 19 11:15:19 2008
+@@ -1,8 +1,8 @@
+ cMapBlock_3D_Terrain	=3D CreateClass(cMapBlockGrid)
+ cMapBlock_3D_Terrain.iBlockSize		=3D 8*2 -- in tiles
+ cMapBlock_3D_Terrain.iLoadRadius	=3D 8 -- in iBlockSize-blocks
+-cMapBlock_3D_Terrain.kMaxDist_Visible		=3D cMapBlock_3D_Terrain.iBlockSize=
+*4 -- camdist in tiles  see mapblock.base for default
+-cMapBlock_3D_Terrain.kMaxDist_Detail		=3D cMapBlock_3D_Terrain.iBlockSize*=
+2 -- camdist in tiles
++cMapBlock_3D_Terrain.kMaxDist_Visible		=3D cMapBlock_3D_Terrain.iBlockSize=
+ * 8 -- camdist in tiles  see mapblock.base for default
++cMapBlock_3D_Terrain.kMaxDist_Detail		=3D cMapBlock_3D_Terrain.iBlockSize =
+* 4 -- camdist in tiles
+ =
+
+ function cMapBlock_3D_Terrain:ClearDetail ()
+ 	--~ print(&quot;cMapBlock_3D_Terrain:ClearDetail&quot;)
+
+Modified: trunk/lua/lib.mapblock.scheduler.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mapblock.scheduler.lua (original)
++++ trunk/lua/lib.mapblock.scheduler.lua Wed Nov 19 11:15:19 2008
+@@ -8,7 +8,7 @@
+ =
+
+ function cScheduler:Init	()
+ 	self.pProcessList =3D {}
+-	self.kGoodFPS =3D 25
++	self.kGoodFPS =3D 50
+ 	self.kGoodTicksBetweenFrames =3D 1000 / self.kGoodFPS -- 1000=3D1sec
+ 	self.kAllowedTicksPerFrame =3D self.kGoodTicksBetweenFrames
+ end
+@@ -50,13 +50,16 @@
+ 	table.sort(active_blocks,self.CmpProcess)
+ 	=
+
+ 	-- work until no time left
++	local avgdt =3D nil
+ 	for k,process in ipairs(active_blocks) do =
+
+ 		local t1 =3D Client_GetTicks()
+ 		process:Work(t_end)
+ 		local t2 =3D Client_GetTicks()
++
++		avgdt =3D avgdt and (avgdt*0.5+(t2-t1)*0.5) or (t2-t1)
+ 		=
+
+ 		--~ if (Client_GetTicks() &gt;=3D t_end) then break end
+-		if (t2 + t2 - t1 &gt;=3D t_end) then break end
++		if (t2 + avgdt &gt;=3D t_end) then break end
+ 	end
+ end
+ =
+
+
+Modified: trunk/lua/lib.static.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.static.lua (original)
++++ trunk/lua/lib.static.lua Wed Nov 19 11:15:19 2008
+@@ -164,12 +164,16 @@
+ 		local dx =3D 0 -- -0.5
+ 		local dy =3D 0 -- -0.5
+ 		=
+
++		local nx =3D 0
++		local ny =3D 0
++		local nz =3D 1
++		=
+
+ 		gFallbackModelCacheGfx:RenderableBegin(4,6,false,false,OT_TRIANGLE_LIST)
+ 		=
+
+-		gFallbackModelCacheGfx:RenderableVertex( 0+dx,0+dy,dz, tw,v0)
+-		gFallbackModelCacheGfx:RenderableVertex( 0+dx,1+dy,dz, u0,th)
+-		gFallbackModelCacheGfx:RenderableVertex( 1+dx,0+dy,dz, u1,th)
+-		gFallbackModelCacheGfx:RenderableVertex( 1+dx,1+dy,dz, tw,v1)
++		gFallbackModelCacheGfx:RenderableVertex( 0+dx,0+dy,dz, nx,ny,nz, tw,v0)
++		gFallbackModelCacheGfx:RenderableVertex( 0+dx,1+dy,dz, nx,ny,nz, u0,th)
++		gFallbackModelCacheGfx:RenderableVertex( 1+dx,0+dy,dz, nx,ny,nz, u1,th)
++		gFallbackModelCacheGfx:RenderableVertex( 1+dx,1+dy,dz, nx,ny,nz, tw,v1)
+ 		gFallbackModelCacheGfx:RenderableIndex3(0,1,2)
+ 		gFallbackModelCacheGfx:RenderableIndex3(1,3,2)
+ 		=
+
+@@ -182,17 +186,21 @@
+ 	=
+
+ 		gFallbackModelCacheGfx:RenderableBegin(4*2,6*2,false,false,OT_TRIANGLE_L=
+IST)
+ 		=
+
+-		gFallbackModelCacheGfx:RenderableVertex( 0+dx,0.5+dy,0+dz, u1,v1)
+-		gFallbackModelCacheGfx:RenderableVertex( 1+dx,0.5+dy,0+dz, u0,v1)
+-		gFallbackModelCacheGfx:RenderableVertex( 1+dx,0.5+dy,h+dz, u0,v0)
+-		gFallbackModelCacheGfx:RenderableVertex( 0+dx,0.5+dy,h+dz, u1,v0)
++		local nx,ny,nz =3D calculate_triangle_normal(0+dx,0.5+dy,0+dz, 1+dx,0.5+=
+dy,0+dz, 1+dx,0.5+dy,h+dz)
++		=
+
++		gFallbackModelCacheGfx:RenderableVertex( 0+dx,0.5+dy,0+dz, nx,ny,nz, u1,=
+v1)
++		gFallbackModelCacheGfx:RenderableVertex( 1+dx,0.5+dy,0+dz, nx,ny,nz, u0,=
+v1)
++		gFallbackModelCacheGfx:RenderableVertex( 1+dx,0.5+dy,h+dz, nx,ny,nz, u0,=
+v0)
++		gFallbackModelCacheGfx:RenderableVertex( 0+dx,0.5+dy,h+dz, nx,ny,nz, u1,=
+v0)
+ 		gFallbackModelCacheGfx:RenderableIndex3(2,1,0)
+ 		gFallbackModelCacheGfx:RenderableIndex3(0,3,2)
+ =
+
+-		gFallbackModelCacheGfx:RenderableVertex( 0.5+dx,0+dy,0+dz, u1,v1)
+-		gFallbackModelCacheGfx:RenderableVertex( 0.5+dx,1+dy,0+dz, u0,v1)
+-		gFallbackModelCacheGfx:RenderableVertex( 0.5+dx,1+dy,h+dz, u0,v0)
+-		gFallbackModelCacheGfx:RenderableVertex( 0.5+dx,0+dy,h+dz, u1,v0)
++		local nx,ny,nz =3D calculate_triangle_normal(0.5+dx,0+dy,0+dz, 0.5+dx,1+=
+dy,0+dz, 0.5+dx,1+dy,h+dz)
++		=
+
++		gFallbackModelCacheGfx:RenderableVertex( 0.5+dx,0+dy,0+dz, nx,ny,nz, u1,=
+v1)
++		gFallbackModelCacheGfx:RenderableVertex( 0.5+dx,1+dy,0+dz, nx,ny,nz, u0,=
+v1)
++		gFallbackModelCacheGfx:RenderableVertex( 0.5+dx,1+dy,h+dz, nx,ny,nz, u0,=
+v0)
++		gFallbackModelCacheGfx:RenderableVertex( 0.5+dx,0+dy,h+dz, nx,ny,nz, u1,=
+v0)
+ 		gFallbackModelCacheGfx:RenderableIndex3(4+2,4+1,4+0)
+ 		gFallbackModelCacheGfx:RenderableIndex3(4+0,4+3,4+2)
+ =
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001543.html">[Iris-commit] [IRIS] r2739 - in /trunk: premake premake.lua
+</A></li>
+	<LI>Next message: <A HREF="001545.html">[Iris-commit] [IRIS] r2741 - in /trunk: bin/OgreMain.dll bin/Plugin_CgProgramManager.dll bin/Plugin_ParticleFX.dll bin/RenderSystem_Direct3D9.dll bin/RenderSystem_GL.dll bin/cg.dll bin/iris2.exe data/models/materials/textures.material vc8/iris.vcproj
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1544">[ date ]</a>
+              <a href="thread.html#1544">[ thread ]</a>
+              <a href="subject.html#1544">[ subject ]</a>
+              <a href="author.html#1544">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

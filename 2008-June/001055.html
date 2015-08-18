@@ -1,0 +1,741 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2246 - in /trunk: data/base/main.material data/config.lua.dist lua/gui/gui.helper.lua lua/lib.3d.dynamic.lua lua/lib.3d.mousepick.lua lua/lib.artatlas.lua lua/lib.static.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-June/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2246%20-%20in%20/trunk%3A%20data/base/main.material%0A%20data/config.lua.dist%20lua/gui/gui.helper.lua%20lua/lib.3d.dynamic.lua%0A%20lua/lib.3d.mousepick.lua%20lua/lib.artatlas.lua%20lua/lib.static.lua&In-Reply-To=%3C20080615225825.683981C18141%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001054.html">
+   <LINK REL="Next"  HREF="001056.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2246 - in /trunk: data/base/main.material data/config.lua.dist lua/gui/gui.helper.lua lua/lib.3d.dynamic.lua lua/lib.3d.mousepick.lua lua/lib.artatlas.lua lua/lib.static.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2246%20-%20in%20/trunk%3A%20data/base/main.material%0A%20data/config.lua.dist%20lua/gui/gui.helper.lua%20lua/lib.3d.dynamic.lua%0A%20lua/lib.3d.mousepick.lua%20lua/lib.artatlas.lua%20lua/lib.static.lua&In-Reply-To=%3C20080615225825.683981C18141%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2246 - in /trunk: data/base/main.material data/config.lua.dist lua/gui/gui.helper.lua lua/lib.3d.dynamic.lua lua/lib.3d.mousepick.lua lua/lib.artatlas.lua lua/lib.static.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Mon Jun 16 00:58:23 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001054.html">[Iris-commit] [IRIS] r2245 - in /trunk: bin/iris2.exe	vc8/iris.vcproj
+</A></li>
+        <LI>Next message: <A HREF="001056.html">[Iris-commit] [IRIS] r2247 - in /trunk: data/base/main.material	lua/lib.unifont.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1055">[ date ]</a>
+              <a href="thread.html#1055">[ thread ]</a>
+              <a href="subject.html#1055">[ subject ]</a>
+              <a href="author.html#1055">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: hagish
+Date: Mon Jun 16 00:58:19 2008
+New Revision: 2246
+
+Log:
+*static fallbacks to reduce number of batches
+*bugfix: multi mousepicking
+
+
+Modified:
+    trunk/data/base/main.material
+    trunk/data/config.lua.dist
+    trunk/lua/gui/gui.helper.lua
+    trunk/lua/lib.3d.dynamic.lua
+    trunk/lua/lib.3d.mousepick.lua
+    trunk/lua/lib.artatlas.lua
+    trunk/lua/lib.static.lua
+
+Modified: trunk/data/base/main.material
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/base/main.material (original)
++++ trunk/data/base/main.material Mon Jun 16 00:58:19 2008
+@@ -389,6 +389,9 @@
+ 	{
+ 		pass
+ 		{
++			cull_hardware none
++			cull_software none
++
+ 			scene_blend alpha_blend
+ 			// alpha_rejection less 128
+ 			alpha_rejection greater 128
+
+Modified: trunk/data/config.lua.dist
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/config.lua.dist (original)
++++ trunk/data/config.lua.dist Mon Jun 16 00:58:19 2008
+@@ -504,3 +504,5 @@
+ =
+
+ -- experimental code for faster diagonal movement (tries to avoid stair ef=
+fect)
+ gTileFreeWalkDiagonalOptimization =3D false
++
++gUseStaticFallbacks =3D true
+
+Modified: trunk/lua/gui/gui.helper.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.helper.lua (original)
++++ trunk/lua/gui/gui.helper.lua Mon Jun 16 00:58:19 2008
+@@ -6,7 +6,7 @@
+ 		local mem_dyn, mem_tresh =3D gcinfo()
+ 		mem_dyn =3D mem_dyn or 0
+ 		mem_tresh =3D mem_tresh or 0
+-		local text =3D sprintf(&quot;%5.1ffps %0.1fmb %dt %db OGRE | %0.fmb/%0.1fmb L=
+UA&quot;,OgreAvgFPS(),memoryusage / 1024 / 1024, OgreTriangleCount(), OgreBatchC=
+ount(), mem_dyn / 1024, mem_tresh / 1024)
++		local text =3D sprintf(&quot;%5.1ffps %0.1fmb %dt %db OGRE | %0.fmb/%0.1fmb L=
+UA | %i jobs&quot;,OgreAvgFPS(),memoryusage / 1024 / 1024, OgreTriangleCount(), =
+OgreBatchCount(), mem_dyn / 1024, mem_tresh / 1024, job.count())
+ 		if (not gMemoryUsageField) then
+ 			local vw,vh =3D GetViewportSize()
+ 			local w,h =3D 0,12
+
+Modified: trunk/lua/lib.3d.dynamic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.dynamic.lua (original)
++++ trunk/lua/lib.3d.dynamic.lua Mon Jun 16 00:58:19 2008
+@@ -37,43 +37,52 @@
+ =
+
+ 		Renderer3D.gFastBatchDynamicsUpdateNeeded =3D false
+ 	=
+
++		local cxloc,cyloc =3D self:GetLookAheadCamPos()
++		local cbx,cby =3D math.floor(cxloc/8 - 0.5),math.floor(cyloc/8 - 0.5)
++
+ 		Array2DForAll(Renderer3D.gFastBatchDynamicsMap, function(v,bx,by)
+ 			if v.mbUpdateNeeded then
+-				-- on demand create
+-				if not v.mFastBatch then
+-					v.mFastBatch =3D CreateRootGfx3D()
+-				end				=
+
+-				-- clear
+-				v.mFastBatch:SetFastBatch()
+-				=
+
+-				local x,y,z
+-				local qw,qx,qy,qz
+-				-- add dynamics
+-				local count =3D 0
+-
+-				for k,dynamic in pairs(v.mlDynamic) do
+-					if (dynamic.meshname and DynamicIsInWorld(dynamic)) then
+-						count =3D count + 1
+-						x,y,z =3D Renderer3D:UOPosToLocal(dynamic.xloc + dynamic.xadd,dynami=
+c.yloc + dynamic.yadd,dynamic.zloc * 0.1 + dynamic.zadd) =
+
+-						qw,qx,qy,qz =3D GetStaticMeshOrientation(dynamic.artid)
+-
+-						local r,g,b,a =3D 1,1,1,1
+-						if (gHueLoader and dynamic.hue &gt; 0) then
+-							r,g,b =3D gHueLoader:GetColor(dynamic.hue - 1,31) -- get first color
+-						end
+-
+-						local orderval =3D dynamic.zloc -- used for blendout later (fastbatc=
+h feature)
+-						v.mFastBatch:FastBatch_AddMeshBuffer(GetMeshBuffer(dynamic.meshname)=
+, orderval, x,y,z, qw,qx,qy,qz, -1,1,1, r,g,b,a)
+-						-- print(&quot;-&gt;&quot;,bx,by,dynamic.serial)
+-					end
+-				end
+-
+-				v.mFastBatch:SetCastShadows(gDynamicsCastShadows)
+-				=
+
+ 				-- unset dirty flag
+ 				v.mbUpdateNeeded =3D false
+-
+-				v.mFastBatch:FastBatch_Build()
++				=
+
++				local prio =3D 1 + 100 / (math.abs(bx-cbx)+math.abs(by-cby))
++				=
+
++				job.create(function()
++					-- print(&quot;## update dynamic block&quot;,bx,by,prio)
++
++					-- on demand create
++					if not v.mFastBatch then
++						v.mFastBatch =3D CreateRootGfx3D()
++					end				=
+
++					-- clear
++					v.mFastBatch:SetFastBatch()
++					=
+
++					local x,y,z
++					local qw,qx,qy,qz
++					-- add dynamics
++					local count =3D 0
++
++					for k,dynamic in pairs(v.mlDynamic) do
++						if (dynamic.meshname and DynamicIsInWorld(dynamic)) then
++							count =3D count + 1
++							x,y,z =3D Renderer3D:UOPosToLocal(dynamic.xloc + dynamic.xadd,dynam=
+ic.yloc + dynamic.yadd,dynamic.zloc * 0.1 + dynamic.zadd) =
+
++							qw,qx,qy,qz =3D GetStaticMeshOrientation(dynamic.artid)
++
++							local r,g,b,a =3D 1,1,1,1
++							if (gHueLoader and dynamic.hue &gt; 0) then
++								r,g,b =3D gHueLoader:GetColor(dynamic.hue - 1,31) -- get first col=
+or
++							end
++
++							local orderval =3D dynamic.zloc -- used for blendout later (fastbat=
+ch feature)
++							v.mFastBatch:FastBatch_AddMeshBuffer(GetMeshBuffer(dynamic.meshname=
+), orderval, x,y,z, qw,qx,qy,qz, -1,1,1, r,g,b,a)
++							-- print(&quot;-&gt;&quot;,bx,by,dynamic.serial)
++						end
++					end
++
++					v.mFastBatch:SetCastShadows(gDynamicsCastShadows)
++					=
+
++					v.mFastBatch:FastBatch_Build()
++				end, nil, prio)
+ 			end
+ 		end)
+ 		=
+
+@@ -213,47 +222,63 @@
+ -- creates the geometry of the given multi and stores the gfx object in th=
+is multi
+ function Renderer3D:CreateMultiGraphic	(multi)
+ 	multi.staticGeometry =3D CreateRootGfx3D()
+-	multi.staticGeometry:SetFastBatch()
+-
+-	for k,v in pairs(multi.lparts) do
+-		-- table.insert(multi.lparts, {iTileTypeID,iX,iY,iZ,iHue})
+-		=
+
+-		local x,y,z
+-		local qw,qx,qy,qz
+-		local xadd,yadd,zadd
+-
+-		local iTileTypeID,iX,iY,iZ,iHue =3D unpack(v)
+-		=
+
+-		local meshname =3D GetMeshName(iTileTypeID)
+-
+-		if meshname then
+-			xadd,yadd,zadd =3D FilterPositionXYZ(iTileTypeID)
+-			x,y,z =3D Renderer3D:UOPosToLocal(iX + xadd,iY + yadd,iZ * 0.1 + zadd) =
+
+-			qw,qx,qy,qz =3D GetStaticMeshOrientation(iTileTypeID)
+-
+-			local r,g,b,a =3D 1,1,1,1
+-			if (gHueLoader and iHue &gt; 0) then
+-				r,g,b =3D gHueLoader:GetColor(iHue - 1,31) -- get first color
+-			end
+-
+-			local orderval =3D iZ -- used for blendout later (fastbatch feature)
+-			multi.staticGeometry:FastBatch_AddMeshBuffer(GetMeshBuffer(meshname), o=
+rderval, x,y,z, qw,qx,qy,qz, -1,1,1, r,g,b,a)
+-		else
+-			--[[
+-			entity.x,entity.y,entity.z =3D self:UOPosToLocal(entity.xloc+0.5,entity=
+.yloc+0.5,entity.zloc*0.1 + 0.5)
+-			entity.gfx =3D CreateRootGfx3D()
+-			entity.gfx:SetPosition(entity.x,entity.y,entity.z)
+-			entity.gfx.billboard =3D entity.gfx:CreateChild()
+-			-- we have to add 0x4000 for fallbacks
+-			self:CreateArtBillBoard(entity.gfx.billboard,iTranslatedTileTypeID + 0x=
+4000,entity.iHue)
+-			table.insert(chunk.lStaticEntities,entity)
+-			printdebug(&quot;missing&quot;,sprintf(&quot;Fallback: Static Billboard created : iTra=
+nslatedTileTypeID=3D%i\n&quot;, iTranslatedTileTypeID))
+-			]]--
+-		end
+-	end
++	=
+
++	job.create(function()
++		multi.staticGeometry:SetFastBatch()
++
++		for k,v in pairs(multi.lparts) do
++			-- table.insert(multi.lparts, {iTileTypeID,iX,iY,iZ,iHue})
++			=
+
++			local x,y,z
++			local qw,qx,qy,qz
++			local xadd,yadd,zadd
++
++			local iTileTypeID,iX,iY,iZ,iHue =3D unpack(v)
++			=
+
++			local meshname =3D GetMeshName(iTileTypeID)
++
++			if meshname then
++				xadd,yadd,zadd =3D FilterPositionXYZ(iTileTypeID)
++				x,y,z =3D Renderer3D:UOPosToLocal(iX + xadd,iY + yadd,iZ * 0.1 + zadd) =
+
++				qw,qx,qy,qz =3D GetStaticMeshOrientation(iTileTypeID)
++
++				local r,g,b,a =3D 1,1,1,1
++				if (gHueLoader and iHue &gt; 0) then
++					r,g,b =3D gHueLoader:GetColor(iHue - 1,31) -- get first color
++				end
++
++				local meshbuffer =3D GetMeshBuffer(meshname)
++
++				local orderval =3D iZ -- used for blendout later (fastbatch feature)
++				multi.staticGeometry:FastBatch_AddMeshBuffer(meshbuffer, orderval, x,y=
+,z, qw,qx,qy,qz, -1,1,1, r,g,b,a)
++
++				local mousepick =3D {
++					xadd=3Dxadd,yadd=3Dyadd,zadd=3Dzadd,qw=3Dqw,qx=3Dqx,qy=3Dqy,qz=3Dqz,
++					sx=3D-1,sy=3D1,sz=3D1,x=3Dx,y=3Dy,z=3Dz,meshbuffer=3Dmeshbuffer,
++					iTileTypeID =3D iTileTypeID,
++					iHue =3D iHue,
++					iBlockX =3D math.floor(x/8), iBlockY =3D math.floor(y/8),
++				}
++				=
+
++				v.mousepick =3D mousepick
++			else
++				--[[
++				entity.x,entity.y,entity.z =3D self:UOPosToLocal(entity.xloc+0.5,entit=
+y.yloc+0.5,entity.zloc*0.1 + 0.5)
++				entity.gfx =3D CreateRootGfx3D()
++				entity.gfx:SetPosition(entity.x,entity.y,entity.z)
++				entity.gfx.billboard =3D entity.gfx:CreateChild()
++				-- we have to add 0x4000 for fallbacks
++				self:CreateArtBillBoard(entity.gfx.billboard,iTranslatedTileTypeID + 0=
+x4000,entity.iHue)
++				table.insert(chunk.lStaticEntities,entity)
++				printdebug(&quot;missing&quot;,sprintf(&quot;Fallback: Static Billboard created : iTr=
+anslatedTileTypeID=3D%i\n&quot;, iTranslatedTileTypeID))
++				]]--
++			end
++		end
++
++		multi.staticGeometry:FastBatch_Build()
++	end, nil, 1)
+ =
+
+ 	multi.staticGeometry:SetCastShadows(gDynamicsCastShadows)
+-	multi.staticGeometry:FastBatch_Build()
+ end
+ =
+
+ -- destroys the multi gfx static geometry
+
+Modified: trunk/lua/lib.3d.mousepick.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.mousepick.lua (original)
++++ trunk/lua/lib.3d.mousepick.lua Mon Jun 16 00:58:19 2008
+@@ -83,12 +83,31 @@
+ 	local y,row,x,chunk,k,v
+ 	local bHit,fHitDist
+ 	=
+
++	-- multi mousepicking
++	for k,v in pairs(gMultis) do
++		for kk,vv in pairs(k.lparts) do
++			if vv.mousepick then
++				bHit,fHitDist =3D vv.mousepick.meshbuffer:RayPick(rx,ry,rz,rvx,rvy,rvz,
++					vv.mousepick.x,vv.mousepick.y,vv.mousepick.z,
++					vv.mousepick.qw,vv.mousepick.qx,vv.mousepick.qy,vv.mousepick.qz,
++					vv.mousepick.sx,vv.mousepick.sy,vv.mousepick.sz)
++
++				if (bHit and ((not gMousePickFoundHit) or fHitDist &lt; self.gMousePickFo=
+undDist)) then
++					self.gMousePickFoundDist =3D fHitDist
++					gMousePickFoundHit =3D {}
++					gMousePickFoundHit.hittype =3D kMousePickHitType_Static
++					gMousePickFoundHit.entity =3D vv.mousepick
++					--entity has to have the following properties: hue, x, y, z, iTileTyp=
+eID
++				end
++			end
++		end
++	end
+ 	=
+
+ 	for chunky,row in pairs(self.gMapChunks) do
+ 		for chunkx,chunk in pairs(row) do
+ 			if (not chunk.bIsDead) then
+ =
+
+-				-- statics and multis (contained int lStaticEntities list)
++				-- statics  (contained in lStaticEntities list)
+ 				for k,entity in pairs(chunk.lStaticEntities) do =
+
+ 					if (Renderer3D:IsZLayerVisible(entity.zloc)) then -- zloc is in integ=
+er tilecoords from uo
+ 						if (entity.gfx and entity.gfx.billboard) then
+
+Modified: trunk/lua/lib.artatlas.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.artatlas.lua (original)
++++ trunk/lua/lib.artatlas.lua Mon Jun 16 00:58:19 2008
+@@ -5,6 +5,7 @@
+ gLastArtAtlas =3D nil
+ gArtAtlasCache =3D {}
+ kArtAtlasDebugDumpAtlas =3D false
++gArtAtlasList =3D {}
+ =
+
+ =
+
+ -- returns sMatName,iWidth,iHeight,iCenterX,iCenterY,u0,v0,u1,v1 =3D ArtAt=
+lasLoadAndLockDirect(iTileTypeID,iHue,pLockKeeper)
+@@ -17,12 +18,11 @@
+ 	return sMatName,o.w,o.h,iCenterX,iCenterY,o.u0,o.v0,o.u1,o.v1
+ end
+ =
+
+-
+ -- material is not immediately loaded, useful for statics
+ function ArtAtlasLoadAndLock (iTileTypeID,iHue,pLockKeeper)
+ 	local n =3D iTileTypeID..&quot;_&quot;..iHue
+ 	local o =3D gArtAtlasCache[n] =
+
+-	if (o ~=3D nil) then return o end
++	if (o ~=3D nil) then print(&quot;cache hit&quot;) return o end
+ 	gArtAtlasCache[n] =3D false
+ 	=
+
+ 	-- load image
+@@ -32,27 +32,57 @@
+ 	=
+
+ 	-- load/create atlas
+ 	local w =3D gArtAtlasSize
+-	if (gLastArtAtlas =3D=3D nil) then print(&quot;ArtAtlasLoadAndLock : create fi=
+rst atlas&quot;) gLastArtAtlas =3D CreateTexAtlas(w,w) end -- only first time
++	if (gLastArtAtlas =3D=3D nil) then
++		print(&quot;ArtAtlasLoadAndLock : create first atlas&quot;) =
+
++		gLastArtAtlas =3D CreateTexAtlas(w,w) =
+
++		table.insert(gArtAtlasList, gLastArtAtlas)
++	end -- only first time
+ 	=
+
+ 	-- add to exisiting texatlas or start a new one if it doesn't fit
+ 	local iBorderPixels=3D1
+ 	local bWrap=3Dfalse
+-	local bSuccess,l,r,t,b =3D gLastArtAtlas:AddImage(pImage,iBorderPixels,bW=
+rap)
++	=
+
++	local usedAtlas =3D nil
++	=
+
++	local bSuccess,l,r,t,b
++	=
+
++	-- search fitting atlas
++	for k,v in pairs(gArtAtlasList) do
++		bSuccess,l,r,t,b =3D v:AddImage(pImage,iBorderPixels,bWrap)
++		if bSuccess then =
+
++			-- dump atlas image
++			if (kArtAtlasDebugDumpAtlas) then
++				local img2 =3D CreateImage()
++				v:MakeImage(img2)
++				img2:SaveAsFile(&quot;../artatlas_&quot;..k..&quot;.png&quot;)
++				img2:Destroy()
++			end
++			=
+
++			usedAtlas =3D v
++			=
+
++			-- stop searching
++			break
++		end
++	end
++	=
+
+ 	if (not bSuccess) then =
+
++		-- not more space in the old atlas, start a new one
++		print(&quot;ArtAtlasLoadAndLock : create new atlas&quot;) =
+
++		gLastArtAtlas =3D CreateTexAtlas(w,w)
++		table.insert(gArtAtlasList, gLastArtAtlas)
++		bSuccess,l,r,t,b =3D gLastArtAtlas:AddImage(pImage,iBorderPixels,bWrap)
++		usedAtlas =3D gLastArtAtlas
+ 		=
+
+ 		if (kArtAtlasDebugDumpAtlas) then
+ 			local img2 =3D CreateImage()
+ 			gLastArtAtlas:MakeImage(img2)
+-			img2:SaveAsFile(&quot;../artatlas_&quot;..Client_GetTicks()..&quot;.png&quot;)
++			img2:SaveAsFile(&quot;../artatlas_&quot;..k..&quot;.png&quot;)
+ 			img2:Destroy()
+ 		end
+-	=
+
+-		-- not more space in the old atlas, start a new one
+-		print(&quot;ArtAtlasLoadAndLock : create new atlas&quot;) =
+
+-		gLastArtAtlas =3D CreateTexAtlas(w,w)
+-		bSuccess,l,r,t,b =3D gLastArtAtlas:AddImage(pImage,iBorderPixels,bWrap)
++
+ 		if (not bSuccess) then print(&quot;warning : ArtAtlasLoadAndLock: art too big=
+ for texatlas&quot;) pImage:Destroy() return end
+ 	end
++	=
+
+ 	local w =3D pImage:GetWidth()
+ 	local h =3D pImage:GetHeight()
+ 	pImage:Destroy()
+@@ -63,7 +93,7 @@
+ 	-- return info about the allocated area for this glyph
+ 	o =3D {}
+ 	gArtAtlasCache[n] =3D o
+-	o.atlas =3D gLastArtAtlas
++	o.atlas =3D usedAtlas
+ 	o.u0 =3D l
+ 	o.v0 =3D t
+ 	o.u1 =3D r
+
+Modified: trunk/lua/lib.static.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.static.lua (original)
++++ trunk/lua/lib.static.lua Mon Jun 16 00:58:19 2008
+@@ -45,29 +45,24 @@
+ 	local meshname =3D nil
+ 	meshname =3D gLegacyModelCache[iTranslatedTileTypeID]
+ 	if (meshname =3D=3D nil) then
+-		-- check if mesh is already in Cache
+-		meshname =3D gLegacyModelCache[iTranslatedTileTypeID]
+-
+-		if (meshname =3D=3D nil) then
+-			local modellocation =3D GetModelPath(iTranslatedTileTypeID)
+-
+-			if ( modellocation ~=3D nil ) then
+-
+-				meshname =3D GetModelName(iTranslatedTileTypeID)
+-				-- load Mesh here
+-				if ( OgreMeshAvailable(meshname) ) then
+-					printdebug(&quot;static&quot;,&quot;Meshloader:&quot;,iTranslatedTileTypeID,meshname)
+-				else
+-					meshname =3D false
+-					printdebug(&quot;static&quot;,&quot;mesh cannot be loaded -&gt; temp. disabled (false) =
+&quot;,meshname, iTranslatedTileTypeID)
+-				end
+-
++		local modellocation =3D GetModelPath(iTranslatedTileTypeID)
++
++		if ( modellocation ~=3D nil ) then
++
++			meshname =3D GetModelName(iTranslatedTileTypeID)
++			-- load Mesh here
++			if ( OgreMeshAvailable(meshname) ) then
++				printdebug(&quot;static&quot;,&quot;Meshloader:&quot;,iTranslatedTileTypeID,meshname)
+ 			else
+ 				meshname =3D false
+-				printdebug(&quot;static&quot;,&quot;mesh not available -&gt; temp. disabled (false) &quot;,me=
+shname, iTranslatedTileTypeID)
+-			end
+-			gLegacyModelCache[iTranslatedTileTypeID] =3D meshname
++				printdebug(&quot;static&quot;,&quot;mesh cannot be loaded -&gt; temp. disabled (false) &quot;=
+,meshname, iTranslatedTileTypeID)
++			end
++
++		else
++			meshname =3D false
++			printdebug(&quot;static&quot;,&quot;mesh not available -&gt; temp. disabled (false) &quot;,mes=
+hname, iTranslatedTileTypeID)
+ 		end
++		gLegacyModelCache[iTranslatedTileTypeID] =3D meshname
+ 	end
+ 	=
+
+ 	-- dump missing models as images
+@@ -103,7 +98,108 @@
+ 		meshname =3D GetFallBackBoxMesh()
+ 	end
+ 	=
+
++	-- build a static mesh fallback with uo tile as texture (faster that clas=
+sic billboard)
++	if not meshname and gUseStaticFallbacks then
++		return GetFallbackMeshName(iTranslatedTileTypeID)
++	end
++	=
+
+ 	return meshname
++end
++
++
++gFallbackModelCache =3D {}
++-- returns the name of a static generated mesh that can be used instead of=
+ classic billboards
++function GetFallbackMeshName	(iTileTypeID)
++	local name =3D gFallbackModelCache[iTileTypeID]
++	if name then return name end
++	=
+
++	if IsArtBillboardFallBackSkipped(iTileTypeID) then return nil end
++	=
+
++	-- generate the model
++	if not gFallbackModelCacheGfx then =
+
++		gFallbackModelCacheGfx =3D CreateRootGfx3D()
++		gFallbackModelCacheGfx:SetVisible(false)
++	end
++	=
+
++	-- TODO currently just ignores the art atlas lockkeeper
++	local sMatName,iWidth,iHeight,iCenterX,iCenterY,u0,v0,u1,v1 =3D ArtAtlasL=
+oadAndLockDirect(iTileTypeID+0x4000,0,nil)
++	-- print(&quot;###&quot;, iTileTypeID, sMatName,iWidth,iHeight,iCenterX,iCenterY,u0=
+,v0,u1,v1)
++	=
+
++	gFallbackModelCacheGfx:SetSimpleRenderable()
++	gFallbackModelCacheGfx:SetMaterial(sMatName)
++	=
+
++	local t =3D GetStaticTileType(iTileTypeID)
++	local h =3D iHeight/iWidth
++	local hh =3D t.miHeight * 0.1
++			=
+
++	if IsGroundPlate(iTileTypeID) then
++		-- ground plate
++		local tw =3D (u0+u1)*0.5
++		local th =3D (v0+v1)*0.5
++		local dz =3D 0.01 -- -0.49
++		local dx =3D 0 -- -0.5
++		local dy =3D 0 -- -0.5
++		=
+
++		gFallbackModelCacheGfx:RenderableBegin(4,6,false,false,OT_TRIANGLE_LIST)
++		=
+
++		gFallbackModelCacheGfx:RenderableVertex( 0+dx,0+dy,dz, tw,v0)
++		gFallbackModelCacheGfx:RenderableVertex( 0+dx,1+dy,dz, u0,th)
++		gFallbackModelCacheGfx:RenderableVertex( 1+dx,0+dy,dz, u1,th)
++		gFallbackModelCacheGfx:RenderableVertex( 1+dx,1+dy,dz, tw,v1)
++		gFallbackModelCacheGfx:RenderableIndex3(0,1,2)
++		gFallbackModelCacheGfx:RenderableIndex3(1,3,2)
++		=
+
++		gFallbackModelCacheGfx:RenderableEnd()
++	else
++		-- crossed
++		local dz =3D 0
++		local dx =3D 0
++		local dy =3D 0
++	=
+
++		gFallbackModelCacheGfx:RenderableBegin(4*2,6*2,false,false,OT_TRIANGLE_L=
+IST)
++		=
+
++		gFallbackModelCacheGfx:RenderableVertex( 0+dx,0.5+dy,0+dz, u1,v1)
++		gFallbackModelCacheGfx:RenderableVertex( 1+dx,0.5+dy,0+dz, u0,v1)
++		gFallbackModelCacheGfx:RenderableVertex( 1+dx,0.5+dy,h+dz, u0,v0)
++		gFallbackModelCacheGfx:RenderableVertex( 0+dx,0.5+dy,h+dz, u1,v0)
++		gFallbackModelCacheGfx:RenderableIndex3(2,1,0)
++		gFallbackModelCacheGfx:RenderableIndex3(0,3,2)
++
++		gFallbackModelCacheGfx:RenderableVertex( 0.5+dx,0+dy,0+dz, u1,v1)
++		gFallbackModelCacheGfx:RenderableVertex( 0.5+dx,1+dy,0+dz, u0,v1)
++		gFallbackModelCacheGfx:RenderableVertex( 0.5+dx,1+dy,h+dz, u0,v0)
++		gFallbackModelCacheGfx:RenderableVertex( 0.5+dx,0+dy,h+dz, u1,v0)
++		gFallbackModelCacheGfx:RenderableIndex3(4+2,4+1,4+0)
++		gFallbackModelCacheGfx:RenderableIndex3(4+0,4+3,4+2)
++
++		gFallbackModelCacheGfx:RenderableEnd()
++	--[[
++	else
++		-- flat
++		local dz =3D 0.1
++		local dx =3D 0
++		local dy =3D 0
++
++		gFallbackModelCacheGfx:RenderableBegin(4,6,false,false,OT_TRIANGLE_LIST)
++		=
+
++		gFallbackModelCacheGfx:RenderableVertex( 0+dx,0+dy,dz, u0,v0)
++		gFallbackModelCacheGfx:RenderableVertex( 1+dx,0+dy,dz, u1,v0)
++		gFallbackModelCacheGfx:RenderableVertex( 1+dx,1+dy,dz, u1,v1)
++		gFallbackModelCacheGfx:RenderableVertex( 0+dx,1+dy,dz, u0,v1)
++		gFallbackModelCacheGfx:RenderableIndex3(2,1,0)
++		gFallbackModelCacheGfx:RenderableIndex3(0,3,2)
++
++		gFallbackModelCacheGfx:RenderableEnd()
++	]]
++	end
++	=
+
++	local name =3D gFallbackModelCacheGfx:RenderableConvertToMesh()
++	=
+
++	-- name =3D &quot;mdl_000405.mesh&quot;
++	=
+
++	gFallbackModelCache[iTileTypeID] =3D name
++	=
+
++	return name
+ end
+ =
+
+ function GetStaticMeshOrientation (iTileTypeID)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001054.html">[Iris-commit] [IRIS] r2245 - in /trunk: bin/iris2.exe	vc8/iris.vcproj
+</A></li>
+	<LI>Next message: <A HREF="001056.html">[Iris-commit] [IRIS] r2247 - in /trunk: data/base/main.material	lua/lib.unifont.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1055">[ date ]</a>
+              <a href="thread.html#1055">[ thread ]</a>
+              <a href="subject.html#1055">[ subject ]</a>
+              <a href="author.html#1055">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,211 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1781 - in /trunk: include/builder.h	src/builder.cpp src/data_L.cpp
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-January/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1781%20-%20in%20/trunk%3A%20include/builder.h%0A%09src/builder.cpp%20src/data_L.cpp&In-Reply-To=%3C20080118013946.D77611524004%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000595.html">
+   <LINK REL="Next"  HREF="000597.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1781 - in /trunk: include/builder.h	src/builder.cpp src/data_L.cpp</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1781%20-%20in%20/trunk%3A%20include/builder.h%0A%09src/builder.cpp%20src/data_L.cpp&In-Reply-To=%3C20080118013946.D77611524004%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1781 - in /trunk: include/builder.h	src/builder.cpp src/data_L.cpp">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Fri Jan 18 02:39:46 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000595.html">[Iris-commit] [IRIS] r1780 - in /trunk: data/terrain/textures/water.jpg lua/filter/filter.art.lua lua/lib.3d.map.lua lua/lib.static.lua
+</A></li>
+        <LI>Next message: <A HREF="000597.html">[Iris-commit] [IRIS] r1782 - /trunk/src/builder.cpp
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#596">[ date ]</a>
+              <a href="thread.html#596">[ thread ]</a>
+              <a href="subject.html#596">[ subject ]</a>
+              <a href="author.html#596">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Fri Jan 18 02:39:44 2008
+New Revision: 1781
+
+Log:
+started lua bind to add artmap to texatlas, not finished yet
+
+Modified:
+    trunk/include/builder.h
+    trunk/src/builder.cpp
+    trunk/src/data_L.cpp
+
+Modified: trunk/include/builder.h
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/include/builder.h (original)
++++ trunk/include/builder.h Fri Jan 18 02:39:44 2008
+@@ -74,6 +74,7 @@
+ =
+
+ bool	WriteTexMapToFile					(cTexMapLoader&amp; oTexMapLoader,const char* szFil=
+ePath,const int iID,cHueLoader* pHueLoader,const short iHue);
+ bool	WriteArtMapToFile					(cArtMapLoader&amp; oArtMapLoader,const char* szFil=
+ePath,const int iID,cHueLoader* pHueLoader,const short iHue);
++bool	WriteArtMapToImage					(Ogre::Image&amp; pDest,cArtMapLoader&amp; oArtMapLoad=
+er,const int iID,cHueLoader* pHueLoader,const short iHue);
+ =
+
+ bool	GenerateArtImage(Ogre::Image &amp;image, cArtMapLoader&amp; oArtMapLoader,con=
+st int iID,const bool bPixelExact,const bool bInvertY,const bool bInvertX,c=
+HueLoader* pHueLoader,const short iHue);
+ =
+
+
+Modified: trunk/src/builder.cpp
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/src/builder.cpp (original)
++++ trunk/src/builder.cpp Fri Jan 18 02:39:44 2008
+@@ -358,6 +358,13 @@
+ 	=
+
+ 	return true;
+ }
++
++bool	WriteArtMapToImage					(Ogre::Image&amp; pDest,cArtMapLoader&amp; oArtMapLoad=
+er,const int iID,cHueLoader* pHueLoader,const short iHue) {
++	// TODO =
+
++	// pDest.loadDynamicImage((Ogre::uchar*)dst,b-&gt;getWidth(), b-&gt;getHeight()=
+,1,myformat);
++	return false;
++}
++
+ =
+
+ bool	WriteTexMapToFile	(cTexMapLoader&amp; oTexMapLoader,const char* szFilePat=
+h,const int iID,cHueLoader* pHueLoader,const short iHue) { PROFILE
+ 	//~ printf(&quot;WriteTexMapToFile path=3D%s id=3D%d hueloader=3D0x%x hue=3D%d=
+\n&quot;,szFilePath,iID,(int)pHueLoader,iHue);
+
+Modified: trunk/src/data_L.cpp
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/src/data_L.cpp (original)
++++ trunk/src/data_L.cpp Fri Jan 18 02:39:44 2008
+@@ -6,6 +6,7 @@
+ #include &quot;builder.h&quot;
+ #include &quot;lugre_bitmask.h&quot;
+ #include &quot;lugre_sound.h&quot;
++#include &quot;lugre_texatlas.h&quot;
+ #include &lt;string&gt;
+ #include &lt;stdlib.h&gt;
+ #include &lt;map&gt;
+@@ -572,6 +573,7 @@
+ 			REGISTER_METHOD(SearchCursorHotspot);
+ 			REGISTER_METHOD(GetCount);
+ 			REGISTER_METHOD(ExportToFile);
++			REGISTER_METHOD(AddToTexAtlas);
+ 			#undef REGISTER_METHOD
+ 		}
+ =
+
+@@ -617,7 +619,7 @@
+ 		}
+ 		=
+
+ 		/// for lua : bSuccess	ExportToFile (sFilePath,iArtMapID,pHueLoader=3Dni=
+l,iHue=3D0)
+-		/// exports the texmap to the filepath, e.g. myfile.png, returns true on=
+ successs
++		/// exports the artmap to the filepath, e.g. myfile.png, returns true on=
+ successs
+ 		static int	ExportToFile	(lua_State *L) { PROFILE =
+
+ 			std::string	sFilePath =3D luaL_checkstring(L,2);
+ 			int			iArtMapID =3D luaL_checkint(L,3);
+@@ -627,6 +629,30 @@
+ 			if (!WriteArtMapToFile(*checkudata_alive(L),sFilePath.c_str(),iArtMapID=
+,pHueLoader,iHue)) return 0;
+ 			lua_pushboolean(L,true); =
+
+ 			return 1; =
+
++		}
++		=
+
++		/// return true and texcoords (left,right,top,bottom) on success  (false=
+ means error, no space left in atlas)
++		/// bSuccess,l,r,t,b	AddToTexAtlas (pTexAtlas,iArtMapID,pHueLoader=3Dnil=
+,iHue=3D0,iBorderPixels=3D4)
++		/// loads the artmap into a cTexAtlas
++		static int	AddToTexAtlas	(lua_State *L) { PROFILE =
+
++			cTexAtlas*	pTexAtlas		=3D cLuaBind&lt;cTexAtlas&gt;::checkudata_alive(L,2);
++			int			iArtMapID		=3D luaL_checkint(L,3);
++			cHueLoader* pHueLoader		=3D (lua_gettop(L) &gt;=3D 4 &amp;&amp; !lua_isnil(L,4)) ?=
+ cLuaBind&lt;cHueLoader&gt;::checkudata(L,4) : 0;
++			short 		iHue			=3D (lua_gettop(L) &gt;=3D 5 &amp;&amp; !lua_isnil(L,5)) ? luaL_che=
+ckint(L,5) : 0;
++			int			iBorderPixels	=3D (lua_gettop(L) &gt;=3D 6 &amp;&amp; !lua_isnil(L,6)) ? lua=
+L_checkint(L,6) : 4;
++			=
+
++			Ogre::Image img;
++			if (!WriteArtMapToImage(img,*checkudata_alive(L),iArtMapID,pHueLoader,i=
+Hue)) return 0;
++			=
+
++			// add image
++			Ogre::Rectangle r;
++			if (!pTexAtlas-&gt;AddImage(img,r,iBorderPixels)) return 0;
++			lua_pushboolean(L,true);
++			lua_pushnumber(L,r.left);
++			lua_pushnumber(L,r.right);
++			lua_pushnumber(L,r.top);
++			lua_pushnumber(L,r.bottom);
++			return 5; =
+
+ 		}
+ 		=
+
+ 		/// int gArtMapLoader:GetCount() for lua
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000595.html">[Iris-commit] [IRIS] r1780 - in /trunk: data/terrain/textures/water.jpg lua/filter/filter.art.lua lua/lib.3d.map.lua lua/lib.static.lua
+</A></li>
+	<LI>Next message: <A HREF="000597.html">[Iris-commit] [IRIS] r1782 - /trunk/src/builder.cpp
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#596">[ date ]</a>
+              <a href="thread.html#596">[ thread ]</a>
+              <a href="subject.html#596">[ subject ]</a>
+              <a href="author.html#596">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

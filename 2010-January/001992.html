@@ -1,0 +1,487 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r3232 - in /trunk/lua: lib.protocol.lua	lib.proxy.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2010-January/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3232%20-%20in%20/trunk/lua%3A%20lib.protocol.lua%0A%09lib.proxy.lua&In-Reply-To=%3C20100121221351.2A8157A9817C%40simon%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001991.html">
+   <LINK REL="Next"  HREF="001993.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r3232 - in /trunk/lua: lib.protocol.lua	lib.proxy.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3232%20-%20in%20/trunk/lua%3A%20lib.protocol.lua%0A%09lib.proxy.lua&In-Reply-To=%3C20100121221351.2A8157A9817C%40simon%3E"
+       TITLE="[Iris-commit] [IRIS] r3232 - in /trunk/lua: lib.protocol.lua	lib.proxy.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Thu Jan 21 23:13:51 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001991.html">[Iris-commit] [IRIS] r3231 - /trunk/lua/main.lua
+</A></li>
+        <LI>Next message: <A HREF="001993.html">[Iris-commit] [IRIS] r3233 - in /trunk/lua: lib.proxy.lua lib.uodragdrop.lua net/net.tooltips.lua net/net.walk.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1992">[ date ]</a>
+              <a href="thread.html#1992">[ thread ]</a>
+              <a href="subject.html#1992">[ subject ]</a>
+              <a href="author.html#1992">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Thu Jan 21 23:13:51 2010
+New Revision: 3232
+
+Log:
+packet debugging utils
+
+Modified:
+    trunk/lua/lib.protocol.lua
+    trunk/lua/lib.proxy.lua
+
+Modified: trunk/lua/lib.protocol.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.protocol.lua (original)
++++ trunk/lua/lib.protocol.lua Thu Jan 21 23:13:51 2010
+@@ -62,9 +62,20 @@
+ 		=
+
+ 		local sPacketTypeName =3D gPacketTypeId2Name[iId] -- get packet-type-name
+ 		local packet_debuginfo =3D sprintf(&quot;typeid=3D0x%02x,size=3D%d,typename=
+=3D%s&quot;,iId,iPacketSize,sPacketTypeName or &quot;&quot;)
++		local iBFSubCmd =3D (iId =3D=3D kPacket_Generic_Command) and input:PeekN=
+etUint16(3)
++		if (iBFSubCmd) then
++			local genname =3D gGenericSubCommandNamesByID[iBFSubCmd] or &quot;???&quot;
++			packet_debuginfo =3D packet_debuginfo .. sprintf(&quot;,subcmd=3D%s[0x%02x]&quot;=
+,genname,iBFSubCmd)
++		end
+ 		if (not gNoLogPackets_ByPacket[iId]) then -- log on
+ 			printdebug(&quot;net&quot;,sprintf(&quot;NET: ProtocolPacketRecvHandler &quot;..packet_debu=
+ginfo))
+-			if (gEnablePacketDebug_Short) then print(&quot;packet&quot;,packet_debuginfo) end
++			if (gEnablePacketDebug_Short) then =
+
++				if (iBFSubCmd and gNoLogPackets_BySubCmd and gNoLogPackets_BySubCmd[iB=
+FSubCmd]) then
++					-- skip
++				else =
+
++					print(&quot;packet&quot;,packet_debuginfo) =
+
++				end
++			end
+ 			if (gbPacketLogToFadeLines) then GuiAddChatLine(&quot;recv &quot;..packet_debugin=
+fo) end
+ 		end
+ 		=
+
+
+Modified: trunk/lua/lib.proxy.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.proxy.lua (original)
++++ trunk/lua/lib.proxy.lua Thu Jan 21 23:13:51 2010
+@@ -1,26 +1,41 @@
+ -- uoproxy for debugging
+ =
+
++function UOProxyOpenListener (port)
++	local timeout =3D Client_GetTicks() + 5*1000
++	local listener
++	repeat
++		listener =3D NetListen(port)
++		if (not listener) then print(&quot;port listen bind fail, retrying...&quot;) Clien=
+t_USleep(1 * 1000) end
++	until listener or Client_GetTicks() &gt; timeout =
+
++	assert(listener,&quot;failed to bind to local port &quot;..(port or 0))
++	return listener
++end
+ function UOProxyMode (host,port)
+ 	print(&quot;starting proxy mode&quot;)
+ 	print(&quot;host:&quot;,host,&quot;port:&quot;,port)
+ 	=
+
+ 	gProxyHost =3D host
+ 	gProxyPort =3D port
+-	=
+
+-	local timeout =3D Client_GetTicks() + 5*1000
+-	repeat
+-		gServerListenerTCP =3D NetListen(port)
+-		if (not gServerListenerTCP) then print(&quot;port listen bind fail, retrying.=
+..&quot;) Client_USleep(1 * 1000) end
+-	until gServerListenerTCP or Client_GetTicks() &gt; timeout =
+
+-	assert(gServerListenerTCP,&quot;failed to bind to local port &quot;..(port or 0))
++	gProxyPort2 =3D port+1
++	=
+
++	gServerListenerTCP =3D UOProxyOpenListener(gProxyPort)
++	gServerListenerTCP2 =3D UOProxyOpenListener(gProxyPort2)
+ 	=
+
+ 	print(&quot;listen port opened....&quot;)
+ 		=
+
+ 	while true do
++		local listener =3D gServerListenerTCP
+ 		while true do
+-			local newcon =3D gServerListenerTCP:PopAccepted()
++			local newcon =3D listener:PopAccepted()
+ 			if (not newcon) then break end
++			print(&quot;###############################&quot;)
++			print(&quot;#### PROXY : connection started, listener=3D&quot;,(listener =3D=3D g=
+ServerListenerTCP) and &quot;A&quot; or &quot;B&quot;)
++			print(&quot;###############################&quot;)
+ 			UOProxyOneConnection(newcon)
++			print(&quot;###############################&quot;)
++			print(&quot;#### PROXY : connection ended&quot;)
++			print(&quot;###############################&quot;)
++			listener =3D gServerListenerTCP2
+ 			--~ print(&quot;proxy end&quot;) return
+ 		end
+ 		Client_USleep(10) =
+
+@@ -105,79 +120,98 @@
+ 	local bInterpret =3D true
+ 	--~ if (bIsFromServer and gProxyServerHuffmanStarted) then bInterpret =3D=
+ false end -- huffman comp&amp;decomp active now
+ 	--~ if (bIsFromClient and gProxyServerHuffmanStarted) then bInterpret =3D=
+ false end -- not really needed but something seems bugged
+-	=
+
++	if (gDisableProxyInterpretation) then bInterpret =3D false end
+ 	local bScrambleTest =3D false
+ 	local bClientBlockTest =3D true
+ 	=
+
+-	if (bIsFromClient and gProxyServerHuffmanStarted and (not gProxySecondPar=
+tHeaderStarted)) then
+-		gProxySecondPartHeaderStarted =3D true
+-		local iPacketSize =3D 4
+-		print(&quot;recv:&quot;,fromname,&quot;4byte header before protocol start&quot;) =
+
+-		print(FIFOHexDump(fifo_in,0,iPacketSize))
+-		fifo_out:PushFIFOPartRaw(fifo_in,0,iPacketSize) =
+
+-		fifo_in:PopRaw(iPacketSize)
+-		return true
+-	end
+-	=
+
+-	-- scramble kPacket_Generic_SubCommand_Screensize (0xBF subcmd 0x05)  las=
+t 5 bytes (unknown)
+-	--~ bf 00 0d 00 05 00 00 03 20 3f d0 11 00            |........ ?...|
+-	if (bScrambleTest and bIsFromClient and fifo_in:Size() &gt;=3D 13) then =
+
+-		if (fifo_in:PeekNetUint8(0) =3D=3D 0xBF and
+-			fifo_in:PeekNetUint8(1) =3D=3D 0x00 and
+-			fifo_in:PeekNetUint8(2) =3D=3D 0x0d and
+-			fifo_in:PeekNetUint8(3) =3D=3D 0x00 and
+-			fifo_in:PeekNetUint8(4) =3D=3D 0x05) then
+-			fifo_in:PokeNetUint8(9,0xff)
+-			fifo_in:PokeNetUint8(10,0xff)
+-			fifo_in:PokeNetUint8(11,0xff)
+-			fifo_in:PokeNetUint8(12,0xff)
+-			print(&quot;SCRAMBLED kPacket_Generic_SubCommand_Screensize&quot;)
+-		end
+-	end
+-	=
+
+-	=
+
+-	=
+
+-	-- modify the unknown se packets
+-	if (bIsFromClient and fifo_in:Size() &gt;=3D 6) then
+-		--~ bf 00 06 00 24 5e
+-		if (fifo_in:PeekNetUint8(0) =3D=3D 0xBF and
+-			fifo_in:PeekNetUint8(1) =3D=3D 0x00 and
+-			fifo_in:PeekNetUint8(2) =3D=3D 0x06 and
+-			fifo_in:PeekNetUint8(3) =3D=3D 0x00 and
+-			fifo_in:PeekNetUint8(4) =3D=3D 0x24) then
+-			--~ fifo_in:PokeNetUint8(5,math.random(0,255))
+-			print(&quot;detected unknownSE&quot;)
+-			if (bScrambleTest) then =
+
+-				fifo_in:PokeNetUint8(5,16)
+-				print(&quot;SCRAMBLED unknownSE&quot;)
++	if (bInterpret) then =
+
++		-- 4-byte-head con1
++		if (bIsFromClient and (not gProxyFirstPartHeaderStarted)) then
++			gProxyFirstPartHeaderStarted =3D true
++			local iPacketSize =3D 4
++			print(&quot;recv:&quot;,fromname,&quot;4byte header before protocol start con1&quot;) =
+
++			print(FIFOHexDump(fifo_in,0,iPacketSize))
++			fifo_out:PushFIFOPartRaw(fifo_in,0,iPacketSize) =
+
++			fifo_in:PopRaw(iPacketSize)
++			return true
++		end
++		=
+
++		-- 4-byte-head con2
++		if (bIsFromClient and gProxyServerHuffmanStarted and (not gProxySecondPa=
+rtHeaderStarted)) then
++			gProxySecondPartHeaderStarted =3D true
++			local iPacketSize =3D 4
++			print(&quot;recv:&quot;,fromname,&quot;4byte header before protocol start con2&quot;) =
+
++			print(FIFOHexDump(fifo_in,0,iPacketSize))
++			fifo_out:PushFIFOPartRaw(fifo_in,0,iPacketSize) =
+
++			fifo_in:PopRaw(iPacketSize)
++			return true
++		end
++	=
+
++		-- scramble kPacket_Generic_SubCommand_Screensize (0xBF subcmd 0x05)  la=
+st 5 bytes (unknown)
++		--~ bf 00 0d 00 05 00 00 03 20 3f d0 11 00            |........ ?...|
++		if (bScrambleTest and bIsFromClient and fifo_in:Size() &gt;=3D 13) then =
+
++			if (fifo_in:PeekNetUint8(0) =3D=3D 0xBF and
++				fifo_in:PeekNetUint8(1) =3D=3D 0x00 and
++				fifo_in:PeekNetUint8(2) =3D=3D 0x0d and
++				fifo_in:PeekNetUint8(3) =3D=3D 0x00 and
++				fifo_in:PeekNetUint8(4) =3D=3D 0x05) then
++				fifo_in:PokeNetUint8(9,0xff)
++				fifo_in:PokeNetUint8(10,0xff)
++				fifo_in:PokeNetUint8(11,0xff)
++				fifo_in:PokeNetUint8(12,0xff)
++				print(&quot;+++++++++++++++++++++++++++++++++++++++++++++++&quot;)
++				print(&quot;SCRAMBLED kPacket_Generic_SubCommand_Screensize&quot;)
++				print(&quot;+++++++++++++++++++++++++++++++++++++++++++++++&quot;)
+ 			end
+-			if (bClientBlockTest) then gProxyBlockingClient =3D true end
+-		end
+-	end
+-	=
+
+-	=
+
+-	-- modify kPacket_Pre_Login 0x5D packet data
+-	if (bScrambleTest and bIsFromClient and fifo_in:Size() &gt;=3D 49) then
+-		if (fifo_in:PeekNetUint8(0) =3D=3D 0x5D and
+-			fifo_in:PeekNetUint8(1) =3D=3D 0xED and
+-			fifo_in:PeekNetUint8(2) =3D=3D 0xED and
+-			fifo_in:PeekNetUint8(3) =3D=3D 0xED and
+-			fifo_in:PeekNetUint8(4) =3D=3D 0xED) then
+-			--~ fifo_in:PokeNetUint8(5,math.random(0,255))
+-			fifo_in:PokeNetUint8(48,0x11)
+-			print(&quot;SCRAMBLED kPacket_Pre_Login&quot;)
++		end
++		=
+
++		=
+
++		=
+
++		-- modify the unknown se packets
++		if (bIsFromClient and fifo_in:Size() &gt;=3D 6) then
++			--~ bf 00 06 00 24 5e
++			if (fifo_in:PeekNetUint8(0) =3D=3D 0xBF and
++				fifo_in:PeekNetUint8(1) =3D=3D 0x00 and
++				fifo_in:PeekNetUint8(2) =3D=3D 0x06 and
++				fifo_in:PeekNetUint8(3) =3D=3D 0x00 and
++				fifo_in:PeekNetUint8(4) =3D=3D 0x24) then
++				--~ fifo_in:PokeNetUint8(5,math.random(0,255))
++				print(&quot;+++++++++++++++++++++++++++++++++++++++++++++++&quot;)
++				print(&quot;detected unknownSE&quot;)
++				print(&quot;+++++++++++++++++++++++++++++++++++++++++++++++&quot;)
++				if (bScrambleTest) then =
+
++					fifo_in:PokeNetUint8(5,16)
++					print(&quot;SCRAMBLED unknownSE&quot;)
++				end
++				if (bClientBlockTest) then gProxyBlockingClient =3D true end
++			end
++		end
++		=
+
++		=
+
++		-- modify kPacket_Pre_Login 0x5D packet data
++		if (bScrambleTest and bIsFromClient and fifo_in:Size() &gt;=3D 49) then
++			if (fifo_in:PeekNetUint8(0) =3D=3D 0x5D and
++				fifo_in:PeekNetUint8(1) =3D=3D 0xED and
++				fifo_in:PeekNetUint8(2) =3D=3D 0xED and
++				fifo_in:PeekNetUint8(3) =3D=3D 0xED and
++				fifo_in:PeekNetUint8(4) =3D=3D 0xED) then
++				--~ fifo_in:PokeNetUint8(5,math.random(0,255))
++				fifo_in:PokeNetUint8(48,0x11)
++				print(&quot;+++++++++++++++++++++++++++++++++++++++++++++++&quot;)
++				print(&quot;SCRAMBLED kPacket_Pre_Login&quot;)
++				print(&quot;+++++++++++++++++++++++++++++++++++++++++++++++&quot;)
++			end
+ 		end
+ 	end
+ 	=
+
+ 	if (bInterpret) then =
+
+ 		local iId =3D fifo_in:PeekNetUint8(0)
+ 		local iPacketSize =3D gPacketSizeByID[iId]
+-		print(&quot;UOProxyHandlePacket&quot;,fromname,sprintf(&quot;0x%02x&quot;,iId),gPacketTypeId=
+2Name[iId],
+-				iPacketSize,&quot;t=3D&quot;..t_since_start)
++		print(&quot;UOProxyHandlePacket&quot;,fromname,sprintf(&quot;0x%02x&quot;,iId),gPacketTypeId=
+2Name[iId],iPacketSize,&quot;t=3D&quot;..t_since_start)
+ 		assert(iPacketSize)
+-		if (iPacketSize =3D=3D 0 and fifo_in:Size() &lt; 3) then return end -- pack=
+et incomplete
++		if (iPacketSize =3D=3D 0 and fifo_in:Size() &lt; 3) then print(&quot;incomplete =
+packet dynsize? &lt;3&quot;) return end -- packet incomplete
+ 		if (iPacketSize =3D=3D 0) then iPacketSize =3D fifo_in:PeekNetUint16(1) =
+end
+-		if (fifo_in:Size() &lt; iPacketSize) then return end -- packet incomplete
++		if (fifo_in:Size() &lt; iPacketSize) then print(&quot;incomplete packet &quot;,fifo_i=
+n:Size(),iPacketSize) return end -- packet incomplete
+ 		=
+
+ 		=
+
+ 		if (bIsFromServer and iId =3D=3D kPacket_Server_List) then -- 0xA8
+@@ -185,6 +219,10 @@
+ 			fifo_in:PokeNetUint8(16*3-4,0)
+ 			fifo_in:PokeNetUint8(16*3-5,0)
+ 			fifo_in:PokeNetUint8(16*3-6,1)
++			print(&quot;adjusted kPacket_Server_List&quot;) -- TODO : more than one server ?
++			print(&quot;+++++++++++++++++++++++++++++++++++++++++++++++&quot;)
++			print(&quot;+++++    adjusted  kPacket_Server_List&quot;)
++			print(&quot;+++++++++++++++++++++++++++++++++++++++++++++++&quot;)
+ 		end
+ 		-- login.uogamers.com (209=3D0xD1.173=3D0xAD.139=3D0x8B.110=3D0x6E)
+ 		--~ NET: server redirect: id=3D0x0000008c ip=3D209.173.139.110 port=3D25=
+93 AccountNr.:0x79e01b53
+@@ -198,12 +236,20 @@
+ 			fifo_in:PokeNetUint8(2,0)
+ 			fifo_in:PokeNetUint8(3,0)
+ 			fifo_in:PokeNetUint8(4,1)
++			local iGameServerPort =3D gProxyPort2
++			fifo_in:PokeNetUint8(5,floor(iGameServerPort/256)) -- port
++			fifo_in:PokeNetUint8(6,math.mod(iGameServerPort,256)) -- port
++			=
+
+ 			gProxyServerHuffmanStartedNextRound =3D true
++			print(&quot;+++++++++++++++++++++++++++++++++++++++++++++++&quot;)
++			print(&quot;+++++    adjusted kPacket_Server_Redirect&quot;)
++			print(&quot;+++++++++++++++++++++++++++++++++++++++++++++++&quot;)
++			gDisableProxyInterpretation =3D true
+ 		end
+ 		=
+
+ 		-- todo : NetStartHuffman (after redirect?)
+ 		=
+
+-		=
+
++		--[[
+ 		if (bIsFromServer and iId =3D=3D kPacket_Compressed_Gump) then 	--0xDD
+ 			local packetfifo =3D CreateFIFO()
+ 			packetfifo:PushFIFOPartRaw(fifo_in,0,iPacketSize) =
+
+@@ -224,11 +270,6 @@
+ 			MyPrintField(gumpdata,&quot;textline&quot;)
+ 			MyPrintField(gumpdata,&quot;textline_unicode&quot;)
+ 		end
+-		=
+
+-		=
+
+-		=
+
+-		=
+
+-		=
+
+ 		=
+
+ 		=
+
+ 		if (bIsFromClient and gProxyBlockingClient) then
+@@ -255,6 +296,7 @@
+ 				return true
+ 			end
+ 		end
++		]]--
+ 		=
+
+ 		=
+
+ 		print(&quot;recv:&quot;,fromname,&quot;t_since_start=3D&quot;,t_since_start) =
+
+@@ -264,7 +306,7 @@
+ 		fifo_in:PopRaw(iPacketSize)
+ 		return true
+ 	else
+-		print(&quot;recv:&quot;,fromname,&quot;(uninterpreted) t_since_start=3D&quot;,t_since_start) =
+
++		print(&quot;recv:&quot;,fromname,&quot;(uninterpreted) t_since_start=3D&quot;,t_since_start,=
+fifo_in:Size()) =
+
+ 		print(FIFOHexDump(fifo_in))
+ 		fifo_out:PushFIFOPartRaw(fifo_in) =
+
+ 		fifo_in:Clear()
+@@ -321,6 +363,7 @@
+ 	local bAlive =3D true
+ 	while bAlive do
+ 		-- send =
+
++		gProxyServerHuffmanStarted =3D false
+ 		if (gProxyServerHuffmanStarted) then
+ 			HuffmanCompress(gProxyClientSendFifo,gProxyClientSendCompFifo) -- does =
+NOT remove data from in-fifo. compression can always be completed.
+ 			gProxyClientCon:Push(gProxyClientSendCompFifo)
+@@ -347,6 +390,7 @@
+ 		else
+ 			gProxyServerCon:Pop(gProxyServerRecvFifo)
+ 		end
++		gProxyServerHuffmanStarted =3D false
+ 		=
+
+ 		-- handle packets
+ 		while UOProxyHandlePacket(gProxyServerRecvFifo,gProxyClientSendFifo,fals=
+e) do end
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001991.html">[Iris-commit] [IRIS] r3231 - /trunk/lua/main.lua
+</A></li>
+	<LI>Next message: <A HREF="001993.html">[Iris-commit] [IRIS] r3233 - in /trunk/lua: lib.proxy.lua lib.uodragdrop.lua net/net.tooltips.lua net/net.walk.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1992">[ date ]</a>
+              <a href="thread.html#1992">[ thread ]</a>
+              <a href="subject.html#1992">[ subject ]</a>
+              <a href="author.html#1992">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

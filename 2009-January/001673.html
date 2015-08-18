@@ -1,0 +1,806 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2871 - in /trunk: lua/ lua/gui/ lua/net/ lua/obj/ lua/widgets/ plugins/
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2009-January/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2871%20-%20in%20/trunk%3A%20lua/%20lua/gui/%20lua/net/%0A%20lua/obj/%20lua/widgets/%20plugins/&In-Reply-To=%3C20090116232941.626FB1C1880D%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001672.html">
+   <LINK REL="Next"  HREF="001674.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2871 - in /trunk: lua/ lua/gui/ lua/net/ lua/obj/ lua/widgets/ plugins/</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2871%20-%20in%20/trunk%3A%20lua/%20lua/gui/%20lua/net/%0A%20lua/obj/%20lua/widgets/%20plugins/&In-Reply-To=%3C20090116232941.626FB1C1880D%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2871 - in /trunk: lua/ lua/gui/ lua/net/ lua/obj/ lua/widgets/ plugins/">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat Jan 17 00:29:40 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001672.html">[Iris-commit] [IRIS] r2870 - /trunk/bin/iris2.exe
+</A></li>
+        <LI>Next message: <A HREF="001674.html">[Iris-commit] [IRIS] r2872 - in /trunk: lua/lib.3d.mousepick.lua lua/lib.macrolist.lua lua/lib.mapblock.3d.statics.lua plugins/itemcounter.lua plugins/lib.spellbar.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1673">[ date ]</a>
+              <a href="thread.html#1673">[ thread ]</a>
+              <a href="subject.html#1673">[ subject ]</a>
+              <a href="author.html#1673">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sat Jan 17 00:29:40 2009
+New Revision: 2871
+
+Log:
+mainmenu : 3d/2d login buttons, new macro commands : MacroCmd_FindNearbyTre=
+es,MacroCmd_FindNearbyStatics, MacroCmd_DragDropToGround,   added option to=
+ disable chat-tab-pain (huge memory consumption, should be replaced or rewr=
+itten) : gDisableChatTabPane,   desktop icon positions : now ignores corpse=
+ containers, swamped memory+filesize during autolooting at champs, added pr=
+ofiling for opencontainer and container contents change,   added CompleteTa=
+rgetModeWithTargetStatic ,   spellbar:lumberjacking notices
+
+Modified:
+    trunk/lua/gui/gui.chat.lua
+    trunk/lua/lib.2d.hudfx.lua
+    trunk/lua/lib.2d.mobile.lua
+    trunk/lua/lib.2d.mousepick.lua
+    trunk/lua/lib.2d.renderer.lua
+    trunk/lua/lib.3d.renderer.lua
+    trunk/lua/lib.blendout.lua
+    trunk/lua/lib.cursor.lua
+    trunk/lua/lib.desktop.lua
+    trunk/lua/lib.loading.lua
+    trunk/lua/lib.macrolist.lua
+    trunk/lua/lib.mainmenu.lua
+    trunk/lua/main.lua
+    trunk/lua/net.walk.lua
+    trunk/lua/net/net.dynamic.lua
+    trunk/lua/net/net.multi.lua
+    trunk/lua/net/net.text.lua
+    trunk/lua/obj/obj.container.lua
+    trunk/lua/widgets/widget.uocontainer.lua
+    trunk/plugins/itemcounter.lua
+    trunk/plugins/lib.spellbar.lua
+
+Modified: trunk/lua/gui/gui.chat.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.chat.lua (original)
++++ trunk/lua/gui/gui.chat.lua Sat Jan 17 00:29:40 2009
+@@ -30,7 +30,7 @@
+ =
+
+ =
+
+ function GuiAddChatLine	(line, color)
+-	if gGuiChatTabpane then
++	if gGuiChatTabpane and (not gDisableChatTabPane) then
+ 		GuiChatDistributeLineToChannels(line)
+ 	end
+ 	=
+
+@@ -47,7 +47,7 @@
+ 	end
+ end
+ =
+
+-gProfiler_ChatTabPane =3D CreateRoughProfiler(&quot;ChatTabPane&quot;)
++gProfiler_ChatTabPane =3D CreateRoughProfiler(&quot;  ChatTabPane&quot;)
+ =
+
+ function GuiChatAddLineToChannel	(channel, line)
+ 	gProfiler_ChatTabPane:Start(gEnableProfiler_ChatTabPane)
+
+Modified: trunk/lua/lib.2d.hudfx.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.hudfx.lua (original)
++++ trunk/lua/lib.2d.hudfx.lua Sat Jan 17 00:29:40 2009
+@@ -84,7 +84,7 @@
+ 		local seriesmana =3D mana - gLastDamageSeriesManaStart
+ 		local seriesdt =3D t - gLastDamageSeriesTimeStart
+ 		local seriesdt0 =3D t - gLastDamageSeriesTimeStart0
+-		printf(&quot;### damage t=3D%d dt=3D%8d dmg=3D%3d dmana=3D%3d mana=3D%4d seri=
+es=3D%d seriesmana=3D%3d seriesdmg=3D%4d seriesdt=3D%d seriesdt0=3D%d\n&quot;,t,=
+dt,damage,dmana,mana,gLastDamageSeries,seriesmana,gLastDamageSeriesDmgSum,s=
+eriesdt,seriesdt0)
++		--~ printf(&quot;### damage t=3D%d dt=3D%8d dmg=3D%3d dmana=3D%3d mana=3D%4d =
+series=3D%d seriesmana=3D%3d seriesdmg=3D%4d seriesdt=3D%d seriesdt0=3D%d\n=
+&quot;,t,dt,damage,dmana,mana,gLastDamageSeries,seriesmana,gLastDamageSeriesDmgS=
+um,seriesdt,seriesdt0)
+ 	end
+ end
+ =
+
+
+Modified: trunk/lua/lib.2d.mobile.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.mobile.lua (original)
++++ trunk/lua/lib.2d.mobile.lua Sat Jan 17 00:29:40 2009
+@@ -223,7 +223,7 @@
+ function Renderer2D:MobileStartServerSideAnim	(animdata) end
+ =
+
+ =
+
+-gProfiler_R2D_MobileStep =3D CreateRoughProfiler(&quot;2D:MobileStep&quot;)
++gProfiler_R2D_MobileStep =3D CreateRoughProfiler(&quot;  2D:MobileStep&quot;)
+ =
+
+ function Renderer2D:MobileStep()
+ 	gProfiler_R2D_MobileStep:Start(gEnableProfiler_R2D_MobileStep)
+
+Modified: trunk/lua/lib.2d.mousepick.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.mousepick.lua (original)
++++ trunk/lua/lib.2d.mousepick.lua Sat Jan 17 00:29:40 2009
+@@ -3,7 +3,7 @@
+ Renderer2D.gMousePickStepInterval =3D 400
+ Renderer2D.gUOToolTipOverride =3D true
+ =
+
+-gProfiler_R2D_MousePick =3D CreateRoughProfiler(&quot;2D:MousePick&quot;)
++gProfiler_R2D_MousePick =3D CreateRoughProfiler(&quot;  2D:MousePick&quot;)
+ =
+
+ -- not every frame, but regularly
+ function Renderer2D:MousePickStep		()
+
+Modified: trunk/lua/lib.2d.renderer.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.renderer.lua (original)
++++ trunk/lua/lib.2d.renderer.lua Sat Jan 17 00:29:40 2009
+@@ -84,7 +84,7 @@
+ 	return DirWrap( floor(1.5+math.atan2(my-cy,mx-cx) * 8 / (2*kPi)) ),dist2(=
+mx,my,cx,cy)
+ end
+ =
+
+-gProfiler_R2D_MainStep =3D CreateRoughProfiler(&quot;2D:MainStep&quot;)
++gProfiler_R2D_MainStep =3D CreateRoughProfiler(&quot; 2D:MainStep&quot;)
+ =
+
+ -- called from mainstep while ingame
+ function Renderer2D:MainStep ()
+@@ -152,7 +152,7 @@
+ 	gProfiler_R2D_MainStep:Section(&quot;HUDFX_MainStep&quot;)			self:HUDFX_MainStep()
+ 	gProfiler_R2D_MainStep:Section(&quot;Dynamics_MainStep&quot;)			self:Dynamics_MainS=
+tep()
+ 	gProfiler_R2D_MainStep:Section(&quot;Dynamics_MultiUpdateStep&quot;)	self:Dynamics_=
+MultiUpdateStep()
+-	gProfiler_R2D_MainStep:Section(&quot;MousePickStep&quot;,true)		self:MousePickStep()
++	gProfiler_R2D_MainStep:Section(&quot;MousePickStep&quot;)				self:MousePickStep()
+ 	gProfiler_R2D_MainStep:End()
+ end
+ =
+
+
+Modified: trunk/lua/lib.3d.renderer.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.renderer.lua (original)
++++ trunk/lua/lib.3d.renderer.lua Sat Jan 17 00:29:40 2009
+@@ -116,7 +116,7 @@
+ 	gTileFreeWalk:SetPos_All(self:LocalToUOPos(x+0.5,y+0.5,z)) -- + for both =
+might be wrong..
+ end
+ =
+
+-gProfiler_R3D_MainStep =3D CreateRoughProfiler(&quot;3D:MainStep&quot;)
++gProfiler_R3D_MainStep =3D CreateRoughProfiler(&quot; 3D:MainStep&quot;)
+ =
+
+ function Renderer3D:MainStep	()
+ 	gProfiler_R3D_MainStep:Start(gEnableProfiler_R3D_MainStep)
+
+Modified: trunk/lua/lib.blendout.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.blendout.lua (original)
++++ trunk/lua/lib.blendout.lua Sat Jan 17 00:29:40 2009
+@@ -1,7 +1,7 @@
+ =
+
+ kBlendOutPlayerHeight =3D 18	--eriminator: es galt grob, alles was 18z =C3=
+=AF=C2=BF=C2=BDberm char war wurd ausgebledent
+ =
+
+-gProfiler_Blendout =3D CreateRoughProfiler(&quot;Blendout&quot;) -- gEnableProfiler_=
+Blendout
++gProfiler_Blendout =3D CreateRoughProfiler(&quot;  Blendout&quot;) -- gEnableProfile=
+r_Blendout
+ =
+
+ -- returns myLayer,bTerrainVisible
+ function CalcBlendOutZ ()
+
+Modified: trunk/lua/lib.cursor.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.cursor.lua (original)
++++ trunk/lua/lib.cursor.lua Sat Jan 17 00:29:40 2009
+@@ -125,6 +125,10 @@
+ 	CompleteTargetMode(hit)
+ end
+ =
+
++function CompleteTargetModeWithTargetStatic (item)
++	CompleteTargetMode({ hittype =3D kMousePickHitType_Static, hit_xloc=3Dite=
+m.xloc, hit_yloc=3Ditem.yloc, hit_zloc=3Ditem.zloc, entity =3D item })
++end
++
+ function CompleteTargetMode (hitobject,maxrange) -- maxrange=3Dnil
+ 	if (not hitobject) then
+ 		MainMousePick()
+
+Modified: trunk/lua/lib.desktop.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.desktop.lua (original)
++++ trunk/lua/lib.desktop.lua Sat Jan 17 00:29:40 2009
+@@ -134,7 +134,7 @@
+ end)
+ RegisterListener(&quot;Hook_OpenContainer&quot;,function(widget) =
+
+ 	local serial =3D widget.uoContainer.serial
+-	if widget and serial then
++	if widget and serial and widget.uoContainer.gumpid ~=3D kCorpseContainerG=
+umpID then -- ignore corpses here (massive with autoloot)
+ 		local x,y =3D widget:GetPos()
+ 		ReplaceDesktopElement(&quot;container&quot;,x,y,serial) 	=
+
+ 		SaveDesktop()
+
+Modified: trunk/lua/lib.loading.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.loading.lua (original)
++++ trunk/lua/lib.loading.lua Sat Jan 17 00:29:40 2009
+@@ -245,6 +245,10 @@
+ 		LoadingProfile(&quot;init GrannyLoader&quot;)
+ 		gGrannyLoader =3D CreateGrannyLoader(gGrannyLoaderType)
+ 	end
++end
++
++function PreLoadAfterManualRenderSwitch ()
++	if (gCurrentRenderer =3D=3D Renderer3D and (not gGrannyLoader)) then Load=
+_Granny() end
+ end
+ =
+
+ -- ------------------------------------------------------------------
+
+Modified: trunk/lua/lib.macrolist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.macrolist.lua (original)
++++ trunk/lua/lib.macrolist.lua Sat Jan 17 00:29:40 2009
+@@ -467,6 +467,30 @@
+ function MacroCmd_DragDrop (takeserial,amount,dropcontainerserial) =
+
+ 	Send_Take_Object(takeserial,amount)
+ 	Send_Drop_Object_AutoStack(takeserial,dropcontainerserial or GetPlayerBac=
+kPackSerial())
++end
++function MacroCmd_DragDropToGround (takeserial,amount,xloc,yloc,zloc) =
+
++	Send_Take_Object(takeserial,amount)
++	xloc =3D xloc or gPlayerXLoc
++	yloc =3D yloc or gPlayerYLoc
++	zloc =3D zloc or gPlayerZLoc
++	Send_Drop_Object(takeserial,xloc,yloc,zloc,0xFFFFFFFF)
++end
++
++function MacroCmd_FindNearbyTrees (r) return MacroCmd_FindNearbyStatics(r,=
+&quot;tree&quot;,{0x0c9e}) end -- ohii tree not hackable
++function MacroCmd_FindNearbyStatics (r,namepart,skipartidlist)
++	local res =3D {}
++	r =3D r or 2
++	for ax =3D -r,r do
++	for ay =3D -r,r do
++		for k,item in pairs(MapGetStatics(gPlayerXLoc+ax,gPlayerYLoc+ay)) do
++			if (StringContains(string.lower(GetStaticTileTypeName(item.artid)),name=
+part) and
++				((not skipartidlist) or (not in_array(item.artid,skipartidlist)))) the=
+n =
+
++				table.insert(res,item) =
+
++			end
++		end =
+
++	end
++	end
++	return res
+ end
+ =
+
+ -- doesn't sum stack-amount
+
+Modified: trunk/lua/lib.mainmenu.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mainmenu.lua (original)
++++ trunk/lua/lib.mainmenu.lua Sat Jan 17 00:29:40 2009
+@@ -272,7 +272,9 @@
+ 	--check first, if the choose slot is available!
+ 	=
+
+ 	=
+
+-	local MySelectChar =3D function(iCharNum) =
+
++	local MySelectChar =3D function(iCharNum,myrenderer) =
+
++		gCurrentRenderer =3D myrenderer or gCurrentRenderer
++		PreLoadAfterManualRenderSwitch()
+ 		Send_Character_Select(iCharNum,gGameServerAccount)
+ 	end
+ 	local MyCreateCharTemplatePicker =3D function(widget) =
+
+@@ -297,7 +299,9 @@
+ 		end
+ 		gNextFreeCharSlot =3D gNextFreeCharSlot + 1
+ 		table.insert(rows,{
+-			{type=3D&quot;Button&quot;,onLeftClick=3Dfunction(widget) MySelectChar(widget.iCh=
+arNum) widget.dialog:Destroy() gSelectedCharName =3D v.name end ,iCharNum=
+=3Dk,text=3D&quot;Login as &quot;..v.name}
++			{type=3D&quot;Button&quot;,onLeftClick=3Dfunction(widget) MySelectChar(widget.iCh=
+arNum) widget.dialog:Destroy() gSelectedCharName =3D v.name end ,iCharNum=
+=3Dk,text=3D&quot;Login as &quot;..v.name},
++			{type=3D&quot;Button&quot;,onLeftClick=3Dfunction(widget) MySelectChar(widget.iCh=
+arNum,Renderer3D) widget.dialog:Destroy() gSelectedCharName =3D v.name end =
+,iCharNum=3Dk,text=3D&quot;3D&quot;},
++			{type=3D&quot;Button&quot;,onLeftClick=3Dfunction(widget) MySelectChar(widget.iCh=
+arNum,Renderer2D) widget.dialog:Destroy() gSelectedCharName =3D v.name end =
+,iCharNum=3Dk,text=3D&quot;2D&quot;},
+ 		})
+ 	end end
+ 	-- char creation (TODO)
+
+Modified: trunk/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/main.lua (original)
++++ trunk/lua/main.lua Sat Jan 17 00:29:40 2009
+@@ -473,11 +473,11 @@
+ 	for k,o in pairs(arr_tspikeframe) do =
+
+ 		if (k &lt;=3D topx and (not gEnableRoughProfileSum_SkipSpikeFrame)) then pr=
+int(&quot; #&quot;..k,sprintf(&quot;%5dmsec&quot;,o.v),o.name) end =
+
+ 	end
+-	print(Client_GetTicks(),&quot;=3D=3D=3D MyProfilerTop memLua =3D=3D=3D&quot;)
++	print(Client_GetTicks(),&quot;=3D=3D=3D MyProfilerTop memLua allocations =3D=
+=3D=3D&quot;)
+ 	for k,o in pairs(arr_memL) do =
+
+ 		if (k &lt;=3D topx and o.v &gt; 0 and (not gEnableRoughProfileSum_SkipMemL)) t=
+hen print(&quot; #&quot;..k,sprintf(&quot;%5dkb&quot;,floor(o.v/1024)),o.name) end =
+
+ 	end
+-	print(Client_GetTicks(),&quot;=3D=3D=3D MyProfilerTop memOgre =3D=3D=3D&quot;)
++	print(Client_GetTicks(),&quot;=3D=3D=3D MyProfilerTop memOgre allocations =3D=
+=3D=3D&quot;)
+ 	for k,o in pairs(arr_memO) do =
+
+ 		if (k &lt;=3D topx and o.v &gt; 0 and (not gEnableRoughProfileSum_SkipMemO)) t=
+hen print(&quot; #&quot;..k,sprintf(&quot;%5dkb&quot;,floor(o.v/1024)),o.name) end =
+
+ 	end
+@@ -540,7 +540,7 @@
+ 	=
+
+ 	gProfiler_MainStep:Section(&quot;NetStep&quot;)
+ 	NetStep()
+-	gProfiler_MainStep:Section(&quot;HandlePackets&quot;,true) -- anaylsed inside
++	gProfiler_MainStep:Section(&quot;HandlePackets&quot;,true) -- analysed inside
+ 	HandlePackets()
+ 	=
+
+ 	gProfiler_MainStep:Section(&quot;SoundStep&quot;)
+
+Modified: trunk/lua/net.walk.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net.walk.lua (original)
++++ trunk/lua/net.walk.lua Sat Jan 17 00:29:40 2009
+@@ -142,7 +142,7 @@
+ end
+ =
+
+ =
+
+-gProfiler_Walk =3D CreateRoughProfiler(&quot;Walk&quot;) -- gEnableProfiler_Walk
++gProfiler_Walk =3D CreateRoughProfiler(&quot;  Walk&quot;) -- gEnableProfiler_Walk
+ =
+
+ -- does collision detection, tries neighboring dirs if direct walk is bloc=
+ked
+ function WalkStep_WalkInDir		(iDir,bRunFlag,bTrySides) =
+
+
+Modified: trunk/lua/net/net.dynamic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.dynamic.lua (original)
++++ trunk/lua/net/net.dynamic.lua Sat Jan 17 00:29:40 2009
+@@ -92,9 +92,13 @@
+ 	CreateOrUpdateDynamic(dynamicdata)
+ end
+ =
+
++gProfiler_Container_Contents =3D CreateRoughProfiler(&quot; Container_Contents&quot;)
++
+ -- AddItemToContainer (0x3C)
+ -- pol sends this after kPacket_Open_Container, runuo before, see also kPa=
+cket_Object_to_Object
+ function gPacketHandler.kPacket_Container_Contents() -- 0x3c
++	gProfiler_Container_Contents:Start(gEnableProfiler_Container_Contents)
++	gProfiler_Container_Contents:Section(&quot;head&quot;)
+ 	local input =3D GetRecvFIFO()
+ 	local id		=3D input:PopNetUint8()
+ 	local size		=3D input:PopNetUint16()
+@@ -102,6 +106,7 @@
+ 	local iLastSerial
+ =
+
+ 	local oldcount =
+
++	gProfiler_Container_Contents:Section(&quot;items&quot;)
+ 	for i=3D1,itemcount do
+ 		local dynamicdata =3D {}
+ 		dynamicdata.container_content_order =3D i
+@@ -127,8 +132,11 @@
+ 	--~ print(&quot;######### kPacket_Container_Contents&quot;,iLastSerial,oldcount,ite=
+mcount)
+ 	=
+
+ 	=
+
++	gProfiler_Container_Contents:Section(&quot;spellbook&quot;)
+ 	if (iLastSerial) then Update_Spellbook(iLastSerial) end
++	gProfiler_Container_Contents:Section(&quot;Hook_Container_Contents&quot;)
+ 	NotifyListener(&quot;Hook_Container_Contents&quot;,iLastSerial)
++	gProfiler_Container_Contents:End()
+ end
+ =
+
+ -- This is sent by the server to add/update a single item to a container. =
+(response to player dragdrop)
+
+Modified: trunk/lua/net/net.multi.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.multi.lua (original)
++++ trunk/lua/net/net.multi.lua Sat Jan 17 00:29:40 2009
+@@ -44,7 +44,7 @@
+ -- TODO : this packet handling is so stupid... ea/osi please think before =
+you are writing sourcecode !!
+ -- this code is based on the packet format runuo uses
+ gCustomHouseMultiTileCache =3D {}
+-gProfiler_CustomHousePacket =3D CreateRoughProfiler(&quot;CustomHousePacket&quot;)
++gProfiler_CustomHousePacket =3D CreateRoughProfiler(&quot;  CustomHousePacket&quot;)
+ function gPacketHandler.kPacket_Custom_House()	--0xD8
+ 	gProfiler_CustomHousePacket:Start(gEnableProfiler_CustomHousePacket)
+ 	gProfiler_CustomHousePacket:Section(&quot;PopHeader&quot;)
+
+Modified: trunk/lua/net/net.text.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.text.lua (original)
++++ trunk/lua/net/net.text.lua Sat Jan 17 00:29:40 2009
+@@ -101,7 +101,7 @@
+ =
+
+ -- ***** ***** ***** ***** ***** incoming text
+ =
+
+-gProfiler_Text =3D CreateRoughProfiler(&quot;Text&quot;)
++gProfiler_Text =3D CreateRoughProfiler(&quot;  Text&quot;)
+ function HandleUOText (data)
+ 	gProfiler_Text:Start(gEnableProfiler_Text)
+ 	gProfiler_Text:Section(&quot;PreCalc&quot;)
+@@ -272,7 +272,7 @@
+ 	HandleUOText(data)
+ end
+ =
+
+-gProfiler_Packet_Localized_Text =3D CreateRoughProfiler(&quot;Packet_Localized_=
+Text&quot;)
++gProfiler_Packet_Localized_Text =3D CreateRoughProfiler(&quot;  Packet_Localize=
+d_Text&quot;)
+ =
+
+ -- Predefined Message (localized Message) 0xC1
+ function gPacketHandler.kPacket_Localized_Text ()
+
+Modified: trunk/lua/obj/obj.container.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/obj/obj.container.lua (original)
++++ trunk/lua/obj/obj.container.lua Sat Jan 17 00:29:40 2009
+@@ -71,6 +71,8 @@
+ 	if (container.dialog) then container.dialog:RefreshItems() end
+ end
+ =
+
++gProfiler_OpenContainer =3D CreateRoughProfiler(&quot;OpenContainer&quot;)
++
+ -- called from kPacket_Open_Container
+ function HandleOpenContainer	(containerdata)
+ 	if (not gGumpLoader) then return end
+@@ -81,6 +83,9 @@
+ 		--AddFadeLines(sprintf(&quot;Open_ShopContainer id=3D0x%08x&quot;,containerdata.se=
+rial))
+ 		return =
+
+ 	end
++	=
+
++	gProfiler_OpenContainer:Start(gEnableProfiler_OpenContainer)
++	gProfiler_OpenContainer:Section(&quot;spellbook&quot;)
+ 	=
+
+ 	--Old_Spellbook Container (Pol,Sphere,Lonewolf,RunUO1 etc.)
+ 	if ((containerdata.gumpid =3D=3D kGumpIDSpellbookContainer) and (not IsCo=
+ntainerAlreadyOpen(containerdata.serial))) then
+@@ -91,19 +96,26 @@
+ 		-- container with spell is already created (invisible)
+ 		printf(&quot;NET: Old_Spellbook: serial=3D0x%08x itemId=3D0x%04x offset=3D0x%=
+04x\n&quot;,spellbook.serial or 0, spellbook.itemid or 0, spellbook.scrolloffset=
+ or 0)
+ 		Open_Spellbook(spellbook)
++		=
+
++		gProfiler_OpenContainer:End()
+ 		return =
+
+ 	end
+ 	=
+
+ 	-- normal container
++	gProfiler_OpenContainer:Section(&quot;GetOrCreateContainer&quot;)
+ 	local container =3D GetOrCreateContainer(containerdata.serial)
+ 	container.gumpid =3D containerdata.gumpid
+ 	=
+
+ 	-- 0x003c =3D backpack
+ 	-- 0x0030 =3D shopcontainer
++	gProfiler_OpenContainer:Section(&quot;CreateUOContainerDialog&quot;)
+ 	if (not container.dialog) then container.dialog =3D CreateUOContainerDial=
+og(container) end
+ 	gLastDebugContainer =3D container
++	gProfiler_OpenContainer:Section(&quot;RefreshContainerItemWidgets&quot;)
+ 	RefreshContainerItemWidgets(container)
++	gProfiler_OpenContainer:Section(&quot;Hook_OpenContainer&quot;)
+ 	NotifyListener(&quot;Hook_OpenContainer&quot;,container.dialog,container.serial,con=
+tainerdata.gumpid)
++	gProfiler_OpenContainer:End()
+ end
+ =
+
+ -- packet handlers for containers (chests, drawers, inventory..)
+
+Modified: trunk/lua/widgets/widget.uocontainer.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/widgets/widget.uocontainer.lua (original)
++++ trunk/lua/widgets/widget.uocontainer.lua Sat Jan 17 00:29:40 2009
+@@ -7,24 +7,38 @@
+ function CreateUOContainerDialog(container) return GetDesktopWidget():Crea=
+teChild(&quot;UOContainerDialog&quot;,{container=3Dcontainer}) end
+ =
+
+ =
+
++gProfiler_UOContainerDialog =3D CreateRoughProfiler(&quot; UOContainerDialog&quot;)
+ function gWidgetPrototype.UOContainerDialog:Init (parentwidget, params)
++	gProfiler_UOContainerDialog:Start(gEnableProfiler_UOContainerDialog)
++	gProfiler_UOContainerDialog:Section(&quot;CreateRenderGroup2D&quot;)
+ 	self.rendergroup2d =3D CreateRenderGroup2D(parentwidget:CastToRenderGroup=
+2D())
++	gProfiler_UOContainerDialog:Section(&quot;SetRenderGroup2D&quot;)
+ 	self:SetRenderGroup2D(self.rendergroup2d)
++	gProfiler_UOContainerDialog:Section(&quot;AddToDestroyList&quot;)
+ 	self:AddToDestroyList(self.rendergroup2d)
++	gProfiler_UOContainerDialog:Section(&quot;SetIgnoreBBoxHit&quot;)
+ 	self:SetIgnoreBBoxHit(true)
+ 	=
+
+ 	local container		=3D params.container
+ 	self.params			=3D params
+ 	self.uoContainer	=3D container
++	gProfiler_UOContainerDialog:Section(&quot;UOImage&quot;)
+ 	self.backpane		=3D self:CreateChild(&quot;UOImage&quot;,{x=3D0,y=3D0,gump_id=3Dcont=
+ainer.gumpid})
+ 	self.backpane.uoContainer =3D container
++	gProfiler_UOContainerDialog:Section(&quot;Group&quot;)
+ 	self.items 			=3D self:CreateChild(&quot;Group&quot;) -- for sub-widgets
+ 	=
+
+-	local x,y =3D GetDesktopElementPosition(&quot;container&quot;,container.serial)
++	gProfiler_UOContainerDialog:Section(&quot;GetDesktopElementPosition&quot;)
++	local x,y
++	if (container.gumpid ~=3D kCorpseContainerGumpID) then x,y =3D GetDesktop=
+ElementPosition(&quot;container&quot;,container.serial) end -- not for corpses... mas=
+ses
++	gProfiler_UOContainerDialog:Section(&quot;SetPos&quot;)
+ 	self:SetPos(x or 200,y or 100)
++	gProfiler_UOContainerDialog:Section(&quot;RefreshItems&quot;)
+ 	self:RefreshItems()
+ 	=
+
++	gProfiler_UOContainerDialog:Section(&quot;Hook_OpenContainer&quot;)
+ 	NotifyListener(&quot;Hook_OpenContainer&quot;,self)
++	gProfiler_UOContainerDialog:End()
+ end
+ =
+
+ --~ function gWidgetPrototype.UOContainerDialog:on_destroy ()
+
+Modified: trunk/plugins/itemcounter.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/plugins/itemcounter.lua (original)
++++ trunk/plugins/itemcounter.lua Sat Jan 17 00:29:40 2009
+@@ -38,7 +38,11 @@
+ 		{name=3D&quot;dexpot&quot;		,artid=3D0xF08,	usagetype=3DkItemCounterUsageType_UseI=
+nHand},
+ 		{name=3D&quot;strpot&quot;		,artid=3D0xF09,	usagetype=3DkItemCounterUsageType_UseI=
+nHand},
+ 	},
+-	{ -- crafter
++	{ -- tailor
++		{name=3D&quot;board&quot;			,artid=3D0x1bd7},
++		{name=3D&quot;log&quot;				,artid=3D0x1bdd},
++	},
++	{ -- tailor
+ 		{name=3D&quot;cloth&quot;			,artid=3D0x1766},
+ 		{name=3D&quot;spoolofthread&quot;	,artid=3D0xfa0},
+ 		{name=3D&quot;boltofcloth&quot;		,artid=3D0xf95},
+
+Modified: trunk/plugins/lib.spellbar.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/plugins/lib.spellbar.lua (original)
++++ trunk/plugins/lib.spellbar.lua Sat Jan 17 00:29:40 2009
+@@ -171,7 +171,7 @@
+ gSpellbarShortMessages[1005385 ] =3D {r=3D1,g=3D0,b=3D0,txt=3D&quot;will not ad=
+here&quot;	,bInterrupt=3Dtrue} -- The spell will not adhere to you at this time.=
+ (preaos,reactive armor or spellresist still active)
+ gSpellbarShortMessages[1005559 ] =3D {r=3D1,g=3D0,b=3D0,txt=3D&quot;already&quot;			=
+,bInterrupt=3Dtrue} -- This spell is already in effect.
+ gSpellbarShortMessages[1005561 ] =3D {r=3D1,g=3D0,b=3D0,txt=3D&quot;crime&quot;				,=
+bInterrupt=3Dtrue} -- Thou'rt a criminal and cannot escape so easily...
+-gSpellbarShortMessages[1005564 ] =3D {r=3D1,g=3D0,b=3D0,txt=3D&quot;crime&quot;				,=
+bInterrupt=3Dtrue} -- Wouldst thou flee during the heat of battle??
++gSpellbarShortMessages[1005564 ] =3D {r=3D1,g=3D0,b=3D0,txt=3D&quot;crimeB&quot;			,=
+bInterrupt=3Dtrue} -- Wouldst thou flee during the heat of battle??
+ =
+
+ =
+
+ =
+
+@@ -204,6 +204,13 @@
+ gSpellbarShortMessages[1060167] =3D {r=3D0.0,g=3D0.5,b=3D0.0,txt=3D&quot;bleeds=
+top&quot; 		} -- The bleeding wounds have healed, you are no longer bleeding!
+ gSpellbarShortMessages[1042809] =3D {r=3D1,g=3D0.5,b=3D0.0,txt=3D&quot;EscortDo=
+ne&quot;			} -- We have arrived! I thank thee, CHARNAME! I have no further need =
+of thy services. Here is thy pay.
+ gSpellbarShortMessages[500969] =3D {r=3D0,g=3D1,b=3D0.0,txt=3D&quot;BandaDone&quot;	=
+			} -- You finish applying the bandages.
++
++
++gSpellbarShortMessages[500498] =3D {r=3D0,g=3D1,b=3D0.0,txt=3D&quot;log&quot;				} -=
+- You put some logs into your backpack.   =
+
++gSpellbarShortMessages[500493] =3D {r=3D1,g=3D0,b=3D0.0,txt=3D&quot;empty&quot;				}=
+ -- There's not enough wood here to harvest.        =
+
++gSpellbarShortMessages[500495] =3D {r=3D1,g=3D1,b=3D0.0,txt=3D&quot;fail&quot;				} =
+-- You hack at the tree for a while, but fail to produce any useable wood. =
+
++--~ gSpellbarShortMessages[] =3D {r=3D0,g=3D1,b=3D0.0,txt=3D&quot;&quot;				} -- =
+
++
+ =
+
+ =
+
+ --[[
+@@ -258,7 +265,7 @@
+ RegisterListener(&quot;Hook_Packet_Animation&quot;,	function (animdata)
+ 	local short =3D gSpellbarAnimationShortMessages[animdata.m_animation] =
+
+ 	if (short) then SpellBarRiseTextOnMob(animdata.mobileserial,short.r,short=
+.g,short.b,short.txt) end
+-	if ((not short) and gDebugSpellbarAnim) then SpellBarRiseTextOnMob(animda=
+ta.mobileserial,0.5,0.5,0.5,&quot;Anim:&quot;..animdata.m_animation) print(&quot;spellbar:=
+anim:&quot;,animdata.m_animation) end
++	if ((not short) and gDebugSpellbarAnim) then SpellBarRiseTextOnMob(animda=
+ta.mobileserial,0.5,0.5,0.5,&quot;Anim:&quot;..animdata.m_animation) end
+ end)
+ =
+
+ RegisterListener(&quot;Hook_Packet_Sound&quot;,	function (sounddata)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001672.html">[Iris-commit] [IRIS] r2870 - /trunk/bin/iris2.exe
+</A></li>
+	<LI>Next message: <A HREF="001674.html">[Iris-commit] [IRIS] r2872 - in /trunk: lua/lib.3d.mousepick.lua lua/lib.macrolist.lua lua/lib.mapblock.3d.statics.lua plugins/itemcounter.lua plugins/lib.spellbar.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1673">[ date ]</a>
+              <a href="thread.html#1673">[ thread ]</a>
+              <a href="subject.html#1673">[ subject ]</a>
+              <a href="author.html#1673">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

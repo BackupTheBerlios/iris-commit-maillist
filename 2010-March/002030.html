@@ -1,0 +1,150 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r3270 - /trunk/lua/lib.macrolist.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2010-March/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3270%20-%20/trunk/lua/lib.macrolist.lua&In-Reply-To=%3C20100312211633.545EC54D0007%40simon%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="002029.html">
+   <LINK REL="Next"  HREF="002031.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r3270 - /trunk/lua/lib.macrolist.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3270%20-%20/trunk/lua/lib.macrolist.lua&In-Reply-To=%3C20100312211633.545EC54D0007%40simon%3E"
+       TITLE="[Iris-commit] [IRIS] r3270 - /trunk/lua/lib.macrolist.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Fri Mar 12 22:16:33 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="002029.html">[Iris-commit] [IRIS] r3269 - in /trunk/lua: lib.macrolist.lua	net/net.uoam.lua
+</A></li>
+        <LI>Next message: <A HREF="002031.html">[Iris-commit] [IRIS] r3271 - in /trunk/lua: lib.configdialog.hotkeys.lua lib.configdialog.lua lib.macrolist.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2030">[ date ]</a>
+              <a href="thread.html#2030">[ thread ]</a>
+              <a href="subject.html#2030">[ subject ]</a>
+              <a href="author.html#2030">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Fri Mar 12 22:16:33 2010
+New Revision: 3270
+
+Log:
+improved MacroCmd_SimpleLootStep
+
+Modified:
+    trunk/lua/lib.macrolist.lua
+
+Modified: trunk/lua/lib.macrolist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.macrolist.lua (original)
++++ trunk/lua/lib.macrolist.lua Fri Mar 12 22:16:33 2010
+@@ -594,7 +594,7 @@
+ function MacroCmd_IsMounted () return MacroCmd_GetPlayerEquipment(kLayer_M=
+ount) ~=3D nil end
+ function MacroCmd_MountNearby ()
+ 	if (MacroCmd_IsMounted()) then return end
+-	if (IsWarModeActive()) then MacroCmd_ToggleWarmode() end
++	if (IsWarModeActive()) then MacroCmd_ToggleWarmode() return end
+ 	local mount =3D GetRandomArrayElement(MobileList_GetByFilter(function (mo=
+bile) return GetUODistToPlayer(mobile.xloc,mobile.yloc) &lt;=3D 2 and (not Mob=
+ileIsHuman(mobile)) end))
+ 	if (mount) then Send_DoubleClick(mount.serial) end
+ end
+@@ -676,30 +676,31 @@
+ =
+
+ function MacroCmd_SimpleLootStep ()
+ 	local corpses =3D MacroCmd_Item_FindNearCorpses(2)
+-	local item
++	local items =3D {}
++	=
+
+ 	for k,corpse in pairs(corpses) do =
+
+ 		if (IsContainerAlreadyOpen(corpse)) then =
+
+-			item =3D item or GetRandomArrayElement(corpse:GetContent()) =
+
+-			print(&quot;MacroCmd_SimpleLootStep: item after corpse:&quot;,item)
++			for k2,item in pairs(corpse:GetContent()) do table.insert(items,item) e=
+nd
+ 		end =
+
+ 	end
+ 	local backpack	=3D GetPlayerBackPackSerial()
+ 	local bankbox	=3D MacroCmd_GetOpenBankBoxSerial()
+ 	for serial,container in pairs(gObjectList) do
+ 		if (IsContainerAlreadyOpen(container) and serial ~=3D backpack and seria=
+l ~=3D bankbox) then =
+
+-			item =3D item or GetRandomArrayElement(container:GetContent()) =
+
+-			print(&quot;MacroCmd_SimpleLootStep: item after container:&quot;,item)
++			for k2,item in pairs(container:GetContent()) do table.insert(items,item=
+) end
+ 		end =
+
+ 	end
+ 	=
+
+-	print(&quot;MacroCmd_SimpleLootStep: item final:&quot;,item)
++	local item =3D GetRandomArrayElement(items)
+ 	if (item) then MacroCmd_LootItem(item) return end
++	local unopened_corpses =3D {}
+ 	for k,corpse in pairs(corpses) do =
+
+ 		if (not IsContainerAlreadyOpen(corpse)) then =
+
+-			Send_DoubleClick(corpse.serial)
+-			return =
+
++			table.insert(unopened_corpses,corpse)
+ 		end =
+
+ 	end
++	local openme =3D GetRandomArrayElement(unopened_corpses)
++	if (openme) then Send_DoubleClick(openme.serial) return end
+ end
+ =
+
+ =
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="002029.html">[Iris-commit] [IRIS] r3269 - in /trunk/lua: lib.macrolist.lua	net/net.uoam.lua
+</A></li>
+	<LI>Next message: <A HREF="002031.html">[Iris-commit] [IRIS] r3271 - in /trunk/lua: lib.configdialog.hotkeys.lua lib.configdialog.lua lib.macrolist.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2030">[ date ]</a>
+              <a href="thread.html#2030">[ thread ]</a>
+              <a href="subject.html#2030">[ subject ]</a>
+              <a href="author.html#2030">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

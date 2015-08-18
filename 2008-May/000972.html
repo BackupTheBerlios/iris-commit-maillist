@@ -1,0 +1,266 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2162 - in /trunk/lua: lib.2d.cam.lua lib.2d.renderer.lua lib.3d.renderer.lua lib.renderer.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-May/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2162%20-%20in%20/trunk/lua%3A%20lib.2d.cam.lua%0A%20lib.2d.renderer.lua%20lib.3d.renderer.lua%20lib.renderer.lua&In-Reply-To=%3C20080510160716.DDCD51524037%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000971.html">
+   <LINK REL="Next"  HREF="000973.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2162 - in /trunk/lua: lib.2d.cam.lua lib.2d.renderer.lua lib.3d.renderer.lua lib.renderer.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2162%20-%20in%20/trunk/lua%3A%20lib.2d.cam.lua%0A%20lib.2d.renderer.lua%20lib.3d.renderer.lua%20lib.renderer.lua&In-Reply-To=%3C20080510160716.DDCD51524037%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2162 - in /trunk/lua: lib.2d.cam.lua lib.2d.renderer.lua lib.3d.renderer.lua lib.renderer.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat May 10 18:07:16 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000971.html">[Iris-commit] [IRIS] r2161 - /trunk/lua/lib.2d.cam.lua
+</A></li>
+        <LI>Next message: <A HREF="000973.html">[Iris-commit] [IRIS] r2163 - in /trunk/lua: lib.2d.cam.lua	lib.compass.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#972">[ date ]</a>
+              <a href="thread.html#972">[ thread ]</a>
+              <a href="subject.html#972">[ subject ]</a>
+              <a href="author.html#972">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sat May 10 18:07:14 2008
+New Revision: 2162
+
+Log:
+fix for window resizing : 2d cam
+
+Modified:
+    trunk/lua/lib.2d.cam.lua
+    trunk/lua/lib.2d.renderer.lua
+    trunk/lua/lib.3d.renderer.lua
+    trunk/lua/lib.renderer.lua
+
+Modified: trunk/lua/lib.2d.cam.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.cam.lua (original)
++++ trunk/lua/lib.2d.cam.lua Sat May 10 18:07:14 2008
+@@ -67,48 +67,53 @@
+ =
+
+ =
+
+ =
+
+-function Renderer2D:CamInit ()
+-
+-	--~ self:CamTestTile()
+-	=
+
+-	self.gbNeedCorrectAspectRatio =3D true
++function Renderer2D:CamSetAspectRatio ()
+ 	local cam =3D GetMainCam() =
+
+ 	local vp =3D GetMainViewport()
+ 	local viewport_w =3D vp:GetActualWidth()
+ 	local viewport_h =3D vp:GetActualHeight()
+ 	=
+
+-	=
+
+-	=
+
+-	--~ local visible_h =3D viewport_h -- for pixel coordinate system
+ 	local yscale =3D 1.0 / math.sin(0.25*math.pi) -- uo tiles are quadratic i=
+n iso, but would be y~0.7~sin(45 deg)
+-	--~ yscale =3D 1
+-	cam:SetAspectRatio( yscale * viewport_w / viewport_h )
+ 	local tile_h =3D 44  -- 44x44 pixels on screen, but rotated by 45 degree =
+(diag=3D44.. but worldunit rotated as well) -&gt; 44
+ 	local visible_h =3D viewport_h / tile_h -- coordinate system so that size=
+ of 1 tile =3D 1 world unit
++	=
+
+ 	self.fNearClip =3D 0.5 * visible_h
+-	cam:SetFOVy( gfDeg2Rad*90 )
++	self.fCamDist =3D self.fNearClip + self.fCamDistClipAdd
++	=
+
+ 	cam:SetNearClipDistance( self.fNearClip )
++	cam:SetAspectRatio( yscale * viewport_w / viewport_h )
++	=
+
++	self:SetCamPos(self:GetCamPos()) -- nearclip changed
++end
++
++function Renderer2D:CamInit ()
++	--~ self:CamTestTile()
++	=
+
++	-- cam params that don't change
++	local cam =3D GetMainCam() =
+
+ 	cam:SetFarClipDistance( 100000.0 )
+ 	cam:SetProjectionType(kCamera_PT_ORTHOGRAPHIC)
++	cam:SetFOVy( gfDeg2Rad*90 )
+ 	=
+
++	-- cam rotation
+ 	local xang =3D gfDeg2Rad * (45) =
+
+ 	local zang =3D gfDeg2Rad * (45+180)
+ 	local w1,x1,y1,z1 =3D Quaternion.fromAngleAxis(zang,0,0,1)	=
+
+ 	local w2,x2,y2,z2 =3D Quaternion.fromAngleAxis(xang,1,0,0)	=
+
+ 	local w,x,y,z =3D Quaternion.Mul(w1,x1,y1,z1, w2,x2,y2,z2)
+-	=
+
+-	self.fCamDist =3D self.fNearClip + self.fCamDistClipAdd
+ 	self.qCamRot =3D {w,x,y,z}
+ 	cam:SetRot(w,x,y,z)
+-	self:SetCamPos(0,0)
+-	self:SetCamPos(653*8,424*8)
++	=
+
++	-- main cam setup
++	self.fCamPosXLoc =3D 653*8
++	self.fCamPosYLoc =3D 424*8
++	self:CamSetAspectRatio()
+ end
+ =
+
+ -- returns xloc,yloc in uo coords
+ function Renderer2D:GetCamPos () return self.fCamPosXLoc,self.fCamPosYLoc =
+end
+ =
+
+ function Renderer2D:SetCamPos (xloc,yloc)
+-	--~ print(&quot;SetCamPos&quot;,xloc,yloc,self.fCamDist)
+ 	self.fCamPosXLoc =3D xloc
+ 	self.fCamPosYLoc =3D yloc
+ 	local px,py,pz =3D Quaternion.ApplyToVector(0,0,self.fCamDist,unpack(self=
+.qCamRot))
+@@ -117,6 +122,11 @@
+ end
+ =
+
+ function Renderer2D:CamStep						() =
+
++	if (self.gbNeedCorrectAspectRatio) then
++		self.gbNeedCorrectAspectRatio =3D false
++		self:CamSetAspectRatio()
++	end
++	=
+
+ 	local curticks =3D Client_GetTicks()
+ 	local xloc,yloc =3D self:GetCamPos()
+ 	local move =3D 16 * gSecondsSinceLastFrame  * (gKeyPressed[key_lshift] an=
+d 8*16 or 1)
+
+Modified: trunk/lua/lib.2d.renderer.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.renderer.lua (original)
++++ trunk/lua/lib.2d.renderer.lua Sat May 10 18:07:14 2008
+@@ -103,6 +103,5 @@
+ function Renderer2D:TerrainRayIntersect_Hit		(...) end -- ??? might not be=
+ needed
+ =
+
+ =
+
+-function Renderer2D:NotifyMainWindowResized (w,h) self.gbNeedCorrectAspect=
+Ratio =3D true end
+ =
+
+ =
+
+
+Modified: trunk/lua/lib.3d.renderer.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.renderer.lua (original)
++++ trunk/lua/lib.3d.renderer.lua Sat May 10 18:07:14 2008
+@@ -181,10 +181,6 @@
+ 	end
+ end
+ =
+
+---- warning ! this gets called a lot while user resizes window
+-function Renderer3D:NotifyMainWindowResized (w,h)
+-	Renderer3D.gbNeedCorrectAspectRatio =3D true
+-end
+ =
+
+ function Renderer3D:CorrectAspectRatio ()
+ 	if (not Renderer3D.gbNeedCorrectAspectRatio) then return end
+@@ -200,6 +196,7 @@
+ 	-- load texture atlas
+ 	LoadTexAtlas()
+ 	MultiTexTerrainInit()
++	RegisterListener(&quot;Hook_MainWindowResized&quot;,function () Renderer3D.gbNeedCo=
+rrectAspectRatio =3D true end)
+ end
+ =
+
+ 	=
+
+
+Modified: trunk/lua/lib.renderer.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.renderer.lua (original)
++++ trunk/lua/lib.renderer.lua Sat May 10 18:07:14 2008
+@@ -23,6 +23,7 @@
+ end
+ =
+
+ -- called from c
++--- warning ! this gets called a lot while user resizes window
+ function NotifyMainWindowResized (w,h) =
+
+ 	NotifyListener(&quot;Hook_MainWindowResized&quot;,w,h) -- warning, only use this to=
+ mark as changed, might be called more than once per frame
+ end
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000971.html">[Iris-commit] [IRIS] r2161 - /trunk/lua/lib.2d.cam.lua
+</A></li>
+	<LI>Next message: <A HREF="000973.html">[Iris-commit] [IRIS] r2163 - in /trunk/lua: lib.2d.cam.lua	lib.compass.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#972">[ date ]</a>
+              <a href="thread.html#972">[ thread ]</a>
+              <a href="subject.html#972">[ subject ]</a>
+              <a href="author.html#972">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

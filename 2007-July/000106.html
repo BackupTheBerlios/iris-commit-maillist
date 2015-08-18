@@ -1,0 +1,304 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1290 - in /trunk: data/lua/lib.sound.lua data/lua/lib.util.lua src/sound_fmod.cpp
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2007-July/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1290%20-%20in%20/trunk%3A%20data/lua/lib.sound.lua%0A%20data/lua/lib.util.lua%20src/sound_fmod.cpp&In-Reply-To=%3C20070716160543.A97F0B14456%40localhost.localdomain%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000105.html">
+   <LINK REL="Next"  HREF="000107.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1290 - in /trunk: data/lua/lib.sound.lua data/lua/lib.util.lua src/sound_fmod.cpp</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1290%20-%20in%20/trunk%3A%20data/lua/lib.sound.lua%0A%20data/lua/lib.util.lua%20src/sound_fmod.cpp&In-Reply-To=%3C20070716160543.A97F0B14456%40localhost.localdomain%3E"
+       TITLE="[Iris-commit] [IRIS] r1290 - in /trunk: data/lua/lib.sound.lua data/lua/lib.util.lua src/sound_fmod.cpp">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Mon Jul 16 18:05:42 CEST 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000105.html">[Iris-commit] [IRIS] r1289 - in /trunk/data:	lua/net.customhouse.lua skippedfallbacks.lua
+</A></li>
+        <LI>Next message: <A HREF="000107.html">[Iris-commit] [IRIS] r1291 - in /trunk: bin/iris2.exe data/lua/lib.3d.map.lua data/lua/lib.3d.renderer.lua data/skippedfallbacks.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#106">[ date ]</a>
+              <a href="thread.html#106">[ thread ]</a>
+              <a href="subject.html#106">[ subject ]</a>
+              <a href="author.html#106">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: hagish
+Date: Mon Jul 16 18:05:41 2007
+New Revision: 1290
+
+Log:
+bugfix: error in fmod setMinMaxDistance
+
+Modified:
+    trunk/data/lua/lib.sound.lua
+    trunk/data/lua/lib.util.lua
+    trunk/src/sound_fmod.cpp
+
+Modified: trunk/data/lua/lib.sound.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.sound.lua (original)
++++ trunk/data/lua/lib.sound.lua Mon Jul 16 18:05:41 2007
+@@ -1,4 +1,4 @@
+-glSound =3D {}
++glSoundEffect =3D {}
+ gSoundSystem =3D nil
+ gSoundMusic =3D nil
+ gSoundMusicLoop =3D true
+@@ -8,7 +8,10 @@
+ 	printdebug(&quot;sound&quot;,sprintf(&quot;SoundInit(%s,%f)\n&quot;,name,frequency))
+ 	if gSoundSystem then SoundDone() end
+ 	gSoundSystem =3D CreateSoundSystem(name,frequency)
+-	if gSoundSystem then gSoundSystem:SetDistanceFactor(1) end
++	if gSoundSystem then
++		SoundStep()
++		gSoundSystem:SetDistanceFactor(1)
++	end
+ end
+ =
+
+ function SoundDone()
+@@ -25,14 +28,14 @@
+ =
+
+ -- just adds a sound effect to the global effect list
+ function AddSound(effect)
+-	table.insert(glSound, effect)
++	table.insert(glSoundEffect, effect)
+ end
+ =
+
+--- removes all not playing sounds from glSound
++-- removes all not playing sounds from glSoundEffect
+ function FlushSoundEffects()
+-	for k,o in pairs(glSound) do =
+
++	for k,o in pairs(glSoundEffect) do =
+
+ 		if not o:IsPlaying() then
+-			table.remove(glSound, k)
++			table.remove(glSoundEffect, k)
+ 			o:Destroy()
+ 		end
+ 	end
+@@ -40,7 +43,7 @@
+ =
+
+ function IsSoundEffectPlaying()
+ 	local playing =3D 0
+-	for k,o in pairs(glSound) do =
+
++	for k,o in pairs(glSoundEffect) do =
+
+ 		if o:IsPlaying() then playing =3D playing + 1 end
+ 	end
+ 	=
+
+@@ -95,8 +98,8 @@
+ 			FlushSoundEffects()
+ 			local e =3D gSoundSystem:CreateSoundSource3DFromEffect(gSoundLoader,x,y=
+,z,effect)
+ 			if e then
+-				e:SetMinMaxDistance(5,1000)
+-				-- glSound:SetReferenceDistance(100)
++				e:SetMinMaxDistance(50,100000)
++				-- glSoundEffect:SetReferenceDistance(100)
+ 				e:Play()
+ 				printdebug(&quot;sound&quot;,&quot;volume&quot;)
+ 				printdebug(&quot;sound&quot;,e:GetVolume())
+
+Modified: trunk/data/lua/lib.util.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.util.lua (original)
++++ trunk/data/lua/lib.util.lua Mon Jul 16 18:05:41 2007
+@@ -4,7 +4,7 @@
+ =
+
+ gDebugCategories =3D {} -- gDebugCategories.mycat =3D false to disable out=
+put
+ function printdebug(category,...) =
+
+-	if (gDebugCategories[category] =3D=3D nil or gDebugCategories[category]) =
+then print(&quot;DEBUG[&quot;..category..&quot;] &quot;) print(unpack(arg)) end
++	if (gDebugCategories[category] =3D=3D nil or gDebugCategories[category]) =
+then print(unpack(arg)) end
+ end
+ =
+
+ function TrimNewLines (line)
+
+Modified: trunk/src/sound_fmod.cpp
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/src/sound_fmod.cpp (original)
++++ trunk/src/sound_fmod.cpp Mon Jul 16 18:05:41 2007
+@@ -53,7 +53,7 @@
+ /// a sound source (no 3d, just omi) playing something
+ class cSoundSourceFmod : public cSoundSource {
+ public:
+-	cSoundSourceFmod(cSoundSystemFmod *soundsystem, const char *filename) : m=
+SoundSystem(soundsystem), mpChannel(0), mb3D(false), mpSound(0) {
++	cSoundSourceFmod(cSoundSystemFmod *soundsystem, const char *filename) : m=
+SoundSystem(soundsystem), mpChannel(0), mb3D(false), mpSound(0), mfMinDista=
+nce(100.0f), mfMaxDistance(100000.0f) {
+ 		if(mSoundSystem &amp;&amp; mSoundSystem-&gt;mpSystem){
+ 			result =3D FMOD_System_CreateStream(mSoundSystem-&gt;mpSystem,filename, (F=
+MOD_MODE)(FMOD_SOFTWARE | FMOD_2D), 0, &amp;mpSound);
+ 			ERRCHECK(result);
+@@ -62,7 +62,7 @@
+ 			SetVelocity(0.0f,0.0f,0.0f);
+ 		}
+ 	}
+-	cSoundSourceFmod(cSoundSystemFmod *soundsystem, const char *buffer, const=
+ int size, const int channels, const int bitrate, const int frequency) : mS=
+oundSystem(soundsystem), mpChannel(0), mb3D(false), mpSound(0) {
++	cSoundSourceFmod(cSoundSystemFmod *soundsystem, const char *buffer, const=
+ int size, const int channels, const int bitrate, const int frequency) : mS=
+oundSystem(soundsystem), mpChannel(0), mb3D(false), mpSound(0), mfMinDistan=
+ce(100.0f), mfMaxDistance(100000.0f) {
+ 		if(mSoundSystem &amp;&amp; mSoundSystem-&gt;mpSystem){
+ 			FMOD_CREATESOUNDEXINFO exinfo;
+ 			=
+
+@@ -87,7 +87,7 @@
+ 		SetVelocity(0.0f,0.0f,0.0f);
+ 	}
+ =
+
+-	cSoundSourceFmod(cSoundSystemFmod *soundsystem, const float x, const floa=
+t y, const float z, const char *filename) : mSoundSystem(soundsystem), mpCh=
+annel(0), mb3D(true), mpSound(0) {
++	cSoundSourceFmod(cSoundSystemFmod *soundsystem, const float x, const floa=
+t y, const float z, const char *filename) : mSoundSystem(soundsystem), mpCh=
+annel(0), mb3D(true), mpSound(0), mfMinDistance(100.0f), mfMaxDistance(1000=
+00.0f) {
+ 		if(mSoundSystem &amp;&amp; mSoundSystem-&gt;mpSystem){
+ 			result =3D FMOD_System_CreateStream(mSoundSystem-&gt;mpSystem, filename, (=
+FMOD_MODE)(FMOD_SOFTWARE | FMOD_3D), 0, &amp;mpSound);
+ 			ERRCHECK(result);
+@@ -97,7 +97,7 @@
+ 		}
+ 	}
+ =
+
+-	cSoundSourceFmod(cSoundSystemFmod *soundsystem, const float x, const floa=
+t y, const float z, const char *buffer, const int size, const int channels,=
+ const int bitrate, const int frequency) : mSoundSystem(soundsystem), mpCha=
+nnel(0), mb3D(true), mpSound(0) {
++	cSoundSourceFmod(cSoundSystemFmod *soundsystem, const float x, const floa=
+t y, const float z, const char *buffer, const int size, const int channels,=
+ const int bitrate, const int frequency) : mSoundSystem(soundsystem), mpCha=
+nnel(0), mb3D(true), mpSound(0), mfMinDistance(100.0f), mfMaxDistance(10000=
+0.0f) {
+ 		if(mSoundSystem &amp;&amp; mSoundSystem-&gt;mpSystem){
+ 			FMOD_CREATESOUNDEXINFO exinfo;
+ 			=
+
+@@ -155,6 +155,8 @@
+ 					// set 3d position and velocity data
+ 					result =3D FMOD_Channel_Set3DAttributes(mpChannel, &amp;mlPos, &amp;mlVel);
+ 					ERRCHECK(result);
++					// set currently set minmax distances
++					SetMinMaxDistance(mfMinDistance,mfMaxDistance);
+ 				} =
+
+ 				=
+
+ 				result =3D FMOD_Channel_SetPaused(mpChannel,false);
+@@ -222,18 +224,25 @@
+ =
+
+ 	/// sets/gets the source min/max distance
+ 	virtual void SetMinMaxDistance(const float min, const float max){
++		mfMinDistance =3D min;
++		mfMaxDistance =3D max;
++
+ 		if(mpChannel =3D=3D 0 || !Is3D())return;
++		=
+
+ 		result =3D FMOD_Channel_Set3DMinMaxDistance(mpChannel, min * mSoundSyste=
+m-&gt;mfDistanceFactor,max * mSoundSystem-&gt;mfDistanceFactor);
+ 		ERRCHECK(result);
+ 	}
+ 	=
+
+ 	virtual void GetMinMaxDistance(float &amp;min, float &amp;max){
+ 		if(mpChannel =3D=3D 0 || !Is3D())return;
+-		result =3D FMOD_Channel_Get3DMinMaxDistance(mpChannel, &amp;min,&amp;max);
+-		ERRCHECK(result);
+-			=
+
+-		min /=3D mSoundSystem-&gt;mfDistanceFactor;
+-		max /=3D mSoundSystem-&gt;mfDistanceFactor;
++		//result =3D FMOD_Channel_Get3DMinMaxDistance(mpChannel, &amp;min,&amp;max);
++		//ERRCHECK(result);
++			=
+
++		min =3D mfMinDistance;
++		max =3D mfMaxDistance;
++			=
+
++		//min /=3D mSoundSystem-&gt;mfDistanceFactor;
++		//max /=3D mSoundSystem-&gt;mfDistanceFactor;
+ 	}
+ =
+
+ 	=
+
+@@ -290,6 +299,9 @@
+ 	cSoundSystemFmod *mSoundSystem;
+ 	/// is 3d?
+ 	bool mb3D;
++	=
+
++	/// min,max distance for 3d sound (unchanged as given from the user)
++	float mfMinDistance,mfMaxDistance;
+ 	=
+
+ 	/// sound position and velocity
+ 	FMOD_VECTOR mlPos;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000105.html">[Iris-commit] [IRIS] r1289 - in /trunk/data:	lua/net.customhouse.lua skippedfallbacks.lua
+</A></li>
+	<LI>Next message: <A HREF="000107.html">[Iris-commit] [IRIS] r1291 - in /trunk: bin/iris2.exe data/lua/lib.3d.map.lua data/lua/lib.3d.renderer.lua data/skippedfallbacks.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#106">[ date ]</a>
+              <a href="thread.html#106">[ thread ]</a>
+              <a href="subject.html#106">[ subject ]</a>
+              <a href="author.html#106">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

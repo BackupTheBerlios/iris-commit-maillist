@@ -1,0 +1,294 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1682 - in /trunk: data/config.lua.dist data/terrain/materials/terrain.material lua/lib.terrain.multitex.lua src/scripting.iris.cpp src/terrain_multitex.cpp
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2007-December/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1682%20-%20in%20/trunk%3A%20data/config.lua.dist%0A%20data/terrain/materials/terrain.material%20lua/lib.terrain.multitex.lua%0A%20src/scripting.iris.cpp%20src/terrain_multitex.cpp&In-Reply-To=%3C20071225012848.B89331C186B9%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000497.html">
+   <LINK REL="Next"  HREF="000499.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1682 - in /trunk: data/config.lua.dist data/terrain/materials/terrain.material lua/lib.terrain.multitex.lua src/scripting.iris.cpp src/terrain_multitex.cpp</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1682%20-%20in%20/trunk%3A%20data/config.lua.dist%0A%20data/terrain/materials/terrain.material%20lua/lib.terrain.multitex.lua%0A%20src/scripting.iris.cpp%20src/terrain_multitex.cpp&In-Reply-To=%3C20071225012848.B89331C186B9%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1682 - in /trunk: data/config.lua.dist data/terrain/materials/terrain.material lua/lib.terrain.multitex.lua src/scripting.iris.cpp src/terrain_multitex.cpp">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Tue Dec 25 02:28:48 CET 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000497.html">[Iris-commit] [IRIS] r1681 - in /trunk: data/config.lua.dist lua/lib.3d.dynamic.lua lua/lib.fallback.lua
+</A></li>
+        <LI>Next message: <A HREF="000499.html">[Iris-commit] [IRIS] r1683 - in /trunk/lua: lib.3d.dynamic.lua	lib.data.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#498">[ date ]</a>
+              <a href="thread.html#498">[ thread ]</a>
+              <a href="subject.html#498">[ subject ]</a>
+              <a href="author.html#498">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Tue Dec 25 02:28:48 2007
+New Revision: 1682
+
+Log:
+working on multitex terrain
+
+Modified:
+    trunk/data/config.lua.dist
+    trunk/data/terrain/materials/terrain.material
+    trunk/lua/lib.terrain.multitex.lua
+    trunk/src/scripting.iris.cpp
+    trunk/src/terrain_multitex.cpp
+
+Modified: trunk/data/config.lua.dist
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/config.lua.dist (original)
++++ trunk/data/config.lua.dist Tue Dec 25 02:28:48 2007
+@@ -409,3 +409,4 @@
+ }
+ =
+
+ gEnableMultiTexTerrain =3D false
++gDisableMultiTexTerrainTransitions =3D false -- ugly, but faster
+
+Modified: trunk/data/terrain/materials/terrain.material
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/terrain/materials/terrain.material (original)
++++ trunk/data/terrain/materials/terrain.material Tue Dec 25 02:28:48 2007
+@@ -161,7 +161,8 @@
+ // MULTITEXTURE TERRAIN MAT
+ //###########################################
+ =
+
+-material terrain_multitex_mat
++// simple material without transitions
++material terrain_multitex_simple_mat
+ {
+ 	technique
+ 	{
+@@ -173,20 +174,26 @@
+ 			{
+ 				texture terrain_tex_atlas_512.png
+ 				tex_coord_set	0
+-				colour_op_ex	source1 src_texture src_texture
++				colour_op_ex	modulate src_texture src_diffuse
+ 			}
+ 		}
+ 	}
+ }
+-			=
+
+-material terrain_multitex_mat2
++
++material terrain_multitex_mat
+ {
+ 	technique
+ 	{
+ 		pass
+ 		{
+ 			//scene_blend alpha_blend
+-			alpha_rejection greater 0
++			//alpha_rejection greater 0
++			texture_unit
++			{
++				texture terrain_tex_atlas_512.png
++				tex_coord_set	0
++				colour_op_ex	source1 src_texture src_texture
++			}
+ 			texture_unit
+ 			{
+ 				texture terrain_multitex_mask_64_blur_man.png alpha
+@@ -208,6 +215,16 @@
+ 				colour_op_ex	modulate src_current src_diffuse
+ 				alpha_op_ex		source1 src_texture src_texture
+ 			}
++		}
++	}
++}
++			=
+
++material terrain_multitex_mat2
++{
++	technique
++	{
++		pass
++		{
+ 		}
+ 	}
+ }
+
+Modified: trunk/lua/lib.terrain.multitex.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.terrain.multitex.lua (original)
++++ trunk/lua/lib.terrain.multitex.lua Tue Dec 25 02:28:48 2007
+@@ -1,7 +1,12 @@
+ -- handles multitexture-terrain
+ -- see also src/terrain_multitex.cpp
+ =
+
+-kTerrainMultiTexMatName =3D &quot;terrain_multitex_mat&quot;
++kTerrainMultiTexMatName			=3D &quot;terrain_multitex_mat&quot; -- see data/terrain/m=
+aterial/
++kTerrainMultiTexMatNameNoTrans	=3D &quot;terrain_multitex_simple_mat&quot; -- ugly, =
+but faster
++
++function MultiTexTerrainGetMat () =
+
++	return gDisableMultiTexTerrainTransitions and kTerrainMultiTexMatNameNoTr=
+ans or kTerrainMultiTexMatName
++end
+ =
+
+ gTerrain_MultiTexTypes =3D {}
+ gTerrain_MultiTexTypes.grass		=3D {3,4,5,6,59,60,61,62,125,126,127,192,193=
+,194,195,216,217,218,219,420,421,422,423,561,562,563,564,569,570,571,572,57=
+3,574,575,576,577,578,579,879,880,881,882,883,884,885,886,891,892,893,894,9=
+59,960,961,962,963,964,965,966,971,972,973,974,1401,1402,1403,1404,1405,140=
+6,1407,1408,1419,1420,1495,1496,1497,1498,1499,1500,1501,1502,1507,1508,150=
+9,1510,1661,1662,1663,1664,1665,1666,1667,1668,1673,1674,1675,1676,1685,168=
+6,1687,1688,1689,1690,1691,1692,1697,1698,1699,1700,1717,1718,1719,1720,172=
+1,1722,1727,1728,1729,1730,1746,1747,1748,1749,1750,1751,1752,1753,1758,175=
+9,1760,1761}
+@@ -49,11 +54,20 @@
+ 	-- TerrainMultiTex_AddTexCoordSet (int iMode,float tx,float ty,float tw,f=
+loat th)  -- 0:ground,1:mainmask,2:mask
+ 	local e =3D 1/4
+ 	local f =3D e/4
+-	TerrainMultiTex_AddTexCoordSet(0, 0*e,0*e,f,f) =
+
+-	TerrainMultiTex_AddTexCoordSet(0, 1*e,0*e,f,f) =
+
++	=
+
++	--~ TerrainMultiTex_AddTexCoordSet(0, 0*e,0*e,f,f)
++	--~ TerrainMultiTex_AddTexCoordSet(0, 1*e,0*e,f,f)
+ 	TerrainMultiTex_AddTexCoordSet(1, 3*e,3*e,e,e) -- mainmask
+ 	TerrainMultiTex_AddTexCoordSet(2, 1*e,3*e,e,e) -- mask
+-	TerrainMultiTex_SetGroundMaterialTypeLookUp({}) =
+
++	local mylookup =3D {}
++	for k1,name in pairs(gMultiTextureAtlasList_Span) do =
+
++		local myid =3D k1 - 1
++		local x =3D math.mod(myid,4)
++		local y =3D math.floor(myid / 4)
++		for k2,uoid in pairs(gTerrain_MultiTexTypes[name]) do mylookup[uoid] =3D=
+ myid end
++		TerrainMultiTex_AddTexCoordSet(0, x*e,y*e,f,f)
++	end
++	TerrainMultiTex_SetGroundMaterialTypeLookUp(mylookup) =
+
+ end
+ =
+
+ function MultiTexTerrain_NotifyMapChange ()
+@@ -77,7 +91,6 @@
+ 	if (gMultiTexTerrain_BX =3D=3D bx and gMultiTexTerrain_BY =3D=3D by) then=
+ return end
+ 	gMultiTexTerrain_BX =3D bx
+ 	gMultiTexTerrain_BY =3D by
+-	print(&quot;MultiTexTerrainStep&quot;,bx,by)
+ 	local r =3D 3
+ 	for k,gfx in pairs(gMultiTexTerrain_GfxList) do =
+
+ 		if (math.abs(gfx.bx - bx) &gt; r or math.abs(gfx.by - by) &gt; r) then
+@@ -95,7 +108,7 @@
+ 			local x,y,z =3D gCurrentRenderer:UOPosToLocal((bx+dx)*8,(by+dy)*8,0)
+ 			gfx:SetPosition(x,y,z)
+ 			Gfx3D_SetMultiTexTerrain(gfx,gGroundBlockLoader,bx+dx,by+dy)
+-			gfx:SetMaterial(kTerrainMultiTexMatName)
++			gfx:SetMaterial(MultiTexTerrainGetMat())
+ 			gMultiTexTerrain_GfxList[name] =3D gfx
+ 		end
+ 	end
+
+Modified: trunk/src/scripting.iris.cpp
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/src/scripting.iris.cpp (original)
++++ trunk/src/scripting.iris.cpp Tue Dec 25 02:28:48 2007
+@@ -306,11 +306,12 @@
+ static int l_TerrainMultiTex_SetGroundMaterialTypeLookUp (lua_State *L) { =
+PROFILE
+ 	enum { kLookUpSize =3D 0x4000 };
+ 	int myLookUp[kLookUpSize];
++	bool bFirstParamOk =3D lua_istable(L,1);
+ 	for (int i=3D0;i&lt;0x4000;++i) {
+ 		myLookUp[i] =3D 0;
+-		if (lua_istable(L,1)) { // table is at index 1
++		if (bFirstParamOk) { // table is at index 1
+ 			lua_rawgeti(L,1,i); // table is at index 1
+-			if (lua_isnil(L,-1)) myLookUp[i] =3D (int)lua_tonumber(L,-1);
++			if (!lua_isnil(L,-1)) myLookUp[i] =3D (int)lua_tonumber(L,-1);
+ 			lua_pop(L,1); // pop 1 elements
+ 		}
+ 	}
+
+Modified: trunk/src/terrain_multitex.cpp
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/src/terrain_multitex.cpp (original)
++++ trunk/src/terrain_multitex.cpp Tue Dec 25 02:28:48 2007
+@@ -340,8 +340,9 @@
+ }
+ =
+
+ void	 TerrainMultiTex_SetGroundMaterialTypeLookUp	(const int* piValues,con=
+st int iCount) {
+-	for (int i=3D0;i&lt;cTiledMultiTexTerrain&lt;8&gt;::kGroundMatLookUpSize;++i)
++	for (int i=3D0;i&lt;cTiledMultiTexTerrain&lt;8&gt;::kGroundMatLookUpSize;++i) {
+ 		gTiledMultiTexTerrain.mGroundMaterialTypeLookUp[i] =3D (i&lt;iCount) ? piVa=
+lues[i] : 0;
++	}
+ }
+ =
+
+ void	 TerrainMultiTex_AddTexCoordSet		(int iMode,float tx,float ty,float t=
+w,float th) {
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000497.html">[Iris-commit] [IRIS] r1681 - in /trunk: data/config.lua.dist lua/lib.3d.dynamic.lua lua/lib.fallback.lua
+</A></li>
+	<LI>Next message: <A HREF="000499.html">[Iris-commit] [IRIS] r1683 - in /trunk/lua: lib.3d.dynamic.lua	lib.data.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#498">[ date ]</a>
+              <a href="thread.html#498">[ thread ]</a>
+              <a href="subject.html#498">[ subject ]</a>
+              <a href="author.html#498">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

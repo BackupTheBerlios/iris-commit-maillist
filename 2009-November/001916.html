@@ -1,0 +1,480 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r3155 - in /trunk/lua: lib.gfxconfig.lua lib.granny.debug.lua lib.granny.loader.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2009-November/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3155%20-%20in%20/trunk/lua%3A%20lib.gfxconfig.lua%0A%20lib.granny.debug.lua%20lib.granny.loader.lua&In-Reply-To=%3C20091119165256.42ED57A9812B%40simon%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001915.html">
+   <LINK REL="Next"  HREF="001917.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r3155 - in /trunk/lua: lib.gfxconfig.lua lib.granny.debug.lua lib.granny.loader.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3155%20-%20in%20/trunk/lua%3A%20lib.gfxconfig.lua%0A%20lib.granny.debug.lua%20lib.granny.loader.lua&In-Reply-To=%3C20091119165256.42ED57A9812B%40simon%3E"
+       TITLE="[Iris-commit] [IRIS] r3155 - in /trunk/lua: lib.gfxconfig.lua lib.granny.debug.lua lib.granny.loader.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Thu Nov 19 17:52:49 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001915.html">[Iris-commit] [IRIS] r3154 - /branches/stable_release/
+</A></li>
+        <LI>Next message: <A HREF="001917.html">[Iris-commit] [IRIS] r3156 - in /trunk/lua: lib.2d.map.lua lib.2d.spriteblock.lua lib.mapblock.2d.statics.lua lib.mapblock.2d.terrain.lua lib.mapblock.3d.multis.lua lib.mapblock.base.lua lib.uoutils.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1916">[ date ]</a>
+              <a href="thread.html#1916">[ thread ]</a>
+              <a href="subject.html#1916">[ subject ]</a>
+              <a href="author.html#1916">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Thu Nov 19 17:52:48 2009
+New Revision: 3155
+
+Log:
+gfxconfig : fix for direct3d9 anti-alias default value, grannydebug: loadin=
+g and outputting a bunch of data with new path access succeeded
+
+Modified:
+    trunk/lua/lib.gfxconfig.lua
+    trunk/lua/lib.granny.debug.lua
+    trunk/lua/lib.granny.loader.lua
+
+Modified: trunk/lua/lib.gfxconfig.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.gfxconfig.lua (original)
++++ trunk/lua/lib.gfxconfig.lua Thu Nov 19 17:52:48 2009
+@@ -8,6 +8,10 @@
+ =
+
+ function GfxConfig_ListPossibleRenderSystems	() return {Ogre_ListRenderSys=
+tems()} end
+ function GfxConfig_ListPossibleResolutions		() return {Ogre_ListPossibleVa=
+luesForConfigOption(&quot;&quot;,&quot;Video Mode&quot;)} end
++function GfxConfig_ListPossibleAntiAliasing		() =
+
++	local a =3D {Ogre_ListPossibleValuesForConfigOption(&quot;&quot;,&quot;Anti aliasing&quot;)} =
+ if (#a &gt; 0) then return a end
++	return {Ogre_ListPossibleValuesForConfigOption(&quot;&quot;,&quot;FSAA&quot;)} =
+
++end
+ function GfxConfig_FindFromList 				(list,pattern) for k,v in ipairs(list)=
+ do if (string.find(string.lower(v),pattern)) then return v end end end
+ =
+
+ function GfxConfig_FindDefaultRenderSystem ()
+@@ -28,6 +32,15 @@
+ 					GfxConfig_FindFromList(list,cx..&quot;.+&quot;..cy) or =
+
+ 					list[#list]
+ 	print(&quot;GfxConfig_FindResolution&quot;,best,cx,cy)
++	return best
++end
++function GfxConfig_FindDefaultAntiAliasing ()
++	local list =3D	GfxConfig_ListPossibleAntiAliasing()
++	print(&quot;################## fsaa:&quot;,SmartDump(list))
++	local best =3D	GfxConfig_FindFromList(list,&quot;none&quot;) or -- d3d9 :  &quot;None&quot;,&quot;=
+NonMaskable 1&quot;, ... &quot;Level 2&quot;
++					GfxConfig_FindFromList(list,&quot;0&quot;) or  -- opengl ?
++					list[#list]
++	print(&quot;GfxConfig_FindDefaultAntiAliasing&quot;,best)
+ 	return best
+ end
+ function GfxConfig_FindDefaultResolution ()
+@@ -73,7 +86,7 @@
+ 	Ogre_SetRenderSystemByName(gGfxConfig_RenderSystem)
+ 	=
+
+ 	if (not gGfxConfig_Resolution) then gGfxConfig_Resolution =3D GfxConfig_F=
+indDefaultResolution() end
+-	if (not gGfxConfig_AntiAliasing) then gGfxConfig_AntiAliasing =3D &quot;0&quot; end
++	if (not gGfxConfig_AntiAliasing) then gGfxConfig_AntiAliasing =3D GfxConf=
+ig_FindDefaultAntiAliasing() end
+ 	if (gGfxConfig_Fullscreen =3D=3D nil) then gGfxConfig_Fullscreen =3D fals=
+e end
+ 	=
+
+ 	local resolution_override =3D false
+
+Modified: trunk/lua/lib.granny.debug.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.granny.debug.lua (original)
++++ trunk/lua/lib.granny.debug.lua Thu Nov 19 17:52:48 2009
+@@ -1,4 +1,5 @@
+ --~ ./start.sh -sdg -res 640x480
++--~ ./start.sh -grannytest
+ =
+
+ cDebugGrannyMenu =3D CreateClass(cDebugMode)
+ =
+
+@@ -44,6 +45,7 @@
+ =
+
+ function StartDebugGrannyMenu () cDebugGrannyMenu:StartMenu() end
+ =
+
++
+ function cDebugGrannyMenu:StartMenu ()
+ 	gCurrentRenderer =3D Renderer3D   =
+
+ 	Load_Granny() -- needs Renderer3D
+@@ -137,8 +139,11 @@
+ 		for k,v in pairs(obj) do print(&quot; &quot;,k,v,MyGetChunkT(v and type(v) =3D=3D =
+&quot;table&quot; and v.iChunkType)) end
+ 	end
+ 	=
+
+-	--~ MyDump(grn.pMainChunk.Object.mesh_list.mesh)
+-	local mesh =3D grn.pMainChunk.Object.mesh_list.mesh
++	local Object =3D grn.pMainChunk.Object
++	for k,entry in ipairs(Object.textChunk.texts) do if (k&lt;=3D3) then print(&quot;=
+text&quot;,k,SmartDump(entry)) end end
++	=
+
++	--~ MyDump(Object.mesh_list.mesh)
++	local mesh =3D Object.mesh_list.mesh
+ 	local point_container =3D mesh.point_block.point_container
+ 	for k,entry in ipairs(point_container.points.list_points) do if (k&lt;=3D3) =
+then print(&quot;point&quot;,k,SmartDump(entry)) end end
+ 	for k,entry in ipairs(point_container.normals.list_normals) do if (k&lt;=3D3=
+) then print(&quot;normal&quot;,k,SmartDump(entry)) end end
+@@ -158,6 +163,102 @@
+                 &lt;entry&gt;__FileName&lt;/entry&gt;
+ 			..
+ 		&lt;/textChunk&gt;
++	]]--
++	--[[
++        &lt;boneTies1&gt;
++            &lt;boneobject&gt;
++                &lt;id iID=3D&quot;1&quot; /&gt;
++            &lt;/boneobject&gt;
++            &lt;boneobject&gt;...&lt;/boneobject&gt;
++			=
+
++	]]--
++	for k,entry in ipairs(Object.boneTies1) do if (k&lt;=3D3) then print(&quot;boneTi=
+es1:boneobject&quot;,k,SmartDump(entry)) end end
++	--[[
++        &lt;bones&gt;
++            &lt;skeleton&gt;
++                &lt;bonelist&gt;
++                    &lt;bone&gt;
++                        &lt;bone fTranslate=3D&quot;{[1]=3D0,[2]=3D0,[0]=3D0,}&quot; iP=
+arent=3D&quot;0&quot; fMatrix=3D&quot;{[1]=3D0,[2]=3D0,[3]=3D0,[4]=3D1,[5]=3D0,[6]=3D0,[7]=
+=3D0,[8]=3D1,[0]=3D1,}&quot; fQuaternion=3D&quot;{[1]=3D0,[2]=3D0,[3]=3D1,[0]=3D0,}&quot; =
+/&gt;
++                    &lt;/bone&gt;
++                    &lt;bone&gt;
++                        &lt;bone fTranslate=3D&quot;{[1]=3D0,[2]=3D0,[0]=3D0,}&quot; iP=
+arent=3D&quot;0&quot; fMatrix=3D&quot;{[1]=3D0,[2]=3D0,[3]=3D0,[4]=3D1,[5]=3D0,[6]=3D0,[7]=
+=3D0,[8]=3D1,[0]=3D1,}&quot; fQuaternion=3D&quot;{[1]=3D0,[2]=3D0,[3]=3D1,[0]=3D0,}&quot; =
+/&gt;
++                    &lt;/bone&gt;
++			...
++		&lt;/bones&gt;
++	]]--
++	for k,entry in ipairs(Object.bones.skeleton.bonelist) do if (k&lt;=3D3) then=
+ print(&quot;bone&quot;,k,SmartDump(entry)) end end
++	--[[
++        &lt;texture_info_list&gt;
++            &lt;texture_info&gt;
++                &lt;unknown_0xca5e0305&gt;
++                    &lt;texinfo&gt;
++                        &lt;texinfo iWidth=3D&quot;256&quot; iHeight=3D&quot;256&quot; iDepth=3D&quot;=
+7&quot; /&gt;
++                    &lt;/texinfo&gt;
++                &lt;/unknown_0xca5e0305&gt;
++                &lt;id iID=3D&quot;3&quot; /&gt;
++            &lt;/texture_info&gt;
++        &lt;/texture_info_list&gt;
++	]]--
++	--[[
++        &lt;unhandled_0d01&gt;
++            &lt;unknown_0xca5e0d00&gt;
++                &lt;unknown_0xca5e0d03&gt;
++                    &lt;hexdump offset=3D&quot;92132&quot; len=3D&quot;12&quot; /&gt;
++                &lt;/unknown_0xca5e0d03&gt;
++                &lt;id iID=3D&quot;53&quot; /&gt;
++            &lt;/unknown_0xca5e0d00&gt;
++        &lt;/unhandled_0d01&gt;
++	]]--
++	--[[
++        &lt;boneTies2&gt;
++            &lt;boneties_container&gt;
++                &lt;bone_objptrs_container&gt;
++                    &lt;bone_objptr iBoneTie2ID=3D&quot;1&quot;&gt;
++                        &lt;bone_objptrs iNum=3D&quot;51&quot;&gt;
++                            &lt;BoneTies2 43=3D&quot;1&quot; 51=3D&quot;37&quot; 41=3D&quot;2&quot; 47=3D&quot;2=
+5&quot; 37=3D&quot;19&quot; 45=3D&quot;21&quot; 35=3D&quot;43&quot; 49=3D&quot;47&quot; 39=3D&quot;6&quot; 29=3D&quot;50&quot; 1=3D&quot;18&quot; 3=3D=
+&quot;5&quot; 2=3D&quot;30&quot; 5=3D&quot;14&quot; 4=3D&quot;35&quot; 7=3D&quot;40&quot; 6=3D&quot;16&quot; 9=3D&quot;3&quot; 8=3D&quot;27&quot; 27=3D&quot;41&quot;=
+ 17=3D&quot;46&quot; 13=3D&quot;45&quot; 21=3D&quot;12&quot; 11=3D&quot;20&quot; 23=3D&quot;11&quot; 42=3D&quot;15&quot; 40=3D&quot;28&quot; 50=
+=3D&quot;36&quot; 36=3D&quot;32&quot; 46=3D&quot;17&quot; 34=3D&quot;9&quot; 44=3D&quot;44&quot; 48=3D&quot;48&quot; 28=3D&quot;51&quot; 38=3D&quot;31=
+&quot; 33=3D&quot;10&quot; 32=3D&quot;8&quot; 31=3D&quot;22&quot; 30=3D&quot;33&quot; 15=3D&quot;23&quot; 18=3D&quot;26&quot; 19=3D&quot;29&quot; 25=
+=3D&quot;49&quot; 14=3D&quot;4&quot; 24=3D&quot;24&quot; 16=3D&quot;42&quot; 26=3D&quot;7&quot; 20=3D&quot;13&quot; 12=3D&quot;34&quot; 22=3D&quot;38&quot;=
+ 10=3D&quot;39&quot; /&gt;
++                        &lt;/bone_objptrs&gt;
++                        &lt;end_bone_objptrs /&gt;
++                    &lt;/bone_objptr&gt;
++                &lt;/bone_objptrs_container&gt;
++                &lt;bonetie_container&gt;
++                    &lt;bonetie_group iBoneTie2GroupID=3D&quot;1&quot;&gt;
++                        &lt;bonetie_data /&gt;
++                        &lt;bonetie_list&gt;
++                            &lt;bonetie&gt;
++                                &lt;bonetie iBone=3D&quot;3&quot; iUnknown=3D&quot;{[1]=3D-7=
+9.053795,[2]=3D-10.501988,[3]=3D-28.238644,[4]=3D78.682823,[5]=3D90.721489,=
+[6]=3D107.114021,[0]=3D107.116005,}&quot; /&gt;
++                            &lt;/bonetie&gt;
++                            &lt;bonetie&gt;
++                                &lt;bonetie iBone=3D&quot;4&quot; iUnknown=3D&quot;{[1]=3D-7=
+2.256584,[2]=3D-53.965584,[3]=3D-3.319712,[4]=3D93.162865,[5]=3D73.596008,[=
+6]=3D98.508713,[0]=3D117.996071,}&quot; /&gt;
++                            &lt;/bonetie&gt;
++			...
++        &lt;/boneTies2&gt;
++	]]--
++	for k,entry in ipairs(Object.boneTies2.boneties_container.bone_objptrs_co=
+ntainer.bone_objptr) do if (k&lt;=3D3) then print(&quot;bt2:bone_objptr&quot;,k,SmartDum=
+p(entry)) end end
++	for k,entry in ipairs(Object.boneTies2.boneties_container.bonetie_contain=
+er.bonetie_group.bonetie_list) do if (k&lt;=3D3) then print(&quot;bt2:bonetie&quot;,k,Sm=
+artDump(entry)) end end
++	--[[
++        &lt;texture_list&gt;
++            &lt;texture iTextureID=3D&quot;1&quot;&gt;
++                &lt;texture_sublist&gt;
++                    &lt;texture_poly&gt;
++                        &lt;iTexturePoly a=3D&quot;0&quot; b=3D&quot;1&quot; /&gt;
++                        &lt;texture_poly_datalist&gt;
++                            &lt;texture_poly_data2&gt;
++                                &lt;hexdump offset=3D&quot;93204&quot; len=3D&quot;12&quot; /&gt;
++                            &lt;/texture_poly_data2&gt;
++                            &lt;texture_poly_data1 iTexturePolyData=3D&quot;0&quot; /&gt;
++                        &lt;/texture_poly_datalist&gt;
++                        &lt;texture_poly_list iElementSize=3D&quot;16&quot; iNum=3D&quot;110=
+2&quot;&gt;
++                            &lt;list_texpoly_normal&gt;
++                                &lt;entry iUnknown=3D&quot;0&quot; iTexCoord=3D&quot;{[1]=3D=
+724=3D0x02d4,[2]=3D736=3D0x02e0,[0]=3D723=3D0x02d3,}&quot; /&gt;
++                                &lt;entry iUnknown=3D&quot;1&quot; iTexCoord=3D&quot;{[1]=3D=
+734=3D0x02de,[2]=3D723=3D0x02d3,[0]=3D735=3D0x02df,}&quot; /&gt;
++			...
++			=
+
++	]]--
++	for k,entry in ipairs(Object.texture_list.texture.texture_sublist.texture=
+_poly.texture_poly_list.list_texpoly_normal) do if (k&lt;=3D3) then print(&quot;lis=
+t_texpoly_normal&quot;,k,SmartDump(entry)) end end
++	=
+
++	=
+
++	=
+
++	--[[
+         &lt;object_list&gt;
+             &lt;object unknown_b=3D&quot;1&quot; unknown_a=3D&quot;1&quot;&gt;
+                 &lt;object_key_list&gt;
+@@ -180,86 +281,36 @@
+             &lt;/object&gt;
+             &lt;object unknown_b=3D&quot;1&quot; unknown_a=3D&quot;1&quot;&gt;...&lt;/object&gt;
+ 			...
+-        &lt;boneTies1&gt;
+-            &lt;boneobject&gt;
+-                &lt;id iID=3D&quot;1&quot; /&gt;
+-            &lt;/boneobject&gt;
+-            &lt;boneobject&gt;...&lt;/boneobject&gt;
+-			=
+
+-		=
+
+-		&lt;mesh_list&gt;
+-			...
+-        &lt;/mesh_list&gt;
+-        &lt;bones&gt;
+-            &lt;skeleton&gt;
+-                &lt;bonelist&gt;
+-                    &lt;bone&gt;
+-                        &lt;bone fTranslate=3D&quot;{[1]=3D0,[2]=3D0,[0]=3D0,}&quot; iP=
+arent=3D&quot;0&quot; fMatrix=3D&quot;{[1]=3D0,[2]=3D0,[3]=3D0,[4]=3D1,[5]=3D0,[6]=3D0,[7]=
+=3D0,[8]=3D1,[0]=3D1,}&quot; fQuaternion=3D&quot;{[1]=3D0,[2]=3D0,[3]=3D1,[0]=3D0,}&quot; =
+/&gt;
+-                    &lt;/bone&gt;
+-                    &lt;bone&gt;
+-                        &lt;bone fTranslate=3D&quot;{[1]=3D0,[2]=3D0,[0]=3D0,}&quot; iP=
+arent=3D&quot;0&quot; fMatrix=3D&quot;{[1]=3D0,[2]=3D0,[3]=3D0,[4]=3D1,[5]=3D0,[6]=3D0,[7]=
+=3D0,[8]=3D1,[0]=3D1,}&quot; fQuaternion=3D&quot;{[1]=3D0,[2]=3D0,[3]=3D1,[0]=3D0,}&quot; =
+/&gt;
+-                    &lt;/bone&gt;
+-			...
+-		&lt;/bones&gt;
+-        &lt;texture_info_list&gt;
+-            &lt;texture_info&gt;
+-                &lt;unknown_0xca5e0305&gt;
+-                    &lt;texinfo&gt;
+-                        &lt;texinfo iWidth=3D&quot;256&quot; iHeight=3D&quot;256&quot; iDepth=3D&quot;=
+7&quot; /&gt;
+-                    &lt;/texinfo&gt;
+-                &lt;/unknown_0xca5e0305&gt;
+-                &lt;id iID=3D&quot;3&quot; /&gt;
+-            &lt;/texture_info&gt;
+-        &lt;/texture_info_list&gt;
+-        &lt;unhandled_0d01&gt;
+-            &lt;unknown_0xca5e0d00&gt;
+-                &lt;unknown_0xca5e0d03&gt;
+-                    &lt;hexdump offset=3D&quot;92132&quot; len=3D&quot;12&quot; /&gt;
+-                &lt;/unknown_0xca5e0d03&gt;
+-                &lt;id iID=3D&quot;53&quot; /&gt;
+-            &lt;/unknown_0xca5e0d00&gt;
+-        &lt;/unhandled_0d01&gt;
+-        &lt;boneTies2&gt;
+-            &lt;boneties_container&gt;
+-                &lt;bone_objptrs_container&gt;
+-                    &lt;bone_objptr iBoneTie2ID=3D&quot;1&quot;&gt;
+-                        &lt;bone_objptrs iNum=3D&quot;51&quot;&gt;
+-                            &lt;BoneTies2 43=3D&quot;1&quot; 51=3D&quot;37&quot; 41=3D&quot;2&quot; 47=3D&quot;2=
+5&quot; 37=3D&quot;19&quot; 45=3D&quot;21&quot; 35=3D&quot;43&quot; 49=3D&quot;47&quot; 39=3D&quot;6&quot; 29=3D&quot;50&quot; 1=3D&quot;18&quot; 3=3D=
+&quot;5&quot; 2=3D&quot;30&quot; 5=3D&quot;14&quot; 4=3D&quot;35&quot; 7=3D&quot;40&quot; 6=3D&quot;16&quot; 9=3D&quot;3&quot; 8=3D&quot;27&quot; 27=3D&quot;41&quot;=
+ 17=3D&quot;46&quot; 13=3D&quot;45&quot; 21=3D&quot;12&quot; 11=3D&quot;20&quot; 23=3D&quot;11&quot; 42=3D&quot;15&quot; 40=3D&quot;28&quot; 50=
+=3D&quot;36&quot; 36=3D&quot;32&quot; 46=3D&quot;17&quot; 34=3D&quot;9&quot; 44=3D&quot;44&quot; 48=3D&quot;48&quot; 28=3D&quot;51&quot; 38=3D&quot;31=
+&quot; 33=3D&quot;10&quot; 32=3D&quot;8&quot; 31=3D&quot;22&quot; 30=3D&quot;33&quot; 15=3D&quot;23&quot; 18=3D&quot;26&quot; 19=3D&quot;29&quot; 25=
+=3D&quot;49&quot; 14=3D&quot;4&quot; 24=3D&quot;24&quot; 16=3D&quot;42&quot; 26=3D&quot;7&quot; 20=3D&quot;13&quot; 12=3D&quot;34&quot; 22=3D&quot;38&quot;=
+ 10=3D&quot;39&quot; /&gt;
+-                        &lt;/bone_objptrs&gt;
+-                        &lt;end_bone_objptrs /&gt;
+-                    &lt;/bone_objptr&gt;
+-                &lt;/bone_objptrs_container&gt;
+-                &lt;bonetie_container&gt;
+-                    &lt;bonetie_group iBoneTie2GroupID=3D&quot;1&quot;&gt;
+-                        &lt;bonetie_data /&gt;
+-                        &lt;bonetie_list&gt;
+-                            &lt;bonetie&gt;
+-                                &lt;bonetie iBone=3D&quot;3&quot; iUnknown=3D&quot;{[1]=3D-7=
+9.053795,[2]=3D-10.501988,[3]=3D-28.238644,[4]=3D78.682823,[5]=3D90.721489,=
+[6]=3D107.114021,[0]=3D107.116005,}&quot; /&gt;
+-                            &lt;/bonetie&gt;
+-                            &lt;bonetie&gt;
+-                                &lt;bonetie iBone=3D&quot;4&quot; iUnknown=3D&quot;{[1]=3D-7=
+2.256584,[2]=3D-53.965584,[3]=3D-3.319712,[4]=3D93.162865,[5]=3D73.596008,[=
+6]=3D98.508713,[0]=3D117.996071,}&quot; /&gt;
+-                            &lt;/bonetie&gt;
+-			...
+-        &lt;/boneTies2&gt;
+-        &lt;texture_list&gt;
+-            &lt;texture iTextureID=3D&quot;1&quot;&gt;
+-                &lt;texture_sublist&gt;
+-                    &lt;texture_poly&gt;
+-                        &lt;iTexturePoly a=3D&quot;0&quot; b=3D&quot;1&quot; /&gt;
+-                        &lt;texture_poly_datalist&gt;
+-                            &lt;texture_poly_data2&gt;
+-                                &lt;hexdump offset=3D&quot;93204&quot; len=3D&quot;12&quot; /&gt;
+-                            &lt;/texture_poly_data2&gt;
+-                            &lt;texture_poly_data1 iTexturePolyData=3D&quot;0&quot; /&gt;
+-                        &lt;/texture_poly_datalist&gt;
+-                        &lt;texture_poly_list iElementSize=3D&quot;16&quot; iNum=3D&quot;110=
+2&quot;&gt;
+-                            &lt;list_texpoly_normal&gt;
+-                                &lt;entry iUnknown=3D&quot;0&quot; iTexCoord=3D&quot;{[1]=3D=
+724=3D0x02d4,[2]=3D736=3D0x02e0,[0]=3D723=3D0x02d3,}&quot; /&gt;
+-                                &lt;entry iUnknown=3D&quot;1&quot; iTexCoord=3D&quot;{[1]=3D=
+734=3D0x02de,[2]=3D723=3D0x02d3,[0]=3D735=3D0x02df,}&quot; /&gt;
+-			...
+-			=
+
+-	]]--
+-					=
+
++	]]--
++	local objlist =3D {}
++	-- TODO : testrun for asserts on all granny files
++	for k,obj in ipairs(Object.object_list.childs) do
++		local myobj =3D {a=3Dobj.unknown_a,b=3Dobj.unknown_b,keys=3D{}}
++		table.insert(objlist,myobj)
++		for k2,key in ipairs(obj.object_key_list.childs) do
++			local values =3D key.object_value_list.childs
++			assert(#values =3D=3D 1)
++			assert(values[1].unknown_a =3D=3D 0)
++			myobj.keys[key.key] =3D values[1].unknown_b
++			--~ local myvalues =3D {}
++			--~ myobj.keys[key.key] =3D myvalues
++			--~ for k3,value in ipairs(key.object_value_list.childs) do
++				--~ print(&quot;value&quot;,value.unknown_a,value.unknown_b)
++				--~ table.insert(myvalues,(value.unknown_b))
++				--~ assert(value.unknown_a =3D=3D 0,value.unknown_a)
++			--~ end
++		end
++		print(&quot;obj&quot;,myobj.a,myobj.b,SmartDump(myobj.keys,3))
++	end
++	=
+
++	=
+
+ 	os.exit(0)
+ end
+ =
+
++function GrannyTest_PreOgreInit2 ()
++    if (not gUOPath) then AutoDetectUOPath() end
++	CheckUODir()
++	cDebugGrannyMenu:MakeNewGranny(791)
++	os.exit()
++end
++
+
+Modified: trunk/lua/lib.granny.loader.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.granny.loader.lua (original)
++++ trunk/lua/lib.granny.loader.lua Thu Nov 19 17:52:48 2009
+@@ -25,6 +25,7 @@
+ dofile(libpath .. &quot;lib.granny.types.lua&quot;)
+ =
+
+ function GrannyTest_PreOgreInit () =
+
++	GrannyTest_PreOgreInit2()
+ 	gDebugCategories[&quot;granny&quot;] =3D true
+ 	local folderpath =3D &quot;/cavern/uoml/Models/Monsters/&quot;
+ 	local arr_dirs	=3D dirlist(folderpath,true,false)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001915.html">[Iris-commit] [IRIS] r3154 - /branches/stable_release/
+</A></li>
+	<LI>Next message: <A HREF="001917.html">[Iris-commit] [IRIS] r3156 - in /trunk/lua: lib.2d.map.lua lib.2d.spriteblock.lua lib.mapblock.2d.statics.lua lib.mapblock.2d.terrain.lua lib.mapblock.3d.multis.lua lib.mapblock.base.lua lib.uoutils.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1916">[ date ]</a>
+              <a href="thread.html#1916">[ thread ]</a>
+              <a href="subject.html#1916">[ subject ]</a>
+              <a href="author.html#1916">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

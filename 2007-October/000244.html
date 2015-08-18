@@ -1,0 +1,336 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1429 - in /trunk/data/lua: lib.protocol.lua	lib.tilefreewalk.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2007-October/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1429%20-%20in%20/trunk/data/lua%3A%20lib.protocol.lua%0A%09lib.tilefreewalk.lua&In-Reply-To=%3C20070930222946.84DC51C1817E%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   <LINK REL="Next"  HREF="000245.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1429 - in /trunk/data/lua: lib.protocol.lua	lib.tilefreewalk.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1429%20-%20in%20/trunk/data/lua%3A%20lib.protocol.lua%0A%09lib.tilefreewalk.lua&In-Reply-To=%3C20070930222946.84DC51C1817E%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1429 - in /trunk/data/lua: lib.protocol.lua	lib.tilefreewalk.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Mon Oct  1 00:29:46 CEST 2007</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="000245.html">[Iris-commit] [IRIS] r1430 - /trunk/data/lua/lib.tilefreewalk.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#244">[ date ]</a>
+              <a href="thread.html#244">[ thread ]</a>
+              <a href="subject.html#244">[ subject ]</a>
+              <a href="author.html#244">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Mon Oct  1 00:29:45 2007
+New Revision: 1429
+
+Log:
+tilefree : collision improved
+
+Modified:
+    trunk/data/lua/lib.protocol.lua
+    trunk/data/lua/lib.tilefreewalk.lua
+
+Modified: trunk/data/lua/lib.protocol.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.protocol.lua (original)
++++ trunk/data/lua/lib.protocol.lua Mon Oct  1 00:29:45 2007
+@@ -53,7 +53,8 @@
+ function GetDirXLocal (dir) local a =3D GetDirX(dir) return (a=3D=3D0) and=
+ 0 or (-a) end -- prevent &quot;-0&quot;, float supports signed zero
+ function GetDirYLocal (dir) return GetDirY(dir) end
+ =
+
+--- interpret dircode in uo coordinate system
++-- interpret dircode in uo coordinate system  uneven numbers (1,3,5,7) are=
+ diagonal
++function DirisDiagonal (dir) return dir =3D=3D 1 or dir =3D=3D 3 or dir =
+=3D=3D 5 or dir =3D=3D 7 end
+ function GetDirX (dir) =
+
+ 	if (dir =3D=3D 1 or dir =3D=3D 2 or dir =3D=3D 3) then return 1 -- east
+ 	elseif (dir =3D=3D 5 or dir =3D=3D 6 or dir =3D=3D 7) then return -1 -- w=
+est
+
+Modified: trunk/data/lua/lib.tilefreewalk.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.tilefreewalk.lua (original)
++++ trunk/data/lua/lib.tilefreewalk.lua Mon Oct  1 00:29:45 2007
+@@ -106,6 +106,7 @@
+ 			local dx,dy =3D self.movedirx,self.movediry
+ 			self.movedirx =3D dx*cos(angadd) - dy*sin(angadd)
+ 			self.movediry =3D dx*sin(angadd) + dy*cos(angadd)
++			self.movedirx,self.movediry =3D norm2(self.movedirx,self.movediry)
+ 			bMoved =3D true
+ 		end
+ 		local maxspeed =3D self:GetClientSideSpeed(self.movedirx,self.movediry,0=
+) * gSecondsSinceLastFrame
+@@ -122,13 +123,46 @@
+ 	=
+
+ 	-- execute movement (and collision/block handling)
+ 	if (bMoved) then
++		-- block movement here
++		local r =3D 0.2 -- radius of player/human
++		local h =3D 0.7
++		self:DebugMarkerGroup_Clear(&quot;touchwalls&quot;)
++		for k,wallarr in pairs(self.walls or {}) do
++			local x1,y1,x2,y2,dx,dy,nx,ny,invsqlen =3D unpack(wallarr)
++			local vx,vy =3D sub2(x,y,x1,y1)
++			local pos =3D dot2(vx,vy,dx,dy) * invsqlen
++			if (pos &lt;=3D 0) then -- collide with edge : x1,y1
++				local pushoutdist =3D r - len2(vx,vy)
++				if (pushoutdist &gt; 0) then x,y =3D add2(x,y,tolen2(vx,vy,pushoutdist)) =
+end
++			elseif (pos &gt;=3D 1) then -- collide with edge : x2,y2
++				vx,vy =3D sub2(x,y,x2,y2)
++				local pushoutdist =3D r - len2(vx,vy)
++				if (pushoutdist &gt; 0) then x,y =3D add2(x,y,tolen2(vx,vy,pushoutdist)) =
+end
++			end
++		end
++		for k,wallarr in pairs(self.walls or {}) do
++			local x1,y1,x2,y2,dx,dy,nx,ny,invsqlen =3D unpack(wallarr)
++			local vx,vy =3D sub2(x,y,x1,y1)
++			local pos =3D dot2(vx,vy,dx,dy) * invsqlen
++			if (pos &gt;=3D 0 and pos &lt;=3D 1) then -- collide with wall itself
++				local dist =3D dot2(vx,vy,nx,ny)
++				local pushoutdist =3D r - dist
++				if (dist &gt; -r and pushoutdist &gt; 0) then
++					self:DebugMarkerGroup_AddWall(&quot;touchwalls&quot;, 	x1,y1,z,   x2,y2,z, h,	1=
+,1,0)
++					x,y =3D add2(x,y,nx*pushoutdist,ny*pushoutdist)
++				end
++			end
++		end
++		=
+
++		=
+
++		-- get new rounded position
+ 		local rx,ry,rz =3D self:RoundPos(x,y,z)
+ 		local lx,ly,lz =3D self:PathPoint_GetLast()
+ 		=
+
+ 		-- entered a new tile
+ 		if (lx ~=3D rx or ly ~=3D ry) then =
+
++			self.groundcache =3D self:Impl_ScanGround(rx,ry,rz) -- read surrounding=
+ height info
+ 			self:PathPoint_Push(rx,ry,rz)
+-			self.groundcache =3D self:Impl_ScanGround(rx,ry,rz) -- read surrounding=
+ height info
+ 			=
+
+ 			self:DebugMarkerGroup_Clear(&quot;nearground&quot;)
+ 			function GetGround (x,y) local z =3D self.groundcache[x..&quot;,&quot;..y] return=
+ z end --  print(&quot;GetGround&quot;,x,y,z,rx,ry)
+@@ -151,66 +185,49 @@
+ 			=
+
+ 					if (not GetGround(dx,dy+1)) then -- vertical
+ 						table.insert(self.walls,{	x-e,y,   x-e,y+e	})
+-						table.insert(self.walls,{	x+e,y,   x+e,y+e	})
++						table.insert(self.walls,{	x+e,y+e, x+e,y		})
+ 						b01 =3D false b11 =3D false
+ 					end
+ 					if (not GetGround(dx,dy-1)) then -- vertical
+-						table.insert(self.walls,{	x-e,y,   x-e,y-e	})
++						table.insert(self.walls,{	x-e,y-e, x-e,y		})
+ 						table.insert(self.walls,{	x+e,y,   x+e,y-e	})
+ 						b00 =3D false b10 =3D false
+ 					end
+ 					=
+
+ 					if (not GetGround(dx+1,dy)) then -- horizontal
+-						table.insert(self.walls,{	x,y-e,   x+e,y-e	})
+ 						table.insert(self.walls,{	x,y+e,   x+e,y+e	})
++						table.insert(self.walls,{	x+e,y-e, x,y-e		})
+ 						b10 =3D false b11 =3D false
+ 					end                                                           =
+
+-					if (not GetGround(dx-1,dy)) then -- horizontal            =
+
++					if (not GetGround(dx-1,dy)) then -- horizontal       =
+
++						table.insert(self.walls,{	x-e,y+e, x,y+e		})     =
+
+ 						table.insert(self.walls,{	x,y-e,   x-e,y-e	})
+-						table.insert(self.walls,{	x,y+e,   x-e,y+e	})
+ 						b00 =3D false b01 =3D false
+ 					end
+ 					=
+
+ 					if (b00) then table.insert(self.walls,{	x,y-e,   x-e,y	}) end
+ 					if (b01) then table.insert(self.walls,{	x-e,y,   x,y+e	}) end
++					if (b11) then table.insert(self.walls,{	x,y+e,   x+e,y	}) end
+ 					if (b10) then table.insert(self.walls,{	x+e,y,   x,y-e	}) end
+-					if (b11) then table.insert(self.walls,{	x,y+e,   x+e,y	}) end
+ 				end
+ 			end
+ 			end
+ 			=
+
++			-- todo : add special walls to block diagonal movement, to avoid errors=
+ with rounding
+ 			-- warning, the rounded position of the player can be blocked, due to d=
+iagonal movement
+ 			=
+
++			-- precalc some vars for the walls
+ 			local h =3D 0.5
+ 			for k,wallarr in pairs(self.walls) do
+ 				local x1,y1,x2,y2 =3D unpack(wallarr)
+ 				local dx,dy =3D sub2(x2,y2,x1,y1)
+-				local nx,ny =3D norm2(dy,-dx)
++				local nx,ny =3D norm2(-dy,dx)
+ 				local invsqlen =3D 1.0/sqlen2(dx,dy)
+ 				self.walls[k] =3D {x1,y1,x2,y2,dx,dy,nx,ny,invsqlen}
+---~ 				self:DebugMarkerGroup_AddWall(&quot;nearground&quot;, 	x1,y1,rz,   x2,y2,rz,=
+ h,	1,0,0)
++				self:DebugMarkerGroup_AddWall(&quot;nearground&quot;, 	x1,y1,rz,   x2,y2,rz, h,	=
+1,0,0)
+ 			end
+ 		end -- endif entered a new tile
+ 		=
+
+-		-- block movement here
+-		local r =3D 0.2 -- radius of player/human
+-		local h =3D 0.7
+-		local e =3D 0.05
+-		self:DebugMarkerGroup_Clear(&quot;touchwalls&quot;)
+-		for k,wallarr in pairs(self.walls or {}) do
+-			local x1,y1,x2,y2,dx,dy,nx,ny,invsqlen =3D unpack(wallarr)
+-			local vx,vy =3D sub2(x,y,x1,y1)
+-			local dist =3D dot2(vx,vy,nx,ny)
+-			local pushoutdist =3D r - abs(dist)
+-			if (pushoutdist &gt; 0) then
+-				local pos =3D dot2(vx,vy,dx,dy) * invsqlen
+-				if (pos &gt;=3D 0-e and pos &lt;=3D 1+e) then =
+
+-					self:DebugMarkerGroup_AddWall(&quot;touchwalls&quot;, 	x1,y1,rz,   x2,y2,rz, h,=
+	1,1,0)
+-					x =3D x + nx*pushoutdist*sign(dist)
+-					y =3D y + ny*pushoutdist*sign(dist)
+-				end
+-			end
+-		end
+ 		=
+
+ 		-- calc correct z here
+ 		if (self.groundcache) then
+@@ -351,25 +368,41 @@
+ 	xloc =3D math.floor(xloc)
+ 	yloc =3D math.floor(yloc)
+ 	zloc =3D math.floor(zloc)
+-	--print(arrdump({&quot;Impl_ScanGround&quot;,rx,ry,rz,&quot; &quot;,xloc,yloc,zloc}))
+-	=
+
+-	local iSelfZ =3D zloc
++	=
+
++	local ox,oy,oz =3D self:PathPoint_GetLast()
++	local iSelfZ =3D nil -- zloc
++	local iComingHereDir
+ 	local groundcache =3D {}
++	function DirWrap (iDir) -- wraps into [0,7]
++		while (iDir &lt; 0) do iDir =3D iDir + 8 end
++		while (iDir &gt; 7) do iDir =3D iDir - 8 end
++		return iDir
++	end
++	function RegisterZ (ldx,ldy,iNewZ)
++		groundcache[ldx..&quot;,&quot;..ldy] =3D groundcache[ldx..&quot;,&quot;..ldy] or (iNewZ and =
+(iNewZ*0.1 + Renderer3D.gZ_Factor))
++	end
+ 	for iDir=3D0,7 do =
+
+ 		local ldx,ldy =3D GetDirXLocal(iDir),GetDirYLocal(iDir)
+-		local iNewZ =3D self:Impl_CalcWalkStep(xloc+GetDirX(iDir),yloc+GetDirY(i=
+Dir),zloc,iDir)
+-		=
+
+-		-- one walkable dir : calc own z by &quot;walking back&quot;
+-		if (iNewZ) then iSelfZ =3D self:Impl_CalcWalkStep(xloc,yloc,zloc,math.mo=
+d(iDir+4,8)) or iSelfZ end
+-		groundcache[ldx..&quot;,&quot;..ldy] =3D iNewZ and (iNewZ*0.1 + Renderer3D.gZ_Fact=
+or)  -- rounding avoids things like &quot;-0&quot;
+-		--print(ldx..&quot;,&quot;..ldy,iNewZ)
+-	end
+-	groundcache[&quot;0,0&quot;] =3D iSelfZ and (iSelfZ*0.1 + Renderer3D.gZ_Factor)
+-	--print(&quot;0,0&quot;,iSelfZ)
++		if (sign(ldx) =3D=3D sign(rx-ox) and sign(ldy) =3D=3D sign(ry-oy)) then =
+iComingHereDir =3D iDir end
++		local xloc2,yloc2 =3D xloc+GetDirX(iDir),yloc+GetDirY(iDir)
++		local iNewZ =3D self:Impl_CalcWalkStep(xloc2,yloc2,zloc,iDir)
++		RegisterZ(ldx,ldy,iNewZ)
++		if (iNewZ) then iSelfZ =3D self:Impl_CalcWalkStep(xloc,yloc,zloc,DirWrap=
+(iDir+4)) or iSelfZ end
++		if (iNewZ and (not DirisDiagonal(iDir))) then =
+
++			local iDirL,iDirR =3D DirWrap(iDir-2),DirWrap(iDir+2) =
+
++			RegisterZ(ldx+GetDirXLocal(iDirL),ldy+GetDirYLocal(iDirL),self:Impl_Cal=
+cWalkStep(xloc2+GetDirX(iDirL),yloc2+GetDirY(iDirL),iNewZ,iDirL))
++			RegisterZ(ldx+GetDirXLocal(iDirR),ldy+GetDirYLocal(iDirR),self:Impl_Cal=
+cWalkStep(xloc2+GetDirX(iDirR),yloc2+GetDirY(iDirR),iNewZ,iDirR))
++		end
++	end
++	=
+
++	iSelfZ =3D iSelfZ or self:Impl_CalcWalkStep(xloc,yloc,zloc,iComingHereDir=
+ or 0)
++	RegisterZ(0,0,iSelfZ)
++	--print(&quot;0,0&quot;,groundcache[&quot;0,0&quot;],iComingHereDir)
+ 	return groundcache
+ end
+ =
+
+ function gTileFreeWalk:Impl_CalcWalkStep (xloc,yloc,zloc,iDir)
++	if (xloc =3D=3D 1670 and yloc =3D=3D 283) then return false end
+ 	local bx,by,tx,ty =3D self:Impl_UOPos2BT(xloc,yloc)
+ 	local bIsWalkable,iNewZ	=3D GetNearestGroundLevel(bx,by,tx,ty,zloc,iDir)
+ 	return bIsWalkable and iNewZ
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="000245.html">[Iris-commit] [IRIS] r1430 - /trunk/data/lua/lib.tilefreewalk.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#244">[ date ]</a>
+              <a href="thread.html#244">[ thread ]</a>
+              <a href="subject.html#244">[ subject ]</a>
+              <a href="author.html#244">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

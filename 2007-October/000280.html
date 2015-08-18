@@ -1,0 +1,395 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1465 - /trunk/data/lua/lib.tilefreewalk.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2007-October/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1465%20-%20/trunk/data/lua/lib.tilefreewalk.lua&In-Reply-To=%3C20071010170004.A83761C18124%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000279.html">
+   <LINK REL="Next"  HREF="000281.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1465 - /trunk/data/lua/lib.tilefreewalk.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1465%20-%20/trunk/data/lua/lib.tilefreewalk.lua&In-Reply-To=%3C20071010170004.A83761C18124%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1465 - /trunk/data/lua/lib.tilefreewalk.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Wed Oct 10 18:04:16 CEST 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000279.html">[Iris-commit] [IRIS] r1464 - /trunk/data/lua/lib.tilefreewalk.lua
+</A></li>
+        <LI>Next message: <A HREF="000281.html">[Iris-commit] [IRIS] r1466 - /trunk/src/builder_L.cpp
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#280">[ date ]</a>
+              <a href="thread.html#280">[ thread ]</a>
+              <a href="subject.html#280">[ subject ]</a>
+              <a href="author.html#280">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Wed Oct 10 18:04:10 2007
+New Revision: 1465
+
+Log:
+freewalk : fixed collision bug, improved performance a bit
+
+Modified:
+    trunk/data/lua/lib.tilefreewalk.lua
+
+Modified: trunk/data/lua/lib.tilefreewalk.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.tilefreewalk.lua (original)
++++ trunk/data/lua/lib.tilefreewalk.lua Wed Oct 10 18:04:10 2007
+@@ -5,7 +5,7 @@
+ =
+
+ gTileFreeWalk =3D {}
+ =
+
+-kFreeWalkMouseSlowArea =3D 100
++kFreeWalkMouseSlowArea =3D 70
+ =
+
+ kTileFreeTestMobile =3D {artid=3D400,hue=3D33780, content=3D{
+ 		{artid=3Dhex2num(&quot;0x3EA2&quot;),layer=3DkLayer_Mount},
+@@ -128,12 +128,13 @@
+ 	end
+ 	=
+
+ 	-- execute movement (and collision/block handling)
+-	if (bMoved) then		=
+
++	if (bMoved) then	=
+
+ 		-- block movement here
++		local rx,ry,rz =3D self:RoundPos(x,y,z)
+ 		--self:DebugMarkerGroup_Clear(&quot;touchwalls&quot;)
+ 		local vx,vy =3D sub2(x,y,ox,oy)
+ 		local movedist =3D len2(vx,vy)
+-		local steps =3D math.ceil(movedist/(0.5*gTileFreePlayerRad)) =
+
++		local steps =3D math.ceil(movedist/(0.8*gTileFreePlayerRad)) =
+
+ 		if (steps &gt; 0) then
+ 			local sx,sy =3D vx/steps,vy/steps
+ 			x,y =3D ox,oy
+@@ -145,96 +146,24 @@
+ 				x,y =3D self:CollideWithWallEdge(x,y)
+ 				-- 3rd collision : with wall center again, to avoid the edge collision=
+s pushing the player slowly inside the walls
+ 				x,y =3D self:CollideWithWallMid(x,y)
+-				self:PathPoint_Push(self:RoundPos(x,y,z))
+-			end
+-		end
+-		=
+
+-		-- get new rounded position
+-		local rx,ry,rz =3D self:RoundPos(x,y,z)
+-		=
+
+-		-- entered a new tile
+-		if (self.lastscanx ~=3D rx or self.lastscany ~=3D ry) then =
+
+-			self.groundcache =3D self:Impl_ScanGround(rx,ry,rz,self.lastscanx,self.=
+lastscany) -- read surrounding height info
+-			self.lastscanx =3D rx
+-			self.lastscany =3D ry
+-			=
+
+-			self:DebugMarkerGroup_Clear(&quot;nearground&quot;)
+-			function GetGround (x,y) local z =3D self.groundcache[x..&quot;,&quot;..y] return=
+ z end --  print(&quot;GetGround&quot;,x,y,z,rx,ry)
+-			self.walls =3D {}
+-			for dx =3D -1,1 do =
+
+-			for dy =3D -1,1 do =
+
+-				local x,y,z =3D rx+dx,ry+dy,GetGround(dx,dy)
+-				if (z) then =
+
+-					local h =3D 0.5
+-					--self:DebugMarkerGroup_AddCylinder(&quot;nearground&quot;,	x,y,z, 0.01,h,	0,1,=
+0)
+-					--self:DebugMarkerGroup_AddSphere(&quot;nearground&quot;, x,y,z, 0.1,		0,1,0)
+-				else	=
+
+-					z =3D rz
+-					local e =3D 0.5
+-					=
+
+-					local b00 =3D true
+-					local b01 =3D true
+-					local b10 =3D true
+-					local b11 =3D true
+-			=
+
+-					if (not GetGround(dx,dy+1)) then -- vertical
+-						table.insert(self.walls,{	x-e,y,   x-e,y+e	})
+-						table.insert(self.walls,{	x+e,y+e, x+e,y		})
+-						b01 =3D false b11 =3D false
+-					end
+-					if (not GetGround(dx,dy-1)) then -- vertical
+-						table.insert(self.walls,{	x-e,y-e, x-e,y		})
+-						table.insert(self.walls,{	x+e,y,   x+e,y-e	})
+-						b00 =3D false b10 =3D false
+-					end
+-					=
+
+-					if (not GetGround(dx+1,dy)) then -- horizontal
+-						table.insert(self.walls,{	x,y+e,   x+e,y+e	})
+-						table.insert(self.walls,{	x+e,y-e, x,y-e		})
+-						b10 =3D false b11 =3D false
+-					end                                                           =
+
+-					if (not GetGround(dx-1,dy)) then -- horizontal       =
+
+-						table.insert(self.walls,{	x-e,y+e, x,y+e		})     =
+
+-						table.insert(self.walls,{	x,y-e,   x-e,y-e	})
+-						b00 =3D false b01 =3D false
+-					end
+-					=
+
+-					if (b00) then table.insert(self.walls,{	x,y-e,   x-e,y	}) end
+-					if (b01) then table.insert(self.walls,{	x-e,y,   x,y+e	}) end
+-					if (b11) then table.insert(self.walls,{	x,y+e,   x+e,y	}) end
+-					if (b10) then table.insert(self.walls,{	x+e,y,   x,y-e	}) end
++				rx,ry,rz =3D self:RoundPos(x,y,z)
++				self:PathPoint_Push(rx,ry,rz)
++				self:ScanGroundIfNeeded(rx,ry,rz)
++				=
+
++				-- calc correct z here
++				if (self.groundcache) then
++					local l =3D (x &lt;=3D rx) and (rx-1) or rx
++					local t =3D (y &lt;=3D ry) and (ry-1) or ry
++					local fx,fy =3D x-l,y-t
++					local x00,y00 =3D l-rx,t-ry
++					local zSelf =3D self.groundcache[&quot;0,0&quot;] or z
++					local z00 =3D self.groundcache[(x00  )..&quot;,&quot;..(y00  )]
++					local z10 =3D self.groundcache[(x00+1)..&quot;,&quot;..(y00  )]
++					local z01 =3D self.groundcache[(x00  )..&quot;,&quot;..(y00+1)]
++					local z11 =3D self.groundcache[(x00+1)..&quot;,&quot;..(y00+1)]
++					z =3D InterpolateSquare(z00 or zSelf,z10 or zSelf,z01 or zSelf,z11 or=
+ zSelf,fx,fy)
+ 				end
+ 			end
+-			end
+-			=
+
+-			-- todo : add special walls to block diagonal movement, to avoid errors=
+ with rounding
+-			-- warning, the rounded position of the player can be blocked, due to d=
+iagonal movement
+-			=
+
+-			-- precalc some vars for the walls
+-			local h =3D 0.5
+-			for k,wallarr in pairs(self.walls) do
+-				local x1,y1,x2,y2 =3D unpack(wallarr)
+-				local dx,dy =3D sub2(x2,y2,x1,y1)
+-				local nx,ny =3D norm2(-dy,dx)
+-				local invsqlen =3D 1.0/sqlen2(dx,dy)
+-				self.walls[k] =3D {x1,y1,x2,y2,dx,dy,nx,ny,invsqlen}
+-				--self:DebugMarkerGroup_AddWall(&quot;nearground&quot;, 	x1,y1,rz,   x2,y2,rz, h=
+,	1,0,0)
+-			end
+-		end -- endif entered a new tile
+-		=
+
+-		=
+
+-		-- calc correct z here
+-		if (self.groundcache) then
+-			local l =3D (x &lt;=3D rx) and (rx-1) or rx
+-			local t =3D (y &lt;=3D ry) and (ry-1) or ry
+-			local fx,fy =3D x-l,y-t
+-			local x00,y00 =3D l-rx,t-ry
+-			local zSelf =3D self.groundcache[&quot;0,0&quot;] or z
+-			local z00 =3D self.groundcache[(x00  )..&quot;,&quot;..(y00  )]
+-			local z10 =3D self.groundcache[(x00+1)..&quot;,&quot;..(y00  )]
+-			local z01 =3D self.groundcache[(x00  )..&quot;,&quot;..(y00+1)]
+-			local z11 =3D self.groundcache[(x00+1)..&quot;,&quot;..(y00+1)]
+-			z =3D InterpolateSquare(z00 or zSelf,z10 or zSelf,z01 or zSelf,z11 or z=
+Self,fx,fy)
+ 		end
+ 		=
+
+ 		self:SetPos_ClientSide(x,y,z)
+@@ -292,6 +221,78 @@
+ 	return x,y
+ end
+ =
+
++-- scans the ground if clientpos entered a new tile, calculates walls
++function gTileFreeWalk:ScanGroundIfNeeded (rx,ry,rz)
++	if (self.lastscanx ~=3D rx or self.lastscany ~=3D ry) then =
+
++		self.groundcache =3D self:Impl_ScanGround(rx,ry,rz,self.lastscanx,self.l=
+astscany) -- read surrounding height info
++		self.lastscanx =3D rx
++		self.lastscany =3D ry
++		self.bSkipWalkStep =3D false
++		=
+
++		self:DebugMarkerGroup_Clear(&quot;nearground&quot;)
++		function GetGround (x,y) local z =3D self.groundcache[x..&quot;,&quot;..y] return =
+z end --  print(&quot;GetGround&quot;,x,y,z,rx,ry)
++		self.walls =3D {}
++		for dx =3D -1,1 do =
+
++		for dy =3D -1,1 do =
+
++			local x,y,z =3D rx+dx,ry+dy,GetGround(dx,dy)
++			if (z) then =
+
++				local h =3D 0.5
++				--self:DebugMarkerGroup_AddCylinder(&quot;nearground&quot;,	x,y,z, 0.01,h,	0,1,0)
++				--self:DebugMarkerGroup_AddSphere(&quot;nearground&quot;, x,y,z, 0.1,		0,1,0)
++			else	=
+
++				z =3D rz
++				local e =3D 0.5
++				=
+
++				local b00 =3D true
++				local b01 =3D true
++				local b10 =3D true
++				local b11 =3D true
++		=
+
++				if (not GetGround(dx,dy+1)) then -- vertical
++					table.insert(self.walls,{	x-e,y,   x-e,y+e	})
++					table.insert(self.walls,{	x+e,y+e, x+e,y		})
++					b01 =3D false b11 =3D false
++				end
++				if (not GetGround(dx,dy-1)) then -- vertical
++					table.insert(self.walls,{	x-e,y-e, x-e,y		})
++					table.insert(self.walls,{	x+e,y,   x+e,y-e	})
++					b00 =3D false b10 =3D false
++				end
++				=
+
++				if (not GetGround(dx+1,dy)) then -- horizontal
++					table.insert(self.walls,{	x,y+e,   x+e,y+e	})
++					table.insert(self.walls,{	x+e,y-e, x,y-e		})
++					b10 =3D false b11 =3D false
++				end                                                           =
+
++				if (not GetGround(dx-1,dy)) then -- horizontal       =
+
++					table.insert(self.walls,{	x-e,y+e, x,y+e		})     =
+
++					table.insert(self.walls,{	x,y-e,   x-e,y-e	})
++					b00 =3D false b01 =3D false
++				end
++				=
+
++				if (b00) then table.insert(self.walls,{	x,y-e,   x-e,y	}) end
++				if (b01) then table.insert(self.walls,{	x-e,y,   x,y+e	}) end
++				if (b11) then table.insert(self.walls,{	x,y+e,   x+e,y	}) end
++				if (b10) then table.insert(self.walls,{	x+e,y,   x,y-e	}) end
++			end
++		end
++		end
++		=
+
++		-- todo : add special walls to block diagonal movement, to avoid errors =
+with rounding
++		-- warning, the rounded position of the player can be blocked, due to di=
+agonal movement
++		=
+
++		-- precalc some vars for the walls
++		local h =3D 0.5
++		for k,wallarr in pairs(self.walls) do
++			local x1,y1,x2,y2 =3D unpack(wallarr)
++			local dx,dy =3D sub2(x2,y2,x1,y1)
++			local nx,ny =3D norm2(-dy,dx)
++			local invsqlen =3D 1.0/sqlen2(dx,dy)
++			self.walls[k] =3D {x1,y1,x2,y2,dx,dy,nx,ny,invsqlen}
++			--self:DebugMarkerGroup_AddWall(&quot;nearground&quot;, 	x1,y1,rz,   x2,y2,rz, h,=
+	1,0,0)
++		end
++	end
++end
+ =
+
+ -- ##### ##### ##### ##### ##### gathering information, external walk para=
+meters
+ =
+
+@@ -380,20 +381,21 @@
+ function WalkLog2 (...) if (gKeyPressed[key_f]) then print(&quot;walklog2&quot;,unpa=
+ck(arg)) end end
+ =
+
+ function gTileFreeWalk:Impl_WalkRequestStep (bRunRequested)
++	if (self.bSkipWalkStep) then return end -- skip this step if movement has=
+ finished
++	=
+
+ 	-- self confirm here if there is no server, debug/offline mode only
+ 	if (gStartGameWithoutNetwork) then self:SetPos_LastConfirmed(self:RoundPo=
+s(self:GetPos_ClientSide())) return end
+ 	=
+
+ 	if (not Walk_RequestTimeOk()) then return end
+-	print(&quot;Impl_WalkRequestStep&quot;,gMyTicks)
+ 	=
+
+ 	local nx,ny,nz =3D self:PathPoint_GetNext()
+ 	if (not nx) then nx,ny,nz =3D self:RoundPos(self:GetPos_ClientSide()) end
+ 	local lx,ly,lz =3D self:GetPos_LastRequested()
+ 	local dx,dy =3D nx-lx,ny-ly
+-	=
+
+-	if (dx =3D=3D 0 and dy =3D=3D 0) then return end
++	if (dx =3D=3D 0 and dy =3D=3D 0) then self.bSkipWalkStep =3D true return =
+end
++	=
+
+ 	local iDir =3D DirFromLocalDxDy(dx,dy)
+-	if (not iDir) then return end
++	if (not iDir) then self.bSkipWalkStep =3D true return end
+ 	=
+
+ 	WalkStep_WalkInDir(iDir,bRunRequested,true)
+ end
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000279.html">[Iris-commit] [IRIS] r1464 - /trunk/data/lua/lib.tilefreewalk.lua
+</A></li>
+	<LI>Next message: <A HREF="000281.html">[Iris-commit] [IRIS] r1466 - /trunk/src/builder_L.cpp
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#280">[ date ]</a>
+              <a href="thread.html#280">[ thread ]</a>
+              <a href="subject.html#280">[ subject ]</a>
+              <a href="author.html#280">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

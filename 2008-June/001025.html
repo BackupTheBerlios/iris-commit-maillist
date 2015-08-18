@@ -1,0 +1,236 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2216 - in /trunk: data/config.lua.dist	lua/lib.tilefreewalk.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-June/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2216%20-%20in%20/trunk%3A%20data/config.lua.dist%0A%09lua/lib.tilefreewalk.lua&In-Reply-To=%3C20080601140606.0821F1C180F2%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   <LINK REL="Next"  HREF="001026.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2216 - in /trunk: data/config.lua.dist	lua/lib.tilefreewalk.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2216%20-%20in%20/trunk%3A%20data/config.lua.dist%0A%09lua/lib.tilefreewalk.lua&In-Reply-To=%3C20080601140606.0821F1C180F2%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2216 - in /trunk: data/config.lua.dist	lua/lib.tilefreewalk.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sun Jun  1 16:06:05 CEST 2008</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="001026.html">[Iris-commit] [IRIS] r2217 - in /trunk: data/skippedfallbacks.lua lua/gui/gui.gumpparser.lua lua/gui/gui.paperdoll.lua lua/gui/gui.quit.lua lua/lib.cliloc.lua lua/lib.compass.lua lua/net/net.other.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1025">[ date ]</a>
+              <a href="thread.html#1025">[ thread ]</a>
+              <a href="subject.html#1025">[ subject ]</a>
+              <a href="author.html#1025">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: hagish
+Date: Sun Jun  1 16:06:00 2008
+New Revision: 2216
+
+Log:
+experimental tilefree move optimization for faster diagonal movement (avoid=
+s stair effect)
+
+Modified:
+    trunk/data/config.lua.dist
+    trunk/lua/lib.tilefreewalk.lua
+
+Modified: trunk/data/config.lua.dist
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/config.lua.dist (original)
++++ trunk/data/config.lua.dist Sun Jun  1 16:06:00 2008
+@@ -478,3 +478,6 @@
+ gUseWalk3 =3D false
+ =
+
+ gMarkFile =3D &quot;../data/uoam/mark.uoam&quot;
++
++-- experimental code for faster diagonal movement (tries to avoid stair ef=
+fect)
++gTileFreeWalkDiagonalOptimization =3D false
+
+Modified: trunk/lua/lib.tilefreewalk.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.tilefreewalk.lua (original)
++++ trunk/lua/lib.tilefreewalk.lua Sun Jun  1 16:06:00 2008
+@@ -6,6 +6,7 @@
+ gTileFreeWalk =3D {}
+ =
+
+ kFreeWalkMouseSlowArea =3D 70
++kFreeWalkOptimizeTimeout =3D 100
+  =
+
+ kTileFreeTestMobile =3D {artid=3D400,hue=3D33780, content=3D{
+ 		{artid=3D3932,animid=3D631},{artid=3D7028},
+@@ -268,6 +269,10 @@
+ 			end
+ 		end
+ =
+
++		if gTileFreeWalkDiagonalOptimization then =
+
++			self:PathPoint_OptimizeForDiagonalMovement()
++		end
++		=
+
+ 		self:SetPos_ClientSide(x,y,z)
+ 		self:UpdateClientPosMarker()
+ 	end
+@@ -504,6 +509,14 @@
+ function WalkLog2 (...) if (gKeyPressed[key_f]) then print(&quot;walklog2&quot;,unpa=
+ck(arg)) end end
+ =
+
+ function gTileFreeWalk:Impl_WalkRequestStep (bRunRequested)
++	if gTileFreeWalkDiagonalOptimization then
++		local x,y,z,t =3D self:PathPoint_GetNext()
++		if =
+
++			self:PathPoint_Count() &lt;=3D 3 and =
+
++			t and Client_GetTicks() - t &lt;  kFreeWalkOptimizeTimeout
++		then return end
++	end
++	=
+
+ 	if (self.bSkipWalkStep) then return end -- skip this step if movement has=
+ finished
+ 	=
+
+ 	-- self confirm here if there is no server, debug/offline mode only
+@@ -680,18 +693,23 @@
+ =
+
+ function gTileFreeWalk:PathPoint_Count		() 			return table.getn(self.pathp=
+oints) end
+ function gTileFreeWalk:PathPoint_GetNext	() return self:PathPoint_GetNth(1=
+) end
+-function gTileFreeWalk:PathPoint_GetNth		(n) -- n=3D1 for first =3D next
++
++-- n=3D1 for first =3D next
++function gTileFreeWalk:PathPoint_GetNth		(n) =
+
+ 	if (not self.pathpoints[n]) then return end
+ 	return unpack(self.pathpoints[n])
+ end
+ function gTileFreeWalk:PathPoint_HasNext	() return self:PathPoint_Has(1) e=
+nd
+ function gTileFreeWalk:PathPoint_Has		(n) return table.getn(self.pathpoint=
+s) &gt;=3D n end
++function gTileFreeWalk:PathPoint_RemoveNth	(n)
++	if (self:PathPoint_Has(n)) then =
+
++		local x,y,z =3D self:PathPoint_GetNth(n)
++		if (gShowTileFreeDebug) then self:DelDebugMarker(&quot;path&quot;..x..&quot;,&quot;..y..&quot;,&quot;.=
+.z) end
++		table.remove(self.pathpoints,n) =
+
++	end =
+
++end =
+
+ function gTileFreeWalk:PathPoint_Pop		() =
+
+-	if (self:PathPoint_HasNext()) then =
+
+-		local x,y,z =3D self:PathPoint_GetNth(1)
+-		if (gShowTileFreeDebug) then self:DelDebugMarker(&quot;path&quot;..x..&quot;,&quot;..y..&quot;,&quot;.=
+.z) end
+-		table.remove(self.pathpoints,1) =
+
+-	end =
+
++	self:PathPoint_RemoveNth(1)
+ end
+ function gTileFreeWalk:PathPoint_Push		(x,y,z)
+ 	local c =3D self:PathPoint_Count()
+@@ -701,8 +719,41 @@
+ 	end
+ 	local lx,ly,lz =3D self:GetPos_LastRequested()
+ 	if (abs(lx-x) &lt;=3D 1 and abs(ly-y) &lt;=3D 1) then return end
+-	table.insert(self.pathpoints,{x,y,z})
++	table.insert(self.pathpoints,{x,y,z,Client_GetTicks()})
+ 	if (gShowTileFreeDebug) then self:SetDebugMarker(&quot;path&quot;..x..&quot;,&quot;..y..&quot;,&quot;..=
+z, x,y,z, 0,0,0, 0.5,0.5,0.5) end
++end
++
++-- checks if p1 p2 p3 build a stair
++function gTileFreeWalk:PathPoint_IsStairPoint	(x1,y1,x2,y2,x3,y3)
++	return
++		(abs(x1-x3) =3D=3D 1 and abs(y1-y3) =3D=3D 1) and
++		(abs(x1-x2) =3D=3D 1 or abs(y1-y2) =3D=3D 1) and
++		(abs(x3-x2) =3D=3D 1 or abs(y3-y2) =3D=3D 1)
++end
++
++-- converts all edges to diagonals (stair effect)
++function gTileFreeWalk:PathPoint_OptimizeForDiagonalMovement	()
++	local l =3D self:PathPoint_Count()
++	if l &gt;=3D 3 then
++		-- check for optimizations
++		local k =3D 1
++		repeat
++			local x1,y1,z1 =3D self:PathPoint_GetNth(k)
++			local x2,y2,z2 =3D self:PathPoint_GetNth(k+1)
++			local x3,y3,z3 =3D self:PathPoint_GetNth(k+2)
++			=
+
++			-- only try to remove points on the same z level
++			if z1 =3D=3D z2 and z2 =3D=3D z3 then
++				if self:PathPoint_IsStairPoint(x1,y1,x2,y2,x3,y3) then
++					-- print(&quot;##### brotkrummen optimization -&gt; remove&quot;,x1,y1,&quot;:&quot;,x2,y2,&quot;=
+:<i>&quot;,x3,y3)
+</I>+					self:PathPoint_RemoveNth(k+1)
++					l =3D l - 1
++				end
++			end
++			=
+
++			k =3D k + 1
++		until (l - k) &lt; 2	-- no triple remaining
++	end
+ end
+ =
+
+ -- ##### ##### ##### ##### ##### position and coordinate system conversions
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="001026.html">[Iris-commit] [IRIS] r2217 - in /trunk: data/skippedfallbacks.lua lua/gui/gui.gumpparser.lua lua/gui/gui.paperdoll.lua lua/gui/gui.quit.lua lua/lib.cliloc.lua lua/lib.compass.lua lua/net/net.other.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1025">[ date ]</a>
+              <a href="thread.html#1025">[ thread ]</a>
+              <a href="subject.html#1025">[ subject ]</a>
+              <a href="author.html#1025">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

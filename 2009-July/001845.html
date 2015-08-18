@@ -1,0 +1,721 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r3082 - in /trunk/lua: lib.granny.loader.lua lib.granny.types.lua main.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2009-July/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3082%20-%20in%20/trunk/lua%3A%20lib.granny.loader.lua%0A%20lib.granny.types.lua%20main.lua&In-Reply-To=%3C20090715140918.713027A980A5%40simon%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001844.html">
+   <LINK REL="Next"  HREF="001846.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r3082 - in /trunk/lua: lib.granny.loader.lua lib.granny.types.lua main.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3082%20-%20in%20/trunk/lua%3A%20lib.granny.loader.lua%0A%20lib.granny.types.lua%20main.lua&In-Reply-To=%3C20090715140918.713027A980A5%40simon%3E"
+       TITLE="[Iris-commit] [IRIS] r3082 - in /trunk/lua: lib.granny.loader.lua lib.granny.types.lua main.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Wed Jul 15 16:09:18 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001844.html">[Iris-commit] [IRIS] r3081 - /trunk/bin/iris2.exe
+</A></li>
+        <LI>Next message: <A HREF="001846.html">[Iris-commit] [IRIS] r3083 - /trunk/lua/lib.light.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1845">[ date ]</a>
+              <a href="thread.html#1845">[ thread ]</a>
+              <a href="subject.html#1845">[ subject ]</a>
+              <a href="author.html#1845">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Wed Jul 15 16:09:18 2009
+New Revision: 3082
+
+Log:
+worked on granny loader in lua
+
+Modified:
+    trunk/lua/lib.granny.loader.lua
+    trunk/lua/lib.granny.types.lua
+    trunk/lua/main.lua
+
+Modified: trunk/lua/lib.granny.loader.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.granny.loader.lua (original)
++++ trunk/lua/lib.granny.loader.lua Wed Jul 15 16:09:18 2009
+@@ -24,7 +24,8 @@
+ =
+
+ dofile(libpath .. &quot;lib.granny.types.lua&quot;)
+ =
+
+-function StartGrannyTest () =
+
++function GrannyTest_PreOgreInit () =
+
++	gDebugCategories[&quot;granny&quot;] =3D true
+ 	local folderpath =3D &quot;/cavern/uoml/Models/Monsters/&quot;
+ 	local arr_dirs	=3D dirlist(folderpath,true,false)
+ 	local arr_files	=3D dirlist(folderpath,false,true)
+@@ -35,9 +36,13 @@
+ 	end
+ 	os.exit(0)
+ end
++function StartGrannyTest () =
+
++	=
+
++end
+ =
+
+ =
+
+ function cGrannyFile:LoadFile (filepath) =
+
++	print(&quot;cGrannyFile:LoadFile&quot;,filepath)
+ 	self.filepath =3D filepath
+ 	local fifo =3D CreateFIFO()
+ 	fifo:Clear()
+@@ -49,11 +54,11 @@
+ =
+
+ function cGrannyFile:Read (offset,structname) =
+
+ 	local quickfifo =3D self.quickfifo
+-	local structsize =3D self.size[structname]
++	local structsize =3D self.size[structname] assert(structsize)
+ 	assert(offset &gt;=3D 0,&quot;AssertSize : negative offset : &quot;..offset)
+ 	local missing =3D offset+structsize - self.miBufSize assert(missing &lt;=3D =
+0,&quot;AssertSize : buffer too small, expected &quot;..missing..&quot; more bytes&quot;)
+ 	local res =3D {}
+-	local struct =3D self.structs[structname] assert(struct)
++	local struct =3D self.structs[structname]
+ 	for k,memberdef in ipairs(struct) do =
+
+ 		local basetype,name,arraysize =3D unpack(memberdef)
+ 		local basetypesize =3D basetype.size
+@@ -107,11 +112,15 @@
+ 	self:Visit(&quot;EOF&quot;)
+ end
+ =
+
+-
++function cGrannyFile:ReadInt (iOffset) =
+
++	assert(iOffset+4 &lt;=3D self.miBufSize)
++	return FIFO_PeekUint32(self.quickfifo,iOffset)
++end
+ =
+
+ function cGrannyFile:ParseItemListData (pItemList,p,iSize)
+ 	local quickfifo =3D self.quickfifo
+ 	=
+
++	self.mlParents =3D {}
+ 	self:Visit(&quot;ItemList&quot;,pItemList,p,iSize)
+ 	=
+
+ 	-- read header
+@@ -122,7 +131,7 @@
+ 	-- read all nodes in list
+ 	local miBufSize =3D self.miBufSize
+ 	local GRANNY_CHUNKTYPE_MAGIC =3D 0xCA5E0000
+-	local iEntryHeaderSize =3D self.size.ItemList_EntryHeader =
+
++	local iEntryHeaderSize =3D 3*4
+ 	for i=3D0,pItemListHeader.miChildCount-1 do
+ 		local iChunkType	=3D FIFO_PeekUint32(quickfifo,p+0)
+ 		local iOffset		=3D FIFO_PeekUint32(quickfifo,p+4)
+@@ -144,20 +153,198 @@
+ 		end
+ 		=
+
+ 		assert(BitwiseAND(iChunkType,GRANNY_CHUNKTYPE_MAGIC) =3D=3D GRANNY_CHUNK=
+TYPE_MAGIC,&quot;ParseGranny : magic failed in subchunktype &quot;..hex(iChunkType))
++		assert(iOffset &lt;=3D iSize,&quot;chunk-offset out of bounds: offset:&quot;..hex(iOf=
+fset)..&quot;size:&quot;..iSize)
+ 		=
+
+ 		local myoffset =3D pItemList.miListOffset+iOffset
+-		local pData =3D (myoffset &lt; miBufSize) and (myoffset)
+-		if (not pData) then iChildSize =3D 0 end
+-		self:Visit(&quot;Chunk&quot;,iChunkType,myoffset,iChildren,pData,iChildSize)
+-		--~ self:Visit(&quot;DecrementParents&quot;)
+-		--~ self:Visit(&quot;PushParent&quot;,iChunkType,iChildren)
+-	end
+-end
++		assert(myoffset &lt;=3D miBufSize)
++			=
+
++		self:HandleChunk(iChunkType,myoffset,iChildren,iChildSize)
++		local handler =3D self.chunkHandlers[iChunkType]
++		if (handler) then handler(self,myoffset,iChildSize) end
++		=
+
++		self:DecrementParents()
++		self:PushParent(iChunkType,iChildren)
++	end
++end
++
++function cGrannyFile:GetRootParentType () local p =3D self.mlParents[1] re=
+turn p and p.miChunkType end
++function cGrannyFile:DecrementParents () =
+
++	local res =3D {}
++	for k,v in ipairs(self.mlParents) do v.miChildCount =3D v.miChildCount - =
+1 if (v.miChildCount &gt; 0) then table.insert(res,v) end end
++	self.mlParents =3D res
++end
++function cGrannyFile:GetParentDepth() return #self.mlParents end
++function cGrannyFile:PushParent(iChunkType,iChildCount)
++	if (iChildCount &gt; 0) then table.insert(self.mlParents,{miChunkType=3DiChu=
+nkType,miChildCount=3DiChildCount}) end
++end
++
++
++function cGrannyFile:HandleChunk (iChunkType,iOffset,iChildren,iSize) =
+
++	--~ self:Visit(&quot;Chunk&quot;,myoffset,iChildren,iChildSize,tostring(self.kTypeN=
+ames[iChunkType]))
++	self:Visit(&quot;Chunk:&quot;..hex(iChunkType),iOffset,iChildren,iSize,string.rep(&quot;=
+ &quot;,self:GetParentDepth())..tostring(self.kTypeNames[iChunkType]))
++	=
+
++	=
+
++	-- if (1) { VisitUnknown(iChunkType,iOffset,iChildren,iSize); return; } =
+
++	-- VisitUnknown(iChunkType,iOffset,iChildren,iSize); =
+
++	=
+
++	=
+
++	--  FIFO_PeekUint32(self.quickfifo,iOffset)
++	--~ const uint32* pInts =3D (const uint32*)(pbufffff+iOffset);
++end
++
++
++function cGrannyFile:HexDump(iOffset,iSize)
++	print(&quot;hexdump&quot;,iOffset,iSize)
++	for i=3D0,iSize-1 do =
+
++		local b =3D FIFO_PeekUint8(self.quickfifo,iOffset+i)
++		local txt =3D sprintf(&quot; 0x%04x:  b:0x%02x=3D%3d&quot;,i,b,b)
++		if (i+4 &lt;=3D iSize) then =
+
++			local x =3D FIFO_PeekUint32(		self.quickfifo,iOffset+i)
++			local y =3D FIFO_PeekNetUint32(	self.quickfifo,iOffset+i)
++			local f =3D FIFO_PeekFloat(		self.quickfifo,iOffset+i)
++			txt =3D txt .. sprintf(&quot; i:0x%08x=3D%10d i2:0x%08x=3D%10d f:%f&quot;,x,x,y,y=
+,f)
++		end
++		print(txt)
++	end
++end =
+
++
++function cGrannyFile:VisitTextChunk () end
++function cGrannyFile:VisitMeshID () end
++function cGrannyFile:VisitBoneTieID () end
++function cGrannyFile:VisitTexInfoID () end
++function cGrannyFile:VisitObj () end
++function cGrannyFile:VisitObjKey () end
++function cGrannyFile:VisitObjValue () end
++function cGrannyFile:VisitPoints () end
++function cGrannyFile:VisitNormals () end
++function cGrannyFile:VisitPolygons () end
++function cGrannyFile:VisitTexCoords () end
++function cGrannyFile:VisitWeights () end
++function cGrannyFile:VisitTexPolygonsSmall () end
++function cGrannyFile:VisitTexPolygons () end
++function cGrannyFile:VisitTexPolygonsBig () end
++function cGrannyFile:VisitBone () end
++function cGrannyFile:VisitTexInfo () end
++
++
++cGrannyFile.chunkHandlers =3D {}
++
++cGrannyFile.chunkHandlers[0xCA5E0200] =3D function (self,iOffset,iSize) as=
+sert(iSize &gt;=3D 8) self:VisitTextChunk(self:ReadInt(iOffset),self:ReadInt(i=
+Offset+1),iOffset + 8,iSize-8) end
++cGrannyFile.chunkHandlers[0xCA5E0f04] =3D function (self,iOffset,iSize)
++	if (self:GetRootParentType() =3D=3D 0XCA5E0602) then assert(iSize =3D=3D =
+4) self:VisitMeshID(self:ReadInt(iOffset)) end
++	if (self:GetRootParentType() =3D=3D 0XCA5E0B01) then assert(iSize =3D=3D =
+4) self:VisitBoneTieID(self:ReadInt(iOffset)) end
++	if (self:GetRootParentType() =3D=3D 0XCA5E0304) then assert(iSize =3D=3D =
+4) self:VisitTexInfoID(self:ReadInt(iOffset)) end
++end
++	=
+
++cGrannyFile.chunkHandlers[0XCA5E0F00] =3D function (self,iOffset,iSize) if=
+ (self:GetRootParentType() =3D=3D 0XCA5E0F03) then assert(iSize =3D=3D 8,&quot;s=
+ize-mismatch:&quot;..iSize) self:VisitObj(self:ReadInt(iOffset),self:ReadInt(iOf=
+fset+1)) end end
++cGrannyFile.chunkHandlers[0XCA5E0F01] =3D function (self,iOffset,iSize) if=
+ (self:GetRootParentType() =3D=3D 0XCA5E0F03) then assert(iSize =3D=3D 4) s=
+elf:VisitObjKey(self:ReadInt(iOffset)) end end
++cGrannyFile.chunkHandlers[0XCA5E0F02] =3D function (self,iOffset,iSize) if=
+ (self:GetRootParentType() =3D=3D 0XCA5E0F03) then assert(iSize =3D=3D 8) s=
+elf:VisitObjValue(self:ReadInt(iOffset),self:ReadInt(iOffset+1)) end end
++
++cGrannyFile.chunkHandlers[0XCA5E0801] =3D function (self,iOffset,iSize) if=
+ (self:GetRootParentType() =3D=3D 0XCA5E0602) then self:VisitPoints(iOffset=
+,iSize/self.size.Vector) end end
++cGrannyFile.chunkHandlers[0XCA5E0802] =3D function (self,iOffset,iSize) if=
+ (self:GetRootParentType() =3D=3D 0XCA5E0602) then self:VisitNormals(iOffse=
+t,iSize/self.size.Vector) end end
++cGrannyFile.chunkHandlers[0XCA5E0901] =3D function (self,iOffset,iSize) if=
+ (self:GetRootParentType() =3D=3D 0XCA5E0602) then self:VisitPolygons(iOffs=
+et,iSize/self.size.Polygon) end end
++cGrannyFile.chunkHandlers[0XCA5E0803] =3D function (self,iOffset,iSize) if=
+ (self:GetRootParentType() =3D=3D 0XCA5E0602) then assert(iSize &gt;=3D 4) sel=
+f:VisitTexCoords(self:ReadInt(iOffset),(iOffset+4),(iSize-4)/self.size.Vect=
+or) end end
++cGrannyFile.chunkHandlers[0XCA5E0702] =3D function (self,iOffset,iSize) if=
+ (self:GetRootParentType() =3D=3D 0XCA5E0602) then assert(iSize &gt;=3D 3*4) s=
+elf:VisitWeights(self:ReadInt(iOffset),self:ReadInt(iOffset+1),self:ReadInt=
+(iOffset+2),iOffset+3*4,iSize-3*4) end end
++		=
+
++cGrannyFile.chunkHandlers[0xCA5E0e06] =3D function (self,iOffset,iSize) =
+
++	if (self:GetRootParentType() =3D=3D 0XCA5E0E01) then
++		assert(iSize &gt;=3D 4) =
+
++		local iNum =3D self:ReadInt(iOffset)
++		local iElementSize =3D floor((iSize-4)/iNum)
++		if (iSize-4 ~=3D iNum*iElementSize) then
++			printdebug(&quot;granny&quot;,&quot;cGrannyVisitor::VisitChunk 0xCA5E0e06 unexpected s=
+ize (num=3D%d,elsize=3D%d): %d/%d&quot;,iNum,iElementSize,iSize-4,iNum*iElementS=
+ize)
++		end
++		=
+
++			if (iElementSize =3D=3D self.size.TexturePolySmall)	then self:VisitTexP=
+olygonsSmall((iOffset+4),iNum) =
+
++		elseif (iElementSize =3D=3D self.size.TexturePoly)		then self:VisitTexPo=
+lygons(		(iOffset+4),iNum) =
+
++		elseif (iElementSize =3D=3D self.size.TexturePolyBig)	then self:VisitTex=
+PolygonsBig(	(iOffset+4),iNum) =
+
++		else =
+
++			printdebug(&quot;granny&quot;,&quot;cGrannyVisitor::VisitChunk 0xCA5E0e06 unexpected e=
+lement-size : %d&quot;,iElementSize) =
+
++			self:HexDump(iOffset,iSize) =
+
++		end
++	end
++end
++cGrannyFile.chunkHandlers[0XCA5E0506] =3D function (self,iOffset,iSize) if=
+ (self:GetRootParentType() =3D=3D 0XCA5E0507) then assert(iSize =3D=3D self=
+.size.Bone) self:VisitBone(iOffset) end end
++cGrannyFile.chunkHandlers[0xCA5E0303] =3D function (self,iOffset,iSize) =
+
++	if (self:GetRootParentType() =3D=3D 0XCA5E0304) then =
+
++		if (iSize ~=3D self.size.TexInfo) then =
+
++			printdebug(&quot;granny&quot;,&quot;WARNING ! granny 0xCA5E0303 : size1=3D%d size2=3D%=
+d&quot;,iSize,self.size.TexInfo)
++		end
++		assert(iSize &gt;=3D self.size.TexInfo); =
+
++		self:VisitTexInfo(iOffset) =
+
++	end =
+
++end
++
++function cGrannyFile:VisitBoneTie2ID () end
++function cGrannyFile:VisitBoneTie2GroupID () end
++function cGrannyFile:VisitBoneTies2 () end
++function cGrannyFile:VisitBoneTie () end
++function cGrannyFile:VisitTextureID () end
++function cGrannyFile:VisitTexturePoly () end
++function cGrannyFile:VisitTexturePolyData () end
++
++
++cGrannyFile.chunkHandlers[0XCA5E0C08] =3D function (self,iOffset,iSize) if=
+ (self:GetRootParentType() =3D=3D 0XCA5E0C01) then assert(iSize =3D=3D 4) s=
+elf:VisitBoneTie2ID(self:ReadInt(iOffset)) end end
++cGrannyFile.chunkHandlers[0XCA5E0C03] =3D function (self,iOffset,iSize) if=
+ (self:GetRootParentType() =3D=3D 0XCA5E0C01) then assert(iSize =3D=3D 4) s=
+elf:VisitBoneTie2GroupID(self:ReadInt(iOffset)) end end
++cGrannyFile.chunkHandlers[0XCA5E0C02] =3D function (self,iOffset,iSize) if=
+ (self:GetRootParentType() =3D=3D 0XCA5E0C01) then self:VisitBoneTies2(iOff=
+set,iSize/4) end end
++cGrannyFile.chunkHandlers[0xCA5E0c0a] =3D function (self,iOffset,iSize) if=
+ (self:GetRootParentType() =3D=3D 0XCA5E0C01) then assert(iSize =3D=3D self=
+.size.BoneTie) self:VisitBoneTie(iOffset) end end
++
++cGrannyFile.chunkHandlers[0XCA5E0E00] =3D function (self,iOffset,iSize) if=
+ (self:GetRootParentType() =3D=3D 0XCA5E0E01) then  assert(iSize =3D=3D 4) =
+self:VisitTextureID(self:ReadInt(iOffset)) end end
++cGrannyFile.chunkHandlers[0XCA5E0E02] =3D function (self,iOffset,iSize) if=
+ (self:GetRootParentType() =3D=3D 0XCA5E0E01) then  assert(iSize =3D=3D 8) =
+self:VisitTexturePoly(self:ReadInt(iOffset),self:ReadInt(iOffset+1)) end end
++cGrannyFile.chunkHandlers[0XCA5E0E04] =3D function (self,iOffset,iSize) if=
+ (self:GetRootParentType() =3D=3D 0XCA5E0E01) then  assert(iSize =3D=3D 4) =
+self:VisitTexturePolyData(self:ReadInt(iOffset)) end end
++
++cGrannyFile.chunkHandlers[0XCA5E1204] =3D function (self,iOffset,iSize) =
+
++	if (self:GetRootParentType() =3D=3D 0XCA5E1205) then
++		assert(iSize &gt;=3D self.size.Anim)
++		--[[
++		const char* p =3D iOffset;
++		GrannyAnim*	pAnim 				=3D (GrannyAnim*)p; 		p +=3D self.size.Anim;
++		float*	pTranslateTime 			=3D (float*)p; 			p +=3D self.size.float		*pAni=
+m-&gt;iNumTranslate;
++		float*	pQuaternionTime 		=3D (float*)p; 			p +=3D self.size.float		*pAni=
+m-&gt;iNumQuaternion;
++		float*	pScaleTime 				=3D (float*)p; 			p +=3D self.size.float		*pAnim-&gt;=
+iNumScale;
++		GrannyVector*		pTranslate	=3D (GrannyVector*)p; 	p +=3D self.size.Vector=
+		*pAnim-&gt;iNumTranslate;
++		GrannyQuaternion*	pQuaternion	=3D (GrannyQuaternion*)p; p +=3D self.size=
+.Quaternion	*pAnim-&gt;iNumQuaternion;
++		GrannyVector*		pScale		=3D (GrannyVector*)p;		p +=3D self.size.Vector		*=
+pAnim-&gt;iNumScale;
++		GrannyVector*		pRest		=3D (GrannyVector*)p;
++		int 	iUsedSize =3D p - iOffset;
++		local MAX_PARTNUM_0XCA5E1204 =3D 0x0000ffff
++		bool	bBroken =3D	iUsedSize 				&lt; 0 or iSize &lt; iUsedSize or =
+
++							pAnim-&gt;iNumTranslate 	&lt; 0 or pAnim-&gt;iNumTranslate		&gt;=3D MAX_PARTNUM=
+_0XCA5E1204 or =
+
++							pAnim-&gt;iNumQuaternion 	&lt; 0 or pAnim-&gt;iNumQuaternion	&gt;=3D MAX_PARTNU=
+M_0XCA5E1204 or =
+
++							pAnim-&gt;iNumScale 		&lt; 0 or pAnim-&gt;iNumScale			&gt;=3D MAX_PARTNUM_0XCA5=
+E1204;
++		if (bBroken) then
++			--~ printf(&quot;0XCA5E1204 broken : %08x %08x\n&quot;,(int)iOffset,(int)p);
++			--~ printf(&quot;0XCA5E1204 broken : iNumTranslate=3D%d\n&quot;,pAnim-&gt;iNumTransl=
+ate);
++			--~ printf(&quot;0XCA5E1204 broken : iNumQuaternion=3D%d\n&quot;,pAnim-&gt;iNumQuate=
+rnion);
++			--~ printf(&quot;0XCA5E1204 broken : iNumScale=3D%d\n&quot;,pAnim-&gt;iNumScale);
++			--~ printf(&quot;0XCA5E1204 broken : iSize=3D%d iUsedSize=3D%d\n&quot;,iSize,iUse=
+dSize);
++		end
++		float	fTotalTime =3D 0;
++		if (not bBroken) then
++			float	fTotalTimeT =3D (pAnim-&gt;iNumTranslate &gt; 0) ? pTranslateTime[pAnim=
+-&gt;iNumTranslate-1] : 0;
++			float	fTotalTimeQ =3D (pAnim-&gt;iNumQuaternion &gt; 0) ? pQuaternionTime[pAn=
+im-&gt;iNumQuaternion-1] : 0;
++			float	fTotalTimeS =3D (pAnim-&gt;iNumScale &gt; 0) ? pScaleTime[pAnim-&gt;iNumSc=
+ale-1] : 0;
++			fTotalTime =3D mymax(mymax(fTotalTimeT,fTotalTimeQ),fTotalTimeS);
++		end
++		VisitGrannyAnim(pAnim,
++			bBroken?0:pTranslateTime,
++			bBroken?0:pQuaternionTime,
++			bBroken?0:pScaleTime,
++			bBroken?0:pTranslate,
++			bBroken?0:pQuaternion,
++			bBroken?0:pScale,
++			bBroken?0:pRest,
++			bBroken?0:fTotalTime,
++			bBroken?0:iUsedSize,iSize);
++		]]--
++	end =
+
++end
++
+ =
+
+ function cGrannyFile:Visit (name,...) =
+
+ 	if (self.visit_last_name =3D=3D name) then
+ 		if (self.visit_last_count =3D=3D 11) then print(&quot;...&quot;) end
+-		if (self.visit_last_count &gt; 11) then return end
++		if (self.visit_last_count  &gt; 11) then return end
+ 			self.visit_last_count =3D self.visit_last_count + 1
+ 	else
+ 		self.visit_last_name =3D name
+
+Modified: trunk/lua/lib.granny.types.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.granny.types.lua (original)
++++ trunk/lua/lib.granny.types.lua Wed Jul 15 16:09:18 2009
+@@ -1,76 +1,13 @@
+-
+-cGrannyFile.kTypeNames =3D {}
+-cGrannyFile.kTypeNames[0xCA5E0100] =3D &quot;ML_SE_Texture&quot; -- SiENcE:  Chunk i=
+s new to ML/SE Models maybe Texture: case 0xca5e0100
+-cGrannyFile.kTypeNames[0xCA5E0101] =3D &quot;final&quot; -- Final Chunk (End-of-File=
+?)	=
+
+-cGrannyFile.kTypeNames[0xCA5E0102] =3D &quot;Copyright&quot;
+-cGrannyFile.kTypeNames[0xCA5E0103] =3D &quot;Object&quot;
+-cGrannyFile.kTypeNames[0xCA5E0200] =3D &quot;textChunk&quot;
+-cGrannyFile.kTypeNames[0xCA5E0304] =3D &quot;texture_info_list&quot;
+-cGrannyFile.kTypeNames[0xCA5E0303] =3D &quot;texinfo&quot;
+-cGrannyFile.kTypeNames[0xCA5E0301] =3D &quot;texture_info&quot;
+-cGrannyFile.kTypeNames[0xCA5E0507] =3D &quot;bones&quot;
+-cGrannyFile.kTypeNames[0xCA5E0601] =3D &quot;mesh&quot;
+-cGrannyFile.kTypeNames[0xCA5E0602] =3D &quot;mesh_list&quot;
+-cGrannyFile.kTypeNames[0xCA5E0603] =3D &quot;point_container&quot;
+-cGrannyFile.kTypeNames[0xCA5E0604] =3D &quot;point_block&quot;
+-cGrannyFile.kTypeNames[0xCA5E0702] =3D &quot;weights&quot;
+-
+-cGrannyFile.kTypeNames[0xCA5E0801] =3D &quot;points&quot;
+-cGrannyFile.kTypeNames[0xCA5E0802] =3D &quot;normals&quot;
+-cGrannyFile.kTypeNames[0xCA5E0803] =3D &quot;texcoords&quot;
+-cGrannyFile.kTypeNames[0xCA5E0804] =3D &quot;texture_container&quot;
+-cGrannyFile.kTypeNames[0xCA5E0901] =3D &quot;polygons&quot;
+-cGrannyFile.kTypeNames[0xCA5E0f04] =3D &quot;id&quot; -- depends on parent structure
+-
+-cGrannyFile.kTypeNames[0xCA5E0b00] =3D &quot;boneobject&quot; -- bone-name ??
+-cGrannyFile.kTypeNames[0xCA5E0c00] =3D &quot;boneties container&quot;
+-cGrannyFile.kTypeNames[0xCA5E0c02] =3D &quot;bone objptrs&quot;
+-cGrannyFile.kTypeNames[0xCA5E0c03] =3D &quot;bonetie group&quot;
+-cGrannyFile.kTypeNames[0xCA5E0c04] =3D &quot;bonetie data&quot;
+-cGrannyFile.kTypeNames[0xCA5E0c05] =3D &quot;end bone objptrs&quot;
+-cGrannyFile.kTypeNames[0xCA5E0c06] =3D &quot;bonetie container&quot;
+-cGrannyFile.kTypeNames[0xCA5E0c07] =3D &quot;bone objptrs container&quot;
+-cGrannyFile.kTypeNames[0xCA5E0c08] =3D &quot;bone objptr&quot;
+-cGrannyFile.kTypeNames[0xCA5E0c09] =3D &quot;bonetie list&quot;
+-cGrannyFile.kTypeNames[0xCA5E0c0a] =3D &quot;bonetie&quot;
+-cGrannyFile.kTypeNames[0xCA5E0505] =3D &quot;skeleton&quot;
+-cGrannyFile.kTypeNames[0xCA5E0506] =3D &quot;bone&quot;
+-cGrannyFile.kTypeNames[0xCA5E0508] =3D &quot;bonelist&quot;
+-
+-cGrannyFile.kTypeNames[0xCA5E0a01] =3D &quot;unhandled&quot;
+-cGrannyFile.kTypeNames[0xCA5E0b01] =3D &quot;boneTies1&quot; -- bone_name_list ?
+-cGrannyFile.kTypeNames[0xCA5E0c01] =3D &quot;boneTies2&quot;
+-cGrannyFile.kTypeNames[0xCA5E0d01] =3D &quot;unhandled&quot;
+-cGrannyFile.kTypeNames[0xCA5E0e00] =3D &quot;texture&quot;
+-cGrannyFile.kTypeNames[0xCA5E0e01] =3D &quot;texture_list&quot;
+-
+-cGrannyFile.kTypeNames[0xCA5E0e02] =3D &quot;texture_poly&quot;
+-cGrannyFile.kTypeNames[0xCA5E0e03] =3D &quot;texture_poly_datalist&quot;
+-cGrannyFile.kTypeNames[0xCA5E0e04] =3D &quot;texture_poly_data1&quot;
+-cGrannyFile.kTypeNames[0xCA5E0e05] =3D &quot;texture_poly_data2&quot;
+-cGrannyFile.kTypeNames[0xCA5E0e06] =3D &quot;texture_poly_list&quot;
+-cGrannyFile.kTypeNames[0xCA5E0e07] =3D &quot;texture_sublist&quot;
+-
+-cGrannyFile.kTypeNames[0xCA5E0f00] =3D &quot;object&quot;
+-cGrannyFile.kTypeNames[0xCA5E0f01] =3D &quot;object_key&quot;
+-cGrannyFile.kTypeNames[0xCA5E0f02] =3D &quot;object_value&quot;
+-cGrannyFile.kTypeNames[0xCA5E0f03] =3D &quot;object_list&quot;
+-cGrannyFile.kTypeNames[0xCA5E0f05] =3D &quot;object_key_list&quot;
+-cGrannyFile.kTypeNames[0xCA5E0f06] =3D &quot;object_value_list&quot;
+-cGrannyFile.kTypeNames[0xCA5E1003] =3D &quot;unhandled&quot;
+-
+-cGrannyFile.kTypeNames[0xCA5E1200] =3D &quot;animation_sublist&quot;
+-cGrannyFile.kTypeNames[0xCA5E1201] =3D &quot;animation_data&quot;
+-cGrannyFile.kTypeNames[0xCA5E1203] =3D &quot;animation&quot;
+-cGrannyFile.kTypeNames[0xCA5E1204] =3D &quot;animdata&quot;
+-cGrannyFile.kTypeNames[0xCA5E1205] =3D &quot;animation_list&quot;
+-
+-cGrannyFile.kTypeNames[0xCA5Effff] =3D &quot;end&quot;
+ =
+
+ =
+
+ function cGrannyFile:DefineTypes () =
+
+ 	if (self.structs) then return end
+ 	self.kChunkType_Main =3D 0xCA5E0000
++	self:DefineStructs()
++	self:DefineTypeNames()
++end
++
++function cGrannyFile:DefineStructs ()
+ 	self.structs =3D {}
+ 	self.basetypes =3D {}
+ 	local uint8		=3D {name=3D&quot;uint8&quot;	,size=3D1,peekfun=3DFIFO_PeekUint8}
+@@ -79,6 +16,7 @@
+ 	self.basetypes.uint8	=3D uint8
+ 	self.basetypes.uint32	=3D uint32
+ 	self.basetypes.float	=3D float
++	=
+
+ 	self.structs.MainChunk =3D {
+ 		{uint8	,&quot;mHeader&quot;,0x40};	--/&lt; unknown, Could be FileType magic
+ 		{uint32	,&quot;miChunkType&quot;},	--/&lt; kChunkType
+@@ -97,12 +35,6 @@
+ 		{uint32	,&quot;miChildCount&quot;},
+ 		{uint32	,&quot;miUnknown&quot;,3},
+ 	}
+-	=
+
+-	self.structs.ItemList_EntryHeader =3D {
+-		{uint32	,&quot;miChunkType&quot;},
+-		{uint32	,&quot;miOffset&quot;},
+-		{uint32	,&quot;miChildren&quot;},
+-	}
+ =
+
+ 	self.structs.Vector =3D {
+ 		{float	,&quot;x,y,z&quot;},
+@@ -118,6 +50,10 @@
+ 		{uint32	,&quot;iNormal&quot;,3},
+ 	}
+ =
+
++	self.structs.TexturePolySmall =3D {
++		{uint32	,&quot;iUnknown&quot;}, -- rising int, like 0 1 2 ... 13
++	}
++	=
+
+ 	self.structs.TexturePoly =3D {
+ 		{uint32	,&quot;iUnknown&quot;},
+ 		{uint32	,&quot;iTexCoord&quot;,3},
+@@ -159,6 +95,7 @@
+ 		{uint32	,&quot;iUnknownB&quot;,4}, --/&lt; global rot ?
+ 	}
+ 	self.size =3D {}
++	for name,data in pairs(self.basetypes) do self.size[name] =3D data.size e=
+nd
+ 	for structname,struct in pairs(self.structs) do =
+
+ 		local size =3D 0
+ 		for k,member in pairs(struct) do =
+
+@@ -168,3 +105,73 @@
+ 		self.size[structname] =3D size
+ 	end
+ end
++
++function cGrannyFile:DefineTypeNames ()
++	self.kTypeNames =3D {}
++	self.kTypeNames[0xCA5E0100] =3D &quot;ML_SE_Texture&quot; -- SiENcE:  Chunk is new =
+to ML/SE Models maybe Texture: case 0xca5e0100
++	self.kTypeNames[0xCA5E0101] =3D &quot;final&quot; -- Final Chunk (End-of-File?)	=
+
++	self.kTypeNames[0xCA5E0102] =3D &quot;Copyright&quot;
++	self.kTypeNames[0xCA5E0103] =3D &quot;Object&quot;
++	self.kTypeNames[0xCA5E0200] =3D &quot;textChunk&quot;
++	self.kTypeNames[0xCA5E0304] =3D &quot;texture_info_list&quot;
++	self.kTypeNames[0xCA5E0303] =3D &quot;texinfo&quot;
++	self.kTypeNames[0xCA5E0301] =3D &quot;texture_info&quot;
++	self.kTypeNames[0xCA5E0507] =3D &quot;bones&quot; -- SkeletonList?
++	self.kTypeNames[0xCA5E0601] =3D &quot;mesh&quot;
++	self.kTypeNames[0xCA5E0602] =3D &quot;mesh_list&quot;
++	self.kTypeNames[0xCA5E0603] =3D &quot;point_container&quot;
++	self.kTypeNames[0xCA5E0604] =3D &quot;point_block&quot;
++	self.kTypeNames[0xCA5E0702] =3D &quot;weights&quot;
++
++	self.kTypeNames[0xCA5E0801] =3D &quot;points&quot;
++	self.kTypeNames[0xCA5E0802] =3D &quot;normals&quot;
++	self.kTypeNames[0xCA5E0803] =3D &quot;texcoords&quot;
++	self.kTypeNames[0xCA5E0804] =3D &quot;texture_container&quot;
++	self.kTypeNames[0xCA5E0901] =3D &quot;polygons&quot;
++	self.kTypeNames[0xCA5E0f04] =3D &quot;id&quot; -- depends on parent structure
++
++	self.kTypeNames[0xCA5E0b00] =3D &quot;boneobject&quot; -- bone-name ??
++	self.kTypeNames[0xCA5E0c00] =3D &quot;boneties container&quot;
++	self.kTypeNames[0xCA5E0c02] =3D &quot;bone objptrs&quot;
++	self.kTypeNames[0xCA5E0c03] =3D &quot;bonetie group&quot;
++	self.kTypeNames[0xCA5E0c04] =3D &quot;bonetie data&quot;
++	self.kTypeNames[0xCA5E0c05] =3D &quot;end bone objptrs&quot;
++	self.kTypeNames[0xCA5E0c06] =3D &quot;bonetie container&quot;
++	self.kTypeNames[0xCA5E0c07] =3D &quot;bone objptrs container&quot;
++	self.kTypeNames[0xCA5E0c08] =3D &quot;bone objptr&quot;
++	self.kTypeNames[0xCA5E0c09] =3D &quot;bonetie list&quot;
++	self.kTypeNames[0xCA5E0c0a] =3D &quot;bonetie&quot;
++	self.kTypeNames[0xCA5E0505] =3D &quot;skeleton&quot;
++	self.kTypeNames[0xCA5E0506] =3D &quot;bone&quot;
++	self.kTypeNames[0xCA5E0508] =3D &quot;bonelist&quot;
++
++	self.kTypeNames[0xCA5E0a01] =3D &quot;unhandled&quot;
++	self.kTypeNames[0xCA5E0b01] =3D &quot;boneTies1&quot; -- bone_name_list ?
++	self.kTypeNames[0xCA5E0c01] =3D &quot;boneTies2&quot;
++	self.kTypeNames[0xCA5E0d01] =3D &quot;unhandled&quot;
++	self.kTypeNames[0xCA5E0e00] =3D &quot;texture&quot;
++	self.kTypeNames[0xCA5E0e01] =3D &quot;texture_list&quot;
++
++	self.kTypeNames[0xCA5E0e02] =3D &quot;texture_poly&quot;
++	self.kTypeNames[0xCA5E0e03] =3D &quot;texture_poly_datalist&quot;
++	self.kTypeNames[0xCA5E0e04] =3D &quot;texture_poly_data1&quot;
++	self.kTypeNames[0xCA5E0e05] =3D &quot;texture_poly_data2&quot;
++	self.kTypeNames[0xCA5E0e06] =3D &quot;texture_poly_list&quot;
++	self.kTypeNames[0xCA5E0e07] =3D &quot;texture_sublist&quot;
++
++	self.kTypeNames[0xCA5E0f00] =3D &quot;object&quot;
++	self.kTypeNames[0xCA5E0f01] =3D &quot;object_key&quot;
++	self.kTypeNames[0xCA5E0f02] =3D &quot;object_value&quot;
++	self.kTypeNames[0xCA5E0f03] =3D &quot;object_list&quot;
++	self.kTypeNames[0xCA5E0f05] =3D &quot;object_key_list&quot;
++	self.kTypeNames[0xCA5E0f06] =3D &quot;object_value_list&quot;
++	self.kTypeNames[0xCA5E1003] =3D &quot;unhandled&quot;
++
++	self.kTypeNames[0xCA5E1200] =3D &quot;animation_sublist&quot;
++	self.kTypeNames[0xCA5E1201] =3D &quot;animation_data&quot;
++	self.kTypeNames[0xCA5E1203] =3D &quot;animation&quot;
++	self.kTypeNames[0xCA5E1204] =3D &quot;animdata&quot;
++	self.kTypeNames[0xCA5E1205] =3D &quot;animation_list&quot;
++
++	self.kTypeNames[0xCA5Effff] =3D &quot;end&quot; =
+
++end
+
+Modified: trunk/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/main.lua (original)
++++ trunk/lua/main.lua Wed Jul 15 16:09:18 2009
+@@ -388,6 +388,7 @@
+ 		UOProxyMode(host,port)
+ 		return  =
+
+ 	end
++    if (gCommandLineSwitches[&quot;-grannytest&quot;]) then GrannyTest_PreOgreInit()=
+ end
+ 	if (OgreWrapperSetEnableUnicode) then OgreWrapperSetEnableUnicode(true) e=
+nd -- ois init param
+ 	=
+
+     gRegistry =3D cRegistry:New(gTempPath..&quot;global.reg&quot;)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001844.html">[Iris-commit] [IRIS] r3081 - /trunk/bin/iris2.exe
+</A></li>
+	<LI>Next message: <A HREF="001846.html">[Iris-commit] [IRIS] r3083 - /trunk/lua/lib.light.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1845">[ date ]</a>
+              <a href="thread.html#1845">[ thread ]</a>
+              <a href="subject.html#1845">[ subject ]</a>
+              <a href="author.html#1845">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

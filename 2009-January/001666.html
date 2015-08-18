@@ -1,0 +1,446 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2864 - in /trunk: lua/gui/gui.chat.lua lua/lib.2d.mousepick.lua lua/lib.macrolist.lua lua/lib.unifont.lua lua/main.lua lua/net/net.text.lua plugins/lib.spellbar.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2009-January/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2864%20-%20in%20/trunk%3A%20lua/gui/gui.chat.lua%0A%20lua/lib.2d.mousepick.lua%20lua/lib.macrolist.lua%20lua/lib.unifont.lua%0A%20lua/main.lua%20lua/net/net.text.lua%20plugins/lib.spellbar.lua&In-Reply-To=%3C20090114010353.1188D1C18775%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001665.html">
+   <LINK REL="Next"  HREF="001667.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2864 - in /trunk: lua/gui/gui.chat.lua lua/lib.2d.mousepick.lua lua/lib.macrolist.lua lua/lib.unifont.lua lua/main.lua lua/net/net.text.lua plugins/lib.spellbar.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2864%20-%20in%20/trunk%3A%20lua/gui/gui.chat.lua%0A%20lua/lib.2d.mousepick.lua%20lua/lib.macrolist.lua%20lua/lib.unifont.lua%0A%20lua/main.lua%20lua/net/net.text.lua%20plugins/lib.spellbar.lua&In-Reply-To=%3C20090114010353.1188D1C18775%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2864 - in /trunk: lua/gui/gui.chat.lua lua/lib.2d.mousepick.lua lua/lib.macrolist.lua lua/lib.unifont.lua lua/main.lua lua/net/net.text.lua plugins/lib.spellbar.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Wed Jan 14 02:03:52 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001665.html">[Iris-commit] [IRIS] r2863 - in /trunk/lua: lib.2d.mobile.lua lib.2d.spriteblock.lua main.lua net/net.text.lua
+</A></li>
+        <LI>Next message: <A HREF="001667.html">[Iris-commit] [IRIS] r2865 - in /trunk: data/models/materials/textures.material lua/lib.3d.map.lua lua/lib.debugmenu.lua lua/lib.iris_atlasgroup.lua premake.lua premakelinux.sh
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1666">[ date ]</a>
+              <a href="thread.html#1666">[ thread ]</a>
+              <a href="subject.html#1666">[ subject ]</a>
+              <a href="author.html#1666">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Wed Jan 14 02:03:51 2009
+New Revision: 2864
+
+Log:
+equip-item : bytype supported,  chattabbar-profiling,   2d-mousepick-bugfix=
+ : terrain was used when blended out (caves),   uofont:glyphinfo caching (r=
+educed memory allocations a lot),   profiling:HandleUOText
+
+Modified:
+    trunk/lua/gui/gui.chat.lua
+    trunk/lua/lib.2d.mousepick.lua
+    trunk/lua/lib.macrolist.lua
+    trunk/lua/lib.unifont.lua
+    trunk/lua/main.lua
+    trunk/lua/net/net.text.lua
+    trunk/plugins/lib.spellbar.lua
+
+Modified: trunk/lua/gui/gui.chat.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.chat.lua (original)
++++ trunk/lua/gui/gui.chat.lua Wed Jan 14 02:03:51 2009
+@@ -47,11 +47,15 @@
+ 	end
+ end
+ =
+
++gProfiler_ChatTabPane =3D CreateRoughProfiler(&quot;ChatTabPane&quot;)
+ =
+
+ function GuiChatAddLineToChannel	(channel, line)
++	gProfiler_ChatTabPane:Start(gEnableProfiler_ChatTabPane)
++	gProfiler_ChatTabPane:Section(&quot;GuiChatPrepareChannel&quot;)
+ 	GuiChatPrepareChannel(channel)
+ 	=
+
+ 	-- add line to channel content table
++	gProfiler_ChatTabPane:Section(&quot;insertline&quot;)
+ 	if not gGuiChatChannelContent[channel] then
+ 		-- new one
+ 		gGuiChatChannelContent[channel] =3D {line}
+@@ -65,12 +69,17 @@
+ 	end
+ 	=
+
+ 	-- display channel content
++	gProfiler_ChatTabPane:Section(&quot;gsub&quot;)
+ 	local s =3D &quot;&quot;
+ 	for k,v in pairs(gGuiChatChannelContent[channel]) do
+ 		s =3D s .. string.gsub(v, &quot;\n&quot;, &quot;&quot;) .. &quot;\n&quot;
+ 	end
+ 	=
+
+-	gGuiChatTabpane:GetTabContentPane(channel):GetChild(1):SetText(gGuiChatFo=
+nt,nil,s,gGuiChatFontTextParam)
++	gProfiler_ChatTabPane:Section(&quot;GetChild&quot;)
++	local child =3D gGuiChatTabpane:GetTabContentPane(channel):GetChild(1)
++	gProfiler_ChatTabPane:Section(&quot;SetText&quot;)
++	child:SetText(gGuiChatFont,nil,s,gGuiChatFontTextParam)
++	gProfiler_ChatTabPane:End()
+ end
+ =
+
+ function GuiChatPrepareChannel	(channel)
+
+Modified: trunk/lua/lib.2d.mousepick.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.mousepick.lua (original)
++++ trunk/lua/lib.2d.mousepick.lua Wed Jan 14 02:03:51 2009
+@@ -50,16 +50,18 @@
+ 	-- RayPickTerrain
+ 	--~ print(&quot;mousepick terrain&quot;)
+ 	gProfiler_R2D_MousePick:Section(&quot;terrain&quot;)
+-	local dist,xloc,yloc =3D self:RayPickTerrain(rx,ry,rz, rvx,rvy,rvz)
+-	if (dist and ((not founddist) or dist &lt; founddist)) then =
+
+-		founddist =3D dist =
+
+-		gMousePickFoundHit =3D {}
+-		gMousePickFoundHit.hittype =3D kMousePickHitType_Terrain
+-		local ground =3D MapGetGround(xloc,yloc) -- {iTileType=3D?,zloc=3D?,bIgn=
+oredByWalk=3D?,flags=3D?}
+-		gMousePickFoundHit.hit_xloc =3D xloc
+-		gMousePickFoundHit.hit_yloc =3D yloc
+-		gMousePickFoundHit.hit_zloc =3D ground.zloc
+-		--~ print(&quot;RayPickTerrain&quot;,xloc,yloc)
++	if (self.gbBlendOutTerrainVisible) then =
+
++		local dist,xloc,yloc =3D self:RayPickTerrain(rx,ry,rz, rvx,rvy,rvz)
++		if (dist and ((not founddist) or dist &lt; founddist)) then =
+
++			founddist =3D dist =
+
++			gMousePickFoundHit =3D {}
++			gMousePickFoundHit.hittype =3D kMousePickHitType_Terrain
++			local ground =3D MapGetGround(xloc,yloc) -- {iTileType=3D?,zloc=3D?,bIg=
+noredByWalk=3D?,flags=3D?}
++			gMousePickFoundHit.hit_xloc =3D xloc
++			gMousePickFoundHit.hit_yloc =3D yloc
++			gMousePickFoundHit.hit_zloc =3D ground.zloc
++			--~ print(&quot;RayPickTerrain&quot;,xloc,yloc)
++		end
+ 	end
+ 	--~ local t0 =3D Client_GetTicks()
+ 	--~ local t1 =3D Client_GetTicks()
+
+Modified: trunk/lua/lib.macrolist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.macrolist.lua (original)
++++ trunk/lua/lib.macrolist.lua Wed Jan 14 02:03:51 2009
+@@ -413,7 +413,13 @@
+ end
+ =
+
+ function MacroCmd_EquipItem (serial)
++	if (type(serial) =3D=3D &quot;table&quot;) then =
+
++		local cmd,param =3D unpack(serial)
++		if (cmd =3D=3D &quot;use&quot;) then Send_DoubleClick(param) end =
+
++		return
++	end
+ 	local item =3D GetDynamic(serial)
++	if (not item) then item =3D MacroCmd_Item_FindFirstByArtID(serial) end
+ 	if (not item) then return end
+ 	if (item.iContainerSerial =3D=3D GetPlayerSerial()) then return end -- al=
+ready equipped
+ 	local layer =3D GetPaperdollLayerFromTileType(item.artid)
+
+Modified: trunk/lua/lib.unifont.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.unifont.lua (original)
++++ trunk/lua/lib.unifont.lua Wed Jan 14 02:03:51 2009
+@@ -124,6 +124,8 @@
+ 	local myfont =3D {}
+ 	if (bOutlined) then loader.font_outlined =3D myfont else loader.font =3D =
+myfont end
+ 	local matname,u0,v0,u1,v1,xoff,yoff,w,h =3D GetUniFontGlyph(loader,kCharC=
+ode_SpaceWidthChar,bOutlined)
++	myfont.sFontType	=3D &quot;UOFont&quot;
++	myfont.glyphInfoCache =3D {}
+ 	myfont.bOutlined =3D bOutlined
+ 	myfont.spacewidth =3D w
+ 	--~ myfont.defaultlineh =3D 1.5 * math.max(1,h)
+@@ -138,8 +140,12 @@
+ 		UniFont_AtlasUpdate()
+ 	end
+ 	myfont.GetGlyphInfo			=3D function (self,iCharCode,fontsize) =
+
++		local cachebysize =3D myfont.glyphInfoCache[fontsize]
++		if (not cachebysize) then cachebysize =3D {} myfont.glyphInfoCache[fonts=
+ize] =3D cachebysize end
++		local cache =3D cachebysize[iCharCode]
++		if (cache ~=3D nil) then return cache end
+ 		local matname,u0,v0,u1,v1,xoff,yoff,w,h =3D GetUniFontGlyph(loader,iChar=
+Code,self.bOutlined)
+-		if (not matname) then return end
++		if (not matname) then cachebysize[iCharCode] =3D false return end
+ 		=
+
+ 		--~ local s =3D math.max(1,round(fontsize / myfont.defaultlineh)) -- pix=
+elart is not freely scalable, but this would allow integer-multiples of the=
+ original size
+ 		local s =3D 1
+@@ -162,6 +168,7 @@
+ 		res.vx	=3D 0
+ 		res.uy	=3D 0
+ 		res.vy	=3D floor(uvh*gUniFontTexAtlasSize) / gUniFontTexAtlasSize
++		cachebysize[iCharCode] =3D res
+ 		return res
+ 	end
+ 	return myfont
+
+Modified: trunk/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/main.lua (original)
++++ trunk/lua/main.lua Wed Jan 14 02:03:51 2009
+@@ -454,7 +454,7 @@
+ 	table.sort(arr_tspike		,function (a,b) return a.v &gt; b.v end)
+ 	table.sort(arr_tspike		,function (a,b) return a.v &gt; b.v end)
+ 	table.sort(arr_tspikeframe	,function (a,b) return a.v &gt; b.v end)
+-	local topx =3D 10
++	local topx =3D gRoughProfileSumHowMany or 10
+ 	for k,o in pairs(arr_t) do =
+
+ 		if (k &lt;=3D topx and (not gEnableRoughProfileSum_SkipCPU)) then print(&quot; #=
+&quot;..k,sprintf(&quot;%5dmsec (%3d%%)&quot;,o.v,floor(100*o.v/gMyProfilerTopCPUTSum)),o.=
+name) end =
+
+ 	end
+
+Modified: trunk/lua/net/net.text.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.text.lua (original)
++++ trunk/lua/net/net.text.lua Wed Jan 14 02:03:51 2009
+@@ -101,7 +101,10 @@
+ =
+
+ -- ***** ***** ***** ***** ***** incoming text
+ =
+
++gProfiler_Text =3D CreateRoughProfiler(&quot;Text&quot;)
+ function HandleUOText (data)
++	gProfiler_Text:Start(gEnableProfiler_Text)
++	gProfiler_Text:Section(&quot;PreCalc&quot;)
+ 	local mobile =3D GetMobile(data.serial) =
+
+ 	local serial =3D data.serial
+ 	--~ if (data.type =3D=3D kTextType_Label) then ItemLabel(data.serial,text=
+_charname,text_message) end
+@@ -114,7 +117,9 @@
+ 	if data.type =3D=3D kTextType_Emote then	r,g,b =3D 0,1,0 end
+ 	if data.type =3D=3D kTextType_Label then =
+
+ 		bIsLabel =3D true
++		gProfiler_Text:Section(&quot;Mobile_NameHint&quot;)
+ 		if mobile then Mobile_NameHint(data.serial,data.artid,data.name,data.tex=
+t) end
++		gProfiler_Text:Section(&quot;PreCalc2&quot;)
+ 		r,g,b =3D 1,1,1 =
+
+ 	end	-- 0x06 - System/Lower Corner, label?
+ 	if data.type =3D=3D kTextType_Corner			 then r,g,b =3D 1,0,0 end	=
+
+@@ -125,15 +130,18 @@
+ 	if data.type =3D=3D kTextType_Alliance			 then r,g,b =3D 0,1,0 end	=
+
+ 	if data.type =3D=3D kTextType_CommandPrompt		 then r,g,b =3D 1,0,1 end		=
+
+ 	=
+
++	gProfiler_Text:Section(&quot;GetHueColor&quot;)
+ 	if data.hue then r,g,b =3D GetHueColor(data.hue-1) end
+ 	=
+
+ 	=
+
+ 	-- update label
+ 	=
+
++	gProfiler_Text:Section(&quot;GetOrCreateLabelCache&quot;)
+ 	local labelcache =3D GetOrCreateLabelCache(serial)
+ 	local bLabelUpdate =3D false
+ 	local bIsPetLabel =3D false
+ 	if (data.clilocid =3D=3D 502006 or data.clilocid =3D=3D 1049608) then bIs=
+Label =3D true bIsPetLabel =3D true end -- (tame) (bonded)
++	gProfiler_Text:Section(&quot;labelcache insert&quot;)
+ 	if (data.type =3D=3D kTextType_Label or bIsPetLabel) then
+ 		labelcache.name =3D data.name
+ 		if (labelcache.bClearOnNextLabel) then =
+
+@@ -152,8 +160,10 @@
+ 		gItemGuildLabelCache[serial] =3D data.text =
+
+ 		bLabelUpdate =3D true
+ 	end -- guild tag
++	gProfiler_Text:Section(&quot;UpdateLabelCache&quot;)
+ 	if (bLabelUpdate) then UpdateLabelCache(serial) end
+ 	=
+
++	gProfiler_Text:Section(&quot;IsOrWasMobile&quot;)
+ 	local bIsOrWasMobile =3D IsOrWasMobile(serial)
+ 	local bIsAutoGenerated =3D gAutoGeneratedSingleClicks[serial]
+ 	data.bIsAutoGenerated =3D bIsAutoGenerated and bIsLabel
+@@ -170,8 +180,10 @@
+ 	=
+
+ 	--~ Mobile_NameHint(data.serial,data.artid,data.name,data.text)  -- name =
+alone ??
+ 	=
+
++	gProfiler_Text:Section(&quot;UnicodeFix&quot;)
+ 	local plaintext =3D UnicodeFix(string.gsub(data.text,&quot;&lt;br&gt;&quot;,&quot;\n&quot;))
+ 	=
+
++	gProfiler_Text:Section(&quot;GuiAddChatLine&quot;)
+ 	if show_below then
+ 		if string.len(data.name) &gt; 0 then =
+
+ 			GuiAddChatLine(sprintf(&quot;%s: %s&quot;,data.name,plaintext),{r,g,b,1})
+@@ -180,15 +192,19 @@
+ 		end
+ 	end
+ 	=
+
++	gProfiler_Text:Section(&quot;JournalAddText&quot;)
+ 	if show_journal or show_below then print(&quot;HandleUOText&quot;,plaintext,data.cl=
+ilocid) end
+ 	if show_journal then
+ 		JournalAddText(data.name,plaintext)
+ 	end
+ =
+
++	gProfiler_Text:Section(&quot;Hook_Text&quot;)
+ 	NotifyListener(&quot;Hook_Text&quot;,data.name,plaintext,data.serial,data)
+ 	=
+
++	gProfiler_Text:Section(&quot;DisplayTextOverHead&quot;)
+ 	if (mobile and (not bIsLabel)) then mobile:DisplayTextOverHead(plaintext,=
+r,g,b) end
+ 	=
+
++	gProfiler_Text:Section(&quot;Hook_MobName&quot;)
+ 	NotifyListener(&quot;Hook_MobName&quot;,data.serial,data.name)
+ 	=
+
+ 	if (gDebugUOTextMessages and (not data.bIsGuildTagLabel) and (data.type ~=
+=3D kTextType_Label)) then =
+
+@@ -196,6 +212,7 @@
+ 	end
+ 	--~ print(&quot;HandleUOText&quot;,sprintf(&quot;0x%02x&quot;,data.packet or 0),data.type,bIs=
+Label,data.name,plaintext)
+ 	--~ if (data.serial =3D=3D 0xffffffff and data.artid =3D=3D 0xffff) then =
+sysmessage ?? decide by type
++	gProfiler_Text:End()
+ end
+ =
+
+ -- ***** ***** ***** ***** ***** incoming text packets
+
+Modified: trunk/plugins/lib.spellbar.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/plugins/lib.spellbar.lua (original)
++++ trunk/plugins/lib.spellbar.lua Wed Jan 14 02:03:51 2009
+@@ -143,7 +143,10 @@
+ gSpellbarEffectShortMessages[0x37B9 ] =3D {r=3D1,g=3D0,b=3D0,txt=3D&quot;reflec=
+t&quot; } -- Magic Reflection (preaos) or parrying
+ 	=
+
+ gSpellbarAnimationShortMessages =3D {}
+-gSpellbarAnimationShortMessages[11 ] =3D {r=3D0.5,g=3D0.5,b=3D0.5,txt=3D&quot;s=
+wing&quot; } -- melee combat : swing weapon
++gSpellbarAnimationShortMessages[4  ] =3D {r=3D0.5,g=3D0.5,b=3D0.5,txt=3D&quot;s=
+wing3&quot; } -- melee combat : swing weapon  (monster) or get hit ?
++gSpellbarAnimationShortMessages[10 ] =3D {r=3D0.5,g=3D0.5,b=3D0.5,txt=3D&quot;s=
+wing&quot; } -- melee combat : swing weapon  (monster)
++gSpellbarAnimationShortMessages[11 ] =3D {r=3D0.5,g=3D0.5,b=3D0.5,txt=3D&quot;s=
+wing3&quot; } -- melee combat : swing weapon
++gSpellbarAnimationShortMessages[29 ] =3D {r=3D0.5,g=3D0.5,b=3D0.5,txt=3D&quot;s=
+wing4&quot; } -- melee combat : swing weapon
+ gSpellbarAnimationShortMessages[20 ] =3D {r=3D0.5,g=3D0.5,b=3D0.5,txt=3D&quot;g=
+ethit&quot; } -- melee combat : take damage
+ gSpellbarAnimationShortMessages[34 ] =3D {r=3D0.5,g=3D0.5,b=3D0.5,txt=3D&quot;d=
+rinkpot&quot; }
+ gSpellbarAnimationShortMessages[92 ] =3D {r=3D0.8,g=3D0.5,b=3D0.5,txt=3D&quot;f=
+izzle&quot; } -- spellfail
+@@ -255,7 +258,7 @@
+ RegisterListener(&quot;Hook_Packet_Animation&quot;,	function (animdata)
+ 	local short =3D gSpellbarAnimationShortMessages[animdata.m_animation] =
+
+ 	if (short) then SpellBarRiseTextOnMob(animdata.mobileserial,short.r,short=
+.g,short.b,short.txt) end
+-	--~ if ((not short) and gDebugSpellbarAnim) then SpellBarRiseTextOnMob(an=
+imdata.mobileserial,0.5,0.5,0.5,&quot;Anim:&quot;..animdata.m_animation) print(&quot;spell=
+bar:anim:&quot;,animdata.m_animation) end
++	if ((not short) and gDebugSpellbarAnim) then SpellBarRiseTextOnMob(animda=
+ta.mobileserial,0.5,0.5,0.5,&quot;Anim:&quot;..animdata.m_animation) print(&quot;spellbar:=
+anim:&quot;,animdata.m_animation) end
+ end)
+ =
+
+ RegisterListener(&quot;Hook_Packet_Sound&quot;,	function (sounddata)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001665.html">[Iris-commit] [IRIS] r2863 - in /trunk/lua: lib.2d.mobile.lua lib.2d.spriteblock.lua main.lua net/net.text.lua
+</A></li>
+	<LI>Next message: <A HREF="001667.html">[Iris-commit] [IRIS] r2865 - in /trunk: data/models/materials/textures.material lua/lib.3d.map.lua lua/lib.debugmenu.lua lua/lib.iris_atlasgroup.lua premake.lua premakelinux.sh
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1666">[ date ]</a>
+              <a href="thread.html#1666">[ thread ]</a>
+              <a href="subject.html#1666">[ subject ]</a>
+              <a href="author.html#1666">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

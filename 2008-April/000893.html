@@ -1,0 +1,167 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2082 - /trunk/lua/lib.3d.dynamic.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-April/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2082%20-%20/trunk/lua/lib.3d.dynamic.lua&In-Reply-To=%3C20080423090005.EA75B1C18578%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000892.html">
+   <LINK REL="Next"  HREF="000894.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2082 - /trunk/lua/lib.3d.dynamic.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2082%20-%20/trunk/lua/lib.3d.dynamic.lua&In-Reply-To=%3C20080423090005.EA75B1C18578%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2082 - /trunk/lua/lib.3d.dynamic.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Wed Apr 23 10:08:56 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000892.html">[Iris-commit] [IRIS] r2081 - in /trunk/lua: gui/gui.quit.lua	lib.keybinds.lua
+</A></li>
+        <LI>Next message: <A HREF="000894.html">[Iris-commit] [IRIS] r2083 - in /trunk/lua: lib.debugmenu.lua lib.mainmenu.lua lib.terrain.multitex.lua lib.tilefreewalk.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#893">[ date ]</a>
+              <a href="thread.html#893">[ thread ]</a>
+              <a href="subject.html#893">[ subject ]</a>
+              <a href="author.html#893">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: hagish
+Date: Wed Apr 23 10:08:56 2008
+New Revision: 2082
+
+Log:
+3d renderer: delete dynamic from map on destroy callback
+
+Modified:
+    trunk/lua/lib.3d.dynamic.lua
+
+Modified: trunk/lua/lib.3d.dynamic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.dynamic.lua (original)
++++ trunk/lua/lib.3d.dynamic.lua Wed Apr 23 10:08:56 2008
+@@ -8,6 +8,7 @@
+ Renderer3D.gFastBatchDynamicsUpdateNext =3D nil
+ Renderer3D.gFastBatchDynamicsUpdateNextTimout =3D 500
+ Renderer3D.gFastBatchDynamicsMap =3D CreateArray2D()
++Renderer3D.gFastBatchDynamicsMapDestroyListener =3D nil
+ =
+
+ -- helperfunction for CreateDynamicGfx. Please use always for function call
+ function Renderer3D:AddDynamicItem( item )
+@@ -103,7 +104,21 @@
+ 	end
+ end
+ =
+
++function Renderer3D:ShowDynamicMapStats	()
++	Array2DForAll(Renderer3D.gFastBatchDynamicsMap, function(v,x,y)
++		print(&quot;BLOCK&quot;,x,y,v.miCount)
++	end)
++end
++
+ function Renderer3D:AddDynamicToMap	(dynamic)
++	-- initialise destroy listener
++	if not Renderer3D.gFastBatchDynamicsMapDestroyListener then
++		Renderer3D.gFastBatchDynamicsMapDestroyListener =3D RegisterListener(&quot;Dy=
+namic_Destroy&quot;, function(dynamic)
++			Renderer3D:RemoveDynamicFromMap(dynamic)
++			Renderer3D:ShowDynamicMapStats()
++		end)
++	end
++
+ 	local bx =3D math.floor(dynamic.xloc/8)
+ 	local by =3D math.floor(dynamic.yloc/8)
+ 	=
+
+@@ -119,6 +134,8 @@
+ 		e.mlDynamic[dynamic.serial] =3D dynamic
+ 		Renderer3D.gFastBatchDynamicsUpdateNeeded =3D true
+ 	end
++	=
+
++	Renderer3D:ShowDynamicMapStats()
+ end
+ =
+
+ function Renderer3D:RemoveDynamicFromMap	(dynamic)
+@@ -140,6 +157,25 @@
+ 			if e.mFastBatch then e.mFastBatch:Destroy() end
+ 			Array2DSet(Renderer3D.gFastBatchDynamicsMap, bx,by, nil)
+ 		end
++	end
++end
++
++-- untested
++function Renderer3D:RemoveDynamicBlock	(blockx,blocky)
++	if Array2DGet(Renderer3D.gFastBatchDynamicsMap, blockx,blocky) then
++		print(&quot;RemoveDynamicBlock&quot;,blockx,blocky)
++		local e =3D Array2DGet(Renderer3D.gFastBatchDynamicsMap, blockx,blocky)
++		=
+
++		-- remove all dynamics
++		for k,v in pairs(e.mlDynamic) do
++			e.miCount =3D e.miCount - 1
++			e.mlDynamic[k] =3D nil
++			print(&quot;RemoveDynamicBlock: remove serial&quot;,k)
++		end
++
++		-- and kill the block
++		if e.mFastBatch then e.mFastBatch:Destroy() end
++		Array2DSet(Renderer3D.gFastBatchDynamicsMap, blockx,blocky, nil)
+ 	end
+ end
+ =
+
+@@ -564,8 +600,9 @@
+ 		dynamic.gfx =3D nil
+ 	end
+ =
+
++	--[[ handled by on destroy listener
+ 	if gFastBatchDynamics then =
+
+ 		Renderer3D:RemoveDynamicFromMap	(dynamic)
+ 	end
+-	=
+
+-end
++	]]
++end
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000892.html">[Iris-commit] [IRIS] r2081 - in /trunk/lua: gui/gui.quit.lua	lib.keybinds.lua
+</A></li>
+	<LI>Next message: <A HREF="000894.html">[Iris-commit] [IRIS] r2083 - in /trunk/lua: lib.debugmenu.lua lib.mainmenu.lua lib.terrain.multitex.lua lib.tilefreewalk.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#893">[ date ]</a>
+              <a href="thread.html#893">[ thread ]</a>
+              <a href="subject.html#893">[ subject ]</a>
+              <a href="author.html#893">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

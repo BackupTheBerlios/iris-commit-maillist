@@ -1,0 +1,668 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r3291 - /trunk/lua/lib.thread.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2010-March/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3291%20-%20/trunk/lua/lib.thread.lua&In-Reply-To=%3C20100320135732.E5FC57A98079%40simon%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="002050.html">
+   <LINK REL="Next"  HREF="002052.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r3291 - /trunk/lua/lib.thread.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3291%20-%20/trunk/lua/lib.thread.lua&In-Reply-To=%3C20100320135732.E5FC57A98079%40simon%3E"
+       TITLE="[Iris-commit] [IRIS] r3291 - /trunk/lua/lib.thread.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat Mar 20 14:57:32 CET 2010</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="002050.html">[Iris-commit] [IRIS] r3290 - /trunk/installdeps.ubuntu.sh
+</A></li>
+        <LI>Next message: <A HREF="002052.html">[Iris-commit] [IRIS] r3292 - /trunk/lua/lib.thread.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2051">[ date ]</a>
+              <a href="thread.html#2051">[ thread ]</a>
+              <a href="subject.html#2051">[ subject ]</a>
+              <a href="author.html#2051">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: hagish
+Date: Sat Mar 20 14:57:32 2010
+New Revision: 3291
+
+Log:
+* queuing calls to a thread
+* you can obtain the result via callback or polling
+
+Modified:
+    trunk/lua/lib.thread.lua
+
+Modified: trunk/lua/lib.thread.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.thread.lua (original)
++++ trunk/lua/lib.thread.lua Sat Mar 20 14:57:32 2010
+@@ -1,159 +1,238 @@
+ function RunThreadTest () RunThreadTest_Main() end  --  -threadtest
+ -- idea hagish : helper-class to create message-handling thread that can b=
+e serialized as option for easier debugging (decide at create if a real thr=
+ead is started or a thread-object that handles messages directly)
+ =
+
+-
+-
+-
+--- see lib.netmessage.lua  for message system
++function ack(n, m)
++	--~ print(&quot;ack&quot;,n,m)
++	while n ~=3D 0 do
++		if m =3D=3D 0 then
++			m =3D 1
++		else
++			m =3D ack(n, m-1)
++		end
++		=
+
++		n =3D n - 1
++	end
++	=
+
++    return m + 1
++end
++
++function stupidCounter(count)
++	print(&quot;CHILD stupidCounter&quot;, count)
++	local x =3D 0
++	for i=3D1,count do
++		x =3D x + 1
++		Thread_Sleep(1000)
++	end
++	return x
++end
++
++function ThreadChildMainLoop()
++	-- from global scope: this_thread, this_fifo_send, this_fifo_recv
++	=
+
++	local SendResult =3D function(id, ok, ret)
++		this_thread:LockMutex()
++		=
+
++		this_fifo_send:PushU(id)
++		this_fifo_send:PushU(ok)
++		FIFOPushNetSimpleTable(ret, this_fifo_send)
++		=
+
++		this_thread:UnLockMutex()
++	end
++	=
+
++	local HandleCall =3D function(id, funName, params)
++		print(&quot;HANDLECALL&quot;, id, funName, unpack(params))
++		local fun =3D _G[funName]
++		=
+
++		if fun then
++			SendResult(id, 1, {fun(unpack(params))})
++		else
++			SendResult(id, 0, {})
++		end
++	end
++	=
+
++	while true do
++		this_thread:LockMutex()
++		=
+
++		local id,funName,params =3D nil,nil,nil
++		local len =3D this_fifo_recv:Size()
++		=
+
++		if len &gt; 0 then
++			id =3D this_fifo_recv:PopU()
++			funName =3D this_fifo_recv:PopS()
++			params =3D FIFOPopNetSimpleTable(this_fifo_recv)
++		end
++		=
+
++		this_thread:UnLockMutex()
++		=
+
++		if id then
++			HandleCall(id, funName, params)
++		else
++			Thread_Sleep(1000)
++		end
++	end
++end
++
+ --[[
+-	RecvNetMessages (fifo,callback)
+-
+-	-- receive messages from clients
+-	RecvNetMessages(myplayer.netRecvFifo,function (msgtype,...) =
+
+-			local msgtypename =3D gNetMessageTypeName[msgtype]
+-			if (gMessageTypeHandler_Server[msgtypename]) then =
+
+-				gMessageTypeHandler_Server[msgtypename](myplayer,unpack(arg))
++local t =3D CreateExtendedLuaThread(&quot;bla.lua&quot;)
++t:queueCall(&quot;ack&quot;, 3,3)
++local id,ok,ret =3D t:pickupResult()
++]]
++function CreateExtendedLuaThread(file)
++	local thread =3D CreateLuaThread(file)
++	=
+
++	thread.fifo_send		=3D thread:CreateFifoParent2ChildHandle()
++	thread.fifo_recv		=3D thread:CreateFifoChild2ParentHandle()
++	thread.nextCallId		=3D 1
++	thread.callsRunning 	=3D 0
++	thread.callbackTable	=3D {}
++	thread.resultTable		=3D {}
++	=
+
++	thread.isIdValid =3D function(self, id)
++		if self.resultTable[id] or self.callbackTable[id] then
++			return true
++		else
++			return false
++		end
++	end
++	=
+
++	thread.isResultAvailable =3D function(self, id)
++		if self.resultTable[id] and type(self.resultTable[id]) =3D=3D &quot;table&quot; th=
+en =
+
++			return true =
+
++		else =
+
++			return false =
+
++		end
++	end
++	=
+
++	thread.step =3D function(self)
++		while true do
++			local id,ok,ret =3D self:_getResult()
++			=
+
++			if id then
++				if self.callbackTable[id] then
++					-- send result via callback
++					self.callbackTable[id](id,ok,ret)
++					self.callbackTable[id] =3D nil
++					self.resultTable[id] =3D nil
++				else
++					-- store result for picking up later
++					self.resultTable[id] =3D {ok, ret}
++				end
++			else
++				return
+ 			end
+-			NotifyListener(&quot;Hook_Server_RecvNetMsg&quot;,myplayer,msgtype,unpack(arg))
+-		end)
+-		=
+
+-	FPush(gSendFifo,gNetMessageParamFormat[msgtype],...)
+-
+-	gMessageTypeHandler_Client.kNetMessage_Chat =3D function (iParam,iFlags,s=
+ChatText)  .. end
+-	=
+
+-	RegisterNetMessageType(&quot;kNetMessage_Chat&quot;						,&quot;iis&quot;)			-- sent by serve=
+r and client : param,flags,chattext (used for client and server, if from cl=
+ient then param =3D target else param =3D from)
++		end
++	end
++	=
+
++	thread._generateNextId =3D function(self)
++		local id =3D self.nextCallId
++		self.nextCallId =3D self.nextCallId + 1
++		return id
++	end
++	=
+
++	-- callback : function(id,ok,ret)
++	thread.queueCallWithCallback =3D function(self, callback, funName, ...)
++		local id =3D self:queueCall(funName, ...)
++		self.callbackTable[id] =3D callback
++	end
++	=
+
++	thread.queueCall =3D function(self, funName, ...)
++		local id =3D self:_generateNextId()
++		local fifo =3D self.fifo_send
++		=
+
++		self:LockMutex()
++		=
+
++		self.resultTable[id] =3D true
++		=
+
++		fifo:PushU(id)
++		fifo:PushS(funName)
++		FIFOPushNetSimpleTable({...}, fifo)
++	=
+
++		self.callsRunning =3D self.callsRunning + 1
++	=
+
++		self:UnLockMutex()
++		=
+
++		self:Interrupt()
++		=
+
++		return id
++	end
++	=
+
++	thread.waitForAllBlocking =3D function(self)
++		while self.callsRunning &gt; 0 do
++			--~ print(&quot;still running&quot;, self.callsRunning)
++			self:step()
++			Client_USleep(1000 / 100)
++		end
++		--~ print(&quot;all finished&quot;)
++	end
++	=
+
++	thread.pickupResult =3D function(self, id)
++		if self:isIdValid(id) then
++			while not self:isResultAvailable(id) do
++				self:step()
++				Client_USleep(1000 / 100)
++			end
+ 			=
+
+-	RegisterNetMessageFormatWrapper(&quot;o&quot;,&quot;i&quot;,function (obj) return obj and obj=
+.id or 0 end,  -- obj2id  =
+
+-											function (objid) return GetObject(objid) end)	-- id2obj
+-
+-											=
+
+-	function FIFOPushNetSimpleTable(tbl, fifo)
+-	function FIFOPopNetSimpleTable(fifo)
+-]]--
+-
+---[[
+-gConfig:DeclareEnum(&quot;gGroundBlockLoaderType&quot;	, &quot;loader&quot;, &quot;ground loader&quot;		=
+, 'TODO', &quot;Blockwise&quot;, {&quot;OnDemand&quot;,&quot;FullFile&quot;,&quot;Blockwise&quot;})
+-gConfig:DeclareEnum(&quot;gStaticBlockLoaderType&quot;	, &quot;loader&quot;, &quot;static loader&quot;		=
+, 'TODO', &quot;FullFile&quot;, {&quot;FullFile&quot;})
+-gConfig:DeclareEnum(&quot;gRadarColorLoaderType&quot;		, &quot;loader&quot;, &quot;radar color load=
+er&quot;, 'TODO', &quot;FullFile&quot;, {&quot;FullFile&quot;})
+-gConfig:DeclareEnum(&quot;gTileTypeLoaderType&quot;		, &quot;loader&quot;, &quot;tile type loader&quot;	=
+, 'TODO', &quot;FullFile&quot;, {&quot;FullFile&quot;})
+-gConfig:DeclareEnum(&quot;gTexMapLoaderType&quot;			, &quot;loader&quot;, &quot;tex map loader&quot;	, '=
+TODO', &quot;FullFile&quot;, {&quot;FullFile&quot;})
+-gConfig:DeclareEnum(&quot;gArtMapLoaderType&quot;			, &quot;loader&quot;, &quot;art map loader&quot;	, '=
+TODO', &quot;OnDemand&quot;, {&quot;OnDemand&quot;,&quot;FullFile&quot;})
+-gConfig:DeclareEnum(&quot;gGumpLoaderType&quot;			, &quot;loader&quot;, &quot;gump loader&quot;		, 'TODO=
+', &quot;OnDemand&quot;, {&quot;OnDemand&quot;,&quot;FullFile&quot;})
+-gConfig:DeclareEnum(&quot;gClilocLoaderType&quot;			, &quot;loader&quot;, &quot;cliloc loader&quot;		, '=
+TODO', &quot;FullFile&quot;, {&quot;FullFile&quot;})
+-gConfig:DeclareEnum(&quot;gSoundLoaderType&quot;			, &quot;loader&quot;, &quot;sound loader&quot;		, 'TO=
+DO', &quot;OnDemand&quot;, {&quot;OnDemand&quot;,&quot;FullFile&quot;})
+-gConfig:DeclareEnum(&quot;gSpeechLoaderType&quot;			, &quot;loader&quot;, &quot;speech loader&quot;		, '=
+TODO', &quot;FullFile&quot;, {&quot;FullFile&quot;})
+-gConfig:DeclareEnum(&quot;gHueLoaderType&quot;			, &quot;loader&quot;, &quot;hue loader&quot;		, 'TODO',=
+ &quot;FullFile&quot;, {&quot;FullFile&quot;})
+-gConfig:DeclareEnum(&quot;gAnimLoaderType&quot;			, &quot;loader&quot;, &quot;anim loader&quot;		, 'TODO=
+', &quot;Blockwise&quot;, {&quot;OnDemand&quot;,&quot;FullFile&quot;,&quot;Blockwise&quot;})
+-gConfig:DeclareEnum(&quot;gMultiLoaderType&quot;			, &quot;loader&quot;, &quot;multi loader&quot;		, 'TO=
+DO', &quot;FullFile&quot;, {&quot;FullFile&quot;})
+-gConfig:DeclareEnum(&quot;gStitchinLoaderType&quot;		, &quot;loader&quot;, &quot;stitchin loader&quot;	,=
+ 'TODO', &quot;FullFile&quot;, {&quot;FullFile&quot;})
+-gConfig:DeclareEnum(&quot;gAnimDataLoaderType&quot;		, &quot;loader&quot;, &quot;anim data loader&quot;	=
+, 'TODO', &quot;FullFile&quot;, {&quot;FullFile&quot;})
+-gConfig:DeclareEnum(&quot;gGrannyLoaderType&quot;			, &quot;loader&quot;, &quot;granny loader&quot;		, '=
+TODO', &quot;OnDemand&quot;, {&quot;OnDemand&quot;})
+-gConfig:DeclareEnum(&quot;gUniFontLoaderType&quot;		, &quot;loader&quot;, &quot;uni font loader&quot;	, =
+'TODO', &quot;FullFile&quot;, {&quot;FullFile&quot;})
+-]]--
+-
+-function RunThreadTest_RegisterMessageTypes ()
+-	RegisterNetMessageType(&quot;kThreadMessage_Debug&quot;,&quot;iis&quot;)
+-	RegisterNetMessageType(&quot;kThreadMessage_TransferPointer&quot;,&quot;p&quot;)
+-	RegisterNetMessageType(&quot;kThreadMessage_TransferBuffer&quot;,&quot;x&quot;)
++			local ok,ret =3D unpack(self.resultTable[id])
++			return ok,ret
++		end
++		=
+
++		return 0,{}
++	end
++	=
+
++	thread._getResult =3D function(self)
++		--~ print(&quot;------_getResult&quot;, self, self.fifo_recv)
++		local fifo =3D self.fifo_recv
++		=
+
++		local id,ok,ret =3D nil,nil,nil
++	=
+
++		self:LockMutex()
++		=
+
++		local len =3D fifo:Size()
++		if len &gt; 0 then
++			id =3D fifo:PopU()
++			ok =3D fifo:PopU()
++			ret =3D FIFOPopNetSimpleTable(fifo)
++			self.callsRunning =3D self.callsRunning - 1
++		end
++		=
+
++		self:UnLockMutex()
++		=
+
++		return id,ok,ret
++	end
++	=
+
++	return thread
+ end
+ =
+
+ function RunThreadTest_Main ()
+-
+-	if (1 =3D=3D 2) then =
+
+-		local fifo =3D CreateFIFO()
+-		local p =3D fifo:GetCrossThreadHandle()
+-		print(&quot;GetCrossThreadHandle&quot;,p)
+-		local fifo3 =3D CreateFIFO()
+-		local fifo4 =3D CreateFIFO()
+-		local fifo5 =3D CreateFIFO()
+-		local fifo6 =3D CreateFIFO()
+-		fifo3:PushPointer(p)
+-		fifo4:PushPointer2(p)
+-		fifo5:PushPointerTest()
+-		fifo6:PushNetUint32(0x12345678)
+-		print(&quot;fifo3:Size() a&quot;,fifo3:Size())
+-		print(&quot;fifo3:Size() raw3&quot;,hex(fifo3:PeekNetUint8(0)),hex(fifo3:PeekNetUi=
+nt8(1)),hex(fifo3:PeekNetUint8(2)),hex(fifo3:PeekNetUint8(3)))
+-		print(&quot;fifo3:Size() raw4&quot;,hex(fifo4:PeekNetUint8(0)),hex(fifo4:PeekNetUi=
+nt8(1)),hex(fifo4:PeekNetUint8(2)),hex(fifo4:PeekNetUint8(3)))
+-		print(&quot;fifo3:Size() raw5&quot;,hex(fifo5:PeekNetUint8(0)),hex(fifo5:PeekNetUi=
+nt8(1)),hex(fifo5:PeekNetUint8(2)),hex(fifo5:PeekNetUint8(3)))
+-		print(&quot;fifo3:Size() raw6&quot;,hex(fifo6:PeekNetUint8(0)),hex(fifo6:PeekNetUi=
+nt8(1)),hex(fifo6:PeekNetUint8(2)),hex(fifo6:PeekNetUint8(3)))
+-		local p2 =3D fifo3:PopPointer()
+-		print(&quot;fifo3:Size() b&quot;,fifo3:Size())
+-		print(&quot;fifo pointer test p,p2=3D&quot;,p,p2,p =3D=3D p2) =
+
+-		assert(p =3D=3D p2)
+-		local fifo2 =3D CreateFIFOFromCrossThreadHandle(p2)
+-		print(&quot;CreateFIFOFromCrossThreadHandle&quot;,fifo2)
+-		print(&quot; Size&quot;,fifo2:Size())
+-		fifo:PushNetUint8(123)
+-		print(&quot; Size&quot;,fifo2:Size())
+-	end
+-	=
+
+ 	=
+
+ 	print(&quot;main: Threads_GetHardwareConcurrency:&quot;, Threads_GetHardwareConcurr=
+ency())
+-	RunThreadTest_RegisterMessageTypes()
+-	=
+
+-	local thread =3D CreateLuaThread(&quot;../mythread.lua&quot;)
+-	print(&quot;main: child started&quot;)
+-	--~ thread:Interrupt()
+-	--~ Client_Sleep(1) =
+
+-	=
+
+-	--~ Client_USleep(1*1000)
+-	--~ Thread_Sleep(1*1000)
+-	=
+
+-	print(&quot;main: lock and send..&quot;)
+-	local fifo_send =3D thread:CreateFifoParent2ChildHandle()
+-	local fifo_recv =3D thread:CreateFifoChild2ParentHandle()
+-	=
+
+-	function MySend (msgtype,...)
+-		thread:LockMutex()
+-		SendNetMessageFifo(fifo_send,msgtype,...)
+-		thread:UnLockMutex()
+-		thread:Interrupt()
+-	end
+-	=
+
+-	=
+
+-	local message_handlers =3D {}
+-	message_handlers[kThreadMessage_TransferBuffer] =3D function (fifo)
+-		print(&quot;mainthread:kThreadMessage_TransferBuffer received, data:&quot;,fifo)
+-		print(FIFOHexDump(fifo))
+-	end
+-	=
+
+-	=
+
+-	local local_fifo_recv =3D CreateFIFO()
+-	function MyRecvMessages ()
+-		thread:LockMutex()
+-		local_fifo_recv:PushFIFOPartRaw(fifo_recv) -- move data from this_fifo_r=
+ecv to local_fifo_recv
+-		fifo_recv:Clear()
+-		thread:UnLockMutex()
+-		RecvNetMessages(local_fifo_recv,function (msgtype,...) =
+
+-			print(&quot;main:msg&quot;,msgtype,...) =
+
+-			local handler =3D message_handlers[msgtype]
+-			if (handler) then handler(...) end
+-		end)
+-	end
+-	=
+
+-	print(&quot;main: sleep...&quot;)
+-	Client_USleep(2*1000) =
+
+-	--~ print(&quot;main: send interrupt...&quot;)
+-	--~ thread:Interrupt()
+-	=
+
+-	=
+
+-	for i=3D1,10 do =
+
+-		print(&quot;main:send&quot;)
+-		MyRecvMessages()
+-		MySend(kThreadMessage_Debug,i,42,&quot;bla!&quot;)
+-		MySend(kThreadMessage_Debug,i,42,&quot;bla2!&quot;)
+-		--~ local fifo2 =3D CreateFIFO()
+-		--~ local crossp =3D fifo2:GetCrossThreadHandle()
+-		--~ print(&quot;sending crossp&quot;,crossp)
+-		--~ MySend(kThreadMessage_TransferPointer,crossp)
+-		MySend(kThreadMessage_TransferBuffer,CreateFIFO())
+-		Client_USleep(2*1000) =
+
+-	end
+-	=
+
+-	print(&quot;main: done, sleeping before end...&quot;)
+-	Client_USleep(5*60*1000) =
+
+-	print(&quot;main: end&quot;)
+-	os.exit(0)
++	=
+
++	local t =3D CreateExtendedLuaThread(&quot;../mythread.lua&quot;)
++	t:queueCall(&quot;ack&quot;, 3,3)
++	t:queueCall(&quot;stupidCounter&quot;, 5)
++	t:queueCall(&quot;ack&quot;, 2,2)
++	t:queueCall(&quot;ack&quot;, 2,1)
++	=
+
++	t:queueCallWithCallback(
++		function(id, ok, ret) =
+
++			print(&quot;CALLBACK&quot;, id, ok, unpack(ret))
++		end, =
+
++		&quot;ack&quot;, 3,1)
++	=
+
++	local ok,ret =3D t:pickupResult(1)
++	print(&quot;RESULT&quot;,1,ok,unpack(ret))
++	=
+
++	local ok,ret =3D t:pickupResult(2)
++	print(&quot;RESULT&quot;,2,ok,unpack(ret))
++	=
+
++	local ok,ret =3D t:pickupResult(3)
++	print(&quot;RESULT&quot;,3,ok,unpack(ret))
++	=
+
++	t:waitForAllBlocking()
++	print(&quot;all finished&quot;)
++	=
+
++	Client_Sleep(10)
++	os.exit(1)
+ end
+ =
+
+ function RunThreadTest_Child () =
+
+@@ -162,61 +241,12 @@
+ 	dofile(lugreluapath..&quot;lib.util.lua&quot;) =
+
+ 	dofile(lugreluapath..&quot;lib.fifo.lua&quot;) =
+
+ 	dofile(lugreluapath..&quot;lib.netmessage.lua&quot;) =
+
+-	RunThreadTest_RegisterMessageTypes()
+-	--~ Thread_Sleep(5*1000)
+-	=
+
+-	=
+
+-	function ChildThread_Send (msgtype,...)
+-		this_thread:LockMutex()
+-		SendNetMessageFifo(this_fifo_send,msgtype,...)
+-		this_thread:UnLockMutex()
+-	end
+-	=
+
+-	local message_handlers =3D {}
+-	message_handlers[kThreadMessage_TransferPointer] =3D function (p) =
+
+-		print(&quot;child:kThreadMessage_TransferPointer&quot;,p) =
+
+-		local fifo2 =3D CreateFIFOFromCrossThreadHandle(p)
+-		print(&quot; + transferred to fifo:&quot;,fifo2)
+-	end
+-	message_handlers[kThreadMessage_TransferBuffer] =3D function (fifo)
+-		print(&quot;child:kThreadMessage_TransferBuffer received, filling and sending=
+ back&quot;,fifo)
+-		fifo:PushNetUint8(0xff)
+-		fifo:PushNetUint8(0x11)
+-		fifo:PushNetUint8(0x22)
+-		ChildThread_Send(kThreadMessage_TransferBuffer,fifo) =
+
+-		print(&quot;child:kThreadMessage_TransferBuffer done&quot;)
+-	end
+-	=
+
+-	=
+
+-	local local_fifo_recv =3D CreateFIFO()
+-	while (true) do =
+
+-		this_thread:LockMutex()
+-		local_fifo_recv:PushFIFOPartRaw(this_fifo_recv) -- move data from this_f=
+ifo_recv to local_fifo_recv
+-		this_fifo_recv:Clear()
+-		this_thread:UnLockMutex() -- release so we don't block while processing =
+messages
+-		RecvNetMessages(local_fifo_recv,function (msgtype,...) =
+
+-				print(&quot;child:msg&quot;,msgtype,...) =
+
+-				ChildThread_Send(kThreadMessage_Debug,99,99,&quot;answer&quot;) =
+
+-				local handler =3D message_handlers[msgtype]
+-				if (handler) then handler(...) end
+-				end)
+-		Thread_Sleep(999*1000)
+-	end
+-	=
+
+-
+-	--~ print(&quot;child: getmutex&quot;)
+-
+-	--~ for i=3D1,211 do =
+
+-		--~ print(&quot;child: sleeping&quot;)
+-		--~ if (Thread_Sleep(1*1000)) then print(&quot;child: interrupted&quot;) break end
+-	--~ end
+-
+-	--~ print(&quot;child: lock and read...&quot;)
+-	--~ this_thread:LockMutex()
+-	--~ print(&quot;child: FifoSizeRecv&quot;,this_fifo_recv:Size())
+-	--~ print(&quot;child: FifoSizeSend&quot;,this_fifo_send:Size())
+-	--~ this_thread:UnLockMutex()
++	=
+
++	ThreadChildMainLoop()
+ =
+
+ 	print(&quot;child: ended&quot;)
+ end
+ =
+
++
++
++
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="002050.html">[Iris-commit] [IRIS] r3290 - /trunk/installdeps.ubuntu.sh
+</A></li>
+	<LI>Next message: <A HREF="002052.html">[Iris-commit] [IRIS] r3292 - /trunk/lua/lib.thread.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2051">[ date ]</a>
+              <a href="thread.html#2051">[ thread ]</a>
+              <a href="subject.html#2051">[ subject ]</a>
+              <a href="author.html#2051">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

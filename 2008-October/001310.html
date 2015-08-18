@@ -1,0 +1,153 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2505 - in /trunk/lua: lib.3d.mousepick.lua lib.mapblock.3d.multis.lua net/net.multi.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-October/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2505%20-%20in%20/trunk/lua%3A%20lib.3d.mousepick.lua%0A%20lib.mapblock.3d.multis.lua%20net/net.multi.lua&In-Reply-To=%3C20081003214343.0B6621C1876C%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001309.html">
+   <LINK REL="Next"  HREF="001311.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2505 - in /trunk/lua: lib.3d.mousepick.lua lib.mapblock.3d.multis.lua net/net.multi.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2505%20-%20in%20/trunk/lua%3A%20lib.3d.mousepick.lua%0A%20lib.mapblock.3d.multis.lua%20net/net.multi.lua&In-Reply-To=%3C20081003214343.0B6621C1876C%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2505 - in /trunk/lua: lib.3d.mousepick.lua lib.mapblock.3d.multis.lua net/net.multi.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Fri Oct  3 23:43:42 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001309.html">[Iris-commit] [IRIS] r2504 - in /trunk/lua: lib.2d.hudfx.lua	lib.2d.mobile.lua net.walk.lua
+</A></li>
+        <LI>Next message: <A HREF="001311.html">[Iris-commit] [IRIS] r2506 - /trunk/lua/lib.macrolist.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1310">[ date ]</a>
+              <a href="thread.html#1310">[ thread ]</a>
+              <a href="subject.html#1310">[ subject ]</a>
+              <a href="author.html#1310">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Fri Oct  3 23:43:41 2008
+New Revision: 2505
+
+Log:
+3d : fixed multi mousepicking when blending out upper floors
+
+Modified:
+    trunk/lua/lib.3d.mousepick.lua
+    trunk/lua/lib.mapblock.3d.multis.lua
+    trunk/lua/net/net.multi.lua
+
+Modified: trunk/lua/lib.3d.mousepick.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.mousepick.lua (original)
++++ trunk/lua/lib.3d.mousepick.lua Fri Oct  3 23:43:41 2008
+@@ -44,17 +44,19 @@
+ 	-- multi mousepicking
+ 	for k,v in pairs(gMultis) do
+ 		for kk,vv in pairs(k.lparts) do
+-			if vv.mousepick then
+-				bHit,fHitDist =3D vv.mousepick.meshbuffer:RayPick(rx,ry,rz,rvx,rvy,rvz,
+-					vv.mousepick.x,vv.mousepick.y,vv.mousepick.z,
+-					vv.mousepick.qw,vv.mousepick.qx,vv.mousepick.qy,vv.mousepick.qz,
+-					vv.mousepick.sx,vv.mousepick.sy,vv.mousepick.sz)
++			local iTileTypeID,xloc,yloc,zloc,iHue =3D unpack(vv) -- see Multi_AddPa=
+rtHelper
++			local mousepickdata =3D vv.multi_mousepick -- see cMapBlock_3D_Multis:W=
+orkStep_LoadDetail
++			if mousepickdata and self:IsZLayerVisible(zloc) then  =
+
++				bHit,fHitDist =3D mousepickdata.meshbuffer:RayPick(rx,ry,rz,rvx,rvy,rv=
+z,
++					mousepickdata.x,mousepickdata.y,mousepickdata.z,
++					mousepickdata.qw,mousepickdata.qx,mousepickdata.qy,mousepickdata.qz,
++					mousepickdata.sx,mousepickdata.sy,mousepickdata.sz)
+ =
+
+ 				if (bHit and ((not gMousePickFoundHit) or fHitDist &lt; self.gMousePickFo=
+undDist)) then
+ 					self.gMousePickFoundDist =3D fHitDist
+ 					gMousePickFoundHit =3D {}
+ 					gMousePickFoundHit.hittype =3D kMousePickHitType_Static
+-					gMousePickFoundHit.entity =3D vv.mousepick
++					gMousePickFoundHit.entity =3D mousepickdata
+ 					--entity has to have the following properties: hue, x, y, z, iTileTyp=
+eID
+ 				end
+ 			end
+
+Modified: trunk/lua/lib.mapblock.3d.multis.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mapblock.3d.multis.lua (original)
++++ trunk/lua/lib.mapblock.3d.multis.lua Fri Oct  3 23:43:41 2008
+@@ -70,7 +70,7 @@
+ 				iBlockX =3D math.floor(x/8), iBlockY =3D math.floor(y/8),
+ 			}
+ 		=
+
+-			v.mousepick =3D mousepick
++			v.multi_mousepick =3D mousepick
+ 		end
+ =
+
+ 		self:YieldIfOverTime()		=
+
+
+Modified: trunk/lua/net/net.multi.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.multi.lua (original)
++++ trunk/lua/net/net.multi.lua Fri Oct  3 23:43:41 2008
+@@ -408,7 +408,7 @@
+ 				iBlockX =3D math.floor(x/8), iBlockY =3D math.floor(y/8),
+ 			}
+ 			=
+
+-			v.mousepick =3D mousepick
++			v.multi_mousepick =3D mousepick
+ 		end
+ 	end
+ =
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001309.html">[Iris-commit] [IRIS] r2504 - in /trunk/lua: lib.2d.hudfx.lua	lib.2d.mobile.lua net.walk.lua
+</A></li>
+	<LI>Next message: <A HREF="001311.html">[Iris-commit] [IRIS] r2506 - /trunk/lua/lib.macrolist.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1310">[ date ]</a>
+              <a href="thread.html#1310">[ thread ]</a>
+              <a href="subject.html#1310">[ subject ]</a>
+              <a href="author.html#1310">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,157 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2920 - in /trunk/lua: lib.2d.renderer.lua	lib.mainmenu.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2009-February/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2920%20-%20in%20/trunk/lua%3A%20lib.2d.renderer.lua%0A%09lib.mainmenu.lua&In-Reply-To=%3C20090213192055.20FE51C1884D%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001721.html">
+   <LINK REL="Next"  HREF="001723.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2920 - in /trunk/lua: lib.2d.renderer.lua	lib.mainmenu.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2920%20-%20in%20/trunk/lua%3A%20lib.2d.renderer.lua%0A%09lib.mainmenu.lua&In-Reply-To=%3C20090213192055.20FE51C1884D%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2920 - in /trunk/lua: lib.2d.renderer.lua	lib.mainmenu.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Fri Feb 13 20:20:54 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001721.html">[Iris-commit] [IRIS] r2919 - /trunk/lua/net/net.login.lua
+</A></li>
+        <LI>Next message: <A HREF="001723.html">[Iris-commit] [IRIS] r2921 - /trunk/lua/lib.mainmenu.charlist.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1722">[ date ]</a>
+              <a href="thread.html#1722">[ thread ]</a>
+              <a href="subject.html#1722">[ subject ]</a>
+              <a href="author.html#1722">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Fri Feb 13 20:20:54 2009
+New Revision: 2920
+
+Log:
+bugfix : offline mode 2d terrain visible
+
+Modified:
+    trunk/lua/lib.2d.renderer.lua
+    trunk/lua/lib.mainmenu.lua
+
+Modified: trunk/lua/lib.2d.renderer.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.renderer.lua (original)
++++ trunk/lua/lib.2d.renderer.lua Fri Feb 13 20:20:54 2009
+@@ -135,17 +135,22 @@
+ 	end
+ 	=
+
+ 	-- keyboard move cam
++	=
+
+ 	local bKeyBoardMoveCam =3D g2DCamMove or bOfflineMode
+ 	if (bKeyBoardMoveCam) then
++		if (bOfflineMode) then self.gbBlendOutTerrainVisible =3D true end
+ 		local dt =3D math.min(Renderer2D.kGoodTicksBetweenFrames/1000,gSecondsSi=
+nceLastFrame)
+ 		local curticks =3D Client_GetTicks()
+ 		local xloc,yloc =3D self:GetCamPos()
+ 		local move =3D 16 * dt  * (gKeyPressed[key_lshift] and 8*16 or 1)
+ 		local dx =3D move * ((gKeyPressed[key_left] and -1 or 0) + (gKeyPressed[=
+key_right] and 1 or 0))
+ 		local dy =3D move * ((gKeyPressed[key_up] and -1 or 0) + (gKeyPressed[ke=
+y_down] and 1 or 0))
+-		if (dx ~=3D 0 or dy ~=3D 0) then self:SetCamPos(xloc+dx,yloc+dy) end
++		if (dx ~=3D 0 or dy ~=3D 0) then =
+
++			local tt,zz =3D GetGroundAtAbsPos(math.floor(xloc+dx),math.floor(yloc+d=
+y))
++			self:SetCamPos(xloc+dx,yloc+dy,zz) =
+
++		end
+ 	end
+-
++	=
+
+ 	=
+
+ 	gProfiler_R2D_MainStep:Section(&quot;EffectAnimStep&quot;)			self:EffectAnimStep() =
+-- should be after player pos is updated, for effects moving with player
+ 	gProfiler_R2D_MainStep:Section(&quot;MapStep&quot;)					self:MapStep()
+
+Modified: trunk/lua/lib.mainmenu.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mainmenu.lua (original)
++++ trunk/lua/lib.mainmenu.lua Fri Feb 13 20:20:54 2009
+@@ -279,17 +279,19 @@
+ 		print(&quot;StartOfflineMode &quot;,x,y,z,t1,t2,t3)
+ 	end
+ 		=
+
+-	gCurrentRenderer:InitLocalCam(x,y,z)
+-
+-	-- Binds key and Inits all InGame-Data
+-	StartInGame() -- otherwise handled by the serverpacket (kPacket_Login_Com=
+plete)
+-
+ 	-- set z position to terrainheight at starting location
+ 	local tt,zz =3D GetGroundAtAbsPos(-x,y)
+ 	if zz then
+ 		--~ print(&quot;#&quot;,x,y,tt,z,zz) =
+
+ 		z =3D zz
+ 	end
++	=
+
++	=
+
++	gCurrentRenderer:InitLocalCam(x,y,z)
++
++	-- Binds key and Inits all InGame-Data
++	StartInGame() -- otherwise handled by the serverpacket (kPacket_Login_Com=
+plete)
++
+ =
+
+ 	gCurrentRenderer:SetOfflineStartPos(x,y,z)
+ =
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001721.html">[Iris-commit] [IRIS] r2919 - /trunk/lua/net/net.login.lua
+</A></li>
+	<LI>Next message: <A HREF="001723.html">[Iris-commit] [IRIS] r2921 - /trunk/lua/lib.mainmenu.charlist.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1722">[ date ]</a>
+              <a href="thread.html#1722">[ thread ]</a>
+              <a href="subject.html#1722">[ subject ]</a>
+              <a href="author.html#1722">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

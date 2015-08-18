@@ -1,0 +1,579 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1650 - in /trunk/data/lua: lib.3d.dynamic.lua lib.3d.map.lua lib.3d.mobile.lua lib.3d.mousepick.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2007-December/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1650%20-%20in%20/trunk/data/lua%3A%20lib.3d.dynamic.lua%0A%20lib.3d.map.lua%20lib.3d.mobile.lua%20lib.3d.mousepick.lua&In-Reply-To=%3C20071219000006.BDB631C186F5%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000465.html">
+   <LINK REL="Next"  HREF="000467.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1650 - in /trunk/data/lua: lib.3d.dynamic.lua lib.3d.map.lua lib.3d.mobile.lua lib.3d.mousepick.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1650%20-%20in%20/trunk/data/lua%3A%20lib.3d.dynamic.lua%0A%20lib.3d.map.lua%20lib.3d.mobile.lua%20lib.3d.mousepick.lua&In-Reply-To=%3C20071219000006.BDB631C186F5%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1650 - in /trunk/data/lua: lib.3d.dynamic.lua lib.3d.map.lua lib.3d.mobile.lua lib.3d.mousepick.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Wed Dec 19 00:04:45 CET 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000465.html">[Iris-commit] [IRIS] r1649 - /trunk/src/terrain_multitex.cpp
+</A></li>
+        <LI>Next message: <A HREF="000467.html">[Iris-commit] [IRIS] r1651 - in /trunk: bin/iris2.exe data/skippedfallbacks.lua vs8/iris.vcproj
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#466">[ date ]</a>
+              <a href="thread.html#466">[ thread ]</a>
+              <a href="subject.html#466">[ subject ]</a>
+              <a href="author.html#466">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: sience
+Date: Wed Dec 19 00:04:44 2007
+New Revision: 1650
+
+Log:
+-some minor optimizations (only some vars changed)
+-Updatevisability: mobile moved to mobile, dynamic moved to dynamic
+- iMultiChildGfx temp. disabled (not need when Multis are Static) &lt;- but sa=
+me is needed for Static Multis
+
+Modified:
+    trunk/data/lua/lib.3d.dynamic.lua
+    trunk/data/lua/lib.3d.map.lua
+    trunk/data/lua/lib.3d.mobile.lua
+    trunk/data/lua/lib.3d.mousepick.lua
+
+Modified: trunk/data/lua/lib.3d.dynamic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.3d.dynamic.lua (original)
++++ trunk/data/lua/lib.3d.dynamic.lua Wed Dec 19 00:04:44 2007
+@@ -1,10 +1,9 @@
+ -- see alos lib.3d.dynamic.lua
+ =
+
+---[[
+-function Renderer3D:DynamicSetVisible (dynamic,bVisible)
+-	if (dynamic.gfx) then dynamic.gfx:SetVisible(bVisible) end
+-end
+-]]--
++-- helperfunction for CreateDynamicGfx. Please use always for function call
++function Renderer3D:AddDynamicItem( item )
++	self:CreateDynamicGfx(item)
++end
+ =
+
+ function Renderer3D:UpdateDynamicItemPos ( dynamic )
+ 	if (dynamic.gfx) then
+@@ -12,9 +11,20 @@
+ 	end
+ end
+ =
+
+--- helperfunction for CreateDynamicGfx. Please use always for function call
+-function Renderer3D:AddDynamicItem( item )
+-	self:CreateDynamicGfx(item)
++function Renderer3D:UpdateDynamicVisibility	(dynamic) =
+
++--	if (dynamic.lMultiChildGfx) then
++--		-- multi
++--		for k,child in pairs(dynamic.lMultiChildGfx) do
++--			if (child.zloc &gt; self.giBlendOutPlayerHeight) then
++--				child:SetVisible(self:IsZLayerVisible(child.zloc))
++--			end
++--		end
++--	else
++	if (dynamic.gfx) then
++		-- normal item
++		dynamic.gfx:SetVisible(self:IsZLayerVisible(dynamic.zloc))
++		if (dynamic.gfx.billboard) then dynamic.gfx.billboard:SetVisible(self:Is=
+ZLayerVisible(dynamic.zloc)) end
++	end
+ end
+ =
+
+ -- TODO: Multis &amp; Serversidemultis don't recognize kTileDataFlag_LightSour=
+ce yet
+@@ -28,30 +38,27 @@
+ =
+
+ 	-- Detect Multis
+ 	if item.artid &gt;=3D gMulti_ID then
+-		-- Check if Serverside Multi (Custom Multi)
+ 		printdebug(&quot;multi&quot;,&quot;-----------------------------&quot;)
+ 		printdebug(&quot;multi&quot;, sprintf(&quot;ARTID&quot;,item.artid,vardump(item)) )
+ =
+
++		-- Serverside Multi Check (Custom Multi)
+ 		if (item.lTile) then
+ 			printdebug(&quot;multi&quot;,&quot;Serverside Multi detected&quot;)
+ =
+
++			local iTileTypeID,iX,iY,iZ
++			local iHue
+ 			local multi =3D {}
+ 			multi.lparts =3D {}
+ 			=
+
+ 			for k,v in pairs(item.lTile) do
+ 				-- create part
+-				local iTileTypeID =3D v.artid
+-				=
+
+-				local iX =3D -v.x
+-				local iY =3D v.y
+-				local iZ =3D v.z
++				iTileTypeID =3D v.artid
++				iHue =3D 0				--&lt;- TODO: hueing is WORNG !! Every part of an multi can=
+ have its own hue!
+ =
+
+ 				-- generate absolute coords
+-				iX =3D item.xloc + iX + item.xadd
+-				iY =3D item.yloc + iY + item.yadd
+-				iZ =3D item.zloc + iZ + item.zadd
+-				=
+
+-				local iHue =3D 0
++				iX =3D item.xloc +(-v.x)+ item.xadd
++				iY =3D item.yloc + v.y + item.yadd
++				iZ =3D item.zloc + v.z + item.zadd
+ =
+
+ 				-- add part
+ 				table.insert(multi.lparts, {iTileTypeID,iX,iY,iZ,iHue})
+@@ -62,21 +69,24 @@
+ 			item.gfx =3D nil
+ 			Renderer3D.gMultis[multi] =3D true
+ 			=
+
+-		-- otherwise ist a Clientside Multi
++		-- Clientside Multi Check
+ 		elseif gMultiLoader then
+ 			printdebug(&quot;multi&quot;,&quot;Clientside Multi detected&quot;)
+ 			=
+
+ 			local multi =3D {}
+-			=
+
+ 			multi.id =3D item.artid - gMulti_ID
++
+ 			local parts =3D gMultiLoader:CountMultiParts(multi.id)
+ 			multi.lparts =3D {}
+ 			=
+
+ 			-- read out parts
+ 			printdebug(&quot;multi&quot;,&quot;Renderer3D:CreateDynamicGfx: multi id&quot;,multi.id,&quot;pa=
+rts&quot;,parts)
++
++			local iTileTypeID,iX,iY,iZ,iFlags
++			local iHue
+ 			for p =3D 0, parts-1 do
+-				local iTileTypeID,iX,iY,iZ,iFlags =3D gMultiLoader:GetMultiParts(multi=
+.id,p)
+-				local iHue =3D item.hue
++				iTileTypeID,iX,iY,iZ,iFlags =3D gMultiLoader:GetMultiParts(multi.id,p)
++				iHue =3D 0				--&lt;- TODO: hueing is WORNG !! Every part of an multi can=
+ have its own hue!
+ 				=
+
+ 				-- generate absolute coords
+ 				iX =3D item.xloc + iX + item.xadd
+@@ -189,10 +199,10 @@
+ function Renderer3D:DestroyDynamicGfx (dynamic)
+ 	-- print(&quot;DEBUG&quot;,&quot;destroy&quot;,vardump(dynamic))
+ 	if (dynamic.gfx) then
+-		if (dynamic.lMultiChildGfx) then
+-			for k,child in pairs(dynamic.lMultiChildGfx) do child:Destroy() end
+-			dynamic.lMultiChildGfx=3Dnil
+-		end
++--		if (dynamic.lMultiChildGfx) then
++--			for k,child in pairs(dynamic.lMultiChildGfx) do child:Destroy() end
++--			dynamic.lMultiChildGfx=3Dnil
++--		end
+ 		dynamic.gfx:Destroy()
+ 		dynamic.gfx =3D nil
+ 	end
+@@ -200,7 +210,7 @@
+ 	if (dynamic.lightname) then Client_RemoveLight(dynamic.lightname) dynamic=
+.lightname =3D nil end
+ 	-- remove multi entry
+ 	if (dynamic.multi) then =
+
+-		local multi =3D dynamic.multi
++--		local multi =3D dynamic.multi			--obsolete
+ 		Renderer3D:RebuildChunkAtUOPos(dynamic.xloc,dynamic.yloc)
+ 		Renderer3D.gMultis[dynamic.multi] =3D nil =
+
+ 	end
+
+Modified: trunk/data/lua/lib.3d.map.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.3d.map.lua (original)
++++ trunk/data/lua/lib.3d.map.lua Wed Dec 19 00:04:44 2007
+@@ -22,12 +22,12 @@
+ 		local camx,camy,camz =3D self:GetLookAheadCamPos()
+ 		local iCamOverBlockX =3D self.giMapOriginX*self.ROBMAP_CHUNK_SIZE + camx=
+/8
+ 		local iCamOverBlockY =3D self.giMapOriginY*self.ROBMAP_CHUNK_SIZE + camy=
+/8
+-		=
+
++
+ 		-- recenter world if too far away, to avoid float-rounding-errors
+ 		local fCamOriginDist =3D math.sqrt(camx*camx + camy*camy)
+ 		if (false and fCamOriginDist / 8 &gt; self.ROBMAP_RECENTER_DIST) then -- de=
+activated for now, so coordinates are consistent
+ 			printf(&quot;RecenterMap (%d,%d)\n&quot;,iCamOverBlockX,iCamOverBlockY)
+-			=
+
++
+ 			-- calc new origin
+ 			local ox =3D math.floor(iCamOverBlockX / self.ROBMAP_CHUNK_SIZE)
+ 			local oy =3D math.floor(iCamOverBlockY / self.ROBMAP_CHUNK_SIZE)
+@@ -35,24 +35,23 @@
+ 			local dify =3D (self.giMapOriginY - oy) * 8 * self.ROBMAP_CHUNK_SIZE =
+
+ 			self.giMapOriginX =3D ox
+ 			self.giMapOriginY =3D oy
+-			=
+
++
+ 			-- update cam,map,dynamics,mobiles,...
+ 			GetMainCam():Move(difx,dify,0)
+ 			self:ClearMapCache()
+ 			gCurrentRenderer:CheckForUpdateMapOrigin()
+ 			NotifyListener(&quot;Hook_RecenterWorld&quot;,difx,dify)
+ 		end
+-		=
+
++
+ 		-- mapblocks are loaded and unloaded here  (also iCamOverBlockX will alw=
+ays be negative  while over the map)
+ 		self:UpdateMapCache(-iCamOverBlockX,iCamOverBlockY, gSightRange)
+-		=
+
++
+ 		self.gNextMapUpdate =3D Client_GetTicks() + self.gMapUpdateInterval -- m=
+ake sure the game runs for at least 100msec AFTER this loading without bein=
+g interrupted by loading
+ 	end
+ end
+ =
+
+ -- these coordinates are in absolute map-blocks, all others are in chunks
+ function Renderer3D:UpdateMapCache (iMidX,iMidY,iRad)
+-		=
+
+ 		local minx =3D math.floor((iMidX-iRad) / self.ROBMAP_CHUNK_SIZE)
+ 		local miny =3D math.floor((iMidY-iRad) / self.ROBMAP_CHUNK_SIZE)
+ 		local maxx =3D math.floor((iMidX+iRad) / self.ROBMAP_CHUNK_SIZE)
+@@ -62,10 +61,6 @@
+ 		iMidX =3D math.floor(iMidX / self.ROBMAP_CHUNK_SIZE)
+ 		iMidY =3D math.floor(iMidY / self.ROBMAP_CHUNK_SIZE)
+ 		=
+
+-			=
+
+-		local y,row,x,chunk,k,v
+-		local bHit,fHitDist
+-
+ 		-- rebuild chunks if needed
+ 		for y,row in pairs(self.gMapChunks) do
+ 			for x,chunk in pairs(row) do
+@@ -86,14 +81,16 @@
+ 		end
+ =
+
+ 		-- load visible chunks into cache if not already there
+-		local x,y
+ 		local iLoadedCount =3D 0 -- make sure only a limited number of blocks is=
+ created during update, otherwise the game would hang
+ 		for y=3Dminy,maxy do
+-		for x=3Dminx,maxx do if (iLoadedCount &lt; self.gMaxMapBlocksLoadedPerUpdat=
+e) then
+-			if (self:LoadMapChunk(x,y)) then
+-				iLoadedCount =3D iLoadedCount + 1
+-			end
+-		end end end
++			for x=3Dminx,maxx do
++				if (iLoadedCount &lt; self.gMaxMapBlocksLoadedPerUpdate) then
++					if (self:LoadMapChunk(x,y)) then
++						iLoadedCount =3D iLoadedCount + 1
++					end
++				end
++			end
++		end
+ end
+ =
+
+ -- rebuild chunk at uo pos
+@@ -218,10 +215,8 @@
+ 	-- creates a light if lights are enabled and static is a lightsource
+ 	-- note! lights don't cast shadows
+ 	if (gLightsources) then
+-		local arrtiletype =3D {}
+-		arrtiletype =3D GetStaticTileType(iTileTypeID)
+-		if( TestBit(arrtiletype.miFlags or 0,kTileDataFlag_LightSource) ) then
+-			local x,y,z =3D Renderer3D:UOPosToLocal(entity.x,entity.y,entity.z * 0.=
+1)
++		local arrtiletype =3D GetStaticTileType(iTileTypeID)
++		if( arrtiletype and TestBit(arrtiletype.miFlags or 0,kTileDataFlag_Light=
+Source) ) then
+ 			entity.lightname=3DClient_AddPointLight(entity.x-0.5,entity.y-0.5,entit=
+y.z+arrtiletype.miHeight, 0.3,0.3,0.0, 0.3,0.3,0.0, 5.0,0.1,0.1,0.0)
+ 		end
+ 	end
+@@ -271,13 +266,14 @@
+ 	=
+
+ 	-- load statics
+ 	if (gStaticBlockLoader) then -- probably needs gArtMapLoader
+-		local x,y,i
+ 		local iTileTypeID,iX,iY,iZ,iHue
+-		local entity,meshname
++		local iStaticCount
++		local xloc,yloc
++
+ 		for x =3D 0,self.ROBMAP_CHUNK_SIZE-1 do
+ 			for y =3D 0,self.ROBMAP_CHUNK_SIZE-1 do
+ 				gStaticBlockLoader:Load(iBlockUO_X+x,iBlockUO_Y+y)
+-				local iStaticCount =3D gStaticBlockLoader:Count() -- operates on the b=
+lock that was last loaded using :Load()
++				iStaticCount =3D gStaticBlockLoader:Count() -- operates on the block t=
+hat was last loaded using :Load()
+ =
+
+ 				--printdebug(&quot;static&quot;,&quot;iStaticCount=3D&quot;..iStaticCount)
+ 				--printdebug(&quot;static&quot;,&quot;iBlockUO_X=3D&quot;..iBlockUO_X..&quot; iBlockUO_Y=3D&quot;..i=
+BlockUO_Y)
+@@ -286,8 +282,8 @@
+ 				for i =3D 0,iStaticCount-1 do
+ 					iTileTypeID,iX,iY,iZ,iHue =3D gStaticBlockLoader:GetStatic(i) -- oper=
+ates on the block that was last loaded using :Load()
+ 					=
+
+-					local xloc =3D (iBlockUO_X+x)*8 + iX
+-					local yloc =3D (iBlockUO_Y+y)*8 + iY
++					xloc =3D (iBlockUO_X+x)*8 + iX
++					yloc =3D (iBlockUO_Y+y)*8 + iY
+ 					=
+
+ 					--print(&quot;DEBUG&quot;,&quot;STATIC&quot;,iTileTypeID,xloc,yloc,iZ,iHue)
+ 					self:CreateMapChunkEntity(chunk,iTileTypeID,xloc,yloc,iZ,iHue)
+@@ -298,15 +294,16 @@
+ 	-- add multis as statics
+ 	if (Renderer3D.gMultis) then -- probably needs gArtMapLoader
+ 		local iTileTypeID,iX,iY,iZ,iHue
+-		local entity,meshname
++		local UO_X,UO_Y
++		local multi
+ 		=
+
+ 		for k,v in pairs(Renderer3D.gMultis) do
+-			local multi =3D k
++			multi =3D k
+ 			=
+
+ 			if multi.lparts then
+ 				for k,v in pairs(multi.lparts) do
+-					local UO_X =3D x * self.ROBMAP_CHUNK_SIZE * 8
+-					local UO_Y =3D y * self.ROBMAP_CHUNK_SIZE * 8
++					UO_X =3D x * self.ROBMAP_CHUNK_SIZE * 8
++					UO_Y =3D y * self.ROBMAP_CHUNK_SIZE * 8
+ =
+
+ 					iTileTypeID,iX,iY,iZ,iHue =3D unpack(v)
+ 					--print(&quot;DEBUG&quot;,&quot;TILE&quot;,iTileTypeID,iX,iY,iZ,iHue,&quot;:&quot;,UO_X,UO_Y,self.R=
+OBMAP_CHUNK_SIZE*8)
+@@ -319,10 +316,13 @@
+ 			end
+ 		end
+ 		=
+
++		local iStaticCount
++		local xloc, yloc
++
+ 		for x =3D 0,self.ROBMAP_CHUNK_SIZE-1 do
+ 			for y =3D 0,self.ROBMAP_CHUNK_SIZE-1 do
+ 				gStaticBlockLoader:Load(iBlockUO_X+x,iBlockUO_Y+y)
+-				local iStaticCount =3D gStaticBlockLoader:Count() -- operates on the b=
+lock that was last loaded using :Load()
++				iStaticCount =3D gStaticBlockLoader:Count() -- operates on the block t=
+hat was last loaded using :Load()
+ =
+
+ 				--printdebug(&quot;static&quot;,&quot;iStaticCount=3D&quot;..iStaticCount)
+ 				--printdebug(&quot;static&quot;,&quot;iBlockUO_X=3D&quot;..iBlockUO_X..&quot; iBlockUO_Y=3D&quot;..i=
+BlockUO_Y)
+@@ -331,8 +331,8 @@
+ 				for i =3D 0,iStaticCount-1 do
+ 					iTileTypeID,iX,iY,iZ,iHue =3D gStaticBlockLoader:GetStatic(i) -- oper=
+ates on the block that was last loaded using :Load()
+ =
+
+-					local xloc =3D (iBlockUO_X+x)*8 + iX
+-					local yloc =3D (iBlockUO_Y+y)*8 + iY
++					xloc =3D (iBlockUO_X+x)*8 + iX
++					yloc =3D (iBlockUO_Y+y)*8 + iY
+ 					=
+
+ 					self:CreateMapChunkEntity(chunk,iTileTypeID,xloc,yloc,iZ,iHue)
+ 				end =
+
+@@ -357,25 +357,6 @@
+ 	if (entity and entity.gfx and entity.gfx.billboard) then
+ 		entity.gfx.billboard:SetVisible(self:IsZLayerVisible(entity.zloc))
+ 	end
+-end
+-
+-function Renderer3D:UpdateDynamicVisibility	(dynamic) =
+
+-	if (dynamic.lMultiChildGfx) then
+-		-- multi
+-		for k,child in pairs(dynamic.lMultiChildGfx) do
+-			if (child.zloc &gt; self.giBlendOutPlayerHeight) then
+-				child:SetVisible(self:IsZLayerVisible(child.zloc))
+-			end
+-		end
+-	elseif (dynamic.gfx) then
+-		-- normal item
+-		dynamic.gfx:SetVisible(self:IsZLayerVisible(dynamic.zloc))
+-		if (dynamic.gfx.billboard) then dynamic.gfx.billboard:SetVisible(self:Is=
+ZLayerVisible(dynamic.zloc)) end
+-	end
+-end
+-
+-function Renderer3D:UpdateMobileVisibility (mobile) =
+
+-	self:MobileSetVisible(mobile,self:IsZLayerVisible(mobile.zloc))
+ end
+ =
+
+ -- TODO: blend out mounts
+@@ -407,10 +388,6 @@
+ 			for i =3D 0,iStaticCount-1 do
+ 				iTileTypeID,iX,iY,iZ,iHue =3D gStaticBlockLoader:GetStatic(i) -- opera=
+tes on the block that was last loaded using :Load()
+ 				if (iX =3D=3D iPX and iY =3D=3D iPY and iZ &gt; playerheadpos) then playe=
+rIsInside =3D true end
+-					--local testlayer =3D iZ - 1
+-					--print(&quot;static at &quot;,iZ,testlayer)
+-					--if ((not myLayer) or myLayer &gt; testlayer) then myLayer =3D testlaye=
+r end
+-				--end
+ 			end
+ 		end
+ =
+
+@@ -420,12 +397,12 @@
+ 				if (DynamicIsInWorld(dynamic)) then
+ 					if (x =3D=3D dynamic.xloc and y =3D=3D dynamic.yloc and dynamic.zloc =
+&gt;<i> playerheadpos) then
+</I> 						playerIsInside =3D true
+-					elseif (dynamic.lMultiChildGfx) then
+-						for k,child in pairs(dynamic.lMultiChildGfx) do
+-							if (x =3D=3D dynamic.xloc+child.xloc and y =3D=3D dynamic.yloc+chil=
+d.yloc and dynamic.zloc+child.zloc &gt; playerheadpos) then
+-								playerIsInside =3D true
+-							end
+-						end
++--					elseif (dynamic.lMultiChildGfx) then
++--						for k,child in pairs(dynamic.lMultiChildGfx) do
++--							if (x =3D=3D dynamic.xloc+child.xloc and y =3D=3D dynamic.yloc+ch=
+ild.yloc and dynamic.zloc+child.zloc &gt; playerheadpos) then
++--								playerIsInside =3D true
++--							end
++--						end
+ 					end
+ 				end
+ 			end
+
+Modified: trunk/data/lua/lib.3d.mobile.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.3d.mobile.lua (original)
++++ trunk/data/lua/lib.3d.mobile.lua Wed Dec 19 00:04:44 2007
+@@ -15,6 +15,9 @@
+ 	--~ printdebug(&quot;equip&quot;,txt)
+ end
+ =
+
++function Renderer3D:UpdateMobileVisibility (mobile) =
+
++	self:MobileSetVisible(mobile,self:IsZLayerVisible(mobile.zloc))
++end
+ =
+
+ function Renderer3D:UpdateMobile( mobile )
+ 	if (not self.gbActive) then return end
+
+Modified: trunk/data/lua/lib.3d.mousepick.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.3d.mousepick.lua (original)
++++ trunk/data/lua/lib.3d.mousepick.lua Wed Dec 19 00:04:44 2007
+@@ -172,7 +172,7 @@
+ =
+
+ 	-- dynamics
+ 	for k,dynamic in pairs(GetDynamicList()) do
+-		-- does this dynamic consists of many gfx parts (multi)?
++--[[		-- does this dynamic consists of many gfx parts (multi)?
+ 		if dynamic.lMultiChildGfx and DynamicIsInWorld(dynamic) then
+ 			-- handle multi collision
+ 			for k,gfx in pairs(dynamic.lMultiChildGfx) do =
+
+@@ -187,7 +187,9 @@
+ 						end
+ 				end
+ 			end
+-		elseif (dynamic.gfx and DynamicIsInWorld(dynamic)) then
++		else
++]]--
++		if (dynamic.gfx and DynamicIsInWorld(dynamic)) then
+ 			-- WARNING copy &amp; paste code
+ 			if (self:IsZLayerVisible(dynamic.zloc)) then
+ 				if (dynamic.gfx.billboard) then
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000465.html">[Iris-commit] [IRIS] r1649 - /trunk/src/terrain_multitex.cpp
+</A></li>
+	<LI>Next message: <A HREF="000467.html">[Iris-commit] [IRIS] r1651 - in /trunk: bin/iris2.exe data/skippedfallbacks.lua vs8/iris.vcproj
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#466">[ date ]</a>
+              <a href="thread.html#466">[ thread ]</a>
+              <a href="subject.html#466">[ subject ]</a>
+              <a href="author.html#466">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

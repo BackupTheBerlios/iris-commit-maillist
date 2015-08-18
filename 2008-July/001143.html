@@ -1,0 +1,352 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2335 - in /trunk: data/config.lua.dist lua/lib.3d.renderer.lua lua/lib.debugmenu.lua lua/lib.mainmenu.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-July/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2335%20-%20in%20/trunk%3A%20data/config.lua.dist%0A%20lua/lib.3d.renderer.lua%20lua/lib.debugmenu.lua%20lua/lib.mainmenu.lua&In-Reply-To=%3C20080731000014.49F181C18049%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001142.html">
+   <LINK REL="Next"  HREF="001144.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2335 - in /trunk: data/config.lua.dist lua/lib.3d.renderer.lua lua/lib.debugmenu.lua lua/lib.mainmenu.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2335%20-%20in%20/trunk%3A%20data/config.lua.dist%0A%20lua/lib.3d.renderer.lua%20lua/lib.debugmenu.lua%20lua/lib.mainmenu.lua&In-Reply-To=%3C20080731000014.49F181C18049%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2335 - in /trunk: data/config.lua.dist lua/lib.3d.renderer.lua lua/lib.debugmenu.lua lua/lib.mainmenu.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Thu Jul 31 01:55:32 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001142.html">[Iris-commit] [IRIS] r2334 - in /trunk: data/config.lua.dist	lua/main.lua
+</A></li>
+        <LI>Next message: <A HREF="001144.html">[Iris-commit] [IRIS] r2336 - /trunk/lua/lib.3d.dynamic.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1143">[ date ]</a>
+              <a href="thread.html#1143">[ thread ]</a>
+              <a href="subject.html#1143">[ subject ]</a>
+              <a href="author.html#1143">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: sience
+Date: Thu Jul 31 01:55:31 2008
+New Revision: 2335
+
+Log:
+-old skybox added again as standard because of too many bugs in caelum (shu=
+tdown doesn't work, and lightning, also no fallback for moon &amp; clouds)
+
+Modified:
+    trunk/data/config.lua.dist
+    trunk/lua/lib.3d.renderer.lua
+    trunk/lua/lib.debugmenu.lua
+    trunk/lua/lib.mainmenu.lua
+
+Modified: trunk/data/config.lua.dist
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/config.lua.dist (original)
++++ trunk/data/config.lua.dist Thu Jul 31 01:55:31 2008
+@@ -510,6 +510,8 @@
+ =
+
+ gUseStaticFallbacks =3D true
+ =
+
++gUseCaelumSkysystem =3D false
++
+ gUseCaduneTree =3D false
+ =
+
+ gShow3DManaChanges =3D false
+
+Modified: trunk/lua/lib.3d.renderer.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.renderer.lua (original)
++++ trunk/lua/lib.3d.renderer.lua Thu Jul 31 01:55:31 2008
+@@ -36,6 +36,7 @@
+ end
+ =
+
+ function Renderer3D:DeInit ()
++	--print(&quot;deactivating Renderer3D&quot;)
+ 	-- todo: unload LoadTexAtlas
+ 	-- todo: unload MultiTexTerrainInit
+ 	self:StopInGame ()
+@@ -48,26 +49,32 @@
+ =
+
+ 	-- for 2D/3D renderer switching
+ 	self:CamInit()
+-
++	=
+
++	-- only Worldlight when Caelum is disabled
++	if (not(gUseCaelumSkysystem)) then
++		-- initialize Worldlight for normal SkyBox=C2=B4
++		SetupWorldLight_Default()
++	end
++
++	-- initialize Mapenvironment
++	self:SetMapEnvironment()
+ 	-- initialize Shadowsystem
+ 	self:SetupShadows(gShadowTechnique)
+-	-- initialize Mapenvironment
+-	self:SetMapEnvironment()
+ =
+
+ 	for k,dynamic in pairs(GetDynamicList()) do if (DynamicIsInWorld(dynamic)=
+) then self:AddDynamicItem(dynamic) end end
+ 	for k,mobile in pairs(GetMobileList()) do self:CreateMobileGfx(mobile) end
+ end
+ =
+
+ function Renderer3D:StopInGame ()
+-	--print(&quot;deactivating Renderer3D&quot;)
+ 	for k,dynamic in pairs(GetDynamicList()) do if (DynamicIsInWorld(dynamic)=
+) then self:DestroyDynamicGfx(dynamic) end end
+ 	for k,mobile in pairs(GetMobileList()) do self:DestroyMobileGfx(mobile) e=
+nd
+ 	self:DeactivateMousePick()
+ 	Client_ClearLights()
+ 	self:ClearMapCache()
+-	-- DeInit Caelum here
++	self:DeleteMapEnvironment()
++	-- DeInit Caelum here (doesn't seem to work)
+ 	if (gCaelumSystem) then
+-		gCaelumSystem:Shutdown()
++		gCaelumSystem:Shutdown(true)
+ 	end
+ end
+ =
+
+@@ -102,7 +109,6 @@
+ 	end
+ end
+ =
+
+-
+ function Renderer3D:SetLastConfirmedUOPos(xloc,yloc,zloc) gTileFreeWalk:Im=
+pl_SetLastConfirmedUOPos(xloc,yloc,zloc) end -- walk
+ function Renderer3D:SetLastRequestedUOPos(xloc,yloc,zloc) gTileFreeWalk:Im=
+pl_SetLastRequestedUOPos(xloc,yloc,zloc) end -- walk
+ =
+
+@@ -144,29 +150,30 @@
+ 	return x - camangdeg + 5*45
+ end
+ =
+
+-function Renderer3D:SetMapEnvironment (bUnderGround, timeScale)
++function Renderer3D:SetMapEnvironment (bUnderGround)
+ 	if (not self.gbActive) then return end
+ 	if (not gMapIndex) then return end
+ =
+
+ 	-- black background when underground
+ 	if (bUnderGround) then
+-		-- deinit Caelum first
++		-- if Caelum deinit first
+ 		if (gCaelumSystem) then
+-			gCaelumSystem:Shutdown()
++			gCaelumSystem:Shutdown(true)
+ 		end
+ 		GetMainViewport():SetBackCol(0,0,0)
+-	else
++		Client_SetSkybox()
++	elseif (gUseCaelumSkysystem) then
+ 		-- check if already a caelum skysystem is there
+ 		if (gCaelumSystem) then return end
+ =
+
+-		-- if not create a new Skysystem
++		-- create a new Skysystem
++		-- create with CG shaders
+ 		gCaelumSystem =3D CreateCaelumCaelumSystem(
+ 			CAELUM_COMPONENT_SUN + =
+
+---			CAELUM_COMPONENT_MOON +
+ 	        CAELUM_COMPONENT_SKY_DOME +
+---	        CAELUM_COMPONENT_POINT_STARFIELD +
+-			CAELUM_COMPONENT_IMAGE_STARFIELD +
+---	        CAELUM_COMPONENT_CLOUDS +
++			CAELUM_COMPONENT_MOON +
++	        CAELUM_COMPONENT_POINT_STARFIELD +
++	        CAELUM_COMPONENT_CLOUDS +
+ 	        CAELUM_COMPONENT_PRECIPITATION +
+ 	        0
+ 		)
+@@ -184,14 +191,14 @@
+ 			sun:SetAutoDisable(true)
+ 			sun:SetAutoDisableThreshold(0.1)
+ 		end
+---[[
++
+ 		local moon =3D gCaelumSystem:GetMoon()
+ 		if moon then
+ 			--~ print(&quot;MOON&quot;)
+ 			moon:SetAutoDisable(true)
+ 			moon:SetAutoDisableThreshold(0.1)
+ 		end
+-		=
+
++
+ 		local clouds =3D gCaelumSystem:GetCloudSystem()
+ 		if clouds then
+ 			--~ print(&quot;CLOUDS&quot;)
+@@ -199,7 +206,7 @@
+ 			clouds:GetLayer(0):SetCloudSpeed(0.000005, -0.000009)
+ 			clouds:GetLayer(1):SetCloudSpeed(0.0000045, -0.0000085)
+ 		end
+-]]--
++
+ 		local prec =3D gCaelumSystem:GetPrecipitationController()
+ 		if prec then
+ 			--~ print(&quot;PREC&quot;)
+@@ -210,15 +217,13 @@
+ 		local cl =3D gCaelumSystem:GetUniversalClock()
+ 		--number year, number month, number day, number hour, number minute, num=
+ber second
+ 		local t =3D os.date('*t')
+-		cl:SetGregorianDateTime(t.year or 2007, t.month or 4, t.day or 9, t.hour=
+ or 10, t.min or 20, t.sec or 10)
++		cl:SetGregorianDateTime(t.year, t.month, t.day, t.hour, t.min, t.sec)
++
++		-- cl:SetTimeScale(timeScale)
+ 		=
+
+-		if (timeScale) then
+-			cl:SetTimeScale(timeScale)
+-		else
+-			-- to prevent wobbly shadows
+-			-- updates clock and caelum every 30 sec
+-			cl:SetUpdateRate(30)
+-		end
++		-- to prevent wobbly shadows
++		-- updates clock and caelum every 30 sec
++		cl:SetUpdateRate(30)
+ =
+
+ 		function rotate(gfx,w,x,y,z)
+ 			local ww,xx,yy,zz =3D gfx:GetOrientation()
+@@ -228,6 +233,16 @@
+ 		local w,x,y,z =3D Quaternion.fromAngleAxis(90 * gfDeg2Rad, 1,0,0)
+ 		rotate(gCaelumSystem:GetCaelumGroundNode(), w,x,y,z)
+ 		rotate(gCaelumSystem:GetCaelumCameraNode(), w,x,y,z)
++	else
++        -- black background when underground =
+
++		Client_SetSkybox(gMaps[gMapIndex].skybox) =
+
++
++		if (gUseDistanceFog) then =
+
++			gFogcolorred                    =3D gMaps[gMapIndex].fog_r =
+
++			gFogcolorgreen                  =3D gMaps[gMapIndex].fog_g =
+
++			gFogcolorblue                   =3D gMaps[gMapIndex].fog_b =
+
++			Client_SetFog(3, gFogcolorred/255, gFogcolorgreen/255, gFogcolorblue/25=
+5, 1.0, 0, 10*gSightRange, 10*gSightRange+gFogValue) =
+
++		end =
+
+ 	end
+ end
+ =
+
+@@ -238,12 +253,12 @@
+ 		--number year, number month, number day, number hour, number minute, num=
+ber second
+ 	   =
+
+ 		local t =3D os.date('*t')
+-		cl:SetGregorianDateTime(t.year or 2007, t.month or 4, t.day or 9, hour o=
+r t.hour, minute or t.min, second or t.sec)
++		cl:SetGregorianDateTime(t.year, t.month, t.day, hour or t.hour, minute o=
+r t.min, second or t.sec)
+ 	end
+ end
+ =
+
+ function Renderer3D:SetupShadows (strShadowTechnique)
+-	local shadowfardist=3D5*gSightRange+16
++	local shadowfardist=3D5*gSightRange+gFogValue
+ =
+
+ 	if ((strShadowTechnique =3D=3D &quot;stencil_modulative&quot;) or (strShadowTechniq=
+ue =3D=3D &quot;stencil_additive&quot;)) then
+ 		----- currently doesn't work with Fastbatch
+
+Modified: trunk/lua/lib.debugmenu.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.debugmenu.lua (original)
++++ trunk/lua/lib.debugmenu.lua Thu Jul 31 01:55:31 2008
+@@ -721,6 +721,7 @@
+ 	gStartInDebugMode =3D true
+ 	gDebugMenuRunning =3D true
+ 	gDialog_IrisLogo:SetVisible(false)
++
+ 	gCurrentRenderer:Init()
+ 	ActivateRenderer(Renderer3D)
+ =
+
+
+Modified: trunk/lua/lib.mainmenu.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mainmenu.lua (original)
++++ trunk/lua/lib.mainmenu.lua Thu Jul 31 01:55:31 2008
+@@ -348,7 +348,7 @@
+ 	-- start menu sound
+ 	SoundPlayMusicById(8)
+ 	SetMainMenuCam(0,gfDeg2Rad)
+-	gCurrentRenderer:SetMapEnvironment(false,512)
++	gCurrentRenderer:SetMapEnvironment()
+ =
+
+ 	local rows =3D {
+ 		{ {type=3D&quot;Label&quot;,	text=3D&quot;Login:&quot;} }
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001142.html">[Iris-commit] [IRIS] r2334 - in /trunk: data/config.lua.dist	lua/main.lua
+</A></li>
+	<LI>Next message: <A HREF="001144.html">[Iris-commit] [IRIS] r2336 - /trunk/lua/lib.3d.dynamic.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1143">[ date ]</a>
+              <a href="thread.html#1143">[ thread ]</a>
+              <a href="subject.html#1143">[ subject ]</a>
+              <a href="author.html#1143">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

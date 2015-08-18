@@ -1,0 +1,123 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2722 - in /trunk/lua: lib.3d.renderer.lua	lib.3d.walksmooth.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-November/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2722%20-%20in%20/trunk/lua%3A%20lib.3d.renderer.lua%0A%09lib.3d.walksmooth.lua&In-Reply-To=%3C20081112153435.6DDF91C1879B%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001525.html">
+   <LINK REL="Next"  HREF="001527.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2722 - in /trunk/lua: lib.3d.renderer.lua	lib.3d.walksmooth.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2722%20-%20in%20/trunk/lua%3A%20lib.3d.renderer.lua%0A%09lib.3d.walksmooth.lua&In-Reply-To=%3C20081112153435.6DDF91C1879B%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2722 - in /trunk/lua: lib.3d.renderer.lua	lib.3d.walksmooth.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Wed Nov 12 16:34:35 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001525.html">[Iris-commit] [IRIS] r2721 - in /trunk: include/data_artmap.h lua/lib.data.lua plugins/itemcounter.lua src/data_artmap.cpp src/data_artmap_L.cpp
+</A></li>
+        <LI>Next message: <A HREF="001527.html">[Iris-commit] [IRIS] r2723 - in /trunk/plugins: itemcounter.lua	lib.spellbar.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1526">[ date ]</a>
+              <a href="thread.html#1526">[ thread ]</a>
+              <a href="subject.html#1526">[ subject ]</a>
+              <a href="author.html#1526">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Wed Nov 12 16:34:33 2008
+New Revision: 2722
+
+Log:
+fix targetline for 3d, 3d exact mobile pos
+
+Modified:
+    trunk/lua/lib.3d.renderer.lua
+    trunk/lua/lib.3d.walksmooth.lua
+
+Modified: trunk/lua/lib.3d.renderer.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.renderer.lua (original)
++++ trunk/lua/lib.3d.renderer.lua Wed Nov 12 16:34:33 2008
+@@ -31,6 +31,19 @@
+ 	-- load texture atlas
+ 	LoadTexAtlas()
+ 	RegisterListener(&quot;Hook_MainWindowResized&quot;,function () Renderer3D.gbNeedCo=
+rrectAspectRatio =3D true end)
++end
++
++function Renderer3D:GetExactMobilePos (mobile)
++	if (not mobile) then return end
++	-- todo : tilefree ? =
+
++	if (mobile.exactxloc) then -- walksmooth
++		return	mobile.exactxloc,
++				mobile.exactyloc,
++				mobile.exactzloc
++	end
++	return	mobile.xloc,
++			mobile.yloc,
++			mobile.zloc
+ end
+ =
+
+ function Renderer3D:Init ()
+
+Modified: trunk/lua/lib.3d.walksmooth.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.walksmooth.lua (original)
++++ trunk/lua/lib.3d.walksmooth.lua Wed Nov 12 16:34:33 2008
+@@ -91,6 +91,9 @@
+ 	local dir  =3D dir1 + factor * dirdiff
+ 	=
+
+ 	local x,y,z =3D Renderer3D:UOPosToLocal(xloc,yloc,zloc * 0.1)
++	mobile.exactxloc =3D xloc
++	mobile.exactyloc =3D yloc
++	mobile.exactzloc =3D zloc
+ 	local ang_in_degrees =3D (dir + 0) * 45.0
+ 	local qw,qx,qy,qz =3D Quaternion.fromAngleAxis(- gfDeg2Rad * ang_in_degre=
+es,0,0,1)
+ 	Renderer3D:UpdateMobilePos(mobile,x,y,z,qw,qx,qy,qz)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001525.html">[Iris-commit] [IRIS] r2721 - in /trunk: include/data_artmap.h lua/lib.data.lua plugins/itemcounter.lua src/data_artmap.cpp src/data_artmap_L.cpp
+</A></li>
+	<LI>Next message: <A HREF="001527.html">[Iris-commit] [IRIS] r2723 - in /trunk/plugins: itemcounter.lua	lib.spellbar.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1526">[ date ]</a>
+              <a href="thread.html#1526">[ thread ]</a>
+              <a href="subject.html#1526">[ subject ]</a>
+              <a href="author.html#1526">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

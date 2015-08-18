@@ -1,0 +1,543 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2271 - in /trunk: lua/gui/gui.gumpparser.lua lua/lib.unifont.lua widgets/widget.uotext.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-June/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2271%20-%20in%20/trunk%3A%20lua/gui/gui.gumpparser.lua%0A%20lua/lib.unifont.lua%20widgets/widget.uotext.lua&In-Reply-To=%3C20080630021437.478961C18019%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001078.html">
+   <LINK REL="Next"  HREF="001080.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2271 - in /trunk: lua/gui/gui.gumpparser.lua lua/lib.unifont.lua widgets/widget.uotext.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2271%20-%20in%20/trunk%3A%20lua/gui/gui.gumpparser.lua%0A%20lua/lib.unifont.lua%20widgets/widget.uotext.lua&In-Reply-To=%3C20080630021437.478961C18019%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2271 - in /trunk: lua/gui/gui.gumpparser.lua lua/lib.unifont.lua widgets/widget.uotext.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Mon Jun 30 04:14:36 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001078.html">[Iris-commit] [IRIS] r2270 - in /trunk: lua/gui/gui.gumpparser.lua widgets/widget.uobutton.lua widgets/widget.uoimage.lua widgets/widget.uotext.lua
+</A></li>
+        <LI>Next message: <A HREF="001080.html">[Iris-commit] [IRIS] r2272 - in /trunk/lua: gui/gui.gumpparser.lua lib.iris_atlasgroup.lua lib.unifont.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1079">[ date ]</a>
+              <a href="thread.html#1079">[ thread ]</a>
+              <a href="subject.html#1079">[ subject ]</a>
+              <a href="author.html#1079">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Mon Jun 30 04:14:36 2008
+New Revision: 2271
+
+Log:
+preparing unifont and gumpparser for preloading to improve performance by t=
+ex-atlas bulk-loading
+
+Modified:
+    trunk/lua/gui/gui.gumpparser.lua
+    trunk/lua/lib.unifont.lua
+    trunk/widgets/widget.uotext.lua
+
+Modified: trunk/lua/gui/gui.gumpparser.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.gumpparser.lua (original)
++++ trunk/lua/gui/gui.gumpparser.lua Mon Jun 30 04:14:36 2008
+@@ -14,6 +14,7 @@
+ function GumpParserTest ()
+ 	Client_RenderOneFrame() -- first frame rendered with ogre, needed for ini=
+t of viewport size
+ 	GetMainViewport():SetBackCol(0.5,0.5,0.5)
++	=
+
+ 	=
+
+ 	Load_Font() -- iris specific
+ 	Load_Hue()
+@@ -33,8 +34,21 @@
+ 	kClientSideGump_Journal			=3D journalGump	-- a very simple message log in=
+ papyrus-scroll look
+ 	]]--
+ 	-- kGumpSample_RuneBook kGumpSample_ChangeLog kGumpSample_Reward
+-	GumpParser_New(kGumpSample_RuneBook,false):SetLeftTop(0,240)
++	local profiler =3D MakeProfiler(&quot;gumpparser&quot;)
++	profiler:StartSection(&quot;font:preload&quot;)
++	GetUOFont(gUniFontLoaderList[1],true):PreLoad()
++	GetUOFont(gUniFontLoaderList[1],false):PreLoad()
++	profiler:StartSection(&quot;new&quot;)
++	local dialog =3D GumpParser_New(kGumpSample_RuneBook,false) =
+
++	profiler:StartSection(&quot;move&quot;)
++	dialog:SetLeftTop(0,240)
++	profiler:StartSection(&quot;old&quot;)
+ 	GumpParser(kGumpSample_RuneBook_Simple,false)
++	profiler:Finish()
++	profiler:PrintTotalTime()
++	=
+
++	=
+
++	=
+
+ 	--~ local dialog =3D GumpParser_New(kClientSideGump_Paperdoll_Own,true) d=
+ialog:SetLeftTop(400,100)
+ 	--~ GumpParser(kClientSideGump_Paperdoll_Own,true)
+ 	=
+
+@@ -205,8 +219,8 @@
+ -- token is an array
+ -- tokenformat is a string with comma-separated field names like &quot;x,y,widt=
+h,height,[ctrlname],...&quot; =
+
+ -- [] encasing optional params and ... for not checking the number of rema=
+ining params
+-function GumpParser_ParseToken (token,tokenformat)
+-	local res =3D {}
++function GumpParser_ParseToken (token,tokenformat,paramadd)
++	local res =3D paramadd and CopyArray(paramadd) or {}
+ 	for k,fieldname in ipairs(explode(&quot;,&quot;,tokenformat)) do
+ 		if (fieldname =3D=3D &quot;...&quot;) then return res end
+ 		local tokenval =3D token[k+1]
+@@ -232,15 +246,18 @@
+ -- param : x,y,gump_id/art_id,width,height,hue=3D0,tiled=3Dfalse(strech),c=
+hecker=3Dfalse(gray-transparent-background),multipart=3Dfalse(true for resi=
+zepic)
+ -- either art_id or gump_id is used
+ function GumpParser_MakeImage (parent,param) return parent:CreateChild(&quot;UO=
+Image&quot;,param) end
++--~ function GumpParser_MakeImage (parent,param)  end
+ =
+
+ -- returns widget
+ -- param : x,y,width,height,cliloc_id/textline_id,background,scrollbar,hue=
+  : background=3D0/1=3Dtransparent?  scrollbar=3D0/1=3Ddisplayed
+ function GumpParser_MakeText (parent,param,textlines) return parent:Create=
+Child(&quot;UOText&quot;,param,textlines) end
++--~ function GumpParser_MakeText (parent,param,textlines)  end
+ =
+
+ -- returns widget
+ -- param : x,y,gump_id_normal,gump_id_pressed,quit,page_id,return_value
+ -- optionally : art_id,hue,art_x,art_y    if an art-image is used as butto=
+n label
+ function GumpParser_MakeButton (parent,param) return parent:CreateChild(&quot;U=
+OButton&quot;,param,textlines) end
++--~ function GumpParser_MakeButton (parent,param)  end
+ =
+
+ =
+
+ 				=
+
+@@ -356,6 +373,27 @@
+ 		CloseServerSideGump(playerid, dialogId, 0, bClientSideMode)
+ 	end
+ end
++
++kGumpParser_CommandTypes =3D {}
++kGumpParser_CommandTypes[&quot;page&quot;]				=3D {paramformat=3D&quot;pagenum&quot;}
++kGumpParser_CommandTypes[&quot;xmfhtmlgump&quot;]			=3D {paramformat=3D&quot;x,y,width,he=
+ight,cliloc_id,background,scrollbar,[ctrlname]&quot;}
++kGumpParser_CommandTypes[&quot;xmfhtmlgumpcolor&quot;]	=3D {paramformat=3D&quot;x,y,width=
+,height,cliloc_id,background,scrollbar,hue,[ctrlname]&quot;}
++kGumpParser_CommandTypes[&quot;croppedtext&quot;]			=3D {paramformat=3D&quot;x,y,width,he=
+ight,hue,textline_id,[ctrlname]&quot;,paramadd=3D{bold =3D true}}
++kGumpParser_CommandTypes[&quot;htmlgump&quot;]			=3D {paramformat=3D&quot;x,y,width,heigh=
+t,textline_id,background,scrollbar,[ctrlname]&quot;}
++kGumpParser_CommandTypes[&quot;text&quot;]				=3D {paramformat=3D&quot;x,y,hue,textline_i=
+d,[ctrlname]&quot;}
++kGumpParser_CommandTypes[&quot;tooltip&quot;]				=3D {paramformat=3D&quot;cliloc_id,[ctrl=
+name]&quot;}
++kGumpParser_CommandTypes[&quot;resizepic&quot;]			=3D {paramformat=3D&quot;x,y,gump_id,wi=
+dth,height,[ctrlname]&quot;,paramadd=3D{multipart =3D true}}
++kGumpParser_CommandTypes[&quot;gumppictiled&quot;]		=3D {paramformat=3D&quot;x,y,width,he=
+ight,gump_id,[ctrlname]&quot;,paramadd=3D{tiled =3D true}}
++kGumpParser_CommandTypes[&quot;checkertrans&quot;]		=3D {paramformat=3D&quot;x,y,width,he=
+ight,[ctrlname]&quot;,paramadd=3D{checker =3D true}}
++kGumpParser_CommandTypes[&quot;tilepic&quot;]				=3D {paramformat=3D&quot;x,y,art_id,[ctr=
+lname]&quot;}
++kGumpParser_CommandTypes[&quot;tilepichue&quot;]			=3D {paramformat=3D&quot;x,y,art_id,hu=
+e,[ctrlname]&quot;}
++kGumpParser_CommandTypes[&quot;button&quot;]				=3D {paramformat=3D&quot;x,y,gump_id_norm=
+al,gump_id_pressed,quit,page_id,[return_value],[ctrlname]&quot;}
++kGumpParser_CommandTypes[&quot;buttontileart&quot;]		=3D {paramformat=3D&quot;x,y,gump_id=
+_normal,gump_id_pressed,quit,page_id,return_value,art_id,hue,art_x,art_y,[c=
+trlname]&quot;}
++kGumpParser_CommandTypes[&quot;checkbox&quot;]			=3D {paramformat=3D&quot;x,y,gump_id_nor=
+mal,gump_id_pressed,status,return_value,[ctrlname]&quot;}
++kGumpParser_CommandTypes[&quot;radio&quot;]				=3D {paramformat=3D&quot;x,y,gump_id_norma=
+l,gump_id_pressed,status,return_value,[ctrlname]&quot;}
++kGumpParser_CommandTypes[&quot;group&quot;]				=3D {paramformat=3D&quot;groupnumber&quot;}
++kGumpParser_CommandTypes[&quot;textentry&quot;]			=3D {paramformat=3D&quot;x,y,width,heig=
+ht,hue,return_value,textline_id_default,[ctrlname]&quot;}
++kGumpParser_CommandTypes[&quot;gumppic&quot;]				=3D {paramformat=3D&quot;x,y,gump_id,...=
+&quot;}
+ 				=
+
+ function GumpParser_New (Gumpdata, bClientSideMode)
+ 	-- if there is a dialog with the same id, close it
+@@ -366,19 +404,31 @@
+ 	dialog.gumpdata =3D Gumpdata -- for debugging
+ 	local parent =3D dialog:GetPage(0)
+ 	local groupnumber =3D -1 -- for radiobuttons
+-	local param
+ 	local widget
+ 	=
+
+-	--~ function MyGetTokenText (params) return params.textline_id and Gumpda=
+ta.textline[params.textline_id] or (gClilocLoader and gClilocLoader:Get(par=
+ams.cliloc_id) or &quot;no_cliloc&quot;) end -- debug
+-	=
+
+ 	-- parse gump code
++	local command_chunks =3D {}
+ 	for k,v in pairs(strsplit(&quot;{&quot;,Gumpdata.Data)) do
+ 		local bToken =3D {}
+ 		for token in string.gfind(v, &quot;%w+&quot;) do table.insert(bToken,token) end
+-		local command =3D bToken[1] and string.lower(bToken[1])
+-
++		local command =3D bToken[1] and string.lower(bToken[1]) or &quot;&quot;
++		local commandtype =3D kGumpParser_CommandTypes[command]
++		local param =3D commandtype and GumpParser_ParseToken(bToken,commandtype=
+.paramformat,commandtype.paramadd)
++		=
+
++		if (command =3D=3D &quot;gumppic&quot;) then -- special format, optional hue=3D123
++			if (bToken[5] =3D=3D &quot;hue&quot;) then param.hue =3D bToken[6] end
++			if (bClientSideMode) then param.ctrlname =3D bToken[5] end
++		end
++		=
+
++		table.insert(command_chunks,{command,bToken,param})
++		=
+
++		-- todo : precache gumps,artids and cliloc strings
++	end
++	=
+
++	for k,command_chunk in pairs(command_chunks) do =
+
++		local command,bToken,param =3D unpack(command_chunk)
+ 		------------------------------------------------------------------------=
+--------------------
+-		if (not command) then -- no word in line
++		if (command =3D=3D &quot;&quot;) then -- no word in line
+ 		elseif (command =3D=3D &quot;noclose&quot;) then
+ 			dialog.noclose =3D true
+ 		elseif (command =3D=3D &quot;nomove&quot;) then
+@@ -389,7 +439,7 @@
+ 			dialog.noresize =3D true
+ 			=
+
+ 		--Description:  Specifies which page to define. Page 0 is already presen=
+t and visible with all other Pages (1,2,3,etc) =
+
+-		elseif (command =3D=3D &quot;page&quot;) then param =3D GumpParser_ParseToken(bTok=
+en,&quot;pagenum&quot;)
++		elseif (command =3D=3D &quot;page&quot;) then
+ 			parent =3D dialog:GetPage(param.pagenum)
+ 			groupnumber =3D -1 -- start new radio button group on page-switch ? not=
+ sure if this is correct  (TODO : test moongate menu)
+ 			=
+
+@@ -401,45 +451,37 @@
+ 		=
+
+ 		--xmfhtmlgump &lt;x&gt; &lt;y&gt; &lt;width&gt; &lt;height&gt; &lt;cliloc_id&gt; &lt;background&gt; &lt;scrollb=
+ar&gt;
+ 		--Description:	background=3D0/1=3Dtransparent?  scrollbar=3D0/1=3Ddispla=
+yed
+-		elseif (command =3D=3D &quot;xmfhtmlgump&quot;) then param =3D GumpParser_ParseTok=
+en(bToken,&quot;x,y,width,height,cliloc_id,background,scrollbar,[ctrlname]&quot;)
++		elseif (command =3D=3D &quot;xmfhtmlgump&quot;) then
+ 			widget =3D GumpParser_MakeText(parent,param)
+-			--~ print(&quot;gumpparser_d&quot;,v,MyGetTokenText(param))
+-			=
+
+ 			=
+
+ 		--xmfhtmlgumpcolor &lt;x&gt; &lt;y&gt; &lt;width&gt; &lt;height&gt; &lt;cliloc_id&gt; &lt;background&gt; &lt;sc=
+rollbar&gt; &lt;hue&gt;
+ 		--Description:	background=3D0/1=3Dtransparent?  scrollbar=3D0/1=3Ddispla=
+yed
+-		elseif (command =3D=3D &quot;xmfhtmlgumpcolor&quot;) then param =3D GumpParser_Par=
+seToken(bToken,&quot;x,y,width,height,cliloc_id,background,scrollbar,hue,[ctrlna=
+me]&quot;)
++		elseif (command =3D=3D &quot;xmfhtmlgumpcolor&quot;) then
+ 			widget =3D GumpParser_MakeText(parent,param)
+-			--~ print(&quot;gumpparser_d&quot;,v,MyGetTokenText(param))
+ 			=
+
+ 		-- croppedtext &lt;x&gt; &lt;y&gt; &lt;width&gt; &lt;height&gt; &lt;hue&gt; &lt;textline_id&gt;
+ 		-- Description:  Adds a text field to the gump. This is similar to the t=
+ext command,
+ 		-- but the text is cropped to the defined area.
+ 		-- text is automatically bold/outlined
+-		elseif (command =3D=3D &quot;croppedtext&quot;) then param =3D GumpParser_ParseTok=
+en(bToken,&quot;x,y,width,height,hue,textline_id,[ctrlname]&quot;)
+-			param.bold =3D true
++		elseif (command =3D=3D &quot;croppedtext&quot;) then
+ 			widget =3D GumpParser_MakeText(parent,param,Gumpdata.textline)
+-			--~ print(&quot;gumpparser_d&quot;,v,MyGetTokenText(param))
+ 			=
+
+ 		--HtmlGump &lt;x&gt; &lt;y&gt; &lt;width&gt; &lt;height&gt; &lt;textline_id&gt; &lt;background&gt; &lt;scrollba=
+r&gt;
+ 		--Description:  Defines a text-area where Html-commands are allowed.
+ 		--				&lt;background&gt; and &lt;scrollbar&gt; can be 0 or 1 and define whether the =
+background is transparent and a scrollbar is displayed.
+ 		--{ htmlgump 10 8 100 20 0 0 0 }
+-		elseif (command =3D=3D &quot;htmlgump&quot;) then param =3D GumpParser_ParseToken(=
+bToken,&quot;x,y,width,height,textline_id,background,scrollbar,[ctrlname]&quot;)
++		elseif (command =3D=3D &quot;htmlgump&quot;) then
+ 			widget =3D GumpParser_MakeText(parent,param,Gumpdata.textline)
+-			--~ print(&quot;gumpparser_d&quot;,v,MyGetTokenText(param))
+ 			=
+
+ 		--text &lt;x&gt; &lt;y&gt; &lt;hue&gt; &lt;textline_id&gt;
+ 		--Description:  Defines the position and hue of a text (data) entry.
+-		elseif (command =3D=3D &quot;text&quot;) then param =3D GumpParser_ParseToken(bTok=
+en,&quot;x,y,hue,textline_id,[ctrlname]&quot;)
++		elseif (command =3D=3D &quot;text&quot;) then
+ 			widget =3D GumpParser_MakeText(parent,param,Gumpdata.textline)
+-			--~ print(&quot;gumpparser_d&quot;,v,MyGetTokenText(param))
+ =
+
+ 		--tooltip &lt;cliloc_id&gt;
+ 		--Description:  Adds to the previous layoutarray entry a Tooltip with th=
+e in [cliloc-nr] defined Cliloc entry
+-		elseif (command =3D=3D &quot;tooltip&quot;) then param =3D GumpParser_ParseToken(b=
+Token,&quot;cliloc_id,[ctrlname]&quot;)
++		elseif (command =3D=3D &quot;tooltip&quot;) then
+ 			if (widget) then GumpParser_SetToolTipp(widget,param.cliloc_id) end
+-			--~ print(&quot;gumpparser_d&quot;,v,MyGetTokenText(param))
+ 			=
+
+ 			=
+
+ 			=
+
+@@ -450,39 +492,34 @@
+ 		=
+
+ 		--resizepic &lt;x&gt; &lt;y&gt; &lt;gump_id&gt; &lt;width&gt; &lt;height&gt;
+ 		--consists of multiple(9) parts, for which gump_id is the base-id, a bor=
+der-frame like thing, dialog background for example. tiled
+-		elseif (command =3D=3D &quot;resizepic&quot;) then param =3D GumpParser_ParseToken=
+(bToken,&quot;x,y,gump_id,width,height,[ctrlname]&quot;)
+-			param.multipart =3D true -- the gump_id is just the base id, the border=
+ tiles have different ids, calculated from it
++		-- multipart=3Dtrue : the gump_id is just the base id, the border tiles =
+have different ids, calculated from it
++		elseif (command =3D=3D &quot;resizepic&quot;) then
+ 			widget =3D GumpParser_MakeImage(parent,param)
+ 			=
+
+ 		--gumppic &lt;x&gt; &lt;y&gt; &lt;gump_id&gt; [hue=3D353]
+ 		--Description:  Adds a graphic to the gump, where &lt;id&gt; ist the graphic i=
+d of an item.
+ 		--				Optionaly there is a color parameter. =
+
+-		elseif (command =3D=3D &quot;gumppic&quot;) then param =3D GumpParser_ParseToken(b=
+Token,&quot;x,y,gump_id,...&quot;)
+-			if (bToken[5] =3D=3D &quot;hue&quot;) then param.hue =3D bToken[6] end
++		elseif (command =3D=3D &quot;gumppic&quot;) then
+ 			widget =3D GumpParser_MakeImage(parent,param)
+-			-- in clientmode no hueing is used yet (because of different hue defini=
+tions)
+-			if (bClientSideMode) then param.ctrlname =3D bToken[5] end
+ =
+
+ 		--gumppictiled &lt;x&gt; &lt;y&gt; &lt;width&gt; &lt;height&gt; &lt;gump_id&gt;
+ 		--Description:  Similar to GumpPic, but the gumppic is tiled to the give=
+n &lt;height&gt; and &lt;width&gt;.
+-		elseif (command =3D=3D &quot;gumppictiled&quot;) then param =3D GumpParser_ParseTo=
+ken(bToken,&quot;x,y,width,height,gump_id,[ctrlname]&quot;)
+-			param.tiled =3D true
++		elseif (command =3D=3D &quot;gumppictiled&quot;) then
+ 			widget =3D GumpParser_MakeImage(parent,param)
+ =
+
+ 		--checkertrans &lt;x&gt; &lt;y&gt; &lt;width&gt; &lt;height&gt;
+ 		--Description:  Creates a transparent rectangle on position &lt;x,y&gt; using =
+&lt;width&gt; and &lt;height&gt;.
+-		elseif (command =3D=3D &quot;checkertrans&quot;) then param =3D GumpParser_ParseTo=
+ken(bToken,&quot;x,y,width,height,[ctrlname]&quot;)
+-			param.checker =3D true
++		elseif (command =3D=3D &quot;checkertrans&quot;) then
+ 			widget =3D GumpParser_MakeImage(parent,param)
+ =
+
+ 		--tilepic &lt;x&gt; &lt;y&gt; &lt;art_id&gt;
+ 		--Description:  Adds a Tilepicture to the gump. &lt;id&gt; defines the tile gr=
+aphic-id.
+-		elseif (command =3D=3D &quot;tilepic&quot;) then param =3D GumpParser_ParseToken(b=
+Token,&quot;x,y,art_id,[ctrlname]&quot;)
++		elseif (command =3D=3D &quot;tilepic&quot;) then
+ 			widget =3D GumpParser_MakeImage(parent,param)
+ =
+
+ 		--TilePicHue &lt;x&gt; &lt;y&gt; &lt;art_id&gt; &lt;hue&gt;
+ 		--Description:  Similar to the tilepic command, but with an additional h=
+ue parameter.
+-		elseif (command =3D=3D &quot;tilepichue&quot;) then param =3D GumpParser_ParseToke=
+n(bToken,&quot;x,y,art_id,hue,[ctrlname]&quot;)
++		elseif (command =3D=3D &quot;tilepichue&quot;) then
+ 			widget =3D GumpParser_MakeImage(parent,param)
+ 		=
+
+ 		=
+
+@@ -496,7 +533,7 @@
+ 		--				&lt;released-id&gt; and &lt;pressed-id&gt; specify the buttongraphic. If press=
+ed check for &lt;return-value&gt;.
+ 		--				Use &lt;page-id&gt; to switch between pages and &lt;quit&gt;=3D1/0 to close th=
+e gump.
+ 		--  return_value is optional on pol
+-		elseif (command =3D=3D &quot;button&quot;) then param =3D GumpParser_ParseToken(bT=
+oken,&quot;x,y,gump_id_normal,gump_id_pressed,quit,page_id,[return_value],[ctrln=
+ame]&quot;)
++		elseif (command =3D=3D &quot;button&quot;) then
+ 			widget =3D GumpParser_MakeButton(parent,param)
+ =
+
+ 		--buttontileart &lt;x&gt; &lt;y&gt; &lt;gump_id_normal&gt; &lt;gump_id_pressed&gt; &lt;quit&gt; &lt;page_=
+id&gt; &lt;return_value&gt; &lt;art_id&gt; &lt;hue&gt; &lt;art_x&gt; &lt;art_y&gt;
+@@ -504,29 +541,29 @@
+ 		--Description:  Adds a button to the gump with the specified coordinates=
+ and tilepic as graphic.
+ 		--				&lt;tile-x&gt; and &lt;tile-y&gt; define the coordinates of the tile graphic a=
+nd are relative to &lt;x&gt; and &lt;y&gt;.
+ 		--{ buttontileart 432 248 9010 9010 1 0 33 1352 0 100 20 }
+-		elseif (command =3D=3D &quot;buttontileart&quot;) then param =3D GumpParser_ParseT=
+oken(bToken,&quot;x,y,gump_id_normal,gump_id_pressed,quit,page_id,return_value,a=
+rt_id,hue,art_x,art_y,[ctrlname]&quot;)
++		elseif (command =3D=3D &quot;buttontileart&quot;) then
+ 			widget =3D GumpParser_MakeButton(parent,param)
+ 			=
+
+ 		--checkbox &lt;x&gt; &lt;y&gt; &lt;gump_id_normal&gt; &lt;gump_id_pressed&gt; &lt;status&gt; &lt;return_v=
+alue&gt;
+ 		--Description:  Adds a CheckBox to the gump. Multiple CheckBoxes can be =
+pressed at the same time.
+ 		--				Check the &lt;return-value&gt; if you want to know which CheckBoxes were=
+ selected.
+-		elseif (command =3D=3D &quot;checkbox&quot;) then param =3D GumpParser_ParseToken(=
+bToken,&quot;x,y,gump_id_normal,gump_id_pressed,status,return_value,[ctrlname]&quot;)
++		elseif (command =3D=3D &quot;checkbox&quot;) then
+ 			widget =3D GumpParser_MakeCheckBox(parent,param)
+ 			=
+
+ 		--radio &lt;x&gt; &lt;y&gt; &lt;gump_id_normal&gt; &lt;gump_id_pressed&gt; &lt;status&gt; &lt;return_valu=
+e&gt;
+ 		--Description:  Same as Checkbox, but only one Radiobutton can be presse=
+d at the same time, except they are per linked via the 'Group' command.
+-		elseif (command =3D=3D &quot;radio&quot;) then param =3D GumpParser_ParseToken(bTo=
+ken,&quot;x,y,gump_id_normal,gump_id_pressed,status,return_value,[ctrlname]&quot;)
++		elseif (command =3D=3D &quot;radio&quot;) then
+ 			widget =3D GumpParser_MakeRadioButton(parent,param,groupnumber)
+ 			=
+
+ 		--Group &lt;groupnumber&gt;
+ 		--Description:  Links radio buttons to a group. Group is send before rad=
+iobuttons. Seems only to work on page 0 and 1.  =
+
+-		elseif (command =3D=3D &quot;group&quot;) then param =3D GumpParser_ParseToken(bTo=
+ken,&quot;groupnumber&quot;)
++		elseif (command =3D=3D &quot;group&quot;) then
+ 			groupnumber =3D param.groupnumber
+ 			=
+
+ 		--textentry &lt;x&gt; &lt;y&gt; &lt;width&gt; &lt;height&gt; &lt;hue&gt; &lt;return_value&gt; &lt;textline_id_d=
+efault&gt;
+ 		--Description:  Defines an area where the &lt;default-text-id&gt; is displayed.
+ 		--				The player can modify this data. To get this data check the &lt;retur=
+n-value&gt;
+-		elseif (command =3D=3D &quot;textentry&quot;) then param =3D GumpParser_ParseToken=
+(bToken,&quot;x,y,width,height,hue,return_value,textline_id_default,[ctrlname]&quot;)
++		elseif (command =3D=3D &quot;textentry&quot;) then
+ 			widget =3D GumpParser_MakeEditText(parent,param)
+ 			=
+
+ 			=
+
+
+Modified: trunk/lua/lib.unifont.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.unifont.lua (original)
++++ trunk/lua/lib.unifont.lua Mon Jun 30 04:14:36 2008
+@@ -119,6 +119,12 @@
+ 	myfont.GetDefaultFontSize	=3D function (self) return myfont.defaultlineh =
+end
+ 	myfont.GetSpaceWidth		=3D function (self,fontsize) return self.spacewidth=
+ end
+ 	myfont.GetLineHeight		=3D function (self,fontsize) return self.defaultlin=
+eh end
++	myfont.PreLoad				=3D function (self,preloadletters) =
+
++		preloadletters =3D preloadletters or &quot;abcdefghijklmnopqrstuvwxyzABCDEFGH=
+IJKLMNOPQRSTUVWXYZ01234567890:.&quot;
++		local fontsize =3D self:GetDefaultFontSize()
++		local textlen =3D string.len(preloadletters)
++		for i=3D1,textlen do self:GetGlyphInfo(string.byte(preloadletters,i),fon=
+tsize) end
++	end
+ 	myfont.GetGlyphInfo			=3D function (self,iCharCode,fontsize) =
+
+ 		local matname,u0,v0,u1,v1,xoff,yoff,w,h =3D GetUniFontGlyph(loader,iChar=
+Code,self.bOutlined)
+ 		if (not matname) then return end
+
+Modified: trunk/widgets/widget.uotext.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/widgets/widget.uotext.lua (original)
++++ trunk/widgets/widget.uotext.lua Mon Jun 30 04:14:36 2008
+@@ -43,4 +43,4 @@
+ gumpparser_d     xmfhtmlgump	158 22 100 18 1011299 0 0 }        Rename book
+ gumpparser_d     croppedtext	145 60 115 17 49 2 }       FFHQ
+ gumpparser_d     croppedtext	145 75 115 17 1153 3 }     TokunoTamer
+-]]--
++]]--
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001078.html">[Iris-commit] [IRIS] r2270 - in /trunk: lua/gui/gui.gumpparser.lua widgets/widget.uobutton.lua widgets/widget.uoimage.lua widgets/widget.uotext.lua
+</A></li>
+	<LI>Next message: <A HREF="001080.html">[Iris-commit] [IRIS] r2272 - in /trunk/lua: gui/gui.gumpparser.lua lib.iris_atlasgroup.lua lib.unifont.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1079">[ date ]</a>
+              <a href="thread.html#1079">[ thread ]</a>
+              <a href="subject.html#1079">[ subject ]</a>
+              <a href="author.html#1079">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

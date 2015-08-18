@@ -1,0 +1,1375 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2910 - in /trunk: config/ lua/ lua/net/	plugins/
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2009-February/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2910%20-%20in%20/trunk%3A%20config/%20lua/%20lua/net/%0A%09plugins/&In-Reply-To=%3C20090210153400.DA1011C1866A%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001711.html">
+   <LINK REL="Next"  HREF="001713.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2910 - in /trunk: config/ lua/ lua/net/	plugins/</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2910%20-%20in%20/trunk%3A%20config/%20lua/%20lua/net/%0A%09plugins/&In-Reply-To=%3C20090210153400.DA1011C1866A%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2910 - in /trunk: config/ lua/ lua/net/	plugins/">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Tue Feb 10 16:34:00 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001711.html">[Iris-commit] [IRIS] r2909 - in /branches/stable_release: vc8/iris.sln vc8/iris_luajit.sln vc9/iris.sln vc9/iris.vcproj
+</A></li>
+        <LI>Next message: <A HREF="001713.html">[Iris-commit] [IRIS] r2911 - in /trunk/lua: lib.desktop.lua lib.mainmenu.lua lib.shardlist.lua net/net.login.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1712">[ date ]</a>
+              <a href="thread.html#1712">[ thread ]</a>
+              <a href="subject.html#1712">[ subject ]</a>
+              <a href="author.html#1712">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Tue Feb 10 16:33:59 2009
+New Revision: 2910
+
+Log:
+rewrote mainmenu (cleanup + improved acclist and new charcreate dialog (so =
+far skills+stats, but no hairstyle+colors yet)), xml-based registry-slow, p=
+ing sent during charlist+charcreate to avoid kick after 1 minute, small imp=
+rovement in charcreate netcode
+
+Added:
+    trunk/lua/lib.mainmenu.accountlist.lua
+    trunk/lua/lib.mainmenu.background.lua
+    trunk/lua/lib.mainmenu.charcreate.lua
+    trunk/lua/lib.mainmenu.charlist.lua
+    trunk/lua/lib.mainmenu.old.lua
+    trunk/lua/lib.mainmenu.shardlist.lua
+    trunk/lua/lib.registry.slow.lua
+Modified:
+    trunk/config/   (props changed)
+    trunk/lua/lib.charcreate.lua
+    trunk/lua/lib.mainmenu.lua
+    trunk/lua/lib.shardlist.lua
+    trunk/lua/main.lua
+    trunk/lua/net/net.login.lua
+    trunk/lua/net/net.other.lua
+    trunk/plugins/lib.spellbar.lua
+
+Modified: trunk/lua/lib.charcreate.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.charcreate.lua (original)
++++ trunk/lua/lib.charcreate.lua Tue Feb 10 16:33:59 2009
+@@ -17,6 +17,15 @@
+ 	chardata.name =3D name
+ 	chardata.pass =3D pass
+ 	chardata.sex =3D 0
++	for k,v in pairs(CharCreateTemplateMod_GetValues(template)) do chardata[k=
+] =3D v end
++	if (MyCharCreateHack) then MyCharCreateHack(chardata) end
++	Send_CharCreate(chardata)
++	return true
++end
++
++function CharCreateTemplateMod_GetValues (template)
++	local chardata =3D {}
++	chardata.prof =3D tonumber(template[&quot;Desc&quot;])
+ 	chardata.skill1 =3D gCharCreateSkillIDs[template.skills[1].name] or 0
+ 	chardata.skill2 =3D gCharCreateSkillIDs[template.skills[2].name] or 0
+ 	chardata.skill3 =3D gCharCreateSkillIDs[template.skills[3].name] or 0
+@@ -26,9 +35,7 @@
+ 	chardata.str =3D template.stats[&quot;Str&quot;]
+ 	chardata.dex =3D template.stats[&quot;Dex&quot;]
+ 	chardata.int =3D template.stats[&quot;Int&quot;]
+-	if (MyCharCreateHack) then MyCharCreateHack(chardata) end
+-	Send_CharCreate(chardata)
+-	return true
++	return chardata
+ end
+ =
+
+ function GetCharCreationTemplates () =
+
+@@ -52,6 +59,7 @@
+ 			if (tokens[2] =3D=3D &quot;Skill&quot;)		then table.insert(lastinfo.skills,{name=
+=3Dtrim(tokens[3]),value=3Dval})
+ 			elseif (tokens[2] =3D=3D &quot;Stat&quot;)	then lastinfo.stats[trim(tokens[3])] =
+=3D val
+ 			else lastinfo[trim(tokens[2])] =3D trim(tokens[3]) end
++			-- Desc			3  : prof id for charcreate message ?
+ 		end
+ 	end
+ 	end
+
+Modified: trunk/lua/lib.mainmenu.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mainmenu.lua (original)
++++ trunk/lua/lib.mainmenu.lua Tue Feb 10 16:33:59 2009
+@@ -1,82 +1,306 @@
+ -- handles the menu before starting the game
+ =
+
+-gMainMenuCamAng =3D 0
+-
+-local function GetShardButtonText (shard,shardname)
+-	if (shard.gLoginname) then
+-		return shardname..&quot;:&quot;..(shard.gLoginname or &quot;&quot;)
++dofile(libpath .. &quot;lib.mainmenu.background.lua&quot;)
++dofile(libpath .. &quot;lib.mainmenu.shardlist.lua&quot;)
++dofile(libpath .. &quot;lib.mainmenu.accountlist.lua&quot;)
++dofile(libpath .. &quot;lib.mainmenu.charlist.lua&quot;)
++dofile(libpath .. &quot;lib.mainmenu.charcreate.lua&quot;)
++
++
++
++function StartMainMenu	() =
+
++	SetUOCursor(0)
++	if (gDialog_IrisLogo) then gDialog_IrisLogo:SetVisible(false) end
++	ChatLine_Init()	=
+
++	if (MainMenuCommandLine()) then return end
++	MainMenu_Background_Start()
++	MainMenu_ShardList_Start()
++end
++function StepMainMenu	() end
++
++function MainMenuStopAllMenus	() =
+
++	MainMenu_ShardList_Stop()
++	MainMenu_AccountList_Stop()
++	MainMenu_ServerList_Stop()
++	MainMenu_CharList_Stop()
++	MainMenu_CharCreate_Stop()
++end
++
++function MainMenuResetNetwork () =
+
++	NetDisconnect()
++	gHuffmanDecode =3D false
++end
++
++
++
++-- ***** ***** ***** ***** ***** commandline
++
++function MainMenuCommandLine ()
++	if (gTestNoMainMenu) then return end
++	if (gCommandLineSwitches[&quot;-meshload&quot;]) then StartMeshLoaderTest() end -- =
+journaltest
++	if (gCommandLineSwitches[&quot;-jt&quot;]) then ToggleJournal() return true end -- =
+journaltest
++	if (gCommandLineSwitches[&quot;-mt&quot;]) then ToggleMacroList() return true end -=
+- macrolist-test
++	if (gCommandLineSwitches[&quot;-so&quot;]) then StartOfflineMode(gCommandLineArgume=
+nts[gCommandLineSwitches[&quot;-so&quot;]+1]) return true end -- start in offline mode
++	if (gCommandLineSwitches[&quot;-sd&quot;]) then StartDebugMenu() return true end --=
+ start in debug mode
++	if (gCommandLineSwitches[&quot;-co&quot;]) then =
+
++		local name =3D gCommandLineArguments[gCommandLineSwitches[&quot;-co&quot;]+1]
++		local shard =3D gShardList[name]
++		if (shard) then =
+
++			gAutoLoginCharName =3D gCommandLineArguments[gCommandLineSwitches[&quot;-co&quot;=
+]+2]
++			=
+
++			-- if charname specified, and shard hasn't full login already, search k=
+nown charlists and passwords
++			if (gAutoLoginCharName and (((shard.gLoginname or &quot;&quot;) =3D=3D &quot;&quot;) or ((s=
+hard.gPassword or &quot;&quot;) =3D=3D &quot;&quot;))) then =
+
++				print(&quot;autologin...searching for charname:&quot;,gAutoLoginCharName)
++				local charlists =3D FilterTable(ShardMemoryGetList(&quot;charlist&quot;),functio=
+n (charlist) return	=
+
++																	charlist.gLoginServerIP		=3D=3D shard.gLoginServerIP and =
+
++																	charlist.gLoginServerPort	=3D=3D shard.gLoginServerPort e=
+nd)
++				for k,charlist in pairs(charlists) do =
+
++					for i=3D0,20 do =
+
++						print(&quot;..&quot;,charlist[i])
++						if (not charlist[i]) then break end
++						if (string.lower(charlist[i]) =3D=3D string.lower(gAutoLoginCharName=
+)) then
++							gAutoLoginCharName =3D charlist[i]
++							gLoginname =3D charlist.gLoginname
++							gPassword =3D MainMenu_GetStoredPassword(shard.gLoginServerIP,shard=
+.gLoginServerPort,gLoginname)
++							print(&quot;found&quot;,gAutoLoginCharName,gLoginname,gPassword)
++						end
++					end
++				end
++			end
++			MainMenu_SelectShard(shard)
++			return true
++		end
++	end -- connect to shard
++end
++
++
++-- ***** ***** ***** ***** ***** actions and events
++
++function MainMenu_SelectShard (shard)
++	print(&quot;MainMenu_SelectShard&quot;,shard,shard.gShardName)
++	MainMenuStopAllMenus()
++	gSelectedShardName =3D shard.gShardName
++	=
+
++	LoadShardfilter(shard.gCustomArtFilterFilePath) -- todo : revert on error=
+ or back-button ?
++	=
+
++	-- load global config from shard
++	for k,v in pairs(shard) do _G[k] =3D v end
++	=
+
++	if (shard.gStartGameWithoutNetwork =3D=3D true) then
++		StartOfflineMode()
++	elseif(shard.gStartInDebugMode =3D=3D true) then
++		StartDebugMenu()
+ 	else
+-		return shardname
+-	end
+-end
+-
+-local function StopLoadingBackground ()
+-	if (gLoadingBackground) then
+-		gLoadingBackground:Destroy()
+-	end
+-end
+-
+-local function MainMenuConnectToShard (shard,shardname,loginname,loginpass)
+-	-- activate shard
+-	for k,v in pairs(shard) do =
+
+-		--print(&quot;shard&quot;,k,v) =
+
+-		_G[k] =3D v  -- set global var with name k and value v
+-	end
+-	if (loginname) then gLoginname =3D loginname end	-- Loginname
+-	if (loginpass) then gPassword =3D loginpass end	-- Password
+-	=
+
+-	if ((not gLoginname) or gLoginname =3D=3D &quot;&quot; or (not gPassword) or gPassw=
+ord =3D=3D &quot;&quot;) then
+-		local text =3D &quot;cannot connect to shard '&quot;..shardname..&quot;', no username/p=
+assword specified&quot;
++		if (gLoginname and gLoginname ~=3D &quot;&quot; and gPassword and gPassword ~=3D &quot;=
+&quot;) then MainMenu_SendLogin(gLoginname,gPassword) return end
++		MainMenu_AccountList_Start()
++	end
++end
++
++-- answered by MainMenuShowServerList
++function MainMenu_SendLogin (user,pass)
++	print(&quot;##################################&quot;)
++	print(&quot;MainMenu_SendLogin&quot;,user)
++	MainMenuStopAllMenus()
++	--~ (gSelectedShardName or &quot;???&quot;) fails here...
++	GuiAddChatLine(&quot;connecting to shard &quot;..gLoginServerIP..&quot;:&quot;..gLoginServerP=
+ort..&quot; with user &quot;..user)
++	=
+
++	-- init net
++	gNet_State =3D NetConnectWithKey(gLoginServerIP,gLoginServerPort,gServerS=
+eed)
++	if (not gNet_State) then =
+
++		local text =3D &quot;connecting to shard on &quot;..gLoginServerIP..&quot;:&quot;..gLoginSer=
+verPort..&quot; FAILED !&quot;
+ 		GuiAddChatLine(text)
+ 		PlainMessageBox(text,gGuiDefaultStyleSet,gGuiDefaultStyleSet)
++		MainMenu_AccountList_Start()
+ 		return
+ 	end
+ 	=
+
+-	GuiAddChatLine(&quot;connecting to shard '&quot;..shardname..&quot;' on &quot;..gLoginServerI=
+P..&quot;:&quot;..gLoginServerPort)
+-	=
+
+-	-- todo : move to gui ?
++	Send_Account_Login_Request(user,pass) -- 0x80 kPacket_Account_Login_Reque=
+st
++end
++
++function MainMenu_SendLoginAndChar (user,pass,charid,charname)
++	print(&quot;##################################&quot;)
++	print(&quot;MainMenu_SendLoginAndChar&quot;,user,charid,charname)
++	gAutoLoginCharID =3D charid
++	gAutoLoginCharName =3D charname
++	MainMenu_SendLogin(user,pass)
++end	=
+
++
++function MainMenu_GetStoredPassword(host,port,user)
++	-- stored passwords
++	local pass =3D GetStoredPassword(host,port,user)
++	if (pass and pass ~=3D &quot;&quot;) then return pass end
++	-- shard configs
++	for k,shard in pairs(gShardList) do =
+
++		if (shard.gLoginname =3D=3D user and
++			shard.gLoginServerIP =3D=3D host and
++			shard.gLoginServerPort =3D=3D port and
++			shard.gPassword and shard.gPassword ~=3D &quot;&quot;) then return shard.gPasswor=
+d end
++	end
++end
++
++function MainMenuLoginRejected	(msg)
++	print(&quot;##################################&quot;)
++	print(&quot;MainMenuLoginRejected&quot;)
++	MainMenuResetNetwork()
++	MainMenu_AccountList_Start()
++	PlainMessageBox(msg)
++end
++	=
+
++function MainMenuShowServerList	(serverlist)	=
+
++	print(&quot;##################################&quot;)
++	print(&quot;MainMenuShowServerList&quot;)
++	MainMenuStopAllMenus()
++	=
+
++	-- if there is only once choice, select it immediately
++	if (countarr(serverlist.servers) =3D=3D 1) then
++		local k,v =3D next(serverlist.servers)
++		MainMenu_SendServer(v.index)
++		return
++	end
++	=
+
++	-- show serverlist
++	local rows =3D {}
++	for k,v in pairs(serverlist.servers) do
++		local label =3D sprintf(&quot;Choose server [%d]%s full=3D%d tz=3D%d ip=3D%s&quot;=
+,v.index,v.name,v.full,v.tz,NtoA(v.ip))
++		table.insert(rows,{{label,function () MainMenu_SendServer(v.index) end}})
++	end
++	gMainMenuDialog_ServerList =3D MainMenu_MakeTableDlg(rows)
++end
++
++function MainMenu_ServerList_Stop ()
++	if (gMainMenuDialog_ServerList) then =
+
++		gMainMenuDialog_ServerList:Destroy() =
+
++		gMainMenuDialog_ServerList =3D nil
++	end
++end
++
++-- answered by MainMenuShowCharList
++function MainMenu_SendServer (iServerID)
++	print(&quot;##################################&quot;)
++	print(&quot;MainMenu_SendServer&quot;,iServerID)
++	MainMenuStopAllMenus()
++	Send_GameServer_Select(iServerID or 0) -- 0xA0 kPacket_Server_Select =
+
++	-- answered by kPacket_Server_Redirect 0x8C, =
+
++	-- which calls Send_GameServer_PostLogin kPacket_Post_Login 0x91 =
+
++	-- answered by kPacket_Features 0xB9 and kPacket_Character_List 0xA9 whic=
+h calls MainMenuShowCharList
++end
++
++function MainMenu_SendSelectChar	(charid)
++	print(&quot;##################################&quot;)
++	print(&quot;MainMenu_SendSelectChar&quot;,charid)		=
+
++	MainMenuStopAllMenus() =
+
++	PreLoadAfterManualRenderSwitch()
++	Send_Character_Select(charid,gGameServerAccount) -- 0x5D
++end
++		=
+
++function MainMenuShowCharList	(charlist)		=
+
++	print(&quot;##################################&quot;)
++	print(&quot;MainMenuShowCharList&quot;)	=
+
++	MainMenuStopAllMenus() =
+
++	=
+
++	gPingActive =3D true
++	gNextPingTime =3D 0
++	gShardCharlist =3D charlist
++	=
+
++	-- login by charslot id
++	if (gAutoLoginCharID) then MainMenu_SendSelectChar(gAutoLoginCharID) retu=
+rn end
++	=
+
++	-- login by name (commandline)
++	if (gAutoLoginCharName) then =
+
++		for k,v in pairs(charlist.chars) do
++			if (v.name ~=3D &quot;&quot; and (v.name =3D=3D gAutoLoginCharName or tonumber(gA=
+utoLoginCharName) =3D=3D k + 1)) then =
+
++				local iCharNum =3D k
++				MainMenu_SendSelectChar(iCharNum)
++				gSelectedCharName =3D v.name
++				return
++			end
++		end
++	end
++	=
+
++	MainMenu_CharList_Start()
++end
++
++-- ***** ***** ***** ***** ***** MakeTableDlg for common styling
++
++function MainMenu_MakeTableDlg		(rows,x,y)
++	return guimaker.MakeTableDlg(rows,x or 10,y or 10,false,true,gGuiDefaultS=
+tyleSet,&quot;window&quot;) =
+
++end
++ =
+
++-- ***** ***** ***** ***** ***** specials
++
++function MainMenu_Special_OfflineMode	() MainMenu_SelectShard({gStartGameW=
+ithoutNetwork =3D true}) end
++function MainMenu_Special_DebugMode		() MainMenu_SelectShard({gStartInDebu=
+gMode =3D true}) end
++function MainMenu_Special_GfxConfig		()
++	MainMenuStopAllMenus()
++	if (Client_ShowOgreConfig()) then
++		DisplayNotice(&quot;please restart iris2 for the changes to take effekt&quot;)
++		StopMainMenu()
++		Exit() -- Terminate()  -- terminate softly is not enough, no frame can b=
+e drawn since ogre::root has to be killed for fullscreen switch
++		-- todo : reinit ogre here ? might loose already loaded textures =3D(
++	end
++end
++function MainMenu_Special_Exit			() MainMenuStopAllMenus() Terminate() end
++
++-- ***** ***** ***** ***** ***** offline mode
++
++-- postxt is a string for the position, e.g. 5260,1333  , can be nil
++function StartOfflineMode (postxt)
++	print(&quot;##################################&quot;)
++	print(&quot;StartOfflineMode&quot;,postxt)		=
+
++	MainMenuStopAllMenus() =
+
++	=
+
++	if (gCommandLineSwitches[&quot;-som&quot;]) then =
+
++		local confname =3D gCommandLineArguments[gCommandLineSwitches[&quot;-som&quot;]+1]
++		print(&quot;StartOfflineMode config&quot;,confname)
++		gMaps =3D gMaps or {}
++		for k,v in pairs((gShardList[confname] or {}).gMaps or {}) do print(&quot;gMa=
+ps[&quot;..k..&quot;] override&quot;) gMaps[k] =3D v end
++	end
++	if (gCommandLineSwitches[&quot;-so&quot;]) then =
+
++		gOfflineModeMapIndex =3D tonumber(gCommandLineArguments[gCommandLineSwit=
+ches[&quot;-so&quot;]+2]) or gOfflineModeMapIndex
++	end
++	if (gOfflineModeMapIndex) then MapChangeRequest(gOfflineModeMapIndex) end
++	=
+
+ 	if (gDialog_IrisLogo) then gDialog_IrisLogo:SetVisible(false) end
+-	ChatLine_Init()	=
+
+-	=
+
+-	gNet_State =3D NetConnectWithKey(gLoginServerIP,gLoginServerPort,gServerS=
+eed)
+-	if (not gNet_State) then =
+
+-		local text =3D &quot;connecting to shard '&quot;..shardname..&quot;' on &quot;..gLoginServer=
+IP..&quot;:&quot;..gLoginServerPort..&quot; FAILED !&quot;
+-		GuiAddChatLine(text)
+-		PlainMessageBox(text,gGuiDefaultStyleSet,gGuiDefaultStyleSet)
+-		return
+-	end
+-	=
+
+-	Send_Account_Login_Request(gLoginname,gPassword) -- 0x80 kPacket_Account_=
+Login_Request
+-	-- answered by 0xA8 kPacket_Server_List which calls MainMenuShowServerList
+-end
+-
+-local function MainMenuShowCharCreationDialog (template,slot)
+-	-- TODO : unfinished, need more gui-elements for colorpicking, skill valu=
+es etc..
+-	=
+
+-	local MyCreateChar =3D function(widget) =
+
+-		local edittextwidget =3D widget.dialog.controls[&quot;nameinput&quot;]
+-		--print(&quot;MyCreateChar&quot;,widget.chartemplate,widget.charslot,edittextwidge=
+t.plaintext)
+-		CreateCharFromTemplate(widget.chartemplate,widget.charslot,edittextwidge=
+t.plaintext ,&quot;&quot;) -- see lib.charcreate.lua
+-		widget.dialog:Destroy()
+-	end
+-	local rows =3D {
+-		{	{type=3D&quot;Label&quot;,		text=3D&quot;Character Creation&quot;} },
++
++	gStartGameWithoutNetwork =3D true
++	MultiTexTerrain_NotifyMapChange()
++	=
+
++	--~ local x,y,z =3D -183,203,0
++	local x,y,z =3D -1483,1527,2 -- osi-britannia
++	=
+
++	--if (gGroundBlockLoader) then x,y,z =3D -gGroundBlockLoader:GetMapW()*8/=
+2,gGroundBlockLoader:GetMapH()*8/2,0 end
++	if (gOfflineModeCamStart) then x,y,z =3D unpack(gOfflineModeCamStart) end
++	=
+
++	if (postxt) then
++		local t1,t2,t3 =3D unpack(strsplit(&quot;,&quot;,postxt))
++		x,y,z =3D tonumber(t1) and -tonumber(t1) or x, tonumber(t2) or y, tonumb=
+er(t3) or z
++		print(&quot;StartOfflineMode &quot;,x,y,z,t1,t2,t3)
++	end
+ 		=
+
+-		{	{type=3D&quot;Label&quot;,		text=3D&quot;Name:&quot;},
+-			{type=3D&quot;EditText&quot;,	w=3D300,h=3D16,text=3D&quot;&quot;,controlname=3D&quot;nameinput&quot;}=
+  }, -- &quot;IrisTestChar&quot;
+-			=
+
+-		{	{type=3D&quot;Button&quot;,onLeftClick=3DMyCreateChar,chartemplate=3Dtemplate,ch=
+arslot=3Dslot,text=3D&quot;Create Character&quot;},
+-			{type=3D&quot;Label&quot;,	text=3D&quot;(iris does not support all the options for cha=
+r creation yet,\n&quot;..
+-								&quot;you can only pick a name, if you want to set all the options your=
+self,\n&quot;..
+-								&quot;you can create the char using another client, and then login with=
+ iris)&quot;}
+-			},
+-		=
+
+-	}
+-	=
+
+-	gCharCreateDialog =3D guimaker.MakeTableDlg(rows,10,10,true,true,gGuiDefa=
+ultStyleSet,&quot;window&quot;)
+-end
+-
+-local function LoadShardfilter(filterfilepath)
++	gCurrentRenderer:InitLocalCam(x,y,z)
++
++	-- Binds key and Inits all InGame-Data
++	StartInGame() -- otherwise handled by the serverpacket (kPacket_Login_Com=
+plete)
++
++	-- set z position to terrainheight at starting location
++	local tt,zz =3D GetGroundAtAbsPos(-x,y)
++	if zz then
++		--~ print(&quot;#&quot;,x,y,tt,z,zz) =
+
++		z =3D zz
++	end
++
++	gCurrentRenderer:SetOfflineStartPos(x,y,z)
++
++	-- offline : tilefree walk teleport
++	BindDown(&quot;f6&quot;,function () gCurrentRenderer:OfflineTeleportToMouse() end)
++	=
+
++	-- Unbind some keys only for offline mode (rest is the same as InGame)
++	UnBindArr({&quot;u&quot;,&quot;q&quot;,&quot;e&quot;,&quot;tab&quot;,&quot;r&quot;,&quot;t&quot;,&quot;k&quot;,&quot;j&quot;,&quot;b&quot;,&quot;p&quot;,&quot;g&quot;,&quot;h&quot;,&quot;y&quot;})
++end
++
++-- ***** ***** ***** ***** ***** Shardfilter
++
++function LoadShardfilter	(filterfilepath)
+ 	if (filterfilepath) then
+ 		if (file_exists(gMainWorkingDir..filterfilepath) ) then
+ 			print(&quot;Load custom shard-specific Filter: &quot;..gMainWorkingDir..filterfil=
+epath)
+@@ -86,346 +310,3 @@
+ 		end
+ 	end
+ end
+-
+--- postxt is a string for the position, e.g. 5260,1333  , can be nil
+-local function StartOfflineMode (postxt)
+-	if (gCommandLineSwitches[&quot;-som&quot;]) then =
+
+-		local confname =3D gCommandLineArguments[gCommandLineSwitches[&quot;-som&quot;]+1]
+-		print(&quot;StartOfflineMode config&quot;,confname)
+-		gMaps =3D gMaps or {}
+-		for k,v in pairs((gShardList[confname] or {}).gMaps or {}) do print(&quot;gMa=
+ps[&quot;..k..&quot;] override&quot;) gMaps[k] =3D v end
+-	end
+-	if (gCommandLineSwitches[&quot;-so&quot;]) then =
+
+-		gOfflineModeMapIndex =3D tonumber(gCommandLineArguments[gCommandLineSwit=
+ches[&quot;-so&quot;]+2]) or gOfflineModeMapIndex
+-	end
+-	if (gOfflineModeMapIndex) then MapChangeRequest(gOfflineModeMapIndex) end
+-	=
+
+-	if (gDialog_IrisLogo) then gDialog_IrisLogo:SetVisible(false) end
+-
+-	gStartGameWithoutNetwork =3D true
+-	MultiTexTerrain_NotifyMapChange()
+-	=
+
+-	--~ local x,y,z =3D -183,203,0
+-	local x,y,z =3D -1483,1527,2 -- osi-britannia
+-	=
+
+-	--if (gGroundBlockLoader) then x,y,z =3D -gGroundBlockLoader:GetMapW()*8/=
+2,gGroundBlockLoader:GetMapH()*8/2,0 end
+-	if (gOfflineModeCamStart) then x,y,z =3D unpack(gOfflineModeCamStart) end
+-	=
+
+-	if (postxt) then
+-		local t1,t2,t3 =3D unpack(strsplit(&quot;,&quot;,postxt))
+-		x,y,z =3D tonumber(t1) and -tonumber(t1) or x, tonumber(t2) or y, tonumb=
+er(t3) or z
+-		print(&quot;StartOfflineMode &quot;,x,y,z,t1,t2,t3)
+-	end
+-		=
+
+-	gCurrentRenderer:InitLocalCam(x,y,z)
+-
+-	-- Binds key and Inits all InGame-Data
+-	StartInGame() -- otherwise handled by the serverpacket (kPacket_Login_Com=
+plete)
+-
+-	-- set z position to terrainheight at starting location
+-	local tt,zz =3D GetGroundAtAbsPos(-x,y)
+-	if zz then
+-		--~ print(&quot;#&quot;,x,y,tt,z,zz) =
+
+-		z =3D zz
+-	end
+-
+-	gCurrentRenderer:SetOfflineStartPos(x,y,z)
+-
+-	-- offline : tilefree walk teleport
+-	BindDown(&quot;f6&quot;,function () gCurrentRenderer:OfflineTeleportToMouse() end)
+-	=
+
+-	-- Unbind some keys only for offline mode (rest is the same as InGame)
+-	UnBindArr({&quot;u&quot;,&quot;q&quot;,&quot;e&quot;,&quot;tab&quot;,&quot;r&quot;,&quot;t&quot;,&quot;k&quot;,&quot;j&quot;,&quot;b&quot;,&quot;p&quot;,&quot;g&quot;,&quot;h&quot;,&quot;y&quot;})
+-end
+-
+-local function MainMenuShowLoginDialog (shard,shardname)
+-	-- TODO : unfinished, pol server options...
+-	=
+
+-	LoadShardfilter(shard.gCustomArtFilterFilePath)
+-
+-	if (shard.gStartGameWithoutNetwork =3D=3D true) then
+-		for k,v in pairs(shard) do _G[k] =3D v end
+-		StartOfflineMode()
+-	elseif(shard.gStartInDebugMode =3D=3D true) then
+-		StartDebugMenu()
+-	else
+-		local MyLogin =3D function (widget) =
+
+-			local shard =3D widget.shard
+-			shard.gLoginServerIP 	=3D 			widget.dialog.controls[&quot;loginserverinput&quot;]=
+.plaintext
+-			shard.gLoginServerPort 	=3D tonumber(	widget.dialog.controls[&quot;loginport=
+input&quot;].plaintext)
+-			local nameinput =3D widget.dialog.controls[&quot;nameinput&quot;].plaintext
+-			local passinput =3D widget.dialog.controls[&quot;passinput&quot;].plaintext
+-			-- TOOD : password style field
+-			--print(&quot;MainMenuConnectToShard&quot;,shard,widget.shardname,nameinput,passi=
+nput)
+-			MainMenuConnectToShard(shard,widget.shardname,nameinput,passinput)
+-			widget.dialog:Destroy()
+-		end
+-		local MyGoBack =3D function(widget)
+-			StartMainMenu()
+-			widget.dialog:Destroy()
+-		end
+-		local rows =3D {
+-			{	{type=3D&quot;Label&quot;,		text=3D&quot;Login&quot;} },
+-				=
+
+-			{	{type=3D&quot;Label&quot;,		text=3D&quot;LoginServer:&quot;},
+-				{type=3D&quot;EditText&quot;,	w=3D300,h=3D16,text=3D(shard.gLoginServerIP or &quot;&quot;)=
+,controlname=3D&quot;loginserverinput&quot;},
+-				{type=3D&quot;EditText&quot;,	w=3D100,h=3D16,text=3D(shard.gLoginServerPort or &quot;=
+&quot;),controlname=3D&quot;loginportinput&quot;}  },
+-				=
+
+-			{	{type=3D&quot;Label&quot;,		text=3D&quot;Name:&quot;},
+-				{type=3D&quot;EditText&quot;,	w=3D300,h=3D16,text=3D(shard.gLoginname or &quot;&quot;),con=
+trolname=3D&quot;nameinput&quot;}  },
+-				=
+
+-			{	{type=3D&quot;Label&quot;,		text=3D&quot;Pass:&quot;},
+-				{type=3D&quot;EditText&quot;,	w=3D300,h=3D16,text=3D(shard.gPassword or &quot;&quot;),cont=
+rolname=3D&quot;passinput&quot;,bPassWordStyle=3Dtrue}  },
+-				=
+
+-			{	{type=3D&quot;Label&quot;,		text=3D&quot;Tipp:&quot;},
+-				{type=3D&quot;Label&quot;,		text=3D	&quot;On many shards you can you can just login w=
+ith a username/password you wish\n&quot;..
+-											&quot;to create a new account if you don't have one already&quot;}, },
+-				=
+
+-			{	{type=3D&quot;Button&quot;,onLeftClick=3DMyLogin,shard=3Dshard,shardname=3Dshar=
+dname,text=3D&quot;Login ...&quot;}, },
+-			{	{type=3D&quot;Button&quot;,onLeftClick=3DMyGoBack,text=3D&quot;&lt;- back&quot;}, },
+-		}
+-		=
+
+-		gLoginDialog =3D guimaker.MakeTableDlg(rows,10,10,true,true,gGuiDefaultS=
+tyleSet,&quot;window&quot;)
+-	end
+-end
+-
+-local function StopMainMenu ()
+-	if (gMainMenuDialog) then
+-		gMainMenuDialog:Destroy()
+-		gMainMenuDialog=3Dnil
+-	end
+-end
+-
+-local function SetMainMenuCam (roth,rotv)
+-	local cam =3D GetMainCam()
+-	cam:SetFOVy(gfDeg2Rad*45)
+-	cam:SetNearClipDistance(0.5) -- old : 1
+-	cam:SetFarClipDistance(2000) -- ogre defaul : 100000
+-	cam:SetProjectionType(kCamera_PT_PERSPECTIVE) -- perspective
+-	local w1,x1,y1,z1 =3D Quaternion.fromAngleAxis(gfDeg2Rad * 90.0,1,0,0)
+-	local w2,x2,y2,z2 =3D Quaternion.fromAngleAxis(roth,0,1,0)	=
+
+-	local w3,x3,y3,z3 =3D Quaternion.fromAngleAxis(rotv,1,0,0)
+-	local w4,x4,y4,z4 =3D Quaternion.Mul(w1,x1,y1,z1, w2,x2,y2,z2)
+-	=
+
+-	local w,x,y,z =3D Quaternion.Mul(w4,x4,y4,z4, w3,x3,y3,z3)
+-	GetMainCam():SetRot(w,x,y,z)	=
+
+-end
+-
+--- ----------------------------------------------- End of local functions =
+-----------------------------
+-
+---gameserverlist selection
+-function MainMenuShowServerList (serverlist)
+-	local MySelectServer =3D function(server) =
+
+-		GuiAddChatLine(sprintf(&quot;connecting to server %s[%d]&quot;,server.name or &quot;???=
+&quot;,server.index or 0))
+-		=
+
+---		Send_SystemSpecs()
+-		=
+
+-		Send_GameServer_Select(server.index or 0) -- 0xA0 kPacket_Server_Select =
+
+-		-- answered by kPacket_Server_Redirect 0x8C, =
+
+-		-- which calls Send_GameServer_PostLogin kPacket_Post_Login 0x91 =
+
+-		-- answered by kPacket_Features 0xB9 and  kPacket_Character_List 0xA9 wh=
+ich calls MainMenuShowCharList
+-	end
+-	=
+
+-	-- if there is only one entry or if autologin, select it automatically
+-	if (countarr(serverlist.servers) =3D=3D 1 or gCommandLineSwitches[&quot;-co&quot;])=
+ then
+-		local k,v =3D next(serverlist.servers) -- get first entry
+-		gSelectedShardName =3D v.name
+-		MySelectServer(v)
+-		return
+-	end
+-	=
+
+-	local MySelectServerWidgetFunc =3D function(widget) =
+
+-		MySelectServer(widget.server)
+-		widget.dialog:Destroy()
+-	end
+-	=
+
+-	local rows =3D {
+-		{	{type=3D&quot;Label&quot;,	text=3D&quot;Server List&quot;}  }
+-	}
+-	-- known servers
+-	for k,v in pairs(serverlist.servers) do
+-		local label =3D sprintf(&quot;Choose server [%d]%s full=3D%d tz=3D%d ip=3D%s&quot;=
+,v.index,v.name,v.full,v.tz,NtoA(v.ip))
+-		table.insert(rows,{
+-			{type=3D&quot;Button&quot;,onLeftClick=3Dfunction(widget) MySelectServerWidgetFun=
+c(widget) gSelectedShardName =3D v.name end,server=3Dv,text=3Dlabel}
+-		})
+-		-- TODO : server.ip unused ? might not be needed when server sends redir=
+ect packet
+-	end
+-
+-	local MyGoBack =3D function(widget)
+-		NetDisconnect()
+-		gHuffmanDecode =3D false
+-		=
+
+-		Client_USleep( 500 )
+-		StartMainMenu()
+-		widget.dialog:Destroy()
+-	end
+-	-- back button
+-	table.insert(rows,{
+-		{type=3D&quot;Button&quot;,onLeftClick=3DMyGoBack,text=3D&quot;&lt;- back&quot;}
+-	})
+-
+-	gServerListDialog =3D guimaker.MakeTableDlg(rows,10,10,true,true,gGuiDefa=
+ultStyleSet,&quot;window&quot;)
+-end
+-
+-function MainMenuShowCharList (charlist)
+-	--characterlist selection or new char creation
+-	--check first, if the choose slot is available!
+-	=
+
+-	=
+
+-	local MySelectChar =3D function(iCharNum,myrenderer) =
+
+-		gCurrentRenderer =3D myrenderer or gCurrentRenderer
+-		PreLoadAfterManualRenderSwitch()
+-		Send_Character_Select(iCharNum,gGameServerAccount)
+-	end
+-	local MyCreateCharTemplatePicker =3D function(widget) =
+
+-		MainMenuShowCharCreationDialog(widget.chartemplate,gNextFreeCharSlot)
+-		widget.dialog:Destroy()
+-	end
+-	=
+
+-	local templates =3D GetCharCreationTemplates() -- see lib.charcreate.lua =
+:<i> uo/Prof.txt =
+</I>
+-	local rows =3D {
+-		{	{type=3D&quot;Label&quot;,	text=3D&quot;Character List&quot;}  }
+-	}
+-	-- existing characters
+-	gNextFreeCharSlot =3D 0
+-	local autologin_charname
+-	if (gCommandLineSwitches[&quot;-co&quot;]) then autologin_charname =3D gCommandLine=
+Arguments[gCommandLineSwitches[&quot;-co&quot;]+2] end -- autologin
+-	for k,v in pairs(charlist.chars) do if (v.name ~=3D &quot;&quot;) then
+-		if (v.name =3D=3D autologin_charname or tonumber(autologin_charname) =3D=
+=3D k + 1) then =
+
+-			local iCharNum =3D k
+-			Send_Character_Select(iCharNum,gGameServerAccount)
+-			gSelectedCharName =3D v.name
+-			return
+-		end
+-		gNextFreeCharSlot =3D gNextFreeCharSlot + 1
+-		table.insert(rows,{
+-			{type=3D&quot;Button&quot;,onLeftClick=3Dfunction(widget) MySelectChar(widget.iCh=
+arNum) widget.dialog:Destroy() gSelectedCharName =3D v.name end ,iCharNum=
+=3Dk,text=3D&quot;Login as &quot;..v.name},
+-			{type=3D&quot;Button&quot;,onLeftClick=3Dfunction(widget) MySelectChar(widget.iCh=
+arNum,Renderer3D) widget.dialog:Destroy() gSelectedCharName =3D v.name end =
+,iCharNum=3Dk,text=3D&quot;3D&quot;},
+-			{type=3D&quot;Button&quot;,onLeftClick=3Dfunction(widget) MySelectChar(widget.iCh=
+arNum,Renderer2D) widget.dialog:Destroy() gSelectedCharName =3D v.name end =
+,iCharNum=3Dk,text=3D&quot;2D&quot;},
+-		})
+-	end end
+-	-- char creation (TODO)
+-	for k,v in pairs(templates) do
+-		if (v.Name =3D=3D &quot;Samurai&quot; or v.Name =3D=3D &quot;Ninja&quot; or v.Name =3D=3D &quot;P=
+aladin&quot; or
+-			v.Name =3D=3D &quot;Necromancer&quot; or v.Name =3D=3D &quot;Warrior&quot; or v.Name =3D=3D=
+ &quot;Mage&quot; or
+-			v.Name =3D=3D &quot;Blacksmith&quot;) then
+-			table.insert(rows,{
+-				{type=3D&quot;Button&quot;,onLeftClick=3DMyCreateCharTemplatePicker,chartemplate=
+=3Dv,text=3D&quot;Create &quot;..v.Name}
+-			})
+-		end
+-	end
+-	-- TODO : custom char creation
+-	=
+
+-	local MyGoBack =3D function(widget)
+-		NetDisconnect()
+-		gHuffmanDecode =3D false
+-		=
+
+-		Client_USleep( 500 )
+-		StartMainMenu()
+-		widget.dialog:Destroy()
+-	end
+-	-- back button
+-	table.insert(rows,{
+-		{type=3D&quot;Button&quot;,onLeftClick=3DMyGoBack,text=3D&quot;&lt;- back&quot;}
+-	})
+-	=
+
+-	gCharListDialog =3D guimaker.MakeTableDlg(rows,10,10,true,true,gGuiDefaul=
+tStyleSet,&quot;window&quot;)
+-end
+-
+-function MainMenuFinishedPreLoading ()
+-	SetUOCursor(0)
+-	if (gLoadingBackground) then StopLoadingBackground () end
+-end
+-
+-function StepMainMenu ()
+-	if (gMainMenuDialog) then =
+
+-		-- currently unused
+-	end
+-end
+-
+-function StartMainMenu ()
+-	if (not gNoRender) then =
+
+-		local vp =3D GetMainViewport()
+-		local w =3D vp:GetActualWidth()
+-		local h =3D vp:GetActualHeight()
+-		local gfxparam_init =3D MakeSpritePanelParam_SingleSpriteSimple(GetPlain=
+TextureGUIMat(&quot;menu_bg.jpg&quot;), 1024, 768)
+-		if (gMenuBgImage) then gMenuBgImage:Destroy() end
+-		gMenuBgImage =3D GetDesktopWidget():CreateChild(&quot;Image&quot;,{gfxparam_init=
+=3Dgfxparam_init})
+-		gMenuBgImage:SetPos(0,0)
+-		gMenuBgImage:SetSize(w,h)
+-		RegisterListener(&quot;Hook_StartInGame&quot;	,function () =
+
+-			DestroyIfAlive(gMenuBgImage)
+-			gMenuBgImage =3D nil
+-		end)
+-		if (gDialog_IrisLogo) then gDialog_IrisLogo:SetVisible(false) end
+-	end
+-
+-	if (gTestNoMainMenu) then return end
+-	if (gCommandLineSwitches[&quot;-meshload&quot;]) then StartMeshLoaderTest() end -- =
+journaltest
+-	if (gCommandLineSwitches[&quot;-jt&quot;]) then ToggleJournal() return end -- journ=
+altest
+-	if (gCommandLineSwitches[&quot;-mt&quot;]) then ToggleMacroList() return end -- mac=
+rolist-test
+-	if (gCommandLineSwitches[&quot;-so&quot;]) then StartOfflineMode(gCommandLineArgume=
+nts[gCommandLineSwitches[&quot;-so&quot;]+1]) return end -- start in offline mode
+-	if (gCommandLineSwitches[&quot;-sd&quot;]) then StartDebugMenu() return end -- star=
+t in debug mode
+-	if (gCommandLineSwitches[&quot;-co&quot;]) then =
+
+-		local name =3D gCommandLineArguments[gCommandLineSwitches[&quot;-co&quot;]+1]
+-		if name and gShardList[name] and =
+
+-			gShardList[name].gLoginname and gShardList[name].gPassword then
+-				local shard =3D gShardList[name]
+-				gSelectedShardName =3D name
+-				MainMenuConnectToShard(shard,name,shard.gLoginname,shard.gPassword)
+-				return
+-		end
+-	end -- connect to shard
+-
+-	-- start menu sound
+-	SoundPlayMusicById(8)
+-	SetMainMenuCam(0,gfDeg2Rad)
+-	gCurrentRenderer:SetMapEnvironment()
+-
+-	local rows =3D {
+-		{ {type=3D&quot;Label&quot;,	text=3D&quot;Login:&quot;} }
+-	}
+-
+-	local fun =3D function (widget)
+-		MainMenuShowLoginDialog(widget.shard,widget.shardname)
+-		StopMainMenu()
+-	end
+-
+---	local command =3D &quot;/masterserver.php?query&quot;
+---	local res, reponse =3D HTTPGetEx(&quot;localhost&quot;,80,command)
+---	print(res)
+---	print(reponse)
+-
+-	for shardname,shard in pairs(gShardList) do
+-		table.insert(rows,{ {type=3D&quot;Button&quot;,	onLeftClick=3Dfun,shard=3Dshard,sh=
+ardname=3Dshardname,text=3DGetShardButtonText(shard,shardname)} })
+-	end
+-
+-	=
+
+-	local shardname,shard =3D &quot;# - Offline Mode&quot;,{gStartGameWithoutNetwork =
+=3D true}
+-		table.insert(rows,{ {type=3D&quot;Button&quot;,	onLeftClick=3Dfun,shard=3Dshard,sh=
+ardname=3Dshardname,text=3DGetShardButtonText(shard,shardname)} })
+-	local shardname,shard =3D &quot;# - Debug Mode&quot;,{gStartInDebugMode =3D true}
+-		table.insert(rows,{ {type=3D&quot;Button&quot;,	onLeftClick=3Dfun,shard=3Dshard,sh=
+ardname=3Dshardname,text=3DGetShardButtonText(shard,shardname)} })
+-
+-	=
+
+-	=
+
+-	table.insert(rows,{ {type=3D&quot;Button&quot;,text=3D&quot;# - Graphic Options&quot;,onLeftC=
+lick=3Dfunction ()
+-		StopMainMenu()
+-		if (Client_ShowOgreConfig()) then
+-			DisplayNotice(&quot;please restart iris2 for the changes to take effekt&quot;)
+-			StopMainMenu()
+-			Exit() -- Terminate()  -- terminate softly is not enough, no frame can =
+be drawn since ogre::root has to be killed for fullscreen switch
+-			-- todo : reinit ogre here ? might loose already loaded textures =3D(
+-		end	=
+
+-		end } })
+-	table.insert(rows,{ {type=3D&quot;Button&quot;,text=3D&quot;# - Exit&quot;,onLeftClick=3Dfunc=
+tion ()
+-			StopMainMenu()
+-			Terminate()
+-		end } })
+-
+-
+-	if (not gNoRender) then =
+
+-	if (not(gMainMenuDialog)) then
+-		gMainMenuDialog =3D guimaker.MakeTableDlg(rows,10,10,false,true,gGuiDefa=
+ultStyleSet,&quot;window&quot;) =
+
+-	end
+-	end
+-end
+
+Modified: trunk/lua/lib.shardlist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.shardlist.lua (original)
++++ trunk/lua/lib.shardlist.lua Tue Feb 10 16:33:59 2009
+@@ -10,24 +10,6 @@
+ function ShardListFileNamePartEncode	(x) return string.gsub(x,&quot;[^0-9a-zA-Z=
+_%-%(%) ]&quot;,&quot;.&quot;) end
+ =
+
+ -- notes
+-
+---[[
+-shard=3D{
+-	host,port,
+-	accountlist=3D{
+-		username,charlist=3D{
+-			charname,skills,body(male,female,skintone),equip(hair,armor,weap,mount)
+-		}
+-	}
+-
+-shardclick : =
+
+-	acclist + charlist soweit bekannt. =
+
+-		charlist nach shardlogin updaten
+-
+-]]--
+-
+-
+-
+ =
+
+ function InitShardList () =
+
+ 	LoadStoredPasswords()
+@@ -51,6 +33,10 @@
+ RegisterListener(&quot;Hook_Packet_Character_List&quot;,function (charlist) =
+
+ 	local plaincharlist =3D {serverid=3DgiGameServerID}
+ 	for k,v in pairs(charlist.chars) do plaincharlist[k] =3D v.name end
++	plaincharlist.gLoginServerIP =3D gLoginServerIP
++	plaincharlist.gLoginServerPort =3D gLoginServerPort
++	plaincharlist.gLoginname =3D gLoginname
++	plaincharlist.giGameServerID =3D giGameServerID
+ 	ShardMemorySet(&quot;charlist&quot;,table.concat({gLoginServerIP,gLoginServerPort,S=
+hardListFileNamePartEncode(gLoginname),giGameServerID},&quot;:&quot;),plaincharlist)
+ end)
+ =
+
+@@ -120,6 +106,7 @@
+ function LoadShardMemory	() gShardMemory =3D	SimpleXMLLoad(GetShardMemoryF=
+ilePath()) or {} end
+ function SaveShardMemory	()					SimpleXMLSave(GetShardMemoryFilePath(),gSh=
+ardMemory) end
+ =
+
++function ShardMemoryGetList	(listname) return gShardMemory[listname] end
+ function ShardMemoryGet		(listname,key) =
+
+ 	local list =3D gShardMemory[listname]
+ 	return list and list[key]
+
+Modified: trunk/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/main.lua (original)
++++ trunk/lua/main.lua Tue Feb 10 16:33:59 2009
+@@ -105,6 +105,7 @@
+ dofile(libpath .. &quot;lib.razorpacketvideo.lua&quot;)
+ dofile(libpath .. &quot;lib.configdialog.lua&quot;)
+ dofile(libpath .. &quot;lib.shardlist.lua&quot;)
++dofile(libpath .. &quot;lib.registry.slow.lua&quot;)
+ =
+
+ dofile(libpath .. &quot;gui/gui.main.lua&quot;)
+ dofile(libpath .. &quot;obj/obj.main.lua&quot;)
+@@ -115,9 +116,10 @@
+ =
+
+ dofile(libpath .. &quot;lib.uoam.lua&quot;)
+ =
+
++gRegistrySlow:Load() -- loading this early might be good, so it's availabl=
+e everywhere
++
+ dofile(libpath .. &quot;config_declarations.lua&quot;)
+ InitShardList() -- was previously in configdecl, should be done before con=
+fig.lua is loaded, so overrides can be done there
+-
+ =
+
+ if (LugreActivateGlobalVarChecking) then LugreActivateGlobalVarChecking() =
+end
+ =
+
+@@ -335,7 +337,9 @@
+ 	print(descr)
+ 	print(&quot;#################&quot;)
+ 	if (StringContains(descr,&quot;Could not load dynamic library&quot;) and StringCont=
+ains(descr,&quot;Direct3D9&quot;)) then =
+
+-		local url =3D &quot;<A HREF="http://download.microsoft.com/download/5/c/8/5c8b7216-bbc=">http://download.microsoft.com/download/5/c/8/5c8b7216-bbc=</A>
+2-4215-8aa5-9dfef9cdb3df/directx_aug2008_redist.exe&quot;
++		local url =3D &quot;<A HREF="http://www.microsoft.com/downloads/details.aspx?FamilyID=">http://www.microsoft.com/downloads/details.aspx?FamilyID=</A>
+=3D886acb56-c91a-4a8e-8bb8-9f20f1244a8e&amp;DisplayLang=3Den&quot; -- nov2008
++		-- old : &quot;<A HREF="http://download.microsoft.com/download/5/c/8/5c8b7216-bbc2-421=">http://download.microsoft.com/download/5/c/8/5c8b7216-bbc2-421=</A>
+5-8aa5-9dfef9cdb3df/directx_aug2008_redist.exe&quot; -- aug2008
++		-- generic : <A HREF="http://www.microsoft.com/downloads/details.aspx?familyid=3D=">http://www.microsoft.com/downloads/details.aspx?familyid=3D=</A>
+2DA43D38-DB71-4C1B-BC6A-9B6652CD92A3&amp;displaylang=3Dde (todo:displaylang=3De=
+n?) (link to newest, but requires windows validation procedure)
+ 		local tipp =3D	&quot;Your DirectX9 version is too old to run Iris.\n&quot;..
+ 						&quot;Would you like to open a browser and download an Updated Version fr=
+om the following url ?\n&quot;..url
+ 		print(tipp)
+@@ -421,8 +425,6 @@
+ 	=
+
+ 	InvokeExporters()
+ =
+
+-	MainMenuFinishedPreLoading()
+-	=
+
+ 	-- set fadelines font
+ 	gFadeLinesFont =3D gFontDefs[&quot;Chat&quot;].name
+ 	gFadeLineTextH =3D gFontDefs[&quot;Chat&quot;].size
+@@ -583,10 +585,9 @@
+ 	gProfiler_MainStep:Section(&quot;StepDebugMenu&quot;)
+ 	StepDebugMenu()
+ 	=
+
+-	if (IsNetConnected() and gPingActive) then -- ping needed during characte=
+r selection and char create also
+-		gProfiler_MainStep:Section(&quot;PingStep&quot;)
+-		PingStep()
+-	end
++	-- ping needed during character selection and char create also
++	gProfiler_MainStep:Section(&quot;PingStep&quot;)
++	PingStep()
+ =
+
+ 	if (gInGameStarted) then
+ 		gProfiler_MainStep:Section(&quot;StepUODragDrop&quot;)
+
+Modified: trunk/lua/net/net.login.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.login.lua (original)
++++ trunk/lua/net/net.login.lua Tue Feb 10 16:33:59 2009
+@@ -107,8 +107,6 @@
+ 		NetDisconnect()
+ 		--connect to gameserver
+ 		printdebug(&quot;login&quot;,&quot;NET: connect to gameserver&quot;)
+-		gPingActive =3D true
+-		gNextPingTime =3D 0
+ 		local res =3D NetConnectWithKey(gameserverip,gameserverport,gameserverac=
+count)
+ 		if (not res) then
+ 			FatalErrorMessage(&quot;kPacket_Server_Redirect : login server redirect fail=
+ed&quot;)
+@@ -184,6 +182,7 @@
+ 	for i =3D 0,charlist.citynumber-1 do
+ 		iBytesLeft =3D iBytesLeft - iBytesPerCity
+ 		gCities[i] =3D {}
++		gCities[i].i=3Di
+ 		gCities[i].index=3Dinput:PopNetUint8()
+ 		gCities[i].name=3Dinput:PopFilledString(30)
+ 		gCities[i].terminator1=3Dinput:PopNetUint8()
+@@ -330,7 +329,8 @@
+ 	for k,v in pairs(kAccountLoginRejectReason) do if (value =3D=3D v.code) t=
+hen txt =3D k..&quot; &quot;..v.text end end
+ 	local msg =3D sprintf(&quot;Account_Login_Failed %d %s&quot;,value,txt)
+ 	print(msg)
+-	FatalErrorMessage(msg) =
+
++	MainMenuLoginRejected(msg) =
+
++	--~ FatalErrorMessage(msg) =
+
+ end
+ =
+
+ -- Server requests Clientversion (NEW?)
+@@ -406,12 +406,20 @@
+ 			chardata.skill3 ~=3D skillid,&quot;Spellweaving skill not allowed at charcre=
+ate&quot;)
+ 			=
+
+ 	local out =3D GetSendFIFO()
+-	out:PushNetUint8(kPacket_CharacterCreation)
++	out:PushNetUint8(kPacket_CharacterCreation) -- 0x00
+ 	out:PushNetUint32(hex2num(&quot;0xedededed&quot;))
+ 	out:PushNetUint32(hex2num(&quot;0xffffffff&quot;))
+ 	out:PushNetUint8(hex2num(&quot;0x00&quot;))
+ 	out:PushFilledString(chardata.name,30)
+-	out:PushFilledString(chardata.pass,30)
++	=
+
++	-- old : password
++	out:PushNetUint16(0)						-- 2
++	out:PushNetUint32(chardata.flags or 0)		-- 4
++	out:PushNetUint32(0)						-- 4
++	out:PushNetUint32(0)						-- 4
++	out:PushNetUint8(chardata.prof or 0)		-- 1
++	out:PushFilledString(&quot;&quot;,15)
++			=
+
+ 	out:PushNetUint8(chardata.sex) -- (0=3Dmale, 1=3Dfemale, 2=3Delf male, 3=
+=3Delf female)
+ 	out:PushNetUint8(chardata.str)
+ 	out:PushNetUint8(chardata.dex)
+@@ -430,7 +438,7 @@
+ 	out:PushNetUint16(chardata.location) --  The character's starting city (a=
+s listed in the character list).
+ 	out:PushNetUint16(hex2num(&quot;0x0000&quot;))
+ 	out:PushNetUint16(chardata.slot) -- is this really 16 bit ?  The characte=
+r slot number.
+-	out:PushNetUint32(gServerSeed) -- The user's gameplay encryption key ? cl=
+ientIP ?
++	out:PushNetUint32(gServerSeed) -- The user's gameplay encryption key ? cl=
+ientIP ?    (runuo2.0 : clientIP)
+ 	out:PushNetUint16(chardata.shirtColor)
+ 	out:PushNetUint16(chardata.pantsColor)
+ 	out:SendPacket()
+@@ -445,7 +453,7 @@
+ 0030   30 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00   0...............
+ 0040   00 00 00 00 02 0A 00 02  0F                        .........
+ ]]--
+-function Send_Character_Select(iCharacterID,iAccount)
++function Send_Character_Select(iCharacterID,iAccount) -- 0x5D
+ 	LoginDebug2(&quot;s:0x5D Send_Character_Select&quot;)
+ 	printdebug(&quot;login&quot;,sprintf(&quot;NET: Character_Select: %i Name: %s Password: =
+%s AccountNr.:%x\n&quot;,
+ 			iCharacterID,gCharacterList[iCharacterID].name,gCharacterList[iCharacte=
+rID].pw,iAccount))
+
+Modified: trunk/lua/net/net.other.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.other.lua (original)
++++ trunk/lua/net/net.other.lua Tue Feb 10 16:33:59 2009
+@@ -10,7 +10,7 @@
+ gPingInterval =3D 61000 --61000 exact pingpong time from client-&gt;server-&gt;c=
+lient (61sec) in msec, 1000=3D1second
+ =
+
+ function PingStep ()
+-	if (gMyTicks &gt;=3D gNextPingTime) then
++	if (gMyTicks &gt;=3D gNextPingTime and IsNetConnected() and gPingActive) then
+ 		gNextPingTime =3D gMyTicks + gPingInterval
+ 		if (not gStartGameWithoutNetwork) then Send_Ping() end
+ 	end
+
+Modified: trunk/plugins/lib.spellbar.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/plugins/lib.spellbar.lua (original)
++++ trunk/plugins/lib.spellbar.lua Tue Feb 10 16:33:59 2009
+@@ -269,8 +269,11 @@
+ =
+
+ RegisterListener(&quot;Hook_Spell_Interrupt&quot;,function () SpellBarInterrupt() en=
+d)
+ =
+
++gSpellBarLoadRevision =3D (gSpellBarLoadRevision or 0) + 1
++ local myrev =3D gSpellBarLoadRevision
+ --~ NotifyListener(&quot;Hook_Text&quot;,unitext_name,unitext_message) -- kPacket_Te=
+xt_Unicode
+ RegisterListener(&quot;Hook_Packet_Localized_Text&quot;,	function (serial,plaintext,=
+text_messagenum,texttype,data)
++	if (myrev ~=3D gSpellBarLoadRevision) then return true end
+ 	--~ if (texttype =3D=3D kTextType_Label) then return end
+ 	if (data.bIsAutoGenerated) then return end
+ 	local short =3D gSpellbarShortMessages[text_messagenum]
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001711.html">[Iris-commit] [IRIS] r2909 - in /branches/stable_release: vc8/iris.sln vc8/iris_luajit.sln vc9/iris.sln vc9/iris.vcproj
+</A></li>
+	<LI>Next message: <A HREF="001713.html">[Iris-commit] [IRIS] r2911 - in /trunk/lua: lib.desktop.lua lib.mainmenu.lua lib.shardlist.lua net/net.login.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1712">[ date ]</a>
+              <a href="thread.html#1712">[ thread ]</a>
+              <a href="subject.html#1712">[ subject ]</a>
+              <a href="author.html#1712">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

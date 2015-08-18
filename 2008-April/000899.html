@@ -1,0 +1,203 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2088 - in /trunk/lua: lib.3d.dynamic.lua	lib.3d.map.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-April/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2088%20-%20in%20/trunk/lua%3A%20lib.3d.dynamic.lua%0A%09lib.3d.map.lua&In-Reply-To=%3C20080424151612.3B1F71C18749%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000898.html">
+   <LINK REL="Next"  HREF="000900.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2088 - in /trunk/lua: lib.3d.dynamic.lua	lib.3d.map.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2088%20-%20in%20/trunk/lua%3A%20lib.3d.dynamic.lua%0A%09lib.3d.map.lua&In-Reply-To=%3C20080424151612.3B1F71C18749%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2088 - in /trunk/lua: lib.3d.dynamic.lua	lib.3d.map.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Thu Apr 24 17:16:12 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000898.html">[Iris-commit] [IRIS] r2087 - /trunk/src/grannyparser.cpp
+</A></li>
+        <LI>Next message: <A HREF="000900.html">[Iris-commit] [IRIS] r2089 - in /trunk: include/builder.h lua/lib.test.lua lua/main.lua src/builder.cpp src/scripting.iris.cpp
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#899">[ date ]</a>
+              <a href="thread.html#899">[ thread ]</a>
+              <a href="subject.html#899">[ subject ]</a>
+              <a href="author.html#899">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: hagish
+Date: Thu Apr 24 17:16:11 2008
+New Revision: 2088
+
+Log:
+bugfix: double doors, bugfix: double multi
+
+Modified:
+    trunk/lua/lib.3d.dynamic.lua
+    trunk/lua/lib.3d.map.lua
+
+Modified: trunk/lua/lib.3d.dynamic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.dynamic.lua (original)
++++ trunk/lua/lib.3d.dynamic.lua Thu Apr 24 17:16:11 2008
+@@ -37,7 +37,7 @@
+ =
+
+ 		Renderer3D.gFastBatchDynamicsUpdateNeeded =3D false
+ 	=
+
+-		Array2DForAll(Renderer3D.gFastBatchDynamicsMap, function(v,x,y)
++		Array2DForAll(Renderer3D.gFastBatchDynamicsMap, function(v,bx,by)
+ 			if v.mbUpdateNeeded then
+ 				-- on demand create
+ 				if not v.mFastBatch then
+@@ -64,6 +64,7 @@
+ =
+
+ 						local orderval =3D dynamic.zloc -- used for blendout later (fastbatc=
+h feature)
+ 						v.mFastBatch:FastBatch_AddMeshBuffer(GetMeshBuffer(dynamic.meshname)=
+, orderval, x,y,z, qw,qx,qy,qz, -1,1,1, r,g,b,a)
++						-- print(&quot;-&gt;&quot;,bx,by,dynamic.serial)
+ 					end
+ 				end
+ =
+
+@@ -121,6 +122,8 @@
+ 		end)
+ 	end
+ =
+
++	Renderer3D:RemoveDynamicFromMap(dynamic)
++
+ 	local bx =3D math.floor(dynamic.xloc/8)
+ 	local by =3D math.floor(dynamic.yloc/8)
+ 	=
+
+@@ -131,23 +134,25 @@
+ 	local e =3D Array2DGet(Renderer3D.gFastBatchDynamicsMap, bx,by)
+ 	-- add dynamic if not available
+ 	if not e.mlDynamic[dynamic.serial] then
+-		e.mbUpdateNeeded =3D true
++		-- print(&quot;ADD&quot;,bx,by,dynamic.serial)
+ 		e.miCount =3D e.miCount + 1
+ 		e.mlDynamic[dynamic.serial] =3D dynamic
+-		Renderer3D.gFastBatchDynamicsUpdateNeeded =3D true
+-	end
++	end
++
++	e.mbUpdateNeeded =3D true
++	Renderer3D.gFastBatchDynamicsUpdateNeeded =3D true
+ 	=
+
+ 	-- Renderer3D:ShowDynamicMapStats()
+ end
+ =
+
+ function Renderer3D:RemoveDynamicFromMap	(dynamic)
+-	local bx =3D math.floor(dynamic.xloc/8)
+-	local by =3D math.floor(dynamic.yloc/8)
+-	=
+
+-	if Array2DGet(Renderer3D.gFastBatchDynamicsMap, bx,by) then
+-		local e =3D Array2DGet(Renderer3D.gFastBatchDynamicsMap, bx,by)
++	-- local bx =3D math.floor(dynamic.xloc/8)
++	-- local by =3D math.floor(dynamic.yloc/8)
++	=
+
++	Array2DForAll(Renderer3D.gFastBatchDynamicsMap, function(e,bx,by)
+ 		-- remove dynamic if available
+ 		if e.mlDynamic[dynamic.serial] then
++			-- print(&quot;REMOVE&quot;,bx,by,dynamic.serial)
+ 			e.mbUpdateNeeded =3D true
+ 			e.miCount =3D e.miCount - 1
+ 			e.mlDynamic[dynamic.serial] =3D nil
+@@ -159,7 +164,7 @@
+ 			if e.mFastBatch then e.mFastBatch:Destroy() end
+ 			Array2DSet(Renderer3D.gFastBatchDynamicsMap, bx,by, nil)
+ 		end
+-	end
++	end)
+ end
+ =
+
+ -- untested
+
+Modified: trunk/lua/lib.3d.map.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.map.lua (original)
++++ trunk/lua/lib.3d.map.lua Thu Apr 24 17:16:11 2008
+@@ -497,6 +497,7 @@
+ 		end end
+ 	end
+ 	=
+
++	--[[
+ 	-- MULTIS (add multis as statics)
+ 	if (gMultis) then
+ 		local iTileTypeID,iX,iY,iZ,iHue
+@@ -517,11 +518,14 @@
+ 						iY &gt;=3D UO_Y and iY &lt; UO_Y+self.ROBMAP_CHUNK_SIZE*8 then
+ 						=
+
+ 						self:CreateMapChunkEntity(chunk,iTileTypeID,iX,iY,iZ,iHue,false)
+-					end
+-				end
+-			end
+-		end
+-	end
++						=
+
++						print(&quot;MULTI PART&quot;)
++					end
++				end
++			end
++		end
++	end
++	]]
+ =
+
+ 	-- TODO : fish in water ? other gimiks ?
+ =
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000898.html">[Iris-commit] [IRIS] r2087 - /trunk/src/grannyparser.cpp
+</A></li>
+	<LI>Next message: <A HREF="000900.html">[Iris-commit] [IRIS] r2089 - in /trunk: include/builder.h lua/lib.test.lua lua/main.lua src/builder.cpp src/scripting.iris.cpp
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#899">[ date ]</a>
+              <a href="thread.html#899">[ thread ]</a>
+              <a href="subject.html#899">[ subject ]</a>
+              <a href="author.html#899">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

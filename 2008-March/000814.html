@@ -1,0 +1,690 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2003 - /trunk/lua/lib.walking3.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-March/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2003%20-%20/trunk/lua/lib.walking3.lua&In-Reply-To=%3C20080329032212.6716B1C18787%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000813.html">
+   <LINK REL="Next"  HREF="000815.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2003 - /trunk/lua/lib.walking3.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2003%20-%20/trunk/lua/lib.walking3.lua&In-Reply-To=%3C20080329032212.6716B1C18787%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2003 - /trunk/lua/lib.walking3.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat Mar 29 04:22:12 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000813.html">[Iris-commit] [IRIS] r2002 - in /trunk/lua: filter/filter.art.lua lib.3d.dynamic.lua lib.3d.map.lua lib.3d.renderer.lua lib.debugmenu.lua lib.pathfind.lua lib.walking2.lua main.lua
+</A></li>
+        <LI>Next message: <A HREF="000815.html">[Iris-commit] [IRIS] r2004 - /trunk/lua/gui/gui.securetrade.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#814">[ date ]</a>
+              <a href="thread.html#814">[ thread ]</a>
+              <a href="subject.html#814">[ subject ]</a>
+              <a href="author.html#814">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sat Mar 29 04:22:12 2008
+New Revision: 2003
+
+Log:
+working on walk3
+
+Modified:
+    trunk/lua/lib.walking3.lua
+
+Modified: trunk/lua/lib.walking3.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.walking3.lua (original)
++++ trunk/lua/lib.walking3.lua Sat Mar 29 04:22:12 2008
+@@ -10,8 +10,6 @@
+ end
+ ]]--
+ =
+
+-kHex_4000 =3D 0x4000
+-kHex_3FFF =3D 0x3FFF
+ =
+
+ kTileFlag =3D {}
+ kTileFlag.Wet			=3D kTileDataFlag_Wet
+@@ -21,20 +19,6 @@
+ =
+
+ kTileFlag.kImpassableSurface =3D kTileFlag.Impassable + kTileFlag.Surface
+ =
+
+-kTileData =3D {}
+-kTileData.ItemTable =3D {}
+-kTileData.LandTable =3D {}
+--- kTileData.ItemTable[BitwiseAND(check.ID,kHex_3FFF)]  itemData.Flags  .H=
+eight  .CalcHeight  .Bridge
+---~ kTileData.LandTable[BitwiseAND(landTile.ID,kHex_3FFF)]  .Flags
+--- m.CanSwim m.CantWalk  m.CantWalk  m.Alive) or m.Body.BodyID =3D=3D 0x3D=
+B or m.IsDeadBondedPet m.Z    m.IsDeadBondedPet
+--- item.ItemData.Impassable  item.ItemData.Flags
+--- item.Movable item.Z =
+
+--- item.AtWorldPoint( xStart, yStart ) and item.ItemID =
+
+---~ public int CalcHeight : if ( (m_Flags &amp; TileFlag.Bridge) !=3D 0 ) and =
+math.floor(m_Height / 2) or m_Height;   RunUO1/src/TileData.cs:153:
+--- Tile  ( check.ID check.Z )
+---~ local tiles =3D map.Tiles.GetStaticTiles( x, y, true ) -- Tile[]
+---~ local landTile =3D map.Tiles.GetLandTile( x, y ) -- Tile    landTile.I=
+D       local considerLand =3D not landTile.Ignored
+---~ landZ,landCenter,landTop =3D map.GetAverageZ( xCheck, yCheck)
+ =
+
+ =
+
+ kPersonHeight				=3D 16
+@@ -48,14 +32,31 @@
+ 	return posx+GetDirX(dir),posy+GetDirY(dir)
+ end =
+
+ =
+
+---- bMoveIsOk,newZ =3D CheckMovement( Mobile m, Map map, Point3D loc, Dire=
+ction d, out int newZ )
++function W3_GetItemsAtPos (xloc,yloc) =
+
++	local res =3D {}
++	-- TODO : consider multis as well ! (serverside &amp; clientside)
++	-- TODO : local item=3D{ItemID=3D123,Z=3D0,Movable=3Dtrue,ItemID=3D123,It=
+emData=3D{Impassable=3Dfalse,Flags=3D123}}
++	-- table.insert(res,item)
++	return res
++end
++
++function W3_GetMobile			(irismobile)			assert(false,&quot;TODO&quot;) return {Z=3D0,=
+CanSwim=3Dfalse,CantWalk=3Dfalse,Alive=3Dtrue,Body=3D{BodyID=3D123},IsDeadB=
+ondedPet=3Dfalse} end
++function W3_GetMapW				()						assert(false,&quot;TODO&quot;) return 0 end
++function W3_GetMapH				()						assert(false,&quot;TODO&quot;) return 0 end
++function W3_GetLandTile			(xloc,yloc)				assert(false,&quot;TODO&quot;) return {ID=
+=3D123,Ignored=3Dfalse} end -- ID : iTileType for W3_GetLandTypeFlags, Igno=
+red : =
+
++function W3_GetStaticTiles		(xloc,yloc,bUnknown)	assert(false,&quot;TODO&quot;) retu=
+rn {{ID=3D123,Z=3D0}} end --  : IsOK : check
++function W3_GetAverageZ			(xloc,yloc)				assert(false,&quot;TODO&quot;) local landZ,=
+landCenter,landTop =3D 0,0,0 return landZ,landCenter,landTop end -- min,avg=
+,max of 4 vertices
++function W3_GetLandTypeFlags	(iTileType)				assert(false,&quot;TODO&quot;) return 0 =
+end -- LandTable[landTileTypeID] =
+
++function W3_GetTileType			(iTileType)				assert(false,&quot;TODO&quot;) return {Flag=
+s=3D0,Height=3D0,CalcHeight=3D0,Bridge=3Dfalse} end -- ItemTable[iTileType]=
+ itemData
++
++--~ public int CalcHeight : if ( (m_Flags &amp; TileFlag.Bridge) !=3D 0 ) and =
+math.floor(m_Height / 2) or m_Height;   RunUO1/src/TileData.cs:153:
++ =
+
++--- bMoveIsOk,newZ =3D CheckMovement( Mobile mobile, Point3D loc, Directio=
+n d, out int newZ )
+ -- see also RunUO1.0/Scripts/Engines/Pathing/Movement.cs : CheckMovement a=
+nd Check
+ -- TODO : see also RunUO1.0/src/Mobile.cs : Move : checks items(dynamics?)=
+ and mobiles
+--- m=3Dmobile , d=3Ddir
+-function CheckMovement( m, map, posx,posy,posz, d)
++function CheckMovement( mobile, posx,posy,posz, d)
+ 	d =3D DirWrap(d) -- alsor removes runflag
+ 	local moveIsOk,newZ =3D false,0
+-	if (map =3D=3D nil) then return false,newZ end
+ =
+
+ 	local xStart =3D posx -- ints
+ 	local yStart =3D posy
+@@ -63,34 +64,34 @@
+ 	local xLeft		, yLeft		=3D ApplyDir( d - 1, xLeft	,yLeft		)
+ 	local xRight	, yRight	=3D ApplyDir( d + 1, xRight	,yRight		)
+ =
+
+-	if ( xForward &lt; 0 or yForward &lt; 0 or xForward &gt;=3D map.Width or yForward =
+&gt;<i>=3D map.Height ) then return false,newZ end
+</I>+	if ( xForward &lt; 0 or yForward &lt; 0 or xForward &gt;=3D W3_GetMapW() or yForwa=
+rd &gt;=3D W3_GetMapH() ) then return false,newZ end
+ 	=
+
+ 	local checkDiagonals =3D DirIsDiagonal(d) -- see lib.protocol.lua:56:
+ =
+
+ 	local ignoreMovableImpassables =3D kIgnoreMovableImpassables -- bool
+ 	local reqFlags =3D kImpassableSurface -- TileFlag
+ =
+
+-	if ( m.CanSwim ) then reqFlags =3D BitwiseOR(reqFlags,kTileFlag.Wet) end
++	if ( mobile.CanSwim ) then reqFlags =3D BitwiseOR(reqFlags,kTileFlag.Wet)=
+ end
+ =
+
+ 	local filterItemFun =3D function (item)
+ 		if ( ignoreMovableImpassables and item.Movable and item.ItemData.Impassa=
+ble ) then return false end
+ 		if ( BitwiseAND(item.ItemData.Flags,reqFlags) =3D=3D 0 ) then return fal=
+se end
+-		return item.ItemID &lt; kHex_4000
++		return item.ItemID &lt; 0x4000
+ 	end
+ 	=
+
+-	local itemsStart	=3D FilterArray(map.GetItemsAtPos(xStart	,yStart		),filt=
+erItemFun)
+-	local itemsForward	=3D FilterArray(map.GetItemsAtPos(xForward	,yForward	)=
+,filterItemFun)
++	local itemsStart	=3D FilterArray(W3_GetItemsAtPos(xStart		,yStart		),filt=
+erItemFun)
++	local itemsForward	=3D FilterArray(W3_GetItemsAtPos(xForward	,yForward	),=
+filterItemFun)
+ 	local items
+ 	=
+
+-	local startZ,startTop =3D GetStartZ( m, map, posx,posy,posz, itemsStart)
+-
+-	moveIsOk,newZ =3D Check( map, m, itemsForward, xForward, yForward, startT=
+op, startZ, m.CanSwim, m.CantWalk)
++	local startZ,startTop =3D GetStartZ( mobile, posx,posy,posz, itemsStart)
++
++	moveIsOk,newZ =3D Check( mobile, itemsForward, xForward, yForward, startT=
+op, startZ, mobile.CanSwim, mobile.CantWalk)
+ =
+
+ 	if ( moveIsOk and checkDiagonals ) then
+-		local itemsLeft		=3D FilterArray(map.GetItemsAtPos(xLeft	,yLeft		),filte=
+rItemFun)
+-		local itemsRight	=3D FilterArray(map.GetItemsAtPos(xRight	,yRight		),fil=
+terItemFun)
+-		local myok1,ignored_z =3D Check( map, m, itemsLeft , xLeft , yLeft , sta=
+rtTop, startZ, m.CanSwim, m.CantWalk)
+-		local myok2,ignored_z =3D Check( map, m, itemsRight, xRight, yRight, sta=
+rtTop, startZ, m.CanSwim, m.CantWalk)
++		local itemsLeft		=3D FilterArray(W3_GetItemsAtPos(xLeft	,yLeft		),filter=
+ItemFun)
++		local itemsRight	=3D FilterArray(W3_GetItemsAtPos(xRight	,yRight		),filt=
+erItemFun)
++		local myok1,ignored_z =3D Check( mobile, itemsLeft , xLeft , yLeft , sta=
+rtTop, startZ, mobile.CanSwim, mobile.CantWalk)
++		local myok2,ignored_z =3D Check( mobile, itemsRight, xRight, yRight, sta=
+rtTop, startZ, mobile.CanSwim, mobile.CantWalk)
+ 		if ( (not myok1) and (not myok2) ) then  moveIsOk =3D false  end
+ 	end
+ =
+
+@@ -102,30 +103,25 @@
+ --~ private bool IsOk( bool ignoreDoors, int ourZ, int ourTop, Tile[] tile=
+s, ArrayList items )
+ function IsOk(  ignoreDoors,  ourZ, ourTop, tiles, items )
+ 	for i,check in pairs(tiles) do -- Tile  ( check.ID check.Z )
+-		local itemData =3D kTileData.ItemTable[BitwiseAND(check.ID,kHex_3FFF)] -=
+- ItemData
+-
+-		if ( BitwiseAND(itemData.Flags,kImpassableSurface) ~=3D 0 ) then -- Impa=
+ssable or Surface
+-			local checkZ =3D check.Z -- int
+-			local checkTop =3D checkZ + itemData.CalcHeight -- int
+-
+-			if ( checkTop &gt; ourZ and ourTop &gt; checkZ ) then
+-				return false
+-			end
++		local itemData =3D W3_GetTileType(BitwiseAND(check.ID,0x3FFF))
++		if ( TestMask(itemData.Flags,kImpassableSurface) ) then -- Impassable or=
+ Surface
++			if ( check.Z + itemData.CalcHeight &gt; ourZ and ourTop &gt; check.Z ) then r=
+eturn false end -- intersection =
+
+ 		end
+ 	end
+ =
+
+ 	for i,item in pairs(items) do -- Item
+-		local itemID =3D BitwiseAND(item.ItemID,kHex_3FFF) -- int
+-		local itemData =3D kTileData.ItemTable[itemID] -- ItemData
++		local itemID =3D BitwiseAND(item.ItemID,0x3FFF) -- int
++		local itemData =3D W3_GetTileType(itemID) -- ItemData
+ 		local flags =3D itemData.Flags -- TileFlag
+ =
+
+-		if ( BitwiseAND(flags,kImpassableSurface) ~=3D 0 ) -- Impassable or Surf=
+ace
+-		then
+-			if ( ignoreDoors and (BitwiseAND(flags,kTileFlag.Door) ~=3D 0 or =
+
+-				itemID =3D=3D 0x692 or =
+
+-				itemID =3D=3D 0x846 or =
+
+-				itemID =3D=3D 0x873 or =
+
+-				(itemID &gt;=3D 0x6F5 and itemID &lt;=3D 0x6F6)) ) then
++		if (TestMask(flags,kImpassableSurface)) then -- Impassable or Surface
++			if (ignoreDoors and -- doors
++				(	TestMask(flags,kTileFlag.Door) or =
+
++					itemID =3D=3D 0x692 or =
+
++					itemID =3D=3D 0x846 or =
+
++					itemID =3D=3D 0x873 or =
+
++					(itemID &gt;=3D 0x6F5 and itemID &lt;=3D 0x6F6)
++				) ) then
+ 				--continue
+ 			else
+ 				local checkZ =3D item.Z -- int
+@@ -140,20 +136,23 @@
+ end
+ =
+
+ =
+
+---~ private bool Check( Map map, Mobile m, ArrayList items, int x, int y, =
+int startTop, int startZ, bool canSwim, bool cantWalk, out int newZ )
++--~ private bool Check( Map map, Mobile mobile, ArrayList items, int x, in=
+t y, int startTop, int startZ, bool canSwim, bool cantWalk, out int newZ )
+ -- returns bla,newZ
+-function Check(  map,  m,  items,  x,  y,  startTop,  startZ,  canSwim,  c=
+antWalk )
++function Check(  mobile,  items,  x,  y,  startTop,  startZ,  canSwim,  ca=
+ntWalk )
+ 	local newZ =3D 0
+ =
+
+-	local tiles		=3D map.Tiles.GetStaticTiles( x, y, true ) -- Tile[]
+-	local landTile	=3D map.Tiles.GetLandTile( x, y ) -- Tile
+-
+-	local landBlocks =3D BitwiseAND(kTileData.LandTable[BitwiseAND(landTile.I=
+D,kHex_3FFF)].Flags,kTileFlag.Impassable) ~=3D 0 -- bool
++	local tiles			 =3D W3_GetStaticTiles( x, y, true ) -- Tile[]
++	local landTile		 =3D W3_GetLandTile( x, y ) -- Tile
++	local landTileTypeID =3D BitwiseAND(landTile.ID,0x3FFF)
++	local landTileFlags  =3D W3_GetLandTypeFlags(landTileTypeID)
++	local landTileIsWet	 =3D TestMask(landTileFlags,kTileFlag.Wet)
++
++	local landBlocks =3D TestMask(landTileFlags,kTileFlag.Impassable) -- bool
+ 	local considerLand =3D not landTile.Ignored -- bool
+ =
+
+-	if ( landBlocks and canSwim and BitwiseAND(kTileData.LandTable[BitwiseAND=
+(landTile.ID,kHex_3FFF)].Flags,kTileFlag.Wet) ~=3D 0 ) then
++	if ( landBlocks and canSwim and landTileIsWet ) then
+ 		landBlocks =3D false
+-	elseif ( cantWalk and BitwiseAND(kTileData.LandTable[BitwiseAND(landTile.=
+ID,kHex_3FFF)].Flags,kTileFlag.Wet) =3D=3D 0 ) then
++	elseif ( cantWalk and (not landTileIsWet) ) then
+ 		landBlocks =3D true
+ 	end
+ =
+
+@@ -161,21 +160,20 @@
+ 	local landCenter =3D 0
+ 	local landTop =3D 0
+ =
+
+-	local landZ,landCenter,landTop =3D map.GetAverageZ( x, y)
++	local landZ,landCenter,landTop =3D W3_GetAverageZ(x, y)
+ =
+
+ 	local moveIsOk =3D false
+ =
+
+ 	local stepTop =3D startTop + kStepHeight
+ 	local checkTop =3D startZ + kPersonHeight
+ =
+
+-	local ignoreDoors =3D ( kAlwaysIgnoreDoors or (not m.Alive) or m.Body.Bod=
+yID =3D=3D 0x3DB or m.IsDeadBondedPet )
++	local ignoreDoors =3D ( kAlwaysIgnoreDoors or (not mobile.Alive) or mobil=
+e.Body.BodyID =3D=3D 0x3DB or mobile.IsDeadBondedPet )
+ =
+
+ 	for i,tile in pairs(tiles) do -- Tile
+-		local itemData =3D kTileData.ItemTable[BitwiseAND(tile.ID,kHex_3FFF)] --=
+ ItemData
++		local itemData =3D W3_GetTileType(BitwiseAND(tile.ID,0x3FFF)) -- ItemData
+ 		local flags =3D itemData.Flags -- TileFlag
+ =
+
+-		if ( BitwiseAND(flags,kImpassableSurface) =3D=3D kTileFlag.Surface or (c=
+anSwim and BitwiseAND(flags , kTileFlag.Wet) ~=3D 0) ) -- Surface and (not =
+Impassable)
+-		then
++		if ( BitwiseAND(flags,kImpassableSurface) =3D=3D kTileFlag.Surface or (c=
+anSwim and TestMask(flags , kTileFlag.Wet)) ) then -- Surface and (not Impa=
+ssable)
+ 			if ( cantWalk and BitwiseAND(flags , kTileFlag.Wet) =3D=3D 0 ) then
+ 				--continue
+ 			else
+@@ -189,7 +187,60 @@
+ 				local bMyContinue =3D false
+ 				if ( moveIsOk )
+ 				then
+-					local cmp =3D math.abs( ourZ - m.Z ) - math.abs( newZ - m.Z )
++					local cmp =3D math.abs( ourZ - mobile.Z ) - math.abs( newZ - mobile.Z=
+ )
++
++					if ( cmp &gt; 0 or (cmp =3D=3D 0 and ourZ &gt; newZ) ) then bMyContinue =3D=
+ true end
++				end
++
++				if (not bMyContinue) then
++					if ( ourZ + kPersonHeight &gt; testTop ) then testTop =3D ourZ + kPerson=
+Height end
++
++					if ( not itemData.Bridge ) then itemTop =3D itemTop + itemData.Height=
+ end
++
++					if ( stepTop &gt;=3D itemTop ) then
++						local landCheck =3D itemZ
++
++						if ( itemData.Height &gt;=3D kStepHeight ) then
++							landCheck =3D landCheck + kStepHeight
++						else
++							landCheck =3D landCheck + itemData.Height
++						end
++
++						if ( considerLand and landCheck &lt; landCenter and landCenter &gt; ourZ a=
+nd testTop &gt; landZ ) then
++							--continue
++						else
++							if ( IsOk( ignoreDoors, ourZ, testTop, tiles, items ) ) then
++								newZ =3D ourZ
++								moveIsOk =3D true
++							end
++						end
++					end
++				end
++			end
++		end
++	end
++
++	for i,item in pairs(items) do  -- Item
++		local itemData =3D item.ItemData --W3_GetTileType(BitwiseAND(item.ItemID=
+ , 0x3FFF)) ItemData
++		local flags =3D itemData.Flags -- TileFlag
++
++		if ( BitwiseAND(flags , kImpassableSurface) =3D=3D kTileFlag.Surface or =
+(mobile.CanSwim and TestMask(flags , kTileFlag.Wet)) ) -- Surface and (not =
+Impassable)
++		then
++			if ( cantWalk and BitwiseAND(flags , kTileFlag.Wet) =3D=3D 0 ) then
++				--~ continue
++			else
++
++				local itemZ =3D item.Z
++				local itemTop =3D itemZ
++				local ourZ =3D itemZ + itemData.CalcHeight
++				local ourTop =3D ourZ + kPersonHeight
++				local testTop =3D checkTop
++
++				local bMyContinue =3D false
++				=
+
++				if ( moveIsOk )
++				then
++					local cmp =3D math.abs( ourZ - mobile.Z ) - math.abs( newZ - mobile.Z=
+ )
+ =
+
+ 					if ( cmp &gt; 0 or (cmp =3D=3D 0 and ourZ &gt; newZ) ) then bMyContinue =3D=
+ true end
+ 				end
+@@ -224,61 +275,6 @@
+ 		end
+ 	end
+ =
+
+-	for i,item in pairs(items) do  -- Item
+-		local itemData =3D item.ItemData --kTileData.ItemTable[BitwiseAND(item.I=
+temID , kHex_3FFF)] ItemData
+-		local flags =3D itemData.Flags -- TileFlag
+-
+-		if ( BitwiseAND(flags , kImpassableSurface) =3D=3D kTileFlag.Surface or =
+(m.CanSwim and BitwiseAND(flags , kTileFlag.Wet) ~=3D 0) ) -- Surface and (=
+not Impassable)
+-		then
+-			if ( cantWalk and BitwiseAND(flags , kTileFlag.Wet) =3D=3D 0 ) then
+-				--~ continue
+-			else
+-
+-				local itemZ =3D item.Z
+-				local itemTop =3D itemZ
+-				local ourZ =3D itemZ + itemData.CalcHeight
+-				local ourTop =3D ourZ + kPersonHeight
+-				local testTop =3D checkTop
+-
+-				local bMyContinue =3D false
+-				=
+
+-				if ( moveIsOk )
+-				then
+-					local cmp =3D math.abs( ourZ - m.Z ) - math.abs( newZ - m.Z )
+-
+-					if ( cmp &gt; 0 or (cmp =3D=3D 0 and ourZ &gt; newZ) ) then bMyContinue =3D=
+ true end
+-				end
+-
+-				if (not bMyContinue) then
+-					if ( ourZ + kPersonHeight &gt; testTop ) then testTop =3D ourZ + kPerson=
+Height end
+-
+-					if ( not itemData.Bridge ) then itemTop =3D itemTop + itemData.Height=
+ end
+-
+-					if ( stepTop &gt;=3D itemTop )
+-					then
+-						local landCheck =3D itemZ
+-
+-						if ( itemData.Height &gt;=3D kStepHeight ) then
+-							landCheck =3D landCheck + kStepHeight
+-						else
+-							landCheck =3D landCheck + itemData.Height
+-						end
+-
+-						if ( considerLand and landCheck &lt; landCenter and landCenter &gt; ourZ a=
+nd testTop &gt; landZ ) then
+-							--continue
+-						else
+-							if ( IsOk( ignoreDoors, ourZ, testTop, tiles, items ) )
+-							then
+-								newZ =3D ourZ
+-								moveIsOk =3D true
+-							end
+-						end
+-					end
+-				end
+-			end
+-		end
+-	end
+-
+ 	if ( considerLand and (not landBlocks) and stepTop &gt;=3D landZ )
+ 	then
+ 		local ourZ =3D landCenter
+@@ -291,7 +287,7 @@
+ =
+
+ 		if ( moveIsOk )
+ 		then
+-			local cmp =3D math.abs( ourZ - m.Z ) - math.abs( newZ - m.Z ) -- int
++			local cmp =3D math.abs( ourZ - mobile.Z ) - math.abs( newZ - mobile.Z )=
+ -- int
+ =
+
+ 			if ( cmp &gt; 0 or (cmp =3D=3D 0 and ourZ &gt; newZ) ) then shouldCheck =3D f=
+alse end
+ 		end
+@@ -306,33 +302,33 @@
+ 	return moveIsOk,newZ
+ end
+ =
+
+---~ private void GetStartZ( Mobile m, Map map, Point3D loc, ArrayList item=
+List, out int zLow, out int zTop )
++--~ private void GetStartZ( Mobile mobile, Map map, Point3D loc, ArrayList=
+ itemList, out int zLow, out int zTop )
+ -- returns zLow,zTop
+-function GetStartZ(  m,  map,  loc,  itemList )
++function GetStartZ(  mobile,  posx,posy,posz,  itemList )
+ 	local zLow,zTop =3D 0,0
+-	local xCheck =3D loc.X
+-	local yCheck =3D loc.Y
+-
+-	local landTile =3D map.Tiles.GetLandTile( xCheck, yCheck ) -- Tile
++
++	local landTile =3D W3_GetLandTile( posx, posy ) -- Tile
+ 	local landZ =3D 0
+ 	local landCenter =3D 0
+ 	local landTop =3D 0
+-	local landBlocks =3D BitwiseAND(kTileData.LandTable[BitwiseAND(landTile.I=
+D , kHex_3FFF)].Flags , kTileFlag.Impassable) ~=3D 0
+-
+-	if ( landBlocks and m.CanSwim and BitwiseAND(kTileData.LandTable[BitwiseA=
+ND(landTile.ID , kHex_3FFF)].Flags , kTileFlag.Wet) ~=3D 0 ) then
++	local landTileID =3D BitwiseAND(landTile.ID , 0x3FFF)
++	local landTileFlags =3D W3_GetLandTypeFlags(landTileID)
++	local landBlocks =3D TestMask(landTileFlags, kTileFlag.Impassable)
++
++	if ( landBlocks and mobile.CanSwim and TestMask(landTileFlags , kTileFlag=
+.Wet) ) then
+ 		landBlocks =3D false
+-	elseif ( m.CantWalk and BitwiseAND(kTileData.LandTable[BitwiseAND(landTil=
+e.ID , kHex_3FFF)].Flags , kTileFlag.Wet) =3D=3D 0 ) then
++	elseif ( mobile.CantWalk and BitwiseAND(landTileFlags , kTileFlag.Wet) =
+=3D=3D 0 ) then
+ 		landBlocks =3D true
+ 	end
+ =
+
+-	landZ,landCenter,landTop =3D map.GetAverageZ( xCheck, yCheck)
++	landZ,landCenter,landTop =3D W3_GetAverageZ( posx, posy)
+ =
+
+ 	local considerLand =3D not landTile.Ignored
+ =
+
+ 	local zCenter =3D 0
+ 	local isSet =3D false
+ =
+
+-	if ( considerLand and (not landBlocks) and loc.Z &gt;=3D landCenter )
++	if ( considerLand and (not landBlocks) and posz &gt;=3D landCenter )
+ 	then
+ 		zLow =3D landZ
+ 		zCenter =3D landCenter
+@@ -342,16 +338,16 @@
+ 		isSet =3D true
+ 	end
+ =
+
+-	local staticTiles =3D map.Tiles.GetStaticTiles( xCheck, yCheck, true ) --=
+ Tile[]
++	local staticTiles =3D W3_GetStaticTiles( posx, posy, true ) -- Tile[]
+ =
+
+ 	for i,tile in pairs(staticTiles) do -- Tile
+-		local id =3D kTileData.ItemTable[BitwiseAND(tile.ID , kHex_3FFF)] -- Ite=
+mData
++		local id =3D W3_GetTileType(BitwiseAND(tile.ID , 0x3FFF)) -- ItemData
+ =
+
+ 		local calcTop =3D (tile.Z + id.CalcHeight)
+ =
+
+-		if ( ((not isSet) or calcTop &gt;=3D zCenter) and ( BitwiseAND(id.Flags , k=
+TileFlag.Surface) ~=3D 0 or ( m.CanSwim and BitwiseAND(id.Flags,kTileFlag.W=
+et) ~=3D 0 ) ) and loc.Z &gt;=3D calcTop )
+-		then
+-			if ( m.CantWalk and BitwiseAND(id.Flags , kTileFlag.Wet) =3D=3D 0 ) then
++		if ( ((not isSet) or calcTop &gt;=3D zCenter) and ( TestMask(id.Flags , kTi=
+leFlag.Surface) or ( mobile.CanSwim and TestMask(id.Flags,kTileFlag.Wet) ) =
+) and posz &gt;=3D calcTop )
++		then
++			if ( mobile.CantWalk and BitwiseAND(id.Flags , kTileFlag.Wet) =3D=3D 0 =
+) then
+ 				--continue
+ 			else
+ 				zLow =3D tile.Z
+@@ -372,11 +368,11 @@
+ 		local calcTop =3D item.Z + id.CalcHeight
+ =
+
+ 		if (	((not isSet) or calcTop &gt;=3D zCenter) and =
+
+-				(	BitwiseAND(id.Flags , kTileFlag.Surface) ~=3D 0 or =
+
+-					( m.CanSwim and BitwiseAND(id.Flags,kTileFlag.Wet) ~=3D 0 ) ) and =
+
+-				loc.Z &gt;=3D calcTop )
+-		then
+-			if ( m.CantWalk and BitwiseAND(id.Flags , kTileFlag.Wet) =3D=3D 0 ) then
++				(	TestMask(id.Flags , kTileFlag.Surface) or =
+
++					( mobile.CanSwim and TestMask(id.Flags,kTileFlag.Wet) ) ) and =
+
++				posz &gt;=3D calcTop )
++		then
++			if ( mobile.CantWalk and BitwiseAND(id.Flags , kTileFlag.Wet) =3D=3D 0 =
+) then
+ 				--continue
+ 			else =
+
+ 				zLow =3D item.Z
+@@ -392,10 +388,10 @@
+ 	end
+ =
+
+ 	if ( not isSet ) then
+-		zLow =3D loc.Z
+-		zTop =3D loc.Z
+-	elseif ( loc.Z &gt; zTop ) then
+-		zTop =3D loc.Z
++		zLow =3D posz
++		zTop =3D posz
++	elseif ( posz &gt; zTop ) then
++		zTop =3D posz
+ 	end
+ 	=
+
+ 	return zLow,zTop
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000813.html">[Iris-commit] [IRIS] r2002 - in /trunk/lua: filter/filter.art.lua lib.3d.dynamic.lua lib.3d.map.lua lib.3d.renderer.lua lib.debugmenu.lua lib.pathfind.lua lib.walking2.lua main.lua
+</A></li>
+	<LI>Next message: <A HREF="000815.html">[Iris-commit] [IRIS] r2004 - /trunk/lua/gui/gui.securetrade.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#814">[ date ]</a>
+              <a href="thread.html#814">[ thread ]</a>
+              <a href="subject.html#814">[ subject ]</a>
+              <a href="author.html#814">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

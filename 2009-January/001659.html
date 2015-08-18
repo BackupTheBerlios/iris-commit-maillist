@@ -1,0 +1,241 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2857 - /trunk/premake.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2009-January/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2857%20-%20/trunk/premake.lua&In-Reply-To=%3C20090111025805.CC6851C18808%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001658.html">
+   <LINK REL="Next"  HREF="001660.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2857 - /trunk/premake.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2857%20-%20/trunk/premake.lua&In-Reply-To=%3C20090111025805.CC6851C18808%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2857 - /trunk/premake.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sun Jan 11 03:58:04 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001658.html">[Iris-commit] [IRIS] r2856 - in /trunk/lua: lib.3d.dynamicspawner.lua lib.mapblock.3d.water.lua lib.tilefreewalk.lua lib.walking3.lua
+</A></li>
+        <LI>Next message: <A HREF="001660.html">[Iris-commit] [IRIS] r2858 - in /trunk/data/models: materials/textures.material models/to_008000/mdl_007888.mesh models/to_008000/mdl_007889.mesh models/to_008000/mdl_007890.mesh textures/tex_RedCommCrystal.png
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1659">[ date ]</a>
+              <a href="thread.html#1659">[ thread ]</a>
+              <a href="subject.html#1659">[ subject ]</a>
+              <a href="author.html#1659">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: hagish
+Date: Sun Jan 11 03:58:04 2009
+New Revision: 2857
+
+Log:
+added jit to premake
+
+Modified:
+    trunk/premake.lua
+
+Modified: trunk/premake.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/premake.lua (original)
++++ trunk/premake.lua Sun Jan 11 03:58:04 2009
+@@ -11,6 +11,7 @@
+ gbExtraWarnings =3D false
+ gbOptimize =3D true
+ gOisPlatform =3D &quot;linux&quot;
++gbUseLuaJit =3D false
+ gbUseSystemOis =3D false -- static compile ois segfaultet at mKeyboard-&gt;se=
+tTextTranslation, ois-headers in system incompatible ?
+ gbNo64BitChecks =3D false
+ gbDisableProfiling =3D true
+@@ -31,19 +32,36 @@
+ addoption(&quot;oisplatform&quot;,&quot;select OIS platform (linux,mac,SDL,win32, default=
+:<i>linux), only valid if lugre ois is used&quot;)
+</I> addoption(&quot;noassert&quot;,&quot;don't use asserts&quot;)
+ addoption(&quot;openalsoft&quot;,&quot;use openal-soft instead of openal&quot;)
+-
+-if (options[&quot;wall&quot;]) then gbExtraWarnings =3D true print(&quot;extra warnings e=
+nabled&quot;) end
+-if (options[&quot;nooptimize&quot;]) then gbOptimize =3D false print(&quot;optimization d=
+isabled&quot;) end
+-if (options[&quot;usesystemois&quot;]) then gbUseSystemOis =3D true print(&quot;using sys=
+temwide installed ois&quot;) end
+-if (options[&quot;oisplatform&quot;]) then gOisPlatform =3D options[&quot;oisplatform&quot;] p=
+rint(&quot;using oisplatform: &quot;..gOisPlatform) end
+-if (options[&quot;no64bitcheck&quot;]) then gbNo64BitChecks =3D true print(&quot;disabled=
+ 64bit checks&quot;) end
+-if (options[&quot;noassert&quot;]) then gbDisableAssert =3D true print(&quot;disabled ass=
+erts (NDEBUG)&quot;) end
+-if (options[&quot;openalsoft&quot;]) then gbUseSoundOpenAl =3D true gLugreUseOpenAlS=
+oft =3D true print(&quot;enabled openal-soft&quot;) end
++addoption(&quot;useluajit&quot;,&quot;use luajit (just in time compiler)&quot;)
++
++if (options[&quot;wall&quot;]) then gbExtraWarnings =3D true print(&quot;&gt;&gt;&gt; extra warnin=
+gs enabled&quot;) end
++if (options[&quot;nooptimize&quot;]) then gbOptimize =3D false print(&quot;&gt;&gt;&gt; optimizati=
+on disabled&quot;) end
++if (options[&quot;usesystemois&quot;]) then gbUseSystemOis =3D true print(&quot;&gt;&gt;&gt; using=
+ systemwide installed ois&quot;) end
++if (options[&quot;oisplatform&quot;]) then gOisPlatform =3D options[&quot;oisplatform&quot;] p=
+rint(&quot;&gt;&gt;&gt; using oisplatform: &quot;..gOisPlatform) end
++if (options[&quot;no64bitcheck&quot;]) then gbNo64BitChecks =3D true print(&quot;&gt;&gt;&gt; disa=
+bled 64bit checks&quot;) end
++if (options[&quot;noassert&quot;]) then gbDisableAssert =3D true print(&quot;&gt;&gt;&gt; disabled=
+ asserts (NDEBUG)&quot;) end
++if (options[&quot;openalsoft&quot;]) then gbUseSoundOpenAl =3D true gLugreUseOpenAlS=
+oft =3D true print(&quot;&gt;&gt;&gt; enabled openal-soft&quot;) end
++if (options[&quot;useluajit&quot;]) then gbUseLuaJit =3D true print(&quot;&gt;&gt;&gt; enabled lua=
+jit&quot;) end
+ =
+
+ gLugreDir =3D &quot;lugre&quot;
+-if (io.open(&quot;mylugre/lua/lugre.lua&quot;)) then print(&quot;using mylugre dir overri=
+de&quot;) gLugreDir =3D &quot;mylugre&quot; end
+-
+-gLugreLuaSrcDir =3D &quot;./&quot;..gLugreDir..&quot;/lib/lua-5.1.4/&quot;
++if (io.open(&quot;mylugre/lua/lugre.lua&quot;)) then print(&quot;&gt;&gt;&gt; using mylugre dir ov=
+erride&quot;) gLugreDir =3D &quot;mylugre&quot; end
++
++if gbUseLuaJit then
++	gLugreLuaSrcDir =3D &quot;./&quot;..gLugreDir..&quot;/lib/LuaJIT-1.1.5/&quot;
++	if not os.fileexists(gLugreLuaSrcDir..&quot;/jit/opt.lua&quot;) then
++		print(&quot;=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D&quot;)
++		print(&quot;ERROR luajit is enabled but there is no jit directory next to you=
+r executable&quot;)
++		print(&quot;perhaps you forgot to link it? perhaps enter: cd bin &amp;&amp; ln -s ../=
+&quot;..gLugreLuaSrcDir..&quot;/jit&quot;)
++		print(&quot;=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D&quot;)
++	else
++		print(&quot;=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D&quot;)
++		print(&quot;don't forget to add 'require(\&quot;jit.opt\&quot;).start()' to the top of =
+main.lua&quot;)
++		print(&quot;=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D&quot;)
++	end
++else
++	gLugreLuaSrcDir =3D &quot;./&quot;..gLugreDir..&quot;/lib/lua-5.1.4/&quot;
++end
++
+ gLugreOisDir =3D &quot;./&quot;..gLugreDir..&quot;/baselib/ois/&quot;
+ gLugreOpenAlSoftDir =3D &quot;./&quot;..gLugreDir..&quot;/baselib/openal-soft-1.6.372/&quot;
+ =
+
+@@ -205,13 +223,13 @@
+ package.language =3D &quot;c++&quot;
+ package.buildflags =3D { gbExtraWarnings and &quot;extra-warnings&quot; or nil, gbOp=
+timize and &quot;optimize&quot; or nil, gbNo64BitChecks and &quot;no-64bit-checks&quot; or nil }
+ package.buildoptions =3D {}
+-package.includepaths =3D { gLugreLuaSrcDir..&quot;/src&quot; }
++package.includepaths =3D { gLugreLuaSrcDir..&quot;/src&quot;, gLugreLuaSrcDir..&quot;/dyn=
+asm&quot; } -- dynasm is used for luajit
+ package.defines =3D { =
+
+ 	&quot;LUA_USE_POSIX&quot;, -- execute shellcommands
+ 	gbDisableAssert and &quot;NDEBUG&quot; or nil,
+ }	=
+
+ package.files =3D {
+-  matchfiles(gLugreLuaSrcDir..&quot;/src/*.h&quot;, gLugreLuaSrcDir..&quot;/src/*.c&quot;),
++  matchfiles(gLugreLuaSrcDir..&quot;/src/*.h&quot;, gLugreLuaSrcDir..&quot;/src/*.c&quot;, gLu=
+greLuaSrcDir..&quot;/dynasm/*.h&quot;),	-- dynasm is used for luajit
+ }
+ =
+
+ -- ---------------------------------------------
+@@ -251,9 +269,9 @@
+ 	package.language =3D &quot;c++&quot;
+ 	package.buildflags =3D { gbExtraWarnings and &quot;extra-warnings&quot; or nil, gbO=
+ptimize and &quot;optimize&quot; or nil, gbNo64BitChecks and &quot;no-64bit-checks&quot; or nil=
+ }
+ 	package.buildoptions =3D {}
+-	package.includepaths =3D { gLugreDir..&quot;/include&quot;, gLugreLuaSrcDir..&quot;/src/=
+&quot;, &quot;include&quot;, glOisIncludeList and unpack(glOisIncludeList) or nil }
++	package.includepaths =3D { gLugreDir..&quot;/include&quot;, gLugreLuaSrcDir..&quot;/src/=
+&quot;, gLugreLuaSrcDir..&quot;/dynasm&quot;, &quot;include&quot;, glOisIncludeList and unpack(glOis=
+IncludeList) or nil } -- dynasm is used for luajit =
+
+ 	package.files =3D {
+-		matchfiles(gLugreLuaSrcDir..&quot;/src/*.h&quot;, gLugreLuaSrcDir..&quot;/src/*.c&quot;),
++		matchfiles(gLugreLuaSrcDir..&quot;/src/*.h&quot;, gLugreLuaSrcDir..&quot;/src/*.c&quot;, gLu=
+greLuaSrcDir..&quot;/dynasm/*.h&quot;), -- dynasm is used for luajit =
+
+ 	}
+ 	table.insert(package.files, matchrecursive(gLugreDir..&quot;/lib/&quot;..v..&quot;/inclu=
+de/*.h&quot;)) =
+
+ 	table.insert(package.files, matchrecursive(gLugreDir..&quot;/lib/&quot;..v..&quot;/src/*=
+.cpp&quot;)) =
+
+@@ -273,7 +291,7 @@
+ package.links =3D {  }
+ package.buildflags =3D { bExtraWarnings and &quot;extra-warnings&quot; or nil, gbOpt=
+imize and &quot;optimize&quot; or nil, gbNo64BitChecks and &quot;no-64bit-checks&quot; or nil }
+ package.buildoptions =3D {}
+-package.includepaths =3D { gLugreLuaSrcDir..&quot;/src&quot;, gLugreDir..&quot;/include&quot;,=
+ glOisIncludeList and unpack(glOisIncludeList) or nil }
++package.includepaths =3D { gLugreLuaSrcDir..&quot;/src&quot;, gLugreLuaSrcDir..&quot;/dyn=
+asm/*.h&quot;, gLugreDir..&quot;/include&quot;, glOisIncludeList and unpack(glOisIncludeLi=
+st) or nil } -- dynasm is used for luajit
+ package.files =3D {
+   matchrecursive(gLugreDir..&quot;/include/*.h&quot;, gLugreDir..&quot;/src/*.cpp&quot;),
+ }
+@@ -291,7 +309,7 @@
+ package.buildflags =3D { gbExtraWarnings and &quot;extra-warnings&quot; or nil, gbOp=
+timize and &quot;optimize&quot; or nil, gbNo64BitChecks and &quot;no-64bit-checks&quot; or nil }
+ package.buildoptions =3D {}
+ =
+
+-package.includepaths =3D { gLugreDir..&quot;/include&quot;, gLugreLuaSrcDir..&quot;/src/&quot;=
+, &quot;include&quot; }
++package.includepaths =3D { gLugreDir..&quot;/include&quot;, gLugreLuaSrcDir..&quot;/src/&quot;=
+,gLugreLuaSrcDir..&quot;/dynasm&quot;, &quot;include&quot; } -- dynasm is used for luajit
+ -- add lib includes
+ for k,v in pairs(gLugreLibList) do =
+
+ 	table.insert(package.includepaths, gLugreDir..&quot;/lib/&quot;..v..&quot;/include/&quot;) =
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001658.html">[Iris-commit] [IRIS] r2856 - in /trunk/lua: lib.3d.dynamicspawner.lua lib.mapblock.3d.water.lua lib.tilefreewalk.lua lib.walking3.lua
+</A></li>
+	<LI>Next message: <A HREF="001660.html">[Iris-commit] [IRIS] r2858 - in /trunk/data/models: materials/textures.material models/to_008000/mdl_007888.mesh models/to_008000/mdl_007889.mesh models/to_008000/mdl_007890.mesh textures/tex_RedCommCrystal.png
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1659">[ date ]</a>
+              <a href="thread.html#1659">[ thread ]</a>
+              <a href="subject.html#1659">[ subject ]</a>
+              <a href="author.html#1659">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

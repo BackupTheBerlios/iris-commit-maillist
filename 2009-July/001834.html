@@ -1,0 +1,417 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r3071 - in /trunk: lua/gui/gui.chat.lua lua/lib.2d.spriteblock.lua lua/lib.data.lua lua/lib.hue.lua lua/lib.macrolist.lua lua/lib.uoutils.lua lua/main.lua lua/net/net.partysystem.lua src/data_hue_L.cpp
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2009-July/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3071%20-%20in%20/trunk%3A%20lua/gui/gui.chat.lua%0A%20lua/lib.2d.spriteblock.lua%20lua/lib.data.lua%20lua/lib.hue.lua%0A%20lua/lib.macrolist.lua%20lua/lib.uoutils.lua%20lua/main.lua%0A%20lua/net/net.partysystem.lua%20src/data_hue_L.cpp&In-Reply-To=%3C20090711225724.797E07A980F1%40simon%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001833.html">
+   <LINK REL="Next"  HREF="001835.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r3071 - in /trunk: lua/gui/gui.chat.lua lua/lib.2d.spriteblock.lua lua/lib.data.lua lua/lib.hue.lua lua/lib.macrolist.lua lua/lib.uoutils.lua lua/main.lua lua/net/net.partysystem.lua src/data_hue_L.cpp</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3071%20-%20in%20/trunk%3A%20lua/gui/gui.chat.lua%0A%20lua/lib.2d.spriteblock.lua%20lua/lib.data.lua%20lua/lib.hue.lua%0A%20lua/lib.macrolist.lua%20lua/lib.uoutils.lua%20lua/main.lua%0A%20lua/net/net.partysystem.lua%20src/data_hue_L.cpp&In-Reply-To=%3C20090711225724.797E07A980F1%40simon%3E"
+       TITLE="[Iris-commit] [IRIS] r3071 - in /trunk: lua/gui/gui.chat.lua lua/lib.2d.spriteblock.lua lua/lib.data.lua lua/lib.hue.lua lua/lib.macrolist.lua lua/lib.uoutils.lua lua/main.lua lua/net/net.partysystem.lua src/data_hue_L.cpp">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sun Jul 12 00:57:24 CEST 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001833.html">[Iris-commit] [IRIS] r3070 - in /trunk/lua/gui: gui.amount.lua	gui.quit.lua gui.status.lua
+</A></li>
+        <LI>Next message: <A HREF="001835.html">[Iris-commit] [IRIS] r3072 - in /trunk: data/ogreSampleMedia/ data/ogreSampleMedia/materials/ data/ogreSampleMedia/materials/programs/ data/ogreSampleMedia/materials/scripts/ data/ogreSampleMedia/materials/textures/ data/ogreSampleMedia/models/ data/ogreSampleMedia/packs/ lua/
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1834">[ date ]</a>
+              <a href="thread.html#1834">[ thread ]</a>
+              <a href="subject.html#1834">[ subject ]</a>
+              <a href="author.html#1834">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sun Jul 12 00:57:24 2009
+New Revision: 3071
+
+Log:
+2d: derived hue detection, saves a bunch of vram, improved human detection =
+macro for smarttarget, added partychat to chat-tab-bars
+
+Added:
+    trunk/lua/lib.hue.lua
+Modified:
+    trunk/lua/gui/gui.chat.lua
+    trunk/lua/lib.2d.spriteblock.lua
+    trunk/lua/lib.data.lua
+    trunk/lua/lib.macrolist.lua
+    trunk/lua/lib.uoutils.lua
+    trunk/lua/main.lua
+    trunk/lua/net/net.partysystem.lua
+    trunk/src/data_hue_L.cpp
+
+Modified: trunk/lua/gui/gui.chat.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/gui/gui.chat.lua (original)
++++ trunk/lua/gui/gui.chat.lua Sun Jul 12 00:57:24 2009
+@@ -8,6 +8,7 @@
+ cChatTabs.channels =3D {
+ 	{name=3D&quot;General&quot;,	filter=3Dfalse,						},
+ 	{name=3D&quot;Chat&quot;,		filter=3D{&quot;&lt;.+&gt;&quot;},					},
++	{name=3D&quot;Party&quot;,		filter=3D{&quot;&lt;Party&gt;&quot;},					},
+ 	{name=3D&quot;Ally&quot;,		filter=3D{&quot;&lt;Alliance&gt;&quot;,&quot;&lt;Guild&gt;&quot;},	},
+ 	{name=3D&quot;Trades&quot;,		filter=3D{&quot;&lt;Trades&gt;&quot;},				},
+ }
+
+Modified: trunk/lua/lib.2d.spriteblock.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.spriteblock.lua (original)
++++ trunk/lua/lib.2d.spriteblock.lua Sun Jul 12 00:57:24 2009
+@@ -144,9 +144,23 @@
+ 	return 0,false
+ end
+ =
+
++-- returns iTextureHue,r,g,b,a
++function cUOSpriteBlock:GetBaseHueData (iHue) =
+
++	local iBaseHue =3D gBaseHues[iHue-1]
++	if (not iBaseHue) then return iHue,1,1,1,1 end
++	local grey =3D GetHueColor(iBaseHue) =
+
++	local yr,yg,yb =3D GetHueColor(iHue-1) =
+
++	local ymax =3D max(yr,yg,yb)
++	local basef =3D ymax / grey
++	local r =3D max(0,min(1,basef*yr))
++	local g =3D max(0,min(1,basef*yg))
++	local b =3D max(0,min(1,basef*yb))
++	return (iBaseHue+1),r,g,b,1
++end
+ function cUOSpriteBlock:AddAnim (tx,ty,tz,iRealID,iHue,iLoaderIndex,iFrame=
+,bMirrorX,sortbonus,data)
+ 	iHue =3D BitwiseAND(iHue or 0,0x7fff) -- 0x03F4 : human skin hue (0x83F4=
+=3D33780, but 0x8* is partial hue and turned out all gray here)
+-	local pAtlasPiece =3D Anim2DAtlas_LoadAtlasPieceEx(iRealID,iFrame,iHue,iL=
+oaderIndex)
++	local iTextureHue,r,g,b,a =3D self:GetBaseHueData(iHue)
++	local pAtlasPiece =3D Anim2DAtlas_LoadAtlasPieceEx(iRealID,iFrame,iTextur=
+eHue,iLoaderIndex)
+ 	print(&quot;cUOSpriteBlock:AddAnim&quot;,iRealID,iFrame,iHue,iLoaderIndex,pAtlasPie=
+ce)
+ --~ cUOSpriteBlock:AddAnim  14089   999     0       1       nil
+ =
+
+@@ -154,13 +168,18 @@
+ 		local sprite =3D self:AddSpriteEx(tx,ty,tz,sortbonus,data,pAtlasPiece,bM=
+irrorX)
+ 		sprite.bMirrorX =3D bMirrorX
+ 		sprite.hue =3D iHue
++		sprite.r =3D r
++		sprite.g =3D g
++		sprite.b =3D b
++		sprite.a =3D a
+ 		return sprite
+ 	end
+ end
+ =
+
+ function cUOSpriteBlock:AddAnimModel (tx,ty,tz,iTranslatedModelID,iHue,iLo=
+aderIndex,iFallBackModel,iFallBackAnim,iAnimID,iFrame,bMirrorX,sortbonus,da=
+ta,	spritearr)
+ 	iHue =3D BitwiseAND(iHue or 0,0x7fff) -- 0x03F4 : human skin hue (0x83F4=
+=3D33780, but 0x8* is partial hue and turned out all gray here)
+-	local pAtlasPiece =3D Anim2DAtlas_LoadAtlasPiece(iTranslatedModelID,iAnim=
+ID,iFrame,iHue,iLoaderIndex)
++	local iTextureHue,r,g,b,a =3D self:GetBaseHueData(iHue)
++	local pAtlasPiece =3D Anim2DAtlas_LoadAtlasPiece(iTranslatedModelID,iAnim=
+ID,iFrame,iTextureHue,iLoaderIndex)
+ 	if (not pAtlasPiece) then
+ 		if (iFallBackModel) then
+ 			gMobile2DWarned =3D gMobile2DWarned or {}
+@@ -171,7 +190,7 @@
+ 			iTranslatedModelID	=3D iFallBackModel -- replace unknown by standard mo=
+del (13=3Devortex)
+ 			iAnimID				=3D iFallBackAnim =
+
+ 			iLoaderIndex 		=3D 1
+-			pAtlasPiece			=3D Anim2DAtlas_LoadAtlasPiece(iTranslatedModelID,iAnimID=
+,iFrame,iHue,iLoaderIndex)
++			pAtlasPiece			=3D Anim2DAtlas_LoadAtlasPiece(iTranslatedModelID,iAnimID=
+,iFrame,iTextureHue,iLoaderIndex)
+ 		end
+ 	end
+ 	gProfiler_R2D_MobileStep:SectionIfActive(&quot;UpdateMobileGfx:AddAnimModel:Ad=
+dSpriteEx&quot;)
+@@ -183,6 +202,10 @@
+ 		sprite.uoanim_Frame			=3D iFrame
+ 		sprite.uoanim_LoaderIndex	=3D iLoaderIndex
+ 		sprite.hue =3D iHue
++		sprite.r =3D r
++		sprite.g =3D g
++		sprite.b =3D b
++		sprite.a =3D a
+ 		return sprite
+ 	end
+ end
+@@ -192,14 +215,16 @@
+ 	if (gNodrawByArtID[artid]) then return end
+ 	sortbonus =3D sortbonus or 0
+ 	hue =3D hue or 0
++	local iTextureHue,r,g,b,a =3D self:GetBaseHueData(hue)
++	=
+
+ 	local arr =3D self.pTileTypeAtlasMats[artid]
+ 	if (not arr) then arr =3D {} self.pTileTypeAtlasMats[artid] =3D arr end
+ 	=
+
+ 	-- get/load atlas mat
+-	local pAtlasPiece =3D arr[hue]
++	local pAtlasPiece =3D arr[iTextureHue]
+ 	if (not pAtlasPiece) then
+-		pAtlasPiece =3D ArtAtlasLoadAndLock(artid+0x4000,hue,self) -- .atlas,u0,=
+v0,u1,v1,w,h
+-		arr[hue] =3D pAtlasPiece
++		pAtlasPiece =3D ArtAtlasLoadAndLock(artid+0x4000,iTextureHue,self) -- .a=
+tlas,u0,v0,u1,v1,w,h
++		arr[iTextureHue] =3D pAtlasPiece
+ 	end
+ 	=
+
+ 	-- add to matname group
+@@ -207,7 +232,12 @@
+ 		print(&quot;warning, cUOSpriteBlock:AddArtSprite failed&quot;,artid,hue)
+ 		return
+ 	end
++	=
+
+ 	local sprite =3D self:AddSpriteEx(tx,ty,zloc,sortbonus,data,pAtlasPiece)
++	sprite.r =3D r
++	sprite.g =3D g
++	sprite.b =3D b
++	sprite.a =3D a
+ 	sprite.artid =3D artid
+ 	sprite.hue =3D hue
+ 	return sprite
+@@ -429,11 +459,15 @@
+ 				local v0 		=3D sprite.v0
+ 				local u1 		=3D sprite.u1
+ 				local v1 		=3D sprite.v1
++				local r 		=3D sprite.r or 1
++				local g 		=3D sprite.g or 1
++				local b 		=3D sprite.b or 1
++				local a 		=3D sprite.a or 1
+ 				if (sprite.bMirrorX) then u0,u1 =3D u1,u0 end
+-				gfx:RenderableVertex(x-xa,y-xa,z  	, u1,v1)
+-				gfx:RenderableVertex(x+xa,y+xa,z  	, u0,v1)
+-				gfx:RenderableVertex(x-xa,y-xa,z+za	, u1,v0)
+-				gfx:RenderableVertex(x+xa,y+xa,z+za	, u0,v0)
++				gfx:RenderableVertex(x-xa,y-xa,z  	, u1,v1, r,g,b,a)
++				gfx:RenderableVertex(x+xa,y+xa,z  	, u0,v1, r,g,b,a)
++				gfx:RenderableVertex(x-xa,y-xa,z+za	, u1,v0, r,g,b,a)
++				gfx:RenderableVertex(x+xa,y+xa,z+za	, u0,v0, r,g,b,a)
+ 				gfx:RenderableIndex3(vc+0,vc+2,vc+1)
+ 				gfx:RenderableIndex3(vc+1,vc+2,vc+3)
+ 				vc =3D vc + 4
+
+Modified: trunk/lua/lib.data.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.data.lua (original)
++++ trunk/lua/lib.data.lua Sun Jul 12 00:57:24 2009
+@@ -284,3 +284,6 @@
+     gTexMapLoader:Load(iTexMapID)
+     return gTexMapLoader:GetSize()
+ end
++
++
++
+
+Modified: trunk/lua/lib.macrolist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.macrolist.lua (original)
++++ trunk/lua/lib.macrolist.lua Sun Jul 12 00:57:24 2009
+@@ -97,12 +97,13 @@
+ function MobileHasEquip   (mobile) =
+
+ 	for index,layer in pairs(gLayerOrder) do
+ 		-- slime has kLayer_Backpack , dog not
+-		if (layer ~=3D kLayer_Backpack and mobile:GetEquipmentAtLayer(layer)) th=
+en return false end
++		if (layer ~=3D kLayer_Backpack and mobile:GetEquipmentAtLayer(layer)) th=
+en return true end
+ 	end
+-	return true
++	return false
+ end
+ function MobileIsHuman   (mobile) =
+
+-	return	mobile.artid =3D=3D 400 or mobile.artid =3D=3D 401 or
++	return	mobile and
++			mobile.artid =3D=3D 400 or mobile.artid =3D=3D 401 or
+ 			mobile.artid =3D=3D 744 or mobile.artid =3D=3D 745 or MobileHasEquip(mo=
+bile)
+ end
+ =
+
+@@ -117,7 +118,8 @@
+ 	return MobileList_GetByFilter(function (mobile) return	GetUODistToPlayer(=
+mobile.xloc,mobile.yloc) &lt;=3D gSpellCastRange and =
+
+ 															(not MacroCmd_MobilePoisoned(mobile)) and (not MacroCmd_Mob=
+ileMortaled(mobile)) and =
+
+ 															(IsMobileInParty(mobile.serial) or (bFriendsAlso and mobile=
+.notoriety =3D=3D kNotoriety_Friend and MobileIsHuman(mobile))) and
+-															(mobile:GetRelHP() or 0) &lt; 1 end)
++															(mobile:GetRelHP() or 0) &lt; 1 and =
+
++															(mobile:GetRelHP() or 0) &gt; 0 end) -- not dead
+ end
+ function MobileList_CurablePartyMembers    (bFriendsAlso) =
+
+ 	return MobileList_GetByFilter(function (mobile) return	GetUODistToPlayer(=
+mobile.xloc,mobile.yloc) &lt;=3D gSpellCastRange and =
+
+
+Modified: trunk/lua/lib.uoutils.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.uoutils.lua (original)
++++ trunk/lua/lib.uoutils.lua Sun Jul 12 00:57:24 2009
+@@ -57,10 +57,10 @@
+ end
+ =
+
+ -- use this instead of Uo16Color2Rgb
+--- returns r,g,b =
+
++-- returns r,g,b,a =
+
+ function GetHueColor (hue)
+-	if (gHueLoader) then return gHueLoader:GetColor(hue,31) end
+-	return 1,1,1
++	if (gHueLoader and hue) then return gHueLoader:GetColor(hue,31) end
++	return 1,1,1,1
+ end
+ =
+
+ function GetDirY (dir) =
+
+
+Modified: trunk/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/main.lua (original)
++++ trunk/lua/main.lua Sun Jul 12 00:57:24 2009
+@@ -45,6 +45,7 @@
+ dofile(libpath .. &quot;lib.null.renderer.lua&quot;)
+ =
+
+ dofile(libpath .. &quot;lib.renderer.lua&quot;)
++dofile(libpath .. &quot;lib.hue.lua&quot;)
+ dofile(libpath .. &quot;lib.uoids.lua&quot;)
+ dofile(libpath .. &quot;lib.boat.lua&quot;)
+ dofile(libpath .. &quot;lib.terrain.lua&quot;)
+
+Modified: trunk/lua/net/net.partysystem.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.partysystem.lua (original)
++++ trunk/lua/net/net.partysystem.lua Sun Jul 12 00:57:24 2009
+@@ -194,7 +194,8 @@
+ 	name =3D UOShortenName(name)
+ 	print(&quot;partysystem:test message&quot;,speakerID,name, input, size)
+ 	local plaintext,unicodebytearr,size =3D FIFO_PopZeroTerminatedUnicode(inp=
+ut,size)
+-	GuiAddChatLine(&quot;[&quot;..name..&quot;]: &quot;..plaintext,gPartyChatColor)
++	GuiAddChatLine(&quot;&lt;Party&gt; &quot;..name..&quot;: &quot;..plaintext,gPartyChatColor)
++	NotifyListener(&quot;Hook_Party_Chat&quot;,name,plaintext)
+ end =
+
+ =
+
+ -- thanks to surcouf =3D)
+
+Modified: trunk/src/data_hue_L.cpp
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/src/data_hue_L.cpp (original)
++++ trunk/src/data_hue_L.cpp Sun Jul 12 00:57:24 2009
+@@ -10,6 +10,7 @@
+ 			#define REGISTER_METHOD(methodname) mlMethod.push_back(make_luaL_reg(#m=
+ethodname,&amp;cHueLoader_L::methodname));
+ 			REGISTER_METHOD(Destroy);
+ 			REGISTER_METHOD(GetColor);
++			REGISTER_METHOD(GetMaxHueID);
+ 			#undef REGISTER_METHOD
+ 		}
+ =
+
+@@ -27,6 +28,11 @@
+ =
+
+ 		static int	Destroy			(lua_State *L) { PROFILE delete checkudata_alive(L)=
+; return 0; }
+ 		=
+
++		static int	GetMaxHueID		(lua_State *L) { PROFILE =
+
++			lua_pushnumber(L,checkudata_alive(L)-&gt;GetMaxHueID());
++			return 1;
++		}
++				=
+
+ 		static int	GetColor		(lua_State *L) { PROFILE =
+
+ 			cHue* pHue =3D checkudata_alive(L)-&gt;GetHue(luaL_checkint(L,2));
+ 			if (!pHue) return 0;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001833.html">[Iris-commit] [IRIS] r3070 - in /trunk/lua/gui: gui.amount.lua	gui.quit.lua gui.status.lua
+</A></li>
+	<LI>Next message: <A HREF="001835.html">[Iris-commit] [IRIS] r3072 - in /trunk: data/ogreSampleMedia/ data/ogreSampleMedia/materials/ data/ogreSampleMedia/materials/programs/ data/ogreSampleMedia/materials/scripts/ data/ogreSampleMedia/materials/textures/ data/ogreSampleMedia/models/ data/ogreSampleMedia/packs/ lua/
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1834">[ date ]</a>
+              <a href="thread.html#1834">[ thread ]</a>
+              <a href="subject.html#1834">[ subject ]</a>
+              <a href="author.html#1834">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,1411 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1438 - in /trunk/data/lua: lib.3d.mobile.lua lib.3d.mobileanim.lua lib.3d.renderer.lua lib.modelanim.lua lib.models.lua lib.tilefreewalk.lua net.popup.lua obj/obj.mobile.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2007-October/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1438%20-%20in%20/trunk/data/lua%3A%20lib.3d.mobile.lua%0A%20lib.3d.mobileanim.lua%20lib.3d.renderer.lua%20lib.modelanim.lua%20lib.models.lua%0A%20lib.tilefreewalk.lua%20net.popup.lua%20obj/obj.mobile.lua&In-Reply-To=%3C20071003221732.AD7F01C18170%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000252.html">
+   <LINK REL="Next"  HREF="000254.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1438 - in /trunk/data/lua: lib.3d.mobile.lua lib.3d.mobileanim.lua lib.3d.renderer.lua lib.modelanim.lua lib.models.lua lib.tilefreewalk.lua net.popup.lua obj/obj.mobile.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1438%20-%20in%20/trunk/data/lua%3A%20lib.3d.mobile.lua%0A%20lib.3d.mobileanim.lua%20lib.3d.renderer.lua%20lib.modelanim.lua%20lib.models.lua%0A%20lib.tilefreewalk.lua%20net.popup.lua%20obj/obj.mobile.lua&In-Reply-To=%3C20071003221732.AD7F01C18170%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1438 - in /trunk/data/lua: lib.3d.mobile.lua lib.3d.mobileanim.lua lib.3d.renderer.lua lib.modelanim.lua lib.models.lua lib.tilefreewalk.lua net.popup.lua obj/obj.mobile.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Thu Oct  4 00:17:32 CEST 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000252.html">[Iris-commit] [IRIS] r1437 - in /trunk/data/lua: lib.3d.dynamic.lua lib.3d.mobile.lua lib.3d.renderer.lua main.lua
+</A></li>
+        <LI>Next message: <A HREF="000254.html">[Iris-commit] [IRIS] r1439 - /trunk/data/old_mobileanim_notest.txt
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#253">[ date ]</a>
+              <a href="thread.html#253">[ thread ]</a>
+              <a href="subject.html#253">[ subject ]</a>
+              <a href="author.html#253">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Thu Oct  4 00:17:31 2007
+New Revision: 1438
+
+Log:
+started cleaning mobile-model code
+
+Modified:
+    trunk/data/lua/lib.3d.mobile.lua
+    trunk/data/lua/lib.3d.mobileanim.lua
+    trunk/data/lua/lib.3d.renderer.lua
+    trunk/data/lua/lib.modelanim.lua
+    trunk/data/lua/lib.models.lua
+    trunk/data/lua/lib.tilefreewalk.lua
+    trunk/data/lua/net.popup.lua
+    trunk/data/lua/obj/obj.mobile.lua
+
+Modified: trunk/data/lua/lib.3d.mobile.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.3d.mobile.lua (original)
++++ trunk/data/lua/lib.3d.mobile.lua Thu Oct  4 00:17:31 2007
+@@ -21,6 +21,16 @@
+ 		mobile.headpos:SetPosition(-0.5,0.5,2.3)
+ 	end
+ 	=
+
++	if (not mobile.grannygfx) then
++		mobile.grannygfx =3D {} -- todo : replace this with something external
++		mobile.grannygfx.SetVisible =3D function (self,bVisible) -- self =3D mob=
+ile.grannygfx -- TODO : dirty hack, replace me
++			if (mobile.modelparts) then =
+
++				for k,partgfx in pairs(mobile.modelparts) do =
+
++					if (partgfx and partgfx.SetVisible) then partgfx:SetVisible(bVisible)=
+ end
++				end =
+
++			end =
+
++		end
++	end
+ =
+
+ 	-- mobile health bar
+ 	if (not mobile.bar) then
+@@ -217,11 +227,12 @@
+ 	mobile.gfx:SetPosition(x,y,z)
+ end
+ =
+
++-- called every frame from mainloop : MobileAnimStep
+ -- a every frame stepper for mobiles
+-function Renderer3D:StepMobile (mobile, iTimeSinceLastStepInSeconds)
++function Renderer3D:StepMobile (mobile)
+ 	-- animation stuff
+-	self:ClientSideMobileAnimStep(mobile,iTimeSinceLastStepInSeconds)
+-	StepMobileModelAnim(mobile,iTimeSinceLastStepInSeconds)
++	self:ClientSideMobileAnimStep(mobile)
++	StepMobileModelAnim(mobile)
+ =
+
+ 	-- chat text over player head
+ 	if mobile.mlastChatText and mobile.mlastChatTime and mobile.mlastChatColo=
+r then
+@@ -302,26 +313,23 @@
+ 	end	=
+
+ end
+ =
+
++-- called every frame from mainloop
+ function Renderer3D:MobileAnimStep ()
+ 	if (not self.gbActive) then return end
+ 	if (not gAnimInfoLists) then return end
+-	local iTimeSinceLastStepInSeconds =3D self.giLastAnimStepTime and ((gMyTi=
+cks - self.giLastAnimStepTime) / 1000) or 0
+-	self.giLastAnimStepTime =3D gMyTicks
+-	=
+
+-	for k,mobile in pairs(GetMobileList()) do Renderer3D:StepMobile(mobile,iT=
+imeSinceLastStepInSeconds) end
+-end
+-
+--- obsolete but might be interesting
++	for k,mobile in pairs(GetMobileList()) do Renderer3D:StepMobile(mobile) e=
+nd
++end
++
+ function Renderer3D:MobileSetVisible (mobile,bVisible)
+-	--if (not bVisible) then self:RemoveMobile(mobile) return end
+-	local arr =3D { mobile.hudname , mobile.hudname and mobile.hudname.gfx , =
+mobile.aura , mobile.bar , mobile.nametext and mobile.nametext.gfx }
+-	=
+
+-	if (mobile.modelparts) then
+-		for k,partgfx in pairs(mobile.modelparts) do table.insert(arr,partgfx) e=
+nd
+-	end
+-	=
+
+-	if (mobile.gfx) then mobile.gfx:SetVisible(bVisible and (false or gDebugB=
+BoxMobiles)) end
+-	if (mobile.selection) then mobile.selection:SetVisible(bVisible and mobil=
+e.isselected) end
++	local arr =3D {	mobile.hudname , =
+
++					mobile.hudname and mobile.hudname.gfx ,
++					mobile.nametext and mobile.nametext.gfx , =
+
++					mobile.aura , =
+
++					mobile.bar }
++	=
+
++	if (mobile.grannygfx)	then mobile.grannygfx:SetVisible(bVisible) end
++	if (mobile.gfx)			then mobile.gfx:SetVisible(bVisible and (false or gDebu=
+gBBoxMobiles)) end
++	if (mobile.selection)	then mobile.selection:SetVisible(bVisible and mobil=
+e.isselected) end
+ 	=
+
+ 	for k,partgfx in arr do =
+
+ 		if (partgfx and partgfx.SetVisible) then partgfx:SetVisible(bVisible) end
+@@ -337,10 +345,6 @@
+ 		mobile[fieldname]:Destroy() 	=
+
+ 		mobile[fieldname] =3D nil 	 =
+
+ 	end
+-end
+-
+-function Renderer3D:RemoveMobile( mobile )
+-	self:DestroyMobileGfx(mobile)
+ end
+ =
+
+ =
+
+
+Modified: trunk/data/lua/lib.3d.mobileanim.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.3d.mobileanim.lua (original)
++++ trunk/data/lua/lib.3d.mobileanim.lua Thu Oct  4 00:17:31 2007
+@@ -168,7 +168,7 @@
+ 	=
+
+ end
+ =
+
+-function Renderer3D:ClientSideMobileAnimStep (mobile,iTimeSinceLastStepInS=
+econds)
++function Renderer3D:ClientSideMobileAnimStep (mobile)
+ 	self:WalkSmoothStep(mobile)
+ 	=
+
+ 	-- interrupt serverside anim on movement, and init anim if not set
+@@ -269,118 +269,3 @@
+ 	Renderer3D:UpdateMobilePos(mobile,x,y,z,qw,qx,qy,qz)
+ end
+ =
+
+---[[
+-todo : clientside? GetHit Die ?
+-]]--
+-
+-
+---[[
+-Human.lst
+-
+-# core animation set - 0-34	=
+
+-0	Walk_01
+-1	WalkStaff_01
+-2	Run_01
+-3	RunStaff_01
+-4	Idle_01
+-5	Idle_01
+-6	Fidget_Yawn_Stretch_01
+-7	CombatIdle1H_01
+-8	CombatIdle1H_01
+-9	AttackSlash1H_01
+-10	AttackPierce1H_01
+-11	AttackBash1H_01
+-12	AttackBash2H_01
+-13	AttackSlash2H_01
+-14	AttackPierce2H_01
+-15	CombatAdvance_1H_01
+-16	Spell1
+-17	Spell2
+-18	AttackBow_01
+-19	AttackCrossbow_01
+-20	GetHit_Fr_Hi_01
+-21	Die_Hard_Fwd_01
+-22	Die_Hard_Back_01
+-30	Block_Shield_Hard_01
+-31	Punch_Punch_Jab_01
+-32	Bow_Lesser_01
+-33	Salute_Armed1h_01
+-34	Ingest_Eat_01
+-
+-# sitting animations - 35	=
+
+-35	sit_idle_01
+-
+-# extra core anims - 36
+-#36	Idle_Hold_01
+-36	Items_Idle_01
+-37	Items_Idle2_01
+-38	WalkStaff2_01
+-39	RunStaff2_01
+-]]--
+-
+---[[
+--- one mount anim set :
+-23	Horse_Walk_01
+-24	Horse_Run_01
+-25	Horse_Idle_01
+-26	Horse_Attack1H_SlashRight_01
+-27	Horse_AttackBow_01
+-28	Horse_AttackCrossbow_01
+-29	Horse_Attack2H_SlashRight_01
+-
+--- known mounted anim sets
+-23	Horse_Walk_01
+-43	Llama_Walk_01
+-53	Ostard_Walk_01
+-63  Kirin_Walk_01
+-73  Seahorse_Walk_01
+-83  Ridgeback_Walk_01
+-93  Giant_Beetle_Walk_01
+-]]--
+-
+-
+-
+---[[
+-old anim descriptions
+---RunUO cmd: [animate 9 0 2 0 0 0	(animation, 0, repeats, 0, 0, 0)
+--- Animation IDs
+--- NOTE : the names and descriptions here are partially wrong, the animati=
+on names from uo/Models/Human.lst are better
+-gAnimation_walk				=3D hex2num(&quot;0x00&quot;)	--walk
+-gAnimation_walkrighthand	=3D hex2num(&quot;0x01&quot;)	--walk with right hand weapon=
+ in front
+-gAnimation_run				=3D hex2num(&quot;0x02&quot;)	--run
+-gAnimation_runrighthand		=3D hex2num(&quot;0x03&quot;)	--run with right hand weapon =
+in front
+-gAnimation_idle				=3D hex2num(&quot;0x04&quot;)	--idle	(standing)
+-gAnimation_idlewarmode		=3D hex2num(&quot;0x05&quot;)	--warmode idle
+-gAnimation_hands_on_hips	=3D hex2num(&quot;0x06&quot;)	--g=C3=A4hnen
+-gAnimation_attack_stance1	=3D hex2num(&quot;0x07&quot;)	--attack (short)
+-gAnimation_attack_stance2	=3D hex2num(&quot;0x08&quot;)	--attack (longer)
+-gAnimation_swing1			=3D hex2num(&quot;0x09&quot;) 	--(attack with knife)
+-gAnimation_stab1			=3D hex2num(&quot;0x0a&quot;) 	--(underhanded)
+-gAnimation_swing2			=3D hex2num(&quot;0x0b&quot;)	--(attack overhand with sword)
+-gAnimation_swing3 			=3D hex2num(&quot;0x0c&quot;)	--(attack with sword over and sid=
+e)
+-gAnimation_swing4			=3D hex2num(&quot;0x0d&quot;)	--(attack with sword side)
+-gAnimation_stab2			=3D hex2num(&quot;0x0e&quot;)	--(stab with point of sword)
+-gAnimation_ready_stance		=3D hex2num(&quot;0x0f&quot;)
+-gAnimation_magic			=3D hex2num(&quot;0x10&quot;)	--(butter churn!)
+-gAnimation_hands_over_head	=3D hex2num(&quot;0x11&quot;)	--(balerina)
+-gAnimation_bow_shot			=3D hex2num(&quot;0x12&quot;)
+-gAnimation_crossbow			=3D hex2num(&quot;0x13&quot;)
+-gAnimation_get_hit1			=3D hex2num(&quot;0x14&quot;)
+-gAnimation_die_forwards		=3D hex2num(&quot;0x15&quot;)	--fall down and die (forwards)
+-gAnimation_die_backwards1	=3D hex2num(&quot;0x16&quot;)	--fall down and die (backwar=
+ds)
+-gAnimation_die_backwards2	=3D hex2num(&quot;0x17&quot;)	--=3Dsame!?
+-gAnimation_horse_ride_idle	=3D hex2num(&quot;0x18&quot;)	--riding idle
+-gAnimation_horse_riding		=3D hex2num(&quot;0x19&quot;)	--riding
+-gAnimation_horse_swing		=3D hex2num(&quot;0x1a&quot;)	--swing sword from horse	- cra=
+sh in iris1
+-gAnimation_horse_bow		=3D hex2num(&quot;0x1b&quot;)	--normal bow shot on horse	- cra=
+sh in iris1
+-gAnimation_crossbow_shot	=3D hex2num(&quot;0x1c&quot;)
+-gAnimation_horse_shield		=3D hex2num(&quot;0x1d&quot;)	--block #2 on horse with shie=
+ld
+-gAnimation_shield			=3D hex2num(&quot;0x1e&quot;)	--block on ground with shield
+-gAnimation_get_hit2			=3D hex2num(&quot;0x1f&quot;)	--swing, and get hit in middle
+-gAnimation_bow_deep			=3D hex2num(&quot;0x20&quot;)
+-gAnimation_salute			=3D hex2num(&quot;0x21&quot;)
+-gAnimation_scratch_head		=3D hex2num(&quot;0x22&quot;)
+-gAnimation_one_foot			=3D hex2num(&quot;0x23&quot;)	--1 foot forward for 2 secs
+-gAnimation_other_foot		=3D hex2num(&quot;0x24&quot;)	-- =3D same
+-]]--
+-
+
+Modified: trunk/data/lua/lib.3d.renderer.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.3d.renderer.lua (original)
++++ trunk/data/lua/lib.3d.renderer.lua Thu Oct  4 00:17:31 2007
+@@ -11,7 +11,6 @@
+ gHudNamesFontSize =3D 12
+ =
+
+ Renderer3D.gbActive =3D false
+-Renderer3D.giLastAnimStepTime =3D nil
+ Renderer3D.gbNeedCorrectAspectRatio =3D true
+ Renderer3D.gDynamicMaxRenderDist =3D 128 -- 0 means always rendered  -- TO=
+DO : make this dependant on bounding sphere size, e.g. in pixel size ?
+ Renderer3D.gDynamicZAdd =3D 0.2 -- add a bit to make sure all dynamics can=
+ be clicked and none are below the floor, todo : improve this by detecting =
+floor height and model bbox
+
+Modified: trunk/data/lua/lib.modelanim.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.modelanim.lua (original)
++++ trunk/data/lua/lib.modelanim.lua Thu Oct  4 00:17:31 2007
+@@ -53,10 +53,10 @@
+ end	=
+
+ =
+
+ =
+
+-function StepMobileModelAnim (mobile,iTimeSinceLastStepInSeconds)
++function StepMobileModelAnim (mobile)
+ 	-- anim step
+ 	if (mobile.modelparts) then
+-		for k,partgfx in pairs(mobile.modelparts) do partgfx:AnimAddTime(iTimeSi=
+nceLastStepInSeconds) end
++		for k,partgfx in pairs(mobile.modelparts) do partgfx:AnimAddTime(gSecond=
+sSinceLastFrame) end
+ 	end
+ 	if (mobile.animend and mobile.animend &lt;=3D gMyTicks) then
+ 		-- non looped animation ended, start idle
+
+Modified: trunk/data/lua/lib.models.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.models.lua (original)
++++ trunk/data/lua/lib.models.lua Thu Oct  4 00:17:31 2007
+@@ -2,35 +2,8 @@
+ -- most info files handled by this are found in uo/Models/ and subdirector=
+ies
+ -- see also lib.stitchin.lua
+ -- see also lib.modelanim.lua
+-
+---[[
+-interesting models
+-3006	uo/Models/Others/H_Female_LLegs_V2_LOD2.grn has 2 submeshes, the last=
+ one is empty
+-3007    uo/Models/Others/H_Female_Neck_V2_LOD2.grn WARNING ! unexpected su=
+meshcount        2
+-
+-430     uo/Models/Others/H_Male_Pants_Short_V2_LOD2.grn
+-	irisogre: grannyparser.cpp:92: virtual void cGrannyVisitor::VisitChunk(in=
+t, int, int, const char*, int): =
+
+-		Assertion `iSize =3D=3D sizeof(GrannyTexInfo)' failed.  : 0xCA5E0303
+-			a=3D16280 b=3D12 		(embedded texture ?!?)
+-			width=3D256 height=3D256 depth=3D4
+-			=
+
+-1700    uo/Models/Others/H_Female_Hair_Short_V2_LOD2.grn
+-	irisogre: grannyloader_i2.cpp:188: virtual void cGrannyLoader_i2::VisitTe=
+xPolygonsBig(const GrannyTexturePolyBig*, int):
+-		Assertion `mSubMeshes.size() &gt; miNextTexPolySubmesh' failed.
+-
+-422 (not found)
+-	=
+
+-			=
+
+-455		4	0	FFFFFFFF	0	1.3	1.3	1.3	H_Male_Kilt_XL_V2
+-2525	4	0	FFFFFFFF	0	1.3	1.3	1.3	H_Male_Kilt_V2
+-
+-1455	4	0	FFFFFFFF	0	1.3	1.3	1.3	H_Female_Kilt_XL_V2
+-3525	4	0	FFFFFFFF	0	1.3	1.3	1.3	H_Female_Kilt_V2
+-
+-female : mobile flag 0x02 ?
+-##  Female wearables for polyorph from female to male    								=
+
+-924	4	0	FFE0A050	0	1.3	1.3	1.3	H_Male_Armor_Female_Bustier_Leather_V2
+-]]--
++-- granny textures are in Models/Maps/
++
+ =
+
+ kMountZAdd =3D 0.0
+ gGrannyModelsFemale1 =3D {401} -- filled during loading models.txt (all wh=
+ere anim=3D401) : 606,184,186,745,751,774,765,770,773
+@@ -57,6 +30,18 @@
+ 	-- 12 and 13 are special, they are generated from stitchin via replace of=
+ 09
+ }
+ =
+
++-- Models.txt
++-- #Body	Type	Anim	DefHue	Unused	Scale	Scale	Scale	3D Model
++-- 400	3	0	FFFFFFFF	0	1.6	1.4	1.5	h_male
++-- animationspeeds.txt : 401 127 0.9 // long distance wave    OBJECT_TYPE =
+ANIM_NUM SPEED
++gGrannyModelInfo =3D nil -- infos from Models.txt
++gGrannyTypeDirs =3D {		[0]=3D&quot;Monsters/&quot;,
++						[1]=3D&quot;SeaCreatures/&quot;,
++						[2]=3D&quot;Animals/&quot;,
++						[3]=3D&quot;Humans/&quot;,
++						[4]=3D&quot;Others/&quot;, -- no .lst file with anims ?!?
++	}
++	=
+
+ kGrannyModelPartFaceStart =3D 100 -- 100-131  +  kGrannyModelPartAddMale o=
+r kGrannyModelPartAddFemale  -- 100 115
+ -- &quot;FACE&quot; is missing above, there are many : 2100-2131   3100-3131
+ -- and a mysterious ./Others/H_Female_Face_V2_lod2.grn
+@@ -64,240 +49,137 @@
+ =
+
+ gGrannyScaleFactor =3D 0.65 --0.5
+ =
+
+--- returns true if female
+-function IsBodyIDFemale (bodyid) =
+
+-	return in_array(bodyid,gGrannyModelsFemale1) or in_array(bodyid,gGrannyMo=
+delsFemale2)
+-end
+-
+-function IsBodyIDHuman (bodyid) =
+
+-	local modelinfo =3D GetGrannyModelInfo(bodyid)
+-	return modelinfo and modelinfo.typeid =3D=3D kAnimTypeID_Human
+-end
+-
+--- Models.txt
+--- #Body	Type	Anim	DefHue	Unused	Scale	Scale	Scale	3D Model
+--- 400	3	0	FFFFFFFF	0	1.6	1.4	1.5	h_male
+--- animationspeeds.txt : 401 127 0.9 // long distance wave    OBJECT_TYPE =
+ANIM_NUM SPEED
+-gGrannyTypeDirs =3D {
+-	[0]=3D&quot;Monsters/&quot;,
+-	[1]=3D&quot;SeaCreatures/&quot;,
+-	[2]=3D&quot;Animals/&quot;,
+-	[3]=3D&quot;Humans/&quot;,
+-	[4]=3D&quot;Others/&quot;, -- no .lst file with anims ?!?
+-	}
+-gGrannyModelInfo =3D nil -- infos from Models.txt
+-
+--- granny textures are in Models/Maps/
+-
+-
+-
+-
+-function GrannyTextureHook (x) =
+
+-	--print(&quot;GrannyTextureHook&quot;,x)
+-	return x
+-end
+-
+--- takes the result of GetGrannyTextureName as paramter
+--- transforms Ut128_Hat_Wide_Brim.tga into Ut128_Hat_Wide_Brim_M.tga
+--- assumes suffixlength =3D 4 (.tga)
+---[[
+-TODO ! remove suffix after V2 ??
+-l_CreateGrannyHuedTexture ../uo/Models/Maps/UT256_H_Male_V2g.tga ../uo/mod=
+els/Maps/UT256_H_Male_V2G_M.tga 8ffe3e8 33780
+-l_CreateGrannyHuedTexture ../uo/Models/Maps/UT256_H_Male_V2g.tga ../uo/mod=
+els/Maps/UT256_H_Male_V2G_M.tga 8ffe3e8 33780
+-l_CreateGrannyHuedTexture ../uo/Models/Maps/UT256_H_Male_V2g.tga ../uo/mod=
+els/Maps/UT256_H_Male_V2G_M.tga 8ffe3e8 33780
+-l_CreateGrannyHuedTexture ../uo/Models/Maps/UT256_H_Male_V2g.tga ../uo/mod=
+els/Maps/UT256_H_Male_V2G_M.tga 8ffe3e8 33780
+-l_CreateGrannyHuedTexture ../uo/Models/Maps/UT256_H_Male_V2g.tga ../uo/mod=
+els/Maps/UT256_H_Male_V2G_M.tga 8ffe3e8 33780
+-l_CreateGrannyHuedTexture ../uo/Models/Maps/UT256_H_Male_V2g.tga ../uo/mod=
+els/Maps/UT256_H_Male_V2G_M.tga 8ffe3e8 33780
+-l_CreateGrannyHuedTexture ../uo/Models/Maps/UT256_H_Male_V2g.tga ../uo/mod=
+els/Maps/UT256_H_Male_V2G_M.tga 8ffe3e8 33780
+-l_CreateGrannyHuedTexture ../uo/Models/Maps/UT256_H_Male_V2g.tga ../uo/mod=
+els/Maps/UT256_H_Male_V2G_M.tga 8ffe3e8 33780
+-l_CreateGrannyHuedTexture ../uo/Models/Maps/UT256_H_Male_Faces_V2.tga ../u=
+o/Models/Maps/UT256_H_Male_Faces_V2_m.tga 8ffe3e8 33780
+-l_CreateGrannyHuedTexture ../uo/Models/Maps/UT256_Clothing_5_V2.tga ../uo/=
+Models/Maps/UT256_Clothing_5_V2_m.tga 8ffe3e8 1147
+-l_CreateGrannyHuedTexture ../uo/Models/Maps/UT256_Clothing_1_V2.tga ../uo/=
+Models/Maps/UT256_Clothing_1_V2_m.tga 8ffe3e8 1728
+-l_CreateGrannyHuedTexture ../uo/Models/Maps/UT256_Clothing_6_V2.tga ../uo/=
+Models/Maps/UT256_Clothing_6_V2_m.tga 8ffe3e8 1652
+-l_CreateGrannyHuedTexture ../uo/Models/Maps/UT256_Armor_Dragon_V2.tga ../u=
+o/Models/Maps/UT256_Armor_Dragon_V2_m.tga 8ffe3e8 1147
+-l_CreateGrannyHuedTexture ../uo/Models/Maps/UT256_Clothing_1_V2.tga ../uo/=
+Models/Maps/UT256_Clothing_1_V2_m.tga 8ffe3e8 0
+-hue 83f4
+-hue 83f4
+-hue 83f4
+-hue 83f4
+-hue 83f4
+-hue 83f4
+-hue 83f4
+-hue 83f4
+-hue 83f4 -- bodyskin hue in different id range ?
+-hue 047b
+-hue 06c0
+-hue 0674
+-hue 047b
+-hue 0000
+-]]--
+-function GetGrannyTextureMaskName (texname)
+-	-- todo : remove .tga and add _m.tga for hue mask things, not always avai=
+lable
+-	local maskname =3D string.sub(texname,1,-5) .. &quot;_M&quot; .. string.sub(texname=
+,-4)
+-	--print(&quot;###### GetGrannyTextureMaskName&quot;,texname,maskname)
+-	return maskname
+-end
+-
+-function GetGrannyMat (modelid,hue,mygranny) =
+
+-	if (not gEnableGrannyMaterials) then return &quot;matGrannyBase&quot; end
+-	if (hue &gt;=3D hex2num(&quot;0x8000&quot;)) then hue =3D hue - hex2num(&quot;0x8000&quot;) end
+-	local texname =3D GetGrannyTextureName(mygranny)
+-	local matname =3D gGrannyMaterialCache[texname..&quot;_&quot;..hue]
+-	if (not matname) then
+-		--printf(&quot;hue %04x\n&quot;,hue)
++
++-- ##### ##### ##### ##### #####  constructor =
+
++
++
++
++
++
++
++function UpdateMobileModel (mobile)
++	if (not gAnimInfoLists) then return end
++	--if (mobile.artid ~=3D 400 and mobile.artid ~=3D 401) then return end
++
++	-- TODO: Debug and check why RunUO sends kPacket_Equipped_MOB with artid =
+=3D=3D Zero
++	if (mobile.artid =3D=3D 0) then return end
++	=
+
++	local mount =3D GetMobileEquipmentItem(mobile,kLayer_Mount)
++	local modelidarr,iPrimaryHandItem,iSecondaryHandItem =3D GetMobileModelPa=
+rtModelIDs(mobile)
++	local bModelPartsChanged =3D false
++	if (not mobile.modelgfx) then bModelPartsChanged =3D true end
++	if (not mobile.modelidarr) then bModelPartsChanged =3D true end
++	if (mount and (not mobile.hasmountgfx)) then bModelPartsChanged =3D true =
+end
++	if (mobile.hasmountgfx and (not mount)) then bModelPartsChanged =3D true =
+end
++	if (mobile.modelidarr) then
++		if (table.getn(mobile.modelidarr) ~=3D table.getn(modelidarr)) then
++			bModelPartsChanged =3D true =
+
++		else
++			for k,v in ipairs(mobile.modelidarr) do
++				if ((not modelidarr[k]) or v.hue ~=3D modelidarr[k].hue or v.modelid ~=
+=3D modelidarr[k].modelid) then bModelPartsChanged =3D true break end
++			end
++		end
++	end
++	=
+
++	=
+
++	=
+
++	if (bModelPartsChanged) then =
+
++		DestroyMobileModel(mobile)
++		mobile.modelgfx =3D CreateRootGfx3D()
++		mobile.modelgfx:SetVisible(true)
++		mobile.modelparts =3D {}
++		mobile.modelidarr =3D modelidarr
++		CreateMobileModelPartsFromModelIDArray(mobile.artid,mobile.modelgfx,mobi=
+le.modelparts,modelidarr,iPrimaryHandItem,iSecondaryHandItem)
+ 		=
+
+-		local texmaskname =3D GetGrannyTextureMaskName(texname)
+-		local texturepath =3D CorrectGrannyPath(&quot;Maps/&quot;..texname)
+-		local texturemaskpath =3D CorrectGrannyPath(&quot;Maps/&quot;..texmaskname)
+-		-- texturepath will usually be an absolute path such as &quot;/cavern/uostuff=
+/uo/Models/Maps/UT256_Armor_Ring_V2.tga&quot;
+-		matname =3D CloneMaterial(&quot;matGrannyBase&quot;)
+-		if (gGrannyUseCompleteHuePalette) then
+-			SetTexture(matname,CreateGrannyHuedTexture(GrannyTextureHook(texturepat=
+h),GrannyTextureHook(texturemaskpath),gHueLoader,hue))
+-		else
+-			-- ignore mask completely and only do a multiplicative coloring with th=
+e hue's primary color
+-			-- ignoring the rest of the hue template
+-			SetTexture(matname,GrannyTextureHook(texturepath))
+-			if (hue &gt; 0) then =
+
+-				local r,g,b =3D gHueLoader:GetColor(hue - 1,31) -- get first color
+-				SetAmbient(matname,0,0,r,g,b)
+-				SetDiffuse(matname,0,0,r,g,b)
++		-- create mount gfx
++		mobile.hasmountgfx =3D false
++		if (mount) then
++			mobile.hasmountgfx =3D true
++			local parentgfx =3D mobile.modelgfx
++			--[[
++			mount bodyid =3D 120  0x78      16047 =3D 0x00003eaf   1073742298=3D0x4=
+00001da  2147500545=3D0x80004201
++
++			120	2	200	FFFFFFFF	0	1.5	1.5	1.5	equines_horse_war_minax
++			lib.mount.lua gMountTranslate[0x3EAF] =3D 0x78 // war horse (blood red)
++
++			mount   0       hue=3D0,unknown1=3D0,mobile=3Dtable: 0xb352298,mobile_s=
+erial=3D4,artid=3D16047,serial=3D1073742298,layer=3D25,        =
+
++			msName=3Dhold,miUnknown=3D0,miHue=3D0,miQuantity=3D0,miFlags=3D21475005=
+45,miWeight=3D-1,miAnimID=3D0,miQuality=3D0,miUnknown2=3D0,miUnknown1=3D0,m=
+iUnknown3=3D0,miHeight=3D3,
++			N
++			=
+
++			MOUNT   204     16034
++			]]--
++			local tiledata =3D GetStaticTileType(mount.artid or 0)
++			--print(&quot;equip&quot;,item.artid,tiledata and tiledata.miAnimID or 0)
++			--local mountbodyid =3D tiledata and tiledata.miAnimID  -- this fails, =
+animid is often zero, seems to be hardcoded
++			local mountbodyid =3D gMountTranslate[mount.artid]
++
++			printdebug(&quot;granny&quot;,&quot;MOUNT &quot;,mountbodyid,mount.artid)
++
++			if ((not mountbodyid) or mountbodyid =3D=3D 0) then mountbodyid =3D gSt=
+andardHorse end
++			--print(&quot;mountbodyid&quot;,mountbodyid,mount.artid)
++			--print(&quot;mount&quot;,mountbodyid,vardump2(mount),tiledata and vardump2(tiled=
+ata))
++			if (mountbodyid and mountbodyid ~=3D 0) then
++				local mountskeleton =3D GetOrCreateSkeleton(mountbodyid) -- skeleton i=
+s determined by the bodyid, not possible from the wearables
++				local meshname =3D GetGrannyMeshName(mountbodyid,mountskeleton.name,mo=
+unt.hue)
++				=
+
++				-- fallback to standard horse mount
++				if (not meshname) then
++					printdebug(&quot;granny&quot;,&quot;warning, broken mountid, falling back to horse &quot;=
+,mountbodyid)
++					mountbodyid =3D gStandardHorse
++					mountskeleton =3D GetOrCreateSkeleton(mountbodyid) -- skeleton is det=
+ermined by the bodyid, not possible from the wearables
++					meshname =3D GetGrannyMeshName(mountbodyid,mountskeleton.name,mount.h=
+ue)					=
+
++				end
++				=
+
++				if (meshname) then =
+
++					local partgfx =3D parentgfx:CreateChild()
++					partgfx:SetMesh(meshname) =
+
++					partgfx:SetPosition(0,0,kMountZAdd) =
+
++					partgfx:SetVisible(true)
++					partgfx:SetCastShadows(gMobileCastShadows)	=
+
++					=
+
++					local modelinfo =3D GetGrannyModelInfo(mountbodyid)
++					if (modelinfo) then
++						local myscalex =3D forcescalex or modelinfo.scalex * gGrannyScaleFac=
+tor
++						local myscaley =3D forcescaley or modelinfo.scaley * gGrannyScaleFac=
+tor
++						local myscalez =3D forcescalez or modelinfo.scalez * gGrannyScaleFac=
+tor
++						if (myscalex ~=3D 1 or myscaley ~=3D 1 or myscalez ~=3D 1) then
++							partgfx:SetScale(myscalex,myscaley,myscalez)
++							partgfx:SetNormaliseNormals(true)
++						end
++					end
++					mobile.modelmountgfx =3D partgfx
++				end
+ 			end
+ 		end
+ 		=
+
+-		-- uses defaulthue=3Ddefhue from models.txt (FFFFFFFF : alpha-r-g-b)
+-		if (hue =3D=3D 0) then
+-			local modelinfo =3D GetGrannyModelInfo(modelid) =
+
+-			if (modelinfo) then
+-				local r =3D tonumber(string.sub(modelinfo.defhue,3,3 + 1),16) / 255.0
+-				local g =3D tonumber(string.sub(modelinfo.defhue,5,5 + 1),16) / 255.0
+-				local b =3D tonumber(string.sub(modelinfo.defhue,7,7 + 1),16) / 255.0
+-				SetAmbient(matname,0,0,r,g,b)
+-				SetDiffuse(matname,0,0,r,g,b)
+-			end
+-		end
+-		gGrannyMaterialCache[texname..&quot;_&quot;..hue] =3D matname
+-	end
+-	return matname
+-end
+-
+-
+--- some tests if the granny model format is as expected (for models, not f=
+or anims)
+-function CheckGrannyModel	(granny) =
+
+-	if (granny:GetSubMeshCount() ~=3D 1) then
+-		printdebug(&quot;granny&quot;,&quot;WARNING ! unexpected sumeshcount &quot;,granny:GetSubMes=
+hCount())
+-	end
+-	assert(granny:GetSubMeshCount() &gt;=3D 1,&quot;GetSubMeshCount=3D=3D&quot;..tostring(=
+granny:GetSubMeshCount()))
+-	assert(granny:GetTextureIDCount() &gt;=3D 1,&quot;GetTextureIDCount=3D=3D&quot;..tostr=
+ing(granny:GetTextureIDCount()))
+-	if (granny:GetTextureIDCount() &gt; 1) then
+-		local base =3D GetGrannyTextureName(granny,0)
+-		for i =3D 1,granny:GetTextureIDCount()-1 do =
+
+-			assert(base =3D=3D GetGrannyTextureName(granny,i),&quot; multiple different =
+textures not yet supported&quot;)
+-		end
+-	end
+-end
+-
+-function GetGrannyParamGroups (granny)
+-	if (granny.paramgroups) then return granny.paramgroups end
+-	=
+
+-	-- textchunks
+-	local textchunks =3D {}
+-	local textchunkcount =3D granny:GetTextChunkCount()
+-	for i =3D 0,textchunkcount-1 do
+-		local chunksize =3D granny:GetTextChunkSize(i)
+-		local arr =3D {}
+-		for j =3D 0,chunksize-1 do arr[j] =3D granny:GetText(i,j) end
+-		textchunks[i] =3D arr
+-	end
+-	-- for i,arr in pairs(textchunks) do for j,s in pairs(arr) do print(i,j,s=
+) end end
+-	=
+
+-	-- paramgroups
+-	local maintextchunk =3D textchunks[1]
+-	local paramgroupcount =3D granny:GetParamGroupCount()
+-	local paramgroups =3D {}
+-	for i =3D 0,paramgroupcount-1 do
+-		local groupsize =3D granny:GetParamGroupSize(i)
+-		local arr =3D {}
+-		for j =3D 0,groupsize-1 do
+-			local key,value =3D granny:GetParam(i,j)
+-			--print(i,key,value,maintextchunk[key],maintextchunk[value])
+-			arr[maintextchunk[key]] =3D maintextchunk[value]
+-		end
+-		paramgroups[i] =3D arr
+-	end
+-	granny.paramgroups =3D paramgroups
+-	return paramgroups
+-end
+-
+--- index is 0 by default, more than one texture per granny is currently no=
+t supported
+-function GetGrannyTextureName (granny,index)
+-	index =3D index or 0
+-	local paramgroups =3D GetGrannyParamGroups(granny)
+-	local texid =3D granny:GetTextureID(index)
+-	local texpath =3D paramgroups[texid-1] and paramgroups[texid-1][&quot;__FileNa=
+me&quot;]
+-	--print(&quot;texpath&quot;,texpath)
+-	if (texpath) then return basename(texpath) end
+-end
+-
+-function MyGrannyTest_PreOgre ()
+-	if (true) then return end
+-
+-	--local modelid =3D 73 -- 1700 -- 430 3006 400 =
+
+-	--local modelinfo =3D GetGrannyModelInfo(modelid)
+-	--if (not modelinfo) then return end
+-	--print(&quot;MyGrannyTest&quot;,vardump2(modelinfo))
+-	--modelpath =3D &quot;data/H_Female_LLegs_V2_LOD2.grn&quot;
+-	--local modelpath =3D CorrectGrannyPath(gGrannyTypeDirs[modelinfo.typeid]=
+ .. modelinfo.modelname .. &quot;_LOD2.grn&quot;)
+-	--local modelpath =3D CorrectGrannyPath(&quot;others/h_male_uarms_v2_lod2.grn&quot;)
+-	--local modelpath =3D CorrectGrannyPath(&quot;Humans/H_Male_Walk_01.grn&quot;)
+-	--local modelpath =3D CorrectGrannyPath(&quot;Others/H_Male_Boots_Thigh_V2_LOD=
+2.grn&quot;)
+-	--local modelpath =3D CorrectGrannyPath(&quot;Others/H_Male_UArms_V2_LOD2.grn&quot;)
+-	local modelpath =3D CorrectGrannyPath(&quot;Humans/H_Male_Attackbow_01.grn&quot;)
+-	--local modelpath =3D CorrectGrannyPath(&quot;Others/H_Male_FArms_V2_LOD2.grn&quot;)
+-	--local modelpath =3D CorrectGrannyPath(&quot;Others/H_Male_Head_V2_LOD2.grn&quot;)
+-	--print(&quot;modelpath&quot;,modelpath)
+-	local mygranny =3D LoadGranny(modelpath)
+-	if (not mygranny) then return end
+-	--CheckGrannyModel(mygranny)
+-
+-	mygranny:Print()
+-	=
+
+-	local paramgroups =3D GetGrannyParamGroups(mygranny)
+-	for id,arr in pairs(paramgroups) do for k,v in pairs(arr) do print(&quot;param=
+&quot;,id,k,v) end end
+-	=
+
+-	Crash()
+-end
+-
+-function MyGrannyTest_Ogre () end
+-
+-function GetGrannyMeshName (modelid,skeletonname,hue)
+-	local cache =3D gGrannyMeshCache[modelid..&quot;_&quot;..hue] =
+
+-	if (cache ~=3D nil) then return cache end
+-	-- TODO : see gHueLoader -- HueMesh(meshname,gHueLoader,iHue)  scripting.=
+cpp:379
+-	=
+
+-	-- not in cache, so create mesh
+-	local mygranny =3D GetGrannyModelLoader(modelid)
+-	if (not mygranny) then gGrannyMeshCache[modelid] =3D false return end
+-	CheckGrannyModel(mygranny)
+-	local matname =3D GetGrannyMat(modelid,hue,mygranny)
+-	local modelinfo =3D GetGrannyModelInfo(modelid)
+-	local meshname =3D mygranny:CreateOgreMesh(matname,skeletonname)
+-	gGrannyMeshCache[modelid..&quot;_&quot;..hue] =3D meshname
+-	return meshname
+-end
+-
+--- todo : caching
+-gGrannyModelLoaderCache =3D {}
+-function GetGrannyModelLoader (modelid)
+-	local cache =3D gGrannyModelLoaderCache[modelid]
+-	if (cache ~=3D nil) then return cache end
+-	local modelinfo =3D GetGrannyModelInfo(modelid)
+-	if (not modelinfo) then gGrannyModelLoaderCache[modelid] =3D false return=
+ false end
+-	local modelpath =3D CorrectGrannyPath(gGrannyTypeDirs[modelinfo.typeid] .=
+. modelinfo.modelname .. &quot;_LOD2.grn&quot;)
+-	printdebug(&quot;granny&quot;,&quot;GetGrannyModelLoader&quot;,modelid,modelpath)
+-	local loader =3D LoadGranny(modelpath)
+-	gGrannyModelLoaderCache[modelid] =3D loader
+-	return loader
+-end
++		if (false) then
++			local txt =3D sprintf(&quot;##### {artid=3D%d,hue=3D%d, content=3D{&quot;,mobile.=
+artid,mobile.hue)
++			for k,item in pairs(GetMobileEquipmentList(mobile)) do
++				local tiledata =3D GetStaticTileType(item.artid)
++				txt =3D txt .. sprintf(&quot;{layer=3D%d,artid=3D%d,hue=3D%d,animid=3D%d},&quot;=
+,item.layer,item.artid,item.hue,tiledata and tiledata.miAnimID or 0)
++			end =
+
++			txt =3D txt .. sprintf(&quot;}},\n&quot;)
++			printdebug(&quot;equip&quot;,txt)
++		end
++	end
++end
++
++function DestroyMobileModel (mobile)
++	if (mobile.modelgfx) then mobile.modelgfx:Destroy() mobile.modelgfx =3D n=
+il end
++	if (mobile.modelmountgfx) then mobile.modelmountgfx:Destroy() mobile.mode=
+lmountgfx =3D nil end
++	if (mobile.modelparts) then
++		for k,partgfx in pairs(mobile.modelparts) do partgfx:Destroy() end
++		mobile.modelparts =3D nil
++	end
++end
++
++
++
++
++
++
++-- ##### ##### ##### ##### ##### functions accessing mobile =
+
++
+ =
+
+ -- returns array with granny-model ids for bodyparts and clothing
+ function GetMobileModelPartModelIDs (mobile) =
+
+@@ -373,6 +255,162 @@
+ end
+ =
+
+ =
+
++
++-- ##### ##### ##### ##### #####  rest =
+
++
++
++-- returns true if female
++function IsBodyIDFemale (bodyid) =
+
++	return in_array(bodyid,gGrannyModelsFemale1) or in_array(bodyid,gGrannyMo=
+delsFemale2)
++end
++
++function IsBodyIDHuman (bodyid) =
+
++	local modelinfo =3D GetGrannyModelInfo(bodyid)
++	return modelinfo and modelinfo.typeid =3D=3D kAnimTypeID_Human
++end
++
++function GrannyTextureHook (x) return x end
++
++-- takes the result of GetGrannyTextureName as paramter
++-- transforms Ut128_Hat_Wide_Brim.tga into Ut128_Hat_Wide_Brim_M.tga
++-- assumes suffixlength =3D 4 (.tga)
++function GetGrannyTextureMaskName (texname)
++	-- todo : remove .tga and add _m.tga for hue mask things, not always avai=
+lable
++	local maskname =3D string.sub(texname,1,-5) .. &quot;_M&quot; .. string.sub(texname=
+,-4)
++	return maskname
++end
++
++
++function GetGrannyMat (modelid,hue,mygranny) =
+
++	if (not gEnableGrannyMaterials) then return &quot;matGrannyBase&quot; end
++	if (hue &gt;=3D hex2num(&quot;0x8000&quot;)) then hue =3D hue - hex2num(&quot;0x8000&quot;) end
++	local texname =3D GetGrannyTextureName(mygranny)
++	local matname =3D gGrannyMaterialCache[texname..&quot;_&quot;..hue]
++	if (not matname) then
++		--printf(&quot;hue %04x\n&quot;,hue)
++		=
+
++		local texmaskname =3D GetGrannyTextureMaskName(texname)
++		local texturepath =3D CorrectGrannyPath(&quot;Maps/&quot;..texname)
++		local texturemaskpath =3D CorrectGrannyPath(&quot;Maps/&quot;..texmaskname)
++		-- texturepath will usually be an absolute path such as &quot;/cavern/uostuff=
+/uo/Models/Maps/UT256_Armor_Ring_V2.tga&quot;
++		matname =3D CloneMaterial(&quot;matGrannyBase&quot;)
++		if (gGrannyUseCompleteHuePalette) then
++			SetTexture(matname,CreateGrannyHuedTexture(GrannyTextureHook(texturepat=
+h),GrannyTextureHook(texturemaskpath),gHueLoader,hue))
++		else
++			-- ignore mask completely and only do a multiplicative coloring with th=
+e hue's primary color
++			-- ignoring the rest of the hue template
++			SetTexture(matname,GrannyTextureHook(texturepath))
++			if (hue &gt; 0) then =
+
++				local r,g,b =3D gHueLoader:GetColor(hue - 1,31) -- get first color
++				SetAmbient(matname,0,0,r,g,b)
++				SetDiffuse(matname,0,0,r,g,b)
++			end
++		end
++		=
+
++		-- uses defaulthue=3Ddefhue from models.txt (FFFFFFFF : alpha-r-g-b)
++		if (hue =3D=3D 0) then
++			local modelinfo =3D GetGrannyModelInfo(modelid) =
+
++			if (modelinfo) then
++				local r =3D tonumber(string.sub(modelinfo.defhue,3,3 + 1),16) / 255.0
++				local g =3D tonumber(string.sub(modelinfo.defhue,5,5 + 1),16) / 255.0
++				local b =3D tonumber(string.sub(modelinfo.defhue,7,7 + 1),16) / 255.0
++				SetAmbient(matname,0,0,r,g,b)
++				SetDiffuse(matname,0,0,r,g,b)
++			end
++		end
++		gGrannyMaterialCache[texname..&quot;_&quot;..hue] =3D matname
++	end
++	return matname
++end
++
++
++-- some tests if the granny model format is as expected (for models, not f=
+or anims)
++function CheckGrannyModel	(granny) =
+
++	if (granny:GetSubMeshCount() ~=3D 1) then
++		printdebug(&quot;granny&quot;,&quot;WARNING ! unexpected sumeshcount &quot;,granny:GetSubMes=
+hCount())
++	end
++	assert(granny:GetSubMeshCount() &gt;=3D 1,&quot;GetSubMeshCount=3D=3D&quot;..tostring(=
+granny:GetSubMeshCount()))
++	assert(granny:GetTextureIDCount() &gt;=3D 1,&quot;GetTextureIDCount=3D=3D&quot;..tostr=
+ing(granny:GetTextureIDCount()))
++	if (granny:GetTextureIDCount() &gt; 1) then
++		local base =3D GetGrannyTextureName(granny,0)
++		for i =3D 1,granny:GetTextureIDCount()-1 do =
+
++			assert(base =3D=3D GetGrannyTextureName(granny,i),&quot; multiple different =
+textures not yet supported&quot;)
++		end
++	end
++end
++
++function GetGrannyParamGroups (granny)
++	if (granny.paramgroups) then return granny.paramgroups end
++	=
+
++	-- textchunks
++	local textchunks =3D {}
++	local textchunkcount =3D granny:GetTextChunkCount()
++	for i =3D 0,textchunkcount-1 do
++		local chunksize =3D granny:GetTextChunkSize(i)
++		local arr =3D {}
++		for j =3D 0,chunksize-1 do arr[j] =3D granny:GetText(i,j) end
++		textchunks[i] =3D arr
++	end
++	-- for i,arr in pairs(textchunks) do for j,s in pairs(arr) do print(i,j,s=
+) end end
++	=
+
++	-- paramgroups
++	local maintextchunk =3D textchunks[1]
++	local paramgroupcount =3D granny:GetParamGroupCount()
++	local paramgroups =3D {}
++	for i =3D 0,paramgroupcount-1 do
++		local groupsize =3D granny:GetParamGroupSize(i)
++		local arr =3D {}
++		for j =3D 0,groupsize-1 do
++			local key,value =3D granny:GetParam(i,j)
++			--print(i,key,value,maintextchunk[key],maintextchunk[value])
++			arr[maintextchunk[key]] =3D maintextchunk[value]
++		end
++		paramgroups[i] =3D arr
++	end
++	granny.paramgroups =3D paramgroups
++	return paramgroups
++end
++
++-- index is 0 by default, more than one texture per granny is currently no=
+t supported
++function GetGrannyTextureName (granny,index)
++	index =3D index or 0
++	local paramgroups =3D GetGrannyParamGroups(granny)
++	local texid =3D granny:GetTextureID(index)
++	local texpath =3D paramgroups[texid-1] and paramgroups[texid-1][&quot;__FileNa=
+me&quot;]
++	--print(&quot;texpath&quot;,texpath)
++	if (texpath) then return basename(texpath) end
++end
++
++function GetGrannyMeshName (modelid,skeletonname,hue)
++	local cache =3D gGrannyMeshCache[modelid..&quot;_&quot;..hue] =
+
++	if (cache ~=3D nil) then return cache end
++	-- TODO : see gHueLoader -- HueMesh(meshname,gHueLoader,iHue)  scripting.=
+cpp:379
++	=
+
++	-- not in cache, so create mesh
++	local mygranny =3D GetGrannyModelLoader(modelid)
++	if (not mygranny) then gGrannyMeshCache[modelid] =3D false return end
++	CheckGrannyModel(mygranny)
++	local matname =3D GetGrannyMat(modelid,hue,mygranny)
++	local modelinfo =3D GetGrannyModelInfo(modelid)
++	local meshname =3D mygranny:CreateOgreMesh(matname,skeletonname)
++	gGrannyMeshCache[modelid..&quot;_&quot;..hue] =3D meshname
++	return meshname
++end
++
++-- todo : caching
++gGrannyModelLoaderCache =3D {}
++function GetGrannyModelLoader (modelid)
++	local cache =3D gGrannyModelLoaderCache[modelid]
++	if (cache ~=3D nil) then return cache end
++	local modelinfo =3D GetGrannyModelInfo(modelid)
++	if (not modelinfo) then gGrannyModelLoaderCache[modelid] =3D false return=
+ false end
++	local modelpath =3D CorrectGrannyPath(gGrannyTypeDirs[modelinfo.typeid] .=
+. modelinfo.modelname .. &quot;_LOD2.grn&quot;)
++	printdebug(&quot;granny&quot;,&quot;GetGrannyModelLoader&quot;,modelid,modelpath)
++	local loader =3D LoadGranny(modelpath)
++	gGrannyModelLoaderCache[modelid] =3D loader
++	return loader
++end
++
+ -- creates childnodes of parentgfx and adds inserts them into the partsarr=
+ table
+ function CreateMobileModelPartsFromModelIDArray (mobileartid,parentgfx,par=
+tsarr,modelidarr,iPrimaryHandItem,iSecondaryHandItem) =
+
+ 	local bodyid =3D MobileArtId2BodyId(mobileartid)
+@@ -480,125 +518,6 @@
+ =
+
+ =
+
+ =
+
+-
+-
+-function UpdateMobileModel (mobile)
+-	if (not gAnimInfoLists) then return end
+-	--if (mobile.artid ~=3D 400 and mobile.artid ~=3D 401) then return end
+-
+-	-- TODO: Debug and check why RunUO sends kPacket_Equipped_MOB with artid =
+=3D=3D Zero
+-	if (mobile.artid =3D=3D 0) then return end
+-	=
+
+-	local mount =3D GetMobileEquipmentItem(mobile,kLayer_Mount)
+-	local modelidarr,iPrimaryHandItem,iSecondaryHandItem =3D GetMobileModelPa=
+rtModelIDs(mobile)
+-	local bModelPartsChanged =3D false
+-	if (not mobile.modelgfx) then bModelPartsChanged =3D true end
+-	if (not mobile.modelidarr) then bModelPartsChanged =3D true end
+-	if (mount and (not mobile.hasmountgfx)) then bModelPartsChanged =3D true =
+end
+-	if (mobile.hasmountgfx and (not mount)) then bModelPartsChanged =3D true =
+end
+-	if (mobile.modelidarr) then
+-		if (table.getn(mobile.modelidarr) ~=3D table.getn(modelidarr)) then
+-			bModelPartsChanged =3D true =
+
+-		else
+-			for k,v in ipairs(mobile.modelidarr) do
+-				if ((not modelidarr[k]) or v.hue ~=3D modelidarr[k].hue or v.modelid ~=
+=3D modelidarr[k].modelid) then bModelPartsChanged =3D true break end
+-			end
+-		end
+-	end
+-	=
+
+-	=
+
+-	=
+
+-	if (bModelPartsChanged) then =
+
+-		DestroyMobileModel(mobile)
+-		mobile.modelgfx =3D CreateRootGfx3D()
+-		mobile.modelgfx:SetVisible(true)
+-		mobile.modelparts =3D {}
+-		mobile.modelidarr =3D modelidarr
+-		CreateMobileModelPartsFromModelIDArray(mobile.artid,mobile.modelgfx,mobi=
+le.modelparts,modelidarr,iPrimaryHandItem,iSecondaryHandItem)
+-		=
+
+-		-- create mount gfx
+-		mobile.hasmountgfx =3D false
+-		if (mount) then
+-			mobile.hasmountgfx =3D true
+-			local parentgfx =3D mobile.modelgfx
+-			--[[
+-			mount bodyid =3D 120  0x78      16047 =3D 0x00003eaf   1073742298=3D0x4=
+00001da  2147500545=3D0x80004201
+-
+-			120	2	200	FFFFFFFF	0	1.5	1.5	1.5	equines_horse_war_minax
+-			lib.mount.lua gMountTranslate[0x3EAF] =3D 0x78 // war horse (blood red)
+-
+-			mount   0       hue=3D0,unknown1=3D0,mobile=3Dtable: 0xb352298,mobile_s=
+erial=3D4,artid=3D16047,serial=3D1073742298,layer=3D25,        =
+
+-			msName=3Dhold,miUnknown=3D0,miHue=3D0,miQuantity=3D0,miFlags=3D21475005=
+45,miWeight=3D-1,miAnimID=3D0,miQuality=3D0,miUnknown2=3D0,miUnknown1=3D0,m=
+iUnknown3=3D0,miHeight=3D3,
+-			N
+-			=
+
+-			MOUNT   204     16034
+-			]]--
+-			local tiledata =3D GetStaticTileType(mount.artid or 0)
+-			--print(&quot;equip&quot;,item.artid,tiledata and tiledata.miAnimID or 0)
+-			--local mountbodyid =3D tiledata and tiledata.miAnimID  -- this fails, =
+animid is often zero, seems to be hardcoded
+-			local mountbodyid =3D gMountTranslate[mount.artid]
+-
+-			printdebug(&quot;granny&quot;,&quot;MOUNT &quot;,mountbodyid,mount.artid)
+-
+-			if ((not mountbodyid) or mountbodyid =3D=3D 0) then mountbodyid =3D gSt=
+andardHorse end
+-			--print(&quot;mountbodyid&quot;,mountbodyid,mount.artid)
+-			--print(&quot;mount&quot;,mountbodyid,vardump2(mount),tiledata and vardump2(tiled=
+ata))
+-			if (mountbodyid and mountbodyid ~=3D 0) then
+-				local mountskeleton =3D GetOrCreateSkeleton(mountbodyid) -- skeleton i=
+s determined by the bodyid, not possible from the wearables
+-				local meshname =3D GetGrannyMeshName(mountbodyid,mountskeleton.name,mo=
+unt.hue)
+-				=
+
+-				-- fallback to standard horse mount
+-				if (not meshname) then
+-					printdebug(&quot;granny&quot;,&quot;warning, broken mountid, falling back to horse &quot;=
+,mountbodyid)
+-					mountbodyid =3D gStandardHorse
+-					mountskeleton =3D GetOrCreateSkeleton(mountbodyid) -- skeleton is det=
+ermined by the bodyid, not possible from the wearables
+-					meshname =3D GetGrannyMeshName(mountbodyid,mountskeleton.name,mount.h=
+ue)					=
+
+-				end
+-				=
+
+-				if (meshname) then =
+
+-					local partgfx =3D parentgfx:CreateChild()
+-					partgfx:SetMesh(meshname) =
+
+-					partgfx:SetPosition(0,0,kMountZAdd) =
+
+-					partgfx:SetVisible(true)
+-					partgfx:SetCastShadows(gMobileCastShadows)	=
+
+-					=
+
+-					local modelinfo =3D GetGrannyModelInfo(mountbodyid)
+-					if (modelinfo) then
+-						local myscalex =3D forcescalex or modelinfo.scalex * gGrannyScaleFac=
+tor
+-						local myscaley =3D forcescaley or modelinfo.scaley * gGrannyScaleFac=
+tor
+-						local myscalez =3D forcescalez or modelinfo.scalez * gGrannyScaleFac=
+tor
+-						if (myscalex ~=3D 1 or myscaley ~=3D 1 or myscalez ~=3D 1) then
+-							partgfx:SetScale(myscalex,myscaley,myscalez)
+-							partgfx:SetNormaliseNormals(true)
+-						end
+-					end
+-					mobile.modelmountgfx =3D partgfx
+-				end
+-			end
+-		end
+-		=
+
+-		if (false) then
+-			local txt =3D sprintf(&quot;##### {artid=3D%d,hue=3D%d, content=3D{&quot;,mobile.=
+artid,mobile.hue)
+-			for k,item in pairs(GetMobileEquipmentList(mobile)) do
+-				local tiledata =3D GetStaticTileType(item.artid)
+-				txt =3D txt .. sprintf(&quot;{layer=3D%d,artid=3D%d,hue=3D%d,animid=3D%d},&quot;=
+,item.layer,item.artid,item.hue,tiledata and tiledata.miAnimID or 0)
+-			end =
+
+-			txt =3D txt .. sprintf(&quot;}},\n&quot;)
+-			printdebug(&quot;equip&quot;,txt)
+-		end
+-	end
+-end
+-
+-function DestroyMobileModel (mobile)
+-	if (mobile.modelgfx) then mobile.modelgfx:Destroy() mobile.modelgfx =3D n=
+il end
+-	if (mobile.modelmountgfx) then mobile.modelmountgfx:Destroy() mobile.mode=
+lmountgfx =3D nil end
+-	if (mobile.modelparts) then
+-		for k,partgfx in pairs(mobile.modelparts) do partgfx:Destroy() end
+-		mobile.modelparts =3D nil
+-	end
+-end
+-
+-
+ function LoadGrannyModelInfo (filepath) =
+
+ 	local grannymodelinfo =3D {}
+ 	local fieldnames =3D {&quot;bodyid&quot;,&quot;typeid&quot;,&quot;animid&quot;,&quot;defhue&quot;,&quot;unused&quot;,&quot;scale=
+x&quot;,&quot;scaley&quot;,&quot;scalez&quot;,&quot;modelname&quot;}
+
+Modified: trunk/data/lua/lib.tilefreewalk.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.tilefreewalk.lua (original)
++++ trunk/data/lua/lib.tilefreewalk.lua Thu Oct  4 00:17:31 2007
+@@ -24,7 +24,13 @@
+ 	-- TODO : util to get heightfieldpos ? (terrain only ? statics ? startz+t=
+racedown ? generic raytrace util ? ...)
+ 	-- TODO : util to cache current pos and the 8 surrounding heights (lib.wa=
+lking2.lua)
+ 	=
+
+-	-- TODO : flash/ngame review collision detection article : <A HREF="http://www.har=">http://www.har=</A>
+veycartel.org/metanet/tutorials.html
++	-- TODO : reset if client is near the center of a blocked tile (r=3D0.1)
++	-- TODO   bRunning and gWalkTimeout_RunningSpeed or gWalkTimeout_MoveingS=
+peed
++	old : =
+
++		gWalkTimeout_MoveingSpeed =3D 370
++		gWalkTimeout_RunningSpeed =3D 175
++		gWalkTimeout_MountMovingSpeed =3D 185
++		gWalkTimeout_MountRunningSpeed =3D 95
+ ]]--
+ =
+
+ gTileFreeWalk =3D {}
+@@ -438,7 +444,7 @@
+ =
+
+ -- world-units (tiles for uo) per second
+ -- todo : depends on conditions(stamina,spells,buffs,debuffs...) and on mo=
+unt/horse ?
+-function gTileFreeWalk:Impl_GetMaxAllowedSpeed		() return 4 end
++function gTileFreeWalk:Impl_GetMaxAllowedSpeed		() return 4 end -- TODO  g=
+WalkTimeout_MoveingSpeed
+ function gTileFreeWalk:Impl_GetMaxAllowedTurnRate	() return 45*gfDeg2Rad e=
+nd
+ =
+
+ -- feedback for thirdpersoncam
+
+Modified: trunk/data/lua/net.popup.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/net.popup.lua (original)
++++ trunk/data/lua/net.popup.lua Thu Oct  4 00:17:31 2007
+@@ -164,7 +164,7 @@
+ =
+
+ function GetPopupEntryText (textid) =
+
+ 	-- return GetIntLocText(math.floor(textid / 1000),math.mod(textid,1000)) =
+-- doesn't work
+-	return gClilocLoader:Get(3000000 + textid) or &quot;Not Defined&quot;
++	return gClilocLoader and gClilocLoader:Get(3000000 + textid) or &quot;Not Defi=
+ned&quot;
+ end
+ --[[
+ -- the packet description doesn't work on my installation
+
+Modified: trunk/data/lua/obj/obj.mobile.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/obj/obj.mobile.lua (original)
++++ trunk/data/lua/obj/obj.mobile.lua Thu Oct  4 00:17:31 2007
+@@ -286,7 +286,7 @@
+ 	=
+
+ 	self:DestroyContent() -- warning, triggers self:Update()
+ 	=
+
+-	gCurrentRenderer:RemoveMobile( self )
++	gCurrentRenderer:DestroyMobileGfx( self )
+ 	=
+
+ 	gMobiles[self.serial] =3D nil
+ 	CleanupObject(self)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000252.html">[Iris-commit] [IRIS] r1437 - in /trunk/data/lua: lib.3d.dynamic.lua lib.3d.mobile.lua lib.3d.renderer.lua main.lua
+</A></li>
+	<LI>Next message: <A HREF="000254.html">[Iris-commit] [IRIS] r1439 - /trunk/data/old_mobileanim_notest.txt
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#253">[ date ]</a>
+              <a href="thread.html#253">[ thread ]</a>
+              <a href="subject.html#253">[ subject ]</a>
+              <a href="author.html#253">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

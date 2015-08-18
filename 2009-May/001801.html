@@ -1,0 +1,164 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r3002 - /trunk/lua/lib.granny.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2009-May/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3002%20-%20/trunk/lua/lib.granny.lua&In-Reply-To=%3C20090502004119.4E2961C18566%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   <LINK REL="Next"  HREF="001802.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r3002 - /trunk/lua/lib.granny.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3002%20-%20/trunk/lua/lib.granny.lua&In-Reply-To=%3C20090502004119.4E2961C18566%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r3002 - /trunk/lua/lib.granny.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat May  2 02:41:19 CEST 2009</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="001802.html">[Iris-commit] [IRIS] r3003 - /trunk/lua/main.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1801">[ date ]</a>
+              <a href="thread.html#1801">[ thread ]</a>
+              <a href="subject.html#1801">[ subject ]</a>
+              <a href="author.html#1801">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: hagish
+Date: Sat May  2 02:41:18 2009
+New Revision: 3002
+
+Log:
+cached file not found to prevent unnecessary disk access
+
+Modified:
+    trunk/lua/lib.granny.lua
+
+Modified: trunk/lua/lib.granny.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.granny.lua (original)
++++ trunk/lua/lib.granny.lua Sat May  2 02:41:18 2009
+@@ -127,11 +127,13 @@
+     if (skeleton.anims[animname]) then return end -- already loaded
+     local animpath =3D GetAnimPath(bodyid,animid)
+     local mygrannyanim =3D LoadGranny(animpath)
+-    if (not mygrannyanim) then return false end
++    if (not mygrannyanim) then =
+
++		print(&quot;ERROR LoadGrannyAnim&quot;,animpath,bodyid,animid,skeleton,bodypartsam=
+ples)
++		return false
++	end
+     =
+
+     -- construct animation
+     printdebug(&quot;granny&quot;,&quot;LoadGrannyAnim&quot;,bodyid,animid,skeleton.name,animn=
+ame,animpath)
+-    --print(&quot;LoadGrannyAnim&quot;,animpath)
+     mygrannyanim:AddAnimToSkeleton(skeleton.name,animname,bodypartsamples)
+     skeleton.anims[animname] =3D true
+ end
+@@ -139,16 +141,38 @@
+ -- GetAnimPath(234,0) returns something like &quot;uo/Models/Animals/Deer_Stag_=
+Walk.grn&quot;
+ -- Models.txt : 234 2   0   FFFFFFFF    0   1.3 1.3 1.3 deer_stag
+ -- Animal.lst : 0   Walk
++gGetAnimPathCache =3D {}
+ function GetAnimPath (mobileartid,animid) =
+
++	-- cache check
++	local key =3D mobileartid..&quot;_&quot;..animid
++	local e =3D gGetAnimPathCache[key]
++	if e ~=3D nil then
++		if e =3D=3D false then
++			return nil
++		else
++			return e
++		end
++	end
++
+     local bodyid =3D GrannyOverride(mobileartid)
+     local modelinfo =3D GetGrannyModelInfo(bodyid)
+-    if (not modelinfo) then return nil end
++    if (not modelinfo) then =
+
++		gGetAnimPathCache[key] =3D false
++		return nil =
+
++	end
++	=
+
+     while (modelinfo.animid ~=3D 0) do modelinfo =3D GetGrannyModelInfo(mo=
+delinfo.animid) end
+     local animname =3D GetAnimName(bodyid,animid)
+-    if (not animname) then return nil end
++    if (not animname) then =
+
++		gGetAnimPathCache[key] =3D false
++		return nil	=
+
++	end
++	=
+
++	local p =3D CorrectPath( Addfilepath(gGrannyPath..gGrannyTypeDirs[modelin=
+fo.typeid]..modelinfo.modelname..&quot;_&quot;..animname..&quot;.grn&quot;) )
++	gGetAnimPathCache[key] =3D p
+     --assert(animname,&quot;GetAnimPath failed, name not found : &quot;..tostring(bo=
+dyid)..&quot;,&quot;..tostring(animid))
+     --print(&quot;anim&quot;,gGrannyTypeDirs[modelinfo.typeid] .. modelinfo.modelnam=
+e .. &quot;_&quot; .. animname .. &quot;.grn&quot;)
+-    return CorrectPath( Addfilepath(gGrannyPath..gGrannyTypeDirs[modelinfo=
+.typeid]..modelinfo.modelname..&quot;_&quot;..animname..&quot;.grn&quot;) )
++    return p
+ end
+ =
+
+ -- GetAnimName(400,23) looks in Human.lst for animid 23 and returns &quot;Horse=
+_Walk_01&quot;
+@@ -326,6 +350,7 @@
+ =
+
+ gGrannyMeshCache =3D {}
+ function GetGrannyMeshName (modelid,skeletonname,hue)
++	--~ print(&quot;GetGrannyMeshName&quot;,modelid,skeletonname,hue)
+     modelid =3D GrannyOverride(modelid)
+     local cachename =3D modelid..&quot;_&quot;..hue
+     local cache =3D gGrannyMeshCache[cachename] =
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="001802.html">[Iris-commit] [IRIS] r3003 - /trunk/lua/main.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1801">[ date ]</a>
+              <a href="thread.html#1801">[ thread ]</a>
+              <a href="subject.html#1801">[ subject ]</a>
+              <a href="author.html#1801">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

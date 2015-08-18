@@ -1,0 +1,190 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1447 - in /trunk/data/lua: lib.bodygfx.lua lib.debugmenu.lua lib.tilefreewalk.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2007-October/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1447%20-%20in%20/trunk/data/lua%3A%20lib.bodygfx.lua%0A%20lib.debugmenu.lua%20lib.tilefreewalk.lua&In-Reply-To=%3C20071006141957.D62621C18120%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000261.html">
+   <LINK REL="Next"  HREF="000263.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1447 - in /trunk/data/lua: lib.bodygfx.lua lib.debugmenu.lua lib.tilefreewalk.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1447%20-%20in%20/trunk/data/lua%3A%20lib.bodygfx.lua%0A%20lib.debugmenu.lua%20lib.tilefreewalk.lua&In-Reply-To=%3C20071006141957.D62621C18120%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1447 - in /trunk/data/lua: lib.bodygfx.lua lib.debugmenu.lua lib.tilefreewalk.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat Oct  6 16:19:57 CEST 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000261.html">[Iris-commit] [IRIS] r1446 - in /trunk/data/lua: lib.bodygfx.lua	lib.tilefreewalk.lua
+</A></li>
+        <LI>Next message: <A HREF="000263.html">[Iris-commit] [IRIS] r1448 - /trunk/bin/iris2.exe
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#262">[ date ]</a>
+              <a href="thread.html#262">[ thread ]</a>
+              <a href="subject.html#262">[ subject ]</a>
+              <a href="author.html#262">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sat Oct  6 16:19:57 2007
+New Revision: 1447
+
+Log:
+debug doesn't crash when tilefree is on now, small fix for destroyed bodygfx
+
+Modified:
+    trunk/data/lua/lib.bodygfx.lua
+    trunk/data/lua/lib.debugmenu.lua
+    trunk/data/lua/lib.tilefreewalk.lua
+
+Modified: trunk/data/lua/lib.bodygfx.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.bodygfx.lua (original)
++++ trunk/data/lua/lib.bodygfx.lua Sat Oct  6 16:19:57 2007
+@@ -128,6 +128,7 @@
+ =
+
+ function gBodyGfxPrototype:Update()
+ 	self.bMarkedForUpdate =3D false
++	if (self.bDead) then return end
+ 	=
+
+ 	-- calc hash to see if something changed, exit if not (nothing to do)
+ 	local newbodyhash =3D self:CalcBodyHash()
+@@ -351,6 +352,7 @@
+ =
+
+ function gBodyGfxPrototype:Step		()
+ 	-- trigger update if marked
++	if (self.bDead) then return end
+ 	if (self.bMarkedForUpdate) then self:Update() end
+ 	=
+
+ 	-- check for anim end
+
+Modified: trunk/data/lua/lib.debugmenu.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.debugmenu.lua (original)
++++ trunk/data/lua/lib.debugmenu.lua Sat Oct  6 16:19:57 2007
+@@ -25,6 +25,14 @@
+ end
+ =
+
+ gDebugTestMobiles =3D {
++	{artid=3D400,hue=3D33780, content=3D{
++		{artid=3Dhex2num(&quot;0x3EA2&quot;),layer=3DkLayer_Mount},
++		[4]=3D{artid=3D5422,hue=3D1728,animid=3D430},[26]=3D{artid=3D3701,hue=3D=
+0,animid=3D422},
++		[16]=3D{artid=3D8269,hue=3D1147,animid=3D906},[27]=3D{artid=3D3701,hue=
+=3D0,animid=3D422},
++		[17]=3D{artid=3D8059,hue=3D1652,animid=3D913},[11]=3D{artid=3D8252,hue=
+=3D1147,animid=3D701},
++		[21]=3D{artid=3D3701,hue=3D0,animid=3D422},}},   =
+
++		=
+
++		=
+
+ 	{artid=3D401, content=3D({{artid=3Dhex2num(&quot;0x3EA2&quot;),layer=3DkLayer_Mount=
+},{artid=3D5899,animid=3D477},{artid=3D5422,animid=3D430},{artid=3D5399,ani=
+mid=3D434},{artid=3D5435,animid=3D466},{artid=3D8251,animid=3D700},{artid=
+=3D3701,animid=3D422},})},
+ 	{artid=3D400, content=3D({{artid=3Dhex2num(&quot;0x3EA2&quot;),layer=3DkLayer_Mount=
+},{artid=3D5899,animid=3D477},{artid=3D5422,animid=3D430},{artid=3D5399,ani=
+mid=3D434},{artid=3D5435,animid=3D466},{artid=3D8251,animid=3D700},{artid=
+=3D3701,animid=3D422},})},
+ 	{artid=3D401, content=3D({{artid=3D5899,animid=3D477},{artid=3D5422,animi=
+d=3D430},{artid=3D5399,animid=3D434},{artid=3D5435,animid=3D466},{artid=3D8=
+251,animid=3D700},{artid=3D3701,animid=3D422},})},
+
+Modified: trunk/data/lua/lib.tilefreewalk.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.tilefreewalk.lua (original)
++++ trunk/data/lua/lib.tilefreewalk.lua Sat Oct  6 16:19:57 2007
+@@ -31,10 +31,20 @@
+ 		gWalkTimeout_RunningSpeed =3D 175
+ 		gWalkTimeout_MountMovingSpeed =3D 185
+ 		gWalkTimeout_MountRunningSpeed =3D 95
++		=
+
++	-- TODO : jump
+ ]]--
+ =
+
+ gTileFreeWalk =3D {}
+ =
+
++
++
++kTileFreeTestMobile =3D {artid=3D400,hue=3D33780, content=3D{
++		{artid=3Dhex2num(&quot;0x3EA2&quot;),layer=3DkLayer_Mount},
++		[4]=3D{artid=3D5422,hue=3D1728,animid=3D430},[26]=3D{artid=3D3701,hue=3D=
+0,animid=3D422},
++		[16]=3D{artid=3D8269,hue=3D1147,animid=3D906},[27]=3D{artid=3D3701,hue=
+=3D0,animid=3D422},
++		[17]=3D{artid=3D8059,hue=3D1652,animid=3D913},[11]=3D{artid=3D8252,hue=
+=3D1147,animid=3D701},
++		[21]=3D{artid=3D3701,hue=3D0,animid=3D422},}} =
+
+ =
+
+ -- ##### ##### ##### ##### ##### init
+ =
+
+@@ -66,7 +76,7 @@
+ =
+
+ 	RegisterStepper(function () gTileFreeWalk:Step() end) =
+
+ end
+-RegisterListener(&quot;Hook_StartInGame&quot;,function () gTileFreeWalk:Init() end)
++RegisterListener(&quot;Hook_PreLoad&quot;,function () gTileFreeWalk:Init() end)
+ =
+
+ =
+
+ -- ##### ##### ##### ##### ##### step
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000261.html">[Iris-commit] [IRIS] r1446 - in /trunk/data/lua: lib.bodygfx.lua	lib.tilefreewalk.lua
+</A></li>
+	<LI>Next message: <A HREF="000263.html">[Iris-commit] [IRIS] r1448 - /trunk/bin/iris2.exe
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#262">[ date ]</a>
+              <a href="thread.html#262">[ thread ]</a>
+              <a href="subject.html#262">[ subject ]</a>
+              <a href="author.html#262">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

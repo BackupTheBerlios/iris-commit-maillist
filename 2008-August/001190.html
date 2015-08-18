@@ -1,0 +1,314 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2382 - in /trunk/lua: lib.3d.map.lua lib.walking2.lua obj/obj.dynamic.lua obj/obj.main.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-August/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2382%20-%20in%20/trunk/lua%3A%20lib.3d.map.lua%0A%20lib.walking2.lua%20obj/obj.dynamic.lua%20obj/obj.main.lua&In-Reply-To=%3C20080815134900.6DA911C1801D%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001183.html">
+   <LINK REL="Next"  HREF="001188.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2382 - in /trunk/lua: lib.3d.map.lua lib.walking2.lua obj/obj.dynamic.lua obj/obj.main.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2382%20-%20in%20/trunk/lua%3A%20lib.3d.map.lua%0A%20lib.walking2.lua%20obj/obj.dynamic.lua%20obj/obj.main.lua&In-Reply-To=%3C20080815134900.6DA911C1801D%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2382 - in /trunk/lua: lib.3d.map.lua lib.walking2.lua obj/obj.dynamic.lua obj/obj.main.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Fri Aug 15 15:49:00 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001183.html">[Iris-commit] [IRIS] r2381 - in /trunk/lua: lib.3d.map.lua lib.3d.renderer.lua lib.mapblock.3d.dynamics.lua lib.mapblock.3d.multis.lua lib.mapblock.3d.statics.lua lib.mapblock.3d.terrain.lua
+</A></li>
+        <LI>Next message: <A HREF="001188.html">[Iris-commit] [IRIS] r2383 - in /trunk: bin/ data/ data/profiles/	lua/
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1190">[ date ]</a>
+              <a href="thread.html#1190">[ thread ]</a>
+              <a href="subject.html#1190">[ subject ]</a>
+              <a href="author.html#1190">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: hagish
+Date: Fri Aug 15 15:48:59 2008
+New Revision: 2382
+
+Log:
+faster access to dynamics at a given x,y position
+
+Modified:
+    trunk/lua/lib.3d.map.lua
+    trunk/lua/lib.walking2.lua
+    trunk/lua/obj/obj.dynamic.lua
+    trunk/lua/obj/obj.main.lua
+
+Modified: trunk/lua/lib.3d.map.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.map.lua (original)
++++ trunk/lua/lib.3d.map.lua Fri Aug 15 15:48:59 2008
+@@ -153,13 +153,11 @@
+ 		-- check dynamics to detect dynamic houseroofs and other stuff above the=
+ head
+ 		if (not playerIsInside) then
+ 			local iZ
+-			for k,dynamic in pairs(GetDynamicList()) do
+-				if (DynamicIsInWorld(dynamic)) then
+-					if (x =3D=3D dynamic.xloc and y =3D=3D dynamic.yloc and dynamic.zloc =
+&gt;<i>=3D playerheadpos) then
+</I>-						playerIsInside =3D true
+-						iZ =3D dynamic.zloc
+-						if ((not zloc_roof) or (zloc_roof &gt; iZ)) then zloc_roof =3D iZ end
+-					end
++			for k,dynamic in pairs(GetDynamicsAtPosition(x,y)) do
++				if (dynamic.zloc &gt;=3D playerheadpos) then
++					playerIsInside =3D true
++					iZ =3D dynamic.zloc
++					if ((not zloc_roof) or (zloc_roof &gt; iZ)) then zloc_roof =3D iZ end
+ 				end
+ 			end
+ 		end
+
+Modified: trunk/lua/lib.walking2.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.walking2.lua (original)
++++ trunk/lua/lib.walking2.lua Fri Aug 15 15:48:59 2008
+@@ -140,18 +140,14 @@
+ 	-- statics
+ 	--~ printwalkdebug(&quot;---Statics&quot;)
+ =
+
+-	local iTileTypeID,iX,iY,iZ,iHue
+-	=
+
+-	local l =3D MapGetBlockStatics(bx,by)
+-	for k,s in pairs(l) do =
+
+-		if s.tx =3D=3D tx and s.ty =3D=3D ty then
+-			GetWalkingBlockFlagsHelper(s.zloc,s.artid,flaglist)
+-		end
+-	end
+-
+ 	local xloc=3Dbx*8+tx
+ 	local yloc=3Dby*8+ty
+ 	=
+
++	local l =3D MapGetStatics(xloc, yloc)
++	for k,s in pairs(l) do =
+
++		GetWalkingBlockFlagsHelper(s.zloc,s.artid,flaglist)
++	end
++
+ 	-- multis
+ 	--~ printwalkdebug(&quot;---Multis&quot;)
+ 	=
+
+@@ -167,53 +163,9 @@
+ 	--~ printwalkdebug(&quot;---Dynamics&quot;)
+ 	=
+
+ 	if (not gTestIgnoreDynamicInWalk) then
+-	for k,dynamic in pairs(GetDynamicList()) do
+-		if(DynamicIsInWorld(dynamic) and dynamic.artid) then
+-
+-			-- is this a normal statictile or multi?
+-			if (dynamic.artid &gt;=3D gMulti_ID) then -- gMulti_ID + 100
+-				--[[
+-				=
+
+-				skip this cause there is a gMultis list with all infos, we handle mult=
+is using this list
+-				=
+
+-				if (dynamic.lTile) then
+-					for k,v in pairs(dynamic.lTile) do
+-						if ((dynamic.xloc+v.x) =3D=3D xloc and (dynamic.yloc+v.y) =3D=3D ylo=
+c) then
+-							--~ printwalkdebug(&quot;----new serverside multi tile ID=3D&quot; .. v.artid)
+-							GetWalkingBlockFlagsHelper(v.z,v.artid,flaglist)	-- todo flaglist
+-						end
+-					end
+-				elseif gMultiLoader then
+-				-- multi found, special collision handling
+-					local id =3D dynamic.artid - gMulti_ID
+-					local parts =3D gMultiLoader:CountMultiParts(id)
+-					--~ printwalkdebug(&quot;---Dynamics multi id=3D&quot; .. id .. &quot; parts=3D&quot; .. =
+parts)
+-					for p =3D 0, parts-1 do
+-						local blocknum,x,y,z,flags
+-						blocknum,x,y,z,flags =3D gMultiLoader:GetMultiParts(id,p)
+-						=
+
+-						local pxloc,pyloc,pzloc
+-						pxloc =3D dynamic.xloc + x
+-						pyloc =3D dynamic.yloc + y
+-						pzloc =3D dynamic.zloc + z
+-	=
+
+-						if (flags =3D=3D 1 and pxloc =3D=3D xloc and pyloc =3D=3D yloc) then
+-							--~ printwalkdebug(&quot;----new dynamic ID=3D&quot; .. blocknum)
+-							GetWalkingBlockFlagsHelper(pzloc,blocknum,flaglist)
+-						end						=
+
+-					end
+-				else
+-					--~ printwalkdebug(&quot;no Multi found&quot;)
+-				end
+-				]]--
+-			else
+-				--elseif(dynamic.artid &lt; gMulti_ID + 100) then
+-				-- no mulit just a normal tile
+-				if (dynamic.xloc =3D=3D xloc and dynamic.yloc =3D=3D yloc) then
+-					--~ printwalkdebug(&quot;----new dynamic ID=3D&quot; .. dynamic.artid)
+-					GetWalkingBlockFlagsHelper(dynamic.zloc,dynamic.artid,flaglist)
+-				end
+-			end
++	for k,dynamic in pairs(GetDynamicsAtPosition(xloc,yloc)) do
++		if (dynamic.artid &lt; gMulti_ID) then
++			GetWalkingBlockFlagsHelper(dynamic.zloc,dynamic.artid,flaglist)
+ 		end
+ 	end
+ 	=
+
+
+Modified: trunk/lua/obj/obj.dynamic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/obj/obj.dynamic.lua (original)
++++ trunk/lua/obj/obj.dynamic.lua Fri Aug 15 15:48:59 2008
+@@ -150,6 +150,8 @@
+ 		gCurrentRenderer:AddDynamicItem(self) -- create new gfx
+ 		gCurrentRenderer:UpdateDynamicItemPos(self)
+ 	end
++	=
+
++	DynamicUpdatePosCache(self)
+ end
+ =
+
+ function gDynamicPrototype:UpdateContent () self:Update() end
+@@ -171,6 +173,8 @@
+ 	end
+ 	=
+
+ 	gDynamics[self.serial] =3D nil
++	DynamicRemoveFromPosCache(self)
++	=
+
+ 	CleanupObject(self)
+ end
+ =
+
+
+Modified: trunk/lua/obj/obj.main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/obj/obj.main.lua (original)
++++ trunk/lua/obj/obj.main.lua Fri Aug 15 15:48:59 2008
+@@ -21,6 +21,54 @@
+ =
+
+ function GetDynamicList	() return gDynamics end
+ function GetMobileList	() return gMobiles end
++
++
++--------------------------------------------------------------------------=
+--------
++--------------------------------------------------------------------------=
+--------
++gDynamicsInWorldByPosition =3D {}
++
++
++-- returns a list of dynamics at the given uo position (only dynamics that=
+ are in the world)
++function GetDynamicsAtPosition	(xloc, yloc)
++	return gDynamicsInWorldByPosition[xloc..&quot;_&quot;..yloc] or {}
++end
++
++function DynamicRemoveFromPosCache	(dynamic)
++	if dynamic.poscache_x and dynamic.poscache_y then
++		local key =3D dynamic.poscache_x..&quot;_&quot;..dynamic.poscache_y
++		for k,v in pairs(gDynamicsInWorldByPosition[key]) do
++			if v =3D=3D dynamic then
++				gDynamicsInWorldByPosition[key][k] =3D nil
++				dynamic.poscache_x =3D nil
++				dynamic.poscache_y =3D nil
++				return
++			end
++		end
++	end
++end
++
++function DynamicAddToPosCache	(dynamic)
++	if not DynamicIsInWorld(dynamic) then return end
++
++	local key =3D dynamic.xloc..&quot;_&quot;..dynamic.yloc
++	if not gDynamicsInWorldByPosition[key] then
++		gDynamicsInWorldByPosition[key] =3D {}
++	end
++	=
+
++	table.insert(gDynamicsInWorldByPosition[key], dynamic)
++	dynamic.poscache_x =3D dynamic.xloc
++	dynamic.poscache_y =3D dynamic.yloc
++end
++
++function DynamicUpdatePosCache	(dynamic)
++	if dynamic.poscache_x =3D=3D dynamic.xloc and dynamic.poscache_y =3D=3D d=
+ynamic.yloc then return end
++	=
+
++	DynamicRemoveFromPosCache(dynamic)
++	DynamicAddToPosCache(dynamic)
++end
++--------------------------------------------------------------------------=
+--------
++--------------------------------------------------------------------------=
+--------
++
+ =
+
+ function InitializeObject	(serial) =
+
+ 	local object =3D {serial=3Dserial} =
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001183.html">[Iris-commit] [IRIS] r2381 - in /trunk/lua: lib.3d.map.lua lib.3d.renderer.lua lib.mapblock.3d.dynamics.lua lib.mapblock.3d.multis.lua lib.mapblock.3d.statics.lua lib.mapblock.3d.terrain.lua
+</A></li>
+	<LI>Next message: <A HREF="001188.html">[Iris-commit] [IRIS] r2383 - in /trunk: bin/ data/ data/profiles/	lua/
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1190">[ date ]</a>
+              <a href="thread.html#1190">[ thread ]</a>
+              <a href="subject.html#1190">[ subject ]</a>
+              <a href="author.html#1190">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

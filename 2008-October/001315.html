@@ -1,0 +1,459 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2510 - in /trunk/lua: lib.2d.dynamic.lua lib.2d.map.lua lib.2d.mousepick.lua lib.2d.renderer.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-October/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2510%20-%20in%20/trunk/lua%3A%20lib.2d.dynamic.lua%0A%20lib.2d.map.lua%20lib.2d.mousepick.lua%20lib.2d.renderer.lua&In-Reply-To=%3C20081004180006.D61B51C1865A%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001314.html">
+   <LINK REL="Next"  HREF="001316.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2510 - in /trunk/lua: lib.2d.dynamic.lua lib.2d.map.lua lib.2d.mousepick.lua lib.2d.renderer.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2510%20-%20in%20/trunk/lua%3A%20lib.2d.dynamic.lua%0A%20lib.2d.map.lua%20lib.2d.mousepick.lua%20lib.2d.renderer.lua&In-Reply-To=%3C20081004180006.D61B51C1865A%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2510 - in /trunk/lua: lib.2d.dynamic.lua lib.2d.map.lua lib.2d.mousepick.lua lib.2d.renderer.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat Oct  4 19:33:34 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001314.html">[Iris-commit] [IRIS] r2509 -	/trunk/data/base/ui/ray_border_black.png
+</A></li>
+        <LI>Next message: <A HREF="001316.html">[Iris-commit] [IRIS] r2511 - in /trunk: lua/ lua/net/ lua/widgets/	plugins/
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1315">[ date ]</a>
+              <a href="thread.html#1315">[ thread ]</a>
+              <a href="subject.html#1315">[ subject ]</a>
+              <a href="author.html#1315">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sat Oct  4 19:33:34 2008
+New Revision: 2510
+
+Log:
+2d : dynamic-batching, blockwise
+
+Modified:
+    trunk/lua/lib.2d.dynamic.lua
+    trunk/lua/lib.2d.map.lua
+    trunk/lua/lib.2d.mousepick.lua
+    trunk/lua/lib.2d.renderer.lua
+
+Modified: trunk/lua/lib.2d.dynamic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.dynamic.lua (original)
++++ trunk/lua/lib.2d.dynamic.lua Sat Oct  4 19:33:34 2008
+@@ -1,51 +1,143 @@
+ -- dynamics (items,doors,...)
++Renderer2D.gDynamicBlocks =3D {}
++Renderer2D.gDynamicBlockDirtyList =3D {}
++
++function Renderer2D:AddDynamicItem					(item) =
+
++	if item.artid &gt;=3D gMulti_ID then =
+
++		-- multi
++		self:UpdateMultiItemGfx(item)
++	elseif (item.artid_base =3D=3D kCorpseDynamicArtID or (item.artid and ite=
+m.artid &gt; 1)) then -- 1 =3D=3D nodraw =
+
++		local block =3D self:GetOrCreateDynamicBlockAndMarkAsDirty(floor(item.xl=
+oc/8),floor(item.xloc/8))
++		block.bDynamics[item] =3D true
++		item.block2d =3D block
++	elseif not item.artid then
++		print(&quot;ERROR: artid missing!!!!\n&quot;)
++	end
++end
++
+ =
+
+ function Renderer2D:RemoveDynamicItem				(item) =
+
+ 	if (item.gfx2d) then item.gfx2d:Destroy() item.gfx2d =3D nil end
++	if (item.block2d) then
++		local block =3D item.block2d
++		block.bDynamics[item] =3D nil
++		self:DynamicBlockMarkAsDirty(block)
++	end
+ 	ArtAtlasUnLock(item)
+ end
+-function Renderer2D:UpdateCorpseItemGfx				(item) =
+
+-	local spriteblock =3D item.gfx2d
++
++
++function Renderer2D:Dynamics_MainStep			() =
+
++	local bHadDirty =3D false
++	for block,v in pairs(self.gDynamicBlockDirtyList) do bHadDirty =3D true s=
+elf:DynamicBlockRebuild(block) end
++	if (bHadDirty) then self.gDynamicBlockDirtyList =3D {} end
++end
++
++function Renderer2D:DynamicBlockRebuild (block)
++	local bxloc =3D block.bx * 8
++	local byloc =3D block.by * 8
++	local bzloc =3D 0
++	local itemcount =3D countarr(block.bDynamics)
++	local myindex =3D 0
++	local spriteblock =3D block.gfx2d
++	local iBlendOutMinZ,iBlendOutMaxZ =3D self:BlendoutGetVisibleRange()
++	=
+
++	-- erase block if empty
++	if (itemcount =3D=3D 0) then
++		if (spriteblock) then spriteblock:Destroy() end
++		self.gDynamicBlocks[block.n] =3D nil
++		return
++	end
++	=
+
++	-- prepare gfx
+ 	if (not spriteblock) then =
+
+ 		spriteblock =3D cUOSpriteBlock:New()
+-		item.gfx2d =3D spriteblock =
+
++		block.gfx2d =3D spriteblock =
+
+ 	else	=
+
+ 		spriteblock:Clear()
+ 	end
+-
+-	local xloc,yloc,zloc =3D item.xloc,item.yloc,item.zloc
+-	local tx,ty,tz,iIndex,fIndexRel =3D 0,0,0,0
+-	local sorttx =3D xloc-floor(xloc/8)*8
+-	local sortty =3D yloc-floor(yloc/8)*8
+-	local sorttz =3D zloc
+-	local parts =3D {}
+-	item.corpsedir =3D item.corpsedir or math.random(0,7)
+-	local iDirAdd,bMirrorX =3D GetAnimDirAdd(DirWrap(item.corpsedir))  -- som=
+e param ? last known dir ?
+-	=
+
+-	local bodyid =3D item.amount
+-	table.insert(parts,{bodyid,item.hue,13}) -- fallback=3D13=3Devortex
+-	=
+
+-	for k,v in pairs(parts) do =
+
+-		local iModelID,iHue,iFallBackModel =3D unpack(v)
+-		if iModelID then =
+
+-			local iLoaderIndex =3D 1
+-			iModelID,iHue,iLoaderIndex =3D UOAnimTranslateBodyID(iModelID,iHue)
+-			iIndex =3D iIndex + 1 =
+
+-			fIndexRel =3D 200 * (1 - 1/iIndex) -- dirty hack to avoid zbuffer flick=
+er
+-			=
+
+-			local iAnimID =3D Anim_GetCorpseAnim(iModelID,mount) + iDirAdd
+-			local iFrameCount =3D Anim2D_GetFrameCount(Anim_GetRealID(iModelID,iAni=
+mID),iLoaderIndex) or 1000
+-			if (iFrameCount &lt; 1) then iFrameCount =3D 1 end
+-			local iFrame =3D iFrameCount - 1
+-			local iFallBackAnim =3D iFallBackModel and Anim_GetIdleAnim(iFallBackMo=
+del)
+-			spriteblock:AddAnimModel(tx,ty,tz,iModelID,iHue,iLoaderIndex,iFallBackM=
+odel,iFallBackAnim,iAnimID,iFrame,bMirrorX,CalcSortBonus(nil,sorttx,sortty,=
+sorttz,fIndexRel,4),item) =
+
++	=
+
++	-- iterate over items
++	for item,v in pairs(block.bDynamics) do
++		local xloc,yloc,zloc =3D item.xloc,item.yloc,item.zloc
++		local tx,ty,tz,fIndexRel =3D xloc-bxloc,yloc-byloc,zloc-bzloc,myindex/it=
+emcount
++		myindex =3D myindex + 1
++		local sorttx =3D xloc-bxloc
++		local sortty =3D yloc-byloc
++		local sorttz =3D zloc
++		local bVisible =3D (not (zloc and iBlendOutMinZ and iBlendOutMaxZ)) or (=
+zloc &gt;=3D iBlendOutMinZ and zloc &lt;=3D iBlendOutMaxZ)
++		=
+
++	=
+
++		if (bVisible) then
++			-- corpse
++			if (item.artid_base =3D=3D kCorpseDynamicArtID) then
++				local parts =3D {}
++				item.corpsedir =3D item.corpsedir or math.random(0,7)
++				local iDirAdd,bMirrorX =3D GetAnimDirAdd(DirWrap(item.corpsedir))  -- =
+some param ? last known dir ?
++				=
+
++				local bodyid =3D item.amount
++				table.insert(parts,{bodyid,item.hue,13}) -- fallback=3D13=3Devortex
++				-- TODO : later : add clothing&amp;equip for human corpses ?
++				=
+
++				for k,v in pairs(parts) do =
+
++					local iModelID,iHue,iFallBackModel =3D unpack(v)
++					if iModelID then =
+
++						local iLoaderIndex =3D 1
++						iModelID,iHue,iLoaderIndex =3D UOAnimTranslateBodyID(iModelID,iHue)
++						--~ iIndex =3D iIndex + 1 =
+
++						--~ fIndexRel =3D 200 * (1 - 1/iIndex) -- dirty hack to avoid zbuffe=
+r flicker
++						=
+
++						local iAnimID =3D Anim_GetCorpseAnim(iModelID,mount) + iDirAdd
++						local iFrameCount =3D Anim2D_GetFrameCount(Anim_GetRealID(iModelID,i=
+AnimID),iLoaderIndex) or 1000
++						if (iFrameCount &lt; 1) then iFrameCount =3D 1 end
++						local iFrame =3D iFrameCount - 1
++						local iFallBackAnim =3D iFallBackModel and Anim_GetIdleAnim(iFallBac=
+kModel)
++						spriteblock:AddAnimModel(tx,ty,tz,iModelID,iHue,iLoaderIndex,iFallBa=
+ckModel,iFallBackAnim,iAnimID,iFrame,bMirrorX,CalcSortBonus(nil,sorttx,sort=
+ty,sorttz,fIndexRel,4),item) =
+
++					end
++				end
++			else -- regular item
++				local iTileTypeID	=3D item.artid
++				=
+
++				local animinfo =3D GetAnimDataInfo(iTileTypeID)
++				if (animinfo) then
++					if (animinfo.miCount &gt; 1) then
++						iTileTypeID =3D iTileTypeID + (animinfo.miFrames[floor(animinfo.miCo=
+unt/2)] or 0)
++					end
++				end
++				=
+
++				local iHue	=3D item.hue
++				spriteblock:AddArtSprite(tx,ty,tz,iTileTypeID,iHue,CalcSortBonus(iTile=
+TypeID,sorttx,sortty,sorttz,fIndexRel,1),item)
++			end
+ 		end
+ 	end
+-	spriteblock:Build(Renderer2D.kSpriteBaseMaterial,false)
+-	=
+
+-	local x,y,z =3D self:UOPosToLocal(item.xloc,item.yloc,item.zloc*kRenderer=
+2D_ZScale)
+-	item.gfx2d:SetPosition(x,y,z)
+-end
++
++	-- build block
++	spriteblock:Build(Renderer2D.kSpriteBaseMaterial)
++	local x,y,z =3D self:UOPosToLocal(bxloc,byloc,bzloc*kRenderer2D_ZScale)
++	spriteblock:SetPosition(x,y,z)
++end
++
++function Renderer2D:DynamicBlockMarkAsDirty (block)
++	self.gDynamicBlockDirtyList[block] =3D true
++end
++
++function Renderer2D:GetOrCreateDynamicBlockAndMarkAsDirty (bx,by)
++	local n =3D bx..&quot;,&quot;..by
++	local b =3D self.gDynamicBlocks[n]
++	if (not b) then b =3D { bx=3Dbx,by=3Dby,n=3Dn,bDynamics=3D{} } self.gDyna=
+micBlocks[n] =3D b end -- todo : throw old blocks out of cache here ?
++	self:DynamicBlockMarkAsDirty(b) =
+
++	return b
++end =
+
++
++function Renderer2D:Dynamics_UpdateBlendOut()
++	for k,dynamic in pairs(GetDynamicList()) do =
+
++		if (DynamicIsInWorld(dynamic)) then self:UpdateDynamicBlendOut(dynamic,a=
+,b) end =
+
++	end
++	for k,block in pairs(self.gDynamicBlocks) do self.gDynamicBlockDirtyList[=
+block] =3D true end
++end
++
++
++
+ =
+
+ function Renderer2D:UpdateDynamicBlendOut			(item,iBlendOutMinZ,iBlendOutM=
+axZ) =
+
+ 	if item.artid &gt;=3D gMulti_ID then =
+
+@@ -53,7 +145,7 @@
+ 		self:UpdateMultiItemGfx(item)
+ 	else
+ 		local zloc =3D item.zloc
+-		local bVisible =3D zloc &gt;=3D iBlendOutMinZ and zloc &lt;=3D iBlendOutMaxZ
++		local bVisible =3D (not (zloc and iBlendOutMinZ and iBlendOutMaxZ)) or (=
+zloc &gt;=3D iBlendOutMinZ and zloc &lt;=3D iBlendOutMaxZ)
+ 		if (item.gfx2d) then item.gfx2d:SetVisible(bVisible) end
+ 	end
+ end
+@@ -101,45 +193,7 @@
+ 	spriteblock:SetPosition(x,y,z)
+ end
+ =
+
+-function Renderer2D:AddDynamicItem					(item) =
+
+-	if (item.artid_base =3D=3D kCorpseDynamicArtID) then
+-		-- corpse
+-		self:UpdateCorpseItemGfx(item)
+-	elseif not item.artid then
+-		print(&quot;ERROR: artid missing!!!!\n&quot;)
+-	elseif item.artid &gt;=3D gMulti_ID then =
+
+-		-- multi
+-		self:UpdateMultiItemGfx(item)
+-	else
+-		local iTileTypeID	=3D item.artid
+-		if (iTileTypeID &gt; 1) then -- 1 =3D=3D nodraw =
+
+-			local spriteblock =3D cUOSpriteBlock:New()
+-			item.gfx2d =3D spriteblock
+-			=
+
+-			=
+
+-			local animinfo =3D GetAnimDataInfo(iTileTypeID)
+-			if (animinfo) then
+-				if (animinfo.miCount &gt; 1) then
+-					iTileTypeID =3D iTileTypeID + (animinfo.miFrames[floor(animinfo.miCou=
+nt/2)] or 0)
+-				end
+-			end
+-			=
+
+-			local xloc =3D item.xloc
+-			local yloc =3D item.yloc
+-			local zloc =3D item.zloc
+-			local tx,ty,tz,fIndexRel =3D 0,0,0,0
+-			local sorttx =3D xloc-floor(xloc/8)*8
+-			local sortty =3D yloc-floor(yloc/8)*8
+-			local sorttz =3D zloc
+-			local iHue			=3D item.hue
+-			spriteblock:AddArtSprite(tx,ty,tz,iTileTypeID,iHue,CalcSortBonus(iTileT=
+ypeID,sorttx,sortty,sorttz,fIndexRel,1),item)
+-			spriteblock:Build(Renderer2D.kSpriteBaseMaterial,true)
+-			local x,y,z =3D gCurrentRenderer:UOPosToLocal(xloc,yloc,zloc*kRenderer2=
+D_ZScale)
+-			spriteblock:SetPosition(x,y,z)
+-		end
+-	end
+-end
+-
++-- unused for 2d
+ function Renderer2D:UpdateDynamicItemPos			(item)
+ 	if (not Renderer2D.bDebugWarnUpdateDynamicItemPos) then
+ 		Renderer2D.bDebugWarnUpdateDynamicItemPos =3D true
+
+Modified: trunk/lua/lib.2d.map.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.map.lua (original)
++++ trunk/lua/lib.2d.map.lua Sat Oct  4 19:33:34 2008
+@@ -77,7 +77,7 @@
+ 		end
+ 		=
+
+ 		local a,b =3D self:BlendoutGetVisibleRange()
+-		for k,dynamic in pairs(GetDynamicList()) do if (DynamicIsInWorld(dynamic=
+)) then self:UpdateDynamicBlendOut(dynamic,a,b) end end
++		self:Dynamics_UpdateBlendOut()
+ 		=
+
+ 		self.map2d_spawners.statics:ForAllBlocks(function(block) block:RebuildFo=
+rBlendout() end)
+ 	end
+
+Modified: trunk/lua/lib.2d.mousepick.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.mousepick.lua (original)
++++ trunk/lua/lib.2d.mousepick.lua Sat Oct  4 19:33:34 2008
+@@ -140,6 +140,16 @@
+ 			end
+ 		end
+ 	end
++	for k,block in pairs(self.gDynamicBlocks) do
++		local spriteblock =3D block.gfx2d
++		if (spriteblock) then =
+
++			local dist,sprite =3D spriteblock:RayPick(rx,ry,rz, rvx,rvy,rvz) =
+
++			if (dist and ((not founddist) or dist &lt; founddist)) then
++				founddist =3D dist
++				foundsprite =3D sprite
++			end
++		end
++	end
+ 	return founddist,foundsprite -- item=3Dfoundsprite.data
+ end
+ =
+
+
+Modified: trunk/lua/lib.2d.renderer.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.renderer.lua (original)
++++ trunk/lua/lib.2d.renderer.lua Sat Oct  4 19:33:34 2008
+@@ -134,6 +134,7 @@
+ 	self:EffectAnimStep() -- should be after player pos is updated, for effec=
+ts moving with player
+ 	self:MapStep()
+ 	self:HUDFX_MainStep()
++	self:Dynamics_MainStep()
+ end
+ =
+
+ function Renderer2D:CamKeyDown						(key) end
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001314.html">[Iris-commit] [IRIS] r2509 -	/trunk/data/base/ui/ray_border_black.png
+</A></li>
+	<LI>Next message: <A HREF="001316.html">[Iris-commit] [IRIS] r2511 - in /trunk: lua/ lua/net/ lua/widgets/	plugins/
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1315">[ date ]</a>
+              <a href="thread.html#1315">[ thread ]</a>
+              <a href="subject.html#1315">[ subject ]</a>
+              <a href="author.html#1315">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

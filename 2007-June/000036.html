@@ -1,0 +1,123 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1220 - in /trunk: include/data.h src/data.cpp
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2007-June/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1220%20-%20in%20/trunk%3A%20include/data.h%20src/data.cpp&In-Reply-To=%3C20070619230606.A0B5F109007F%40localhost.localdomain%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000035.html">
+   <LINK REL="Next"  HREF="000037.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1220 - in /trunk: include/data.h src/data.cpp</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1220%20-%20in%20/trunk%3A%20include/data.h%20src/data.cpp&In-Reply-To=%3C20070619230606.A0B5F109007F%40localhost.localdomain%3E"
+       TITLE="[Iris-commit] [IRIS] r1220 - in /trunk: include/data.h src/data.cpp">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Wed Jun 20 01:06:06 CEST 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000035.html">[Iris-commit] [IRIS] r1219 - in /trunk/data/lua: net.other.lua	net.paperdoll.lua
+</A></li>
+        <LI>Next message: <A HREF="000037.html">[Iris-commit] [IRIS] r1221 - in /trunk/data: gfm/player_paperdoll.gfm lua/lib.3d.map.lua lua/lib.gumpparser.lua lua/net.other.lua lua/net.paperdoll.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#36">[ date ]</a>
+              <a href="thread.html#36">[ thread ]</a>
+              <a href="subject.html#36">[ subject ]</a>
+              <a href="author.html#36">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Wed Jun 20 01:06:04 2007
+New Revision: 1220
+
+Log:
+secured hueloader
+
+Modified:
+    trunk/include/data.h
+    trunk/src/data.cpp
+
+Modified: trunk/include/data.h
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/include/data.h (original)
++++ trunk/include/data.h Wed Jun 20 01:06:04 2007
+@@ -456,6 +456,7 @@
+ 	class cHueLoader : public cSmartPointable, public cFullFileLoader { publi=
+c :
+ 		cHue		mLastHue;
+ 		cHueLoader		(const char* szDataFile);
++		int		GetMaxHueID		();
+ 		cHue*	GetHue	(const int iID); ///&lt; result of Get is only valid until nex=
+t Get call
+ 	};
+ 	=
+
+
+Modified: trunk/src/data.cpp
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/src/data.cpp (original)
++++ trunk/src/data.cpp Wed Jun 20 01:06:04 2007
+@@ -592,7 +592,15 @@
+ =
+
+ cHueLoader	::cHueLoader	(const char* szDataFile) : cFullFileLoader(szDataF=
+ile) {}
+ 	=
+
++int		cHueLoader::GetMaxHueID		() { =
+
++	// miFullFileSize =3D 265500
++	int eightblocks =3D (miFullFileSize - 4) / 708; // (265500 - 4) / 708 =3D=
+ 374.99...
++	int singles =3D ((miFullFileSize - 4) - 708*eightblocks) / 88;// ((265500=
+ - 4) - 708*374)/ 88 =3D 704 / 88 =3D 8
++	return eightblocks*8 + singles; // 374*8 + 8 =3D 3000
++}
++
+ cHue*	cHueLoader	::GetHue	(const int iID){
++	if (iID &lt; 0 || iID &gt;=3D GetMaxHueID()) return GetHue(0); // illegal hue a=
+sked
+ 	mLastHue.miID =3D iID;
+ 	mLastHue.mpRawData =3D mpFullFileBuffer+((((8*88)+4)*(iID/8)) + 4 + (88*(=
+iID%8)));
+ 	return &mLastHue;
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000035.html">[Iris-commit] [IRIS] r1219 - in /trunk/data/lua: net.other.lua	net.paperdoll.lua
+</A></li>
+	<LI>Next message: <A HREF="000037.html">[Iris-commit] [IRIS] r1221 - in /trunk/data: gfm/player_paperdoll.gfm lua/lib.3d.map.lua lua/lib.gumpparser.lua lua/net.other.lua lua/net.paperdoll.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#36">[ date ]</a>
+              <a href="thread.html#36">[ thread ]</a>
+              <a href="subject.html#36">[ subject ]</a>
+              <a href="author.html#36">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

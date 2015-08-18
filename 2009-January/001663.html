@@ -1,0 +1,725 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2861 - in /trunk/lua: lib.2d.dynamic.lua lib.2d.renderer.lua lib.mapblock.base.lua lib.protocol.lua main.lua net/net.multi.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2009-January/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2861%20-%20in%20/trunk/lua%3A%20lib.2d.dynamic.lua%0A%20lib.2d.renderer.lua%20lib.mapblock.base.lua%20lib.protocol.lua%20main.lua%0A%20net/net.multi.lua&In-Reply-To=%3C20090112214905.4C55A1C1880E%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001662.html">
+   <LINK REL="Next"  HREF="001664.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2861 - in /trunk/lua: lib.2d.dynamic.lua lib.2d.renderer.lua lib.mapblock.base.lua lib.protocol.lua main.lua net/net.multi.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2861%20-%20in%20/trunk/lua%3A%20lib.2d.dynamic.lua%0A%20lib.2d.renderer.lua%20lib.mapblock.base.lua%20lib.protocol.lua%20main.lua%0A%20net/net.multi.lua&In-Reply-To=%3C20090112214905.4C55A1C1880E%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2861 - in /trunk/lua: lib.2d.dynamic.lua lib.2d.renderer.lua lib.mapblock.base.lua lib.protocol.lua main.lua net/net.multi.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Mon Jan 12 22:49:05 CET 2009</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001662.html">[Iris-commit] [IRIS] r2860 - in /trunk/lua: lib.2d.map.lua lib.2d.renderer.lua lib.blendout.lua lib.charcreate.lua main.lua net.walk.lua
+</A></li>
+        <LI>Next message: <A HREF="001664.html">[Iris-commit] [IRIS] r2862 - in /trunk/lua: lib.2d.dynamic.lua	main.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1663">[ date ]</a>
+              <a href="thread.html#1663">[ thread ]</a>
+              <a href="subject.html#1663">[ subject ]</a>
+              <a href="author.html#1663">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Mon Jan 12 22:49:04 2009
+New Revision: 2861
+
+Log:
+more profile summary output : memory allocation (lua/ogre) and cpuspikes/de=
+lays/lags, packet-profiling now also uses the roughprofiler,  removed a few=
+ unneeded hex2num calls in customhouse packet and added customhouse packet =
+detail profiler (spikes),  2dmode : multi-construction is threaded(coroutin=
+e) now to avoid spikes
+
+Modified:
+    trunk/lua/lib.2d.dynamic.lua
+    trunk/lua/lib.2d.renderer.lua
+    trunk/lua/lib.mapblock.base.lua
+    trunk/lua/lib.protocol.lua
+    trunk/lua/main.lua
+    trunk/lua/net/net.multi.lua
+
+Modified: trunk/lua/lib.2d.dynamic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.dynamic.lua (original)
++++ trunk/lua/lib.2d.dynamic.lua Mon Jan 12 22:49:04 2009
+@@ -1,8 +1,10 @@
+ -- dynamics (items,doors,...)
+ Renderer2D.gDynamicBlocks =3D {}
+ Renderer2D.gDynamicBlockDirtyList =3D {}
++Renderer2D.gUpdateMultiList =3D {}
+ =
+
+ function Renderer2D:AddDynamicItem					(item) =
+
++	item.r2d_removed =3D nil
+ 	if item.artid &gt;=3D gMulti_ID then =
+
+ 		-- multi
+ 		self:UpdateMultiItemGfx(item)
+@@ -25,6 +27,7 @@
+ 		self:DynamicBlockMarkAsDirty(block)
+ 	end
+ 	ArtAtlasUnLock(item)
++	item.r2d_removed =3D true
+ end
+ =
+
+ =
+
+@@ -178,50 +181,82 @@
+ 	end
+ end
+ =
+
+-function Renderer2D:UpdateMultiItemGfx				(item) =
+
+-	gDebugLastMultiItem =3D item
+-	local multi =3D item.multi
+-	if (not multi) then print(&quot;Renderer2D:AddMultiItem error:no multi data&quot;) =
+return end
+-	=
+
+-	-- create spriteblock
+-	local spriteblock =3D item.gfx2d
+-	if (not spriteblock) then
+-		spriteblock =3D cUOSpriteBlock:New()
+-		item.gfx2d =3D spriteblock
+-	else
+-		spriteblock:Clear()
+-	end
+-	=
+
+-	-- add multi parts
+-	local totalpartnum =3D #multi.lparts
+-	local itemxloc =3D item.xloc
+-	local itemyloc =3D item.yloc
+-	local itemzloc =3D item.zloc
+-	=
+
+-	local iBlendOutMinZ,iBlendOutMaxZ =3D self:BlendoutGetVisibleRange()
+-		=
+
+-	for k,part in pairs(multi.lparts) do
+-		local iTileTypeID,xloc,yloc,zloc,iHue =3D unpack(part) -- see Multi_AddP=
+artHelper
+-		local tx =3D xloc-itemxloc
+-		local ty =3D yloc-itemyloc
+-		local tz =3D zloc-itemzloc
+-		local sorttx =3D xloc-floor(xloc/8)*8
+-		local sortty =3D yloc-floor(yloc/8)*8
+-		local sorttz =3D zloc
+-		local fIndexRel =3D k / totalpartnum
+-		if (zloc &gt;=3D iBlendOutMinZ and zloc &lt;=3D iBlendOutMaxZ and =
+
+-			((not gMulti_OnlyShowFloor) or tz &lt;=3D 0 or (gOnlyShowFloorItemTypeList=
+[iTileTypeID]))) then -- &lt;=3D 7 for floor
+-			local sprite =3D spriteblock:AddArtSprite(tx,ty,tz,iTileTypeID,iHue,Cal=
+cSortBonus(iTileTypeID,sorttx,sortty,sorttz,fIndexRel,1),item)
+-			if (sprite) then
+-				sprite.xloc =3D xloc -- mousepicking
+-				sprite.yloc =3D yloc
+-				sprite.zloc =3D zloc
+-			end
++function Renderer2D:UpdateMultiItemGfx				(item)
++	self.gUpdateMultiList[item] =3D true
++end
++
++function Renderer2D:Dynamics_MultiUpdateStep			(item) =
+
++	local job =3D self.pMultiUpdateJob
++	if (not job) then job =3D coroutine.create(self.UpdateMultiItemJobFun) se=
+lf.pMultiUpdateJob =3D job end
++	local t =3D Client_GetTicks()
++	self.tUpdateMultiItemJobStepEnd =3D t + 10
++	local status,r =3D coroutine.resume(job,self)
++	if not status then
++		print(&quot;ERROR: 2D:Dynamics_MultiUpdateStep job terminated: &quot;,r)
++		self.pMultiUpdateJob =3D nil -- destroy crashed job so new one can be st=
+arted next round
++	end
++end
++
++
++-- meant to be executed inside a coroutine, see Dynamics_MultiUpdateStep
++function Renderer2D.UpdateMultiItemJobFun				() =
+
++	local self =3D Renderer2D
++	function YieldIfOverTime () if (Client_GetTicks() &gt; self.tUpdateMultiItem=
+JobStepEnd) then coroutine.yield() end end
++	repeat =
+
++		local item,v =3D next(self.gUpdateMultiList)
++		if (item) then =
+
++			gDebugLastMultiItem =3D item
++			local multi =3D item.multi
++			if (not multi) then print(&quot;Renderer2D:AddMultiItem error:no multi data&quot;=
+) return end
++			=
+
++			-- create spriteblock
++			local spriteblock =3D item.gfx2d
++			if (not spriteblock) then
++				spriteblock =3D cUOSpriteBlock:New()
++				item.gfx2d =3D spriteblock
++			else
++				spriteblock:Clear()
++			end
++			=
+
++			-- add multi parts
++			local totalpartnum =3D #multi.lparts
++			local itemxloc =3D item.xloc
++			local itemyloc =3D item.yloc
++			local itemzloc =3D item.zloc
++			=
+
++			local iBlendOutMinZ,iBlendOutMaxZ =3D self:BlendoutGetVisibleRange()
++			YieldIfOverTime()
++				=
+
++			for k,part in pairs(multi.lparts) do
++				local iTileTypeID,xloc,yloc,zloc,iHue =3D unpack(part) -- see Multi_Ad=
+dPartHelper
++				local tx =3D xloc-itemxloc
++				local ty =3D yloc-itemyloc
++				local tz =3D zloc-itemzloc
++				local sorttx =3D xloc-floor(xloc/8)*8
++				local sortty =3D yloc-floor(yloc/8)*8
++				local sorttz =3D zloc
++				local fIndexRel =3D k / totalpartnum
++				if (zloc &gt;=3D iBlendOutMinZ and zloc &lt;=3D iBlendOutMaxZ and =
+
++					((not gMulti_OnlyShowFloor) or tz &lt;=3D 0 or (gOnlyShowFloorItemTypeLi=
+st[iTileTypeID]))) then -- &lt;=3D 7 for floor
++					local sprite =3D spriteblock:AddArtSprite(tx,ty,tz,iTileTypeID,iHue,C=
+alcSortBonus(iTileTypeID,sorttx,sortty,sorttz,fIndexRel,1),item)
++					if (sprite) then
++						sprite.xloc =3D xloc -- mousepicking
++						sprite.yloc =3D yloc
++						sprite.zloc =3D zloc
++					end
++					YieldIfOverTime()
++				end
++				if (item.r2d_removed) then break end -- multi has been destroyed while=
+ still in construction
++			end
++			if (not item.r2d_removed) then
++				spriteblock:Build(Renderer2D.kSpriteBaseMaterial)
++				local x,y,z =3D gCurrentRenderer:UOPosToLocal(itemxloc,itemyloc,itemzl=
+oc*kRenderer2D_ZScale)
++				spriteblock:SetPosition(x,y,z)
++			end
++			self.gUpdateMultiList[item] =3D nil
+ 		end
+-	end
+-	spriteblock:Build(Renderer2D.kSpriteBaseMaterial)
+-	local x,y,z =3D gCurrentRenderer:UOPosToLocal(itemxloc,itemyloc,itemzloc*=
+kRenderer2D_ZScale)
+-	spriteblock:SetPosition(x,y,z)
++		coroutine.yield()
++	until false
+ end
+ =
+
+ -- unused for 2d
+
+Modified: trunk/lua/lib.2d.renderer.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.renderer.lua (original)
++++ trunk/lua/lib.2d.renderer.lua Mon Jan 12 22:49:04 2009
+@@ -147,11 +147,12 @@
+ 	end
+ =
+
+ 	=
+
+-	gProfiler_R2D_MainStep:Section(&quot;EffectAnimStep&quot;)		self:EffectAnimStep() -=
+- should be after player pos is updated, for effects moving with player
+-	gProfiler_R2D_MainStep:Section(&quot;MapStep&quot;)				self:MapStep()
+-	gProfiler_R2D_MainStep:Section(&quot;HUDFX_MainStep&quot;)		self:HUDFX_MainStep()
+-	gProfiler_R2D_MainStep:Section(&quot;Dynamics_MainStep&quot;)		self:Dynamics_MainSt=
+ep()
+-	gProfiler_R2D_MainStep:Section(&quot;MousePickStep&quot;,true)	self:MousePickStep()
++	gProfiler_R2D_MainStep:Section(&quot;EffectAnimStep&quot;)			self:EffectAnimStep() =
+-- should be after player pos is updated, for effects moving with player
++	gProfiler_R2D_MainStep:Section(&quot;MapStep&quot;)					self:MapStep()
++	gProfiler_R2D_MainStep:Section(&quot;HUDFX_MainStep&quot;)			self:HUDFX_MainStep()
++	gProfiler_R2D_MainStep:Section(&quot;Dynamics_MainStep&quot;)			self:Dynamics_MainS=
+tep()
++	gProfiler_R2D_MainStep:Section(&quot;Dynamics_MultiUpdateStep&quot;)	self:Dynamics_=
+MultiUpdateStep()
++	gProfiler_R2D_MainStep:Section(&quot;MousePickStep&quot;,true)		self:MousePickStep()
+ 	gProfiler_R2D_MainStep:End()
+ end
+ =
+
+
+Modified: trunk/lua/lib.mapblock.base.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mapblock.base.lua (original)
++++ trunk/lua/lib.mapblock.base.lua Mon Jan 12 22:49:04 2009
+@@ -39,7 +39,7 @@
+ =
+
+ function cMapBlock:SetPriority		(prio)	self.prio =3D prio end
+ function cMapBlock:Yield			()		=
+
+-	self.last_yield_stack =3D _TRACEBACK()
++	--~ self.last_yield_stack =3D _TRACEBACK() -- used nowhere ? waste of per=
+formance
+ 	coroutine.yield() =
+
+ end
+ function cMapBlock:YieldIfOverTime	()		if (Client_GetTicks() &gt; self.t_end)=
+ then self:Yield() end end
+
+Modified: trunk/lua/lib.protocol.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.protocol.lua (original)
++++ trunk/lua/lib.protocol.lua Mon Jan 12 22:49:04 2009
+@@ -42,12 +42,15 @@
+ 	for k,v in pairs(gPacketType) do gPacketTypeId2Name[v.id] =3D k end
+ 	for k,v in pairs(gPacketType) do _G[k] =3D v.id end -- make names availab=
+le as global constants, like kPacket_Account_Login_Request, needed for send=
+ing
+ 	=
+
++
++gProfiler_Packets =3D CreateRoughProfiler(&quot;Packets&quot;)
++
+ -- check if packets are complete and handle them
+ function HandlePackets ()
+ 	if (not gNoLogPackets_ByPacket) then gNoLogPackets_ByPacket =3D {} for k,=
+v in pairs(gNoLogPackets) do gNoLogPackets_ByPacket[v] =3D true end end
+ 	local input =3D GetRecvFIFO()
+ 	=
+
+-	local profile =3D gEnableProfiler_Packets and MakeProfiler(&quot;HandlePackets=
+&quot;,nil,true)
++	gProfiler_Packets:Start(gEnableProfiler_Packets)
+ 	=
+
+ 	while (input:Size() &gt;=3D 1) do
+ 		local iId =3D input:PeekNetUint8(0)
+@@ -70,11 +73,11 @@
+ 			--~ Crash()
+ 		end
+ 		=
+
+-		if (profile) then profile:StartSection(gPacketTypeId2Name[iId]) end
++		gProfiler_Packets:Section(gPacketTypeId2Name[iId])
+ 		HandlePacket(input,iId,iPacketSize)
+ 	end
+ 	=
+
+-	if (profile) then profile:FinishAndPrintSectionIfOverDefault() end
++	gProfiler_Packets:End()
+ end
+ =
+
+ function HandlePacket (input,iId,iPacketSize)
+
+Modified: trunk/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/main.lua (original)
++++ trunk/lua/main.lua Mon Jan 12 22:49:04 2009
+@@ -416,8 +416,8 @@
+ =
+
+ 	-- mainloop
+ 	if (gEnableGlobalProfiler) then StartGlobalProfiler2() end -- old and too=
+ slow, don't use
+-	gMyProfilerTopTenInterval =3D 1000*30
+-	RegisterIntervalStepper(gMyProfilerTopTenInterval,MyProfilerTop)
++	gMyProfilerTopInterval =3D 1000*30
++	RegisterIntervalStepper(gMyProfilerTopInterval,MyProfilerTop)
+ 	while (Client_IsAlive()) do =
+
+ 		MainStep() =
+
+ 	end
+@@ -429,29 +429,60 @@
+ gMyProfilerTopCPUTSum =3D 0
+ gMyProfilerTopGPUTSum =3D 0
+ function MyProfilerTop ()
+-	print(Client_GetTicks(),&quot;=3D=3D=3D MyProfilerTop =3D=3D=3D&quot;)
++	print(Client_GetTicks(),&quot;=3D=3D=3D MyProfilerTop cpu time =3D=3D=3D&quot;)
+ 	if (not gEnableRoughProfileSum) then return end
+-	local arr =3D {}
+-	for k,profiler in pairs({gProfiler_MainStep,
+-							gProfiler_R2D_MainStep,
+-							gProfiler_R2D_MousePick,
+-							gProfiler_R3D_MainStep,
+-							gProfiler_Walk,
+-							gProfiler_Blendout,	=
+
+-							}) do
+-		for secname,tsum in pairs(profiler.sum) do table.insert(arr,{name=3Dprof=
+iler.name..&quot;:&quot;..secname,tsum=3Dtsum}) end
+-		profiler.sum =3D {}
++	local arr_t =3D {}
++	local arr_memL =3D {}
++	local arr_memO =3D {}
++	local arr_tspike =3D {}
++	local arr_tspikeframe =3D {}
++	for k,profiler in pairs(gAllRoughProfilers) do
++		for secname,v in pairs(profiler.sum			) do table.insert(arr_t			,{name=
+=3Dprofiler.name..&quot;:&quot;..secname,v=3Dv}) end
++		for secname,v in pairs(profiler.sum_memL	) do table.insert(arr_memL		,{n=
+ame=3Dprofiler.name..&quot;:&quot;..secname,v=3Dv}) end
++		for secname,v in pairs(profiler.sum_memO	) do table.insert(arr_memO		,{n=
+ame=3Dprofiler.name..&quot;:&quot;..secname,v=3Dv}) end
++		for secname,v in pairs(profiler.sum_tspike	) do table.insert(arr_tspike	=
+,{name=3Dprofiler.name..&quot;:&quot;..secname,v=3Dv}) end
++		for secname,v in pairs(profiler.sum_tspikeframe_total	) do table.insert(=
+arr_tspikeframe	,{name=3Dprofiler.name..&quot;:&quot;..secname,v=3Dv}) end
++		profiler.sum		=3D {}
++		profiler.sum_memL	=3D {}
++		profiler.sum_memO	=3D {}
++		profiler.sum_tspike	=3D {}
++		profiler.sum_tspikeframe_total	=3D {}
+ 	end =
+
+-	table.sort(arr,function (a,b) return a.tsum &gt; b.tsum end)
+-	for k,o in pairs(arr) do =
+
+-		if (k &lt;=3D 10) then print(&quot; #&quot;..k,sprintf(&quot;%5dmsec (%3d%%)&quot;,o.tsum,floor=
+(100*o.tsum/gMyProfilerTopCPUTSum)),o.name) end
++	table.sort(arr_t			,function (a,b) return a.v &gt; b.v end)
++	table.sort(arr_memL			,function (a,b) return a.v &gt; b.v end)
++	table.sort(arr_memO			,function (a,b) return a.v &gt; b.v end)
++	table.sort(arr_tspike		,function (a,b) return a.v &gt; b.v end)
++	table.sort(arr_tspike		,function (a,b) return a.v &gt; b.v end)
++	table.sort(arr_tspikeframe	,function (a,b) return a.v &gt; b.v end)
++	local topx =3D 10
++	for k,o in pairs(arr_t) do =
+
++		if (k &lt;=3D topx) then print(&quot; #&quot;..k,sprintf(&quot;%5dmsec (%3d%%)&quot;,o.v,floor(=
+100*o.v/gMyProfilerTopCPUTSum)),o.name) end =
+
+ 	end
+ 	print(sprintf(&quot; total time=3D%dsec cpu=3D%d%% gpu=3D%d%% idle/maxfpswait=
+=3D%d%%&quot;	=
+
+-															,	floor(gMyProfilerTopTenInterval/1000)
+-															,	floor(100*gMyProfilerTopCPUTSum/gMyProfilerTopTenInterval)
+-															,	floor(100*gMyProfilerTopGPUTSum/gMyProfilerTopTenInterval)
+-															,	floor(100*(gMyProfilerTopTenInterval-(gMyProfilerTopCPUTS=
+um+gMyProfilerTopGPUTSum))/gMyProfilerTopTenInterval)
++															,	floor(gMyProfilerTopInterval/1000)
++															,	floor(100*gMyProfilerTopCPUTSum/gMyProfilerTopInterval)
++															,	floor(100*gMyProfilerTopGPUTSum/gMyProfilerTopInterval)
++															,	floor(100*(gMyProfilerTopInterval-(gMyProfilerTopCPUTSum+=
+gMyProfilerTopGPUTSum))/gMyProfilerTopInterval)
+ 															))
++															=
+
++	print(Client_GetTicks(),&quot;=3D=3D=3D MyProfilerTop tspike (single sections =
+causing delays/lags) =3D=3D=3D&quot;)
++	for k,o in pairs(arr_tspike) do =
+
++		if (k &lt;=3D topx) then print(&quot; #&quot;..k,sprintf(&quot;%5dmsec&quot;,o.v),o.name) end =
+
++	end
++	print(Client_GetTicks(),&quot;=3D=3D=3D MyProfilerTop tspikeframe (the summed =
+cpu usage of all things during delay/lag-frames) =3D=3D=3D&quot;)
++	for k,o in pairs(arr_tspikeframe) do =
+
++		if (k &lt;=3D topx) then print(&quot; #&quot;..k,sprintf(&quot;%5dmsec&quot;,o.v),o.name) end =
+
++	end
++	print(Client_GetTicks(),&quot;=3D=3D=3D MyProfilerTop memLua =3D=3D=3D&quot;)
++	for k,o in pairs(arr_memL) do =
+
++		if (k &lt;=3D topx) then print(&quot; #&quot;..k,sprintf(&quot;%5dkb&quot;,floor(o.v/1024)),o.n=
+ame) end =
+
++	end
++	print(Client_GetTicks(),&quot;=3D=3D=3D MyProfilerTop memOgre =3D=3D=3D&quot;)
++	for k,o in pairs(arr_memO) do =
+
++		if (k &lt;=3D topx) then print(&quot; #&quot;..k,sprintf(&quot;%5dkb&quot;,floor(o.v/1024)),o.n=
+ame) end =
+
++	end
++	print(Client_GetTicks(),&quot; . . . . . &quot;)
++	=
+
+ 	gMyProfilerTopCPUTSum =3D 0
+ 	gMyProfilerTopGPUTSum =3D 0
+ end
+@@ -575,15 +606,19 @@
+ 	gFrameTimeCPUFraction =3D dt_cpu / ( dt_cpu + dt_gpu )
+ 	=
+
+ 	=
+
++	local t =3D Client_GetTicks()
++	local iTimeSinceLastFrame =3D gLastFrameTime and (t - gLastFrameTime)
++	=
+
++	RoughProfileEndFrame(iTimeSinceLastFrame)
++	=
+
+ 	if (gMaxFPS) then =
+
+-		local t =3D Client_GetTicks()
+ 		local iMinTimeBetweenFrames =3D 1000/gMaxFPS
+-		local iTimeSinceLastFrame =3D gLastFrameTime and (t - gLastFrameTime) or=
+ iMinTimeBetweenFrames
++		iTimeSinceLastFrame =3D iTimeSinceLastFrame or iMinTimeBetweenFrames
+ 		Client_USleep(max(1,iMinTimeBetweenFrames - iTimeSinceLastFrame))
+-		gLastFrameTime =3D Client_GetTicks()
+ 	else
+ 		Client_USleep(1) -- just 1 millisecond, but gives other processes a chan=
+ce to do something
+ 	end
++	gLastFrameTime =3D Client_GetTicks()
+ end
+ =
+
+ -- exports data if some commandline parameters are set
+
+Modified: trunk/lua/net/net.multi.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.multi.lua (original)
++++ trunk/lua/net/net.multi.lua Mon Jan 12 22:49:04 2009
+@@ -13,7 +13,7 @@
+ 		local unknown4 =3D input:PopNetUint32()	--(all 0)
+ 		local unknown5 =3D input:PopNetUint16()	--(all 0)
+ 	=
+
+-	if (request =3D=3D hex2num(&quot;0x01&quot;)) then
++	if (request =3D=3D 0x01) then
+ 		StartTargetMode()
+ 	end
+ end
+@@ -22,7 +22,7 @@
+ function Send_CustomHouseRevision(customhouseserial)
+ 	local out =3D GetSendFIFO()
+ 	out:PushNetUint8(kPacket_Generic_Command)
+-	out:PushNetUint16(hex2num(&quot;0x0009&quot;))
++	out:PushNetUint16(0x0009)
+ 	out:PushNetUint16(kPacket_Generic_SubCommand_HouseSerial)	--SubID
+ 	out:PushNetUint32(customhouseserial)
+ 	out:SendPacket()
+@@ -44,7 +44,10 @@
+ -- TODO : this packet handling is so stupid... ea/osi please think before =
+you are writing sourcecode !!
+ -- this code is based on the packet format runuo uses
+ gCustomHouseMultiTileCache =3D {}
++gProfiler_CustomHousePacket =3D CreateRoughProfiler(&quot;CustomHousePacket&quot;)
+ function gPacketHandler.kPacket_Custom_House()	--0xD8
++	gProfiler_CustomHousePacket:Start(gEnableProfiler_CustomHousePacket)
++	gProfiler_CustomHousePacket:Section(&quot;PopHeader&quot;)
+ 	local input =3D GetRecvFIFO()
+ 	local startsize =3D input:Size()
+ 	local id =3D input:PopNetUint8()
+@@ -60,6 +63,7 @@
+ 	printdebug(&quot;net&quot;,sprintf(&quot;NET: Custom_House: iPacketSize=3D%d compresstyp=
+e=3D0x%02x unknown1=3D0x%02x customhouseserial=3D%d customhouserevision=3D0=
+x%08x tilecount=3D%d bufferlen=3D%d planecount=3D%d\n&quot;,
+ 			iPacketSize, compresstype, unknown1, customhouseserial, customhouserevi=
+sion, tilecount, bufferlen, planecount))
+ =
+
++	gProfiler_CustomHousePacket:Section(&quot;GetDynamic&quot;)
+ 	local dyn =3D GetDynamic(customhouseserial)
+ =
+
+ 	-- if dynamic-customhouse-multi alreay exists
+@@ -78,6 +82,7 @@
+ 	=
+
+ 	local lTile
+ 	=
+
++	gProfiler_CustomHousePacket:Section(&quot;CacheCheck&quot;)
+ 	if gCustomHouseMultiTileCache[customhouserevision] then
+ 		local left =3D iPacketSize - (startsize - input:Size())
+ 		input:PopRaw(left)
+@@ -85,15 +90,16 @@
+ 	else
+ 		lTile =3D {}
+ 		--------------- if compressed ----------------------
+-		if (compresstype =3D=3D hex2num(&quot;0x03&quot;)) then
++		if (compresstype =3D=3D 0x03) then
+ 			local lPlaneLayer =3D {}
+ 			=
+
++			gProfiler_CustomHousePacket:Section(&quot;comp:Planes&quot;)
+ 			for i =3D 0, planecount - 1 do
+ 				local planeid =3D input:PopNetUint8()
+-				local planetype =3D BitwiseAND(planeid,hex2num(&quot;0x20&quot;))
++				local planetype =3D BitwiseAND(planeid,0x20)
+ 				=
+
+ 				-- calculate planeid
+-				if planetype =3D=3D hex2num(&quot;0x20&quot;) then planeid =3D BitwiseXOR(planei=
+d,hex2num(&quot;0x20&quot;)) =
+
++				if planetype =3D=3D 0x20 then planeid =3D BitwiseXOR(planeid,0x20) =
+
+ 				else planeid =3D planeid - 9 end
+ 							=
+
+ 				local uncompressedsize =3D input:PopNetUint8()
+@@ -101,14 +107,14 @@
+ 				local compressedsize =3D input:PopNetUint8()
+ 				local bothsizes =3D input:PopNetUint8()		--? Write( (byte)(((size &gt;&gt; 4=
+) &amp; 0xF0) | ((deflatedLength &gt;&gt; 8) &amp; 0xF)) );
+ 				=
+
+-				uncompressedsize =3D uncompressedsize + BitwiseSHL(BitwiseAND(bothsize=
+s,hex2num(&quot;0xF0&quot;)),4)
+-				compressedsize =3D compressedsize + BitwiseSHL(BitwiseAND(bothsizes,he=
+x2num(&quot;0xF&quot;)),8)
++				uncompressedsize =3D uncompressedsize + BitwiseSHL(BitwiseAND(bothsize=
+s,0xF0),4)
++				compressedsize =3D compressedsize + BitwiseSHL(BitwiseAND(bothsizes,0x=
+F),8)
+ 			=
+
+ 				printdebug(&quot;net&quot;,sprintf(&quot;NET: Custom_House2: planeid=3D%d planetype=
+=3D0x%02x uncompressedsize=3D0x%02x compressedsize=3D0x%02x bothsizes=3D0x%=
+02x\n&quot;,
+ 						planeid,planetype,uncompressedsize,compressedsize,bothsizes))
+ 			=
+
+ 				-- switch between stair and plane buffers
+-				if planetype =3D=3D hex2num(&quot;0x20&quot;) then
++				if planetype =3D=3D 0x20 then
+ 					-- ------------------------------------------------------------------=
+--------
+ 					-- planelayers
+ 					-- ------------------------------------------------------------------=
+--------
+@@ -156,6 +162,7 @@
+ 				input:PopRaw(compressedsize)
+ 			end
+ =
+
++			gProfiler_CustomHousePacket:Section(&quot;comp:MidCalcAndValidity&quot;)
+ 			-- calculate w,h from sizes
+ 			local a =3D -1
+ 			local b =3D s0 + 2 - (s1 or 0)
+@@ -185,6 +192,7 @@
+ 			-- --------------------------------------------------------------------=
+------
+ 			-- Parse remaining unparsed planelayers -----------------
+ 			-- --------------------------------------------------------------------=
+------
++			gProfiler_CustomHousePacket:Section(&quot;comp:ParseRemaining&quot;)
+ 			for i =3D 0, 9 - 1 do
+ 				local fifo =3D lPlaneLayer[i]
+ 				-- is valid plane layer?
+@@ -251,7 +259,8 @@
+ 				end
+ 			end
+ 		--------------- if uncompressed ----------------------
+-		elseif (compresstype =3D=3D hex2num(&quot;0x00&quot;)) then
++		elseif (compresstype =3D=3D 0x00) then
++			gProfiler_CustomHousePacket:Section(&quot;uncomp:tiles&quot;)
+ 			for i=3D1, i &lt;=3D tilecount do
+ 				local tile =3D {}
+ 				tile.artid =3D decompressed:PopNetUint16()
+@@ -261,13 +270,13 @@
+ =
+
+ 				if (tile.artid &gt; 0) then =
+
+ 					if (tile.x &lt; 0) then
+-						tile.x =3D hex2num(&quot;0xFF&quot;) + (tile.x + 1);
++						tile.x =3D 0xFF + (tile.x + 1);
+ 					end
+ 					if(tile.y &lt; 0) then
+-						tile.y =3D hex2num(&quot;0xFF&quot;) + (tile.y + 1);
++						tile.y =3D 0xFF + (tile.y + 1);
+ 					end
+ 					if(tile.z &lt; 0) then
+-						tile.z =3D hex2num(&quot;0xFF&quot;) + (tile.z + 1);
++						tile.z =3D 0xFF + (tile.z + 1);
+ 					end
+ =
+
+ 					printdebug(&quot;net&quot;,sprintf(&quot;NET: Custom_House Plane: artid=3D0x%04x x=
+=3D%i y=3D%i z=3D%i\n&quot;,
+@@ -298,12 +307,16 @@
+ 			dyn.customhouserevision =3D customhouserevision
+ 			=
+
+ 			-- update house visuals
++			gProfiler_CustomHousePacket:Section(&quot;RemoveDynamicItem&quot;)
+ 			gCurrentRenderer:RemoveDynamicItem( dyn )
+ 			dyn.lTile=3DlTile
++			gProfiler_CustomHousePacket:Section(&quot;UpdateMultiData&quot;)
+ 			UpdateMultiData(dyn)
++			gProfiler_CustomHousePacket:Section(&quot;AddDynamicItem&quot;)
+ 			gCurrentRenderer:AddDynamicItem( dyn )
+ 		end
+ 	end
++	gProfiler_CustomHousePacket:End()
+ end
+ =
+
+ function UpdateMultiData (item)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001662.html">[Iris-commit] [IRIS] r2860 - in /trunk/lua: lib.2d.map.lua lib.2d.renderer.lua lib.blendout.lua lib.charcreate.lua main.lua net.walk.lua
+</A></li>
+	<LI>Next message: <A HREF="001664.html">[Iris-commit] [IRIS] r2862 - in /trunk/lua: lib.2d.dynamic.lua	main.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1663">[ date ]</a>
+              <a href="thread.html#1663">[ thread ]</a>
+              <a href="subject.html#1663">[ subject ]</a>
+              <a href="author.html#1663">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

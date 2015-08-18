@@ -1,0 +1,2725 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2152 - in /trunk: include/ src/
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-May/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2152%20-%20in%20/trunk%3A%20include/%20src/&In-Reply-To=%3C20080509175122.08F781524040%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000961.html">
+   <LINK REL="Next"  HREF="000963.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2152 - in /trunk: include/ src/</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2152%20-%20in%20/trunk%3A%20include/%20src/&In-Reply-To=%3C20080509175122.08F781524040%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2152 - in /trunk: include/ src/">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Fri May  9 19:51:19 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000961.html">[Iris-commit] [IRIS] r2151 - in /trunk: include/builder_common.h include/data.h lua/lib.uoanim.lua src/builder.cpp src/builder_anim.cpp src/builder_art.cpp src/builder_font.cpp src/builder_gump.cpp src/builder_map.cpp src/builder_tex.cpp
+</A></li>
+        <LI>Next message: <A HREF="000963.html">[Iris-commit] [IRIS] r2153 - in /trunk: include/ src/
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#962">[ date ]</a>
+              <a href="thread.html#962">[ thread ]</a>
+              <a href="subject.html#962">[ subject ]</a>
+              <a href="author.html#962">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Fri May  9 19:51:14 2008
+New Revision: 2152
+
+Log:
+data loader code : reorganized, split big source files and headers into mul=
+tiple small
+
+Added:
+    trunk/include/data_anim.h
+    trunk/include/data_artmap.h
+    trunk/include/data_common.h
+      - copied, changed from r2151, trunk/include/builder_common.h
+    trunk/include/data_font.h
+    trunk/include/data_groundblock.h
+    trunk/include/data_gump.h
+    trunk/include/data_hue.h
+    trunk/include/data_indexed.h
+    trunk/include/data_light.h
+    trunk/include/data_lookup.h
+    trunk/include/data_mapinfo.h
+    trunk/include/data_multi.h
+    trunk/include/data_radar.h
+    trunk/include/data_raw.h
+    trunk/include/data_sound.h
+    trunk/include/data_staticblock.h
+    trunk/include/data_texmap.h
+    trunk/include/data_tiletype.h
+    trunk/src/data_anim.cpp
+    trunk/src/data_artmap.cpp
+    trunk/src/data_common.cpp
+      - copied, changed from r2151, trunk/src/builder.cpp
+    trunk/src/data_font.cpp
+    trunk/src/data_groundblock.cpp
+    trunk/src/data_gump.cpp
+    trunk/src/data_hue.cpp
+    trunk/src/data_light.cpp
+    trunk/src/data_lookupfile.cpp
+    trunk/src/data_map.cpp
+    trunk/src/data_mapinfo.cpp
+    trunk/src/data_multi.cpp
+    trunk/src/data_radar.cpp
+    trunk/src/data_sound.cpp
+    trunk/src/data_staticblock.cpp
+    trunk/src/data_texmap.cpp
+    trunk/src/data_tiletype.cpp
+Removed:
+    trunk/include/builder_common.h
+    trunk/include/radar.h
+    trunk/src/builder.cpp
+    trunk/src/builder_anim.cpp
+    trunk/src/builder_art.cpp
+    trunk/src/builder_font.cpp
+    trunk/src/builder_gump.cpp
+    trunk/src/builder_map.cpp
+    trunk/src/builder_tex.cpp
+    trunk/src/radar.cpp
+    trunk/src/radar_L.cpp
+Modified:
+    trunk/include/data.h
+    trunk/src/data.cpp
+    trunk/src/scripting.iris.cpp
+
+Modified: trunk/include/data.h
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/include/data.h (original)
++++ trunk/include/data.h Fri May  9 19:51:14 2008
+@@ -21,22 +21,22 @@
+ #define INDEX_UNDEFINED_OFFSET	((uint32)(0xFFFFFFFF))
+ #define INDEX_UNDEFINED_LENGTH	((uint32)(0xFFFFFFFF))
+ =
+
+-// Compiler directives for packed structs (not 4byte aligned)
+-#ifdef WIN32
+-#pragma pack(push, 1)
+-#endif
+-
+-#if  	defined(WIN32) &amp;&amp; !defined(__MINGW32__)
+-// Visual C pragma
+-#define STRUCT_PACKED
+-#else
+-// GCC packed attribute
+-#define STRUCT_PACKED	__attribute__ ((packed))
+-#endif
+-
+ =
+
+ using namespace Lugre;
+ =
+
++
++// ***** ***** ***** ***** ***** utilities
++
++
++class TiXmlHandle;
++class lua_State;
++
++void	LuaRegisterData 	(lua_State *L);
++
++const char* GetTiXmlHandleText (const TiXmlHandle&amp; handle,const char* szFa=
+llback=3D&quot;&quot;);
++const char* GetTiXmlHandleAttr (const TiXmlHandle&amp; handle,const char* szAt=
+trName,const char* szFallback=3D&quot;&quot;);
++
++	=
+
+ class FileNotFoundException : public std::runtime_error { public:
+ 	FileNotFoundException(const std::string&amp; sFilePath) : std::runtime_error(=
+&quot;FileNotFoundException : &quot;+sFilePath) { }
+ };
+@@ -54,941 +54,63 @@
+ 	*destpos =3D value;
+ 	return true;
+ }
+- =
+
+-class TiXmlHandle;
+ =
+
+-/// utilities
+ =
+
+-	class 	lua_State;
+-	void	LuaRegisterData 	(lua_State *L);
++/// loads complete file into one big buffer, has far better performance th=
+an loading small chunks, but uses more ram
++class cFullFileLoader { public :
++	char*		mpFullFileBuffer;
++	int			miFullFileSize;
++	cFullFileLoader				(const char* szFile);
++	virtual ~cFullFileLoader	();
++};
+ =
+
+-	const char* GetTiXmlHandleText (const TiXmlHandle&amp; handle,const char* szF=
+allback=3D&quot;&quot;);
+-	const char* GetTiXmlHandleAttr (const TiXmlHandle&amp; handle,const char* szA=
+ttrName,const char* szFallback=3D&quot;&quot;);
+-	=
+
++struct RawIndex;
++/// ideal for the design pattern flyweight, like cGroundBlock is a flyweig=
+ht, and cGroundBlockLoader_FullFile:cFullFileLoader is the flyweight factory
+ =
+
+-	/// loads complete file into one big buffer, has far better performance t=
+han loading small chunks, but uses more ram
+-	class cFullFileLoader { public :
+-		char*		mpFullFileBuffer;
+-		int			miFullFileSize;
+-		cFullFileLoader				(const char* szFile);
+-		virtual ~cFullFileLoader	();
+-	};
+-	=
+
+-	struct RawIndex;
+-	/// ideal for the design pattern flyweight, like cGroundBlock is a flywei=
+ght, and cGroundBlockLoader_FullFile:cFullFileLoader is the flyweight facto=
+ry
++class cIndexFile : public cFullFileLoader { public : =
+
++	cIndexFile 						(const char* szIndexFile);
++	inline unsigned int GetRawIndexCount 	() { return miFullFileSize/12; }
++	inline RawIndex* GetRawIndex 	(const int iID) { return (iID &lt; 0 || iID &gt;=
+=3D miFullFileSize/12) ? 0 : (RawIndex*)(mpFullFileBuffer + iID*12); } ///&lt;=
+ sizeof(RawIndex) =3D 12 =
+
++};
+ =
+
+-	class cIndexFile : public cFullFileLoader { public : =
+
+-		cIndexFile 						(const char* szIndexFile);
+-		inline unsigned int GetRawIndexCount 	() { return miFullFileSize/12; }
+-		inline RawIndex* GetRawIndex 	(const int iID) { return (iID &lt; 0 || iID &gt;=
+=3D miFullFileSize/12) ? 0 : (RawIndex*)(mpFullFileBuffer + iID*12); } ///&lt;=
+ sizeof(RawIndex) =3D 12 =
+
+-	};
+-
+-	class cIndexedFullFile : public cFullFileLoader { public :
+-		cIndexFile			mIndexFile;
+-		cIndexedFullFile	(const char* szIndexFile,const char* szDataFile);
+-	};
++class cIndexedFullFile : public cFullFileLoader { public :
++	cIndexFile			mIndexFile;
++	cIndexedFullFile	(const char* szIndexFile,const char* szDataFile);
++};
+ 	=
+
+ 	=
+
+-/// endian stuff
+-
+-	=
+
+-	bool			IsEndianConversionNeed	();
+-	uint32	IRIS_SwapU32			(uint32	val);
+-	  int32	IRIS_SwapI32			(  int32  val);
+-	uint16	IRIS_SwapU16			(uint16 val);
+-	  int16	IRIS_SwapI16			(  int16 val);
+-	float   		IRIS_FloatFromLittle	(float val);
++// ***** ***** ***** ***** ***** endian stuff
+ =
+
+ =
+
+-/// packed structs used by uo
++bool			IsEndianConversionNeed	();
++uint32	IRIS_SwapU32			(uint32	val);
++  int32	IRIS_SwapI32			(  int32  val);
++uint16	IRIS_SwapU16			(uint16 val);
++  int16	IRIS_SwapI16			(  int16 val);
++float   		IRIS_FloatFromLittle	(float val);
+ =
+
+ =
+
+-	/// struct for mapX.mul - contains information about ground tiles
+-	/// see also cGroundBlock
+-	struct RawGroundTile {
+-		uint16 	miTileType; ///&lt; always smaller 0x00004000 in GroundTile, see al=
+so RawGroundTileType,cGroundTileType
+-		int8 	miZ;
+-	} STRUCT_PACKED; // 3 bytes
+ =
+
+-	/// see also cGroundBlock
+-	struct RawGroundBlock {
+-		struct RawGroundTile mTiles[8][8]; /// [y][x]
+-	} STRUCT_PACKED; // 8*8*3 =3D 192
+-	=
+
+-	/// struct for tiledata.mul first half (id &lt; cStaticTileType::GetFirstID(=
+) )
+-	struct RawGroundTileType {
+-		uint32 	miFlags;
+-		uint16	miTexID;
+-		char 			msName[20]; ///&lt; TODO is this always zero terminated ?!?
+-	} STRUCT_PACKED; // 26 bytes
+-	=
+
+-	/// struct for tiledata.mul second half (id &gt;=3D cStaticTileType::GetFirs=
+tID() )
+-	struct RawStaticTileType {
+-		uint32 	miFlags;
+-		char 	miWeight; ///&lt; 255/ff means not movable
+-		char 	miQuality; ///&lt; (If Wearable, this is a Layer. If Light Source, th=
+is is Light ID)
+-		uint16 	miUnknown;
+-		char 	miUnknown1;
+-		char 	miQuantity; ///&lt; bodyID in valley   (if Weapon, this is Weapon Cla=
+ss. If Armor, Armor Class)
+-		uint16 	miAnimID; ///&lt; Appearance, (The Body ID the animatation. Add 50,=
+000 and 60,000 respectivefully to get the two gump indicies assocaited with=
+ this tile)
+-		char 	miUnknown2;
+-		char 	miHue; ///&lt; (perhaps colored light?)
+-		uint16 	miUnknown3;  ///&lt;  1st byte unknown, 2nd byte : Value
+-		char 	miHeight; ///&lt; (If Conatainer, this is how much the container can =
+hold)
+-		char 			msName[20]; ///&lt; TODO is this always zero terminated ?!?
+-	} STRUCT_PACKED; // 37 bytes
+-	/// ?!? The art entry is like the static entry, except that Weight is the=
+ low byte of TextureID and Quality is the high byte.
+-	=
+
+-	/// struct for static index entry
+-	struct RawIndex {
+-		uint32 miOffset;
+-		uint32 miLength;
+-		uint32 miExtra;		=
+
+-	} STRUCT_PACKED; // 12 bytes
+-	=
+
+-	/// some checks if the index contains valid data
+-	inline const bool IsIndexValid(const RawIndex *p){
+-		return p &amp;&amp; p-&gt;miOffset !=3D INDEX_UNDEFINED_OFFSET &amp;&amp; p-&gt;miOffset !=3D =
+INDEX_UNDEFINED_LENGTH;
+-	}
+-	=
+
+-	/// struct for staticsX.mul - contains information about static tiles
+-	struct RawStatic {
+-		uint16 	miTileID;
+-		char 	miX; ///&lt; offset in block, (0..7)
+-		char 	miY; ///&lt; offset in block, (0..7)
+-		int8 	miZ; ///&lt; like RawGroundTile.miZ
+-		uint16 	miHue;
+-	}  STRUCT_PACKED; // 7 bytes
+-	=
+
++// ***** ***** ***** ***** ***** parts
+ =
+
+-	/*
+-		WORD BlockNum
+-		WORD X
+-		WORD Y
+-		WORD Alt
+-		UDWORD Flags
++#include &quot;data_raw.h&quot;
+ =
+
+-		Once 16384+BlockNum has been looked up in ART, the block can be drawn us=
+ing the following positioning:
+-
+-		DrawX =3D LeftMostX + (MultiBlock.X - MultiBlock.Y) * 22 - (Block.Width =
+shr 1)
+-		DrawY =3D TopMostY + (MultiBlock.X + MultiBlock.Y) * 22 - Block.Height -=
+ MultiBlock.Alt * 4 =
+
+-	*/
+-	/// struct for multi.mul - contains information about multiparts
+-	struct RawMultiPart {
+-		uint16 	miBlockNum;
+-		int16 	miX;
+-		int16 	miY;
+-		int16 	miZ;
+-		uint32 	miFlags;
+-	}  STRUCT_PACKED; // 12 bytes
+-
+-	// warning, don't use int for dword(32 bit), int might be 64 bit on new s=
+ystems !
+-
+-	struct RawAnimData {
+-		int8 miFrames[64];
+-		char miUnknown;
+-		char miCount;
+-		char miFrameInterval;
+-		char miFrameStart;
+-	}  STRUCT_PACKED;
+-	=
+
+-	// see also : fonts.mul : <A HREF="http://arachnide.sourceforge.net/formats/fonts/=">http://arachnide.sourceforge.net/formats/fonts/=</A>
+index.html, seems to be wrong though...
+-	// unifont letter header
+-	struct RawUniFontFileLetterHeader {
+-		int8 miXOffset;
+-		int8 miYOffset;
+-		char miWidth;
+-		char miHeight;
+-	} STRUCT_PACKED;
+-	=
+
+-// ***** ***** ***** ***** ***** cUniFontFileLoader
+-
+-	/// loads a complete uo unifont, =
+
+-	class cUniFontFileLoader : public cFullFileLoader, public Lugre::cSmartPo=
+intable { public :
+-		cUniFontFileLoader				(const char* szFile);
+-		// returns the number of letters in the file
+-		const int GetLetterNumbers();
+-		// persentage [0-1] of really different letters
+-		const float GetLetterUsage();
+-		// returns the header of the given letter code or 0 on error
+-		RawUniFontFileLetterHeader*		GetLetterHeader	(const unsigned int iCode);
+-		// returns the pointer to the beginning of the given letter data or 0 on=
+ error
+-		const char*						GetLetterData	(const unsigned int iCode);
+-		// calculate the maximum sizes (respect offsets)
+-		char					GetMaxWidth();
+-		char					GetMaxHeight();
+-		virtual	~cUniFontFileLoader		();
+-		=
+
+-		// static stuff
+-		=
+
+-		/// read out the pixel at x,y in data of one letter (with given width w =
+and height h of buffer)
+-		/// this ignores the offsets of the letter, position only local in data
+-		/// returns 1 if the pixel ist visible and 0 if invisible
+-		const bool		IsPixelInside	(const char *data, const int w, const int h, c=
+onst int x, const int y);
+-		=
+
+-		/// @see IsPixelInside
+-		/// returns true if the pixel is a border pixel (has visible non border =
+neightbours, a normal visible pixel is no border)
+-		const bool		IsPixelBorder	(const char *data, const int w, const int h, c=
+onst int x, const int y);
+-	};
+-	=
+
+-// ***** ***** ***** ***** ***** cMapInfo
+-	=
+
+-		=
+
+-	/// infos about a single map, usually iMapNum is in 0-4, &quot;data/xml/Maps.x=
+ml&quot;
+-	class cMapInfo { public:
+-		int			miID;
+-		int			miWidth;
+-		int			miHeight;
+-		std::string msName;
+-		std::string msSkyBox;
+-		int 		miBaseID;
+-		int 		miFogR;
+-		int 		miFogG;
+-		int 		miFogB;
+-		=
+
+-		bool	Load	(const int iMapNum,const char* szFile=3D&quot;data/xml/Maps.xml&quot;);
+-		void	Print	();
+-	};
+-	=
+
+-// ***** ***** ***** ***** ***** lookup table
+-	=
+
+-/// a simple id lookup table for diff files
+-class cLookupFile { public :
+-	cLookupFile					(const char* szFile);
+-	/// check if the lookup table contains the given id
+-	const bool Contains			(const uint32 id);
+-	/// lookup an id
+-	const uint32 Lookup	(const uint32 id);
+-	virtual ~cLookupFile			();
+-private:
+-	std::map&lt;uint32,uint32&gt;	mLookupTable;
+-};	=
+
+-	=
+
+-// ***** ***** ***** ***** ***** GroundBlock
+-	=
+
+-
+-	/// loads a single block (8x8 tiles) from a map*.mul file in the uo dir, =
+contains only ground info, no statics
+-	class cGroundBlock { public:
+-		int				miX;
+-		int				miY;
+-		RawGroundBlock*	mpRawGroundBlock; ///&lt; memory not owned by this class
+-		=
+
+-		cGroundBlock	();
+-		inline static int	GetBlockNumber	(const int iX,const int iY,const int iM=
+apH) { return (iX * iMapH) + iY; }
+-		inline static int	GetRawOffset	(const int iBlockNumber) { return iBlockN=
+umber * 196 + 4; }
+-		inline static int	GetRawOffset	(const int iX,const int iY,const int iMap=
+H) { return ( ( iX * iMapH ) + iY ) * 196 + 4; }
+-		inline static int	GetRawLength	() 											{ return sizeof(RawGroundBl=
+ock); } ///&lt; 192
+-		inline static int	CalcMapW		(const int iMapH,const int iFileSize) 		{ re=
+turn iFileSize / (196 * iMapH); } =
+
+-	};
+-
+-	/// abstract base class
+-	class cGroundBlockLoader : public Lugre::cSmartPointable { public :
+-		int				miMapW;
+-		int				miMapH;
+-		cGroundBlockLoader						(const int iMapH);
+-		=
+
+-		/// result of Get is only guaranteed to be valid until next Get call, un=
+less PrepareGroupLoading below is used and succeeds
+-		virtual	cGroundBlock*	GetGroundBlock	(const int iX,const int iY) =3D 0;
+-		=
+
+-		/// bx,by is the center
+-		/// used for terrain
+-		/// returns true on success, false if not possible
+-		/// not all loader implementations might implement this
+-		/// guarantees that as long as all succeeding GetGroundBlock calls are i=
+nside the area, they don't invalidate each other,
+-		/// e.g. you can load more than one block at once
+-		/// warning, as soon as something outside the area is requested, all loa=
+ded blocks could be invalidated
+-		/// not implemented by default -&gt; fails
+-		/// 17.12.2007,ghoulsblade : not yet implemented anywhere due to diffloa=
+der would also have to be adjusted (or disabled)
+-		virtual bool PrepareGroupLoading (const int iBX,const int iBY,const int =
+iRadius) { return false; }
+-	};
+-
+-	/// dummy loader, doesn't load anything, just repeats a predefined mapblo=
+ck
+-	class cGroundBlockLoader_Dummy : public cGroundBlockLoader { public :
+-		cGroundBlock 	mLastGroundBlock;
+-		RawGroundBlock	mRawGroundBlock;
+-		cGroundBlockLoader_Dummy				(const int iTileType,const int iZ);
+-		virtual	cGroundBlock*	GetGroundBlock	(const int iX,const int iY);
+-	};
+-
+-	/// loads blocks only on demand, rather slow, but uses little memory
+-	class cGroundBlockLoader_OnDemand : public cGroundBlockLoader { public :
+-		cGroundBlock 	mLastGroundBlock;
+-		std::ifstream	mFileStream;
+-		int				miFileSize;
+-		RawGroundBlock	mLastRawGroundBlock;
+-		cGroundBlockLoader_OnDemand			(const int iMapH,const char* szFile, const=
+ char *szDiffLookup =3D 0, const char *szDiffData =3D 0);
+-		virtual	cGroundBlock*	GetGroundBlock	(const int iX,const int iY);
+-		virtual	~cGroundBlockLoader_OnDemand	();
+-
+-	private:
+-		cGroundBlock*	GetGroundBlock	(const int iBlockNumber);
+-		=
+
+-		cLookupFile *mpDiffLookupFile;
+-		cGroundBlockLoader_OnDemand *mpDiffLoader;
+-	};
+-
+-	/// loads complete map into one big buffer, usually around 90 mb, used fo=
+r high-speed loading of the entire map
+-	class cGroundBlockLoader_FullFile : public cGroundBlockLoader, public cFu=
+llFileLoader { public :
+-		cGroundBlock 	mLastGroundBlock;
+-		cGroundBlockLoader_FullFile				(const int iMapH,const char* szFile, cons=
+t char *szDiffLookup =3D 0, const char *szDiffData =3D 0);
+-		virtual	cGroundBlock*	GetGroundBlock	(const int iX,const int iY);
+-		virtual	~cGroundBlockLoader_FullFile		();
+-
+-	private:
+-		cGroundBlock*	GetGroundBlock	(const int iBlockNumber);
+-		=
+
+-		cLookupFile *mpDiffLookupFile;
+-		cGroundBlockLoader_FullFile *mpDiffLoader;
+-	};
+-	=
+
+-	=
+
+-// ***** ***** ***** ***** ***** statics
+-	=
+
+-	=
+
+-	/// holds one map block of statics
+-	class cStaticBlock { public :
+-		int			miX;
+-		int			miY;
+-		RawIndex*	mpRawIndex; 		///&lt; memory not owned by this class
+-		RawStatic*	mpRawStaticList; 	///&lt; memory not owned by this class, array,=
+ see mpRawStaticIndex for size
+-		=
+
+-		cStaticBlock		();
+-		inline int Count 	() { return mpRawIndex ? (mpRawIndex-&gt;miLength / sizeo=
+f(RawStatic)) : 0; }
+-		inline static int	CalcMapW			(const int iMapH,const int iIndexFileSize) =
+				{ return iIndexFileSize / (sizeof(RawIndex) * iMapH); } =
+
+-		inline static int	BlockCoordsToIndex	(const int iBlockX,const int iBlock=
+Y,const int iMapH)	{ return iBlockX*iMapH + iBlockY; }
+-	};
+-	=
+
+-	/// abstract base class
+-	class cStaticBlockLoader : public Lugre::cSmartPointable { public :
+-		int				miMapW;
+-		int				miMapH;
+-		cStaticBlockLoader						(const int iMapH);
+-		virtual	cStaticBlock*	GetStaticBlock	(const int iX,const int iY) =3D 0; =
+///&lt; result of Get is only valid until next Get call
+-	};
+-	=
+
+-	/// loads complete file into one big buffer, usually 5mb, used for high-s=
+peed loading
+-	class cStaticBlockLoader_IndexedFullFile : public cStaticBlockLoader, pub=
+lic cIndexedFullFile { public :
+-		cStaticBlock 	mLastStaticBlock;
+-		/// szDiffLookup, szDiffIndex and szDiffData are diff files. you can lea=
+ve them out or specify ALL 3 of them together
+-		cStaticBlockLoader_IndexedFullFile		(const int iMapH,const char* szIndex=
+File,const char* szDataFile, const char *szDiffLookup =3D 0, const char *sz=
+DiffIndex =3D 0, const char *szDiffData =3D 0);
+-		virtual	cStaticBlock*	GetStaticBlock	(const int iX,const int iY); ///&lt; r=
+esult of Get is only valid until next Get call
+-		~cStaticBlockLoader_IndexedFullFile	();
+-	private:
+-		cLookupFile *mpDiffLookupFile;
+-		cIndexedFullFile *mpDiffIndexedFullFile;
+-	};
+-
+-
+-// ***** ***** ***** ***** ***** TileType
+-	=
+
+-	=
+
+-	/// static-tile-type (id &gt;=3D 0x00004000 =3D 32*512, otherwise cGroundTil=
+eType), from tiledata.mul
+-	/// todo : enum for flags, utility functions for interpreting them, but n=
+o iris-specific interpretations, those belong to a seperate filter class
+-	class cStaticTileType { public:
+-		int					miID;
+-		RawStaticTileType*	mpRawStaticTileType; ///&lt; memory not owned by this cl=
+ass
+-		=
+
+-		cStaticTileType	();
+-		inline static int	GetFirstID		() 				{ return TILETYPE_STATIC_ID_START; =
+} ///&lt; TODO : unhardcode, read from config ? interesting for shards ?
+-		inline static bool	IsValidID		(const int iID) { return iID &gt;=3D GetFirst=
+ID(); }
+-		inline static int	GetRawOffset	(const int iID) { return (512*836)+(((iID=
+-512*32)/32)*1188) + 4 + ((iID-512*32)%32)*37; } // id=3D512*32 : 428036 =
+
+-		inline static int	GetRawLength	() 				{ return sizeof(RawStaticTileType)=
+; } ///&lt; 37
+-		inline static int	GetEndID		(const int iFileSize) { return 512*32 + ((iF=
+ileSize - sizeof(RawStaticTileType) - (512*836 + 4)) / 1188 ) * 32; }
+-	};
+-
+-	/// ground-tile-type (id &lt; 0x00004000 =3D 32*512, otherwise RawStaticTile=
+Type), from tiledata.mul
+-	/// todo : enum for flags, utility functions for interpreting them, but n=
+o iris-specific interpretations, those belong to a seperate filter class
+-	class cGroundTileType { public:
+-		int					miID;
+-		RawGroundTileType*	mpRawGroundTileType; ///&lt; memory not owned by this cl=
+ass
+-		=
+
+-		cGroundTileType	();
+-		inline static bool	IsValidID		(const int iID) { return iID &gt;=3D 0 &amp;&amp; iID=
+ &lt; cStaticTileType::GetFirstID(); }
+-		inline static int	GetRawOffset	(const int iID) { return (iID/32)*836 + 4=
+ + (iID%32)*26; }  // id=3D512*32 : 428036 =
+
+-		inline static int	GetRawLength	() 				{ return sizeof(RawGroundTileType)=
+; } ///&lt; 26
+-	};
+-	=
+
+-	=
+
+-	/// abstract base class
+-	class cTileTypeLoader : public Lugre::cSmartPointable { public :
+-		virtual	cGroundTileType*	GetGroundTileType	(const int iID) =3D 0; ///&lt; r=
+esult of Get is only valid until next Get call
+-		virtual	cStaticTileType*	GetStaticTileType	(const int iID) =3D 0; ///&lt; r=
+esult of Get is only valid until next Get call
+-		virtual	int					GetEndID			() =3D 0; ///&lt; the returned id is not valid, =
+some ids right before it might also be not valid
+-	};
+-	=
+
+-	/// loads complete file into one big buffer, usually &lt;1mb, used for high-=
+speed loading
+-	class cTileTypeLoader_FullFile : public cTileTypeLoader, public cFullFile=
+Loader { public :
+-		cGroundTileType 	mLastGroundTileType;
+-		cStaticTileType 	mLastStaticTileType;
+-		cTileTypeLoader_FullFile						(const char* szFile);
+-		virtual	cGroundTileType*	GetGroundTileType	(const int iID); ///&lt; result =
+of Get is only valid until next Get call
+-		virtual	cStaticTileType*	GetStaticTileType	(const int iID); ///&lt; result =
+of Get is only valid until next Get call
+-		virtual	int					GetEndID			();
+-	};
+-
+-// ***** ***** ***** ***** ***** AnimData
+-
+-	class cAnimDataLoader : public Lugre::cSmartPointable, public cFullFileLo=
+ader { public :
+-		RawAnimData*		mpLastAnimData;		=
+
+-		cAnimDataLoader							(const char* szFile);
+-		RawAnimData*		GetAnimDataType		(const int iID);
+-	};
+-	=
+
+-// ***** ***** ***** ***** ***** RadarColors
+-	=
+
+-	=
+
+-	/// holds a color for each tiletype to be presented on a radar or map lik=
+e display
+-	/// reads entire file on construction, changes raw data so that alpha bit=
+ is set to opaque, so Ogre::PF_A1R5G5B5 can be used directly
+-	class cRadarColorLoader : public Lugre::cSmartPointable, public cFullFile=
+Loader { public:
+-		cRadarColorLoader	(const char* szFile);
+-		inline short	GetCol16	(const int iID) { return (iID &lt; 0 || iID &gt;=3D miFu=
+llFileSize/sizeof(short)) ? 0 : ((short*)mpFullFileBuffer)[iID]; } 	///&lt; fo=
+r Ogre::PF_A1R5G5B5
+-	};
+-	=
+
+-
+-//	***** ***** ***** ***** ***** cHue
+-	=
+
+-
+-	class cHue { public :
+-		int 	miID;	//&lt; hue id
+-		char*	mpRawData;
+-		=
+
+-		cHue();
+-		short*		GetColors();//&lt; array of 32 colors					=
+
+-		std::string	GetName();	//&lt; hue name
+-	};
+-	=
+
+-	/// loads complete hue into one big buffer, usually around 300k, used for=
+ high-speed loading of the entire hue buffer
+-	class cHueLoader : public Lugre::cSmartPointable, public cFullFileLoader =
+{ public :
+-		cHue		mLastHue;
+-		cHueLoader		(const char* szDataFile);
+-		int		GetMaxHueID		();
+-		cHue*	GetHue	(const int iID); ///&lt; result of Get is only valid until nex=
+t Get call
+-	};
+-	=
+
+-// ***** ***** ***** ***** ***** cIndexedRawData
+-	=
+
+-	=
+
+-	/// baseclass for texmap,art,gump,anim,sound.. =
+
+-	/// can be used for any raw data file that is using an uo-style index fil=
+e and addresses chunks via id
+-	class cIndexedRawData { public:
+-		enum eDataType {
+-			kDataType_TexMap,
+-			kDataType_Art,
+-			kDataType_Gump,
+-			kDataType_Anim,
+-			kDataType_Sound,
+-			kDataType_Hue,
+-			kDataType_Light
+-		};
+-		=
+
+-		eDataType	miDataType;
+-		int			miID;
+-		RawIndex*	mpRawIndex; ///&lt; memory not owned by this class
+-		char*		mpRawData; 	///&lt; memory not owned by this class
+-		=
+
+-		cIndexedRawData		(const eDataType iDataType);
+-	};
+-	=
+
+-	/// loads complete file into one big buffer, used for high-speed loading
+-	template &lt;class _T&gt; class cIndexedRawDataLoader_IndexedFullFile : public =
+cIndexedFullFile { public :
+-		_T 	mLastChunk;
+-		cIndexedRawDataLoader_IndexedFullFile	(const char* szIndexFile,const cha=
+r* szDataFile) : cIndexedFullFile(szIndexFile,szDataFile) {}
+-		inline _T*		GetChunk				(const int iID) { PROFILE ///&lt; result of Get is =
+only valid until next Get call
+-			RawIndex* pRawIndex =3D mIndexFile.GetRawIndex(iID);
+-			if (!IsIndexValid(pRawIndex)) { printf(&quot;GetChunk failed to load index\n=
+&quot;); return 0; }
+-			if (pRawIndex-&gt;miLength &lt;=3D 0) return 0;
+-			if (pRawIndex-&gt;miOffset + pRawIndex-&gt;miLength &gt; miFullFileSize) { =
+
+-				//PROFILE_PRINT_STACKTRACE =
+
+-				//printf(&quot;index points to invalid memory : offset=3D%d len=3D%d filele=
+n=3D%d\n&quot;,pRawIndex-&gt;miOffset,pRawIndex-&gt;miLength,miFullFileSize); =
+
+-				return 0; =
+
+-			}
+-			if (!pRawIndex || pRawIndex-&gt;miOffset + pRawIndex-&gt;miLength &gt; miFullFil=
+eSize) return 0; // index must be valid, and must point to a valid rawblock
+-			mLastChunk.mpRawIndex =3D pRawIndex;
+-			mLastChunk.mpRawData =3D mpFullFileBuffer + pRawIndex-&gt;miOffset;
+-			mLastChunk.miID =3D iID;
+-			return &mLastChunk;
+-		}
+-	};
+-	=
+
+-	/// loads data only on demand, used for memory-saving
+-	template &lt;class _T&gt; class cIndexedRawDataLoader_IndexedOnDemand { public :
+-		cIndexFile		mIndexFile;
+-		char*			mpBuffer;
+-		long			miBufferSize;
+-		std::ifstream	mFileStream;
+-		int				miFileSize; =
+
+-		_T 				mLastChunk;
+-		=
+
+-		cIndexedRawDataLoader_IndexedOnDemand	(const char* szIndexFile,const cha=
+r* szDataFile) =
+
+-			: mIndexFile(szIndexFile), mFileStream(szDataFile,std::ios::in | std::i=
+os::binary), mpBuffer(0), miBufferSize(0) { PROFILE
+-			if (!mFileStream) throw FileNotFoundException(szDataFile);
+-			mFileStream.seekg(0, std::ios::end);
+-			miFileSize =3D mFileStream.tellg();
+-		}
+-
+-		inline _T* GetChunk (const int iID) { PROFILE ///&lt; result of Get is only=
+ valid until next Get call =
+
+-			RawIndex* pRawIndex =3D mIndexFile.GetRawIndex(iID); =
+
+-			if (!IsIndexValid(pRawIndex) || pRawIndex-&gt;miOffset &lt; 0 || pRawIndex-&gt;m=
+iOffset + pRawIndex-&gt;miLength &gt; miFileSize) return 0; // index must be vali=
+d, and must point to a valid rawblock =
+
+-			if (pRawIndex-&gt;miLength &lt;=3D 0) return 0;
+-			=
+
+-			// resize buffer if too small
+-			if (miBufferSize &lt; pRawIndex-&gt;miLength) {
+-				miBufferSize =3D pRawIndex-&gt;miLength; =
+
+-				if (mpBuffer) delete [] mpBuffer;
+-				mpBuffer =3D new char [miBufferSize];
+-			}
+-			=
+
+-			// read in raw data from file
+-			mFileStream.seekg(pRawIndex-&gt;miOffset, std::ios::beg);
+-			mFileStream.read(mpBuffer,pRawIndex-&gt;miLength);
+-			=
+
+-			// init other membervars
+-			mLastChunk.mpRawIndex =3D pRawIndex;
+-			mLastChunk.mpRawData =3D mpBuffer;
+-			mLastChunk.miID =3D iID; =
+
+-			return &mLastChunk; =
+
+-		}
+-	};
+-	=
+
+-/// todo : variant with blockwise caching
+-	=
+
+-
+-// ***** ***** ***** ***** ***** Art Filters =
+
+-
+-	class cIdentityFilter { public : inline short  operator () (short value, =
+short* ColorTable) { return value; } }; =
+
+-	=
+
+-	class cSetHighBitFilter { public : inline short operator () (short value,=
+ short* ColorTable) { return value | 0x8000; } }; =
+
+-
+-	class cHueFilter { public : inline short operator () (short value, short*=
+ ColorTable) {
+-		return ColorTable[mymax(0,mymin(31,(value &gt;&gt; 10) &amp; 0x1F))] | 0x8000; =
+
+-	} };
+-
+-	class cPartialHueFilter { public : inline short operator () (short value,=
+ short* ColorTable) { =
+
+-		if ((value &gt;&gt; 10) &amp; 0x1F =3D=3D (value &gt;&gt; 5) &amp; 0x1F &amp;&amp; (value &gt;&gt; 10) &amp; 0=
+x1F =3D=3D value &amp; 0x1F) {
+-			return ColorTable[mymax(0,mymin(31,(value &gt;&gt; 10) &amp; 0x1F))] | 0x8000;
+-		} else {
+-			return value | 0x8000;
+-		}
+-	} };
+-
+-// ***** ***** ***** ***** ***** cTexMap
+-	=
+
+-
+-	class cTexMap : public cIndexedRawData { public :
+-		cTexMap();
+-		inline int	GetWidth	() { return mpRawIndex ? (mpRawIndex-&gt;miLength &gt;=3D =
+(128*128*2)?128:64) : 0; }
+-		inline int	GetHeight	() { return GetWidth(); }
+-		template &lt;class _T&gt; void Decode( short *pBuffer, _T&amp; filter, short* Colo=
+rTable ) { PROFILE
+-			int w =3D GetWidth();
+-			short* p =3D (short*)mpRawData;
+-			for (int y=3D0;y&lt;w;++y)
+-				for (int x=3D0;x&lt;w;++x) {
+-					*pBuffer =3D filter( *p, ColorTable );
+-					pBuffer++;
+-					p++;
+-				}
+-		}
+-		/// todo : GenerateOgreTexture ? parameterized with hue ?
+-		/// height =3D Index-&gt;miExtra=3D=3D1 ? 128 : 64 , but length is more rel=
+iable
+-	};
+-	=
+
+-	/// abstract base class
+-	class cTexMapLoader : public Lugre::cSmartPointable { public :
+-		virtual	cTexMap*	GetTexMap	(const int iID) =3D 0; ///&lt; result of Get is =
+only valid until next Get call
+-		virtual unsigned int	GetCount	() =3D 0;	///&lt; number of texmaps
+-	};
+-	=
+
+-	/// loads complete file into one big buffer
+-	class cTexMapLoader_IndexedFullFile : public cTexMapLoader, public cIndex=
+edRawDataLoader_IndexedFullFile&lt;cTexMap&gt; { public :
+-		cTexMapLoader_IndexedFullFile	(const char* szIndexFile,const char* szDat=
+aFile);
+-		virtual	cTexMap*		GetTexMap	(const int iID); ///&lt; result of Get is only =
+valid until next Get call
+-		virtual unsigned int	GetCount	() { return mIndexFile.miFullFileSize / 12=
+; }
+-	};
+-	=
+
+-	/// loads data only on demand
+-	class cTexMapLoader_IndexedOnDemand : public cTexMapLoader, public cIndex=
+edRawDataLoader_IndexedOnDemand&lt;cTexMap&gt; { public :
+-		cTexMapLoader_IndexedOnDemand	(const char* szIndexFile,const char* szDat=
+aFile);
+-		virtual	cTexMap*		GetTexMap	(const int iID); ///&lt; result of Get is only =
+valid until next Get call
+-		virtual unsigned int	GetCount	() { return mIndexFile.miFullFileSize / 12=
+; }
+-	};
+-	=
+
+-	=
+
+-// ***** ***** ***** ***** ***** cArtMap
+-
+-	=
+
+-	class cArtMap : public cIndexedRawData { public :
+-		cArtMap();
+-		int	GetWidth	();
+-		int	GetHeight	();
+-		void	CalcVisibleAABB(int&amp; minx, int&amp; miny, int&amp; maxx, int&amp; maxy);
+-		void	SearchCursorHotspot		(int&amp; iX,int&amp; iY); ///&lt; returns hotspot coords=
+ in iX,iY. search using different pixel on image border
+-		template &lt;class _T&gt; void Decode( short *pBuffer, const int iPitch, _T&amp; f=
+ilter, short* ColorTable ) { PROFILE	///&lt; decodes the art image into a pixe=
+lbuffer (1short/pixel), pitch=3DLength of a surface scanline in bytes
+-			int		iBufferSize =3D iPitch*GetHeight();
+-			=
+
+-			if( miID &lt; 0x4000 ){
+-				//map tile format, 44x44 pixel
+-				short *dst =3D pBuffer;
+-				short *src =3D (short *)mpRawData;
+-
+-				short *adst =3D dst;
+-				short *asrc =3D src;
+-
+-				for(int pixelsInHalfRow =3D 1;pixelsInHalfRow &lt;=3D 22;++pixelsInHalfRo=
+w){
+-					dst +=3D 22-pixelsInHalfRow;
+-					for( int i=3D0; i &lt; pixelsInHalfRow*2; i++ ) {
+-						SecureWrite(dst,filter( *src, ColorTable ),pBuffer,iBufferSize,&quot;cArt=
+Map::Decode_A&quot;,miID);
+-						dst++;
+-						src++;
+-					}
+-					dst +=3D 22-pixelsInHalfRow;
+-					dst +=3D iPitch / 2 - 44;
+-				}												=
+
+-
+-				for(int pixelsInHalfRow =3D 22;pixelsInHalfRow &gt;=3D 1;--pixelsInHalfRo=
+w){
+-					dst +=3D 22-pixelsInHalfRow;
+-					for( int i=3D0; i &lt; pixelsInHalfRow*2; i++ ) {
+-						SecureWrite(dst,filter( *src, ColorTable ),pBuffer,iBufferSize,&quot;cArt=
+Map::Decode_B&quot;,miID);
+-						dst++;
+-						src++;
+-					}
+-					dst +=3D 22-pixelsInHalfRow;
+-					dst +=3D iPitch / 2 - 44;
+-				}												=
+
+-			} else {
+-				//run tile format
+-				//reading width and height but skipping a strange 4byte header
+-				short *input =3D (short *)(mpRawData+4);
+-				int width =3D input[0];
+-				int height =3Dinput[1];
+-				int streamloc =3D 2+height;
+-				int index;
+-
+-				int X=3D0;
+-				int Y=3D0;
+-				for ( Y=3D0; Y &lt; height; ++Y ){
+-					X=3D0;
+-					index =3D (2 +Y);
+-					short offset;
+-					offset =3D input[index] ;
+-					index =3D streamloc + offset;
+-					short xOffset =3D 1;
+-					short xRun =3D 1;
+-					short runColor;
+-												=
+
+-					while ( xOffset+xRun !=3D0 ){
+-						xOffset =3D input[index];
+-						++index;
+-						xRun =3D input[index];
+-						++index;
+-						if ( (xOffset+xRun!=3D0) ){
+-							X+=3DxOffset;
+-							for ( short jj=3D0; jj &lt; xRun; ++jj ){
+-								runColor=3D (0x7FFF &amp; input[index]);
+-								++index;
+-								short *pixel =3D (short *) (((char *)(pBuffer + X)) + (Y*iPitch));
+-								if ( runColor !=3D 0 ) //is this check really necessary?
+-									SecureWrite(pixel,filter( runColor, ColorTable ),pBuffer,iBufferS=
+ize,&quot;cArtMap::Decode_C&quot;,miID);
+-								++X;
+-							}
+-						}
+-					}
+-				}
+-			}
+-		}
+-	};
+-	=
+
+-	/// abstract base class
+-	class cArtMapLoader : public Lugre::cSmartPointable { public :
+-		virtual	cArtMap*	GetArtMap	(const int iID) =3D 0; ///&lt; result of Get is =
+only valid until next Get call
+-		virtual unsigned int	GetCount	() =3D 0;	///&lt; number of artmaps
+-	};
+-	=
+
+-	/// loads complete file into one big buffer
+-	class cArtMapLoader_IndexedFullFile : public cArtMapLoader, public cIndex=
+edRawDataLoader_IndexedFullFile&lt;cArtMap&gt; { public :
+-		cArtMapLoader_IndexedFullFile	(const char* szIndexFile,const char* szDat=
+aFile);
+-		virtual	cArtMap*	GetArtMap	(const int iID) ; ///&lt; result of Get is only =
+valid until next Get call
+-		virtual unsigned int	GetCount	();	///&lt; number of artmaps
+-	};
+-	=
+
+-	/// loads data only on demand
+-	class cArtMapLoader_IndexedOnDemand : public cArtMapLoader, public cIndex=
+edRawDataLoader_IndexedOnDemand&lt;cArtMap&gt; { public :
+-		cArtMapLoader_IndexedOnDemand	(const char* szIndexFile,const char* szDat=
+aFile);
+-		virtual	cArtMap*	GetArtMap	(const int iID) ; ///&lt; result of Get is only =
+valid until next Get call
+-		virtual unsigned int	GetCount	();	///&lt; number of artmaps
+-	};
+-	=
+
+-	=
+
+-// ***** ***** ***** ***** ***** multi loader
+-
+-	/// abstract base class
+-	class cMultiLoader : public Lugre::cSmartPointable { public :
+-		virtual	unsigned int	CountMultiParts	(const int iID) =3D 0; ///&lt; number =
+of parts the multi iID has
+-		virtual	RawMultiPart*	GetMultiParts	(const int iID) =3D 0; ///&lt; points t=
+o the startpart of the multi iID, from this CountMultiParts(iID) parts valid
+-	};
+-	=
+
+-	/// loads complete file into one big buffer
+-	class cMultiLoader_IndexedFullFile : public cMultiLoader, public cIndexed=
+FullFile { public :
+-		cMultiLoader_IndexedFullFile	(const char* szIndexFile,const char* szData=
+File);
+-		virtual	unsigned int	CountMultiParts	(const int iID); ///&lt; number of par=
+ts the multi iID has
+-		virtual	RawMultiPart*	GetMultiParts	(const int iID); ///&lt; points to the =
+startpart of the multi iID, from this CountMultiParts(iID) parts valid
+-	};
+-	=
+
+-// ***** ***** ***** ***** ***** cGump
+-
+-	=
+
+-	class cGump : public cIndexedRawData { public :
+-		cGump();
+-		int	GetWidth	();
+-		int	GetHeight	();
+-		template &lt;class _T&gt; void Decode(short *pBuffer, const int iPitch, _T&amp; fi=
+lter, short* ColorTable) { PROFILE	//&lt; decodes the gump image into a pixelb=
+uffer (1short/pixel), pitch=3DLength of a surface scanline in bytes
+-			int w =3D GetWidth();
+-			int h =3D GetHeight();
+-			int	iBufferSize =3D iPitch*GetHeight();
+-
+-			long *LookupList =3D (long *)mpRawData;
+-			char *pStart =3D mpRawData;
+-				=
+
+-			for(int Y =3D 0; Y &lt; h; Y++) {
+-				int Size;
+-				if (Y &lt; h-1) {
+-					Size =3D LookupList[Y+1] - LookupList[Y];
+-				} else {
+-					Size =3D mpRawIndex-&gt;miLength / 4 - LookupList[Y];
+-				}
+-	=
+
+-				int X =3D 0;
+-				short *Value	=3D (short *)(pStart + LookupList[Y]*4);
+-				short *Run		=3D (short *)(pStart + LookupList[Y]*4 + 2);
+-				for(int i =3D 0; i &lt; Size; i++) {
+-					if (*Value &gt; 0) {
+-						for(int j =3D 0; j &lt; *Run; j++) {
+-							SecureWrite( (short *)(((char*)(pBuffer + X)) + Y*iPitch), filter( =
+*Value, ColorTable ), pBuffer, iBufferSize, &quot;cGump::Decode&quot;, miID );
+-							X++;
+-						}
+-					} else {
+-						X +=3D *Run;
+-					}
+-
+-					Value +=3D 2;
+-					Run +=3D 2;
+-				}
+-			}
+-		}
+-	};
+-	=
+
+-	/// abstract base class
+-	class cGumpLoader : public Lugre::cSmartPointable { public :
+-		virtual	cGump*	GetGump	(const int iID) =3D 0; ///&lt; result of Get is only=
+ valid until next Get call
+-	};
+-	=
+
+-	/// loads complete file into one big buffer
+-	class cGumpLoader_IndexedFullFile : public cGumpLoader, public cIndexedRa=
+wDataLoader_IndexedFullFile&lt;cGump&gt; { public :
+-		cGumpLoader_IndexedFullFile	(const char* szIndexFile,const char* szDataF=
+ile);
+-		virtual	cGump*	GetGump	(const int iID) ; ///&lt; result of Get is only vali=
+d until next Get call
+-	};
+-	=
+
+-	/// loads data only on demand
+-	class cGumpLoader_IndexedOnDemand : public cGumpLoader, public cIndexedRa=
+wDataLoader_IndexedOnDemand&lt;cGump&gt; { public :
+-		cGumpLoader_IndexedOnDemand	(const char* szIndexFile,const char* szDataF=
+ile);
+-		virtual	cGump*	GetGump	(const int iID) ; ///&lt; result of Get is only vali=
+d until next Get call
+-	};
+-
+-
+-// ***** ***** ***** ***** ***** cSound
+-
+-	=
+
+-	class cSound : public cIndexedRawData { public :
+-		cSound();
+-		std::string	GetName();	//&lt; soundfile name
+-		const char*	GetPCMBuffer();	//&lt; pcm buffer, 16bit mono 22050khz
+-		int			GetPCMBufferSize();	//&lt; pcm data size in bytes
+-		=
+
+-		// some pcm parameter
+-		bool		IsMono();	//&lt; probably everytime true
+-		int			GetBitrate();	//&lt; is always 16 in uo
+-		int			GetKHz();	//&lt; 22050 in uo
+-	};
+-	=
+
+-	/// abstract base class
+-	class cSoundLoader : public Lugre::cSmartPointable { public :
+-		virtual	cSound*	GetSound	(const int iID) =3D 0; ///&lt; result of Get is on=
+ly valid until next Get call
+-	};
+-	=
+
+-	/// loads complete file into one big buffer
+-	class cSoundLoader_IndexedFullFile : public cSoundLoader, public cIndexed=
+RawDataLoader_IndexedFullFile&lt;cSound&gt; { public :
+-		cSoundLoader_IndexedFullFile	(const char* szIndexFile,const char* szData=
+File);
+-		virtual	cSound*	GetSound	(const int iID) ; ///&lt; result of Get is only va=
+lid until next Get call
+-	};
+-	=
+
+-	/// loads data only on demand
+-	class cSoundLoader_IndexedOnDemand : public cSoundLoader, public cIndexed=
+RawDataLoader_IndexedOnDemand&lt;cSound&gt; { public :
+-		cSoundLoader_IndexedOnDemand	(const char* szIndexFile,const char* szData=
+File);
+-		virtual	cSound*	GetSound	(const int iID) ; ///&lt; result of Get is only va=
+lid until next Get call
+-	};
+-
+-// ***** ***** ***** ***** ***** cAnim
+-
+-	class cAnim : public cIndexedRawData { =
+
+-		private :
+-			uint16 mWidth, mHeight;
+-			uint16 mTexWidth, mTexHeight;
+-			int16 mCenterX, mCenterY;
+-			uint32 mFrames;
+-		public :
+-			cAnim() : cIndexedRawData( kDataType_Anim ) {
+-				mWidth =3D 0;
+-				mHeight =3D 0;
+-				mTexWidth =3D 0;
+-				mTexHeight =3D 0;
+-				mCenterX =3D 0;
+-				mCenterY =3D 0;
+-				mFrames =3D 0;
+-			}
+-			int	GetWidth () { return mWidth; }
+-			int	GetHeight () { return mHeight; }
+-			int GetTexWidth () { return mTexWidth; }
+-			int GetTexHeight () { return mTexHeight; }
+-			int GetCenterX () { return mCenterX; }
+-			int GetCenterY () { return mCenterY; }
+-			int GetFrames() { return mFrames; }
+-			=
+
+-			/// allocates and returns a 16-bit buffer in the pBuffer param, backgro=
+und/transparency =3D 0
+-			/// bTexSize : if true, output size will be 2^n
+-			template &lt;class _T&gt; bool Decode(short* &amp;pBuffer, const int iFrame, _T&amp; =
+filter, short* ColorTable,bool bTexSize=3Dtrue) { PROFILE
+-				const char*	pMyRawData =3D mpRawData;
+-				uint16* Palette =3D (uint16 *)pMyRawData;
+-				pMyRawData +=3D 512;
+-
+-				mFrames =3D *(uint32 *)pMyRawData;
+-				pMyRawData +=3D 4;
+-
+-				uint32* LookupList =3D (uint32 *)pMyRawData;
+-				=
+
+-				if (iFrame &gt;=3D mFrames) {
+-					return false;
+-				}
+-
+-				pMyRawData +=3D LookupList[ iFrame ] - 4;
+-
+-				mCenterX =3D *(int16 *)pMyRawData;
+-				pMyRawData +=3D 2;
+-				mCenterY =3D *(int16 *)pMyRawData;
+-				pMyRawData +=3D 2;
+-				mWidth =3D *(uint16 *)pMyRawData;
+-				pMyRawData +=3D 2;
+-				mHeight =3D *(uint16 *)pMyRawData;
+-				pMyRawData +=3D 2;
+-				=
+
+-				if (bTexSize) {
+-					mTexWidth =3D 1;
+-					while (mTexWidth &lt; mWidth) {
+-						mTexWidth =3D mTexWidth &lt;&lt; 1;
+-					}
+-					mTexHeight =3D 1;
+-					while (mTexHeight &lt; mHeight) {
+-						mTexHeight =3D mTexHeight &lt;&lt; 1;
+-					}
+-				} else {
+-					// for image output when used in a texatlas
+-					mTexWidth =3D mWidth;
+-					mTexHeight =3D mHeight;
+-				}
+-
+-				pBuffer =3D new short[mTexWidth*mTexHeight];
+-				int		iBufferSize =3D 2*mTexWidth*mTexHeight;
+-				memset( pBuffer, 0, iBufferSize );
+-
+-				uint32 Header =3D *(uint32 *)pMyRawData;
+-				pMyRawData +=3D 4;
+-
+-				while (Header !=3D 0x7FFF7FFF) {
+-					uint16 xRun =3D Header &amp; 0xFFF;
+-					int32 xOffset =3D ( Header &gt;&gt; 22 ) &amp; 1023;
+-					int32 yOffset =3D ( Header &gt;&gt; 12 ) &amp; 1023;
+-
+-					if (xOffset &amp; 0x200) {
+-						xOffset =3D xOffset | ( 0xFFFFFFFF - 511 );
+-					}
+-
+-					if (yOffset &amp; 0x200) {
+-						yOffset =3D yOffset | ( 0xFFFFFFFF - 511 );
+-					}
+-
+-					int16 PX =3D xOffset + mCenterX;
+-					int16 PY =3D yOffset + mCenterY + mHeight;
+-
+-					unsigned char* RunPixels =3D (unsigned char*)pMyRawData;
+-					pMyRawData +=3D xRun;
+-
+-					for ( int k=3D0; k &lt; xRun; k++ ) {
+-						if ( ((PX+k) &gt;=3D 0) &amp;&amp; (PY &gt;=3D 0) &amp;&amp; ((PX+k) &lt; mTexWidth) &amp;&amp; (PY &lt;=
+ mTexHeight) ) {
+-							SecureWrite(&amp;pBuffer[ PY*mTexWidth + PX + k ],filter( Palette[ RunP=
+ixels[k] ], ColorTable ),pBuffer,iBufferSize,&quot;cAnim::Decode&quot;,miID);
+-							//SecureWrite(&amp;pBuffer[ PY*mTexWidth + PX + k ],0x1F,pBuffer,iBuffe=
+rSize,&quot;cAnim::Decode&quot;,miID);
+-						}
+-					}
+-
+-					Header =3D *(uint32 *)pMyRawData;
+-					pMyRawData +=3D 4;
+-				}
+-				=
+
+-				return true;
+-			}
+-	};
+-	=
+
+-	/// abstract base class
+-	class cAnimLoader : public Lugre::cSmartPointable { public :
+-		int mHighDetailed;
+-		int mLowDetailed;
+-		cAnimLoader (const int iHighDetailed, const int iLowDetailed) {};
+-		virtual	cAnim*	GetAnim	(const int iID) =3D 0; ///&lt; result of Get is only=
+ valid until next Get call
+-	};
+-	=
+
+-	/// loads complete file into one big buffer
+-	class cAnimLoader_IndexedFullFile : public cAnimLoader, public cIndexedRa=
+wDataLoader_IndexedFullFile&lt;cAnim&gt; { public :
+-		cAnimLoader_IndexedFullFile	(const int iHighDetailed, const int iLowDeta=
+iled, const char* szIndexFile, const char* szDataFile);
+-		virtual	cAnim*	GetAnim	(const int iID) ; ///&lt; result of Get is only vali=
+d until next Get call
+-	};
+-	=
+
+-	/// loads data only on demand
+-	class cAnimLoader_IndexedOnDemand : public cAnimLoader, public cIndexedRa=
+wDataLoader_IndexedOnDemand&lt;cAnim&gt; { public :
+-		cAnimLoader_IndexedOnDemand	(const int iHighDetailed, const int iLowDeta=
+iled, const char* szIndexFile, const char* szDataFile);
+-		virtual	cAnim*	GetAnim	(const int iID) ; ///&lt; result of Get is only vali=
+d until next Get call
+-	};
+-
+-// ***** ***** ***** ***** ***** cLight
+-
+-class cLight : public cIndexedRawData { public :
+-		cLight();
+-		int	GetWidth	();
+-		int	GetHeight	();
+-		template &lt;class _T&gt; void Decode( short *pBuffer, _T&amp; filter, short* Colo=
+rTable ) { PROFILE
+-			int w =3D GetWidth();
+-			int h =3D GetHeight();
+-			for (int y=3D0;y&lt;w;++y)
+-				for (int x=3D0;x&lt;w;++x) {
+-					char color =3D *mpRawData;
+-					*pBuffer =3D 0x8000 + (color &lt;&lt; 10) + (color &lt;&lt; 5) + color;
+-
+-					mpRawData++;
+-					pBuffer++;
+-				}
+-		}
+-	};
+-	=
+
+-	/// abstract base class
+-	class cLightLoader : public Lugre::cSmartPointable { public :
+-		virtual	cLight*		GetLight	(const int iID) =3D 0; ///&lt; result of Get is o=
+nly valid until next Get call
+-	};
+-	=
+
+-	/// loads complete file into one big buffer
+-	class cLightLoader_IndexedFullFile : public cLightLoader, public cIndexed=
+RawDataLoader_IndexedFullFile&lt;cLight&gt; { public :
+-		cLightLoader_IndexedFullFile	(const char* szIndexFile,const char* szData=
+File);
+-		virtual	cLight*		GetLight	(const int iID); ///&lt; result of Get is only va=
+lid until next Get call
+-	};
+-
+-#ifdef WIN32
+-#pragma pack(pop)
+-#endif
++#include &quot;data_indexed.h&quot;
++#include &quot;data_mapinfo.h&quot;
++#include &quot;data_lookup.h&quot;
++#include &quot;data_staticblock.h&quot;
++#include &quot;data_groundblock.h&quot;
++#include &quot;data_radar.h&quot;
++#include &quot;data_tiletype.h&quot;
++#include &quot;data_multi.h&quot;
++#include &quot;data_hue.h&quot;
++#include &quot;data_artmap.h&quot;
++#include &quot;data_texmap.h&quot;
++#include &quot;data_gump.h&quot;
++#include &quot;data_anim.h&quot;
++#include &quot;data_font.h&quot;
++#include &quot;data_light.h&quot;
++#include &quot;data_sound.h&quot;
+ =
+
+ =
+
+ #endif
+
+Modified: trunk/src/data.cpp
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/src/data.cpp (original)
++++ trunk/src/data.cpp Fri May  9 19:51:14 2008
+@@ -33,77 +33,6 @@
+ texmaps : collect for big multitile terrain texture ? highres textures ?
+ */
+ =
+
+-/** TODO : doxygen me
+-	UO Data Loaders
+-
+-	in standard UO there are 5 maps/worlds numbered 0-4, there size was hardc=
+oded in UO and is stored in data/xml/Maps.xml in iris
+-
+-	# ground data (groundTileTypeID+z) is stored in map*.mul where *=3Dmapnum=
+ , they are organized in Blocks of 8x8 ground-tiles
+-
+-	# radarcolor is stored in radarcol.mul, assigns a 16 bit color for every =
+groundTileTypeID (&lt;0x00004000) to be displayed on worldmap or so
+-
+-	# tileType data is stored in tiledata.mul : flags, id_override for texture
+-
+-	# Art means 2D graphics, most in iso perspektive, data comes from artidx.=
+mul and art.mul
+-	used for both iso-ground tiles and 2d gfx for statics, art-index =3D tile=
+TypeIndex
+-
+-	# textures are mainly used for ground tiles, data comes from texidx.mul a=
+nd texmaps.mul
+-	art-index =3D tileTypeIndex, if not overridden by id_override in tileType=
+ (tiledata.mul)
+-	only two resolutions are possible, both are quite low  : (myRawIndex.miEx=
+tra=3D=3D1)?128:64
+-	TODO : iris has highres textures, ask science where they are stored
+-	TODO : to display a full high-res texture on a single tile looks bad, =
+
+-		find a way to distribute them across multiple tiles without loosing too =
+much performance... =
+
+-		maybe different drawing options, that the user can choose from ?
+-
+-	in UO there are &quot;statics&quot; and &quot;dynamics&quot;,
+-	&quot;statics&quot; are things that are (usually) unmovable : walls, trees, etc
+-	&quot;dynamics&quot; can be interacted with, e.g. doors
+-	While &quot;dynamics&quot; are transmitted from the server, &quot;statics&quot; are loaded fr=
+om the client data.
+-
+-	# statics (staticTypeID,x,y,z) are stored in staidx*.mul and statics*.mul=
+ where *=3Dmapnum
+-	as there can be any number of statics per block (8x8 tiles), an index fil=
+e (staidx*.mul) is used, =
+
+-	which stores offset and length(bytes) of the actual static data in the st=
+atics*.mul file.
+-	There is one index entry per block(8x8 tiles), which is equivalent to a B=
+lock of ground tiles.
+-
+-	# staticType : model data comes from iris/data/models.uim and models-patc=
+hinfo.xml
+-	Iris artists have modelled a vast amount of statics in 3D to be used inst=
+ead of the 2D tilegfx from uo.
+-	TODO ... irisedit ... textures, materials, ... own format ....  import fr=
+om 3dsmax format....
+-	iris.imc --optimize-- : models.uim, models_patchinfo.xml
+-
+-	# todo ... chars,clothes,weapons : granny models von AOS, loaded from uo =
+dir
+-
+-	universal editor for uo files : mulpatcher : <A HREF="http://varan.uodev.de">http://varan.uodev.de</A>
+-
+-	# gumps =3D dialogs : iris layout comes from .gfm files
+-	# verdata is used for patch-infos (override data in other mul files, deta=
+ils unknown..)
+-
+-	animgumps (anim*.mul?)  : paperdoll, trading ...
+-	nonanimgumps : buttons, dialog-background
+-
+-	# multis are things like houses (and ships?) that consist of grouped stat=
+ics (multi.idx,multi.mul), ask varan
+-
+-	#hues : color-palette based replacement for gray values for fonts, clothe=
+s, chars, statics....
+-
+-	// hues : coloring all sorts of things
+-	// animgumps : paperdoll, trading ...
+-	// nonanimgumps : buttons, dialog-background
+-	// stitchin  : clothes replace modelpart...
+-	// cliloc : language localisation
+-	// verdata : patch-infos
+-	// iris.imc --optimize-- : models.uim, models_patchinfo.xml
+-	// gump layouts : .gfm
+-	=
+
+-	# raw data pointers
+-	Classes like cGroundBlock contain pointers to raw data like &quot;RawGroundBlo=
+ck* mpRawGroundBlock;&quot;, thei constructors usually set these pointers to zer=
+o.
+-	The classes don't own the memory pointed to by these, as it is usually al=
+located centrally by one of the loaders for better performance.
+-	Also the don't try to release the memory pointed to.
+-	Classes that are interesting for full-file loadding, like cGroundBlock, s=
+houldn't be used directly, =
+
+-	Please use them only trough loaders like cGroundBlockLoader_FullFile, who=
+ do all the memory management for them.
+-
+-	// get length of file:
+-  is.seekg (0, ios::end);
+-  length =3D is.tellg();
+-*/
+ =
+
+ // ***** ***** ***** ***** ***** utils =
+
+ =
+
+@@ -150,6 +79,17 @@
+ 		: mIndexFile(szIndexFile), cFullFileLoader(szDataFile) {}
+ =
+
+ 	=
+
++
++// ***** ***** ***** ***** ***** cIndexedRawData
++
++
++cIndexedRawData::cIndexedRawData 	(const eDataType iDataType) : miDataType=
+(iDataType), mpRawIndex(0), mpRawData(0) {}
++
++
++
++
++
++	=
+
+ // ***** ***** ***** ***** ***** Endian
+ =
+
+ 	=
+
+@@ -222,782 +162,86 @@
+ }
+ */
+ =
+
+-// ***** ***** ***** ***** ***** cMapInfo
+-
+-
+-/// loads data/xml/MapInfo.xml
+-bool	cMapInfo::Load	(const int iMapNum,const char* szFile) { PROFILE
+-	miFogR =3D miFogG =3D miFogB =3D 255;
+-	miBaseID =3D -1;
+-	=
+
+-	// structure is like this :
+-	/*
+-	&lt;MAPS&gt;
+-	 &lt;MAP&gt;
+-	  &lt;NAME&gt;Felucca&lt;/NAME&gt;
+-	  &lt;ID&gt;1&lt;/ID&gt;
+-	  &lt;WIDTH&gt;896&lt;/WIDTH&gt;
+-	  &lt;HEIGHT&gt;512&lt;/HEIGHT&gt;
+-	  &lt;BASE_ID&gt;0&lt;/BASE_ID&gt;
+-	  &lt;SKYBOX&gt;./textures/skybox/darksun&lt;/SKYBOX&gt;
+-	  &lt;FOG_COLOR red=3D&quot;97&quot; green=3D&quot;76&quot; blue=3D&quot;33&quot;/&gt;
+-	 &lt;/MAP&gt;
+-	 ...
+-	&lt;/MAPS&gt;
+-	*/
+-	=
+
+-	TiXmlDocument	doc;
+-	if (!doc.LoadFile(szFile)) { printf(&quot;cMapInfo::Load(%d,%s) : file not fou=
+nd\n&quot;,iMapNum,szFile); return false; }
+-	=
+
+-	TiXmlHandle		mapHandle =3D TiXmlHandle(&amp;doc).FirstChild(&quot;MAPS&quot;).Child(&quot;MA=
+P&quot;,iMapNum);
+-	=
+
+-	if (!mapHandle.Element()) { printf(&quot;cMapInfo::Load(%d,%s) : MapTag not fo=
+und\n&quot;,iMapNum,szFile); return false; }
+-	=
+
+-	msName 		=3D 		GetTiXmlHandleText(mapHandle.FirstChild(&quot;NAME&quot;));
+-	msSkyBox 	=3D 		GetTiXmlHandleText(mapHandle.FirstChild(&quot;SKYBOX&quot;));
+-	miID 		=3D atoi(	GetTiXmlHandleText(mapHandle.FirstChild(&quot;ID&quot;),&quot;-1&quot;));
+-	miBaseID 	=3D atoi(	GetTiXmlHandleText(mapHandle.FirstChild(&quot;BASE_ID&quot;),&quot;-=
+1&quot;));
+-	miWidth 	=3D atoi(	GetTiXmlHandleText(mapHandle.FirstChild(&quot;WIDTH&quot;),&quot;0&quot;));
+-	miHeight 	=3D atoi(	GetTiXmlHandleText(mapHandle.FirstChild(&quot;HEIGHT&quot;),&quot;0&quot;=
+));
+-	miFogR		=3D atoi( GetTiXmlHandleAttr(mapHandle.FirstChild(&quot;FOG_COLOR&quot;),&quot;r=
+ed&quot;,&quot;255&quot;));
+-	miFogG		=3D atoi( GetTiXmlHandleAttr(mapHandle.FirstChild(&quot;FOG_COLOR&quot;),&quot;g=
+reen&quot;,&quot;255&quot;));
+-	miFogB		=3D atoi( GetTiXmlHandleAttr(mapHandle.FirstChild(&quot;FOG_COLOR&quot;),&quot;b=
+lue&quot;,&quot;255&quot;));
+-	if (iMapNum !=3D miID) { printf(&quot;cMapInfo::Load(%d,%s) : id mismatch : %d=
+\n&quot;,iMapNum,szFile,miID); return false; }
+-	return true;
+-}
+-
+-void	cMapInfo::Print	() { PROFILE
+-	printf(&quot;id=3D%d,w=3D%d,h=3D%d,name=3D%s,sky=3D%s,baseid=3D%d,fogrgb(%d,%d=
+,%d)\n&quot;,miID,miWidth,miHeight,msName.c_str(),msSkyBox.c_str(),miBaseID,miFo=
+gR,miFogG,miFogB);
+-}
+-
+-
+-// ***** ***** ***** ***** ***** GroundBlock
+-
+-
+-cGroundBlock::cGroundBlock				() : mpRawGroundBlock(0) {}
+-
+-cGroundBlockLoader::cGroundBlockLoader	(const int iMapH) : miMapH(iMapH), =
+miMapW(0)  {}
+-	=
+
+-	=
+
+-// ***** ***** ***** ***** ***** cGroundBlockLoader_Dummy
+-	=
+
+-cGroundBlockLoader_Dummy::cGroundBlockLoader_Dummy			(const int iTileType,=
+const int iZ) : cGroundBlockLoader(0) {
+-	mLastGroundBlock.mpRawGroundBlock =3D &mRawGroundBlock;
+-	for (int i=3D0;i&lt;8;++i) for (int j=3D0;j&lt;8;++j) {
+-		int ibow =3D (i&lt;4)?i:4;
+-		int jbow =3D (j&lt;4)?j:4; // could be used for a nice z-hill
+-		mRawGroundBlock.mTiles[i][j].miTileType =3D iTileType;
+-		mRawGroundBlock.mTiles[i][j].miZ =3D iZ;
+-	}
+-	//for (int i=3D0;i&lt;8;++i) mRawGroundBlock.mTiles[i][0].miZ =3D 3;
+-}
+-
+-cGroundBlock*	cGroundBlockLoader_Dummy::GetGroundBlock	(const int iX,const=
+ int iY) {
+-	return &mLastGroundBlock;
+-}
+-	=
+
+-// ***** ***** ***** ***** ***** cGroundBlockLoader_OnDemand
+-
+-/* TODO both (full,ondemand) loader use almost the same patch code, this c=
+ould be moved to a common base class */
+-
+-	=
+
+-cGroundBlockLoader_OnDemand::cGroundBlockLoader_OnDemand	(const int iMapH,=
+const char* szFile, const char *szDiffLookup, const char *szDiffData)
+-	: mFileStream(szFile,std::ios::in | std::ios::binary), cGroundBlockLoader=
+(iMapH), mpDiffLookupFile(0), mpDiffLoader(0) { PROFILE
+-	if (!mFileStream) throw FileNotFoundException(szFile);
+-	mFileStream.seekg(0, std::ios::end);
+-	miFileSize =3D mFileStream.tellg();
+-	miMapW =3D cGroundBlock::CalcMapW(miMapH,miFileSize);
+-	mLastGroundBlock.mpRawGroundBlock =3D &mLastRawGroundBlock;
+-
+-	// use diff file? (if all are present)
+-	if(szDiffLookup &amp;&amp; szDiffData){
+-		// create lookup file
+-		mpDiffLookupFile =3D new cLookupFile(szDiffLookup);
+-		// and patch data file
+-		mpDiffLoader =3D new cGroundBlockLoader_OnDemand(iMapH,szDiffData);
+-	}
+-}
+-		=
+
+-/// WARNING this is only an internal unpatched load call
+-cGroundBlock*	cGroundBlockLoader_OnDemand::GetGroundBlock	(const int iBloc=
+kNumber){ PROFILE
+-	// normal unpatched data
+-	mFileStream.seekg(cGroundBlock::GetRawOffset(iBlockNumber), std::ios::beg=
+);
+-	mFileStream.read((char*)&amp;mLastRawGroundBlock,cGroundBlock::GetRawLength()=
+);
+-	// and return the unpatched block, you also need to set the position	=
+
+-	return &mLastGroundBlock;
+-}
+-
+-cGroundBlock*	cGroundBlockLoader_OnDemand::GetGroundBlock	(const int iX,co=
+nst int iY) { PROFILE
+-	if ( ( iX &gt;=3D miMapW ) || ( iY &gt;=3D miMapH ) || ( iX &lt; 0 ) || ( iY &lt; 0 )=
+) return 0;
+-	=
+
+-	// calculate block number
+-	int index =3D cGroundBlock::GetBlockNumber(iX,iY,miMapH);
+-	=
+
+-	// apply diff patch?
+-	if(mpDiffLookupFile &amp;&amp; mpDiffLoader &amp;&amp; mpDiffLookupFile-&gt;Contains(index)){
+-		// yes, apply a patch
+-		=
+
+-		// lookup new index
+-		index =3D mpDiffLookupFile-&gt;Lookup(index);
+-		=
+
+-		// and use patch file's loader
+-		cGroundBlock*	block =3D mpDiffLoader-&gt;GetGroundBlock(index);
+-		// keep original x,y values
+-		block-&gt;miX =3D iX;
+-		block-&gt;miY =3D iY;
+-		// and return the patched block
+-		return block;
+-	} else {
+-		// normal unpatched data
+-		mFileStream.seekg(cGroundBlock::GetRawOffset(iX,iY,miMapH), std::ios::be=
+g);
+-		mFileStream.read((char*)&amp;mLastRawGroundBlock,cGroundBlock::GetRawLength(=
+));
+-		// store position
+-		mLastGroundBlock.miX =3D iX;
+-		mLastGroundBlock.miY =3D iY;
+-		// and return the unpatched block
+-		return &mLastGroundBlock;
+-	}
+-}
+-
+-cGroundBlockLoader_OnDemand::~cGroundBlockLoader_OnDemand () { PROFILE
+-	// kill diff file stuff if present
+-	if(mpDiffLookupFile)delete mpDiffLookupFile;
+-	if(mpDiffLoader)delete mpDiffLoader;
+-}
+-
+-// ***** ***** ***** ***** ***** cGroundBlockLoader_FullFile
+-
+-
+-cGroundBlockLoader_FullFile::cGroundBlockLoader_FullFile	(const int iMapH,=
+const char* szFile, const char *szDiffLookup, const char *szDiffData)
+-	: cGroundBlockLoader(iMapH), cFullFileLoader(szFile), mpDiffLookupFile(0)=
+, mpDiffLoader(0) { PROFILE
+-	miMapW =3D cGroundBlock::CalcMapW(miMapH,miFullFileSize);
+-		=
+
+-	// use diff file? (if all are present)
+-	if(szDiffLookup &amp;&amp; szDiffData){
+-		// create lookup file
+-		mpDiffLookupFile =3D new cLookupFile(szDiffLookup);
+-		// and patch data file
+-		mpDiffLoader =3D new cGroundBlockLoader_FullFile(iMapH,szDiffData);
+-	}
+-}
+-
+-/// WARNING this is only an internal unpatched load call
+-cGroundBlock*	cGroundBlockLoader_FullFile::GetGroundBlock	(const int iBloc=
+kNumber){ PROFILE
+-	// normal unpatched data
+-	mLastGroundBlock.mpRawGroundBlock =3D (RawGroundBlock*)(mpFullFileBuffer =
++ cGroundBlock::GetRawOffset(iBlockNumber));
+-	// and return the unpatched block, you also need to set the position	=
+
+-	return &mLastGroundBlock;
+-}
+-
+-cGroundBlock*	cGroundBlockLoader_FullFile::GetGroundBlock	(const int iX,co=
+nst int iY) { PROFILE
+-	if ( ( iX &gt;=3D miMapW ) || ( iY &gt;=3D miMapH ) || ( iX &lt; 0 ) || ( iY &lt; 0 )=
+) return 0;
+-
+-	// calculate block number
+-	int index =3D cGroundBlock::GetBlockNumber(iX,iY,miMapH);
+-	=
+
+-	// apply diff patch?
+-	if(mpDiffLookupFile &amp;&amp; mpDiffLoader &amp;&amp; mpDiffLookupFile-&gt;Contains(index)){
+-		// yes, apply a patch
+-		=
+
+-		// lookup new index
+-		index =3D mpDiffLookupFile-&gt;Lookup(index);
+-		=
+
+-		// and use patch file's loader
+-		cGroundBlock*	block =3D mpDiffLoader-&gt;GetGroundBlock(index);
+-		// keep original x,y values
+-		block-&gt;miX =3D iX;
+-		block-&gt;miY =3D iY;
+-		// and return the patched block
+-		return block;
+-	} else {
+-		// normal unpatched data
+-		mLastGroundBlock.mpRawGroundBlock =3D (RawGroundBlock*)(mpFullFileBuffer=
+ + cGroundBlock::GetRawOffset(iX,iY,miMapH));
+-		// store position
+-		mLastGroundBlock.miX =3D iX;
+-		mLastGroundBlock.miY =3D iY;
+-		=
+
+-		return &mLastGroundBlock;
+-	}
+-
+-}
+-
+-cGroundBlockLoader_FullFile::~cGroundBlockLoader_FullFile () { PROFILE
+-	// kill diff file stuff if present
+-	if(mpDiffLookupFile)delete mpDiffLookupFile;
+-	if(mpDiffLoader)delete mpDiffLoader;
+-}
+-
+-
+-// ***** ***** ***** ***** ***** StaticBlock
+-
+-
+-cStaticBlock::cStaticBlock	() : mpRawIndex(0), mpRawStaticList(0) {}
+-	=
+
+-cStaticBlockLoader::cStaticBlockLoader	(const int iMapH) : miMapH(iMapH), =
+miMapW(0)  {}
+-	=
+
+-
+-// ***** ***** ***** ***** ***** cStaticBlockLoader_IndexedFullFile
+-
+-cStaticBlockLoader_IndexedFullFile::~cStaticBlockLoader_IndexedFullFile ()=
+{ PROFILE
+-	// kill diff file stuff if present
+-	if(mpDiffLookupFile)delete mpDiffLookupFile;
+-	if(mpDiffIndexedFullFile)delete mpDiffIndexedFullFile;
+-}
+-
+-cStaticBlockLoader_IndexedFullFile::cStaticBlockLoader_IndexedFullFile	(co=
+nst int iMapH,const char* szIndexFile,const char* szDataFile, const char *s=
+zDiffLookup, const char *szDiffIndex, const char *szDiffData)
+-	: cStaticBlockLoader(iMapH), cIndexedFullFile(szIndexFile,szDataFile), mp=
+DiffLookupFile(0), mpDiffIndexedFullFile(0) { PROFILE
+-	miMapW =3D cStaticBlock::CalcMapW(miMapH,mIndexFile.miFullFileSize);
+-	printf(&quot;cStaticBlockLoader_IndexedFullFile miMapW=3D%d\n&quot;,miMapW);
+-	=
+
+-	// use diff file? (if all are present)
+-	if(szDiffLookup &amp;&amp; szDiffIndex &amp;&amp; szDiffData){
+-		// create lookup file
+-		mpDiffLookupFile =3D new cLookupFile(szDiffLookup);
+-		// and patch data file
+-		mpDiffIndexedFullFile =3D new cIndexedFullFile(szDiffIndex,szDiffData);
+-	}
+-}
+-
+-cStaticBlock*	cStaticBlockLoader_IndexedFullFile::GetStaticBlock		(const i=
+nt iX,const int iY) { PROFILE
+-	if ( ( iX &gt;=3D miMapW ) || ( iY &gt;=3D miMapH ) || ( iX &lt; 0 ) || ( iY &lt; 0 )=
+) return 0;
+-	int index =3D cStaticBlock::BlockCoordsToIndex(iX,iY,miMapH);
+-
+-	// apply diff patch?
+-	if(mpDiffLookupFile &amp;&amp; mpDiffIndexedFullFile &amp;&amp; mpDiffLookupFile-&gt;Contain=
+s(index)){
+-		// yes, apply a patch
+-		=
+
+-		// lookup new index
+-		index =3D mpDiffLookupFile-&gt;Lookup(index);
+-		=
+
+-		RawIndex* pRawIndex =3D mpDiffIndexedFullFile-&gt;mIndexFile.GetRawIndex(in=
+dex);
+-		if (!IsIndexValid(pRawIndex)) return 0;
+-		pRawIndex-&gt;miOffset &amp;=3D 0x0fffFFFF; // avoid strange uo flags
+-		pRawIndex-&gt;miLength &amp;=3D 0x0fffFFFF; // avoid strange uo flags
+-		if (pRawIndex-&gt;miOffset + pRawIndex-&gt;miLength &gt; mpDiffIndexedFullFile-&gt;m=
+iFullFileSize) return 0; // index must be valid, and must point to a valid =
+rawblock
+-		mLastStaticBlock.mpRawIndex =3D pRawIndex;
+-		mLastStaticBlock.mpRawStaticList =3D (RawStatic*)(mpDiffIndexedFullFile-=
+&gt;<i>mpFullFileBuffer + pRawIndex-&gt;miOffset);
+</I>-		mLastStaticBlock.miX =3D iX;
+-		mLastStaticBlock.miY =3D iY;
+-	} else {
+-		// normal unpatched data
+-		RawIndex* pRawIndex =3D mIndexFile.GetRawIndex(index);
+-		if (!IsIndexValid(pRawIndex)) return 0;
+-		pRawIndex-&gt;miOffset &amp;=3D 0x0fffFFFF; // avoid strange uo flags
+-		pRawIndex-&gt;miLength &amp;=3D 0x0fffFFFF; // avoid strange uo flags
+-		if (pRawIndex-&gt;miOffset + pRawIndex-&gt;miLength &gt; miFullFileSize) return 0=
+; // index must be valid, and must point to a valid rawblock
+-		mLastStaticBlock.mpRawIndex =3D pRawIndex;
+-		mLastStaticBlock.mpRawStaticList =3D (RawStatic*)(mpFullFileBuffer + pRa=
+wIndex-&gt;miOffset);
+-		mLastStaticBlock.miX =3D iX;
+-		mLastStaticBlock.miY =3D iY;
+-	}
+-	return &mLastStaticBlock;
+-}
+-	=
+
+-
+-// ***** ***** ***** ***** ***** cRadarColorLoader
+-
+-
+-cRadarColorLoader::cRadarColorLoader	(const char* szFile) : cFullFileLoade=
+r(szFile) { PROFILE
+-	int i; for (i=3D0;i&lt;miFullFileSize/2;++i) ((short*)mpFullFileBuffer)[i] |=
+=3D 0x8000; // set unused bit, to have correct alpha (opaque) for Ogre::PF_=
+A1R5G5B5
+-}
+-
+-
+-// ***** ***** ***** ***** ***** TileTypes
+-
+-
+-cGroundTileType::cGroundTileType	() : mpRawGroundTileType(0) {}
+-cStaticTileType::cStaticTileType	() : mpRawStaticTileType(0) {}
+-	=
+
+-
+-// ***** ***** ***** ***** ***** cTileTypeLoader_FullFile
+-
+-
+-cTileTypeLoader_FullFile::cTileTypeLoader_FullFile		(const char* szFile) :=
+ cFullFileLoader(szFile) {}
+-	=
+
+-cGroundTileType*	cTileTypeLoader_FullFile::GetGroundTileType	(const int iI=
+D) { PROFILE
+-	if (!cGroundTileType::IsValidID(iID)) return 0; //  upper bounds check fo=
+r id is within IsValidID() for ground types
+-	mLastGroundTileType.mpRawGroundTileType =3D (RawGroundTileType*)(mpFullFi=
+leBuffer + cGroundTileType::GetRawOffset(iID));
+-	mLastGroundTileType.miID =3D iID;
+-	return &mLastGroundTileType;
+-}
+-
+-int					cTileTypeLoader_FullFile::GetEndID			() { PROFILE
+-	return cStaticTileType::GetEndID(miFullFileSize);
+-}
+-
+-cStaticTileType*	cTileTypeLoader_FullFile::GetStaticTileType	(const int iI=
+D) { PROFILE
+-	if (!cStaticTileType::IsValidID(iID)) return 0;
+-	if (cStaticTileType::GetRawOffset(iID) + cStaticTileType::GetRawLength() =
+&gt;<i> miFullFileSize) return 0;
+</I>-	mLastStaticTileType.mpRawStaticTileType =3D (RawStaticTileType*)(mpFullFi=
+leBuffer + cStaticTileType::GetRawOffset(iID));
+-	mLastStaticTileType.miID =3D iID;
+-	return &mLastStaticTileType;
+-}
+-
+-
+-// ***** ***** ***** ***** ***** cAnimDataLoader_FullFile
+-
+-cAnimDataLoader::cAnimDataLoader		(const char* szFile) : cFullFileLoader(s=
+zFile) {}
+-
+-RawAnimData*	cAnimDataLoader::GetAnimDataType(const int iID) { PROFILE
+-	mpLastAnimData =3D (RawAnimData*)(mpFullFileBuffer + (iID/8)*(4+8*68) + 4=
+ + (iID%8)*68);
+-	return mpLastAnimData;
+-}
+-
+-
+-// ***** ***** ***** ***** ***** cIndexedRawData
+-
+-
+-cIndexedRawData::cIndexedRawData 	(const eDataType iDataType) : miDataType=
+(iDataType), mpRawIndex(0), mpRawData(0) {}
+-
+-
+-// ***** ***** ***** ***** ***** cTexMap
+-
+-
+-cTexMap::cTexMap					() : cIndexedRawData(kDataType_TexMap) {}
+-	=
+
+-cTexMapLoader_IndexedFullFile::cTexMapLoader_IndexedFullFile	(const char* =
+szIndexFile,const char* szDataFile) =
+
+-	: cIndexedRawDataLoader_IndexedFullFile&lt;cTexMap&gt;(szIndexFile,szDataFile) =
+{}
+-
+-cTexMap*	cTexMapLoader_IndexedFullFile::GetTexMap			(const int iID) { PROF=
+ILE return GetChunk(iID); }
+-
+-cTexMapLoader_IndexedOnDemand::cTexMapLoader_IndexedOnDemand	(const char* =
+szIndexFile,const char* szDataFile) =
+
+-	: cIndexedRawDataLoader_IndexedOnDemand&lt;cTexMap&gt;(szIndexFile,szDataFile) =
+{}
+-
+-cTexMap*	cTexMapLoader_IndexedOnDemand::GetTexMap			(const int iID) { PROF=
+ILE return GetChunk(iID); }
+-
+-
+-// ***** ***** ***** ***** ***** cGump
+-
+-
+-cGump::cGump					() : cIndexedRawData(kDataType_Gump) {}
+-
+-cGumpLoader_IndexedFullFile::cGumpLoader_IndexedFullFile	(const char* szIn=
+dexFile,const char* szDataFile) =
+
+-	: cIndexedRawDataLoader_IndexedFullFile&lt;cGump&gt;(szIndexFile,szDataFile) {}
+-
+-cGump*	cGumpLoader_IndexedFullFile::GetGump				(const int iID) { PROFILE r=
+eturn GetChunk(iID); }
+-
+-cGumpLoader_IndexedOnDemand::cGumpLoader_IndexedOnDemand	(const char* szIn=
+dexFile,const char* szDataFile) =
+
+-	: cIndexedRawDataLoader_IndexedOnDemand&lt;cGump&gt;(szIndexFile,szDataFile) {}
+-
+-cGump*	cGumpLoader_IndexedOnDemand::GetGump				(const int iID) { PROFILE r=
+eturn GetChunk(iID); }
+-
+-int	cGump::GetWidth	(){
+-				return ((mpRawIndex-&gt;miExtra &gt;&gt; 16 ) &amp; 0xFFFF);
+-}
+-
+-int	cGump::GetHeight	(){
+-				return (mpRawIndex-&gt;miExtra &amp; 0xFFFF);
+-}
+-
+-
+-// ***** ***** ***** ***** ***** cHue
+-
+-
+-cHue::cHue () : mpRawData(0) {}
+-
+-short *cHue::GetColors() { return (short *)(mpRawData); }
+-
+-std::string cHue::GetName() { return std::string(mpRawData+64+4,20); }
+-
+-
+-cHueLoader	::cHueLoader	(const char* szDataFile) : cFullFileLoader(szDataF=
+ile) {}
+-	=
+
+-int		cHueLoader::GetMaxHueID		() { =
+
+-	// miFullFileSize =3D 265500
+-	int eightblocks =3D (miFullFileSize - 4) / 708; // (265500 - 4) / 708 =3D=
+ 374.99...
+-	int singles =3D ((miFullFileSize - 4) - 708*eightblocks) / 88;// ((265500=
+ - 4) - 708*374)/ 88 =3D 704 / 88 =3D 8
+-	return eightblocks*8 + singles; // 374*8 + 8 =3D 3000
+-}
+-
+-cHue*	cHueLoader	::GetHue	(const int iID){
+-	if (iID &lt; 0 || iID &gt;=3D GetMaxHueID()) return GetHue(0); // illegal hue a=
+sked
+-	mLastHue.miID =3D iID;
+-	mLastHue.mpRawData =3D mpFullFileBuffer+((((8*88)+4)*(iID/8)) + 4 + (88*(=
+iID%8)));
+-	return &mLastHue;
+-}
+-
+-
+-
+-// ***** ***** ***** ***** ***** cArtMap
+-
+-
+-
+-cArtMap::cArtMap					() : cIndexedRawData(kDataType_Art) {}
+-
+-cArtMapLoader_IndexedFullFile::cArtMapLoader_IndexedFullFile	(const char* =
+szIndexFile,const char* szDataFile) =
+
+-	: cIndexedRawDataLoader_IndexedFullFile&lt;cArtMap&gt;(szIndexFile,szDataFile) =
+{}
+-
+-cArtMap*	cArtMapLoader_IndexedFullFile::GetArtMap			(const int iID) { PROF=
+ILE return GetChunk(iID); }
+-
+-cArtMapLoader_IndexedOnDemand::cArtMapLoader_IndexedOnDemand	(const char* =
+szIndexFile,const char* szDataFile) =
+
+-	: cIndexedRawDataLoader_IndexedOnDemand&lt;cArtMap&gt;(szIndexFile,szDataFile) =
+{}
+-
+-cArtMap*	cArtMapLoader_IndexedOnDemand::GetArtMap			(const int iID) { PROF=
+ILE return GetChunk(iID); }
+-
+-unsigned int	cArtMapLoader_IndexedFullFile::GetCount			() { PROFILE return=
+ mIndexFile.miFullFileSize / 12; }
+-
+-unsigned int	cArtMapLoader_IndexedOnDemand::GetCount			() { PROFILE return=
+ mIndexFile.miFullFileSize / 12; }
+-
+-	/*
+-	if( ((uint32 *)mpRawData)[0] &lt; 0xFFFF )return 44;	//first DWORD defines t=
+he art type, &lt;0xFFFF means a raw art
+-	else return ((uint32 *)mpRawData)[2];	//and the other is a run art with d=
+ynamic size
+-	*/
+-
+-int	cArtMap::GetWidth	(){
+-	if (miID &lt; 0x4000) return 44;
+-	else return ((short *)mpRawData)[2];
+-}
+-
+-int	cArtMap::GetHeight	() {
+-	if(miID &lt; 0x4000)return 44;
+-	else return ((short *)mpRawData)[3];
+-}
+-
+-void	cArtMap::CalcVisibleAABB(int&amp; minx, int&amp; miny, int&amp; maxx, int&amp; maxy) =
+{	=
+
+-	// TODO this returns strange results so this functionality is implemented=
+ via bitmasks
+-	=
+
+-	// read the size
+-	int w =3D GetWidth();
+-	int h =3D GetHeight();
+-	short *pBuffer =3D new short[w*h];
+-	cIdentityFilter Filter;
+-	Decode(pBuffer,w*sizeof(short),Filter,0);
+-	=
+
+-	bool found =3D false;
+-	=
+
+-	int offset;
+-	// this ignores and 1px border because of broken images or strange data i=
+n the border
+-	for(int y=3D1;y&lt;h-2;++y){
+-		for(int x=3D1;x&lt;w-2;++x){
+-			offset =3D y*w+x;
+-			if(pBuffer[offset]){
+-				if(!found){
+-					minx =3D x;
+-					maxx =3D x;
+-					miny =3D y;
+-					maxy =3D y;
+-					found =3D true;
+-				} else {
+-					minx =3D mymin(x,minx);
+-					maxx =3D mymax(x,maxx);
+-					miny =3D mymin(y,miny);
+-					maxy =3D mymax(y,maxy);
+-				}
+-			}
+-		}
+-	}
+-
+-	delete [] pBuffer;
+-}
+-
+-void	cArtMap::SearchCursorHotspot		(int&amp; iX,int&amp; iY) { PROFILE
+-	// read the size
+-	int w =3D GetWidth();
+-	int h =3D GetHeight();
+-	iX =3D w/2;
+-	iY =3D h/2;
+-	// find the hotspot
+-	int a,b;
+-	short *pBuffer =3D new short[w*h];
+-	cIdentityFilter Filter;
+-	Decode(pBuffer,w*sizeof(short),Filter,0);
+-	// x axis
+-	for(int i=3D0;i&lt;w;++i){
+-		// neightbours
+-		a =3D i-1;b =3D i+1;
+-		if(a&lt;0)a+=3Dw;
+-		if(a&gt;=3Dw)a-=3Dw;
+-		if(b&lt;0)b+=3Dw;
+-		if(b&gt;=3Dw)b-=3Dw;
+-		=
+
+-		if(pBuffer[a] !=3D pBuffer[i] &amp;&amp; pBuffer[b] !=3D pBuffer[i]){
+-			//hotspot found
+-			iX =3D i;
+-			break;
+-		}
+-	}
+-	// y axis
+-	for(int i=3D0;i&lt;h;++i){
+-		// neightbours
+-		a =3D i-1;b =3D i+1;
+-		if(a&lt;0)a+=3Dh;
+-		if(a&gt;=3Dh)a-=3Dh;
+-		if(b&lt;0)b+=3Dh;
+-		if(b&gt;=3Dh)b-=3Dh;
+-		=
+
+-		if(pBuffer[w*a] !=3D pBuffer[w*i] &amp;&amp; pBuffer[w*b] !=3D pBuffer[w*i]){
+-			//hotspot found
+-			iY =3D i;
+-			break;
+-		}
+-	}
+-	delete[] pBuffer;
+-}
+-
+-// ***** ***** ***** ***** ***** cSound
+-
+-
+-
+-cSound::cSound					() : cIndexedRawData(kDataType_Sound) {}
+-
+-cSoundLoader_IndexedFullFile::cSoundLoader_IndexedFullFile	(const char* sz=
+IndexFile,const char* szDataFile) =
+
+-	: cIndexedRawDataLoader_IndexedFullFile&lt;cSound&gt;(szIndexFile,szDataFile) {}
+-
+-cSound*	cSoundLoader_IndexedFullFile::GetSound			(const int iID) { PROFILE=
+ return GetChunk(iID); }
+-
+-cSoundLoader_IndexedOnDemand::cSoundLoader_IndexedOnDemand	(const char* sz=
+IndexFile,const char* szDataFile) =
+
+-	: cIndexedRawDataLoader_IndexedOnDemand&lt;cSound&gt;(szIndexFile,szDataFile) {}
+-
+-cSound*	cSoundLoader_IndexedOnDemand::GetSound			(const int iID) { PROFILE=
+ return GetChunk(iID); }
+-
+-std::string	cSound::GetName(){return std::string(mpRawData,16);}
+-const char*	cSound::GetPCMBuffer(){return mpRawData + 16 + 16;}
+-int			cSound::GetPCMBufferSize(){return mpRawIndex-&gt;miLength - 32;}
+-bool		cSound::IsMono(){return true;}
+-int			cSound::GetBitrate(){return 16;}
+-int			cSound::GetKHz(){return 22050;}
+-
+-// ***** ***** ***** ***** ***** cMultiLoader_IndexedFullFile
+-
+-cMultiLoader_IndexedFullFile::cMultiLoader_IndexedFullFile	(const char* sz=
+IndexFile,const char* szDataFile)
+-	: cIndexedFullFile(szIndexFile,szDataFile) { PROFILE
+-}
+-
+-unsigned int	cMultiLoader_IndexedFullFile::CountMultiParts	(const int iID)=
+{ PROFILE
+-	RawIndex *rawIndex =3D mIndexFile.GetRawIndex(iID);
+-	if(IsIndexValid(rawIndex))return rawIndex-&gt;miLength / sizeof(RawMultiPart=
+);
+-	else return 0;
+-}
+-
+-RawMultiPart*	cMultiLoader_IndexedFullFile::GetMultiParts	(const int iID){=
+ PROFILE
+-	RawIndex *rawIndex =3D mIndexFile.GetRawIndex(iID);
+-	if(!IsIndexValid(rawIndex))return 0;
+-	if(rawIndex-&gt;miOffset =3D=3D INDEX_UNDEFINED_OFFSET) { printf(&quot;GetMultiPa=
+rts failed to load index, undefined offset\n&quot;); return 0; }
+-	if(rawIndex)return (RawMultiPart*)(mpFullFileBuffer + rawIndex-&gt;miOffset);
+-	else return 0;
+-}
+-
+-// ***** ***** ***** ***** ***** cAnim
+-
+-
+-cAnimLoader_IndexedFullFile::cAnimLoader_IndexedFullFile	(const int iHighD=
+etailed, const int iLowDetailed, const char* szIndexFile, const char* szDat=
+aFile) : cAnimLoader( iHighDetailed, iLowDetailed ), cIndexedRawDataLoader_=
+IndexedFullFile&lt;cAnim&gt;(szIndexFile,szDataFile) {
+-	mHighDetailed =3D iHighDetailed;
+-	mLowDetailed =3D iLowDetailed;
+-}
+-
+-cAnim*	cAnimLoader_IndexedFullFile::GetAnim			(const int iID) { PROFILE re=
+turn GetChunk(iID); }
+-
+-cAnimLoader_IndexedOnDemand::cAnimLoader_IndexedOnDemand	(const int iHighD=
+etailed, const int iLowDetailed, const char* szIndexFile, const char* szDat=
+aFile) : cAnimLoader( iHighDetailed, iLowDetailed ), cIndexedRawDataLoader_=
+IndexedOnDemand&lt;cAnim&gt;(szIndexFile,szDataFile) {
+-	mHighDetailed =3D iHighDetailed;
+-	mLowDetailed =3D iLowDetailed;
+-}
+-
+-cAnim*	cAnimLoader_IndexedOnDemand::GetAnim			(const int iID) { PROFILE re=
+turn GetChunk(iID); }
+-
+-// ***** ***** ***** ***** ***** cLight
+-
+-cLight::cLight					() : cIndexedRawData(kDataType_Light) {}
+-
+-int	cLight::GetWidth	(){
+-				return ((mpRawIndex-&gt;miExtra &gt;&gt; 16 ) &amp; 0xFFFF);
+-}
+-
+-int	cLight::GetHeight	(){
+-				return (mpRawIndex-&gt;miExtra &amp; 0xFFFF);
+-}
+-
+-cLightLoader_IndexedFullFile::cLightLoader_IndexedFullFile	(const char* sz=
+IndexFile,const char* szDataFile) =
+
+-	: cIndexedRawDataLoader_IndexedFullFile&lt;cLight&gt;(szIndexFile,szDataFile) {}
+-
+-cLight*	cLightLoader_IndexedFullFile::GetLight				(const int iID) { PROFIL=
+E return GetChunk(iID); }
+-
+-// ***** ***** ***** ***** ***** cLookupFile
+-
+-cLookupFile::cLookupFile (const char* szFile) {
+-	cFullFileLoader loader(szFile);
+-	// read the lookuptable and store it in the map
+-	if(loader.mpFullFileBuffer){
+-		uint32 *buffer =3D (uint32 *)loader.mpFullFileBuffer;
+-		// store all id &lt;-&gt; id mappings in the map
+-		for(int i =3D 0;i &lt; loader.miFullFileSize / 4; ++i){
+-			mLookupTable[buffer[i]] =3D i;
+-		}
+-	}
+-}
+-
+-const bool cLookupFile::Contains (const uint32 id){
+-	return mLookupTable.find(id) !=3D mLookupTable.end();
+-}
+-
+-const uint32 cLookupFile::Lookup (const uint32 id){
+-	if(!Contains(id))return 0;
+-	return mLookupTable[id];
+-}
+-
+-cLookupFile::~cLookupFile (){
+-	=
+
+-}
+-
+-// ***** ***** ***** ***** ***** cUniFontFileLoader
+-
+-/*
+-fonts.mul  ????????? different format ?
+-unifont1.mul
+-unifont2.mul
+-unifont3.mul
+-unifont4.mul
+-unifont5.mul
+-unifont6.mul
+-unifont.mul
++
++
++
++
++
++	=
+
++// ***** ***** ***** ***** ***** notes
++
++
++/** TODO : doxygen me
++	UO Data Loaders
++
++	in standard UO there are 5 maps/worlds numbered 0-4, there size was hardc=
+oded in UO and is stored in data/xml/Maps.xml in iris
++
++	# ground data (groundTileTypeID+z) is stored in map*.mul where *=3Dmapnum=
+ , they are organized in Blocks of 8x8 ground-tiles
++
++	# radarcolor is stored in radarcol.mul, assigns a 16 bit color for every =
+groundTileTypeID (&lt;0x00004000) to be displayed on worldmap or so
++
++	# tileType data is stored in tiledata.mul : flags, id_override for texture
++
++	# Art means 2D graphics, most in iso perspektive, data comes from artidx.=
+mul and art.mul
++	used for both iso-ground tiles and 2d gfx for statics, art-index =3D tile=
+TypeIndex
++
++	# textures are mainly used for ground tiles, data comes from texidx.mul a=
+nd texmaps.mul
++	art-index =3D tileTypeIndex, if not overridden by id_override in tileType=
+ (tiledata.mul)
++	only two resolutions are possible, both are quite low  : (myRawIndex.miEx=
+tra=3D=3D1)?128:64
++	TODO : iris has highres textures, ask science where they are stored
++	TODO : to display a full high-res texture on a single tile looks bad, =
+
++		find a way to distribute them across multiple tiles without loosing too =
+much performance... =
+
++		maybe different drawing options, that the user can choose from ?
++
++	in UO there are &quot;statics&quot; and &quot;dynamics&quot;,
++	&quot;statics&quot; are things that are (usually) unmovable : walls, trees, etc
++	&quot;dynamics&quot; can be interacted with, e.g. doors
++	While &quot;dynamics&quot; are transmitted from the server, &quot;statics&quot; are loaded fr=
+om the client data.
++
++	# statics (staticTypeID,x,y,z) are stored in staidx*.mul and statics*.mul=
+ where *=3Dmapnum
++	as there can be any number of statics per block (8x8 tiles), an index fil=
+e (staidx*.mul) is used, =
+
++	which stores offset and length(bytes) of the actual static data in the st=
+atics*.mul file.
++	There is one index entry per block(8x8 tiles), which is equivalent to a B=
+lock of ground tiles.
++
++	# staticType : model data comes from iris/data/models.uim and models-patc=
+hinfo.xml
++	Iris artists have modelled a vast amount of statics in 3D to be used inst=
+ead of the 2D tilegfx from uo.
++	TODO ... irisedit ... textures, materials, ... own format ....  import fr=
+om 3dsmax format....
++	iris.imc --optimize-- : models.uim, models_patchinfo.xml
++
++	# todo ... chars,clothes,weapons : granny models von AOS, loaded from uo =
+dir
++
++	universal editor for uo files : mulpatcher : <A HREF="http://varan.uodev.de">http://varan.uodev.de</A>
++
++	# gumps =3D dialogs : iris layout comes from .gfm files
++	# verdata is used for patch-infos (override data in other mul files, deta=
+ils unknown..)
++
++	animgumps (anim*.mul?)  : paperdoll, trading ...
++	nonanimgumps : buttons, dialog-background
++
++	# multis are things like houses (and ships?) that consist of grouped stat=
+ics (multi.idx,multi.mul), ask varan
++
++	#hues : color-palette based replacement for gray values for fonts, clothe=
+s, chars, statics....
++
++	// hues : coloring all sorts of things
++	// animgumps : paperdoll, trading ...
++	// nonanimgumps : buttons, dialog-background
++	// stitchin  : clothes replace modelpart...
++	// cliloc : language localisation
++	// verdata : patch-infos
++	// iris.imc --optimize-- : models.uim, models_patchinfo.xml
++	// gump layouts : .gfm
++	=
+
++	# raw data pointers
++	Classes like cGroundBlock contain pointers to raw data like &quot;RawGroundBlo=
+ck* mpRawGroundBlock;&quot;, thei constructors usually set these pointers to zer=
+o.
++	The classes don't own the memory pointed to by these, as it is usually al=
+located centrally by one of the loaders for better performance.
++	Also the don't try to release the memory pointed to.
++	Classes that are interesting for full-file loadding, like cGroundBlock, s=
+houldn't be used directly, =
+
++	Please use them only trough loaders like cGroundBlockLoader_FullFile, who=
+ do all the memory management for them.
++
++	// get length of file:
++  is.seekg (0, ios::end);
++  length =3D is.tellg();
+ */
+-cUniFontFileLoader::cUniFontFileLoader(const char* szFile) : cFullFileLoad=
+er(szFile) { PROFILE
+-	/*
+-	for (int i=3D0;i&lt;300;++i) {
+-		RawUniFontFileLetterHeader*	pHead =3D GetLetterHeader(i);
+-		const char*					pData =3D GetLetterData(	i);
+-		if (!pData) continue;
+-		int w =3D (int)pHead-&gt;miWidth;
+-		int h =3D (int)pHead-&gt;miHeight;
+-		if (w =3D=3D 0 &amp;&amp; h =3D=3D 0) continue;
+-		const char*					pNextBigger =3D 0;
+-		for (int j=3D0;j&lt;0xFFFF;++j) {
+-			const char*	pOtherData =3D (const char*)GetLetterHeader(j);
+-			if (pOtherData &amp;&amp; pOtherData &gt; pData) {
+-				if (!pNextBigger || pOtherData &lt; pNextBigger) pNextBigger =3D pOtherDa=
+ta;
+-			}
+-		}
+-		int iMySize =3D pNextBigger ? (pNextBigger - pData) : 0;
+-		int iExpectedSize =3D ((w+7)/8)*h;
+-		int iSizeDiff =3D iMySize - iExpectedSize;
+-		if (iSizeDiff !=3D 0) printf(&quot;char %d : w=3D%3d h=3D%3d mem=3D%4d (%4d+%=
+4d %s)\n&quot;,i,w,h,iMySize,iExpectedSize,iSizeDiff,(iSizeDiff!=3D0)?&quot;########&quot;=
+:<i>&quot;&quot;);
+</I>-	}
+-	*/
+-	/*
+-	int mw =3D GetMaxWidth();
+-	int mh =3D GetMaxHeight();
+-	=
+
+-	printf(&quot;maxw=3D%d maxh=3D%d\n&quot;,mw,mh);
+-
+-	const RawUniFontFileLetterHeader *h;
+-	const char *offset ;
+-	for(char i =3D 0;i &lt; kLetterNumbers; ++i){
+-		h =3D GetLetterHeader(i);
+-		offset =3D GetLetterData(i);
+-		if(h){
+-			printf(&quot;code=3D%d offset=3D%d x=3D%d y=3D%d w=3D%d h=3D%d\n&quot;,i,offset-m=
+pFullFileBuffer,h-&gt;miXOffset,h-&gt;miYOffset,h-&gt;miWidth,h-&gt;miHeight);
+-			=
+
+-			// simple dump of letter
+-			for(int y=3D0;y&lt;mh;++y){
+-				for(int x=3D0;x&lt;mw;++x){
+-					int lx =3D x - h-&gt;miXOffset;
+-					int ly =3D y - h-&gt;miYOffset;
+-					=
+
+-					if(lx &lt; 0 || lx &gt;=3D h-&gt;miWidth || ly &lt; 0 || ly &gt;=3D h-&gt;miHeight)prin=
+tf(&quot;-&quot;);
+-					else if(IsPixelBorder(offset,h-&gt;miWidth,h-&gt;miHeight,lx,ly))printf(&quot;.&quot;=
+);
+-					else if(IsPixelInside(offset,h-&gt;miWidth,h-&gt;miHeight,lx,ly))printf(&quot;#&quot;=
+);
+-					else printf(&quot;~&quot;);
+-				}
+-				printf(&quot;\n&quot;);
+-			}
+-			printf(&quot;\n&quot;);
+-		} else printf(&quot;code=3D%d -\n&quot;,i);
+-	}
+-	*/
+-}
+-
+-
+-const int cUniFontFileLoader::GetLetterNumbers(){return 0xFFFF;}
+-const float cUniFontFileLoader::GetLetterUsage(){
+-	std::map&lt;const char *,int&gt; lCache;
+-	for(int i=3D0;i&lt;GetLetterNumbers();++i){
+-		const char * data =3D GetLetterData(i);
+-		if(lCache.find(data) =3D=3D lCache.end())lCache[data] =3D 1;
+-		else lCache[data] =3D lCache[data] + 1;
+-	}
+-	float usage =3D float(lCache.size()) / float(GetLetterNumbers());
+-	printf(&quot;usage=3D%f.2\n&quot;,usage);
+-	return usage;
+-}
+-
+-RawUniFontFileLetterHeader* cUniFontFileLoader::GetLetterHeader	(const uns=
+igned int iCode){ PROFILE
+-	// read out offset of letter header
+-	if (iCode * sizeof(int32) + sizeof(int32) &gt;=3D  miFullFileSize) return 0;=
+ // check if iCode is valid
+-	int32 offset =3D ((int32 *)(mpFullFileBuffer))[iCode];
+-	if (offset &lt; 0 || offset + sizeof(RawUniFontFileLetterHeader) &gt;=3D miFull=
+FileSize) return 0; // check if offset is valid
+-	return (RawUniFontFileLetterHeader *)(mpFullFileBuffer + offset);
+-}
+-
+-const char* cUniFontFileLoader::GetLetterData	(const unsigned int iCode){ =
+PROFILE
+-	char *p =3D (char *)GetLetterHeader(iCode);
+-	if (!p) return 0;
+-	return p + sizeof(RawUniFontFileLetterHeader);
+-}
+-
+-cUniFontFileLoader::~cUniFontFileLoader(){ PROFILE
+-
+-}
+-
+-char cUniFontFileLoader::GetMaxWidth(){ PROFILE
+-	char m =3D 0;
+-	const RawUniFontFileLetterHeader *h;
+-	for(unsigned int i =3D 0;i &lt; GetLetterNumbers(); ++i){
+-		h =3D GetLetterHeader(i);
+-		if(h){
+-			// size
+-			int x =3D h-&gt;miXOffset + h-&gt;miWidth;
+-			// new max found?
+-			if(x &gt; m){
+-				m =3D x;
+-			}
+-		}
+-	}
+-	return m;
+-}
+-
+-char cUniFontFileLoader::GetMaxHeight(){ PROFILE
+-	char m =3D 0;
+-	const RawUniFontFileLetterHeader *h;
+-	for(unsigned int i =3D 0;i &lt; GetLetterNumbers(); ++i){
+-		h =3D GetLetterHeader(i);
+-		if(h){
+-			// size
+-			int x =3D h-&gt;miYOffset + h-&gt;miHeight;
+-			// new max found?
+-			if(x &gt; m)m =3D x;
+-		}
+-	}
+-	return m;
+-}
+-
+-const bool cUniFontFileLoader::IsPixelInside (const char *data, const int =
+w, const int h, const int x, const int y) {
+-	if (data =3D=3D 0) return false;
+-	if (x &lt; 0 || x &gt;=3D w || y &lt; 0 || y &gt;=3D h) return false;
+-	int iOffset =3D x/8 + y*((w+7)/8); // +7 / 8 : round upwards
+-	if (iOffset + (data - mpFullFileBuffer) &gt;=3D  miFullFileSize) return fals=
+e; // boundscheck
+-	return (data[iOffset] &amp; (1 &lt;&lt; (7 - (x%8)))) !=3D 0;
+-}
+-
+-const bool cUniFontFileLoader::IsPixelBorder (const char *data, const int =
+w, const int h, const int x, const int y) {
+-	if (data =3D=3D 0) return false;
+-	if (IsPixelInside(data,w,h,x,y)) return false; // only non visbile pixels=
+ can be borders
+-	=
+
+-	// check for visible neighbours
+-	return (IsPixelInside(data,w,h,x-1,y-1) ||
+-			IsPixelInside(data,w,h,x  ,y-1) ||
+-			IsPixelInside(data,w,h,x+1,y-1) ||
+-			=
+
+-			IsPixelInside(data,w,h,x-1,y  ) ||
+-			IsPixelInside(data,w,h,x  ,y  ) ||
+-			IsPixelInside(data,w,h,x+1,y  ) ||
+-
+-			IsPixelInside(data,w,h,x-1,y+1) ||
+-			IsPixelInside(data,w,h,x  ,y+1) ||
+-			IsPixelInside(data,w,h,x+1,y+1));
+-}
+-
+-	=
+
+-// ***** ***** ***** ***** ***** notes
+-
+ =
+
+ 	/*
+ 	texmap	 	texidx.mul,texmaps.mul 	: ca 22mb 	textures (ground : 3d)
+
+Modified: trunk/src/scripting.iris.cpp
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/src/scripting.iris.cpp (original)
++++ trunk/src/scripting.iris.cpp Fri May  9 19:51:14 2008
+@@ -11,7 +11,6 @@
+ #include &quot;builder.h&quot;
+ #include &quot;pathsearch.h&quot;
+ #include &quot;terrain.h&quot;
+-#include &quot;radar.h&quot;
+ #include &quot;spritemanager.h&quot;
+ #include &quot;ogremanualloader.h&quot;
+ #include &quot;huffman.h&quot;
+@@ -494,7 +493,6 @@
+ 			Granny_LuaRegister(L);
+ 			LuaRegisterData(L);
+ 			LuaRegisterBuilder(L);
+-			LuaRegisterRadar(L);
+ 			cSpriteManager::LuaRegister(L);
+ 			cManualArtMaterialLoader::LuaRegister(L);
+ 			cSprite::LuaRegister(L);
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000961.html">[Iris-commit] [IRIS] r2151 - in /trunk: include/builder_common.h include/data.h lua/lib.uoanim.lua src/builder.cpp src/builder_anim.cpp src/builder_art.cpp src/builder_font.cpp src/builder_gump.cpp src/builder_map.cpp src/builder_tex.cpp
+</A></li>
+	<LI>Next message: <A HREF="000963.html">[Iris-commit] [IRIS] r2153 - in /trunk: include/ src/
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#962">[ date ]</a>
+              <a href="thread.html#962">[ thread ]</a>
+              <a href="subject.html#962">[ subject ]</a>
+              <a href="author.html#962">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

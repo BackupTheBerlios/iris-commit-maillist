@@ -1,0 +1,298 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1979 - in /trunk: bin/iris2.exe lua/lib.compass.lua lua/lib.static.lua lua/main.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-March/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1979%20-%20in%20/trunk%3A%20bin/iris2.exe%0A%20lua/lib.compass.lua%20lua/lib.static.lua%20lua/main.lua&In-Reply-To=%3C20080322133715.1F4BC152402A%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000790.html">
+   <LINK REL="Next"  HREF="000792.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1979 - in /trunk: bin/iris2.exe lua/lib.compass.lua lua/lib.static.lua lua/main.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1979%20-%20in%20/trunk%3A%20bin/iris2.exe%0A%20lua/lib.compass.lua%20lua/lib.static.lua%20lua/main.lua&In-Reply-To=%3C20080322133715.1F4BC152402A%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1979 - in /trunk: bin/iris2.exe lua/lib.compass.lua lua/lib.static.lua lua/main.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat Mar 22 14:37:14 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000790.html">[Iris-commit] [IRIS] r1978 - /trunk/src/builder.cpp
+</A></li>
+        <LI>Next message: <A HREF="000792.html">[Iris-commit] [IRIS] r1980 - /trunk/lua/lib.3d.dynamic.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#791">[ date ]</a>
+              <a href="thread.html#791">[ thread ]</a>
+              <a href="subject.html#791">[ subject ]</a>
+              <a href="author.html#791">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: sience
+Date: Sat Mar 22 14:37:13 2008
+New Revision: 1979
+
+Log:
+-some compass optimizations
+-new win32 binary
+-loading order changed for resources
+
+Modified:
+    trunk/bin/iris2.exe
+    trunk/lua/lib.compass.lua
+    trunk/lua/lib.static.lua
+    trunk/lua/main.lua
+
+Modified: trunk/bin/iris2.exe
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+Binary files - no diff available.
+
+Modified: trunk/lua/lib.compass.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.compass.lua (original)
++++ trunk/lua/lib.compass.lua Sat Mar 22 14:37:13 2008
+@@ -30,8 +30,6 @@
+ 		gIrisCompassDialog.bDoUpdate =3D true
+ 		=
+
+ 		local z =3D GetMaxZ()
+-		local vw =3D GetMainViewport():GetActualWidth()
+-		local vh =3D GetMainViewport():GetActualHeight()
+ 		local mx =3D vw - gCompassSize/2 - gCompassOff
+ 		local my =3D 15 + gCompassSize/2 + gCompassOff
+ 		local halfwidth =3D 128
+@@ -66,17 +64,28 @@
+ 			mygfx:RenderableIndex3(1,3,2)
+ 			mygfx:RenderableEnd()
+ 		end
+-		=
+
++
+ 		-- rotating compass part (north indicator)
+ 		if (gIrisCompassDialog.compassframe_rot) then
+ 			local mygfx =3D gIrisCompassDialog.compassframe_rot.gfx
+ 			mygfx:InitRROC()
+ 			mygfx:SetMaterial(&quot;compassframe_rot&quot;)
+-		end
+-		=
+
+-		=
+
++			local ax, iCamOverBlockX, iCamOverBlockY, MirrorX =3D gCurrentRenderer:=
+UpdateCompass()
++			local r =3D math.sqrt( halfwidth*halfwidth + halfwidth*halfwidth )
++			local rsin =3D halfwidth * math.sin(- ax + gfDeg2Rad*90)
++			local rcos =3D halfwidth * math.cos(- ax + gfDeg2Rad*90)
++			mygfx:RenderableBegin(4,6,true,false,OT_TRIANGLE_LIST)
++			mygfx:RenderableVertex((mx - rcos - rsin)/vw * 2.0 - 1.0,(my - rcos + r=
+sin)/vh * (-2.0) + 1.0,z, 0,0)
++			mygfx:RenderableVertex((mx + rcos - rsin)/vw * 2.0 - 1.0,(my - rcos - r=
+sin)/vh * (-2.0) + 1.0,z, 1,0)
++			mygfx:RenderableVertex((mx - rcos + rsin)/vw * 2.0 - 1.0,(my + rcos + r=
+sin)/vh * (-2.0) + 1.0,z, 0,1)
++			mygfx:RenderableVertex((mx + rcos + rsin)/vw * 2.0 - 1.0,(my + rcos - r=
+sin)/vh * (-2.0) + 1.0,z, 1,1)
++			mygfx:RenderableIndex3(0,1,2)
++			mygfx:RenderableIndex3(1,3,2)
++			mygfx:RenderableEnd()
++		end
++
+ 		--zoom buttons
+-		local x,y,e =3D gCompassSize*0.9,gCompassSize*0.9,7
++		local x,y,e =3D gCompassSize*0.9, gCompassSize*0.9, 7
+ 		gIrisCompassDialog.compassframe_zoomin =3D guimaker.MakePlane(gIrisCompa=
+ssDialog.rootwidget,&quot;compassframe_zoomin&quot;,x+e,y-e,24,24)
+ 		gIrisCompassDialog.compassframe_zoomin.gfx:SetUV(4/32,4/32,28/32,28/32)
+ 		gIrisCompassDialog.compassframe_zoomin.mbIgnoreMouseOver =3D false
+@@ -185,16 +194,18 @@
+ 	if (gDisableCompass) then return end
+ 	if (gIrisCompassDialog and gIrisCompassDialog.bDoUpdate) then	=
+
+ 		local ax, iCamOverBlockX, iCamOverBlockY, MirrorX =3D gCurrentRenderer:U=
+pdateCompass()
+-		=
+
+-		local vw =3D GetMainViewport():GetActualWidth()
+-		local vh =3D GetMainViewport():GetActualHeight()
+-		=
+
++		local vw,vh =3D GetViewportSize() -- uses overlay manager
++		local z =3D GetMaxZ()
++		local mx =3D vw - gCompassSize/2 - gCompassOff
++		local my =3D 15 + gCompassSize/2 + gCompassOff
++		local halfwidth =3D 128
++
+ 		if (gIrisCompassDialog.radar) then
+ 			--MemProfile(&quot;a&quot;)
+ 			gIrisCompassDialog.radar:SetLocation( iCamOverBlockX*8, iCamOverBlockY*=
+8 ) -- TODO : memleak, old tiles (and textures?) not freed
+ 			--MemProfile(&quot;c&quot;)
+ 			gIrisCompassDialog.radar:SetAngle( ax )
+-			gIrisCompassDialog.radar:SetPosition( vw - gCompassSize - gCompassOff +=
+ gCompassSize/2, 15 + gCompassOff + gCompassSize/2 )
++			gIrisCompassDialog.radar:SetPosition( mx, my )
+ 		=
+
+ 			if (MirrorX) then
+ 				gIrisCompassDialog.radar:SetMirrorX( true )
+@@ -202,23 +213,18 @@
+ 				gIrisCompassDialog.radar:SetMirrorX( false )
+ 			end
+ 		end
+-		=
+
++
+ 		if (gIrisCompassDialog.compass.gfx) then
+ 			gIrisCompassDialog.compass.gfx:SetAngBias(ax)
+-			gIrisCompassDialog.compass.gfx:SetUVMid(iCamOverBlockX/gCompassMapW,
+-								iCamOverBlockY/gCompassMapH)
+-		end
+-		=
+
++			gIrisCompassDialog.compass.gfx:SetUVMid(iCamOverBlockX/gCompassMapW, iC=
+amOverBlockY/gCompassMapH)
++		end
++
+ 		-- rotating compass part
+ 		if (gIrisCompassDialog.compassframe_rot) then
+-			local z =3D GetMaxZ()
+-			local mx =3D vw - gCompassSize/2 - gCompassOff
+-			local my =3D 15 + gCompassSize/2 + gCompassOff
+-			local halfwidth =3D 128
++			local mygfx =3D gIrisCompassDialog.compassframe_rot.gfx
+ 			local r =3D math.sqrt( halfwidth*halfwidth + halfwidth*halfwidth )
+ 			local rsin =3D halfwidth * math.sin(- ax + gfDeg2Rad*90)
+ 			local rcos =3D halfwidth * math.cos(- ax + gfDeg2Rad*90)
+-			local mygfx =3D gIrisCompassDialog.compassframe_rot.gfx
+ 			mygfx:RenderableBegin(4,6,true,false,OT_TRIANGLE_LIST)
+ 			mygfx:RenderableVertex((mx - rcos - rsin)/vw * 2.0 - 1.0,(my - rcos + r=
+sin)/vh * (-2.0) + 1.0,z, 0,0)
+ 			mygfx:RenderableVertex((mx + rcos - rsin)/vw * 2.0 - 1.0,(my - rcos - r=
+sin)/vh * (-2.0) + 1.0,z, 1,0)
+@@ -228,7 +234,28 @@
+ 			mygfx:RenderableIndex3(1,3,2)
+ 			mygfx:RenderableEnd()
+ 		end
+-	end
+-end
+-
+-
++
++		-- TODO: only update when viewport is resized
++
++		if (Viewportresized) then
++			if (gIrisCompassDialog.compassframe_static) then
++				local mygfx =3D gIrisCompassDialog.compassframe_static.gfx
++				mygfx:RenderableBegin(4,6,false,false,OT_TRIANGLE_LIST)
++				mygfx:RenderableVertex(((mx - halfwidth)/vw * 2.0 - 1.0),((my - halfwi=
+dth)/vh * (-2.0) + 1.0),z, 0,0)
++				mygfx:RenderableVertex(((mx + halfwidth)/vw * 2.0 - 1.0),((my - halfwi=
+dth)/vh * (-2.0) + 1.0),z, 1,0)
++				mygfx:RenderableVertex(((mx - halfwidth)/vw * 2.0 - 1.0),((my + halfwi=
+dth)/vh * (-2.0) + 1.0),z, 0,1)
++				mygfx:RenderableVertex(((mx + halfwidth)/vw * 2.0 - 1.0),((my + halfwi=
+dth)/vh * (-2.0) + 1.0),z, 1,1)
++				mygfx:RenderableIndex3(0,1,2)
++				mygfx:RenderableIndex3(1,3,2)
++				mygfx:RenderableEnd()
++			end
++
++--			local x,y,e =3D gCompassSize*0.9, gCompassSize*0.9, 7
++--			gIrisCompassDialog.compassframe_zoomin.gfx:SetPos( x+e, y-e)
++--			gIrisCompassDialog.compassframe_zoomout.gfx:SetPos(x-e, y+e)
++		end
++
++	end
++end
++
++
+
+Modified: trunk/lua/lib.static.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.static.lua (original)
++++ trunk/lua/lib.static.lua Sat Mar 22 14:37:13 2008
+@@ -34,6 +34,7 @@
+ =
+
+ -- generates or retrieves meshname for static model
+ -- TODO : not flexible enough, what if model should be skipped, or multipl=
+e models set ? or model depending on surrounding ?
++-- TODO: remove hueing from her, not needed for fastbatch here
+ gLegacyModelCache =3D {}
+ function GetMeshName (iTileTypeID, iHue)
+ 	-- hue default value is 0
+
+Modified: trunk/lua/main.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/main.lua (original)
++++ trunk/lua/main.lua Sat Mar 22 14:37:13 2008
+@@ -179,17 +179,17 @@
+ 	OgreAddResLoc(mydatapath..&quot;guis/gorgui&quot;					,&quot;FileSystem&quot;,&quot;General&quot;)
+ 	OgreAddResLoc(mydatapath..&quot;guis/naked&quot;					,&quot;FileSystem&quot;,&quot;General&quot;)
+ =
+
+-	--~ # custom models
+-	OgreAddResLoc(mydatapath..&quot;custom/materials&quot;			,&quot;FileSystem&quot;,&quot;General&quot;)
+-	OgreAddResLoc(mydatapath..&quot;custom/models&quot;				,&quot;FileSystem&quot;,&quot;General&quot;)
+-	OgreAddResLoc(mydatapath..&quot;custom/textures&quot;				,&quot;FileSystem&quot;,&quot;General&quot;)
+-
+ 	--~ # distributet models
+ 	OgreAddResLoc(mydatapath..&quot;models/materials&quot;			,&quot;FileSystem&quot;,&quot;General&quot;)
+ 	OgreAddResLoc(mydatapath..&quot;models/meta&quot;					,&quot;FileSystem&quot;,&quot;General&quot;)
+ 	for i=3D1,20 do OgreAddResLoc(mydatapath..&quot;models/models/&quot;..sprintf(&quot;to_%=
+03d000&quot;,i)	,&quot;FileSystem&quot;,&quot;General&quot;) end
+ 	OgreAddResLoc(mydatapath..&quot;models/textures/&quot;			,&quot;FileSystem&quot;,&quot;General&quot;)
+ 	OgreAddResLoc(mydatapath..&quot;models/atlas&quot;				,&quot;FileSystem&quot;,&quot;General&quot;)
++
++	--~ # custom models
++	OgreAddResLoc(mydatapath..&quot;custom/materials&quot;			,&quot;FileSystem&quot;,&quot;General&quot;)
++	OgreAddResLoc(mydatapath..&quot;custom/models&quot;				,&quot;FileSystem&quot;,&quot;General&quot;)
++	OgreAddResLoc(mydatapath..&quot;custom/textures&quot;				,&quot;FileSystem&quot;,&quot;General&quot;)
+ =
+
+ 	--~ # new Terrain Shaderengine
+ 	OgreAddResLoc(mydatapath..&quot;terrain/materials&quot;			,&quot;FileSystem&quot;,&quot;General&quot;)
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000790.html">[Iris-commit] [IRIS] r1978 - /trunk/src/builder.cpp
+</A></li>
+	<LI>Next message: <A HREF="000792.html">[Iris-commit] [IRIS] r1980 - /trunk/lua/lib.3d.dynamic.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#791">[ date ]</a>
+              <a href="thread.html#791">[ thread ]</a>
+              <a href="subject.html#791">[ subject ]</a>
+              <a href="author.html#791">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

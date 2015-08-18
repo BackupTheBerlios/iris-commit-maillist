@@ -1,0 +1,180 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1819 - in /trunk/lua: lib.3d.mousepick.lua lib.uoids.lua net/net.aoscommand.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-January/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1819%20-%20in%20/trunk/lua%3A%20lib.3d.mousepick.lua%0A%20lib.uoids.lua%20net/net.aoscommand.lua&In-Reply-To=%3C20080120170105.5532D1524004%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000632.html">
+   <LINK REL="Next"  HREF="000634.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1819 - in /trunk/lua: lib.3d.mousepick.lua lib.uoids.lua net/net.aoscommand.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1819%20-%20in%20/trunk/lua%3A%20lib.3d.mousepick.lua%0A%20lib.uoids.lua%20net/net.aoscommand.lua&In-Reply-To=%3C20080120170105.5532D1524004%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1819 - in /trunk/lua: lib.3d.mousepick.lua lib.uoids.lua net/net.aoscommand.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sun Jan 20 18:01:04 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000632.html">[Iris-commit] [IRIS] r1818 - in /trunk: data/config.lua.dist data/models/materials/textures.material lua/lib.3d.dynamic.lua lua/lib.3d.map.lua lua/main.lua
+</A></li>
+        <LI>Next message: <A HREF="000634.html">[Iris-commit] [IRIS] r1820 - in /trunk: data/config.lua.dist	lua/lib.compass.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#633">[ date ]</a>
+              <a href="thread.html#633">[ thread ]</a>
+              <a href="subject.html#633">[ subject ]</a>
+              <a href="author.html#633">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: sience
+Date: Sun Jan 20 18:00:59 2008
+New Revision: 1819
+
+Log:
+-mouspick improved (multis ignored, wrong here)
+-AOSSendCommand debugmessage fixed
+
+Modified:
+    trunk/lua/lib.3d.mousepick.lua
+    trunk/lua/lib.uoids.lua
+    trunk/lua/net/net.aoscommand.lua
+
+Modified: trunk/lua/lib.3d.mousepick.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.mousepick.lua (original)
++++ trunk/lua/lib.3d.mousepick.lua Sun Jan 20 18:00:59 2008
+@@ -196,7 +196,8 @@
+ 	=
+
+ 	-- dynamics
+ 	for k,dynamic in pairs(GetDynamicList()) do
+-		if (DynamicIsInWorld(dynamic)) then
++		-- if Dynamic is in World (not Container) and if it's not an Multis
++		if (DynamicIsInWorld(dynamic) and (dynamic.artid &lt; gMulti_ID)) then
+ 			-- WARNING copy &amp; paste code
+ 			if (self:IsZLayerVisible(dynamic.zloc)) then
+ 				if (dynamic.gfx and dynamic.gfx.billboard) then
+@@ -215,6 +216,8 @@
+ 					bHit,fHitDist =3D dynamic.gfx:RayPick(rx,ry,rz,rvx,rvy,rvz)
+ 				else
+ 					print(&quot;WARNING visible but no mousepicking possible on dynamic&quot;,dynam=
+ic.artid)
++					local name =3D GetStaticTileTypeName(dynamic.artid)
++					print(name or &quot;can't find Tiletypename for this ArtID (shure it's no =
+multi or it's in tiledata.mul?)&quot;)
+ 				end
+ 				=
+
+ 				if (bHit and ((not gMousePickFoundHit) or fHitDist &lt; self.gMousePickFo=
+undDist)) then
+
+Modified: trunk/lua/lib.uoids.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.uoids.lua (original)
++++ trunk/lua/lib.uoids.lua Sun Jan 20 18:00:59 2008
+@@ -8,6 +8,9 @@
+ =
+
+ gMaxHueValue =3D 2999 -- hues.mul has only 2999 values
+ gMaxArtValue =3D hex2num(&quot;0xbfff&quot;)
++
++-- from this artid are starting Multis
++gMulti_ID =3D hex2num(&quot;0x4000&quot;)
+ =
+
+ kMobileGhostArtIDs =3D {402,403,607,608,970}
+ =
+
+@@ -102,10 +105,6 @@
+ gLayerTypeName =3D {}
+ for k,v in pairs(gLayerType) do gLayerTypeName[v] =3D k end -- make names =
+available as global constants
+ 	=
+
+--- multi stuff
+-gMulti_ID =3D hex2num(&quot;0x4000&quot;)
+-	=
+
+-
+ -- Tiledata Flags
+ kTileDataFlag_Background		=3D hex2num(&quot;0x00000001&quot;)
+ kTileDataFlag_Weapon			=3D hex2num(&quot;0x00000002&quot;) -- set for weapons AND sh=
+ields (7035)
+
+Modified: trunk/lua/net/net.aoscommand.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.aoscommand.lua (original)
++++ trunk/lua/net/net.aoscommand.lua Sun Jan 20 18:00:59 2008
+@@ -52,7 +52,8 @@
+ --D7 0F00 00000001 0019 00000000 05 0A
+ --Send Quest, Guild Button req. to Server -&gt; Server returns a Serverside G=
+ump
+ function Send_AOSCommand(subcmd,mobile_serial,weaponability)
+-	--print(&quot;NET: Send_AOSCommand: &quot;..subcmd..&quot; Player_Serial=3D&quot;..player_ser=
+ial)
++	local weaponabilitytype =3D weaponability or 0
++	=
+
+ 	local out =3D GetSendFIFO()
+ 	out:PushNetUint8(kPacket_AOS_Command)
+ =
+
+@@ -71,10 +72,10 @@
+ 		out:PushNetUint32(mobile_serial)
+ 		out:PushNetUint16(subcmd)
+ 		out:PushNetUint32(0)
+-		out:PushNetUint8(weaponability)
++		out:PushNetUint8(weaponabilitytype)
+ 		out:PushNetUint8(hex2num(&quot;0x0A&quot;))
+ 	end
+ =
+
+ 	out:SendPacket()
+-	printdebug(&quot;mobile&quot;,sprintf(&quot;NET: kPacket_AOS_Command: mobile_serial=3D0x=
+%08x ability=3D%d\n&quot;,mobile_serial,weaponability))
++	printdebug(&quot;mobile&quot;,sprintf(&quot;NET: kPacket_AOS_Command: mobile_serial=3D0x=
+%08x ability=3D%d\n&quot;,mobile_serial,weaponabilitytype))
+ end
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000632.html">[Iris-commit] [IRIS] r1818 - in /trunk: data/config.lua.dist data/models/materials/textures.material lua/lib.3d.dynamic.lua lua/lib.3d.map.lua lua/main.lua
+</A></li>
+	<LI>Next message: <A HREF="000634.html">[Iris-commit] [IRIS] r1820 - in /trunk: data/config.lua.dist	lua/lib.compass.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#633">[ date ]</a>
+              <a href="thread.html#633">[ thread ]</a>
+              <a href="subject.html#633">[ subject ]</a>
+              <a href="author.html#633">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

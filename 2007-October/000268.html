@@ -1,0 +1,175 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1453 - in /trunk/data/lua: lib.3d.map.lua lib.loading.lua lib.test.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2007-October/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1453%20-%20in%20/trunk/data/lua%3A%20lib.3d.map.lua%0A%20lib.loading.lua%20lib.test.lua&In-Reply-To=%3C20071007114706.C9AD21C181DA%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000267.html">
+   <LINK REL="Next"  HREF="000269.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1453 - in /trunk/data/lua: lib.3d.map.lua lib.loading.lua lib.test.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1453%20-%20in%20/trunk/data/lua%3A%20lib.3d.map.lua%0A%20lib.loading.lua%20lib.test.lua&In-Reply-To=%3C20071007114706.C9AD21C181DA%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1453 - in /trunk/data/lua: lib.3d.map.lua lib.loading.lua lib.test.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sun Oct  7 13:47:05 CEST 2007</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000267.html">[Iris-commit] [IRIS] r1452 - /trunk/data/lua/net/net.mobile.lua
+</A></li>
+        <LI>Next message: <A HREF="000269.html">[Iris-commit] [IRIS] r1454 - /trunk/startbinary.sh
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#268">[ date ]</a>
+              <a href="thread.html#268">[ thread ]</a>
+              <a href="subject.html#268">[ subject ]</a>
+              <a href="author.html#268">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: sience
+Date: Sun Oct  7 13:47:04 2007
+New Revision: 1453
+
+Log:
+-AnalyseStatics bugfixed
+-Profiling bugfixed
+-x,y &lt; 0 check added to function Renderer3D:CreateMapChunk (x,y) (i noticed=
+ that on start minus blocks are loaded, dont know why)
+-debuginfos added to statics (because on irisonline map no statics are disp=
+layed, curr. dont know why)
+
+Modified:
+    trunk/data/lua/lib.3d.map.lua
+    trunk/data/lua/lib.loading.lua
+    trunk/data/lua/lib.test.lua
+
+Modified: trunk/data/lua/lib.3d.map.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.3d.map.lua (original)
++++ trunk/data/lua/lib.3d.map.lua Sun Oct  7 13:47:04 2007
+@@ -109,12 +109,14 @@
+ =
+
+ -- coords in chunks
+ function Renderer3D:CreateMapChunk (x,y)
++	if ((x &lt; 0) or (y &lt; 0)) then return end	-- we might also check the heighs=
+t value !?
++
+ 	local chunk =3D {}
+ 	chunk.bIsDead =3D false
+ 	chunk.miX =3D x
+ 	chunk.miY =3D y
+ 	chunk.pStaticGeometryLayers =3D {}
+-		=
+
++
+ 	local iBlockUO_X =3D x * self.ROBMAP_CHUNK_SIZE
+ 	local iBlockUO_Y =3D y * self.ROBMAP_CHUNK_SIZE
+ 	=
+
+@@ -154,6 +156,11 @@
+ 			for y =3D 0,self.ROBMAP_CHUNK_SIZE-1 do
+ 				gStaticBlockLoader:Load(iBlockUO_X+x,iBlockUO_Y+y)
+ 				local iStaticCount =3D gStaticBlockLoader:Count() -- operates on the b=
+lock that was last loaded using :Load()
++
++				printdebug(&quot;static&quot;,&quot;iStaticCount=3D&quot;..iStaticCount)
++				printdebug(&quot;static&quot;,&quot;iBlockUO_X=3D&quot;..iBlockUO_X..&quot; iBlockUO_Y=3D&quot;..iBl=
+ockUO_Y)
++				printdebug(&quot;static&quot;,&quot;BlockX=3D&quot;..iBlockUO_X+x..&quot; BlockY=3D&quot;..iBlockUO_=
+Y+y)
++
+ 				for i =3D 0,iStaticCount-1 do
+ 					iTileTypeID,iX,iY,iZ,iHue =3D gStaticBlockLoader:GetStatic(i) -- oper=
+ates on the block that was last loaded using :Load()
+ 					local entity =3D {}
+@@ -313,7 +320,7 @@
+ 		-- blend out layers above player head if inside
+ 		if (playerIsInside) then myLayer =3D playerheadpos end
+ 	end
+-	=
+
++
+ 	-- only update if changed
+ 	if (self.giBlendOutCurZ ~=3D myLayer or self.gbBlendOutTerrainVisible ~=
+=3D bTerrainVisible) then
+ 		self.giBlendOutCurZ =3D myLayer
+
+Modified: trunk/data/lua/lib.loading.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.loading.lua (original)
++++ trunk/data/lua/lib.loading.lua Sun Oct  7 13:47:04 2007
+@@ -24,7 +24,7 @@
+ =
+
+ 	-- if (sCurAction) then print(sCurAction) end
+ 	if (not bIsPreOgre) then -- ogre not loaded yet, no graphical output
+-		Client_SetBottomLine(sCurAction or &quot;&quot;)
++--		Client_SetBottomLine(sCurAction or &quot;&quot;)
+ 		Client_RenderOneFrame()
+ 	end
+ 	=
+
+
+Modified: trunk/data/lua/lib.test.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/lua/lib.test.lua (original)
++++ trunk/data/lua/lib.test.lua Sun Oct  7 13:47:04 2007
+@@ -86,8 +86,8 @@
+ =
+
+ function AnalyseStatics ()
+ 	-- count how often every type of static occurs on the map
+-	=
+
+-	gMapInfo =3D xmlchild(xmlchild(LuaXML_ParseFile(datapath..&quot;xml/Maps.xml&quot;)=
+,&quot;MAPS&quot;),&quot;MAP&quot;,gMapIndex)
++	gMapInfo =3D Check_Map(gMapIndex,&quot;xml/Maps.xml&quot;)
++--	gMapInfo =3D xmlchild(xmlchild(LuaXML_ParseFile(datapath..&quot;xml/Maps.xml=
+&quot;),&quot;MAPS&quot;),&quot;MAP&quot;,gMapIndex)
+ 	print(&quot;gMapInfo&quot;,gMapInfo)
+ 	local mapfilename=3D	 xmlchild(gMapInfo,&quot;MAPFILENAME&quot;)[1]
+ 	local mapheight=3D	 xmlchild(gMapInfo,&quot;HEIGHT&quot;)[1]
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000267.html">[Iris-commit] [IRIS] r1452 - /trunk/data/lua/net/net.mobile.lua
+</A></li>
+	<LI>Next message: <A HREF="000269.html">[Iris-commit] [IRIS] r1454 - /trunk/startbinary.sh
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#268">[ date ]</a>
+              <a href="thread.html#268">[ thread ]</a>
+              <a href="subject.html#268">[ subject ]</a>
+              <a href="author.html#268">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

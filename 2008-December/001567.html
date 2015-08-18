@@ -1,0 +1,527 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2763 - in /trunk: lua/lib.macrolist.lua lua/lib.packetvideo.lua lua/lib.razorpacketvideo.lua lua/net.walk.lua lua/net/net.multi.lua plugins/itemcounter.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-December/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2763%20-%20in%20/trunk%3A%20lua/lib.macrolist.lua%0A%20lua/lib.packetvideo.lua%20lua/lib.razorpacketvideo.lua%20lua/net.walk.lua%0A%20lua/net/net.multi.lua%20plugins/itemcounter.lua&In-Reply-To=%3C20081201203745.716B11C187F2%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001566.html">
+   <LINK REL="Next"  HREF="001568.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2763 - in /trunk: lua/lib.macrolist.lua lua/lib.packetvideo.lua lua/lib.razorpacketvideo.lua lua/net.walk.lua lua/net/net.multi.lua plugins/itemcounter.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2763%20-%20in%20/trunk%3A%20lua/lib.macrolist.lua%0A%20lua/lib.packetvideo.lua%20lua/lib.razorpacketvideo.lua%20lua/net.walk.lua%0A%20lua/net/net.multi.lua%20plugins/itemcounter.lua&In-Reply-To=%3C20081201203745.716B11C187F2%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2763 - in /trunk: lua/lib.macrolist.lua lua/lib.packetvideo.lua lua/lib.razorpacketvideo.lua lua/net.walk.lua lua/net/net.multi.lua plugins/itemcounter.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Mon Dec  1 21:37:45 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001566.html">[Iris-commit] [IRIS] r2762 - /trunk/config/
+</A></li>
+        <LI>Next message: <A HREF="001568.html">[Iris-commit] [IRIS] r2764 - /trunk/repairmusic.v2.sh
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1567">[ date ]</a>
+              <a href="thread.html#1567">[ thread ]</a>
+              <a href="subject.html#1567">[ subject ]</a>
+              <a href="author.html#1567">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Mon Dec  1 21:37:44 2008
+New Revision: 2763
+
+Log:
+razor packetvideo playback works now
+
+Modified:
+    trunk/lua/lib.macrolist.lua
+    trunk/lua/lib.packetvideo.lua
+    trunk/lua/lib.razorpacketvideo.lua
+    trunk/lua/net.walk.lua
+    trunk/lua/net/net.multi.lua
+    trunk/plugins/itemcounter.lua
+
+Modified: trunk/lua/lib.macrolist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.macrolist.lua (original)
++++ trunk/lua/lib.macrolist.lua Mon Dec  1 21:37:44 2008
+@@ -237,6 +237,12 @@
+ 	if (dynamic) then gMacroLastTargetMemory =3D { hittype=3DkMousePickHitTyp=
+e_Dynamic, dynamic=3Dmobile } return end
+ end
+ =
+
++function MacroGetLastTargetSerial ()
++	if (not gMacroLastTargetMemory) then return 0 end
++	if (gMacroLastTargetMemory.hittype =3D=3D kMousePickHitType_Mobile) then =
+return gMacroLastTargetMemory.mobile.serial end
++	if (gMacroLastTargetMemory.hittype =3D=3D kMousePickHitType_Dynamic) then=
+ return gMacroLastTargetMemory.dynamic.serial end
++end
++
+ function MacroCmd_LastTargetVisible ()
+ 	if (not gMacroLastTargetMemory) then return end
+ 	if (gMacroLastTargetMemory.hittype =3D=3D kMousePickHitType_Mobile) then
+@@ -422,6 +428,12 @@
+ 	end
+ 	return res
+ end =
+
++
++function MacroCmd_IsItemInContainer	(serial,container)
++	if (type(container) =3D=3D &quot;number&quot;) then container =3D GetContainer(cont=
+ainer) end -- resolve serial
++	container =3D container or GetPlayerBackPackContainer()
++	return container and serial and container.content[serial]
++end
+ =
+
+ -- container defaults to player-backpack
+ -- hue can be nil for any
+
+Modified: trunk/lua/lib.packetvideo.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.packetvideo.lua (original)
++++ trunk/lua/lib.packetvideo.lua Mon Dec  1 21:37:44 2008
+@@ -8,10 +8,11 @@
+ =
+
+ gPacketVideoSpeedFactor =3D 1 =
+
+ =
+
+-kPacketVideoChunkType_Recv	=3D 1
+-kPacketVideoChunkType_Send	=3D 2
+-kPacketVideoChunkType_Pos	=3D 3
+-kPacketVideoChunkType_Map	=3D 4
++kPacketVideoChunkType_Recv		=3D 1
++kPacketVideoChunkType_Send		=3D 2
++kPacketVideoChunkType_Pos		=3D 3
++kPacketVideoChunkType_Map		=3D 4
++kPacketVideoChunkType_Player	=3D 5
+ =
+
+ gPacketVideoKnownBlockSend =3D {}
+ gPacketVideoKnownBlockSend[kPacket_ExtBundledPacket] =3D true -- request p=
+arty pos
+@@ -40,6 +41,7 @@
+ 	gPacketVideoFileName =3D gPacketVideoFileName_prefix..(os.time() or Clien=
+t_GetTicks())..gPacketVideoFileName_postfix
+ 	PacketVideo_ClearData() =
+
+ 	gPacketVideoRecording =3D true =
+
++	PacketVideo_LogPlayer(GetPlayerSerial())
+ 	PacketVideo_LogMap(MapGetMapIndex())
+ 	PacketVideo_LogPlayerPos(gPlayerXLoc,gPlayerYLoc,gPlayerZLoc,gPlayerDir)
+ 	Send_ClientQuery(gRequest_States,GetPlayerSerial())
+@@ -52,7 +54,9 @@
+ 	if (not gPacketVideoData[1]) then return end
+ 	job.create(function()
+ 		local oldpos =3D {gPlayerXLoc,gPlayerYLoc,gPlayerZLoc,gPlayerDir}
++		local oldserial =3D GetPlayerSerial()
+ 		local oldfacet =3D MapGetMapIndex()
++		=
+
+ 		local lastframet
+ 		local lastrealt
+ 		local lastwaitrealt
+@@ -66,14 +70,14 @@
+ 		for k,chunk in pairs(gPacketVideoData) do
+ 			local realt =3D Client_GetTicks()
+ 			--~ local framet =3D chunk.t - record_start_t + playback_start_t
+-			--~ print(&quot;### packetvideo playback step, wait=3D&quot;,framet,chunk.chunkty=
+pe)
+ 			--~ if (framet &gt; t) then job.wait(framet-t) end
+ 			local framet =3D chunk.t
++			--~ print(&quot;### packetvideo playback step, wait=3D&quot;,framet,chunk.chunkty=
+pe)
+ 			if (lastframet) then =
+
+ 				local wait1 =3D (framet - lastframet)
+ 				local wait2 =3D floor(wait1 / gPacketVideoSpeedFactor)
+ 				if (lastrealt) then wait2 =3D wait2 - (realt - lastrealt) end
+-				if (wait2 &gt; minwait or realt &gt; nextforcedwaitt) then =
+
++				if (wait2 &gt; minwait or realt &gt; nextforcedwaitt) then
+ 					job.wait(max(1,wait2)) =
+
+ 					nextforcedwaitt =3D realt + forcedwaitinterval =
+
+ 				end
+@@ -103,10 +107,14 @@
+ 			elseif (chunk.chunktype =3D=3D kPacketVideoChunkType_Map) then
+ 				local mapindex =3D unpack(chunk.data)
+ 				MapChangeRequest(mapindex)
++			elseif (chunk.chunktype =3D=3D kPacketVideoChunkType_Player) then
++				local verion,serial =3D unpack(chunk.data)
++				gPlayerBodySerial =3D serial
+ 			end
+ 		end
+ 		gPacketVideoPlaybackRunning =3D false
+ 		print(&quot;### packetvideo playback end&quot;)
++		gPlayerBodySerial =3D oldserial
+ 		MapChangeRequest(oldfacet)
+ 		SetPlayerPos(unpack(oldpos)) =
+
+ 		Send_Movement_Resync_Request()
+@@ -118,11 +126,17 @@
+ =
+
+ RegisterListener(&quot;Hook_StartInGame&quot;,function ()
+ 	local pv =3D gCommandLineSwitches[&quot;-pv&quot;]
+-	if (not pv) then return end
+-	local filename =3D gCommandLineArguments[pv+1]
+-	if (filename) then =
+
+-		PacketVideo_Load(filename)
+-		--~ PacketVideo_Playback()
++	if (pv) then =
+
++		local filename =3D gCommandLineArguments[pv+1]
++		if (filename) then =
+
++			PacketVideo_Load(filename)
++			--~ PacketVideo_Playback()
++		end
++	end
++	local pv =3D gCommandLineSwitches[&quot;-rpv&quot;]
++	if (pv) then =
+
++		local filename =3D gCommandLineArguments[pv+1]
++		if (filename) then PacketVideo_LoadRarzorPV(filename) end
+ 	end
+ end)
+ =
+
+@@ -173,11 +187,35 @@
+ 			table.insert(gPacketVideoData,{chunktype=3Dctype,t=3Dt,data=3D{xloc,ylo=
+c,zloc,fulldir}})
+ 		elseif (ctype =3D=3D kPacketVideoChunkType_Map) then
+ 			fifo:PopRaw(1+4)
+-			local mapindex	=3D fifo:PopNetUint8()
+-			table.insert(gPacketVideoData,{chunktype=3Dctype,t=3Dt,data=3D{mapindex=
+}})
++			local version	=3D fifo:PopNetUint8()
++			local serial	=3D fifo:PopNetUint32()
++			table.insert(gPacketVideoData,{chunktype=3Dctype,t=3Dt,data=3D{version,=
+serial}})
+ 		end      =
+
+ 	end
+ 	fifo:Destroy()
++end
++
++function PacketVideo_LoadRarzorPV	(filename)
++	local rpv =3D LoadRazorPacketVideo(filename)
++	assert(rpv,&quot;PacketVideo_LoadRarzorPV failed&quot;)
++	PacketVideo_ClearData()
++	local t =3D 0
++	table.insert(gPacketVideoData,{chunktype=3DkPacketVideoChunkType_Player,t=
+=3Dt,data=3D{1,rpv.playerdata.serial}})
++	table.insert(gPacketVideoData,{chunktype=3DkPacketVideoChunkType_Map,t=3D=
+t,data=3D{rpv.playerdata.Map}})
++	table.insert(gPacketVideoData,{chunktype=3DkPacketVideoChunkType_Pos,t=3D=
+t,data=3D{rpv.playerdata.xloc,rpv.playerdata.yloc,rpv.playerdata.zloc,rpv.p=
+layerdata.Direction}})
++	for k,packet in pairs(rpv.packets) do
++		t =3D t + packet.iTimeSinceLastPacket
++		if (packet.iPacketID ~=3D kPacket_Object_to_Object) then =
+
++			local fifo =3D CreateFIFO()
++			local len =3D packet.fifo:Size()
++			fifo:PushUint8(kPacketVideoChunkType_Recv)
++			fifo:PushUint32(t)
++			fifo:PushUint32(len)
++			fifo:PushFIFOPartRaw(packet.fifo,0,len)
++			table.insert(gPacketVideoData,{chunktype=3DkPacketVideoChunkType_Recv,t=
+=3Dt,data=3Dfifo})
++		end
++	end
++	DestroyRazorPacketVideo(rpv)
+ end
+ =
+
+ function PacketVideo_LogRecv(fifo,len)
+@@ -235,6 +273,20 @@
+ 	data:Destroy()
+ end
+ =
+
++function PacketVideo_LogPlayer (serial)
++	if (not gPacketVideoRecording) then return end
++	local ctype =3D kPacketVideoChunkType_Player
++	local t =3D Client_GetTicks()
++	local data =3D CreateFIFO()
++	data:PushUint8(ctype)
++	data:PushUint32(t)
++	data:PushNetUint8(1)
++	data:PushNetUint32(serial)
++	table.insert(gPacketVideoData,{chunktype=3Dctype,t=3Dt,data=3D{1,serial}})
++	if (gPacketVideoFileName) then data:AppendToFile(gPacketVideoFileName) end
++	data:Destroy()
++end
++
+ function PacketVideo_BlockSend(fifo) =
+
+ 	if (not gPacketVideoPlaybackRunning) then return false end
+ 	local iId =3D fifo:PeekNetUint8(0) or 0
+
+Modified: trunk/lua/lib.razorpacketvideo.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.razorpacketvideo.lua (original)
++++ trunk/lua/lib.razorpacketvideo.lua Mon Dec  1 21:37:44 2008
+@@ -1,5 +1,8 @@
+ -- infos <A HREF="http://iris2.de/index.php/Razor_packetvideo_fileformat">http://iris2.de/index.php/Razor_packetvideo_fileformat</A>
+-
++-- todo : 6.0.1.7 protocol changes ? probably no problem as they are only =
+in one client-server fixedsize packet and dynamic packets
++
++gRazorPacketSizeOverride6017 =3D {[0x25]=3D21} -- kPacket_Object_to_Object=
+ packetsize changed for 6.0.1.7 and later =
+
++gRazorPacketSizeOverride6017Active =3D true
+ =
+
+ =
+
+ -- RazorWinTimeStampConvert(low,high)
+@@ -52,7 +55,7 @@
+ 	while (fifo:Size() &gt; 8) do
+ 		local len_comp		=3D fifo:PopInt32()
+ 		local len_uncomp	=3D fifo:PopInt32()
+-		print(&quot;rpv-chunk: comp,uncomp,remaining&quot;,len_comp,len_uncomp,fifo:Size())
++		--~ print(&quot;rpv-chunk: comp,uncomp,remaining&quot;,len_comp,len_uncomp,fifo:Si=
+ze())
+ 		if (fifo:Size() &lt; len_comp) then break end
+ 		=
+
+ 		if (not fifo:PeekDecompressIntoFifo(len_comp,len_uncomp,chunkfifo)) then
+@@ -64,6 +67,7 @@
+ 	chunkfifo:Destroy()
+ 	=
+
+ 	fifo:Destroy()
++	return rpv
+ end
+ =
+
+ function LoadRazorPacketVideoChunks (rpv,fifo) =
+
+@@ -137,13 +141,15 @@
+ 	--~ then the rest of the packet, just like you would for a normal network=
+ packet.
+ 	--~ The last entry in the file is a &quot;packet&quot; block where the packet data =
+is a single byte, 0xFF. =
+
+ 	rpv.packets =3D {}
++	=
+
++	local myPacketSizeOverride =3D gRazorPacketSizeOverride6017Active and gRa=
+zorPacketSizeOverride6017 or {}
+ 	while (fifo:Size() &gt;=3D 5) do
+ 		local packet =3D {}
+ 		packet.iTimeSinceLastPacket	=3D fifo:PopUint32()
+ 		=
+
+ 		packet.iPacketID		=3D fifo:PeekNetUint8(0)
+ 		if (packet.iPacketID =3D=3D 0xff) then fifo:PopRaw(1) break end
+-		packet.iPacketSize		=3D gPacketSizeById[packet.iPacketID]
++		packet.iPacketSize		=3D myPacketSizeOverride[packet.iPacketID] or gPacke=
+tSizeById[packet.iPacketID]
+ 		=
+
+ 		if (not packet.iPacketSize) then 	=
+
+ 			print(&quot;rpv : warning, unknown packettype-size&quot;,sprintf(&quot;0x%02x&quot;,packet.=
+iPacketID))
+@@ -151,7 +157,9 @@
+ 		end
+ 		=
+
+ 		if (packet.iPacketSize =3D=3D 0 and fifo:Size() &gt;=3D 3) then packet.iPac=
+ketSize =3D fifo:PeekNetUint16(1) end
+-		print(&quot;rpv:packet id,size,name fifoleft&quot;,packet.iPacketID,packet.iPacket=
+Size,gPacketTypeId2Name[packet.iPacketID],fifo:Size())
++		print(&quot;rpv:packet id,size,name fifoleft time&quot;,packet.iPacketID,packet.iP=
+acketSize,gPacketTypeId2Name[packet.iPacketID],fifo:Size(),packet.iTimeSinc=
+eLastPacket)
++		--~ print(sprintf(&quot; PacketVideo -&gt; Client 0x%02X (Length: %d)&quot;,packet.iP=
+acketID,packet.iPacketSize))
++		=
+
+ 		=
+
+ 		if (fifo:Size() &lt; packet.iPacketSize) then
+ 			print(&quot;rpv : packet incomplete&quot;,packet.iPacketID,fifo:Size(),packet.iPa=
+cketSize)
+@@ -165,6 +173,19 @@
+ 	end
+ =
+
+ 	print(&quot;rpv:end. sizeleft&quot;,fifo:Size(),FIFOHexDump(fifo))
++end
++
++
++function DestroyRazorPacketVideo (rpv)
++	if (not rpv) then return end
++	=
+
++	-- houses
++	for k,item in pairs(rpv.worlddata_items) do =
+
++		if (item.HousePacket) then item.HousePacket:Destroy() item.HousePacket =
+=3D nil end
++	end
++	-- packets
++	for k,packet in pairs(rpv.packets) do packet.fifo:Destroy() end
++	rpv.packets =3D {}
+ end
+ =
+
+ =
+
+@@ -304,8 +325,8 @@
+ end
+ 	=
+
+ =
+
+---~ LoadRazorPacketVideo(&quot;/cavern/gate_deceit_luna_corpser_9-26_18.09.rpv&quot;)
+---~ LoadRazorPacketVideo(&quot;/cavern/Ghonaldo_11-30_15.42.fewsteps.papua.rpv&quot;)
+---~ LoadRazorPacketVideo(&quot;/cavern/Ghongolas_9-28_20.06_rekruten.rpv&quot;)
+---~ LoadRazorPacketVideo(&quot;/cavern/Joey Joe Joe_4-4_18.54.rpv&quot;)
++--~ PacketVideo_LoadRarzorPV(&quot;/cavern/gate_deceit_luna_corpser_9-26_18.09.=
+rpv&quot;)
++--~ PacketVideo_LoadRarzorPV(&quot;/cavern/Ghonaldo_11-30_15.42.fewsteps.papua.=
+rpv&quot;)
++--~ PacketVideo_LoadRarzorPV(&quot;/cavern/Ghongolas_9-28_20.06_rekruten.rpv&quot;)
++--~ PacketVideo_LoadRarzorPV(&quot;/cavern/Joey Joe Joe_4-4_18.54.rpv&quot;)
+ --~ os.exit(0)
+
+Modified: trunk/lua/net.walk.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net.walk.lua (original)
++++ trunk/lua/net.walk.lua Mon Dec  1 21:37:44 2008
+@@ -351,11 +351,28 @@
+ -- Moves Player to Direction
+ -- This packet works with the latest clients, but is never used by the ser=
+ver.
+ -- TODO : Move Player
++-- user by razor packetvideo
+ function gPacketHandler.kPacket_Move_Player()
+ 	local input			=3D GetRecvFIFO()
+ 	local id			=3D input:PopNetUint8()
+ 	local player_dir	=3D input:PopNetUint8()
+ 	WalkLog(&quot;kPacket_Move_Player&quot;,player_dir)
++
++	local xloc =3D gPlayerXLoc
++	local yloc =3D gPlayerYLoc
++	local zloc =3D gPlayerZLoc
++	local fulldir =3D player_dir
++	if (DirWrap(gPlayerDir) =3D=3D DirWrap(fulldir)) then =
+
++		zloc =3D GetNearestGroundLevel(xloc,yloc,zloc,fulldir) or gPlayerZLoc
++		xloc =3D xloc + GetDirX(fulldir)
++		yloc =3D yloc + GetDirY(fulldir)
++	end
++	=
+
++	SetPlayerPos(xloc,yloc,zloc,fulldir) =
+
++	if (gCurrentRenderer =3D=3D Renderer3D) then =
+
++		gCurrentRenderer:NotifyPlayerTeleported() =
+
++		gTileFreeWalk:SetPosFromPacketVideo(xloc,yloc,zloc,fulldir)
++	end
+ end
+ =
+
+ =
+
+
+Modified: trunk/lua/net/net.multi.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.multi.lua (original)
++++ trunk/lua/net/net.multi.lua Mon Dec  1 21:37:44 2008
+@@ -137,8 +137,8 @@
+ =
+
+ 		-- calculate w,h from sizes
+ 		local a =3D -1
+-		local b =3D s0 + 2 - s1
+-		local c =3D -2 * s0
++		local b =3D s0 + 2 - (s1 or 0)
++		local c =3D -2 * (s0 or 0)
+ 		=
+
+ 		local h1 =3D (-b+math.sqrt(b*b-4*a*c))/(2*a)
+ 		local h2 =3D (-b-math.sqrt(b*b-4*a*c))/(2*a)
+
+Modified: trunk/plugins/itemcounter.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/plugins/itemcounter.lua (original)
++++ trunk/plugins/itemcounter.lua Mon Dec  1 21:37:44 2008
+@@ -88,6 +88,8 @@
+ 	=
+
+ 	-- weight
+ 	local curw,maxw =3D GetPlayerWeight()
++	curw =3D curw or 0
++	maxw =3D maxw or 0
+ 	local r,g,b =3D 1,1,1
+ 	if (curw &gt; maxw*0.75) then r,g,b =3D 1,1,0 end
+ 	if (curw &gt; maxw) then r,g,b =3D 1,0,0 end
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001566.html">[Iris-commit] [IRIS] r2762 - /trunk/config/
+</A></li>
+	<LI>Next message: <A HREF="001568.html">[Iris-commit] [IRIS] r2764 - /trunk/repairmusic.v2.sh
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1567">[ date ]</a>
+              <a href="thread.html#1567">[ thread ]</a>
+              <a href="subject.html#1567">[ subject ]</a>
+              <a href="author.html#1567">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

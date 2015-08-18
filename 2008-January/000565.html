@@ -1,0 +1,129 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r1750 - in /trunk: data/config.lua.dist lua/lib.3d.dynamic.lua lua/lib.3d.map.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-January/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1750%20-%20in%20/trunk%3A%20data/config.lua.dist%0A%20lua/lib.3d.dynamic.lua%20lua/lib.3d.map.lua&In-Reply-To=%3C20080115170823.7E5AD1C1804C%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000564.html">
+   <LINK REL="Next"  HREF="000566.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r1750 - in /trunk: data/config.lua.dist lua/lib.3d.dynamic.lua lua/lib.3d.map.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r1750%20-%20in%20/trunk%3A%20data/config.lua.dist%0A%20lua/lib.3d.dynamic.lua%20lua/lib.3d.map.lua&In-Reply-To=%3C20080115170823.7E5AD1C1804C%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r1750 - in /trunk: data/config.lua.dist lua/lib.3d.dynamic.lua lua/lib.3d.map.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat Jan 12 02:28:19 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000564.html">[Iris-commit] [IRIS] r1749 - in /trunk: bin/iris2.exe data/config.lua.dist lua/filter/filter.art.lua lua/lib.debugmenu.lua lua/lib.mainmenu.lua lua/main.lua
+</A></li>
+        <LI>Next message: <A HREF="000566.html">[Iris-commit] [IRIS] r1751 - in /trunk/data/models/models: alpha_tex_atlas.material alpha_tex_atlas_0.png alpha_tex_atlas_map.lua generate_all.sh generate_tex_atlas.php tex_atlas.material tex_atlas_0.png tex_atlas_map.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#565">[ date ]</a>
+              <a href="thread.html#565">[ thread ]</a>
+              <a href="subject.html#565">[ subject ]</a>
+              <a href="author.html#565">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sat Jan 12 02:28:19 2008
+New Revision: 1750
+
+Log:
+textatlas tools
+
+Modified:
+    trunk/data/config.lua.dist
+    trunk/lua/lib.3d.dynamic.lua
+    trunk/lua/lib.3d.map.lua
+
+Modified: trunk/data/config.lua.dist
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/data/config.lua.dist (original)
++++ trunk/data/config.lua.dist Sat Jan 12 02:28:19 2008
+@@ -431,3 +431,4 @@
+ gModelPath_Tex	=3D &quot;models/textures/&quot;
+ --~ gModelPath_Mesh	=3D &quot;models/models_texatlas/&quot;
+ --~ gModelPath_Tex	=3D &quot;models/textures_texatlas/&quot;
++gUseTexAtlas =3D true -- only used if fastbatch is active
+
+Modified: trunk/lua/lib.3d.dynamic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.dynamic.lua (original)
++++ trunk/lua/lib.3d.dynamic.lua Sat Jan 12 02:28:19 2008
+@@ -155,6 +155,7 @@
+ 		if gFastBatchDynamics and meshname and meshname ~=3D false then
+ 			-- trigger: burn all dynamics into the dynamic fastbatch
+ 			item.meshbuffer =3D GetMeshBuffer(meshname) -- for mousepicking
++			TexAtlas_AdjustMeshBufferIfNeeded(meshname,item.meshbuffer)
+ 			Renderer3D.gFastBatchDynamicsUpdateNeeded =3D true
+ 		else
+ 			-- just add the dynamic as a scene node
+
+Modified: trunk/lua/lib.3d.map.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.map.lua (original)
++++ trunk/lua/lib.3d.map.lua Sat Jan 12 02:28:19 2008
+@@ -17,6 +17,7 @@
+ function Renderer3D:ZToLayer(zloc)
+ 	return math.floor(zloc / Renderer3D.giBlendOutPlayerHeight)
+ end
++
+ function Renderer3D:LayerToZ(zlayer)
+ 	return zlayer * Renderer3D.giBlendOutPlayerHeight
+ end
+@@ -217,6 +218,7 @@
+ =
+
+ 		if (gFastBatchStatics) then
+ 			entity.meshbuffer =3D GetMeshBuffer(meshname) -- for mousepicking
++			TexAtlas_AdjustMeshBufferIfNeeded(meshname,entity.meshbuffer)
+ 			if (not self.giBlendOutCurZ) or entity.zloc &lt;=3D self.giBlendOutCurZ th=
+en
+ 				chunk.fastbatch:FastBatch_AddMesh(meshname,entity.x,entity.y,entity.z,=
+ qw,qx,qy,qz, sx,sy,sz)
+ 			end
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000564.html">[Iris-commit] [IRIS] r1749 - in /trunk: bin/iris2.exe data/config.lua.dist lua/filter/filter.art.lua lua/lib.debugmenu.lua lua/lib.mainmenu.lua lua/main.lua
+</A></li>
+	<LI>Next message: <A HREF="000566.html">[Iris-commit] [IRIS] r1751 - in /trunk/data/models/models: alpha_tex_atlas.material alpha_tex_atlas_0.png alpha_tex_atlas_map.lua generate_all.sh generate_tex_atlas.php tex_atlas.material tex_atlas_0.png tex_atlas_map.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#565">[ date ]</a>
+              <a href="thread.html#565">[ thread ]</a>
+              <a href="subject.html#565">[ subject ]</a>
+              <a href="author.html#565">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

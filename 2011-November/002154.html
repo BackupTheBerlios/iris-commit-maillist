@@ -1,0 +1,571 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r3415 - in /trunk/lua: lib.debugmenu.lua	lib.mainmenu.charcreate.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2011-November/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3415%20-%20in%20/trunk/lua%3A%20lib.debugmenu.lua%0A%09lib.mainmenu.charcreate.lua&In-Reply-To=%3C20111128163507.BF66354D0007%40simon%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="002153.html">
+   <LINK REL="Next"  HREF="002155.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r3415 - in /trunk/lua: lib.debugmenu.lua	lib.mainmenu.charcreate.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3415%20-%20in%20/trunk/lua%3A%20lib.debugmenu.lua%0A%09lib.mainmenu.charcreate.lua&In-Reply-To=%3C20111128163507.BF66354D0007%40simon%3E"
+       TITLE="[Iris-commit] [IRIS] r3415 - in /trunk/lua: lib.debugmenu.lua	lib.mainmenu.charcreate.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Mon Nov 28 17:35:07 CET 2011</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="002153.html">[Iris-commit] [IRIS] r3414 - in /trunk/lua: ./ profiles/
+</A></li>
+        <LI>Next message: <A HREF="002155.html">[Iris-commit] [IRIS] r3416 - in /trunk/lua: lib.debugmenu.lua	lib.static.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2154">[ date ]</a>
+              <a href="thread.html#2154">[ thread ]</a>
+              <a href="subject.html#2154">[ subject ]</a>
+              <a href="author.html#2154">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: sience
+Date: Mon Nov 28 17:35:07 2011
+New Revision: 3415
+
+Log:
+-debugmenu switch Mode Bug fixed
+-debugmenu save Index for Model/Grannys added (menu still does not update, =
+only after using +/-)
+-elseif fix
+
+Modified:
+    trunk/lua/lib.debugmenu.lua
+    trunk/lua/lib.mainmenu.charcreate.lua
+
+Modified: trunk/lua/lib.debugmenu.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.debugmenu.lua (original)
++++ trunk/lua/lib.debugmenu.lua Mon Nov 28 17:35:07 2011
+@@ -16,10 +16,13 @@
+ gDebugMenuRunning =3D false
+ --gDebugMenuEnableAnim =3D false
+ --gDebugMenuEnableAnim =3D true
+-gDebugMenuAnimIndex =3D -1 -- (-1) shows rest pos
++gDebugMenuAnimIndex =3D -1 		-- (-1) shows rest pos
+ gDebugMenuAnimIndex =3D 0
+-gDebugMenuModelIndex =3D 1    -- start with first model in gDebugMenuModel=
+Table
++gDebugMenuIndex =3D 1    			-- starts in Granny-Mode with first Mobile in =
+gDebugMenuModelTable
+ gDebugMenuModelName =3D &quot;&quot;
++-- save Index for Tiles (Models)/Mobiles (Grannys)
++gDebugMenuModelIndexSave =3D 1	-- Tiles (Models)
++gDebugMenuGrannyIndexSave =3D 1	-- Mobiles (Grannys)
+ =
+
+ gDebugMenuMainGfxPos =3D {-0.5,0.5,-0.15}
+ =
+
+@@ -585,7 +588,8 @@
+ function AnimInvertMode () return 1,0 end
+ =
+
+ function DebugMenuShowModel ()
+-    local index =3D gDebugMenuModelIndex
++    local index =3D gDebugMenuIndex
++    local xadd,yadd,zadd =3D 0,0,0
+ =
+
+     if (gDebugRootGfx) then gDebugRootGfx:Destroy() gDebugRootGfx =3D nil =
+end
+     if (gDebugRootGfx2) then gDebugRootGfx2:Destroy() gDebugRootGfx2 =3D n=
+il end
+@@ -594,7 +598,7 @@
+     gDebugRootGfx2 =3D CreateRootGfx3D()
+     gDebugRootGfx3 =3D CreateRootGfx3D()
+     =
+
+-    -- granny =
+
++    -- Mobile (Grannys) or Tile (Meshes) Debugmode
+     if (gCurDebugMode =3D=3D kDebugMode_Granny) then
+         local mobile =3D gDebugMenuModelTable[index]
+         if (not mobile) then return end
+@@ -613,11 +617,8 @@
+         gDebugBodyGfx:SetState(bMoving,bTurning,bWarMode,bRunFlag)
+         =
+
+         if (gDebugMenuAnimIndex &gt;=3D 0) then gDebugBodyGfx:StartAnimLoop(g=
+DebugMenuAnimIndex) end
+-    end
+-    =
+
+-    local xadd,yadd,zadd =3D 0,0,0
+-    -- static =
+
+-    if (gCurDebugMode =3D=3D kDebugMode_Static) then
++
++    elseif (gCurDebugMode =3D=3D kDebugMode_Static) then
+         Client_SetAmbientLight(0,0,0,0)
+         Client_ClearLights()
+         --~ Client_AddPointLight(2.1836402416229      ,  -0.50490587949753=
+    ,   1.208433508873)
+@@ -629,64 +630,67 @@
+         --~ Client_AddPointLight(-10,-10,0)
+         gTileFreeWalk:SetPos_ClientSide(-1,1,0)
+         =
+
+-        local iTileType =3D tonumber(gDebugMenuModelIndex)
++        local iTileType =3D tonumber(gDebugMenuIndex)
+         local iHue =3D gDebugMenuAnimIndex
+         local info =3D GetStaticTileType(iTileType)
+         local meshname =3D GetMeshName(iTileType,iHue)
+-		if (gDebugModeTestSkeletalAnimShader) then meshname =3D &quot;jaiqua.mesh&quot; end
+-        --~ if (iTileType =3D=3D 578) then meshname =3D &quot;knot.mesh&quot; end
+-        local submeshcount =3D GetMeshSubMeshCount(meshname)
+-        print(&quot;mesh for tiletype=3D&quot;,iTileType,sprintf(&quot;0x%04x&quot;,iTileType)=
+,&quot; submeshcount=3D&quot;,submeshcount)
+-        for i =3D 0,submeshcount-1 do =
+
+-            print(&quot;submesh mat&quot;,i,GetMeshSubMaterial(meshname,i),iTileType)
+-            if (iTileType =3D=3D 578) then SetMeshSubMaterial(meshname,i,&quot;=
+Examples/OffsetMapping/Specular&quot;) end
+-            --~ if (iTileType =3D=3D 578) then SetMeshSubMaterial(meshname=
+,i,&quot;Examples/OffsetMapping/IntegratedShadows&quot;) end
+-        end
+-        MeshBuildTangentVectors(meshname)
+-        =
+
+-        if gDebugLastMeshName then ReloadMesh(gDebugLastMeshName) end
+-        gDebugLastMeshName =3D meshname
+-        local tricount =3D meshname and CountMeshTriangles(meshname) or 0
+-        GuiAddChatLine(sprintf(&quot;static %04x(=3D%d) hue=3D%d tricount=3D%d =
+%s&quot;,iTileType,iTileType,iHue,tricount,GetStaticTileTypeName(iTileType) or &quot;=
+&quot;))
+-        if (meshname and meshname ~=3D false) then
+-            gDebugRootGfx:SetMesh(meshname)
++
++		if ((meshname ~=3D nil) and (meshname ~=3D false)) then
++			if (gDebugModeTestSkeletalAnimShader) then meshname =3D &quot;jaiqua.mesh&quot; e=
+nd
++			--~ if (iTileType =3D=3D 578) then meshname =3D &quot;knot.mesh&quot; end
++			local submeshcount =3D GetMeshSubMeshCount(meshname)
++			print(&quot;mesh for tiletype=3D&quot;,iTileType,sprintf(&quot;0x%04x&quot;,iTileType),&quot; su=
+bmeshcount=3D&quot;,submeshcount)
++			for i =3D 0,submeshcount-1 do =
+
++				print(&quot;submesh mat&quot;,i,GetMeshSubMaterial(meshname,i),iTileType)
++				if (iTileType =3D=3D 578) then SetMeshSubMaterial(meshname,i,&quot;Examples=
+/OffsetMapping/Specular&quot;) end
++				--~ if (iTileType =3D=3D 578) then SetMeshSubMaterial(meshname,i,&quot;Exam=
+ples/OffsetMapping/IntegratedShadows&quot;) end
++			end
++			MeshBuildTangentVectors(meshname)
+ 			=
+
+-			if (gDebugModeTestSkeletalAnimShader) then =
+
+-				local f =3D 1/34
+-				gDebugRootGfx:SetScale(f,f,f)
+-				gDebugRootGfx:SetAnim(&quot;Sneak&quot;,true)
+-				gDebugRootGfx.animtime =3D 0
+-				if (not  gDebugRootGfx.animfun_set) then
+-					 gDebugRootGfx.animfun_set =3D true =
+
+-					 RegisterStepper(function () =
+
+-						gDebugRootGfx:SetAnimTimePos(gDebugRootGfx.animtime)
+-						gDebugRootGfx.animtime =3D gDebugRootGfx.animtime + 1/30
+-						if (gDebugRootGfx.animtime &gt; 3) then gDebugRootGfx.animtime =3D 0 end
+-					 end)
++			if gDebugLastMeshName then ReloadMesh(gDebugLastMeshName) end
++			gDebugLastMeshName =3D meshname
++			local tricount =3D meshname and CountMeshTriangles(meshname) or 0
++			GuiAddChatLine(sprintf(&quot;static %04x(=3D%d) hue=3D%d tricount=3D%d %s&quot;,i=
+TileType,iTileType,iHue,tricount,GetStaticTileTypeName(iTileType) or &quot;&quot;))
++			if (meshname and meshname ~=3D false) then
++				gDebugRootGfx:SetMesh(meshname)
++				=
+
++				if (gDebugModeTestSkeletalAnimShader) then =
+
++					local f =3D 1/34
++					gDebugRootGfx:SetScale(f,f,f)
++					gDebugRootGfx:SetAnim(&quot;Sneak&quot;,true)
++					gDebugRootGfx.animtime =3D 0
++					if (not  gDebugRootGfx.animfun_set) then
++						 gDebugRootGfx.animfun_set =3D true =
+
++						 RegisterStepper(function () =
+
++							gDebugRootGfx:SetAnimTimePos(gDebugRootGfx.animtime)
++							gDebugRootGfx.animtime =3D gDebugRootGfx.animtime + 1/30
++							if (gDebugRootGfx.animtime &gt; 3) then gDebugRootGfx.animtime =3D 0 e=
+nd
++						 end)
++					end
++					=
+
++						=
+
++					local x1,y1,z1, x2,y2,z2 =3D gDebugRootGfx:GetEntityBounds()
++					print(&quot;##########################################&quot;)
++					print(&quot;#######  mesh bounds :&quot;,x1,y1,z1, x2,y2,z2)
++					print(&quot;##########################################&quot;)
++					--~ #######  mesh bounds :  -24.264656066895        -1.6195520162582 =
+       -61.062599182129        14.574376106262 17.728036880493 34.605701446=
+533
++					--~ #######  mesh bounds :  -1.0015000104904        -0.00449999980628=
+49     -0.012000000104308      -0.84850001335144       0.454499989748  1.21=
+20000123978
+ 				end
+ 				=
+
+-					=
+
+-				local x1,y1,z1, x2,y2,z2 =3D gDebugRootGfx:GetEntityBounds()
+-				print(&quot;##########################################&quot;)
+-				print(&quot;#######  mesh bounds :&quot;,x1,y1,z1, x2,y2,z2)
+-				print(&quot;##########################################&quot;)
+-				--~ #######  mesh bounds :  -24.264656066895        -1.6195520162582  =
+      -61.062599182129        14.574376106262 17.728036880493 34.6057014465=
+33
+-				--~ #######  mesh bounds :  -1.0015000104904        -0.004499999806284=
+9     -0.012000000104308      -0.84850001335144       0.454499989748  1.212=
+0000123978
++				=
+
++				--~ gDebugRootGfx:SetOrientation(GetStaticMeshOrientation(iTileType))
++				--~ mirroring now baked into meshes for shader compatibility -- gDebug=
+RootGfx:SetScale(-1,1,1)          -- (-1) thats because xmirror bug and wro=
+ng mirrored meshes
++				--~ gDebugRootGfx:SetNormaliseNormals(true)
++				--~ gDebugRootGfx:SetCastShadows(gDynamicsCastShadows)
++				-- primary color hueing
++				if gHueLoader and iHue &gt; 0 then
++					local r,g,b =3D gHueLoader:GetColor(iHue - 1,31) -- get first color
++					--~ HueMeshEntity(gDebugRootGfx,r,g,b,r,g,b)
++				end
++				-- position adjustment for statics and dynamics
++				xadd,yadd,zadd =3D FilterPositionXYZ(iTileType)
+ 			end
+-			=
+
+-			=
+
+-            --~ gDebugRootGfx:SetOrientation(GetStaticMeshOrientation(iTil=
+eType))
+-            --~ mirroring now baked into meshes for shader compatibility -=
+- gDebugRootGfx:SetScale(-1,1,1)          -- (-1) thats because xmirror bug=
+ and wrong mirrored meshes
+-            --~ gDebugRootGfx:SetNormaliseNormals(true)
+-            --~ gDebugRootGfx:SetCastShadows(gDynamicsCastShadows)
+-            -- primary color hueing
+-            if gHueLoader and iHue &gt; 0 then
+-                local r,g,b =3D gHueLoader:GetColor(iHue - 1,31) -- get fi=
+rst color
+-                --~ HueMeshEntity(gDebugRootGfx,r,g,b,r,g,b)
+-            end
+-            -- position adjustment for statics and dynamics
+-            xadd,yadd,zadd =3D FilterPositionXYZ(iTileType)
+-        end
++		end
+         Renderer3D:CreateArtBillBoard(gDebugRootGfx2,iTileType+0x4000,iHue)
+         =
+
+         Renderer3D:CreateArtBillBoard(gDebugRootGfx3,0,0,true)--0,0,true)
+@@ -703,12 +707,12 @@
+ end
+ =
+
+ function DebugMenuSetParam1 (value) =
+
+-    gDebugMenuModelIndex =3D value
++    gDebugMenuIndex =3D value
+     DebugMenuShowModel()
+ end
+ =
+
+ function DebugMenuChangeParam1  (delta) =
+
+-    local newval =3D gDebugMenuModelIndex
++    local newval =3D gDebugMenuIndex
+     if ((gKeyPressed[key_lshift]) and gCurDebugMode =3D=3D kDebugMode_Stat=
+ic) then
+         for i=3D1,math.abs(delta) do
+             local tries =3D 400
+@@ -756,15 +760,15 @@
+         gCurDebugMode =3D kDebugMode_Static
+         if string.find(id,&quot;x&quot;) then
+             -- hex value given
+-            gDebugMenuModelIndex =3D hex2num(id)
++            gDebugMenuIndex =3D hex2num(id)
+         else
+             -- decimal value given
+-            gDebugMenuModelIndex =3D id
++            gDebugMenuIndex =3D id
+         end
+         =
+
+         if gCommandLineSwitches[&quot;-export&quot;] then
+             -- just export the current model and close the client
+-            DebugExportModel(gDebugMenuModelIndex)
++            DebugExportModel(gDebugMenuIndex)
+             Terminate()
+         end
+     end
+@@ -868,11 +872,11 @@
+     Bind(&quot;wheeldown&quot;,   function (state) if (not gActiveEditText) then if =
+(state &gt; 0) then gCurrentRenderer:CamChangeZoom( 0.3) end end end)
+     Bind(&quot;wheelup&quot;,     function (state) if (not gActiveEditText) then if =
+(state &gt; 0) then gCurrentRenderer:CamChangeZoom(-0.3) end end end)
+     Bind(&quot;f10&quot;,     function (state) if (not gActiveEditText) then if (sta=
+te &gt; 0 and gCurDebugMode =3D=3D kDebugMode_Static) then =
+
+-        AdjustArtPositionControlDialog(gDebugMenuModelIndex) end end end)
++        AdjustArtPositionControlDialog(gDebugMenuIndex) end end end)
+     Bind(&quot;c&quot;,       function (state) if (not gActiveEditText) then if (sta=
+te &gt; 0) then gCurrentRenderer:ChangeCamMode() end end end)
+ =
+
+     Bind(&quot;a&quot;, function (state) if (not gActiveEditText) then if (state &gt; 0=
+) then =
+
+-        gDebugMenuAnimIndex =3D 0 gDebugMenuModelIndex =3D 1 DebugMenuShow=
+Model()
++        gDebugMenuAnimIndex =3D 0 gDebugMenuIndex =3D 1 DebugMenuShowModel=
+()
+         end end end)
+ =
+
+     Bind(&quot;f&quot;, function (state) if (not gActiveEditText) then if (state &gt; 0=
+) then =
+
+@@ -892,9 +896,17 @@
+         =
+
+     Bind(&quot;f1&quot;, function (state) if (not gActiveEditText) then if (state &gt; =
+0) then
+         --TODO: close ShowDebugMenuArtList(0,kDebugMode_Static)
+-        gCurDebugMode =3D gCurDebugMode + 1
+-        if (gCurDebugMode &gt; kDebugMode_Static) then gCurDebugMode =3D kDeb=
+ugMode_Granny end
+-        gDebugMenuAnimIndex =3D 0 gDebugMenuModelIndex =3D 1
++		if (gCurDebugMode =3D=3D kDebugMode_Granny) then
++			gDebugMenuGrannyIndexSave =3D gDebugMenuIndex
++			gCurDebugMode =3D kDebugMode_Static
++			gDebugMenuAnimIndex =3D 0
++			gDebugMenuIndex =3D gDebugMenuModelIndexSave
++		else
++			gDebugMenuModelIndexSave =3D gDebugMenuIndex
++			gCurDebugMode =3D kDebugMode_Granny
++			gDebugMenuAnimIndex =3D 0
++			gDebugMenuIndex =3D gDebugMenuGrannyIndexSave
++		end
+         DebugMenuShowModel()
+         end end end)
+         =
+
+@@ -926,7 +938,7 @@
+     Bind(&quot;t&quot;, function (state) if (not gActiveEditText) then if (state &gt; 0=
+) then =
+
+         if (gCurDebugMode =3D=3D kDebugMode_Static) then
+             if (gEnableSVNRemoveInStaticDebug) then -- BE CAREFUL WITH THA=
+T !!!!  gEnableSVNRemoveInStaticDebug
+-                local i =3D gDebugMenuModelIndex
++                local i =3D gDebugMenuIndex
+                 os.execute(&quot;svn rm &quot; .. GetMeshPath(i))
+                 GuiAddChatLine(sprintf(&quot;SVN REMOVE 0x%04x(=3D%d) %s&quot;,i,i,G=
+etMeshPath(i)))
+             end =
+
+@@ -945,7 +957,7 @@
+ =
+
+     Bind(&quot;b&quot;, function (state) if (not gActiveEditText) then if (state &gt; 0=
+) then =
+
+         if (gCurDebugMode =3D=3D kDebugMode_Static) then
+-            local i =3D gDebugMenuModelIndex
++            local i =3D gDebugMenuIndex
+             local notepath =3D &quot;debugstatic.txt&quot;
+             local text =3D sprintf(&quot;DebugStaticNOTE 0x%04x(=3D%d) %s %s&quot;,i=
+,i,GetMeshPath(i),GetStaticTileTypeName(i) or &quot;&quot;)
+             GuiAddChatLine(notepath..&quot;:&quot;..text)
+@@ -1076,13 +1088,13 @@
+ =
+
+ --TODO: add check for statics
+ function checkGlobals(debugmenumodelindex)
+-    if (debugmenumodelindex &lt;=3D 1) then return 1 end
++	if (debugmenumodelindex &lt;=3D 1) then return 1 end
+ =
+
+     -- if in grannymode, check if index is out of array
+     if (gCurDebugMode =3D=3D kDebugMode_Granny) then
+         local maxmodelindex =3D table.getn(gDebugMenuModelTable)
+-        if (gDebugMenuModelIndex &gt;=3D maxmodelindex) then return maxmodeli=
+ndex end
+-    end
++        if (gDebugMenuIndex &gt;=3D maxmodelindex) then return maxmodelindex =
+end
++	end
+ =
+
+     return debugmenumodelindex
+ end
+@@ -1154,16 +1166,16 @@
+             local debugmodelartid =3D 1
+             local debugmodelname =3D &quot;&quot;
+             if (gCurDebugMode =3D=3D kDebugMode_Granny) then
+-                debugmodelartid =3D gDebugMenuModelTable[gDebugMenuModelIn=
+dex].artid
++                debugmodelartid =3D gDebugMenuModelTable[gDebugMenuIndex].=
+artid
+                 local modelinfo =3D GetGrannyModelInfo(debugmodelartid)
+                 debugmodelname =3D modelinfo.modelname
+             else
+-                debugmodelname =3D GetStaticTileTypeName(gDebugMenuModelIn=
+dex) or &quot;unknown&quot;
+-                debugmodelartid =3D gDebugMenuModelIndex
++                debugmodelname =3D GetStaticTileTypeName(gDebugMenuIndex) =
+or &quot;unknown&quot;
++                debugmodelartid =3D gDebugMenuIndex
+             end
+             local tmp =3D {
+                 cModelArtID =3D debugmodelartid,
+-                cModelIdx   =3D gDebugMenuModelIndex,
++                cModelIdx   =3D gDebugMenuIndex,
+                 cModelName  =3D debugmodelname
+             }
+             return tmp
+@@ -1190,7 +1202,8 @@
+             {type=3D&quot;Label&quot;,  text=3D&quot;Table Index&quot;},
+             {type=3D&quot;Button&quot;,text=3D&quot;-&quot;,onMouseDown=3Dfunction (widget)
+                     --get the edit text field
+-                    gDebugMenuModelIndex=3DcheckGlobals( tonumber(widget.d=
+ialog.controls[&quot;cModelIdx&quot;].plaintext) - 1 )
++					gDebugMenuIndex =3D checkGlobals(gDebugMenuIndex-1)
++					widget.dialog.controls[&quot;cModelIdx&quot;].plaintext =3D gDebugMenuIndex
+ =
+
+                     --update edit field(s)
+                     UpdateEditText(widget, textControls())
+@@ -1201,7 +1214,8 @@
+             {type=3D&quot;EditText&quot;,   w=3D40,h=3D16,text=3D&quot;&quot;,controlname=3D&quot;c=
+ModelIdx&quot;},
+             {type=3D&quot;Button&quot;,text=3D&quot;+&quot;,onMouseDown=3Dfunction (widget)
+                     --get the edit text field
+-                    gDebugMenuModelIndex=3DcheckGlobals( tonumber(widget.d=
+ialog.controls[&quot;cModelIdx&quot;].plaintext) + 1 )
++					gDebugMenuIndex =3D checkGlobals(gDebugMenuIndex+1)
++					widget.dialog.controls[&quot;cModelIdx&quot;].plaintext =3D gDebugMenuIndex
+ =
+
+                     --update edit field(s)
+                     UpdateEditText(widget, textControls())
+@@ -1211,7 +1225,7 @@
+             }, =
+
+             {type=3D&quot;Button&quot;,text=3D&quot;Get&quot;,onMouseDown=3Dfunction (widget)
+                     --get the edit text field
+-                    gDebugMenuModelIndex=3DcheckGlobals( tonumber(widget.d=
+ialog.controls[&quot;cModelIdx&quot;].plaintext) )
++                    gDebugMenuIndex=3DcheckGlobals( tonumber(widget.dialog=
+.controls[&quot;cModelIdx&quot;].plaintext) )
+ =
+
+                     --update edit field(s)
+                     UpdateEditText(widget, textControls())
+@@ -1234,19 +1248,19 @@
+         },
+         {
+             {type=3D&quot;Button&quot;,text=3D&quot;Delete&quot;,onMouseDown=3Dfunction (widge=
+t)
+-                    DebugDeleteModel(gDebugMenuModelIndex)
++                    DebugDeleteModel(gDebugMenuIndex)
+                 end
+             }, =
+
+         },
+         {
+             {type=3D&quot;Button&quot;,text=3D&quot;Export&quot;,onMouseDown=3Dfunction (widge=
+t)
+-                    DebugExportModel(gDebugMenuModelIndex)
++                    DebugExportModel(gDebugMenuIndex)
+                 end
+             }, =
+
+         },
+         {
+             {type=3D&quot;Button&quot;,text=3D&quot;Flip&quot;,onMouseDown=3Dfunction (widget)
+-                    DebugFlipModel(gDebugMenuModelIndex)
++                    DebugFlipModel(gDebugMenuIndex)
+                     DebugMenuShowModel()
+                 end
+             }, =
+
+
+Modified: trunk/lua/lib.mainmenu.charcreate.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mainmenu.charcreate.lua (original)
++++ trunk/lua/lib.mainmenu.charcreate.lua Mon Nov 28 17:35:07 2011
+@@ -121,7 +121,7 @@
+             =
+
+             public static int ClipDyedHue( int hue ) {
+                 if ( hue &lt; 2 ) return 2;
+-                else if ( hue &gt; 1001 ) return 1001;
++                elseif ( hue &gt; 1001 ) return 1001;
+                 else return hue;
+             }
+             =
+
+@@ -154,7 +154,7 @@
+         public override int human:ClipHairHue( int hue )
+         {
+             if( hue &lt; 1102 ) return 1102;
+-            else if( hue &gt; 1149 ) return 1149;
++            elseif( hue &gt; 1149 ) return 1149;
+             else return hue;
+         }
+         public override int elf:ClipHairHue( int hue )
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="002153.html">[Iris-commit] [IRIS] r3414 - in /trunk/lua: ./ profiles/
+</A></li>
+	<LI>Next message: <A HREF="002155.html">[Iris-commit] [IRIS] r3416 - in /trunk/lua: lib.debugmenu.lua	lib.static.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2154">[ date ]</a>
+              <a href="thread.html#2154">[ thread ]</a>
+              <a href="subject.html#2154">[ subject ]</a>
+              <a href="author.html#2154">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

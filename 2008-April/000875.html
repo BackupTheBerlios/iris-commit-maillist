@@ -1,0 +1,360 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2064 - in /trunk: lua/lib.bodygfx.lua lua/lib.mount.lua src/data_L.cpp
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-April/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2064%20-%20in%20/trunk%3A%20lua/lib.bodygfx.lua%0A%20lua/lib.mount.lua%20src/data_L.cpp&In-Reply-To=%3C20080419020020.8D6AC1C18729%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000874.html">
+   <LINK REL="Next"  HREF="000876.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2064 - in /trunk: lua/lib.bodygfx.lua lua/lib.mount.lua src/data_L.cpp</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2064%20-%20in%20/trunk%3A%20lua/lib.bodygfx.lua%0A%20lua/lib.mount.lua%20src/data_L.cpp&In-Reply-To=%3C20080419020020.8D6AC1C18729%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2064 - in /trunk: lua/lib.bodygfx.lua lua/lib.mount.lua src/data_L.cpp">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat Apr 19 03:45:27 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000874.html">[Iris-commit] [IRIS] r2063 - /trunk/lua/lib.macrolist.lua
+</A></li>
+        <LI>Next message: <A HREF="000876.html">[Iris-commit] [IRIS] r2065 - in /trunk/lua: lib.bodygfx.lua	lib.debugmenu.lua lib.mount.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#875">[ date ]</a>
+              <a href="thread.html#875">[ thread ]</a>
+              <a href="subject.html#875">[ subject ]</a>
+              <a href="author.html#875">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sat Apr 19 03:45:25 2008
+New Revision: 2064
+
+Log:
+mount experiments
+
+Modified:
+    trunk/lua/lib.bodygfx.lua
+    trunk/lua/lib.mount.lua
+    trunk/src/data_L.cpp
+
+Modified: trunk/lua/lib.bodygfx.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.bodygfx.lua (original)
++++ trunk/lua/lib.bodygfx.lua Sat Apr 19 03:45:25 2008
+@@ -157,6 +157,7 @@
+ 	local mount =3D self:GetEquipmentAtLayer(kLayer_Mount)
+ 	if (mount) then
+ 		local mountbodyid =3D gMountTranslate[mount.artid]
++		print(&quot;gBodyGfxPrototype:Update&quot;,mount.artid,mountbodyid)
+ 		if ((not mountbodyid) or mountbodyid =3D=3D 0) then mountbodyid =3D gSta=
+ndardHorse end
+ 		if (mountbodyid and mountbodyid ~=3D 0) then
+ 			local mountskeleton =3D GetOrCreateSkeleton(mountbodyid) -- skeleton is=
+ determined by the bodyid, not possible from the wearables
+
+Modified: trunk/lua/lib.mount.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.mount.lua (original)
++++ trunk/lua/lib.mount.lua Sat Apr 19 03:45:25 2008
+@@ -10,65 +10,74 @@
+ --// Format: &lt;MountItemId=3Dartid&gt; &lt;AnimationId&gt;
+ --Version 1
+ gMountTranslate =3D {}
+-gMountTranslate[hex2num(&quot;0x3FFE&quot;)] =3D hex2num(&quot;0xD5&quot;) --
+-gMountTranslate[hex2num(&quot;0x3FFD&quot;)] =3D hex2num(&quot;0xF1&quot;) --
+-gMountTranslate[hex2num(&quot;0x3FFC&quot;)] =3D hex2num(&quot;0xF3&quot;) --
+-gMountTranslate[hex2num(&quot;0x3EA2&quot;)] =3D hex2num(&quot;0xCC&quot;) --// dark brown hor=
+se
+-gMountTranslate[hex2num(&quot;0x3E9F&quot;)] =3D hex2num(&quot;0xC8&quot;) --// light brown ho=
+rse
+-gMountTranslate[hex2num(&quot;0x3EA0&quot;)] =3D hex2num(&quot;0xE2&quot;) --// light grey hor=
+se
+-gMountTranslate[hex2num(&quot;0x3EA1&quot;)] =3D hex2num(&quot;0xE4&quot;) --// grey brown hor=
+se
+-gMountTranslate[hex2num(&quot;0x3EA6&quot;)] =3D hex2num(&quot;0xDC&quot;) --// Llama
+-gMountTranslate[hex2num(&quot;0x3EA3&quot;)] =3D hex2num(&quot;0xD2&quot;) --// desert ostard
+-gMountTranslate[hex2num(&quot;0x3EA4&quot;)] =3D hex2num(&quot;0xDA&quot;) --// frenzied ostard
+-gMountTranslate[hex2num(&quot;0x3EA5&quot;)] =3D hex2num(&quot;0xDB&quot;) --// forest ostard
+-gMountTranslate[hex2num(&quot;0x3F14&quot;)] =3D hex2num(&quot;0x3C&quot;) --// drake
+-gMountTranslate[hex2num(&quot;0x3FFB&quot;)] =3D hex2num(&quot;0xD5&quot;) --// unknown?
+-gMountTranslate[hex2num(&quot;0x3EA7&quot;)] =3D hex2num(&quot;0xB1&quot;) --// nightmare
+-gMountTranslate[hex2num(&quot;0x3EA8&quot;)] =3D hex2num(&quot;0x75&quot;) --// silver steed
+-gMountTranslate[hex2num(&quot;0x3EA9&quot;)] =3D hex2num(&quot;0x72&quot;) --// nightmare
+-gMountTranslate[hex2num(&quot;0x3EAA&quot;)] =3D hex2num(&quot;0x73&quot;) --// etheral
+-gMountTranslate[hex2num(&quot;0x3E9F&quot;)] =3D hex2num(&quot;0xC8&quot;) --// light brown ho=
+rse
+-gMountTranslate[hex2num(&quot;0x3EAF&quot;)] =3D hex2num(&quot;0x78&quot;) --// war horse (blo=
+od red)
+-gMountTranslate[hex2num(&quot;0x3EB0&quot;)] =3D hex2num(&quot;0x79&quot;) --// war horse (lig=
+ht green)
+-gMountTranslate[hex2num(&quot;0x3EB1&quot;)] =3D hex2num(&quot;0x77&quot;) --// war horse (lig=
+ht blue)
+-gMountTranslate[hex2num(&quot;0x3EB3&quot;)] =3D hex2num(&quot;0x90&quot;) --// sea horse (med=
+ium blue)
+-gMountTranslate[hex2num(&quot;0x3EB5&quot;)] =3D hex2num(&quot;0x74&quot;) --// nightmare
+-gMountTranslate[hex2num(&quot;0x3EB6&quot;)] =3D hex2num(&quot;0xB2&quot;) --// nightmare 4
+-gMountTranslate[hex2num(&quot;0x3EAD&quot;)] =3D hex2num(&quot;0x84&quot;) --// kirin
+-gMountTranslate[hex2num(&quot;0x3EB2&quot;)] =3D hex2num(&quot;0x76&quot;) --// war horse (pur=
+ple)
+-gMountTranslate[hex2num(&quot;0x3EB7&quot;)] =3D hex2num(&quot;0xB3&quot;) --// dark steed
+-gMountTranslate[hex2num(&quot;0x3EB8&quot;)] =3D hex2num(&quot;0xBB&quot;) --// ridgeback
+-gMountTranslate[hex2num(&quot;0x3EBA&quot;)] =3D hex2num(&quot;0xBC&quot;) --// savage ridgeba=
+ck
+-gMountTranslate[hex2num(&quot;0x3E9E&quot;)] =3D hex2num(&quot;0xBE&quot;) --
+-gMountTranslate[hex2num(&quot;0x3E93&quot;)] =3D hex2num(&quot;0xFB&quot;) -- // test
+-gMountTranslate[hex2num(&quot;0x3EBB&quot;)] =3D hex2num(&quot;0x319&quot;) -- // skeletal mou=
+nt
+-gMountTranslate[hex2num(&quot;0x3EBC&quot;)] =3D hex2num(&quot;0x317&quot;) -- // beetle
+-gMountTranslate[hex2num(&quot;0x3EBD&quot;)] =3D hex2num(&quot;0x31A&quot;) -- // swampdragon
+-gMountTranslate[hex2num(&quot;0x3EBE&quot;)] =3D hex2num(&quot;0x31F&quot;) -- // armored swam=
+p dragon
+-gMountTranslate[hex2num(&quot;0x3E92&quot;)] =3D hex2num(&quot;0x11C&quot;) -- // mondain steed
+-gMountTranslate[hex2num(&quot;0x3E94&quot;)] =3D hex2num(&quot;0xF3&quot;) -- // hiryu
++gMountTranslate[0x3EAA] =3D 0x73 --//=3D115, 0x20DD,  Ethereal Horse
++gMountTranslate[0x3EAB] =3D 0xAA --//=3D170, 0x20F6,  Ethereal Llama			 =
+
++gMountTranslate[0x3EAC] =3D 0xAB --//=3D171, 0x2135,  Ethereal Ostard			 =
+
++gMountTranslate[0x3E9A] =3D 0xC1 --//=3D193, 0x2615,  Ethereal Ridgeback		 =
+
++gMountTranslate[0x3E9B] =3D 0xC0 --//=3D192, 0x25CE,  Ethereal Unicorn			 =
+
++gMountTranslate[0x3E97] =3D 0xC3 --//=3D195, 0x260F,  Ethereal Beetle			 =
+
++gMountTranslate[0x3E9C] =3D 0xBF --//=3D191, 0x25A0,  Ethereal Kirin			 =
+
++gMountTranslate[0x3E98] =3D 0xC2 --//=3D194, 0x2619,  Ethereal SwampDragon=
+		 =
+
++  =
+
++gMountTranslate[0x3FFE] =3D 0xD5  --
++gMountTranslate[0x3FFD] =3D 0xF1  --
++gMountTranslate[0x3FFC] =3D 0xF3  --
++gMountTranslate[0x3EB4] =3D 0x7A  --// unicorn
++gMountTranslate[0x3EA2] =3D 0xCC  --// dark brown horse
++gMountTranslate[0x3E9F] =3D 0xC8  --// light brown horse
++gMountTranslate[0x3EA0] =3D 0xE2  --// light grey horse
++gMountTranslate[0x3EA1] =3D 0xE4  --// grey brown horse
++gMountTranslate[0x3EA6] =3D 0xDC  --// Llama
++gMountTranslate[0x3EA3] =3D 0xD2  --// desert ostard
++gMountTranslate[0x3EA4] =3D 0xDA  --// frenzied ostard
++gMountTranslate[0x3EA5] =3D 0xDB  --// forest ostard
++gMountTranslate[0x3F14] =3D 0x3C  --// drake
++gMountTranslate[0x3FFB] =3D 0xD5  --// unknown?
++gMountTranslate[0x3EA7] =3D 0x74  --// nightmare 0xB1 ?
++gMountTranslate[0x3EA8] =3D 0x75  --// silver steed
++gMountTranslate[0x3EA9] =3D 0x72  --// nightmare
++gMountTranslate[0x3E9F] =3D 0xC8  --// light brown horse
++gMountTranslate[0x3EAF] =3D 0x78  --// war horse (blood red)
++gMountTranslate[0x3EB0] =3D 0x79  --// war horse (light green)
++gMountTranslate[0x3EB1] =3D 0x77  --// war horse (light blue)
++gMountTranslate[0x3EB3] =3D 0x90  --// sea horse (medium blue)
++gMountTranslate[0x3EB5] =3D 0x74  --// nightmare
++gMountTranslate[0x3EB6] =3D 0xB2  --// nightmare 4
++gMountTranslate[0x3EAD] =3D 0x84  --// kirin
++gMountTranslate[0x3EB2] =3D 0x76  --// war horse (purple)
++gMountTranslate[0x3EB7] =3D 0xB3  --// dark steed
++gMountTranslate[0x3EB8] =3D 0xBB  --// ridgeback
++gMountTranslate[0x3EBA] =3D 0xBC  --// savage ridgeback
++gMountTranslate[0x3E9E] =3D 0xBE  --
++gMountTranslate[0x3E93] =3D 0xFB  -- // test
++gMountTranslate[0x3EBB] =3D 0x319 -- // skeletal mount
++gMountTranslate[0x3EBC] =3D 0x317 -- // beetle
++gMountTranslate[0x3EBD] =3D 0x31A -- // swampdragon
++gMountTranslate[0x3EBE] =3D 0x31F -- // armored swamp dragon
++gMountTranslate[0x3E92] =3D 0x11C -- // mondain steed
++gMountTranslate[0x3E94] =3D 0xF3  -- // hiryu
+ =
+
+ gMountTranslate2D =3D {}
+ for k,v in pairs(gMountTranslate) do gMountTranslate2D[k] =3D v end -- a c=
+opy of the original data without granny overrides for varan
+ =
+
+ -- currently broken granny anims
+ gMountGrannyOverride =3D {}
+-gMountGrannyOverride[hex2num(&quot;0xCC&quot;)] =3D gStandardHorse
+-gMountGrannyOverride[hex2num(&quot;0xE2&quot;)] =3D gStandardHorse =
+
+-gMountGrannyOverride[hex2num(&quot;0xE4&quot;)] =3D gStandardHorse
+-gMountGrannyOverride[hex2num(&quot;0xB1&quot;)] =3D gStandardHorse =
+
+-gMountGrannyOverride[hex2num(&quot;0x75&quot;)] =3D gStandardHorse =
+
+-gMountGrannyOverride[hex2num(&quot;0x72&quot;)] =3D gStandardHorse =
+
+-gMountGrannyOverride[hex2num(&quot;0x73&quot;)] =3D gStandardHorse =
+
+-gMountGrannyOverride[hex2num(&quot;0x74&quot;)] =3D gStandardHorse =
+
+-gMountGrannyOverride[hex2num(&quot;0xB2&quot;)] =3D gStandardHorse =
+
+-gMountGrannyOverride[hex2num(&quot;0xB3&quot;)] =3D gStandardHorse =
+
+-gMountGrannyOverride[hex2num(&quot;0xBE&quot;)] =3D gStandardHorse =
+
+-gMountGrannyOverride[hex2num(&quot;0x123&quot;)] =3D hex2num(&quot;0x76&quot;) -- packhorse, n=
+ot C8 (standardhorse) =
+
+-gMountGrannyOverride[hex2num(&quot;0x317&quot;)] =3D gStandardHorse
+-gMountGrannyOverride[hex2num(&quot;0x31A&quot;)] =3D gStandardHorse
+-gMountGrannyOverride[hex2num(&quot;0x31F&quot;)] =3D gStandardHorse
+-gMountGrannyOverride[hex2num(&quot;0x11C&quot;)] =3D gStandardHorse
++gMountGrannyOverride[0xCC] =3D gStandardHorse
++gMountGrannyOverride[0xE2] =3D gStandardHorse =
+
++gMountGrannyOverride[0xE4] =3D gStandardHorse
++gMountGrannyOverride[0xB1] =3D gStandardHorse =
+
++gMountGrannyOverride[0x75] =3D gStandardHorse =
+
++gMountGrannyOverride[0x72] =3D gStandardHorse =
+
++gMountGrannyOverride[0x73] =3D gStandardHorse =
+
++gMountGrannyOverride[0x74] =3D gStandardHorse =
+
++gMountGrannyOverride[0xB2] =3D gStandardHorse =
+
++gMountGrannyOverride[0xB3] =3D gStandardHorse =
+
++gMountGrannyOverride[0xBE] =3D gStandardHorse =
+
++gMountGrannyOverride[0x123] =3D hex2num(&quot;0x76&quot;) -- packhorse, not C8 (stan=
+dardhorse) =
+
++gMountGrannyOverride[0x317] =3D gStandardHorse
++gMountGrannyOverride[0x31A] =3D gStandardHorse
++gMountGrannyOverride[0x31F] =3D gStandardHorse
++gMountGrannyOverride[0x11C] =3D gStandardHorse
+ for k,v in pairs(gMountTranslate) do if (gMountGrannyOverride[v]) then gMo=
+untTranslate[k] =3D gMountGrannyOverride[v] end end
+ =
+
+ --[[
+@@ -114,4 +123,46 @@
+ swampdragon=3D0x3EBD
+ armorswampdragon=3D0x3EBE
+ kirin=3D0x3EAD
++
++
++RunUO1.0/Scripts/Engines/Factions/Mobiles/FactionWarHorse.cs:8:	public cla=
+ss FactionWarHorse : BaseMount
++RunUO1.0/Scripts/Mobiles/Animals/Mounts :  int bodyID, int itemID,
++
++artid=3D8502	artid=3D0x2136	animid=3D0	animid=3D0x0000	frenzied ostard
++artid=3D9652	artid=3D0x25b4	animid=3D0	animid=3D0x0000	Frenzied Ostard
++
++FactionWarHorse			 0xE2	, 0x3EA0
++RidableLlama			 0xDC	, 0x3EA6
++Kirin					 0x84	, 0x3EAD
++DesertOstard			 0xD2	, 0x3EA3
++FireSteed				 0xBE	, 0x3E9E
++FrenziedOstard			 0xDA	, 0x3EA4
++SeaHorse				 0x90	, 0x3EB3
++Nightmare				 0x74	, 0x3EA7
++Ridgeback				 0xBB	, 0x3EBA
++ScaledSwampDragon		 0x31F	, 0x3EBE
++SilverSteed				 0x75	, 0x3EA8
++Horse					 0xE2	, 0x3EA0
++SwampDragon				 0x31A	, 0x3EBD
++CoMWarHorse				 0x77	, 0x3EB1
++MinaxWarHorse			 0x78	, 0x3EAF
++TBWarHorse				 0x76	, 0x3EB2
++SLWarHorse				 0x79	, 0x3EB0
++SkeletalMount			 0x319	, 0x3EBB
++HellSteed				 0x319	, 0x3EBB
++ForestOstard			 0xDB	, 0x3EA5
++Beetle					 0x317	, 0x3EBC
++Unicorn					 0x7A	, 0x3EB4
++SavageRidgeback			 0xBC	, 0x3EB8
++                  	 =
+
++
++EtherealHorse			 0x20DD, 0x3EAA    EtherealMount( int itemID, int mountID )
++EtherealLlama			 0x20F6, 0x3EAB =
+
++EtherealOstard			 0x2135, 0x3EAC =
+
++EtherealRidgeback		 0x2615, 0x3E9A =
+
++EtherealUnicorn			 0x25CE, 0x3E9B =
+
++EtherealBeetle			 0x260F, 0x3E97 =
+
++EtherealKirin			 0x25A0, 0x3E9C =
+
++EtherealSwampDragon		 0x2619, 0x3E98 =
+
++
+ ]]--
+
+Modified: trunk/src/data_L.cpp
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/src/data_L.cpp (original)
++++ trunk/src/data_L.cpp Sat Apr 19 03:45:25 2008
+@@ -423,8 +423,9 @@
+ 		static int	GetStaticTileType	(lua_State *L) { PROFILE =
+
+ 			cStaticTileType* pChunk =3D checkudata_alive(L)-&gt;GetStaticTileType(luaL=
+_checkint(L,2));
+ 			RawStaticTileType* pRawChunk =3D pChunk ? pChunk-&gt;mpRawStaticTileType :=
+ 0;
+-			if (!pRawChunk) { printf(&quot;GetStaticTileType : id (%d) not found c=3D%08=
+x,rc=3D%08x\n&quot;,luaL_checkint(L,2),pChunk,pRawChunk);return 0; }
+-			if (!pRawChunk) { MyCrash(&quot;GetStaticTileType debug\n&quot;); }
++			//~ if (!pRawChunk) { printf(&quot;GetStaticTileType : id (%d) not found c=
+=3D%08x,rc=3D%08x\n&quot;,luaL_checkint(L,2),pChunk,pRawChunk);return 0; }
++			//~ if (!pRawChunk) { MyCrash(&quot;GetStaticTileType debug\n&quot;); }
++			if (!pRawChunk) return 0;
+ 			lua_pushnumber(L,pRawChunk-&gt;miFlags); =
+
+ 			lua_pushnumber(L,pRawChunk-&gt;miWeight); =
+
+ 			lua_pushnumber(L,pRawChunk-&gt;miQuality); =
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000874.html">[Iris-commit] [IRIS] r2063 - /trunk/lua/lib.macrolist.lua
+</A></li>
+	<LI>Next message: <A HREF="000876.html">[Iris-commit] [IRIS] r2065 - in /trunk/lua: lib.bodygfx.lua	lib.debugmenu.lua lib.mount.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#875">[ date ]</a>
+              <a href="thread.html#875">[ thread ]</a>
+              <a href="subject.html#875">[ subject ]</a>
+              <a href="author.html#875">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

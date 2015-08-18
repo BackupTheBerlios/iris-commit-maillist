@@ -1,0 +1,1522 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2153 - in /trunk: include/ src/
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-May/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2153%20-%20in%20/trunk%3A%20include/%20src/&In-Reply-To=%3C20080509181707.8206A153C00D%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000962.html">
+   <LINK REL="Next"  HREF="000964.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2153 - in /trunk: include/ src/</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2153%20-%20in%20/trunk%3A%20include/%20src/&In-Reply-To=%3C20080509181707.8206A153C00D%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2153 - in /trunk: include/ src/">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Fri May  9 20:17:06 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000962.html">[Iris-commit] [IRIS] r2152 - in /trunk: include/ src/
+</A></li>
+        <LI>Next message: <A HREF="000964.html">[Iris-commit] [IRIS] r2154 - in /trunk/lua: ./ obj/
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#963">[ date ]</a>
+              <a href="thread.html#963">[ thread ]</a>
+              <a href="subject.html#963">[ subject ]</a>
+              <a href="author.html#963">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Fri May  9 20:17:03 2008
+New Revision: 2153
+
+Log:
+split data_L.cpp into multiple files
+
+Added:
+    trunk/include/data_luabind_common.h
+    trunk/src/data_anim_L.cpp
+    trunk/src/data_artmap_L.cpp
+    trunk/src/data_font_L.cpp
+    trunk/src/data_groundblock_L.cpp
+    trunk/src/data_gump_L.cpp
+    trunk/src/data_hue_L.cpp
+    trunk/src/data_multi_L.cpp
+    trunk/src/data_radar_L.cpp
+    trunk/src/data_sound_L.cpp
+    trunk/src/data_staticblock_L.cpp
+    trunk/src/data_texmap_L.cpp
+    trunk/src/data_tiletype_L.cpp
+Modified:
+    trunk/src/data_L.cpp
+
+Modified: trunk/src/data_L.cpp
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/src/data_L.cpp (original)
++++ trunk/src/data_L.cpp Fri May  9 20:17:03 2008
+@@ -1,994 +1,34 @@
+-#include &quot;lugre_prefix.h&quot;
+-#include &quot;data.h&quot;
+-#include &quot;lugre_scripting.h&quot;
+-#include &quot;lugre_luabind.h&quot;
+-#include &quot;lugre_ogrewrapper.h&quot;
+-#include &quot;builder.h&quot;
+-#include &quot;lugre_bitmask.h&quot;
+-#include &quot;lugre_sound.h&quot;
+-#include &quot;lugre_image.h&quot;
+-#include &lt;string&gt;
+-#include &lt;stdlib.h&gt;
+-#include &lt;map&gt;
++#include &quot;data_luabind_common.h&quot;
+ =
+
+-extern &quot;C&quot; {
+-	#include &quot;lua.h&quot;
+-	#include &quot;lauxlib.h&quot;
+-	#include &quot;lualib.h&quot;
+-}
+-
+-
+-using namespace Lugre;
+-
+-class cGroundBlockLoader_L : public cLuaBind&lt;cGroundBlockLoader&gt; { public:
+-	// implementation of cLuaBind
+-
+-		/// called by Register(), registers object-methods (see cLuaBind constru=
+ctor for examples)
+-		virtual void RegisterMethods	(lua_State *L) { PROFILE
+-			lua_register(L,&quot;CreateGroundBlockLoader&quot;,	&amp;cGroundBlockLoader_L::Create=
+GroundBlockLoader);
+-			lua_register(L,&quot;CreateGroundBlockLoaderWithDiff&quot;,	&amp;cGroundBlockLoader_L=
+::<i>CreateGroundBlockLoaderWithDiff);
+</I>-			=
+
+-			#define REGISTER_METHOD(methodname) mlMethod.push_back(make_luaL_reg(#m=
+ethodname,&amp;cGroundBlockLoader_L::methodname));
+-			REGISTER_METHOD(Destroy);
+-			REGISTER_METHOD(GetMapW);
+-			REGISTER_METHOD(GetMapH);
+-			REGISTER_METHOD(WriteMapImageToFile);
+-			REGISTER_METHOD(GetTile);
+-			REGISTER_METHOD(GetTile2);
+-			REGISTER_METHOD(GetNormals);
+-			REGISTER_METHOD(GetHeightMap);
+-			REGISTER_METHOD(CountTileTypes);
+-			#undef REGISTER_METHOD
+-		}
+-
+-	// static methods exported to lua
+-		=
+
+-		/// cGroundBlockLoader*	CreateGroundBlockLoader		(string type,int maph,s=
+tring file); for lua
+-		static int				CreateGroundBlockLoader		(lua_State *L) { PROFILE
+-			const char* type =3D luaL_checkstring(L,1);
+-			cGroundBlockLoader* target =3D 0;
+-			if (mystricmp(type,&quot;Dummy&quot;) =3D=3D 0) target =3D new cGroundBlockLoader=
+_Dummy(luaL_checkint(L,2),luaL_checkint(L,3));
+-			if (mystricmp(type,&quot;OnDemand&quot;) =3D=3D 0) target =3D new cGroundBlockLoa=
+der_OnDemand(luaL_checkint(L,2),luaL_checkstring(L,3));
+-			if (mystricmp(type,&quot;FullFile&quot;) =3D=3D 0) target =3D new cGroundBlockLoa=
+der_FullFile(luaL_checkint(L,2),luaL_checkstring(L,3));
+-			return target ? CreateUData(L,target) : 0;
+-		}
+-		=
+
+-		/// cGroundBlockLoader*	CreateGroundBlockLoaderWithDiff		(string type,in=
+t maph,string file, string difflookup, string diffdata); for lua
+-		static int				CreateGroundBlockLoaderWithDiff		(lua_State *L) { PROFILE
+-			const char* type =3D luaL_checkstring(L,1);
+-			cGroundBlockLoader* target =3D 0;
+-			if (mystricmp(type,&quot;Dummy&quot;) =3D=3D 0) target =3D new cGroundBlockLoader=
+_Dummy(luaL_checkint(L,2),luaL_checkint(L,3));
+-			if (mystricmp(type,&quot;OnDemand&quot;) =3D=3D 0) target =3D new cGroundBlockLoa=
+der_OnDemand(luaL_checkint(L,2),luaL_checkstring(L,3),luaL_checkstring(L,4)=
+,luaL_checkstring(L,5));
+-			if (mystricmp(type,&quot;FullFile&quot;) =3D=3D 0) target =3D new cGroundBlockLoa=
+der_FullFile(luaL_checkint(L,2),luaL_checkstring(L,3),luaL_checkstring(L,4)=
+,luaL_checkstring(L,5));
+-			return target ? CreateUData(L,target) : 0;
+-		}
+-		=
+
+-	// object methods exported to lua
+-
+-		static int	Destroy				(lua_State *L) { PROFILE delete checkudata_alive(L=
+); return 0; }
+-		static int	GetMapW				(lua_State *L) { PROFILE lua_pushnumber(L,checkuda=
+ta_alive(L)-&gt;miMapW); return 1; }
+-		static int	GetMapH				(lua_State *L) { PROFILE lua_pushnumber(L,checkuda=
+ta_alive(L)-&gt;miMapH); return 1; }	=
+
+-		=
+
+-		/// for lua  tiletype,z		GetTile		(blockx, blocky, tilex, tiley)
+-		static int	GetTile				(lua_State *L) { PROFILE =
+
+-			cGroundBlockLoader* target =3D checkudata_alive(L);
+-			cGroundBlock* pGroundBlock =3D target-&gt;GetGroundBlock(luaL_checkint(L,2=
+),luaL_checkint(L,3));
+-			if (!pGroundBlock) return 0;
+-			RawGroundBlock* pChunk =3D pGroundBlock-&gt;mpRawGroundBlock;
+-			if (!pChunk) return 0;
+-			int tx =3D mymax(0,mymin(7,luaL_checkint(L,4)));
+-			int ty =3D mymax(0,mymin(7,luaL_checkint(L,5)));
+-			RawGroundTile* pTile =3D &amp;pChunk-&gt;mTiles[ty][tx];
+-			lua_pushnumber(L,pTile-&gt;miTileType);
+-			lua_pushnumber(L,pTile-&gt;miZ);
+-			return 2; =
+
+-		}
+-		=
+
+-		/// for lua  tiletype,z		GetTile2	(xloc,yloc)
+-		static int					GetTile2	(lua_State *L) { PROFILE =
+
+-			int x =3D luaL_checkint(L,2);
+-			int y =3D luaL_checkint(L,3);
+-			if (x &lt; 0 || y &lt; 0) return 0;
+-			cGroundBlockLoader* target =3D checkudata_alive(L);
+-			cGroundBlock* pGroundBlock =3D target-&gt;GetGroundBlock(x/8,y/8);
+-			if (!pGroundBlock) return 0;
+-			RawGroundBlock* pChunk =3D pGroundBlock-&gt;mpRawGroundBlock;
+-			if (!pChunk) return 0;
+-			RawGroundTile* pTile =3D &amp;pChunk-&gt;mTiles[y%8][x%8];
+-			lua_pushnumber(L,pTile-&gt;miTileType);
+-			lua_pushnumber(L,pTile-&gt;miZ);
+-			return 2; =
+
+-		}	=
+
+-
+-		// void		WriteMapImageToFile	(radarcolorloader*,staticblockloader,string=
+ filepath,bool big)  for lua
+-		static int	WriteMapImageToFile	(lua_State *L) { PROFILE =
+
+-			cRadarColorLoader* pRadarColorLoader =3D cLuaBind&lt;cRadarColorLoader&gt;::c=
+heckudata(L,2);
+-			cStaticBlockLoader* pStaticBlockLoader =3D cLuaBind&lt;cStaticBlockLoader&gt;=
+::<i>checkudata(L,3);
+</I>-			if (!pRadarColorLoader) return 0;
+-			bool bBig=3D		(lua_gettop(L) &gt;=3D 5 &amp;&amp; !lua_isnil(L,5)) ? lua_toboolean=
+(L,5) : false;
+-			::WriteMapImageToFile(*checkudata_alive(L),*pRadarColorLoader,pStaticBl=
+ockLoader,luaL_checkstring(L,4),bBig);
+-			return 0; =
+
+-		}
+-
+-		static int	GetNormals (lua_State *L) { PROFILE
+-			cGroundBlockLoader* pGroundBlockLoader =3D checkudata_alive(L);
+-			=
+
+-			float *pData =3D new float[64*4*3];
+-			GenerateNormals( pGroundBlockLoader, luaL_checkint(L,2), luaL_checkint(=
+L,3), pData );
+-
+-			lua_newtable( L );
+-			for (int i=3D0; i &lt; 64*4*3; i++) {
+-				lua_pushnumber( L, pData[i] );
+-				lua_rawseti( L, -2, i );
+-			}
+-
+-			return 1;
+-		}
+-
+-		/// for lua : map&lt;tiletypeid,count&gt; CountTileTypes ()
+-		static int	CountTileTypes (lua_State *L) { PROFILE
+-			cGroundBlockLoader* pGroundBlockLoader =3D checkudata_alive(L);
+-			std::map&lt;int,int&gt; myTileTypeCounter;
+-			=
+
+-			// iterate over the whole map, counting tiletypes
+-			for (int x=3D0;x&lt;pGroundBlockLoader-&gt;miMapW;++x)
+-			for (int y=3D0;y&lt;pGroundBlockLoader-&gt;miMapH;++y) {
+-				cGroundBlock* pGroundBlock =3D pGroundBlockLoader-&gt;GetGroundBlock(x,y);
+-				if (!pGroundBlock) continue;
+-				RawGroundBlock* pChunk =3D pGroundBlock-&gt;mpRawGroundBlock;
+-				if (!pChunk) continue;
+-					=
+
+-				for (int tx=3D0;tx&lt;7;++tx)
+-				for (int ty=3D0;ty&lt;7;++ty) {
+-					++myTileTypeCounter[pChunk-&gt;mTiles[ty][tx].miTileType];
+-				}
+-			}
+-			=
+
+-			lua_newtable(L);
+-			for (std::map&lt;int,int&gt;::iterator itor=3DmyTileTypeCounter.begin();itor!=
+=3DmyTileTypeCounter.end();++itor) {
+-				lua_pushnumber( L, (*itor).second );
+-				lua_rawseti( L, -2, (*itor).first );
+-			}
+-			return 1;
+-		}
+-			=
+
+-			=
+
+-		static int	GetHeightMap (lua_State *L) { PROFILE
+-			cGroundBlockLoader* pGroundBlockLoader =3D checkudata_alive(L);
+-			=
+
+-			signed char *pData =3D new signed char[81];
+-			GenerateHeightMap( pGroundBlockLoader, luaL_checkint(L,2), luaL_checkin=
+t(L,3), pData );
+-
+-			lua_newtable( L );
+-			for (int i=3D0; i &lt; 81; i++) {
+-				lua_pushnumber( L, pData[i] );
+-				lua_rawseti( L, -2, i );
+-			}
+-
+-			return 1;
+-		}
+-		=
+
+-		virtual const char* GetLuaTypeName () { return &quot;iris.groundblockloader&quot;;=
+ }
+-};
+-
+-class cUniFontFileLoader_L : public cLuaBind&lt;cUniFontFileLoader&gt; { public:
+-	// implementation of cLuaBind
+-
+-		/// called by Register(), registers object-methods (see cLuaBind constru=
+ctor for examples)
+-		virtual void RegisterMethods	(lua_State *L) { PROFILE
+-			lua_register(L,&quot;CreateUniFontLoader&quot;,	&amp;cUniFontFileLoader_L::CreateUniF=
+ontLoader);
+-			=
+
+-			#define REGISTER_METHOD(methodname) mlMethod.push_back(make_luaL_reg(#m=
+ethodname,&amp;cUniFontFileLoader_L::methodname));
+-			REGISTER_METHOD(Destroy);
+-			REGISTER_METHOD(GetMaxWidth);
+-			REGISTER_METHOD(GetMaxHeight);
+-			REGISTER_METHOD(CountLetters);
+-			REGISTER_METHOD(WriteGlyphToImage);
+-			REGISTER_METHOD(GetGlyphInfo);
+-			REGISTER_METHOD(GetDefaultHeight);
+-			REGISTER_METHOD(CreateOgreFont);
+-			#undef REGISTER_METHOD
+-		}
+-
+-	// static methods exported to lua
+-		=
+
+-		/// cUniFontFileLoader*	CreateUniFontLoader		(string file); for lua
+-		static int				CreateUniFontLoader		(lua_State *L) { PROFILE
+-			const char* file =3D luaL_checkstring(L,1);
+-			cUniFontFileLoader* target =3D new cUniFontFileLoader(file);
+-			return target ? CreateUData(L,target) : 0;
+-		}
+-		=
+
+-	// object methods exported to lua
+-
+-		static int	Destroy				(lua_State *L) { PROFILE delete checkudata_alive(L=
+); return 0; }
+-		static int	GetMaxWidth			(lua_State *L) { PROFILE lua_pushnumber(L,check=
+udata_alive(L)-&gt;GetMaxWidth()); return 1; }
+-		static int	GetMaxHeight		(lua_State *L) { PROFILE lua_pushnumber(L,check=
+udata_alive(L)-&gt;GetMaxHeight()); return 1; }	=
+
+-		static int	GetDefaultHeight	(lua_State *L) { PROFILE lua_pushnumber(L,ch=
+eckudata_alive(L)-&gt;GetMaxHeight()+2); return 1; }	=
+
+-		static int	CountLetters		(lua_State *L) { PROFILE lua_pushnumber(L,check=
+udata_alive(L)-&gt;GetLetterNumbers()); return 1; }	=
+
+-		=
+
+-		/// return true on success
+-		/// loads the glyph for iCharCode into a Ogre::Image (lua wrapper : cIma=
+ge)
+-		/// bSuccess	WriteGlyphToImage	(pImage,iCharCode)
+-		static int		WriteGlyphToImage	(lua_State *L) { PROFILE =
+
+-			cImage*	pImage		=3D cLuaBind&lt;cImage&gt;::checkudata_alive(L,2);
+-			int		iCharCode	=3D luaL_checkint(L,3); // Ogre::Font::CodePoint ?  unic=
+ode
+-			if (!WriteFontGlyphToImage(pImage-&gt;mImage,*checkudata_alive(L),iCharCod=
+e)) return 0;
+-			lua_pushboolean(L,true);
+-			return 1; =
+
+-		}
+-		=
+
+-		/// for lua  xoffset,yoffset,w,h	GetGlyphInfo	(iCharCode)
+-		static int							GetGlyphInfo	(lua_State *L) { PROFILE =
+
+-			RawUniFontFileLetterHeader *h =3D checkudata_alive(L)-&gt;GetLetterHeader(=
+luaL_checkint(L,2));
+-			if (!h) return 0;
+-			lua_pushnumber(L,h-&gt;miXOffset);
+-			lua_pushnumber(L,h-&gt;miYOffset);
+-			lua_pushnumber(L,h-&gt;miWidth);
+-			lua_pushnumber(L,h-&gt;miHeight);
+-			return 4;
+-		}	=
+
+-
+-		/// for lua CreateOgreFont(fontname)
+-		static int	CreateOgreFont				(lua_State *L) { PROFILE =
+
+-			cUniFontFileLoader* target =3D checkudata_alive(L);
+-			if (!target) return 0;
+-			=
+
+-			std::string sFontName =3D luaL_checkstring(L,2);
+-			=
+
+-			// load only ascii atm
+-			GenerateUniFont(*target,sFontName.c_str(),0,255);
+-			=
+
+-			return 0; =
+
+-		}	=
+
+-		=
+
+-		// see also l_ExportOgreFont in lugre/src/lugre_scripting.ogre.cpp
+-		=
+
+-		virtual const char* GetLuaTypeName () { return &quot;iris.unifontloader&quot;; }
+-};
+-
+-class cRadarColorLoader_L : public cLuaBind&lt;cRadarColorLoader&gt; { public:
+-	// implementation of cLuaBind
+-
+-		/// called by Register(), registers object-methods (see cLuaBind constru=
+ctor for examples)
+-		virtual void RegisterMethods	(lua_State *L) { PROFILE
+-			lua_register(L,&quot;CreateRadarColorLoader&quot;,	&amp;cRadarColorLoader_L::CreateRa=
+darColorLoader);
+-			=
+
+-			#define REGISTER_METHOD(methodname) mlMethod.push_back(make_luaL_reg(#m=
+ethodname,&amp;cRadarColorLoader_L::methodname));
+-			REGISTER_METHOD(Destroy);
+-			#undef REGISTER_METHOD
+-		}
+-
+-	// static methods exported to lua
+-		=
+
+-		/// cRadarColorLoader*	CreateRadarColorLoader		(string type,int maph,str=
+ing file); for lua
+-		static int				CreateRadarColorLoader		(lua_State *L) { PROFILE
+-			const char* type =3D luaL_checkstring(L,1);
+-			cRadarColorLoader* target =3D 0;
+-			if (mystricmp(type,&quot;FullFile&quot;) =3D=3D 0) target =3D new cRadarColorLoad=
+er(luaL_checkstring(L,2));
+-			return target ? CreateUData(L,target) : 0;
+-		}
+-		=
+
+-	// object methods exported to lua
+-
+-		static int	Destroy			(lua_State *L) { PROFILE delete checkudata_alive(L)=
+; return 0; }
+-		=
+
+-		virtual const char* GetLuaTypeName () { return &quot;iris.RadarColorLoader&quot;; }
+-};
+-
+-class cHueLoader_L : public cLuaBind&lt;cHueLoader&gt; { public:
+-	// implementation of cLuaBind
+-
+-		/// called by Register(), registers object-methods (see cLuaBind constru=
+ctor for examples)
+-		virtual void RegisterMethods	(lua_State *L) { PROFILE
+-			lua_register(L,&quot;CreateHueLoader&quot;,	&amp;cHueLoader_L::CreateHueLoader);
+-			=
+
+-			#define REGISTER_METHOD(methodname) mlMethod.push_back(make_luaL_reg(#m=
+ethodname,&amp;cHueLoader_L::methodname));
+-			REGISTER_METHOD(Destroy);
+-			REGISTER_METHOD(GetColor);
+-			#undef REGISTER_METHOD
+-		}
+-
+-	// static methods exported to lua
+-		=
+
+-		/// cHueLoader*	CreateHueLoader		(string type,string file); for lua
+-		static int				CreateHueLoader		(lua_State *L) { PROFILE
+-			const char* type =3D luaL_checkstring(L,1);
+-			cHueLoader* target =3D 0;
+-			if (mystricmp(type,&quot;FullFile&quot;) =3D=3D 0) target =3D new cHueLoader(luaL=
+_checkstring(L,2));
+-			return target ? CreateUData(L,target) : 0;
+-		}
+-		=
+
+-	// object methods exported to lua
+-
+-		static int	Destroy			(lua_State *L) { PROFILE delete checkudata_alive(L)=
+; return 0; }
+-		=
+
+-		static int	GetColor		(lua_State *L) { PROFILE =
+
+-			cHue* pHue =3D checkudata_alive(L)-&gt;GetHue(luaL_checkint(L,2));
+-			if (!pHue) return 0;
+-			int iColorIndex =3D luaL_checkint(L,3);
+-			if (iColorIndex &lt; 0 || iColorIndex &gt;=3D 32) return 0;
+-			uint16 x =3D uint16(pHue-&gt;GetColors()[iColorIndex]); =
+
+-			lua_pushnumber(L,float((x &gt;&gt; 10) &amp; 0x1F)/float(0x1f)); // r
+-			lua_pushnumber(L,float((x &gt;&gt;  5) &amp; 0x1F)/float(0x1f)); // g
+-			lua_pushnumber(L,float((x &gt;&gt;  0) &amp; 0x1F)/float(0x1f)); // b
+-			lua_pushnumber(L,(x &amp; 0x8000)?1.0:0.0); // a
+-			return 4; =
+
+-		}
+-		=
+
+-		virtual const char* GetLuaTypeName () { return &quot;iris.HueLoader&quot;; }
+-};
+-
+-class cAnimDataLoader_L : public cLuaBind&lt;cAnimDataLoader&gt; { public:
+-	// implementation of cLuaBind
+-
+-		/// called by Register(), registers object-methods (see cLuaBind constru=
+ctor for examples)
+-		virtual void RegisterMethods	(lua_State *L) { PROFILE
+-			lua_register(L,&quot;CreateAnimDataLoader&quot;,	&amp;cAnimDataLoader_L::CreateAnimDa=
+taLoader);
+-			=
+
+-			#define REGISTER_METHOD(methodname) mlMethod.push_back(make_luaL_reg(#m=
+ethodname,&amp;cAnimDataLoader_L::methodname));
+-			REGISTER_METHOD(Destroy);
+-			REGISTER_METHOD(GetAnimDataType);
+-			#undef REGISTER_METHOD
+-		}
+-
+-	// static methods exported to lua
+-		=
+
+-		/// cAnimDataLoader*	CreateAnimDataLoader		(string type,string file); fo=
+r lua
+-		static int				CreateAnimDataLoader		(lua_State *L) { PROFILE
+-			const char* type =3D luaL_checkstring(L,1);
+-			cAnimDataLoader* target =3D 0;
+-			if (mystricmp(type,&quot;FullFile&quot;) =3D=3D 0) target =3D new cAnimDataLoader=
+(luaL_checkstring(L,2));
+-			return target ? CreateUData(L,target) : 0;
+-		}
+-		=
+
+-	// object methods exported to lua
+-
+-		static int	Destroy			(lua_State *L) { PROFILE delete checkudata_alive(L)=
+; return 0; }
+-		static int  GetAnimDataType	(lua_State *L) { PROFILE
+-			RawAnimData* AnimDataType =3D checkudata_alive(L)-&gt;GetAnimDataType(luaL=
+_checkint(L,2));
+-			if (!AnimDataType) {
+-				return 0;
+-			} else {
+-				lua_newtable(L);
+-				for (int i=3D0; i &lt; 64; i++ ) {
+-					lua_pushnumber( L, AnimDataType-&gt;miFrames[i] );
+-					lua_rawseti(L,-2,i);
+-				}
+-				lua_pushnumber( L, AnimDataType-&gt;miUnknown );
+-				lua_pushnumber( L, AnimDataType-&gt;miCount );
+-				lua_pushnumber( L, AnimDataType-&gt;miFrameInterval );
+-				lua_pushnumber( L, AnimDataType-&gt;miFrameStart );
+-				return 5;
+-			}
+-		}
+-		=
+
+-		virtual const char* GetLuaTypeName () { return &quot;iris.AnimDataLoader&quot;; }
+-};
+-
+-class cTileTypeLoader_L : public cLuaBind&lt;cTileTypeLoader&gt; { public:
+-	// implementation of cLuaBind
+-
+-		/// called by Register(), registers object-methods (see cLuaBind constru=
+ctor for examples)
+-		virtual void RegisterMethods	(lua_State *L) { PROFILE
+-			lua_register(L,&quot;CreateTileTypeLoader&quot;,	&amp;cTileTypeLoader_L::CreateTileTy=
+peLoader);
+-			=
+
+-			#define REGISTER_METHOD(methodname) mlMethod.push_back(make_luaL_reg(#m=
+ethodname,&amp;cTileTypeLoader_L::methodname));
+-			REGISTER_METHOD(Destroy);
+-			REGISTER_METHOD(GetGroundTileType);
+-			REGISTER_METHOD(GetStaticTileType);
+-			REGISTER_METHOD(GetGroundTileTexture);
+-			REGISTER_METHOD(GetEndID);
+-			#undef REGISTER_METHOD
+-		}
+-
+-	// static methods exported to lua
+-		=
+
+-		/// cTileTypeLoader*	CreateTileTypeLoader		(string type,string sDataFile=
+); for lua
+-		static int				CreateTileTypeLoader		(lua_State *L) { PROFILE
+-			const char* type =3D luaL_checkstring(L,1);
+-			cTileTypeLoader* target =3D 0;
+-			if (mystricmp(type,&quot;FullFile&quot;) =3D=3D 0) target =3D new cTileTypeLoader=
+_FullFile(luaL_checkstring(L,2));
+-			return target ? CreateUData(L,target) : 0;
+-		}
+-		=
+
+-	// object methods exported to lua
+-
+-		static int	Destroy			(lua_State *L) { PROFILE delete checkudata_alive(L)=
+; return 0; }
+-		static int	GetGroundTileType	(lua_State *L) { PROFILE =
+
+-			cGroundTileType* pChunk =3D checkudata_alive(L)-&gt;GetGroundTileType(luaL=
+_checkint(L,2));
+-			RawGroundTileType* pRawChunk =3D pChunk ? pChunk-&gt;mpRawGroundTileType :=
+ 0;
+-			if (!pRawChunk) return 0;
+-				=
+
+-			lua_pushnumber(L,pRawChunk-&gt;miFlags); =
+
+-			lua_pushnumber(L,pRawChunk-&gt;miTexID); =
+
+-			lua_pushstring(L,std::string(pRawChunk-&gt;msName,20).c_str()); =
+
+-			return 3; =
+
+-		}
+-		static int GetGroundTileTexture	(lua_State *L) { PROFILE =
+
+-			cGroundTileType* pChunk =3D checkudata_alive(L)-&gt;GetGroundTileType(luaL=
+_checkint(L,2));
+-			RawGroundTileType* pRawChunk =3D pChunk ? pChunk-&gt;mpRawGroundTileType :=
+ 0;
+-			if (!pRawChunk) return 0;
+-
+-			lua_pushnumber(L,pRawChunk-&gt;miTexID);
+-			return 1;
+-		}
+-		=
+
+-		/// the returned id is not valid, some ids right before it might also be=
+ not valid
+-		static int GetEndID	(lua_State *L) { PROFILE =
+
+-			lua_pushnumber(L,checkudata_alive(L)-&gt;GetEndID());
+-			return 1;
+-		}
+-		=
+
+-		static int	GetStaticTileType	(lua_State *L) { PROFILE =
+
+-			cStaticTileType* pChunk =3D checkudata_alive(L)-&gt;GetStaticTileType(luaL=
+_checkint(L,2));
+-			RawStaticTileType* pRawChunk =3D pChunk ? pChunk-&gt;mpRawStaticTileType :=
+ 0;
+-			//~ if (!pRawChunk) { printf(&quot;GetStaticTileType : id (%d) not found c=
+=3D%08x,rc=3D%08x\n&quot;,luaL_checkint(L,2),pChunk,pRawChunk);return 0; }
+-			//~ if (!pRawChunk) { MyCrash(&quot;GetStaticTileType debug\n&quot;); }
+-			if (!pRawChunk) return 0;
+-			lua_pushnumber(L,pRawChunk-&gt;miFlags); =
+
+-			lua_pushnumber(L,pRawChunk-&gt;miWeight); =
+
+-			lua_pushnumber(L,pRawChunk-&gt;miQuality); =
+
+-			lua_pushnumber(L,pRawChunk-&gt;miUnknown); =
+
+-			lua_pushnumber(L,pRawChunk-&gt;miUnknown1); =
+
+-			lua_pushnumber(L,pRawChunk-&gt;miQuantity); =
+
+-			lua_pushnumber(L,pRawChunk-&gt;miAnimID); =
+
+-			lua_pushnumber(L,pRawChunk-&gt;miUnknown2); =
+
+-			lua_pushnumber(L,pRawChunk-&gt;miHue); =
+
+-			lua_pushnumber(L,pRawChunk-&gt;miUnknown3); =
+
+-			lua_pushnumber(L,pRawChunk-&gt;miHeight); =
+
+-			lua_pushstring(L,std::string(pRawChunk-&gt;msName,20).c_str()); =
+
+-			return 12; =
+
+-		}
+-		=
+
+-		virtual const char* GetLuaTypeName () { return &quot;iris.TileTypeLoader&quot;; }
+-};
+-
+-class cTexMapLoader_L : public cLuaBind&lt;cTexMapLoader&gt; { public:
+-	// implementation of cLuaBind
+-
+-		/// called by Register(), registers object-methods (see cLuaBind constru=
+ctor for examples)
+-		virtual void RegisterMethods	(lua_State *L) { PROFILE
+-			lua_register(L,&quot;CreateTexMapLoader&quot;,	&amp;cTexMapLoader_L::CreateTexMapLoad=
+er);
+-			=
+
+-			#define REGISTER_METHOD(methodname) mlMethod.push_back(make_luaL_reg(#m=
+ethodname,&amp;cTexMapLoader_L::methodname));
+-			REGISTER_METHOD(Destroy);
+-			REGISTER_METHOD(GetCount);
+-			REGISTER_METHOD(CreateMaterial);
+-			REGISTER_METHOD(ExportToFile);
+-			#undef REGISTER_METHOD
+-		}
+-
+-	// static methods exported to lua
+-		=
+
+-		/// cTexMapLoader*	CreateTexMapLoader		(string type,string sIndexFile,st=
+ring sDataFile); for lua
+-		static int			CreateTexMapLoader		(lua_State *L) { PROFILE
+-			const char* type =3D luaL_checkstring(L,1);
+-			cTexMapLoader* target =3D 0;
+-			if (mystricmp(type,&quot;FullFile&quot;) =3D=3D 0) target =3D new cTexMapLoader_I=
+ndexedFullFile(luaL_checkstring(L,2),luaL_checkstring(L,3));
+-			if (mystricmp(type,&quot;OnDemand&quot;) =3D=3D 0) target =3D new cTexMapLoader_I=
+ndexedOnDemand(luaL_checkstring(L,2),luaL_checkstring(L,3));
+-			return target ? CreateUData(L,target) : 0;
+-		}
+-		=
+
+-	// object methods exported to lua
+-
+-		static int	Destroy			(lua_State *L) { PROFILE delete checkudata_alive(L)=
+; return 0; }
+-		=
+
+-		/// for lua : int GetCount()
+-		static int	GetCount			(lua_State *L) { PROFILE =
+
+-			lua_pushnumber(L,checkudata_alive(L)-&gt;GetCount()); =
+
+-			return 1; =
+
+-		}
+-		=
+
+-		/// for lua : sMatName	CreateMaterial	(iTexMapID,bHasAlpha,bEnableLighti=
+ng,bEnableDepthWrite,bPixelExact,pHueLoader=3Dnil,iHue=3D0)
+-		static int	CreateMaterial	(lua_State *L) { PROFILE =
+
+-			int i=3D2;
+-			bool bHasAlpha=3D			(lua_gettop(L) &gt;=3D ++i &amp;&amp; !lua_isnil(L,i)) ? lua_t=
+oboolean(L,i) : true;
+-			bool bEnableLighting=3D	(lua_gettop(L) &gt;=3D ++i &amp;&amp; !lua_isnil(L,i)) ? l=
+ua_toboolean(L,i) : false;
+-			bool bEnableDepthWrite=3D	(lua_gettop(L) &gt;=3D ++i &amp;&amp; !lua_isnil(L,i)) ?=
+ lua_toboolean(L,i) : true;
+-			bool bPixelExact=3D		(lua_gettop(L) &gt;=3D ++i &amp;&amp; !lua_isnil(L,i)) ? lua_=
+toboolean(L,i) : true;
+-			cHueLoader* pHueLoader=3D (lua_gettop(L) &gt;=3D ++i &amp;&amp; !lua_isnil(L,i)) ?=
+ cLuaBind&lt;cHueLoader&gt;::checkudata(L,i) : 0;
+-			short bHue=3D				(lua_gettop(L) &gt;=3D ++i &amp;&amp; !lua_isnil(L,i)) ? luaL_che=
+ckint(L,i) : 0;
+-			=
+
+-			std::string myname =3D cOgreWrapper::GetUniqueName();
+-			if (!GenerateTexMapMaterial(*checkudata_alive(L),myname.c_str(),luaL_ch=
+eckint(L,2),
+-				bHasAlpha,bEnableLighting,bEnableDepthWrite,bPixelExact,pHueLoader,bHu=
+e))
+-				myname =3D &quot;&quot;;
+-			lua_pushstring(L,myname.c_str()); =
+
+-			return 1; =
+
+-		}
+-		=
+
+-		/// for lua : bSuccess	ExportToFile (sFilePath,iTexMapID,pHueLoader=3Dni=
+l,iHue=3D0)
+-		/// exports the texmap to the filepath, e.g. myfile.png, returns true on=
+ successs
+-		static int	ExportToFile	(lua_State *L) { PROFILE =
+
+-			std::string	sFilePath =3D luaL_checkstring(L,2);
+-			int			iTexMapID =3D luaL_checkint(L,3);
+-			cHueLoader* pHueLoader=3D (lua_gettop(L) &gt;=3D 4 &amp;&amp; !lua_isnil(L,4)) ? c=
+LuaBind&lt;cHueLoader&gt;::checkudata(L,4) : 0;
+-			short 		iHue=3D		(lua_gettop(L) &gt;=3D 5 &amp;&amp; !lua_isnil(L,5)) ? luaL_check=
+int(L,5) : 0;
+-			=
+
+-			if (!WriteTexMapToFile(*checkudata_alive(L),sFilePath.c_str(),iTexMapID=
+,pHueLoader,iHue)) return 0;
+-			lua_pushboolean(L,true); =
+
+-			return 1; =
+
+-		}
+-		=
+
+-		virtual const char* GetLuaTypeName () { return &quot;iris.texmaploader&quot;; }
+-};
+-
+-class cAnimLoader_L : public cLuaBind&lt;cAnimLoader&gt; { public:
+-	// implementation of cLuaBind
+-
+-		/// called by Register(), registers object-methods (see cLuaBind constru=
+ctor for examples)
+-		virtual void RegisterMethods	(lua_State *L) { PROFILE
+-			lua_register(L,&quot;CreateAnimLoader&quot;,	&amp;cAnimLoader_L::CreateAnimLoader);
+-			=
+
+-			#define REGISTER_METHOD(methodname) mlMethod.push_back(make_luaL_reg(#m=
+ethodname,&amp;cAnimLoader_L::methodname));
+-			REGISTER_METHOD(Destroy);
+-			REGISTER_METHOD(CreateMaterial);
+-			REGISTER_METHOD(CreateBitMask);
+-			REGISTER_METHOD(GetAnimType);
+-			#undef REGISTER_METHOD
+-		}
+-
+-	// static methods exported to lua
+-		static int			CreateAnimLoader		(lua_State *L) { PROFILE
+-			const char* type =3D luaL_checkstring(L,1);
+-			cAnimLoader* target =3D 0;
+-			if (mystricmp(type,&quot;FullFile&quot;) =3D=3D 0) target =3D new cAnimLoader_Ind=
+exedFullFile(luaL_checkint(L,2),luaL_checkint(L,3),luaL_checkstring(L,4),lu=
+aL_checkstring(L,5));
+-			if (mystricmp(type,&quot;OnDemand&quot;) =3D=3D 0) target =3D new cAnimLoader_Ind=
+exedOnDemand(luaL_checkint(L,2),luaL_checkint(L,3),luaL_checkstring(L,4),lu=
+aL_checkstring(L,5));
+-
+-			return target ? CreateUData(L,target) : 0;
+-		}
+-		=
+
+-	// object methods exported to lua
+-		static int	Destroy			(lua_State *L) { PROFILE delete checkudata_alive(L)=
+; return 0; }
+-		static int  CreateBitMask	(lua_State *L) { PROFILE
+-			cBitMask* pTarget =3D new cBitMask();
+-			GenerateAnimBitMask(*checkudata_alive(L),luaL_checkint(L,2),luaL_checki=
+nt(L,3),luaL_checkint(L,4),*pTarget);
+-			return cLuaBind&lt;cBitMask&gt;::CreateUData(L,pTarget);
+-		}
+-		static int	CreateMaterial	(lua_State *L) { PROFILE =
+
+-			int i=3D4;
+-			cHueLoader* pHueLoader=3D (lua_gettop(L) &gt;=3D ++i &amp;&amp; !lua_isnil(L,i)) ?=
+ cLuaBind&lt;cHueLoader&gt;::checkudata(L,i) : 0;
+-			unsigned short iHue=3D				(lua_gettop(L) &gt;=3D ++i &amp;&amp; !lua_isnil(L,i)) ?=
+ luaL_checkint(L,i) : 0;
+-			=
+
+-			std::string myname =3D cOgreWrapper::GetUniqueName();
+-			int iWidth, iHeight, iCenterX, iCenterY, iFrames;
+-			if (!GenerateAnimMaterial(*checkudata_alive(L),myname.c_str(),luaL_chec=
+kint(L,2),luaL_checkint(L,3),luaL_checkint(L,4),iWidth,iHeight,iCenterX,iCe=
+nterY,iFrames,pHueLoader,iHue)) {
+-				myname =3D &quot;&quot;;
+-				lua_pushstring(L,myname.c_str()); =
+
+-				return 1; =
+
+-			} else {
+-				lua_pushstring(L,myname.c_str());
+-				lua_pushnumber(L,iWidth);
+-				lua_pushnumber(L,iHeight);
+-				lua_pushnumber(L,iCenterX);
+-				lua_pushnumber(L,iCenterY);
+-				lua_pushnumber(L,iFrames);
+-				return 6;
+-			}
+-		}
+-
+-		static int	GetAnimType		(lua_State *L) { PROFILE
+-			cAnimLoader* AnimLoader =3D checkudata_alive(L);
+-			int AnimID =3D luaL_checkint(L,2);
+-			if (AnimID &lt; AnimLoader-&gt;mHighDetailed) {
+-				lua_pushnumber(L,0);
+-			} else if (AnimID &lt; AnimLoader-&gt;mHighDetailed + AnimLoader-&gt;mLowDetaile=
+d) {
+-				lua_pushnumber(L,1);
+-			} else {
+-				lua_pushnumber(L,2);
+-			}
+-			return 1;
+-		}
+-		=
+
+-		virtual const char* GetLuaTypeName () { return &quot;iris.animloader&quot;; }
+-};
+-
+-class cArtMapLoader_L : public cLuaBind&lt;cArtMapLoader&gt; { public:
+-	static std::map&lt;cArtMapLoader*,cArtMap*&gt;	mLastChunk;
+-	// implementation of cLuaBind
+-
+-		/// called by Register(), registers object-methods (see cLuaBind constru=
+ctor for examples)
+-		virtual void RegisterMethods	(lua_State *L) { PROFILE
+-			lua_register(L,&quot;CreateArtMapLoader&quot;,	&amp;cArtMapLoader_L::CreateArtMapLoad=
+er);
+-			=
+
+-			#define REGISTER_METHOD(methodname) mlMethod.push_back(make_luaL_reg(#m=
+ethodname,&amp;cArtMapLoader_L::methodname));
+-			REGISTER_METHOD(Destroy);
+-			REGISTER_METHOD(CreateMaterial);
+-			REGISTER_METHOD(CreateBitMask);
+-			REGISTER_METHOD(Load);
+-			REGISTER_METHOD(GetSize);
+-			REGISTER_METHOD(CalcVisibleAABB);
+-			REGISTER_METHOD(SearchCursorHotspot);
+-			REGISTER_METHOD(GetCount);
+-			REGISTER_METHOD(ExportToFile);
+-			REGISTER_METHOD(ExportToImage);
+-			#undef REGISTER_METHOD
+-		}
+-
+-	// static methods exported to lua
+-		=
+
+-		/// cArtMapLoader*	CreateArtMapLoader		(string type,string sIndexFile,st=
+ring sDataFile); for lua
+-		static int			CreateArtMapLoader		(lua_State *L) { PROFILE
+-			const char* type =3D luaL_checkstring(L,1);
+-			cArtMapLoader* target =3D 0;
+-			if (mystricmp(type,&quot;FullFile&quot;) =3D=3D 0) target =3D new cArtMapLoader_I=
+ndexedFullFile(luaL_checkstring(L,2),luaL_checkstring(L,3));
+-			if (mystricmp(type,&quot;OnDemand&quot;) =3D=3D 0) target =3D new cArtMapLoader_I=
+ndexedOnDemand(luaL_checkstring(L,2),luaL_checkstring(L,3));
+-			return target ? CreateUData(L,target) : 0;
+-		}
+-		=
+
+-	// object methods exported to lua
+-
+-		static int	Destroy			(lua_State *L) { PROFILE delete checkudata_alive(L)=
+; return 0; }
+-		=
+
+-		static int	CreateBitMask	(lua_State *L) { PROFILE =
+
+-			cBitMask* pTarget =3D new cBitMask();
+-			GenerateArtBitMask(*checkudata_alive(L),luaL_checkint(L,2),*pTarget);
+-			return cLuaBind&lt;cBitMask&gt;::CreateUData(L,pTarget);
+-		}
+-		=
+
+-		static int	CreateMaterial	(lua_State *L) { PROFILE =
+
+-			//std::string myname =3D strprintf(&quot;uo_art_%i&quot;,luaL_checkint(L,2));
+-			std::string myname =3D cOgreWrapper::GetUniqueName();
+-			int i=3D2;
+-			bool bPixelExact=3D		(lua_gettop(L) &gt;=3D ++i &amp;&amp; !lua_isnil(L,i)) ? lua_=
+toboolean(L,i) : false; // WARNING ! bPixelExact changes size to 2^n
+-			bool bInvertY=3D			(lua_gettop(L) &gt;=3D ++i &amp;&amp; !lua_isnil(L,i)) ? lua_to=
+boolean(L,i) : true;
+-			bool bInvertX=3D			(lua_gettop(L) &gt;=3D ++i &amp;&amp; !lua_isnil(L,i)) ? lua_to=
+boolean(L,i) : true;
+-			bool bHasAlpha=3D			(lua_gettop(L) &gt;=3D ++i &amp;&amp; !lua_isnil(L,i)) ? lua_t=
+oboolean(L,i) : true;
+-			bool bEnableLighting=3D	(lua_gettop(L) &gt;=3D ++i &amp;&amp; !lua_isnil(L,i)) ? l=
+ua_toboolean(L,i) : false;
+-			bool bEnableDepthWrite=3D	(lua_gettop(L) &gt;=3D ++i &amp;&amp; !lua_isnil(L,i)) ?=
+ lua_toboolean(L,i) : true;
+-			cHueLoader* pHueLoader=3D (lua_gettop(L) &gt;=3D ++i &amp;&amp; !lua_isnil(L,i)) ?=
+ cLuaBind&lt;cHueLoader&gt;::checkudata(L,i) : 0;
+-			short bHue=3D				(lua_gettop(L) &gt;=3D ++i &amp;&amp; !lua_isnil(L,i)) ? luaL_che=
+ckint(L,i) : 0;
+-			=
+
+-			if (!GenerateArtMaterial(*checkudata_alive(L),myname.c_str(),luaL_check=
+int(L,2),
+-					bPixelExact,bInvertY,bInvertX,bHasAlpha,bEnableLighting,bEnableDepthW=
+rite,pHueLoader,bHue))
+-				myname =3D &quot;&quot;;
+-			lua_pushstring(L,myname.c_str()); =
+
+-			return 1; =
+
+-		}
+-		=
+
+-		/// for lua : bSuccess	ExportToFile (sFilePath,iArtMapID,pHueLoader=3Dni=
+l,iHue=3D0)
+-		/// exports the artmap to the filepath, e.g. myfile.png, returns true on=
+ successs
+-		static int	ExportToFile	(lua_State *L) { PROFILE =
+
+-			std::string	sFilePath =3D luaL_checkstring(L,2);
+-			int			iArtMapID =3D luaL_checkint(L,3);
+-			cHueLoader* pHueLoader=3D (lua_gettop(L) &gt;=3D 4 &amp;&amp; !lua_isnil(L,4)) ? c=
+LuaBind&lt;cHueLoader&gt;::checkudata(L,4) : 0;
+-			short 		iHue=3D		(lua_gettop(L) &gt;=3D 5 &amp;&amp; !lua_isnil(L,5)) ? luaL_check=
+int(L,5) : 0;
+-			=
+
+-			if (!WriteArtMapToFile(*checkudata_alive(L),sFilePath.c_str(),iArtMapID=
+,pHueLoader,iHue)) return 0;
+-			lua_pushboolean(L,true); =
+
+-			return 1; =
+
+-		}
+-		=
+
+-		/// return true on success
+-		/// loads the artmap into a Ogre::Image (lua wrapper : cImage)
+-		/// bSuccess	ExportToImage	(pImage,iArtMapID,pHueLoader=3Dnil,iHue=3D0)
+-		static int		ExportToImage	(lua_State *L) { PROFILE =
+
+-			cImage*		pImage			=3D cLuaBind&lt;cImage&gt;::checkudata_alive(L,2);
+-			int			iArtMapID		=3D luaL_checkint(L,3);
+-			cHueLoader* pHueLoader		=3D (lua_gettop(L) &gt;=3D 4 &amp;&amp; !lua_isnil(L,4)) ?=
+ cLuaBind&lt;cHueLoader&gt;::checkudata(L,4) : 0;
+-			short 		iHue			=3D (lua_gettop(L) &gt;=3D 5 &amp;&amp; !lua_isnil(L,5)) ? luaL_che=
+ckint(L,5) : 0;
+-			=
+
+-			if (!WriteArtMapToImage(pImage-&gt;mImage,*checkudata_alive(L),iArtMapID,p=
+HueLoader,iHue)) return 0;
+-			lua_pushboolean(L,true);
+-			return 1; =
+
+-		}
+-		=
+
+-		/// int gArtMapLoader:GetCount() for lua
+-		static int	GetCount			(lua_State *L) { PROFILE =
+
+-			lua_pushnumber(L,checkudata_alive(L)-&gt;GetCount()); =
+
+-			return 1; =
+
+-		}
+- =
+
+-
+-		/// void	gArtMapLoader:Load(id) for lua
+-		static int	Load			(lua_State *L) { PROFILE =
+
+-			cArtMapLoader* pLoader =3D checkudata_alive(L);
+-			mLastChunk[pLoader] =3D pLoader-&gt;GetArtMap(luaL_checkint(L,2));
+-			return 0; =
+
+-		}
+-		=
+
+-		/// iWidth,iHeight =3D gArtMapLoader:GetSize() for last chunk loaded by =
+Load() for lua
+-		static int	GetSize			(lua_State *L) { PROFILE =
+
+-			cArtMap* pLastChunk =3D mLastChunk[checkudata_alive(L)];
+-			lua_pushnumber(L,pLastChunk?pLastChunk-&gt;GetWidth():0); =
+
+-			lua_pushnumber(L,pLastChunk?pLastChunk-&gt;GetHeight():0); =
+
+-			return 2; =
+
+-		}
+-		=
+
+-		/// iX,iY =3D gArtMapLoader:SearchCursorHotspot() for last chunk loaded =
+by Load() for lua
+-		static int	SearchCursorHotspot			(lua_State *L) { PROFILE =
+
+-			cArtMap* pLastChunk =3D mLastChunk[checkudata_alive(L)];
+-			int iX =3D 0,iY=3D 0;
+-			if (pLastChunk) pLastChunk-&gt;SearchCursorHotspot(iX,iY);
+-			lua_pushnumber(L,iX); =
+
+-			lua_pushnumber(L,iY); =
+
+-			return 2; =
+
+-		}
+-		=
+
+-		/// minx,miny,maxx,maxy =3D gArtMapLoader:CalcVisibleAABB() for last chu=
+nk loaded by Load() for lua
+-		static int	CalcVisibleAABB			(lua_State *L) { PROFILE =
+
+-			cArtMap* pLastChunk =3D mLastChunk[checkudata_alive(L)];
+-			int minx,miny,maxx,maxy;
+-			=
+
+-			if (pLastChunk) pLastChunk-&gt;CalcVisibleAABB(minx,miny,maxx,maxy);
+-			lua_pushnumber(L,minx); =
+
+-			lua_pushnumber(L,miny); =
+
+-			lua_pushnumber(L,maxx); =
+
+-			lua_pushnumber(L,maxy); =
+
+-			return 4; =
+
+-		}
+-		=
+
+-		virtual const char* GetLuaTypeName () { return &quot;iris.artmaploader&quot;; }
+-};
+-std::map&lt;cArtMapLoader*,cArtMap*&gt;	cArtMapLoader_L::mLastChunk;
+-
+-class cStaticBlockLoader_L : public cLuaBind&lt;cStaticBlockLoader&gt; { public:
+-	static std::map&lt;cStaticBlockLoader*,cStaticBlock*&gt;	mLastBlock;
+-	=
+
+-	// implementation of cLuaBind
+-
+-		/// called by Register(), registers object-methods (see cLuaBind constru=
+ctor for examples)
+-		virtual void RegisterMethods	(lua_State *L) { PROFILE
+-			lua_register(L,&quot;CreateStaticBlockLoader&quot;,	&amp;cStaticBlockLoader_L::Create=
+StaticBlockLoader);
+-			lua_register(L,&quot;CreateStaticBlockLoaderWithDiff&quot;,	&amp;cStaticBlockLoader_L=
+::<i>CreateStaticBlockLoaderWithDiff);
+</I>-			=
+
+-			#define REGISTER_METHOD(methodname) mlMethod.push_back(make_luaL_reg(#m=
+ethodname,&amp;cStaticBlockLoader_L::methodname));
+-			REGISTER_METHOD(Destroy);
+-			REGISTER_METHOD(GetMapW);
+-			REGISTER_METHOD(GetMapH);
+-			REGISTER_METHOD(Load);
+-			REGISTER_METHOD(Count);
+-			REGISTER_METHOD(GetStatic);
+-			#undef REGISTER_METHOD
+-		}
+-
+-	// static methods exported to lua
+-		=
+
+-		/// cStaticBlockLoader*	CreateStaticBlockLoader		(string type,int maph,s=
+tring sIndexFile,string sDataFile); for lua
+-		static int				CreateStaticBlockLoader		(lua_State *L) { PROFILE
+-			const char* type =3D luaL_checkstring(L,1);
+-			cStaticBlockLoader* target =3D 0;
+-			if (mystricmp(type,&quot;FullFile&quot;) =3D=3D 0) target =3D new cStaticBlockLoa=
+der_IndexedFullFile(luaL_checkint(L,2),luaL_checkstring(L,3),luaL_checkstri=
+ng(L,4));
+-			return target ? CreateUData(L,target) : 0;
+-		}
+-
+-		/// cStaticBlockLoader*	CreateStaticBlockLoaderWithDiff		(string type,in=
+t maph,string sIndexFile,string sDataFile, string sDiffLookup, sDiffIndex, =
+sDiffData); for lua
+-		static int				CreateStaticBlockLoaderWithDiff		(lua_State *L) { PROFILE
+-			const char* type =3D luaL_checkstring(L,1);
+-			cStaticBlockLoader* target =3D 0;
+-			if (mystricmp(type,&quot;FullFile&quot;) =3D=3D 0) target =3D new cStaticBlockLoa=
+der_IndexedFullFile(luaL_checkint(L,2),luaL_checkstring(L,3),luaL_checkstri=
+ng(L,4),
+-				luaL_checkstring(L,5),luaL_checkstring(L,6),luaL_checkstring(L,7));
+-			return target ? CreateUData(L,target) : 0;
+-		}
+-		=
+
+-	// object methods exported to lua
+-
+-		static int	Destroy			(lua_State *L) { PROFILE delete checkudata_alive(L)=
+; return 0; }
+-		static int	GetMapW			(lua_State *L) { PROFILE lua_pushnumber(L,checkudat=
+a_alive(L)-&gt;miMapW); return 1; }
+-		static int	GetMapH			(lua_State *L) { PROFILE lua_pushnumber(L,checkudat=
+a_alive(L)-&gt;miMapH); return 1; }
+-		=
+
+-		/// void	gStaticBlockLoader:Load(x,y) for lua
+-		static int	Load			(lua_State *L) { PROFILE =
+
+-			cStaticBlockLoader* pLoader =3D checkudata_alive(L);
+-			mLastBlock[pLoader] =3D pLoader-&gt;GetStaticBlock(luaL_checkint(L,2),luaL=
+_checkint(L,3));
+-			return 0; =
+
+-		}
+-		=
+
+-		/// iStaticCount =3D gStaticBlockLoader:Count() for last block loaded by=
+ Load() for lua
+-		static int	Count			(lua_State *L) { PROFILE =
+
+-			cStaticBlock* pLastBlock =3D mLastBlock[checkudata_alive(L)];
+-			lua_pushnumber(L,pLastBlock?pLastBlock-&gt;Count():0); =
+
+-			return 1; =
+
+-		}
+-		=
+
+-		/// iTileID,iX,iY,iZ,iHue =3D gStaticBlockLoader:GetStatic(i) for last b=
+lock loaded by Load() for lua
+-		static int	GetStatic		(lua_State *L) { PROFILE =
+
+-			cStaticBlock* pLastBlock =3D mLastBlock[checkudata_alive(L)];
+-			int i =3D luaL_checkint(L,2);
+-			if (!pLastBlock || i &lt; 0 || i &gt;=3D pLastBlock-&gt;Count()) return 0;
+-			lua_pushnumber(L,pLastBlock-&gt;mpRawStaticList[i].miTileID); =
+
+-			lua_pushnumber(L,pLastBlock-&gt;mpRawStaticList[i].miX); =
+
+-			lua_pushnumber(L,pLastBlock-&gt;mpRawStaticList[i].miY); =
+
+-			lua_pushnumber(L,pLastBlock-&gt;mpRawStaticList[i].miZ); =
+
+-			lua_pushnumber(L,pLastBlock-&gt;mpRawStaticList[i].miHue);
+-			return 5; =
+
+-		}
+-		=
+
+-		virtual const char* GetLuaTypeName () { return &quot;iris.staticblockloader&quot;;=
+ }
+-};
+-std::map&lt;cStaticBlockLoader*,cStaticBlock*&gt;	cStaticBlockLoader_L::mLastBlo=
+ck;
+-
+-class cGumpLoader_L : public cLuaBind&lt;cGumpLoader&gt; { public:
+-	static std::map&lt;cGumpLoader*,cGump*&gt;	mLastChunk;
+-	// implementation of cLuaBind
+-
+-		/// called by Register(), registers object-methods (see cLuaBind constru=
+ctor for examples)
+-		virtual void RegisterMethods	(lua_State *L) { PROFILE
+-			lua_register(L,&quot;CreateGumpLoader&quot;,	&amp;cGumpLoader_L::CreateGumpLoader);
+-			=
+
+-			#define REGISTER_METHOD(methodname) mlMethod.push_back(make_luaL_reg(#m=
+ethodname,&amp;cGumpLoader_L::methodname));
+-			REGISTER_METHOD(Destroy);
+-			REGISTER_METHOD(CreateBitMask);
+-			REGISTER_METHOD(CreateMaterial);
+-			REGISTER_METHOD(Load);
+-			REGISTER_METHOD(GetSize);
+-			#undef REGISTER_METHOD
+-		}
+-
+-	// static methods exported to lua
+-		=
+
+-		/// cGumpLoader*	CreateGumpLoader		(string type,string sIndexFile,string=
+ sDataFile); for lua
+-		static int			CreateGumpLoader		(lua_State *L) { PROFILE
+-			const char* type =3D luaL_checkstring(L,1);
+-			cGumpLoader* target =3D 0;
+-			if (mystricmp(type,&quot;FullFile&quot;) =3D=3D 0) target =3D new cGumpLoader_Ind=
+exedFullFile(luaL_checkstring(L,2),luaL_checkstring(L,3));
+-			if (mystricmp(type,&quot;OnDemand&quot;) =3D=3D 0) target =3D new cGumpLoader_Ind=
+exedOnDemand(luaL_checkstring(L,2),luaL_checkstring(L,3));
+-			return target ? CreateUData(L,target) : 0;
+-		}
+-		=
+
+-	// object methods exported to lua
+-
+-		static int	Destroy			(lua_State *L) { PROFILE delete checkudata_alive(L)=
+; return 0; }
+-		=
+
+-		static int	CreateBitMask	(lua_State *L) { PROFILE =
+
+-			cBitMask* pTarget =3D new cBitMask();
+-			GenerateGumpBitMask(*checkudata_alive(L),luaL_checkint(L,2),*pTarget);
+-			return cLuaBind&lt;cBitMask&gt;::CreateUData(L,pTarget);
+-		}
+-		=
+
+-		static int	CreateMaterial	(lua_State *L) { PROFILE =
+
+-			std::string myname =3D cOgreWrapper::GetUniqueName();
+-			int i=3D2;
+-			bool bHasAlpha=3D			(lua_gettop(L) &gt;=3D ++i &amp;&amp; !lua_isnil(L,i)) ? lua_t=
+oboolean(L,i) : true;
+-			cHueLoader* pHueLoader=3D (lua_gettop(L) &gt;=3D ++i &amp;&amp; !lua_isnil(L,i)) ?=
+ cLuaBind&lt;cHueLoader&gt;::checkudata(L,i) : 0;
+-			short bHue=3D				(lua_gettop(L) &gt;=3D ++i &amp;&amp; !lua_isnil(L,i)) ? luaL_che=
+ckint(L,i) : 0;
+-
+-			if (!GenerateGumpMaterial(*checkudata_alive(L),myname.c_str(),luaL_chec=
+kint(L,2),bHasAlpha,pHueLoader,bHue)) // WARNING ! changes size to 2^n wher=
+e n &gt;=3D 4
+-				myname =3D &quot;&quot;;
+-			lua_pushstring(L,myname.c_str()); =
+
+-			return 1; =
+
+-		}
+-		=
+
+-		/// void	gGumpLoader:Load(id) for lua
+-		static int	Load			(lua_State *L) { PROFILE =
+
+-			cGumpLoader* pLoader =3D checkudata_alive(L);
+-			mLastChunk[pLoader] =3D pLoader-&gt;GetGump(luaL_checkint(L,2));
+-			return 0; =
+
+-		}
+-		=
+
+-		/// iWidth,iHeight =3D gGumpLoader:GetSize() for last chunk loaded by Lo=
+ad() for lua
+-		static int	GetSize			(lua_State *L) { PROFILE =
+
+-			cGump* pLastChunk =3D mLastChunk[checkudata_alive(L)];
+-			lua_pushnumber(L,pLastChunk?pLastChunk-&gt;GetWidth():0); =
+
+-			lua_pushnumber(L,pLastChunk?pLastChunk-&gt;GetHeight():0); =
+
+-			return 2; =
+
+-		}
+-		=
+
+-		virtual const char* GetLuaTypeName () { return &quot;iris.GumpLoader&quot;; }
+-};
+-std::map&lt;cGumpLoader*,cGump*&gt;	cGumpLoader_L::mLastChunk;
+-
+-
+-class cSoundLoader_L : public cLuaBind&lt;cSoundLoader&gt; { public:
+-	// implementation of cLuaBind
+-
+-		/// called by Register(), registers object-methods (see cLuaBind constru=
+ctor for examples)
+-		virtual void RegisterMethods	(lua_State *L) { PROFILE
+-			lua_register(L,&quot;CreateSoundLoader&quot;,	&amp;cSoundLoader_L::CreateSoundLoader);
+-			=
+
+-			#define REGISTER_METHOD(methodname) mlMethod.push_back(make_luaL_reg(#m=
+ethodname,&amp;cSoundLoader_L::methodname));
+-			//REGISTER_METHOD(CreateSoundSource)
+-			REGISTER_METHOD(Destroy);
+-			#undef REGISTER_METHOD
+-		}
+-
+-	// static methods exported to lua
+-		=
+
+-		/// cSoundLoader*	CreateSoundLoader		(string type,string sFile); for lua
+-		static int					CreateSoundLoader		(lua_State *L) { PROFILE
+-			const char* type =3D luaL_checkstring(L,1);
+-			cSoundLoader* target =3D 0;
+-			if (mystricmp(type,&quot;FullFile&quot;) =3D=3D 0) target =3D new cSoundLoader_In=
+dexedFullFile(luaL_checkstring(L,2),luaL_checkstring(L,3));
+-			if (mystricmp(type,&quot;OnDemand&quot;) =3D=3D 0) target =3D new cSoundLoader_In=
+dexedOnDemand(luaL_checkstring(L,2),luaL_checkstring(L,3));
+-			return target ? CreateUData(L,target) : 0;
+-		}
+-		=
+
+-	// object methods exported to lua
+-
+-		static int	Destroy				(lua_State *L) { PROFILE delete checkudata_alive(L=
+); return 0; }
+-		=
+
+-		/*
+-		static int	CreateSoundSource	(lua_State *L) { PROFILE
+-			cSoundLoader *loader =3D checkudata_alive(L);
+-			cSound *s =3D loader-&gt;GetSound(luaL_checkint(L,2));
+-			=
+
+-			if(s =3D=3D 0)return 0;
+-			=
+
+-			cSoundBufferPtr pBuffer(new cSoundBuffer(s-&gt;GetPCMBuffer(),s-&gt;GetPCMBuf=
+ferSize(),
+-												s-&gt;IsMono()?1:2,s-&gt;GetBitrate(),s-&gt;GetKHz()));
+-			cSoundSource* target =3D new cSoundSourceBuffer(pBuffer);
+-			return cLuaBind&lt;cSoundSource&gt;::CreateUData(L,target);
+-		}
+-		*/
+-
+-		virtual const char* GetLuaTypeName () { return &quot;iris.SoundLoader&quot;; }
+-};
+-
+-class cMultiLoader_L : public cLuaBind&lt;cMultiLoader&gt; { public:
+-	// implementation of cLuaBind
+-
+-		/// called by Register(), registers object-methods (see cLuaBind constru=
+ctor for examples)
+-		virtual void RegisterMethods	(lua_State *L) { PROFILE
+-			lua_register(L,&quot;CreateMultiLoader&quot;,	&amp;cMultiLoader_L::CreateMultiLoader);
+-			=
+
+-			#define REGISTER_METHOD(methodname) mlMethod.push_back(make_luaL_reg(#m=
+ethodname,&amp;cMultiLoader_L::methodname));
+-			REGISTER_METHOD(Destroy);
+-			REGISTER_METHOD(CountMultiParts);
+-			REGISTER_METHOD(GetMultiParts);
+-			#undef REGISTER_METHOD
+-		}
+-
+-	// static methods exported to lua
+-		=
+
+-		/// cMultiLoader*	CreateMultiLoader		(string type,string sIndexFile,stri=
+ng sDataFile); for lua
+-		static int			CreateMultiLoader		(lua_State *L) { PROFILE
+-			const char* type =3D luaL_checkstring(L,1);
+-			cMultiLoader* target =3D 0;
+-			if (mystricmp(type,&quot;FullFile&quot;) =3D=3D 0) target =3D new cMultiLoader_In=
+dexedFullFile(luaL_checkstring(L,2),luaL_checkstring(L,3));
+-			return target ? CreateUData(L,target) : 0;
+-		}
+-		=
+
+-	// object methods exported to lua
+-
+-		static int	Destroy			(lua_State *L) { PROFILE delete checkudata_alive(L)=
+; return 0; }
+-		=
+
+-		/// number of parts the multi with id has
+-		static int	CountMultiParts	(lua_State *L) { PROFILE =
+
+-			int id =3D static_cast&lt;int&gt;(luaL_checknumber(L,2));
+-			cMultiLoader *loader =3D checkudata_alive(L);
+-			lua_pushnumber(L,loader-&gt;CountMultiParts(id)); =
+
+-			return 1; =
+
+-		}
+-		=
+
+-		/// read out the part of the given multi, (blocknum,x,y,z,flags)
+-		static int	GetMultiParts	(lua_State *L) { PROFILE =
+
+-			int id =3D static_cast&lt;int&gt;(luaL_checknumber(L,2));
+-			int part =3D static_cast&lt;int&gt;(luaL_checknumber(L,3));
+-
+-			cMultiLoader *loader =3D checkudata_alive(L);
+-			if(!loader)return 0;
+-
+-			//int count =3D loader-&gt;CountMultiParts(id);
+-			RawMultiPart *rawpart =3D loader-&gt;GetMultiParts(id);
+-			if(!rawpart)return 0;
+-
+-			lua_pushnumber(L,rawpart[part].miBlockNum); =
+
+-			lua_pushnumber(L,rawpart[part].miX); =
+
+-			lua_pushnumber(L,rawpart[part].miY); =
+
+-			lua_pushnumber(L,rawpart[part].miZ); =
+
+-			lua_pushnumber(L,rawpart[part].miFlags); =
+
+-			return 5; =
+
+-		}
+-
+-		virtual const char* GetLuaTypeName () { return &quot;iris.MultiLoader&quot;; }
+-};
+-
++void	LuaRegisterData_GroundBlock 	(lua_State *L);
++void	LuaRegisterData_StaticBlock 	(lua_State *L);
++void	LuaRegisterData_Radar 			(lua_State *L);
++void	LuaRegisterData_TileType 		(lua_State *L);
++void	LuaRegisterData_TexMap	 		(lua_State *L);
++void	LuaRegisterData_ArtMap	 		(lua_State *L);
++void	LuaRegisterData_Anim	 		(lua_State *L);
++void	LuaRegisterData_Gump	 		(lua_State *L);
++void	LuaRegisterData_Sound	 		(lua_State *L);
++void	LuaRegisterData_Hue		 		(lua_State *L);
++void	LuaRegisterData_Multi		 	(lua_State *L);
++void	LuaRegisterData_Font		 	(lua_State *L);
+ =
+
+ /// lua binding
+ void	LuaRegisterData 	(lua_State *L) { PROFILE
+-	cLuaBind&lt;cGroundBlockLoader&gt;::GetSingletonPtr(new cGroundBlockLoader_L())=
+-&gt;LuaRegister(L);
+-	cLuaBind&lt;cRadarColorLoader&gt;::GetSingletonPtr(new cRadarColorLoader_L())-&gt;=
+LuaRegister(L);
+-	cLuaBind&lt;cTileTypeLoader&gt;::GetSingletonPtr(new cTileTypeLoader_L())-&gt;LuaR=
+egister(L);
+-	cLuaBind&lt;cTexMapLoader&gt;::GetSingletonPtr(new cTexMapLoader_L())-&gt;LuaRegis=
+ter(L);
+-	cLuaBind&lt;cArtMapLoader&gt;::GetSingletonPtr(new cArtMapLoader_L())-&gt;LuaRegis=
+ter(L);
+-	cLuaBind&lt;cAnimLoader&gt;::GetSingletonPtr(new cAnimLoader_L())-&gt;LuaRegister(=
+L);
+-	cLuaBind&lt;cStaticBlockLoader&gt;::GetSingletonPtr(new cStaticBlockLoader_L())=
+-&gt;LuaRegister(L);
+-	cLuaBind&lt;cGumpLoader&gt;::GetSingletonPtr(new cGumpLoader_L())-&gt;LuaRegister(=
+L);
+-	cLuaBind&lt;cSoundLoader&gt;::GetSingletonPtr(new cSoundLoader_L())-&gt;LuaRegiste=
+r(L);
+-	cLuaBind&lt;cHueLoader&gt;::GetSingletonPtr(new cHueLoader_L())-&gt;LuaRegister(L);
+-	cLuaBind&lt;cMultiLoader&gt;::GetSingletonPtr(new cMultiLoader_L())-&gt;LuaRegiste=
+r(L);
+-	cLuaBind&lt;cAnimDataLoader&gt;::GetSingletonPtr(new cAnimDataLoader_L())-&gt;LuaR=
+egister(L);
+-	cLuaBind&lt;cUniFontFileLoader&gt;::GetSingletonPtr(new cUniFontFileLoader_L())=
+-&gt;LuaRegister(L);
++	LuaRegisterData_GroundBlock 	(L);
++	LuaRegisterData_StaticBlock 	(L);
++	LuaRegisterData_Radar 			(L);
++	LuaRegisterData_TileType 		(L);
++	LuaRegisterData_TexMap	 		(L);
++	LuaRegisterData_ArtMap	 		(L);
++	LuaRegisterData_Anim	 		(L);
++	LuaRegisterData_Gump	 		(L);
++	LuaRegisterData_Sound	 		(L);
++	LuaRegisterData_Hue		 		(L);
++	LuaRegisterData_Multi		 	(L);
++	LuaRegisterData_Font		 	(L);
+ }
++	=
+
++	=
+
++	=
+
+ =
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000962.html">[Iris-commit] [IRIS] r2152 - in /trunk: include/ src/
+</A></li>
+	<LI>Next message: <A HREF="000964.html">[Iris-commit] [IRIS] r2154 - in /trunk/lua: ./ obj/
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#963">[ date ]</a>
+              <a href="thread.html#963">[ thread ]</a>
+              <a href="subject.html#963">[ subject ]</a>
+              <a href="author.html#963">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

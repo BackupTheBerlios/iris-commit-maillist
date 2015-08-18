@@ -1,0 +1,188 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2669 - /trunk/lua/lib.loading.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-October/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2669%20-%20/trunk/lua/lib.loading.lua&In-Reply-To=%3C20081029220435.7AC361C1809A%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001472.html">
+   <LINK REL="Next"  HREF="001474.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2669 - /trunk/lua/lib.loading.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2669%20-%20/trunk/lua/lib.loading.lua&In-Reply-To=%3C20081029220435.7AC361C1809A%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2669 - /trunk/lua/lib.loading.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Wed Oct 29 23:04:35 CET 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001472.html">[Iris-commit] [IRIS] r2668 - in /trunk/lua: lib.macrolist.lua lib.uoutils.lua net/net.extended.lua net/net.generic.lua net/net.gump.lua net/net.main.lua net/net.other.lua net/net.text.lua widgets/widget.uoquickcasticon.lua
+</A></li>
+        <LI>Next message: <A HREF="001474.html">[Iris-commit] [IRIS] r2670 - in /trunk/data/models: materials/textures.material models/to_004000/mdl_003180.mesh textures/tex_osterhead.png textures/tex_pumpkin.png
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1473">[ date ]</a>
+              <a href="thread.html#1473">[ thread ]</a>
+              <a href="subject.html#1473">[ subject ]</a>
+              <a href="author.html#1473">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Wed Oct 29 23:04:34 2008
+New Revision: 2669
+
+Log:
+using map0 as fallback if there is no map1 : old,unpached ML clients7
+
+Modified:
+    trunk/lua/lib.loading.lua
+
+Modified: trunk/lua/lib.loading.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.loading.lua (original)
++++ trunk/lua/lib.loading.lua Wed Oct 29 23:04:34 2008
+@@ -385,6 +385,7 @@
+ 	local mapfilename		=3D gMaps[index].mapfilename
+ 	local staidxfilename	=3D gMaps[index].staidxfilename
+ 	local staticfilename	=3D gMaps[index].staticfilename
++	=
+
+ =
+
+ 	-- only relevant for pre 6.0.0 UO Clients
+ 	local sta_diff_lookup	=3D gMaps[index].sta_diff_lookup
+@@ -397,9 +398,15 @@
+ 		if (not gInitialMapLoaded) then LoadingProfile(&quot;init GroundblockLoader&quot;)=
+ end
+ 		profile:StartSection(&quot;ground&quot;)
+ 		=
+
++		-- map 1 not there in old ml (4.0.11c, fresh install without patch), use=
+ map 0 instead
++		local finalmappath =3D CorrectPath( Addfilepath(mapfilename) )
++		if ((not finalmappath) or (not file_exists(finalmappath))) then =
+
++			finalmappath =3D CorrectPath( Addfilepath(gMaps[0].mapfilename) ) =
+
++		end
++	=
+
+ 		print(&quot;Loading Map id &quot;..index)
+ 		print(&quot;Loading Map name &quot;..name)
+-		print(&quot;Loading Map terrain &quot;..mapfilename)
++		print(&quot;Loading Map terrain &quot;..finalmappath)
+ 		--- use diff files?
+ 		if map_diff_lookup and map_diff_data =
+
+ 			and file_exists(CorrectPath( Addfilepath(map_diff_lookup) )) and file_e=
+xists(CorrectPath( Addfilepath(map_diff_data) )) then
+@@ -407,10 +414,10 @@
+ 			print(&quot;Loading Map map_diff_lookup &quot;..map_diff_lookup)
+ 			print(&quot;Loading Map map_diff_data &quot;..map_diff_data)
+ 			print(&quot;Applying Map diff files&quot;)
+-			gGroundBlockLoader =3D CreateGroundBlockLoaderWithDiff(gGroundBlockLoad=
+erType,mapheight,CorrectPath( Addfilepath(mapfilename) ),
++			gGroundBlockLoader =3D CreateGroundBlockLoaderWithDiff(gGroundBlockLoad=
+erType,mapheight,finalmappath,
+ 				CorrectPath( Addfilepath(map_diff_lookup) ), CorrectPath( Addfilepath(=
+map_diff_data) ))
+ 		else
+-			gGroundBlockLoader =3D CreateGroundBlockLoader(gGroundBlockLoaderType,m=
+apheight,CorrectPath( Addfilepath(mapfilename) ))
++			gGroundBlockLoader =3D CreateGroundBlockLoader(gGroundBlockLoaderType,m=
+apheight,finalmappath)
+ 		end
+ 	end
+ 		=
+
+@@ -418,8 +425,18 @@
+ 		if (not gInitialMapLoaded) then LoadingProfile(&quot;init StaticBlockLoader&quot;)=
+ end
+ 		profile:StartSection(&quot;static&quot;)
+ 		=
+
+-		print(&quot;Loading Static static idx &quot;..staidxfilename)
+-		print(&quot;Loading Static static &quot;..staticfilename)
++		-- map 1 not there in old ml (4.0.11c, fresh install without patch), use=
+ map 0 instead
++		local finalpath_staidx =3D CorrectPath( Addfilepath(staidxfilename) )
++		local finalpath_static =3D CorrectPath( Addfilepath(staticfilename) )
++		if ((not finalpath_staidx) or (not file_exists(finalpath_staidx))) then =
+
++			finalpath_staidx =3D CorrectPath( Addfilepath(gMaps[0].staidxfilename) =
+) =
+
++		end
++		if ((not finalpath_static) or (not file_exists(finalpath_static))) then =
+
++			finalpath_static =3D CorrectPath( Addfilepath(gMaps[0].staticfilename) =
+) =
+
++		end
++		=
+
++		print(&quot;Loading Static static idx &quot;..finalpath_staidx)
++		print(&quot;Loading Static static &quot;..finalpath_static)
+ 		--- use diff files?
+ 		if(sta_diff_lookup and sta_diff_idx and sta_diff_data)
+ 			and file_exists(CorrectPath( Addfilepath(sta_diff_lookup) )) and file_e=
+xists(CorrectPath( Addfilepath(sta_diff_idx) )) =
+
+@@ -429,10 +446,10 @@
+ 			print(&quot;Loading Static sta_diff_idx &quot;..sta_diff_idx)
+ 			print(&quot;Loading Static sta_diff_data &quot;..sta_diff_data)
+ 			print(&quot;Applying Static diff files&quot;)
+-			gStaticBlockLoader =3D CreateStaticBlockLoaderWithDiff(gStaticBlockLoad=
+erType,mapheight,CorrectPath( Addfilepath(staidxfilename) ),CorrectPath( Ad=
+dfilepath(staticfilename) ),
++			gStaticBlockLoader =3D CreateStaticBlockLoaderWithDiff(gStaticBlockLoad=
+erType,mapheight,finalpath_staidx,finalpath_static,
+ 				CorrectPath( Addfilepath(sta_diff_lookup) ),CorrectPath( Addfilepath(s=
+ta_diff_idx) ),CorrectPath( Addfilepath(sta_diff_data) ))
+ 		else =
+
+-			gStaticBlockLoader =3D CreateStaticBlockLoader(gStaticBlockLoaderType,m=
+apheight,CorrectPath( Addfilepath(staidxfilename) ),CorrectPath( Addfilepat=
+h(staticfilename) ))
++			gStaticBlockLoader =3D CreateStaticBlockLoader(gStaticBlockLoaderType,m=
+apheight,finalpath_staidx,finalpath_static)
+ 		end
+ 	end
+ =
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001472.html">[Iris-commit] [IRIS] r2668 - in /trunk/lua: lib.macrolist.lua lib.uoutils.lua net/net.extended.lua net/net.generic.lua net/net.gump.lua net/net.main.lua net/net.other.lua net/net.text.lua widgets/widget.uoquickcasticon.lua
+</A></li>
+	<LI>Next message: <A HREF="001474.html">[Iris-commit] [IRIS] r2670 - in /trunk/data/models: materials/textures.material models/to_004000/mdl_003180.mesh textures/tex_osterhead.png textures/tex_pumpkin.png
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1473">[ date ]</a>
+              <a href="thread.html#1473">[ thread ]</a>
+              <a href="subject.html#1473">[ subject ]</a>
+              <a href="author.html#1473">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

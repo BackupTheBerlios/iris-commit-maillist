@@ -1,0 +1,1534 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r3358 - in /trunk: ./ lua/ lua/net/ lua/obj/	src/
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2010-August/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3358%20-%20in%20/trunk%3A%20./%20lua/%20lua/net/%20lua/obj/%0A%09src/&In-Reply-To=%3C20100804162121.E16DD54D0008%40simon%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   
+   <LINK REL="Next"  HREF="002099.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r3358 - in /trunk: ./ lua/ lua/net/ lua/obj/	src/</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r3358%20-%20in%20/trunk%3A%20./%20lua/%20lua/net/%20lua/obj/%0A%09src/&In-Reply-To=%3C20100804162121.E16DD54D0008%40simon%3E"
+       TITLE="[Iris-commit] [IRIS] r3358 - in /trunk: ./ lua/ lua/net/ lua/obj/	src/">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Wed Aug  4 18:21:21 CEST 2010</I>
+    <P><UL>
+        
+        <LI>Next message: <A HREF="002099.html">[Iris-commit] [IRIS] r3359 - in /trunk: lua/lib.map.lua lua/lib.packet.lua lua/lib.protocol.lua lua/net/net.mobile.lua src/data_radar.cpp
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2098">[ date ]</a>
+              <a href="thread.html#2098">[ thread ]</a>
+              <a href="subject.html#2098">[ subject ]</a>
+              <a href="author.html#2098">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Wed Aug  4 18:21:21 2010
+New Revision: 3358
+
+Log:
+gen radar col util, draw big map bugfix, libeasyuo cleaned up a bit, -genma=
+p exports big map
+
+Modified:
+    trunk/lua/lib.easyuo.lua
+    trunk/lua/lib.export.lua
+    trunk/lua/lib.loading.lua
+    trunk/lua/lib.macrolist.lua
+    trunk/lua/lib.map.lua
+    trunk/lua/lib.thread.lua
+    trunk/lua/net/net.dynamic.lua
+    trunk/lua/obj/obj.player.lua
+    trunk/premakelinux.sh
+    trunk/src/data_map.cpp
+    trunk/src/main.cpp
+    trunk/src/scripting.iris.cpp
+
+Modified: trunk/lua/lib.easyuo.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.easyuo.lua (original)
++++ trunk/lua/lib.easyuo.lua Wed Aug  4 18:21:21 2010
+@@ -7,469 +7,97 @@
+ --~ <A HREF="http://www.easyuo.com/forum/viewtopic.php?t=3D41968">http://www.easyuo.com/forum/viewtopic.php?t=3D41968</A>
+ -- also ask &lt;Qendivardo&gt; in vm irc =
+
+ =
+
+--- String Explode for internal use
+-function easyuo_explode(delimiter, str)
+-   --print(&quot;sep: &quot; .. delimiter)
+-   local tbl, i, j
+-   tbl=3D{}
+-   i=3D0
+-   if(#str =3D=3D 1) then return str end
+-   while true do
+-      j =3D string.find(str, delimiter, i+1, true) -- find the next d in t=
+he string
+-      if (j ~=3D nil) then -- if &quot;not not&quot; found then..
+-         table.insert(tbl, string.sub(str, i, j-1)) -- Save it in our arra=
+y.
+-         i =3D j+1 -- save just after where we found it for searching next=
+ time.
+-      else
+-         table.insert(tbl, string.sub(str, i)) -- Save what's left in our =
+array.
+-         break -- Break at end, as it should be, according to the lua manu=
+al.
+-      end
+-   end
+-   return tbl
+-end
+-
+-
+--- From EasyUO to OpenEUO
+-function easy2open(easyID)
+-   easyID =3D string.upper(easyID)
+-   local i, j, openID =3D 1, 0, 0 =
+
+-   =
+
+-   for j =3D 1, #easyID do
+-      local char =3D easyID:sub(j,j)
+-      openID =3D openID + ( string.byte(char) - string.byte('A') ) * i
+-      i =3D i * 26
+-   end
+-   openID =3D BitwiseXOR((openID - 7), 69)
+-   =
+
+-   return openID
+-end
+-
+--- Fron EasyUO String AAA_BBB_CCC to OpenEuo Table
+-function estr2open(str)
+-   local easyIDs =3D {}
+-   local openIDs =3D {}
+-   =
+
+-   easyIDs =3D easyuo_explode(&quot;_&quot;, str)
+-   for k, easyID in pairs(easyIDs) do
+-      table.insert(openIDs, easy2open(easyID))
+-   end
+-   return openIDs
+-end
+-
+--- From OpenEUO to EasyUO
+-function open2easy (openID)
+-   local easyID =3D &quot;&quot;
+-   local i =3D (BitwiseXOR(openID, 69) + 7)
+-   local j =3D 0
+-
+-   while (i &gt; 0) do
+-      easyID =3D easyID .. string.char((i % 26) + string.byte('A'))
+-      i =3D math.floor(i / 26)
+-   end
+-   =
+
+-   return easyID
+-end
+-
+-
+---~ To use them just call the funcions:
+-function test_easyuo_convert ()
+-	moneyEUO =3D &quot;POF&quot; =
+
+-	moneyOPN =3D 3821 =
+
+-	 =
+
+-	print(open2easy(moneyOPN)) =
+
+-	print(easy2open(moneyEUO)) =
+
+-	 =
+
+-	for k,v in pairs(estr2open(&quot;POF_ENK&quot;)) do
+-	  print (v)  =
+
+-	end
+-	=
+
+-	=
+
+-	for k,arr in ipairs({
+-	{&quot;PUQVIOD&quot;,0x4164c45d},
+-	{&quot;SUQVIOD&quot;,0x4164c45e},
+-	{&quot;RUQVIOD&quot;,0x4164c45f},
+-	{&quot;CVQVIOD&quot;,0x4164c460},
+-	}) do =
+
+-		local a,b =3D unpack(arr) =
+
+-		print(a,b,easy2open(a),open2easy(b))
++-- serial/id conversion =
+
++if (1 =3D=3D 1) then
++	-- String Explode for internal use
++	function easyuo_explode(delimiter, str)
++	   --print(&quot;sep: &quot; .. delimiter)
++	   local tbl, i, j
++	   tbl=3D{}
++	   i=3D0
++	   if(#str =3D=3D 1) then return str end
++	   while true do
++		  j =3D string.find(str, delimiter, i+1, true) -- find the next d in the=
+ string
++		  if (j ~=3D nil) then -- if &quot;not not&quot; found then..
++			 table.insert(tbl, string.sub(str, i, j-1)) -- Save it in our array.
++			 i =3D j+1 -- save just after where we found it for searching next time.
++		  else
++			 table.insert(tbl, string.sub(str, i)) -- Save what's left in our array.
++			 break -- Break at end, as it should be, according to the lua manual.
++		  end
++	   end
++	   return tbl
++	end
++
++
++	-- From EasyUO to OpenEUO
++	function easy2open(easyID)
++	   easyID =3D string.upper(easyID)
++	   local i, j, openID =3D 1, 0, 0 =
+
++	   =
+
++	   for j =3D 1, #easyID do
++		  local char =3D easyID:sub(j,j)
++		  openID =3D openID + ( string.byte(char) - string.byte('A') ) * i
++		  i =3D i * 26
++	   end
++	   openID =3D BitwiseXOR((openID - 7), 69)
++	   =
+
++	   return openID
++	end
++
++	-- Fron EasyUO String AAA_BBB_CCC to OpenEuo Table
++	function estr2open(str)
++	   local easyIDs =3D {}
++	   local openIDs =3D {}
++	   =
+
++	   easyIDs =3D easyuo_explode(&quot;_&quot;, str)
++	   for k, easyID in pairs(easyIDs) do
++		  table.insert(openIDs, easy2open(easyID))
++	   end
++	   return openIDs
++	end
++
++	-- From OpenEUO to EasyUO
++	function open2easy (openID)
++	   local easyID =3D &quot;&quot;
++	   local i =3D (BitwiseXOR(openID, 69) + 7)
++	   local j =3D 0
++
++	   while (i &gt; 0) do
++		  easyID =3D easyID .. string.char((i % 26) + string.byte('A'))
++		  i =3D math.floor(i / 26)
++	   end
++	   =
+
++	   return easyID
++	end
++
++
++	--~ To use them just call the funcions:
++	function test_easyuo_convert ()
++		moneyEUO =3D &quot;POF&quot; =
+
++		moneyOPN =3D 3821 =
+
++		 =
+
++		print(open2easy(moneyOPN)) =
+
++		print(easy2open(moneyEUO)) =
+
++		 =
+
++		for k,v in pairs(estr2open(&quot;POF_ENK&quot;)) do
++		  print (v)  =
+
++		end
++		=
+
++		=
+
++		for k,arr in ipairs({
++		{&quot;PUQVIOD&quot;,0x4164c45d},
++		{&quot;SUQVIOD&quot;,0x4164c45e},
++		{&quot;RUQVIOD&quot;,0x4164c45f},
++		{&quot;CVQVIOD&quot;,0x4164c460},
++		}) do =
+
++			local a,b =3D unpack(arr) =
+
++			print(a,b,easy2open(a),open2easy(b))
++		end
+ 	end
+ end
+ --~ test_easyuo_convert()
+ --~ os.exit(0)
+-
+-function EasyUO_ID_Test ()
+-	--~ local a,txte =3D &quot;iron&quot;,&quot;;RXTGHOD;192;453;LXTGHOD;182;453;JWTGHOD;172=
+;453;VQTGHOD;162;453;WQTGHOD;153;453;QQTGHOD;242;445;WPTGHOD;232;445;BPTGHO=
+D;222;445;WOTGHOD;212;445;ATTGHOD;202;445;XSTGHOD;192;445;RSTGHOD;182;445;V=
+RTGHOD;172;445;TLTGHOD;162;445;JLTGHOD;153;445;PKTGHOD;242;435;AKTGHOD;232;=
+435;XJTGHOD;222;435;BOTGHOD;212;435;NNTGHOD;202;435;WMTGHOD;192;435;PMTGHOD=
+;182;435;UGTGHOD;172;435;NFTGHOD;162;435;WETGHOD;153;435;EJTGHOD;242;425;UH=
+TGHOD;232;425;GHTGHOD;222;425;FDTGHOD;212;425;RCTGHOD;202;425;VWSGHOD;192;4=
+25;HWSGHOD;182;425;JVSGHOD;172;425;UZSGHOD;162;425;TRSGHOD;153;425;ARSGHOD;=
+242;415;ZPSGHOD;232;415;EQSGHOD;222;415;SUSGHOD;212;415;LUSGHOD;202;415;MUS=
+GHOD;192;415;YTSGHOD;182;415;CTSGHOD;172;415;HTSGHOD;162;415;ITSGHOD;153;41=
+5;PSSGHOD;242;405;LNSGHOD;232;405;YMSGHOD;222;405;UMSGHOD;212;405;JMSGHOD;2=
+02;405;SPSGHOD;192;405;JPSGHOD;182;405;PPSGHOD;172;405;BPSGHOD;162;405;UOSG=
+HOD;153;405;KOSGHOD;242;396;PNSGHOD;232;396;KISGHOD;222;396;RHSGHOD;212;396=
+;SHSGHOD;202;396;KHSGHOD;192;396;ZGSGHOD;182;396;VKSGHOD;172;396;RJSGHOD;16=
+2;396;EDSGHOD;153;396;NCSGHOD;249;453&quot;
+-	--~ local a,txti =3D &quot;iron&quot;,&quot;;1096403850;124;95;1096403525;124;85;1096403=
+335;124;65;1096404169;114;115;1096403727;94;95;1096403657;64;95;1096403921;=
+54;105;1096404239;64;125;1096404113;64;115;1096403346;134;65;1096403283;74;=
+65;1096403474;44;85;1096403990;84;105;1096403475;54;85;1096403476;64;85;109=
+6403225;54;65;1096404061;134;105;1096404001;94;105;1096403550;134;85;109640=
+4259;74;125;1096403490;74;85;1096403300;84;65;1096403364;44;75;1096403175;1=
+42;124;1096404073;44;115;1096403431;94;75;1096403432;104;75;1096403308;94;6=
+5;1096403309;104;65;1096403373;54;75;1096404143;74;115;1096404208;134;115;1=
+096404083;54;115;1096403894;134;95;1096403379;64;75;1096404149;84;115;10964=
+03190;44;65;1096403381;74;75;1096404265;84;125;1096404196;124;115;109640344=
+4;114;75;1096404223;54;125;1096403642;54;95;1096404162;104;115;1096403741;1=
+04;95;1096403681;74;95;1096403703;84;95;1096403563;44;95;1096403504;84;85;1=
+096404150;94;115;1096403451;124;75;1096403388;84;75;1096403505;94;85;109640=
+4222;44;125;1096403326;114;65;1096403263;64;65;1096404023;104;105;109640351=
+8;104;85;1096403844;114;95;1096404044;124;105;1096404035;114;105;1096403520=
+;114;85;1096403457;134;75;1096403910;44;105;1096403977;74;105;1096403952;64=
+;105&quot;
+-	=
+
+-	--~ local a,txti =3D &quot;30&quot;,&quot;;1097014775;118;123;1097014783;149;123;1097014=
+760;61;123;1097014768;91;123;1097014776;122;123;1097014784;153;123;10970147=
+61;65;123;1097014769;95;123;1097014777;126;123;1097014785;157;123;109701476=
+2;68;123;1097014770;99;123;1097014778;130;123;1097014763;72;123;1097014771;=
+103;123;1097014779;134;123;1097014756;45;123;1097014764;76;123;1097014772;1=
+07;123;1097014780;137;123;1097014757;49;123;1097014765;80;123;1097014773;11=
+1;123;1097014781;141;123;1097014758;53;123;1097014766;84;123;1097014774;114=
+;123;1097014782;145;123;1097014759;57;123;1097014767;88;123&quot;
+-	--~ local a,txte =3D &quot;30&quot;,&quot;;FBNPIOD;242;177;GBNPIOD;241;177;XVMPIOD;237;1=
+77;YVMPIOD;233;177;VVMPIOD;229;177;WVMPIOD;225;177;BWMPIOD;222;177;CWMPIOD;=
+218;177;ZVMPIOD;214;177;AWMPIOD;210;177;PVMPIOD;206;177;QVMPIOD;202;177;NVM=
+PIOD;199;177;OVMPIOD;195;177;TVMPIOD;191;177;UVMPIOD;187;177;RVMPIOD;183;17=
+7;SVMPIOD;179;177;HVMPIOD;176;177;IVMPIOD;172;177;FVMPIOD;168;177;GVMPIOD;1=
+64;177;LVMPIOD;160;177;MVMPIOD;156;177;JVMPIOD;153;177;KVMPIOD;149;177;ZUMP=
+IOD;145;177;AVMPIOD;141;177;XUMPIOD;137;177;YUMPIOD;133;177&quot;
+-
+-	--~ local a,txti =3D &quot;45&quot;;1097047075;60;145;1097047079;70;145;1097047083;=
+80;145;1097047087;90;145;1097047091;100;145;1097047095;110;145;1097047099;1=
+21;145;1097047103;131;145;1097047107;141;145;1097047111;151;145;1097047072;=
+52;145;1097047076;62;145;1097047080;72;145;1097047084;83;145;1097047088;93;=
+145;1097047092;103;145;1097047096;113;145;1097047100;123;145;1097047104;133=
+;145;1097047108;143;145;1097047112;153;145;1097047073;55;145;1097047077;65;=
+145;1097047081;75;145;1097047085;85;145;1097047089;95;145;1097047093;105;14=
+5;1097047097;115;145;1097047101;126;145;1097047105;136;145;1097047109;146;1=
+45;1097047113;156;145;1097047070;47;145;1097047074;57;145;1097047078;67;145=
+;1097047082;77;145;1097047086;88;145;1097047090;98;145;1097047094;108;145;1=
+097047098;118;145;1097047102;128;145;1097047106;138;145;1097047110;148;145;=
+1097047114;159;145;1097047071;50;145&quot;
+-	--~ local a,txte =3D &quot;45&quot;;URIRIOD;215;216;RRIRIOD;215;216;SRIRIOD;214;216=
+;HRIRIOD;212;216;IRIRIOD;209;216;FRIRIOD;207;216;GRIRIOD;204;216;LRIRIOD;20=
+2;216;MRIRIOD;199;216;JRIRIOD;197;216;KRIRIOD;194;216;XVIRIOD;192;216;YVIRI=
+OD;189;216;VVIRIOD;187;216;WVIRIOD;184;216;BWIRIOD;182;216;CWIRIOD;179;216;=
+ZVIRIOD;176;216;AWIRIOD;174;216;PVIRIOD;171;216;QVIRIOD;169;216;NVIRIOD;166=
+;216;OVIRIOD;164;216;TVIRIOD;161;216;UVIRIOD;159;216;RVIRIOD;156;216;SVIRIO=
+D;154;216;HVIRIOD;151;216;IVIRIOD;149;216;FVIRIOD;146;216;GVIRIOD;144;216;L=
+VIRIOD;141;216;MVIRIOD;138;216;JVIRIOD;136;216;KVIRIOD;133;216;ZUIRIOD;131;=
+216;AVIRIOD;128;216;XUIRIOD;126;216;YUIRIOD;123;216;DVIRIOD;121;216;EVIRIOD=
+;118;216;BVIRIOD;116;216;CVIRIOD;113;216;RUIRIOD;111;216;SUIRIOD;108;216&quot;
+-
+-	--~ local a,txti =3D &quot;67&quot;,&quot;;1097078588;126;74;1097078589;51;85;1097078590=
+;55;85;1097078591;60;85;1097078592;65;85;1097078593;70;85;1097078594;75;85;=
+1097078595;79;85;1097078596;84;85;1097078597;89;85;1097078598;94;85;1097078=
+599;98;85;1097078600;103;85;1097078601;108;85;1097078602;113;85;1097078603;=
+118;85;1097078604;122;85;1097078605;127;85;1097078606;52;96;1097078607;57;9=
+6;1097078608;61;96;1097078609;66;96;1097078610;71;96;1097078611;76;96;10970=
+78612;81;96;1097078613;85;96;1097078614;90;96;1097078615;95;96;1097078616;1=
+00;96;1097078617;104;96;1097078618;109;96;1097078619;114;96;1097078620;119;=
+96;1097078621;124;96;1097078622;128;96;1097078623;53;107;1097078624;58;107;=
+1097078625;63;107;1097078626;67;107;1097078627;72;107;1097078628;77;107;109=
+7078629;82;107;1097078630;87;107;1097078631;91;107;1097078632;96;107;109707=
+8633;101;107;1097078634;106;107;1097078635;110;107;1097078572;50;74;1097078=
+636;115;107;1097078573;54;74;1097078637;120;107;1097078574;59;74;1097078638=
+;125;107;1097078575;64;74;1097078576;69;74;1097078577;73;74;1097078578;78;7=
+4;1097078579;83;74;1097078580;88;74;1097078581;92;74;1097078582;97;74;10970=
+78583;102;74;1097078584;107;74;1097078585;112;74;1097078586;116;74;10970785=
+87;121;74&quot;
+-	--~ local a,txte =3D &quot;67&quot;,&quot;;YHDTIOD;205;211;VHDTIOD;200;211;WHDTIOD;195;2=
+11;BIDTIOD;190;211;CIDTIOD;186;211;ZHDTIOD;181;211;AIDTIOD;176;211;PHDTIOD;=
+171;211;QHDTIOD;167;211;NHDTIOD;162;211;OHDTIOD;157;211;THDTIOD;152;211;UHD=
+TIOD;147;211;RHDTIOD;143;211;SHDTIOD;138;211;HHDTIOD;133;211;IHDTIOD;208;20=
+0;FHDTIOD;204;200;GHDTIOD;199;200;LHDTIOD;194;200;MHDTIOD;189;200;JHDTIOD;1=
+84;200;KHDTIOD;180;200;ZGDTIOD;175;200;AHDTIOD;170;200;XGDTIOD;165;200;YGDT=
+IOD;161;200;DHDTIOD;156;200;EHDTIOD;151;200;BHDTIOD;146;200;CHDTIOD;141;200=
+;RGDTIOD;137;200;SGDTIOD;132;200;PGDTIOD;207;189;QGDTIOD;202;189;VGDTIOD;19=
+8;189;WGDTIOD;193;189;TGDTIOD;188;189;UGDTIOD;183;189;JGDTIOD;178;189;KGDTI=
+OD;174;189;HGDTIOD;169;189;IGDTIOD;164;189;NGDTIOD;159;189;OGDTIOD;155;189;=
+LGDTIOD;150;189;MGDTIOD;145;189;ZKDTIOD;140;189;ALDTIOD;135;189;XKDTIOD;131=
+;189;YKDTIOD;206;178;DLDTIOD;201;178;ELDTIOD;196;178;BLDTIOD;192;178;CLDTIO=
+D;187;178;RKDTIOD;182;178;SKDTIOD;177;178;PKDTIOD;172;178;QKDTIOD;168;178;V=
+KDTIOD;163;178;WKDTIOD;158;178;TKDTIOD;153;178;UKDTIOD;149;178;JKDTIOD;144;=
+178;KKDTIOD;139;178;HKDTIOD;134;178;IKDTIOD;130;178&quot;
+-
+-	local a,txti =3D &quot;100&quot;,&quot;;1097122979;97;102;1097122916;94;74;1097122980;10=
+4;102;1097122917;101;74;1097122981;110;102;1097122918;107;74;1097122982;117=
+;102;1097122919;114;74;1097122983;123;102;1097122920;120;74;1097122984;50;1=
+07;1097122921;126;74;1097122985;56;107;1097122922;53;79;1097122986;62;107;1=
+097122923;59;79;1097122987;69;107;1097122924;66;79;1097122988;75;107;109712=
+2925;72;79;1097122989;82;107;1097122926;78;79;1097122990;88;107;1097122927;=
+85;79;1097122991;94;107;1097122928;91;79;1097122992;101;107;1097122929;98;7=
+9;1097122993;107;107;1097122930;104;79;1097122994;113;107;1097122931;110;79=
+;1097122995;120;107;1097122932;117;79;1097122996;126;107;1097122933;123;79;=
+1097122997;53;113;1097122934;50;85;1097122998;59;113;1097122935;56;85;10971=
+22999;66;113;1097122936;62;85;1097123000;72;113;1097122937;69;85;1097123001=
+;78;113;1097122938;75;85;1097123002;85;113;1097122939;82;85;1097123003;91;1=
+13;1097122940;88;85;1097123004;97;113;1097122941;94;85;1097123005;104;113;1=
+097122942;101;85;1097123006;110;113;1097122943;107;85;1097123007;117;113;10=
+97122944;113;85;1097123008;123;113;1097122945;120;85;1097122946;126;85;1097=
+122947;53;90;1097122948;59;90;1097122949;66;90;1097122950;72;90;1097122951;=
+78;90;1097122952;85;90;1097122953;91;90;1097122954;98;90;1097122955;104;90;=
+1097122956;110;90;1097122957;117;90;1097122958;123;90;1097122959;50;96;1097=
+122960;56;96;1097122961;62;96;1097122962;69;96;1097122963;75;96;1097122964;=
+82;96;1097122965;88;96;1097122966;94;96;1097122967;101;96;1097122968;107;96=
+;1097122969;113;96;1097122970;120;96;1097122971;126;96;1097122972;53;102;10=
+97122909;50;74;1097122973;59;102;1097122910;56;74;1097122974;66;102;1097122=
+911;62;74;1097122975;72;102;1097122912;69;74;1097122976;78;102;1097122913;7=
+5;74;1097122977;85;102;1097122914;82;74;1097122978;91;102;1097122915;88;74&quot;
+-	local a,txte =3D &quot;100&quot;,&quot;;UYQVIOD;165;274;HDRVIOD;159;274;IDRVIOD;152;274;=
+FDRVIOD;146;274;GDRVIOD;139;274;LDRVIOD;133;274;MDRVIOD;127;274;JDRVIOD;120=
+;274;KDRVIOD;114;274;ZCRVIOD;108;274;ADRVIOD;101;274;XCRVIOD;95;274;YCRVIOD=
+;168;268;DDRVIOD;162;268;EDRVIOD;155;268;BDRVIOD;149;268;CDRVIOD;143;268;RC=
+RVIOD;136;268;SCRVIOD;130;268;PCRVIOD;124;268;QCRVIOD;117;268;VCRVIOD;111;2=
+68;WCRVIOD;104;268;TCRVIOD;98;268;UCRVIOD;92;268;JCRVIOD;165;263;KCRVIOD;15=
+9;263;HCRVIOD;152;263;ICRVIOD;146;263;NCRVIOD;139;263;OCRVIOD;133;263;LCRVI=
+OD;127;263;MCRVIOD;120;263;BCRVIOD;114;263;CCRVIOD;108;263;ZBRVIOD;101;263;=
+ACRVIOD;95;263;FCRVIOD;168;257;GCRVIOD;162;257;DCRVIOD;155;257;ECRVIOD;149;=
+257;TBRVIOD;143;257;UBRVIOD;136;257;RBRVIOD;130;257;SBRVIOD;124;257;XBRVIOD=
+;117;257;YBRVIOD;111;257;VBRVIOD;104;257;WBRVIOD;98;257;LBRVIOD;92;257;MBRV=
+IOD;165;251;JBRVIOD;159;251;KBRVIOD;152;251;PBRVIOD;146;251;QBRVIOD;140;251=
+;NBRVIOD;133;251;OBRVIOD;127;251;DBRVIOD;120;251;EBRVIOD;114;251;BBRVIOD;10=
+8;251;CBRVIOD;101;251;HBRVIOD;95;251;IBRVIOD;168;246;FBRVIOD;162;246;GBRVIO=
+D;155;246;XVQVIOD;149;246;YVQVIOD;143;246;VVQVIOD;136;246;WVQVIOD;130;246;B=
+WQVIOD;124;246;CWQVIOD;117;246;ZVQVIOD;111;246;AWQVIOD;104;246;PVQVIOD;98;2=
+46;QVQVIOD;92;246;NVQVIOD;165;240;OVQVIOD;159;240;TVQVIOD;152;240;UVQVIOD;1=
+46;240;RVQVIOD;140;240;SVQVIOD;133;240;HVQVIOD;127;240;IVQVIOD;120;240;FVQV=
+IOD;114;240;GVQVIOD;108;240;LVQVIOD;101;240;MVQVIOD;95;240;JVQVIOD;168;235;=
+KVQVIOD;162;235;ZUQVIOD;156;235;AVQVIOD;149;235;XUQVIOD;143;235;YUQVIOD;136=
+;235;DVQVIOD;130;235;EVQVIOD;124;235;BVQVIOD;117;235;CVQVIOD;111;235;RUQVIO=
+D;104;235;SUQVIOD;98;235;PUQVIOD;92;235&quot;
+-	--~ :;UYQVIOD;193;411;HDRVIOD;187;411;IDRVIOD;180;411;FDRVIOD;174;411;GDR=
+VIOD;167;411;LDRVIOD;161;411;MDRVIOD;155;411;JDRVIOD;148;411;KDRVIOD;142;41=
+1;ZCRVIOD;136;411;ADRVIOD;129;411;XCRVIOD;123;411;YCRVIOD;196;405;DDRVIOD;1=
+90;405;EDRVIOD;183;405;BDRVIOD;177;405;CDRVIOD;171;405;RCRVIOD;164;405;SCRV=
+IOD;158;405;PCRVIOD;152;405;QCRVIOD;145;405;VCRVIOD;139;405;WCRVIOD;132;405=
+;TCRVIOD;126;405;UCRVIOD;120;405;JCRVIOD;193;400;KCRVIOD;187;400;HCRVIOD;18=
+0;400;ICRVIOD;174;400;NCRVIOD;167;400;OCRVIOD;161;400;LCRVIOD;155;400;MCRVI=
+OD;148;400;BCRVIOD;142;400;CCRVIOD;136;400;ZBRVIOD;129;400;ACRVIOD;123;400;=
+FCRVIOD;196;394;DCRVIOD;183;394;ECRVIOD;177;394;TBRVIOD;171;394;UBRVIOD;164=
+;394;RBRVIOD;158;394;SBRVIOD;152;394;XBRVIOD;145;394;YBRVIOD;139;394;VBRVIO=
+D;132;394;WBRVIOD;126;394;LBRVIOD;120;394;MBRVIOD;193;388;JBRVIOD;187;388;K=
+BRVIOD;180;388;PBRVIOD;174;388;QBRVIOD;168;388;NBRVIOD;161;388;OBRVIOD;155;=
+388;DBRVIOD;148;388;EBRVIOD;142;388;BBRVIOD;136;388;CBRVIOD;129;388;HBRVIOD=
+;123;388;IBRVIOD;196;383;FBRVIOD;190;383;GBRVIOD;183;383;XVQVIOD;177;383;YV=
+QVIOD;171;383;VVQVIOD;164;383;WVQVIOD;158;383;BWQVIOD;152;383;CWQVIOD;145;3=
+83;ZVQVIOD;139;383;AWQVIOD;132;383;PVQVIOD;126;383;QVQVIOD;120;383;NVQVIOD;=
+193;377;OVQVIOD;187;377;TVQVIOD;180;377;UVQVIOD;174;377;RVQVIOD;168;377;SVQ=
+VIOD;161;377;HVQVIOD;155;377;IVQVIOD;148;377;FVQVIOD;142;377;GVQVIOD;136;37=
+7;LVQVIOD;129;377;MVQVIOD;123;377;JVQVIOD;196;372;KVQVIOD;190;372;ZUQVIOD;1=
+84;372;AVQVIOD;177;372;XUQVIOD;171;372;YUQVIOD;164;372;DVQVIOD;158;372;EVQV=
+IOD;152;372;BVQVIOD;145;372;CVQVIOD;139;372;RUQVIOD;132;372;SUQVIOD;126;372=
+;PUQVIOD;120;372
+-	--~ :;UYQVIOD;123;113;HDRVIOD;117;113;IDRVIOD;110;113;FDRVIOD;104;113;GDR=
+VIOD;97;113;LDRVIOD;91;113;MDRVIOD;85;113;JDRVIOD;78;113;KDRVIOD;72;113;ZCR=
+VIOD;66;113;ADRVIOD;59;113;XCRVIOD;53;113;YCRVIOD;126;107;DDRVIOD;120;107;E=
+DRVIOD;113;107;BDRVIOD;107;107;CDRVIOD;101;107;RCRVIOD;94;107;SCRVIOD;88;10=
+7;PCRVIOD;82;107;QCRVIOD;75;107;VCRVIOD;69;107;WCRVIOD;62;107;TCRVIOD;56;10=
+7;UCRVIOD;50;107;JCRVIOD;123;102;KCRVIOD;117;102;HCRVIOD;110;102;ICRVIOD;10=
+4;102;NCRVIOD;97;102;OCRVIOD;91;102;LCRVIOD;85;102;MCRVIOD;78;102;BCRVIOD;7=
+2;102;CCRVIOD;66;102;ZBRVIOD;59;102;ACRVIOD;53;102;FCRVIOD;126;96;DCRVIOD;1=
+13;96;ECRVIOD;107;96;TBRVIOD;101;96;UBRVIOD;94;96;RBRVIOD;88;96;SBRVIOD;82;=
+96;XBRVIOD;75;96;YBRVIOD;69;96;VBRVIOD;62;96;WBRVIOD;56;96;LBRVIOD;50;96;MB=
+RVIOD;123;90;JBRVIOD;117;90;KBRVIOD;110;90;PBRVIOD;104;90;QBRVIOD;98;90;NBR=
+VIOD;91;90;OBRVIOD;85;90;DBRVIOD;78;90;EBRVIOD;72;90;BBRVIOD;66;90;CBRVIOD;=
+59;90;HBRVIOD;53;90;IBRVIOD;126;85;FBRVIOD;120;85;GBRVIOD;113;85;XVQVIOD;10=
+7;85;YVQVIOD;101;85;VVQVIOD;94;85;WVQVIOD;88;85;BWQVIOD;82;85;CWQVIOD;75;85=
+;ZVQVIOD;69;85;AWQVIOD;62;85;PVQVIOD;56;85;QVQVIOD;50;85;NVQVIOD;123;79;OVQ=
+VIOD;117;79;TVQVIOD;110;79;UVQVIOD;104;79;RVQVIOD;98;79;SVQVIOD;91;79;HVQVI=
+OD;85;79;IVQVIOD;78;79;FVQVIOD;72;79;GVQVIOD;66;79;LVQVIOD;59;79;MVQVIOD;53=
+;79;JVQVIOD;126;74;KVQVIOD;120;74;ZUQVIOD;114;74;AVQVIOD;107;74;XUQVIOD;101=
+;74;YUQVIOD;94;74;DVQVIOD;88;74;EVQVIOD;82;74;BVQVIOD;75;74;CVQVIOD;69;74;R=
+UQVIOD;62;74;SUQVIOD;56;74;PUQVIOD;50;74
+-	=
+
+-	--~ easyuotest		ABCDEFGHIJKLMNOPQRSTUVWXYZ
+-	if (1 =3D=3D 2) then
+-		if (1 =3D=3D 2) then -- iron?
+-		--~ 133     177     45      123     88      54      YUMPIOD 1097014756  =
+    0x41631de4      Y_U_M_P_I_O_D    0       1097014756
+-		--~ 137     177     49      123     88      54      XUMPIOD 1097014757  =
+    0x41631de5      X_U_M_P_I_O_D    1       1
+-		--~ 141     177     53      123     88      54      AVMPIOD 1097014758  =
+    0x41631de6      A_V_M_P_I_O_D    2       1
+-		--~ 145     177     57      123     88      54      ZUMPIOD 1097014759  =
+    0x41631de7      Z_U_M_P_I_O_D    3       1
+-
+-		--~ 149     177     61      123     88      54      KVMPIOD 1097014760  =
+    0x41631de8      K_V_M_P_I_O_D    4       1
+-		--~ 153     177     65      123     88      54      JVMPIOD 1097014761  =
+    0x41631de9      J_V_M_P_I_O_D    5       1
+-		--~ 156     177     68      123     88      54      MVMPIOD 1097014762  =
+    0x41631dea      M_V_M_P_I_O_D    6       1
+-		--~ 160     177     72      123     88      54      LVMPIOD 1097014763  =
+    0x41631deb      L_V_M_P_I_O_D    7       1
+-		--~ 164     177     76      123     88      54      GVMPIOD 1097014764  =
+    0x41631dec      G_V_M_P_I_O_D    8       1
+-		--~ 168     177     80      123     88      54      FVMPIOD 1097014765  =
+    0x41631ded      F_V_M_P_I_O_D    9       1
+-		--~ 172     177     84      123     88      54      IVMPIOD 1097014766  =
+    0x41631dee      I_V_M_P_I_O_D    10      1
+-		--~ 176     177     88      123     88      54      HVMPIOD 1097014767  =
+    0x41631def      H_V_M_P_I_O_D    11      1
+-		--~ 179     177     91      123     88      54      SVMPIOD 1097014768  =
+    0x41631df0      S_V_M_P_I_O_D    12      1
+-		--~ 183     177     95      123     88      54      RVMPIOD 1097014769  =
+    0x41631df1      R_V_M_P_I_O_D    13      1
+-		--~ 187     177     99      123     88      54      UVMPIOD 1097014770  =
+    0x41631df2      U_V_M_P_I_O_D    14      1
+-		--~ 191     177     103     123     88      54      TVMPIOD 1097014771  =
+    0x41631df3      T_V_M_P_I_O_D    15      1
+-		--~ 195     177     107     123     88      54      OVMPIOD 1097014772  =
+    0x41631df4      O_V_M_P_I_O_D    16      1
+-		--~ 199     177     111     123     88      54      NVMPIOD 1097014773  =
+    0x41631df5      N_V_M_P_I_O_D    17      1
+-		--~ 202     177     114     123     88      54      QVMPIOD 1097014774  =
+    0x41631df6      Q_V_M_P_I_O_D    18      1
+-		--~ 206     177     118     123     88      54      PVMPIOD 1097014775  =
+    0x41631df7      P_V_M_P_I_O_D    19      1
+-		end
+-		if (1 =3D=3D 2) then -- 30
+-		--~ 210     177     122     123     88      54      AWMPIOD 1097014776  =
+    0x41631df8      A_W_M_P_I_O_D    20      1
+-		--~ 214     177     126     123     88      54      ZVMPIOD 1097014777  =
+    0x41631df9      Z_V_M_P_I_O_D    21      1
+-		--~ 218     177     130     123     88      54      CWMPIOD 1097014778  =
+    0x41631dfa      C_W_M_P_I_O_D    22      1
+-		--~ 222     177     134     123     88      54      BWMPIOD 1097014779  =
+    0x41631dfb      B_W_M_P_I_O_D    23      1
+-		--~ 225     177     137     123     88      54      WVMPIOD 1097014780  =
+    0x41631dfc      W_V_M_P_I_O_D    24      1
+-		--~ 229     177     141     123     88      54      VVMPIOD 1097014781  =
+    0x41631dfd      V_V_M_P_I_O_D    25      1
+-		--~ 233     177     145     123     88      54      YVMPIOD 1097014782  =
+    0x41631dfe      Y_V_M_P_I_O_D    26      1
+-		--~ 237     177     149     123     88      54      XVMPIOD 1097014783  =
+    0x41631dff      X_V_M_P_I_O_D    27      1
+-		--~ 241     177     153     123     88      54      GBNPIOD 1097014784  =
+    0x41631e00      G_B_N_P_I_O_D N! 28      1
+-		--~ 242     177     157     123     85      54      FBNPIOD 1097014785  =
+    0x41631e01      F_B_N_P_I_O_D N! 29      1
+-		--~ 30      30
+-		end
+-		if (1 =3D=3D 2) then -- 45
+-		--~ 108     216     47      145     61      71      SUIRIOD 1097047070  =
+    0x41639c1e      18_20_08_17_08_14_03    0       1097047070
+-		--~ 111     216     50      145     61      71      RUIRIOD 1097047071  =
+    0x41639c1f      17_20_08_17_08_14_03    1       1
+-		--~ 113     216     52      145     61      71      CVIRIOD 1097047072  =
+    0x41639c20      02_21_08_17_08_14_03    2       1
+-		--~ 116     216     55      145     61      71      BVIRIOD 1097047073  =
+    0x41639c21      01_21_08_17_08_14_03    3       1
+-		--~ 118     216     57      145     61      71      EVIRIOD 1097047074  =
+    0x41639c22      04_21_08_17_08_14_03    4       1
+-		--~ 121     216     60      145     61      71      DVIRIOD 1097047075  =
+    0x41639c23      03_21_08_17_08_14_03    5       1
+-		--~ 123     216     62      145     61      71      YUIRIOD 1097047076  =
+    0x41639c24      24_20_08_17_08_14_03    6       1
+-		--~ 126     216     65      145     61      71      XUIRIOD 1097047077  =
+    0x41639c25      23_20_08_17_08_14_03    7       1
+-		--~ 128     216     67      145     61      71      AVIRIOD 1097047078  =
+    0x41639c26      00_21_08_17_08_14_03    8       1
+-		--~ 131     216     70      145     61      71      ZUIRIOD 1097047079  =
+    0x41639c27      25_20_08_17_08_14_03    9       1
+-		--~ 133     216     72      145     61      71      KVIRIOD 1097047080  =
+    0x41639c28      10_21_08_17_08_14_03    10      1
+-		--~ 136     216     75      145     61      71      JVIRIOD 1097047081  =
+    0x41639c29      09_21_08_17_08_14_03    11      1
+-		--~ 138     216     77      145     61      71      MVIRIOD 1097047082  =
+    0x41639c2a      12_21_08_17_08_14_03    12      1
+-		--~ 141     216     80      145     61      71      LVIRIOD 1097047083  =
+    0x41639c2b      11_21_08_17_08_14_03    13      1
+-		--~ 144     216     83      145     61      71      GVIRIOD 1097047084  =
+    0x41639c2c      06_21_08_17_08_14_03    14      1
+-		--~ 146     216     85      145     61      71      FVIRIOD 1097047085  =
+    0x41639c2d      05_21_08_17_08_14_03    15      1
+-		--~ 149     216     88      145     61      71      IVIRIOD 1097047086  =
+    0x41639c2e      08_21_08_17_08_14_03    16      1
+-		--~ 151     216     90      145     61      71      HVIRIOD 1097047087  =
+    0x41639c2f      07_21_08_17_08_14_03    17      1
+-		--~ 154     216     93      145     61      71      SVIRIOD 1097047088  =
+    0x41639c30      18_21_08_17_08_14_03    18      1
+-		--~ 156     216     95      145     61      71      RVIRIOD 1097047089  =
+    0x41639c31      17_21_08_17_08_14_03    19      1
+-		--~ 159     216     98      145     61      71      UVIRIOD 1097047090  =
+    0x41639c32      20_21_08_17_08_14_03    20      1
+-		--~ 161     216     100     145     61      71      TVIRIOD 1097047091  =
+    0x41639c33      19_21_08_17_08_14_03    21      1
+-		--~ 164     216     103     145     61      71      OVIRIOD 1097047092  =
+    0x41639c34      14_21_08_17_08_14_03    22      1
+-		--~ 166     216     105     145     61      71      NVIRIOD 1097047093  =
+    0x41639c35      13_21_08_17_08_14_03    23      1
+-		--~ 169     216     108     145     61      71      QVIRIOD 1097047094  =
+    0x41639c36      16_21_08_17_08_14_03    24      1
+-		--~ 171     216     110     145     61      71      PVIRIOD 1097047095  =
+    0x41639c37      15_21_08_17_08_14_03    25      1
+-		--~ 174     216     113     145     61      71      AWIRIOD 1097047096  =
+    0x41639c38      00_22_08_17_08_14_03    26      1
+-		--~ 176     216     115     145     61      71      ZVIRIOD 1097047097  =
+    0x41639c39      25_21_08_17_08_14_03    27      1
+-		--~ 179     216     118     145     61      71      CWIRIOD 1097047098  =
+    0x41639c3a      02_22_08_17_08_14_03    28      1
+-		--~ 182     216     121     145     61      71      BWIRIOD 1097047099  =
+    0x41639c3b      01_22_08_17_08_14_03    29      1
+-		--~ 184     216     123     145     61      71      WVIRIOD 1097047100  =
+    0x41639c3c      22_21_08_17_08_14_03    30      1
+-		--~ 187     216     126     145     61      71      VVIRIOD 1097047101  =
+    0x41639c3d      21_21_08_17_08_14_03    31      1
+-		--~ 189     216     128     145     61      71      YVIRIOD 1097047102  =
+    0x41639c3e      24_21_08_17_08_14_03    32      1
+-		--~ 192     216     131     145     61      71      XVIRIOD 1097047103  =
+    0x41639c3f      23_21_08_17_08_14_03    33      1
+-		--~ 194     216     133     145     61      71      KRIRIOD 1097047104  =
+    0x41639c40      10_17_08_17_08_14_03    34      1
+-		--~ 197     216     136     145     61      71      JRIRIOD 1097047105  =
+    0x41639c41      09_17_08_17_08_14_03    35      1
+-		--~ 199     216     138     145     61      71      MRIRIOD 1097047106  =
+    0x41639c42      12_17_08_17_08_14_03    36      1
+-		--~ 202     216     141     145     61      71      LRIRIOD 1097047107  =
+    0x41639c43      11_17_08_17_08_14_03    37      1
+-		--~ 204     216     143     145     61      71      GRIRIOD 1097047108  =
+    0x41639c44      06_17_08_17_08_14_03    38      1
+-		--~ 207     216     146     145     61      71      FRIRIOD 1097047109  =
+    0x41639c45      05_17_08_17_08_14_03    39      1
+-		--~ 209     216     148     145     61      71      IRIRIOD 1097047110  =
+    0x41639c46      08_17_08_17_08_14_03    40      1
+-		--~ 212     216     151     145     61      71      HRIRIOD 1097047111  =
+    0x41639c47      07_17_08_17_08_14_03    41      1
+-		--~ 214     216     153     145     61      71      SRIRIOD 1097047112  =
+    0x41639c48      18_17_08_17_08_14_03    42      1
+-		--45?
+-		end
+-		if (1 =3D=3D 2) then -- 67
+-		--~ 130     178     50      74      80      104     IKDTIOD 1097078572  =
+    0x4164172c      08_10_03_19_08_14_03    0       1097078572
+-		--~ 134     178     54      74      80      104     HKDTIOD 1097078573  =
+    0x4164172d      07_10_03_19_08_14_03    1       1
+-		--~ 139     178     59      74      80      104     KKDTIOD 1097078574  =
+    0x4164172e      10_10_03_19_08_14_03    2       1
+-		--~ 144     178     64      74      80      104     JKDTIOD 1097078575  =
+    0x4164172f      09_10_03_19_08_14_03    3       1
+-		--~ 149     178     69      74      80      104     UKDTIOD 1097078576  =
+    0x41641730      20_10_03_19_08_14_03    4       1
+-		--~ 153     178     73      74      80      104     TKDTIOD 1097078577  =
+    0x41641731      19_10_03_19_08_14_03    5       1
+-		--~ 158     178     78      74      80      104     WKDTIOD 1097078578  =
+    0x41641732      22_10_03_19_08_14_03    6       1
+-		--~ 163     178     83      74      80      104     VKDTIOD 1097078579  =
+    0x41641733      21_10_03_19_08_14_03    7       1
+-		--~ 168     178     88      74      80      104     QKDTIOD 1097078580  =
+    0x41641734      16_10_03_19_08_14_03    8       1
+-		--~ 172     178     92      74      80      104     PKDTIOD 1097078581  =
+    0x41641735      15_10_03_19_08_14_03    9       1
+-		--~ 177     178     97      74      80      104     SKDTIOD 1097078582  =
+    0x41641736      18_10_03_19_08_14_03    10      1
+-		--~ 182     178     102     74      80      104     RKDTIOD 1097078583  =
+    0x41641737      17_10_03_19_08_14_03    11      1
+-		--~ 187     178     107     74      80      104     CLDTIOD 1097078584  =
+    0x41641738      02_11_03_19_08_14_03    12      1
+-		--~ 192     178     112     74      80      104     BLDTIOD 1097078585  =
+    0x41641739      01_11_03_19_08_14_03    13      1
+-		--~ 196     178     116     74      80      104     ELDTIOD 1097078586  =
+    0x4164173a      04_11_03_19_08_14_03    14      1
+-		--~ 201     178     121     74      80      104     DLDTIOD 1097078587  =
+    0x4164173b      03_11_03_19_08_14_03    15      1
+-		--~ 206     178     126     74      80      104     YKDTIOD 1097078588  =
+    0x4164173c      24_10_03_19_08_14_03    16      1
+-		--~ 131     189     51      85      80      104     XKDTIOD 1097078589  =
+    0x4164173d      23_10_03_19_08_14_03    17      1
+-		--~ 135     189     55      85      80      104     ALDTIOD 1097078590  =
+    0x4164173e      00_11_03_19_08_14_03    18      1
+-		--~ 140     189     60      85      80      104     ZKDTIOD 1097078591  =
+    0x4164173f      25_10_03_19_08_14_03    19      1
+-		--~ 145     189     65      85      80      104     MGDTIOD 1097078592  =
+    0x41641740      12_06_03_19_08_14_03    20      1
+-		--~ 150     189     70      85      80      104     LGDTIOD 1097078593  =
+    0x41641741      11_06_03_19_08_14_03    21      1
+-		--~ 155     189     75      85      80      104     OGDTIOD 1097078594  =
+    0x41641742      14_06_03_19_08_14_03    22      1
+-		--~ 159     189     79      85      80      104     NGDTIOD 1097078595  =
+    0x41641743      13_06_03_19_08_14_03    23      1
+-		--~ 164     189     84      85      80      104     IGDTIOD 1097078596  =
+    0x41641744      08_06_03_19_08_14_03    24      1
+-		--~ 169     189     89      85      80      104     HGDTIOD 1097078597  =
+    0x41641745      07_06_03_19_08_14_03    25      1
+-		--~ 174     189     94      85      80      104     KGDTIOD 1097078598  =
+    0x41641746      10_06_03_19_08_14_03    26      1
+-		--~ 178     189     98      85      80      104     JGDTIOD 1097078599  =
+    0x41641747      09_06_03_19_08_14_03    27      1
+-		--~ 183     189     103     85      80      104     UGDTIOD 1097078600  =
+    0x41641748      20_06_03_19_08_14_03    28      1
+-		--~ 188     189     108     85      80      104     TGDTIOD 1097078601  =
+    0x41641749      19_06_03_19_08_14_03    29      1
+-		--~ 193     189     113     85      80      104     WGDTIOD 1097078602  =
+    0x4164174a      22_06_03_19_08_14_03    30      1
+-		--~ 198     189     118     85      80      104     VGDTIOD 1097078603  =
+    0x4164174b      21_06_03_19_08_14_03    31      1
+-		--~ 202     189     122     85      80      104     QGDTIOD 1097078604  =
+    0x4164174c      16_06_03_19_08_14_03    32      1
+-		--~ 207     189     127     85      80      104     PGDTIOD 1097078605  =
+    0x4164174d      15_06_03_19_08_14_03    33      1
+-		--~ 132     200     52      96      80      104     SGDTIOD 1097078606  =
+    0x4164174e      18_06_03_19_08_14_03    34      1
+-		--~ 137     200     57      96      80      104     RGDTIOD 1097078607  =
+    0x4164174f      17_06_03_19_08_14_03    35      1
+-		--~ 141     200     61      96      80      104     CHDTIOD 1097078608  =
+    0x41641750      02_07_03_19_08_14_03    36      1
+-		--~ 146     200     66      96      80      104     BHDTIOD 1097078609  =
+    0x41641751      01_07_03_19_08_14_03    37      1
+-		--~ 151     200     71      96      80      104     EHDTIOD 1097078610  =
+    0x41641752      04_07_03_19_08_14_03    38      1
+-		--~ 156     200     76      96      80      104     DHDTIOD 1097078611  =
+    0x41641753      03_07_03_19_08_14_03    39      1
+-		--~ 161     200     81      96      80      104     YGDTIOD 1097078612  =
+    0x41641754      24_06_03_19_08_14_03    40      1
+-		--~ 165     200     85      96      80      104     XGDTIOD 1097078613  =
+    0x41641755      23_06_03_19_08_14_03    41      1
+-		--~ 170     200     90      96      80      104     AHDTIOD 1097078614  =
+    0x41641756      00_07_03_19_08_14_03    42      1
+-		--~ 175     200     95      96      80      104     ZGDTIOD 1097078615  =
+    0x41641757      25_06_03_19_08_14_03    43      1
+-		--~ 180     200     100     96      80      104     KHDTIOD 1097078616  =
+    0x41641758      10_07_03_19_08_14_03    44      1
+-		--~ 184     200     104     96      80      104     JHDTIOD 1097078617  =
+    0x41641759      09_07_03_19_08_14_03    45      1
+-		--~ 189     200     109     96      80      104     MHDTIOD 1097078618  =
+    0x4164175a      12_07_03_19_08_14_03    46      1
+-		--~ 194     200     114     96      80      104     LHDTIOD 1097078619  =
+    0x4164175b      11_07_03_19_08_14_03    47      1
+-		--~ 199     200     119     96      80      104     GHDTIOD 1097078620  =
+    0x4164175c      06_07_03_19_08_14_03    48      1
+-		--~ 204     200     124     96      80      104     FHDTIOD 1097078621  =
+    0x4164175d      05_07_03_19_08_14_03    49      1
+-		--~ 208     200     128     96      80      104     IHDTIOD 1097078622  =
+    0x4164175e      08_07_03_19_08_14_03    50      1
+-		--~ 133     211     53      107     80      104     HHDTIOD 1097078623  =
+    0x4164175f      07_07_03_19_08_14_03    51      1
+-		--~ 138     211     58      107     80      104     SHDTIOD 1097078624  =
+    0x41641760      18_07_03_19_08_14_03    52      1
+-		--~ 143     211     63      107     80      104     RHDTIOD 1097078625  =
+    0x41641761      17_07_03_19_08_14_03    53      1
+-		--~ 147     211     67      107     80      104     UHDTIOD 1097078626  =
+    0x41641762      20_07_03_19_08_14_03    54      1
+-		--~ 152     211     72      107     80      104     THDTIOD 1097078627  =
+    0x41641763      19_07_03_19_08_14_03    55      1
+-		--~ 157     211     77      107     80      104     OHDTIOD 1097078628  =
+    0x41641764      14_07_03_19_08_14_03    56      1
+-		--~ 162     211     82      107     80      104     NHDTIOD 1097078629  =
+    0x41641765      13_07_03_19_08_14_03    57      1
+-		--~ 167     211     87      107     80      104     QHDTIOD 1097078630  =
+    0x41641766      16_07_03_19_08_14_03    58      1
+-		--~ 171     211     91      107     80      104     PHDTIOD 1097078631  =
+    0x41641767      15_07_03_19_08_14_03    59      1
+-		--~ 176     211     96      107     80      104     AIDTIOD 1097078632  =
+    0x41641768      00_08_03_19_08_14_03    60      1
+-		--~ 181     211     101     107     80      104     ZHDTIOD 1097078633  =
+    0x41641769      25_07_03_19_08_14_03    61      1
+-		--~ 186     211     106     107     80      104     CIDTIOD 1097078634  =
+    0x4164176a      02_08_03_19_08_14_03    62      1
+-		--~ 190     211     110     107     80      104     BIDTIOD 1097078635  =
+    0x4164176b      01_08_03_19_08_14_03    63      1
+-		--~ 195     211     115     107     80      104     WHDTIOD 1097078636  =
+    0x4164176c      22_07_03_19_08_14_03    64      1
+-		--~ 200     211     120     107     80      104     VHDTIOD 1097078637  =
+    0x4164176d      21_07_03_19_08_14_03    65      1
+-		--~ 205     211     125     107     80      104     YHDTIOD 1097078638  =
+    0x4164176e      24_07_03_19_08_14_03    66      1
+-		--~ 67      67
+-		end
+-		if (1 =3D=3D 2) then -- 100 num
+-		--~ 92      235     50      74      42      161     PUQVIOD 1097122909  =
+    0x4164c45d      15_20_16_21_08_14_03    0       1097122909
+-		--~ 98      235     56      74      42      161     SUQVIOD 1097122910  =
+    0x4164c45e      18_20_16_21_08_14_03    1       1
+-		--~ 104     235     62      74      42      161     RUQVIOD 1097122911  =
+    0x4164c45f      17_20_16_21_08_14_03    2       1
+-		--~ 111     235     69      74      42      161     CVQVIOD 1097122912  =
+    0x4164c460      02_21_16_21_08_14_03    3       1
+-		--~ 117     235     75      74      42      161     BVQVIOD 1097122913  =
+    0x4164c461      01_21_16_21_08_14_03    4       1
+-		--~ 124     235     82      74      42      161     EVQVIOD 1097122914  =
+    0x4164c462      04_21_16_21_08_14_03    5       1
+-		--~ 130     235     88      74      42      161     DVQVIOD 1097122915  =
+    0x4164c463      03_21_16_21_08_14_03    6       1
+-		--~ 136     235     94      74      42      161     YUQVIOD 1097122916  =
+    0x4164c464      24_20_16_21_08_14_03    7       1
+-		--~ 143     235     101     74      42      161     XUQVIOD 1097122917  =
+    0x4164c465      23_20_16_21_08_14_03    8       1
+-		--~ 149     235     107     74      42      161     AVQVIOD 1097122918  =
+    0x4164c466      00_21_16_21_08_14_03    9       1
+-		--~ 156     235     114     74      42      161     ZUQVIOD 1097122919  =
+    0x4164c467      25_20_16_21_08_14_03    10      1
+-		--~ 162     235     120     74      42      161     KVQVIOD 1097122920  =
+    0x4164c468      10_21_16_21_08_14_03    11      1
+-		--~ 168     235     126     74      42      161     JVQVIOD 1097122921  =
+    0x4164c469      09_21_16_21_08_14_03    12      1
+-		--~ 95      240     53      79      42      161     MVQVIOD 1097122922  =
+    0x4164c46a      12_21_16_21_08_14_03    13      1
+-		--~ 101     240     59      79      42      161     LVQVIOD 1097122923  =
+    0x4164c46b      11_21_16_21_08_14_03    14      1
+-		--~ 108     240     66      79      42      161     GVQVIOD 1097122924  =
+    0x4164c46c      06_21_16_21_08_14_03    15      1
+-		--~ 114     240     72      79      42      161     FVQVIOD 1097122925  =
+    0x4164c46d      05_21_16_21_08_14_03    16      1
+-		--~ 120     240     78      79      42      161     IVQVIOD 1097122926  =
+    0x4164c46e      08_21_16_21_08_14_03    17      1
+-		--~ 127     240     85      79      42      161     HVQVIOD 1097122927  =
+    0x4164c46f      07_21_16_21_08_14_03    18      1
+-		--~ 133     240     91      79      42      161     SVQVIOD 1097122928  =
+    0x4164c470      18_21_16_21_08_14_03    19      1
+-		--~ 140     240     98      79      42      161     RVQVIOD 1097122929  =
+    0x4164c471      17_21_16_21_08_14_03    20      1
+-		--~ 146     240     104     79      42      161     UVQVIOD 1097122930  =
+    0x4164c472      20_21_16_21_08_14_03    21      1
+-		--~ 152     240     110     79      42      161     TVQVIOD 1097122931  =
+    0x4164c473      19_21_16_21_08_14_03    22      1
+-		--~ 159     240     117     79      42      161     OVQVIOD 1097122932  =
+    0x4164c474      14_21_16_21_08_14_03    23      1
+-		--~ 165     240     123     79      42      161     NVQVIOD 1097122933  =
+    0x4164c475      13_21_16_21_08_14_03    24      1
+-		--~ 92      246     50      85      42      161     QVQVIOD 1097122934  =
+    0x4164c476      16_21_16_21_08_14_03    25      1
+-		--~ 98      246     56      85      42      161     PVQVIOD 1097122935  =
+    0x4164c477      15_21_16_21_08_14_03    26      1
+-		--~ 104     246     62      85      42      161     AWQVIOD 1097122936  =
+    0x4164c478      00_22_16_21_08_14_03    27      1
+-		--~ 111     246     69      85      42      161     ZVQVIOD 1097122937  =
+    0x4164c479      25_21_16_21_08_14_03    28      1
+-		--~ 117     246     75      85      42      161     CWQVIOD 1097122938  =
+    0x4164c47a      02_22_16_21_08_14_03    29      1
+-		--~ 124     246     82      85      42      161     BWQVIOD 1097122939  =
+    0x4164c47b      01_22_16_21_08_14_03    30      1
+-		--~ 130     246     88      85      42      161     WVQVIOD 1097122940  =
+    0x4164c47c      22_21_16_21_08_14_03    31      1
+-		--~ 136     246     94      85      42      161     VVQVIOD 1097122941  =
+    0x4164c47d      21_21_16_21_08_14_03    32      1
+-		--~ 143     246     101     85      42      161     YVQVIOD 1097122942  =
+    0x4164c47e      24_21_16_21_08_14_03    33      1
+-		--~ 149     246     107     85      42      161     XVQVIOD 1097122943  =
+    0x4164c47f      23_21_16_21_08_14_03    34      1
+-		--~ 155     246     113     85      42      161     GBRVIOD 1097122944  =
+    0x4164c480      06_01_17_21_08_14_03    35      1
+-		--~ 162     246     120     85      42      161     FBRVIOD 1097122945  =
+    0x4164c481      05_01_17_21_08_14_03    36      1
+-		--~ 168     246     126     85      42      161     IBRVIOD 1097122946  =
+    0x4164c482      08_01_17_21_08_14_03    37      1
+-		--~ 95      251     53      90      42      161     HBRVIOD 1097122947  =
+    0x4164c483      07_01_17_21_08_14_03    38      1
+-		--~ 101     251     59      90      42      161     CBRVIOD 1097122948  =
+    0x4164c484      02_01_17_21_08_14_03    39      1
+-		--~ 108     251     66      90      42      161     BBRVIOD 1097122949  =
+    0x4164c485      01_01_17_21_08_14_03    40      1
+-		--~ 114     251     72      90      42      161     EBRVIOD 1097122950  =
+    0x4164c486      04_01_17_21_08_14_03    41      1
+-		--~ 120     251     78      90      42      161     DBRVIOD 1097122951  =
+    0x4164c487      03_01_17_21_08_14_03    42      1
+-		--~ 127     251     85      90      42      161     OBRVIOD 1097122952  =
+    0x4164c488      14_01_17_21_08_14_03    43      1
+-		--~ 133     251     91      90      42      161     NBRVIOD 1097122953  =
+    0x4164c489      13_01_17_21_08_14_03    44      1
+-		--~ 140     251     98      90      42      161     QBRVIOD 1097122954  =
+    0x4164c48a      16_01_17_21_08_14_03    45      1
+-		--~ 146     251     104     90      42      161     PBRVIOD 1097122955  =
+    0x4164c48b      15_01_17_21_08_14_03    46      1
+-		--~ 152     251     110     90      42      161     KBRVIOD 1097122956  =
+    0x4164c48c      10_01_17_21_08_14_03    47      1
+-		--~ 159     251     117     90      42      161     JBRVIOD 1097122957  =
+    0x4164c48d      09_01_17_21_08_14_03    48      1
+-		--~ 165     251     123     90      42      161     MBRVIOD 1097122958  =
+    0x4164c48e      12_01_17_21_08_14_03    49      1
+-		--~ 92      257     50      96      42      161     LBRVIOD 1097122959  =
+    0x4164c48f      11_01_17_21_08_14_03    50      1
+-		--~ 98      257     56      96      42      161     WBRVIOD 1097122960  =
+    0x4164c490      22_01_17_21_08_14_03    51      1
+-		--~ 104     257     62      96      42      161     VBRVIOD 1097122961  =
+    0x4164c491      21_01_17_21_08_14_03    52      1
+-		--~ 111     257     69      96      42      161     YBRVIOD 1097122962  =
+    0x4164c492      24_01_17_21_08_14_03    53      1
+-		--~ 117     257     75      96      42      161     XBRVIOD 1097122963  =
+    0x4164c493      23_01_17_21_08_14_03    54      1
+-		--~ 124     257     82      96      42      161     SBRVIOD 1097122964  =
+    0x4164c494      18_01_17_21_08_14_03    55      1
+-		--~ 130     257     88      96      42      161     RBRVIOD 1097122965  =
+    0x4164c495      17_01_17_21_08_14_03    56      1
+-		--~ 136     257     94      96      42      161     UBRVIOD 1097122966  =
+    0x4164c496      20_01_17_21_08_14_03    57      1
+-		--~ 143     257     101     96      42      161     TBRVIOD 1097122967  =
+    0x4164c497      19_01_17_21_08_14_03    58      1
+-		--~ 149     257     107     96      42      161     ECRVIOD 1097122968  =
+    0x4164c498      04_02_17_21_08_14_03    59      1
+-		--~ 155     257     113     96      42      161     DCRVIOD 1097122969  =
+    0x4164c499      03_02_17_21_08_14_03    60      1
+-		--~ 162     257     120     96      42      161     GCRVIOD 1097122970  =
+    0x4164c49a      06_02_17_21_08_14_03    61      1
+-		--~ 168     257     126     96      42      161     FCRVIOD 1097122971  =
+    0x4164c49b      05_02_17_21_08_14_03    62      1
+-		--~ 95      263     53      102     42      161     ACRVIOD 1097122972  =
+    0x4164c49c      00_02_17_21_08_14_03    63      1
+-		--~ 101     263     59      102     42      161     ZBRVIOD 1097122973  =
+    0x4164c49d      25_01_17_21_08_14_03    64      1
+-		--~ 108     263     66      102     42      161     CCRVIOD 1097122974  =
+    0x4164c49e      02_02_17_21_08_14_03    65      1
+-		--~ 114     263     72      102     42      161     BCRVIOD 1097122975  =
+    0x4164c49f      01_02_17_21_08_14_03    66      1
+-		--~ 120     263     78      102     42      161     MCRVIOD 1097122976  =
+    0x4164c4a0      12_02_17_21_08_14_03    67      1
+-		--~ 127     263     85      102     42      161     LCRVIOD 1097122977  =
+    0x4164c4a1      11_02_17_21_08_14_03    68      1
+-		--~ 133     263     91      102     42      161     OCRVIOD 1097122978  =
+    0x4164c4a2      14_02_17_21_08_14_03    69      1
+-		--~ 139     263     97      102     42      161     NCRVIOD 1097122979  =
+    0x4164c4a3      13_02_17_21_08_14_03    70      1
+-		--~ 146     263     104     102     42      161     ICRVIOD 1097122980  =
+    0x4164c4a4      08_02_17_21_08_14_03    71      1
+-		--~ 152     263     110     102     42      161     HCRVIOD 1097122981  =
+    0x4164c4a5      07_02_17_21_08_14_03    72      1
+-		--~ 159     263     117     102     42      161     KCRVIOD 1097122982  =
+    0x4164c4a6      10_02_17_21_08_14_03    73      1
+-		--~ 165     263     123     102     42      161     JCRVIOD 1097122983  =
+    0x4164c4a7      09_02_17_21_08_14_03    74      1
+-		--~ 92      268     50      107     42      161     UCRVIOD 1097122984  =
+    0x4164c4a8      20_02_17_21_08_14_03    75      1
+-		--~ 98      268     56      107     42      161     TCRVIOD 1097122985  =
+    0x4164c4a9      19_02_17_21_08_14_03    76      1
+-		--~ 104     268     62      107     42      161     WCRVIOD 1097122986  =
+    0x4164c4aa      22_02_17_21_08_14_03    77      1
+-		--~ 111     268     69      107     42      161     VCRVIOD 1097122987  =
+    0x4164c4ab      21_02_17_21_08_14_03    78      1
+-		--~ 117     268     75      107     42      161     QCRVIOD 1097122988  =
+    0x4164c4ac      16_02_17_21_08_14_03    79      1
+-		--~ 124     268     82      107     42      161     PCRVIOD 1097122989  =
+    0x4164c4ad      15_02_17_21_08_14_03    80      1
+-		--~ 130     268     88      107     42      161     SCRVIOD 1097122990  =
+    0x4164c4ae      18_02_17_21_08_14_03    81      1
+-		--~ 136     268     94      107     42      161     RCRVIOD 1097122991  =
+    0x4164c4af      17_02_17_21_08_14_03    82      1
+-		--~ 143     268     101     107     42      161     CDRVIOD 1097122992  =
+    0x4164c4b0      02_03_17_21_08_14_03    83      1
+-		--~ 149     268     107     107     42      161     BDRVIOD 1097122993  =
+    0x4164c4b1      01_03_17_21_08_14_03    84      1
+-		--~ 155     268     113     107     42      161     EDRVIOD 1097122994  =
+    0x4164c4b2      04_03_17_21_08_14_03    85      1
+-		--~ 162     268     120     107     42      161     DDRVIOD 1097122995  =
+    0x4164c4b3      03_03_17_21_08_14_03    86      1
+-		--~ 168     268     126     107     42      161     YCRVIOD 1097122996  =
+    0x4164c4b4      24_02_17_21_08_14_03    87      1
+-		--~ 95      274     53      113     42      161     XCRVIOD 1097122997  =
+    0x4164c4b5      23_02_17_21_08_14_03    88      1
+-		--~ 101     274     59      113     42      161     ADRVIOD 1097122998  =
+    0x4164c4b6      00_03_17_21_08_14_03    89      1
+-		--~ 108     274     66      113     42      161     ZCRVIOD 1097122999  =
+    0x4164c4b7      25_02_17_21_08_14_03    90      1
+-		--~ 114     274     72      113     42      161     KDRVIOD 1097123000  =
+    0x4164c4b8      10_03_17_21_08_14_03    91      1
+-		--~ 120     274     78      113     42      161     JDRVIOD 1097123001  =
+    0x4164c4b9      09_03_17_21_08_14_03    92      1
+-		--~ 127     274     85      113     42      161     MDRVIOD 1097123002  =
+    0x4164c4ba      12_03_17_21_08_14_03    93      1
+-		--~ 133     274     91      113     42      161     LDRVIOD 1097123003  =
+    0x4164c4bb      11_03_17_21_08_14_03    94      1
+-		--~ 139     274     97      113     42      161     GDRVIOD 1097123004  =
+    0x4164c4bc      06_03_17_21_08_14_03    95      1
+-		--~ 146     274     104     113     42      161     FDRVIOD 1097123005  =
+    0x4164c4bd      05_03_17_21_08_14_03    96      1
+-		--~ 152     274     110     113     42      161     IDRVIOD 1097123006  =
+    0x4164c4be      08_03_17_21_08_14_03    97      1
+-		--~ 159     274     117     113     42      161     HDRVIOD 1097123007  =
+    0x4164c4bf      07_03_17_21_08_14_03    98      1
+-		--~ 165     274     123     113     42      161     UYQVIOD 1097123008  =
+    0x4164c4c0      20_24_16_21_08_14_03    99      1
+-		--~ 100     100
+-		end
+-		if (1 =3D=3D 2) then -- 100 bit
+-			--[[
+-			       =
+
+-12      162     235     120     74      42      161     KVQVIOD 1097122920=
+      0x4164c468      01000   01000_11101_10110_11101_01110_00100_00011    =
+   11      1097122920
+-13      168     235     126     74      42      161     JVQVIOD 1097122921=
+      0x4164c469      01001   01001_11101_10110_11101_01110_00100_00011    =
+   12      1
+-14      95      240     53      79      42      161     MVQVIOD 1097122922=
+      0x4164c46a      01010   01010_11101_10110_11101_01110_00100_00011    =
+   13      1
+-15      101     240     59      79      42      161     LVQVIOD 1097122923=
+      0x4164c46b      01011   01011_11101_10110_11101_01110_00100_00011    =
+   14      1
+-16      108     240     66      79      42      161     GVQVIOD 1097122924=
+      0x4164c46c      01100   01100_11101_10110_11101_01110_00100_00011    =
+   15      1
+-17      114     240     72      79      42      161     FVQVIOD 1097122925=
+      0x4164c46d      01101   01101_11101_10110_11101_01110_00100_00011    =
+   16      1
+-18      120     240     78      79      42      161     IVQVIOD 1097122926=
+      0x4164c46e      01110   01110_11101_10110_11101_01110_00100_00011    =
+   17      1
+-19      127     240     85      79      42      161     HVQVIOD 1097122927=
+      0x4164c46f      01111   01111_11101_10110_11101_01110_00100_00011    =
+   18      1
+-20      133     240     91      79      42      161     SVQVIOD 1097122928=
+      0x4164c470      10000   10000_11101_10110_11101_01110_00100_00011    =
+   19      1
+-21      140     240     98      79      42      161     RVQVIOD 1097122929=
+      0x4164c471      10001   10001_11101_10110_11101_01110_00100_00011    =
+   20      1
+-22      146     240     104     79      42      161     UVQVIOD 1097122930=
+      0x4164c472      10010   10010_11101_10110_11101_01110_00100_00011    =
+   21      1
+-23      152     240     110     79      42      161     TVQVIOD 1097122931=
+      0x4164c473      10011   10011_11101_10110_11101_01110_00100_00011    =
+   22      1
+-24      159     240     117     79      42      161     OVQVIOD 1097122932=
+      0x4164c474      10100   00100_11101_10110_11101_01110_00100_00011    =
+   23      1
+-25      165     240     123     79      42      161     NVQVIOD 1097122933=
+      0x4164c475      10101   00101_11101_10110_11101_01110_00100_00011    =
+   24      1
+-26      92      246     50      85      42      161     QVQVIOD 1097122934=
+      0x4164c476      10110   10110_11101_10110_11101_01110_00100_00011    =
+   25      1
+-27      98      246     56      85      42      161     PVQVIOD 1097122935=
+      0x4164c477      10111   00111_11101_10110_11101_01110_00100_00011    =
+   26      1
+-
+-			=
+
+-			]]--
+-		end
+-	end
+-
+-
+-	print(&quot;easyuotest&quot;)
+-	local oe =3D {}
+-	local oi =3D {}
+-	local function mycmp (a,b) if (a.y ~=3D b.y) then return a.y &lt; b.y end re=
+turn a.x &lt; b.x end
+-	for id,x,y in string.gmatch(txte,&quot;;([^;]+);([^;]+);([^;]+)&quot;) do table.ins=
+ert(oe,{id=3Did,x=3Dtonumber(x),y=3Dtonumber(y)}) end table.sort(oe,mycmp)
+-	for id,x,y in string.gmatch(txti,&quot;;([^;]+);([^;]+);([^;]+)&quot;) do table.ins=
+ert(oi,{id=3Did,x=3Dtonumber(x),y=3Dtonumber(y)}) end table.sort(oi,mycmp)
+-	--~ for k,v in ipairs(oe) do print(v.id,v.x,v.y) end
+-	--~ for k,v in ipairs(oi) do print(v.id,v.x,v.y) end
+-	local last =3D 0
+-	=
+
+-	local mytrans =3D {
+-		A=3D0,
+-		B=3D1,
+-		C=3D2,
+-		D=3D3,
+-		E=3D4,
+-		F=3D5,
+-		G=3D6,
+-		H=3D7,
+-		I=3D8,
+-		J=3D9,
+-		K=3D10,
+-		L=3D11,
+-		M=3D12,
+-		N=3D13,
+-		O=3D14,
+-		P=3D15,
+-		Q=3D16,
+-		R=3D17,
+-		S=3D18,
+-		T=3D19,
+-		U=3D20,
+-		V=3D21,
+-		W=3D22,
+-		X=3D23,
+-		Y=3D24,
+-		Z=3D25,
+-	}
+-	local function mynot (a) return (a =3D=3D 1) and 0 or 1 end
+-	local function mywrap (a) return math.mod(a,2) end -- 0=3D0 1=3D1 2=3D0 ,=
+  xor(a,b) =3D wrap(a+b)
+-	local function myand (a,b) return (a =3D=3D 1 and b =3D=3D 1) and 1 or 0 =
+end
+-	local function myxor (a,b) return (a =3D=3D b) and 0 or 1 end
+-	local function mybit (val,i) return mod(floor(val/math.pow(2,i)),2) end
+-	--~ for t=3D0,32 do print(t,table.concat({mybit(t,4),mybit(t,3),mybit(t,2=
+),mybit(t,1),mybit(t,0)},&quot;&quot;)) end os.exit(0)
+-	=
+
+-	function EID_Split (easyuoid) =
+
+-		local res =3D {}
+-		local len =3D #easyuoid
+-		for i=3D1,len do =
+
+-			local char =3D string.sub(easyuoid,i,i)
+-			local t =3D mytrans[char]
+-			local e,d,c,b,a =3D mybit(t,4),mybit(t,3),mybit(t,2),mybit(t,1),mybit(t=
+,0)
+-			--~ table.insert(res,table.concat({e,d,c,mynot(myxor(b,a)),a},&quot;&quot;))
+-			local b2 =3D mynot(myxor(b,a))
+-			local c2 =3D myxor(c,myand(b2,mynot(a))) -- bit3 : inverted if bits:21 =
+=3D 10
+-			local d2 =3D myxor(myxor(d,myand(myand(c2,b2),mynot(a))),c2) -- bit4 in=
+verted if bits 321=3D110
+-			table.insert(res,table.concat({e,d2,c2,b2,a},&quot;&quot;))
+-		end
+-		return table.concat(res,&quot;_&quot;)
+-	end
+-	local firstiid =3D oi[1].id
+-	for k,v in ipairs(oe) do
+-		if (k &gt;=3D 12 and k &lt;=3D 27) then =
+
+-			local e,i =3D v,oi[k]
+-			local id =3D i.id
+-			print(k,e.x,e.y,i.x,i.y,e.x-i.x,e.y-i.y,e.id,i.id,hex(i.id),table.conca=
+t({mybit(id,4),mybit(id,3),mybit(id,2),mybit(id,1),mybit(id,0)},&quot;&quot;),EID_Spl=
+it(e.id),i.id-firstiid,i.id-last)
+-			last =3D i.id
+-		end
+-	end
+-	print(#oe,#oi)
+-	os.exit(0)
+-end
+---~ EasyUO_ID_Test()
+ =
+
+ =
+
+ cEasyUO =3D {}
+
+Modified: trunk/lua/lib.export.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.export.lua (original)
++++ trunk/lua/lib.export.lua Wed Aug  4 18:21:21 2010
+@@ -1,6 +1,27 @@
+ =
+
+ -- exports data if some commandline parameters are set
+ function InvokeExporters ()
++    if (gCommandLineArguments[1] =3D=3D &quot;-genmap&quot;) then
++		assert(gRadarColorLoaderType)
++		assert(gRadarcolFile)
++		gRadarColorLoader =3D gRadarColorLoader or CreateRadarColorLoader(gRadar=
+ColorLoaderType,CorrectPath( Addfilepath(gRadarcolFile) ))
++		LoadMap(0)
++		assert(gRadarColorLoader)
++		assert(gStaticBlockLoader)
++		assert(gGroundBlockLoader)
++		local bBig =3D false
++		local bBig =3D true
++        gGroundBlockLoader:WriteMapImageToFile(gRadarColorLoader,gStaticBl=
+ockLoader,&quot;../map.bmp&quot;,bBig)
++		print(&quot;done.&quot;)
++		os.exit(0)
++	end
++    if (gCommandLineArguments[1] =3D=3D &quot;-genradar&quot;) then =
+
++		print(&quot;###################################&quot;)
++		print(&quot;### generate radarcol.mul&quot;)
++		GenerateRadarColFile(&quot;../radarcol.mul&quot;,0xC000,gTexMapLoader,gArtMapLoade=
+r)
++		print(&quot;done.&quot;)
++		os.exit(0)
++	end
+     if (gCommandLineArguments[1] =3D=3D &quot;-swooptest&quot;) then -- test broken =
+2d anim : swoop/eagle fight =
+
+ 		local pHueLoader =3D nil
+ 		local iHue =3D 0  =
+
+
+Modified: trunk/lua/lib.loading.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.loading.lua (original)
++++ trunk/lua/lib.loading.lua Wed Aug  4 18:21:21 2010
+@@ -219,7 +219,11 @@
+ 		end
+ 		local path
+ 		function MyCreateAnimLoader (loadertype,...)
+-			return CreateAnimLoader(loadertype,...) or CreateAnimLoader(&quot;OnDemand&quot;,=
+...)  -- fallback to OnDemand loader if &quot;Blockwise&quot; not supported
++			if (gEnable_Threaded_AnimLoader) then =
+
++				return CreateThreadedAnimLoader(loadertype,...)
++			else
++				return CreateAnimLoader(loadertype,...) or CreateAnimLoader(&quot;OnDemand&quot;=
+,...)  -- fallback to OnDemand loader if &quot;Blockwise&quot; not supported
++			end
+ 		end
+         path =3D CorrectPath( Addfilepath(&quot;anim.idx&quot; ) ) if (file_exists(p=
+ath)) then gAnimLoader[1] =3D MyCreateAnimLoader(gAnimLoaderType,200,200,pa=
+th,CorrectPath( Addfilepath(&quot;anim.mul&quot; ) )) end  =
+
+         path =3D CorrectPath( Addfilepath(&quot;anim2.idx&quot;) ) if (file_exists(p=
+ath)) then gAnimLoader[2] =3D MyCreateAnimLoader(gAnimLoaderType,200,200,pa=
+th,CorrectPath( Addfilepath(&quot;anim2.mul&quot;) )) end      =
+
+
+Modified: trunk/lua/lib.macrolist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.macrolist.lua (original)
++++ trunk/lua/lib.macrolist.lua Wed Aug  4 18:21:21 2010
+@@ -1489,7 +1489,7 @@
+ =
+
+ =
+
+ -- disconnect from server + login with a different char/acc   (experimenta=
+l, no error handling)
+-function MacroCmd_ReLogin (shardname,user,pass,charidx)
++function MacroCmd_ReLogin (shardname,user,pass,charidx) -- charidx in 0-4
+ 	print(&quot;MacroCmd_Relog&quot;,shardname,user,charidx)
+ 	NetDisconnect()
+     gHuffmanDecode =3D false
+
+Modified: trunk/lua/lib.map.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.map.lua (original)
++++ trunk/lua/lib.map.lua Wed Aug  4 18:21:21 2010
+@@ -89,7 +89,8 @@
+         if (not iTileType) then iTileType,zloc =3D 0,0 end
+         -- RunUO1.0/src/TileMatrix.cs:600: public bool Ignored
+         local bIgnoredByWalk =3D iTileType =3D=3D 2 or iTileType =3D=3D 0x=
+1DB or ( iTileType &gt;=3D 0x1AE and iTileType &lt;=3D 0x1B5 )
+-        b.ground[ty*10 + tx] =3D {iTileType=3DiTileType,zloc=3Dzloc,bIgnor=
+edByWalk=3DbIgnoredByWalk,flags=3DGetGroundTileType(iTileType).miFlags}
++		local tt =3D GetGroundTileType(iTileType)
++        b.ground[ty*10 + tx] =3D {iTileType=3DiTileType,zloc=3Dzloc,bIgnor=
+edByWalk=3DbIgnoredByWalk,flags=3Dtt and tt.miFlags or 0}
+     end
+     end
+     end
+
+Modified: trunk/lua/lib.thread.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.thread.lua (original)
++++ trunk/lua/lib.thread.lua Wed Aug  4 18:21:21 2010
+@@ -21,10 +21,12 @@
+ RegisterNetMessageFormatWrapper(&quot;m&quot;,&quot;p&quot;,function (mutex) return mutex:GetC=
+rossThreadHandle() end,
+ 										function (p) return CreateMutexFromCrossThreadHandle(p) end)
+ =
+
+-
+ RegisterNetMessageType(&quot;kThreadMsg_TestPrint&quot;	,&quot;s&quot;)
+ RegisterNetMessageType(&quot;kThreadMsg_TestBlock&quot;	,&quot;m&quot;)
+ RegisterNetMessageType(&quot;kThreadMsg_Test0&quot;		,&quot;&quot;)
++
++--~ RegisterNetMessageType(&quot;kThreadMsg_Test0&quot;		,&quot;&quot;)
++
+ =
+
+ -- ***** ***** ***** ***** ***** cThread (generic)
+ 	=
+
+
+Modified: trunk/lua/net/net.dynamic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.dynamic.lua (original)
++++ trunk/lua/net/net.dynamic.lua Wed Aug  4 18:21:21 2010
+@@ -185,9 +185,11 @@
+ 	NotifyListener(&quot;Hook_Container_Contents&quot;,iLastSerial)
+ 	gProfiler_Container_Contents:End()
+ 	=
+
++	if (not gDisableAutoOpenBackpack) then =
+
+ 	if (gSendSelfDoubleClickAtNextContainerContents and gLoginConfirmPlayerSe=
+rial) then =
+
+ 		gSendSelfDoubleClickAtNextContainerContents =3D false
+ 		Send_DoubleClick(BitwiseOR(gLoginConfirmPlayerSerial,0x80000000)) end --=
+ 0x800... : prevents dismount, and only opens paperdoll
++	end
+ end
+ =
+
+ -- This is sent by the server to add/update a single item to a container. =
+(response to player dragdrop)
+
+Modified: trunk/lua/obj/obj.player.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/obj/obj.player.lua (original)
++++ trunk/lua/obj/obj.player.lua Wed Aug  4 18:21:21 2010
+@@ -33,7 +33,9 @@
+ 		if ((not gPlayerBackPack) or (gPlayerBackPack.serial ~=3D backpack.seria=
+l)) then
+ 			-- backpack item changed
+ 			gPlayerBackPack =3D backpack
+-			if (gPlayerBackPack and (not gAltenatePostLoginHandling)) then Send_Dou=
+bleClick(gPlayerBackPack.serial) end
++			if (not gDisableAutoOpenBackpack) then =
+
++				if (gPlayerBackPack and (not gAltenatePostLoginHandling)) then Send_Do=
+ubleClick(gPlayerBackPack.serial) end
++			end
+ 		end
+ 	-- else TODO : maybe check if backpack was removed ? must look if playeri=
+d is available so far
+ 	end
+
+Modified: trunk/premakelinux.sh
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/premakelinux.sh (original)
++++ trunk/premakelinux.sh Wed Aug  4 18:21:21 2010
+@@ -18,4 +18,4 @@
+ =
+
+ make -j${JOBS} CONFIG=3DRelease
+ =
+
+-echo &quot;if you're on gentoo and have a link error (undefined reference to wx=
+App::wxApp()) see <A HREF="http://iris.schattenkind.net/index.php/Gentoo_compile\n">http://iris.schattenkind.net/index.php/Gentoo_compile\n</A>&quot;
++echo &quot;if you're on gentoo and have a link error (undefined reference to wx=
+App::wxApp()) see <A HREF="http://iris.schattenkind.net/index.php/Gentoo_compile">http://iris.schattenkind.net/index.php/Gentoo_compile</A>&quot;
+
+Modified: trunk/src/data_map.cpp
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/src/data_map.cpp (original)
++++ trunk/src/data_map.cpp Wed Aug  4 18:21:21 2010
+@@ -75,7 +75,7 @@
+ 			if (imgy &lt; 0 || imgy &gt;=3D iImgH) continue;
+ 			if (imgx &lt; 0 || imgx &gt;=3D iImgW) continue;
+ 			for (ty=3D0;ty&lt;8;++ty) for (tx=3D0;tx&lt;8;++tx) {
+-				pRawBuffer[iImgW*imgy+imgx] =3D pGroundBlock ? radarCols.GetCol16(pGro=
+undBlock-&gt;mpRawGroundBlock-&gt;mTiles[ty][tx].miTileType) : 0;
++				pRawBuffer[iImgW*(imgy+ty)+(imgx+tx)] =3D pGroundBlock ? radarCols.Get=
+Col16(pGroundBlock-&gt;mpRawGroundBlock-&gt;mTiles[ty][tx].miTileType) : 0;
+ 			}
+ 			// TODO : broken.... (only one pixel per block ? should be 8)
+ 			// TODO : statics
+
+Modified: trunk/src/main.cpp
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/src/main.cpp (original)
++++ trunk/src/main.cpp Wed Aug  4 18:21:21 2010
+@@ -17,6 +17,9 @@
+ #else
+ int			main		(int argc, char* argv[]) {
+ #endif
++	=
+
++	=
+
++	=
+
+ 	printf(&quot;MAIN_WORKING_DIR=3D%s\n&quot;,(const char*)MAIN_WORKING_DIR);
+ 	=
+
+ 	std::string s;
+
+Modified: trunk/src/scripting.iris.cpp
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/src/scripting.iris.cpp (original)
++++ trunk/src/scripting.iris.cpp Wed Aug  4 18:21:21 2010
+@@ -469,6 +469,81 @@
+ =
+
+ =
+
+ =
+
++// example : GenerateRadarColFile(&quot;radarcol.mul&quot;,0xC000,gTexMapLoader,gArt=
+MapLoader)  see -genradar
++/// void				  GenerateRadarColFile		(filepath,idmax,texloader,artloader)  =
+  -- generates radarcol.mul , idmax:0xC000 (0x4000=3Ditemstart,below:ground)
++static int				l_GenerateRadarColFile		(lua_State *L) { PROFILE
++	FILE*					fp					=3D fopen(luaL_checkstring(L,1),&quot;wb&quot;); if (!fp) return 0;
++	int						idmax				=3D luaL_checkint(L,2);
++	cTexMapLoader&amp;			oTexMapLoader		=3D *cLuaBind&lt;cTexMapLoader&gt;::checkudata_=
+alive(L,3);
++	cArtMapLoader&amp;			oArtMapLoader		=3D *cLuaBind&lt;cArtMapLoader&gt;::checkudata_=
+alive(L,4);
++	class cMyUtil { public:
++		static inline float ColR (const short x) { return float((x &gt;&gt; 10) &amp; 0x1F=
+); }
++		static inline float ColG (const short x) { return float((x &gt;&gt;  5) &amp; 0x1F=
+); }
++		static inline float ColB (const short x) { return float((x &gt;&gt;  0) &amp; 0x1F=
+); }
++		static inline unsigned short GenColor (int x) { return GenColor(	float((=
+x &gt;&gt; 16) &amp; 0xFF)*float(0x1F)/float(0xFF) , 	=
+
++																			float((x &gt;&gt;  8) &amp; 0xFF)*float(0x1F)/float(0xFF) , 	=
+
++																			float((x &gt;&gt;  0) &amp; 0xFF)*float(0x1F)/float(0xFF) ); } //=
+ x=3D0xRRGGBB  8bits per color
++		static inline unsigned short GenColor (float r,float g,float b) { =
+
++			unsigned short ri =3D (unsigned short)r;  if (ri &gt; 0x1F) ri =3D 0x1F;
++			unsigned short gi =3D (unsigned short)g;  if (gi &gt; 0x1F) gi =3D 0x1F;
++			unsigned short bi =3D (unsigned short)b;  if (bi &gt; 0x1F) bi =3D 0x1F;
++			return (ri &lt;&lt; 10) + (gi &lt;&lt; 5) + (bi &lt;&lt; 0);
++		}
++		static unsigned short Scan16BitImage (short *pImgRaw,int w,int h) {
++			int   c =3D 0;
++			float r =3D 0;
++			float g =3D 0;
++			float b =3D 0;
++			for (int i=3D0;i&lt;w*h;++i) {
++				short col =3D pImgRaw[i] &amp; 0x7fff;
++				if (col !=3D 0x7fff &amp;&amp; col !=3D 0x0000) { // ignore white and black ba=
+ckground
++					=
+
++					++c;
++					r +=3D ColR(col);
++					g +=3D ColG(col);
++					b +=3D ColB(col);
++				}
++			}
++			float s =3D 1.0 / float(c);
++			return GenColor(r*s,g*s,b*s);
++		}
++		static unsigned short GetTexCol (cTexMapLoader&amp; myload,int id) {
++			cTexMap* o =3D myload.GetTexMap(id); if (!o) return 0;
++			int iImgW =3D o-&gt;GetWidth();
++			int iImgH =3D o-&gt;GetHeight();
++			short *pImgRaw =3D new short[iImgW*iImgH] ;
++			memset(pImgRaw,0,2*iImgW*iImgH); // not really needed here, as the form=
+at does not allow empty pixels, but safe is safe
++			cSetHighBitFilter Filter;
++			o-&gt;Decode(pImgRaw,Filter,0);
++			unsigned short res =3D Scan16BitImage(pImgRaw,iImgW,iImgH);
++			delete [] pImgRaw;
++			return res;
++		}
++		static inline bool CustomID (int id,short* p) { for (;*p;++p) if (id =3D=
+=3D *p) return true; return false; }
++		static unsigned short GetArtCol (cArtMapLoader&amp; myload,int id) {
++			// water statics
++			cArtMap* o =3D myload.GetArtMap(id); =
+
++			short rep_a[] =3D {0x17A0,0x17A1,0x17A2,0x17A3,0x17A4,0x17A5,0x17A6,0x1=
+7A7,0x17A8,0x17A9,0x17AA,0x17AB,0x17AC,0x17AD,0x17AE,0x17AF,0x17B0,0x17B1,0=
+x17B2,0x179A,0x179B,0x179C,0x179D,0x179E,0x179F,0x1797,0x1798,0x1799,0};
++			if (CustomID(id,rep_a)) { printf(&quot;radar:custom:o=3D%p artid=3D%#x\n&quot;,o,=
+id); return GenColor(0x004263); }
++			if (!o) return 0x8000;
++			int iImgW =3D o-&gt;GetWidth();
++			int iImgH =3D o-&gt;GetHeight();
++			short *pImgRaw =3D new short[iImgW*iImgH] ;
++			memset(pImgRaw,0,2*iImgW*iImgH);
++			cSetHighBitFilter Filter;
++			o-&gt;Decode(pImgRaw,iImgW*2,Filter,0);
++			unsigned short res =3D Scan16BitImage(pImgRaw,iImgW,iImgH);
++			delete [] pImgRaw;
++			return res;
++		}
++	};
++	for (int id=3D0;id&lt;idmax;++id) {
++		unsigned short cols =3D (id &lt; 0x4000) ? cMyUtil::GetTexCol(oTexMapLoader=
+,id) : cMyUtil::GetArtCol(oArtMapLoader,id-0x4000);
++		fwrite(&amp;cols,2,1,fp);
++	}
++	fclose(fp);
++	return 0;
++}
+ =
+
+ 		=
+
+ /// return true on success
+@@ -512,6 +587,7 @@
+ 		void	RegisterLua_GlobalFunctions	(lua_State*	L) {
+ 			lua_register(L,&quot;GenerateRadarImage&quot;,			l_GenerateRadarImage);
+ 			lua_register(L,&quot;GenerateRadarImageZoomed&quot;,		l_GenerateRadarImageZoomed);
++			lua_register(L,&quot;GenerateRadarColFile&quot;,			l_GenerateRadarColFile);
+ 			lua_register(L,&quot;HuffmanCompress&quot;,				l_HuffmanCompress);
+ 			lua_register(L,&quot;HuffmanDecompress&quot;,				l_HuffmanDecompress);
+ 			lua_register(L,&quot;BuildTerrainEntity_Simple&quot;,		l_BuildTerrainEntity_Simpl=
+e);
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	
+	<LI>Next message: <A HREF="002099.html">[Iris-commit] [IRIS] r3359 - in /trunk: lua/lib.map.lua lua/lib.packet.lua lua/lib.protocol.lua lua/net/net.mobile.lua src/data_radar.cpp
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#2098">[ date ]</a>
+              <a href="thread.html#2098">[ thread ]</a>
+              <a href="subject.html#2098">[ subject ]</a>
+              <a href="author.html#2098">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

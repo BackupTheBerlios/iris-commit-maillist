@@ -1,0 +1,313 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2212 - in /trunk/lua: lib.2d.cam.lua lib.2d.map.lua lib.2d.mobile.lua lib.2d.renderer.lua lib.uoanim.lua lib.uoutils.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-May/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2212%20-%20in%20/trunk/lua%3A%20lib.2d.cam.lua%0A%20lib.2d.map.lua%20lib.2d.mobile.lua%20lib.2d.renderer.lua%20lib.uoanim.lua%0A%20lib.uoutils.lua&In-Reply-To=%3C20080531014100.99DE41C180F2%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001020.html">
+   <LINK REL="Next"  HREF="001022.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2212 - in /trunk/lua: lib.2d.cam.lua lib.2d.map.lua lib.2d.mobile.lua lib.2d.renderer.lua lib.uoanim.lua lib.uoutils.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2212%20-%20in%20/trunk/lua%3A%20lib.2d.cam.lua%0A%20lib.2d.map.lua%20lib.2d.mobile.lua%20lib.2d.renderer.lua%20lib.uoanim.lua%0A%20lib.uoutils.lua&In-Reply-To=%3C20080531014100.99DE41C180F2%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2212 - in /trunk/lua: lib.2d.cam.lua lib.2d.map.lua lib.2d.mobile.lua lib.2d.renderer.lua lib.uoanim.lua lib.uoutils.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat May 31 03:41:00 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001020.html">[Iris-commit] [IRIS] r2211 - in /trunk/lua: lib.2d.cam.lua lib.2d.mobile.lua lib.2d.renderer.lua lib.uoanim.lua
+</A></li>
+        <LI>Next message: <A HREF="001022.html">[Iris-commit] [IRIS] r2213 - in /trunk: data/base/ui/sd_pd_enemy.png data/base/ui/sd_pd_enemylist_icon_bg.png data/base/ui/sd_pd_good.png data/base/ui/sd_pd_murderer.png data/base/ui/sd_pd_neutral.png data/base/ui/sd_pd_unknown.png plugins/hudenemylist.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1021">[ date ]</a>
+              <a href="thread.html#1021">[ thread ]</a>
+              <a href="subject.html#1021">[ subject ]</a>
+              <a href="author.html#1021">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sat May 31 03:40:58 2008
+New Revision: 2212
+
+Log:
+2d walking
+
+Modified:
+    trunk/lua/lib.2d.cam.lua
+    trunk/lua/lib.2d.map.lua
+    trunk/lua/lib.2d.mobile.lua
+    trunk/lua/lib.2d.renderer.lua
+    trunk/lua/lib.uoanim.lua
+    trunk/lua/lib.uoutils.lua
+
+Modified: trunk/lua/lib.2d.cam.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.cam.lua (original)
++++ trunk/lua/lib.2d.cam.lua Sat May 31 03:40:58 2008
+@@ -100,12 +100,15 @@
+ 	end
+ 	=
+
+ 	-- keyboard move cam
+-	local dt =3D math.min(Renderer2D.kGoodTicksBetweenFrames/1000,gSecondsSin=
+ceLastFrame)
+-	local curticks =3D Client_GetTicks()
+-	local xloc,yloc =3D self:GetCamPos()
+-	local move =3D 16 * dt  * (gKeyPressed[key_lshift] and 8*16 or 1)
+-	local dx =3D move * ((gKeyPressed[key_left] and -1 or 0) + (gKeyPressed[k=
+ey_right] and 1 or 0))
+-	local dy =3D move * ((gKeyPressed[key_up] and -1 or 0) + (gKeyPressed[key=
+_down] and 1 or 0))
+-	if (dx ~=3D 0 or dy ~=3D 0) then self:SetCamPos(xloc+dx,yloc+dy) end
++	local bKeyBoardMoveCam =3D false
++	if (bKeyBoardMoveCam) then
++		local dt =3D math.min(Renderer2D.kGoodTicksBetweenFrames/1000,gSecondsSi=
+nceLastFrame)
++		local curticks =3D Client_GetTicks()
++		local xloc,yloc =3D self:GetCamPos()
++		local move =3D 16 * dt  * (gKeyPressed[key_lshift] and 8*16 or 1)
++		local dx =3D move * ((gKeyPressed[key_left] and -1 or 0) + (gKeyPressed[=
+key_right] and 1 or 0))
++		local dy =3D move * ((gKeyPressed[key_up] and -1 or 0) + (gKeyPressed[ke=
+y_down] and 1 or 0))
++		if (dx ~=3D 0 or dy ~=3D 0) then self:SetCamPos(xloc+dx,yloc+dy) end
++	end
+ end
+ =
+
+
+Modified: trunk/lua/lib.2d.map.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.map.lua (original)
++++ trunk/lua/lib.2d.map.lua Sat May 31 03:40:58 2008
+@@ -40,7 +40,7 @@
+ 	local xloc,yloc =3D self:GetCamPos()
+ 	local bx,by =3D math.floor(xloc/8 - 0.5),math.floor(yloc/8 - 0.5)
+ 	if (self.pMapFocusBlockX ~=3D bx or self.pMapFocusBlockY ~=3D by) then =
+
+-		print(&quot;Renderer2D:MapStep focus:&quot;,bx*8,by*8)
++		--~ print(&quot;Renderer2D:MapStep focus:&quot;,bx*8,by*8)
+ 		self.pMapFocusBlockX =3D bx
+ 		self.pMapFocusBlockY =3D by
+ 		local r =3D Renderer2D.kMapLoadRad
+@@ -170,7 +170,7 @@
+ 		end
+ 		=
+
+ 		-- if we are out of time, exit for now, and continue loading in the next=
+ frame
+-		if (bCheckTime and Client_GetTicks() - iBlockLoadTicks &gt; Renderer2D.kMap=
+LoadStaticLoadAllowedTicks) then print(&quot;k2DMapJob.StaticLoad split&quot;) return=
+ end
++		if (bCheckTime and Client_GetTicks() - iBlockLoadTicks &gt; Renderer2D.kMap=
+LoadStaticLoadAllowedTicks) then return end --  print(&quot;k2DMapJob.StaticLoad=
+ split&quot;)
+ 	end
+ 	block.pJob =3D k2DMapJob.StaticGfx
+ end
+
+Modified: trunk/lua/lib.2d.mobile.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.mobile.lua (original)
++++ trunk/lua/lib.2d.mobile.lua Sat May 31 03:40:58 2008
+@@ -8,9 +8,10 @@
+ -- main updater, create, position ...
+ function Renderer2D:UpdateMobile				(mobile) =
+
+ 	local gfx =3D mobile.gfx2d
++	local iModelID,iAnimID =3D mobile.artid,0 -- 401,0
++	local iHue =3D BitwiseAND(mobile.hue,0x7fff) -- 0x03F4 : human skin hue (=
+0x83F4=3D33780, but 0x8* is partial hue and turned out all gray here)
+ 	if (not gfx) then
+-		local iModelID,iAnimID =3D mobile.artid,0 -- 401,0
+-		local iHue =3D mobile.hue -- 0x03F4 : human skin hue (0x83F4=3D33780, bu=
+t 0x8* is partial hue and turned out all gray here)
++		--~ print(&quot;Renderer2D:UpdateMobile artid,iHue&quot;,mobile.artid,sprintf(&quot;%04=
+x&quot;,iHue))
+ 	=
+
+ 		gfx =3D CreateRootGfx3D()
+ 		mobile.gfx2d =3D gfx
+@@ -27,11 +28,10 @@
+ 	local x,y,z =3D self:UOPosToLocal(mobile.xloc,mobile.yloc,mobile.zloc)
+ 	z =3D z + k2D_MobileZAdd
+ 	gfx:SetPosition(x,y,z*0.1)
+-	=
+
+-	DestroyList_Add(mobile.gfx2d,gfx)
++	self:MobileGfxUpdateGeometry(gfx,iModelID,iAnimID,gfx.iFrame,iHue)
+ end =
+
+ =
+
+-function Renderer2D:DestroyMobileGfx			(mobile) if (mobile.gfx2d) then Des=
+troyList_Destroy(mobile.gfx2d) mobile.gfx2d =3D nil end end
++function Renderer2D:DestroyMobileGfx			(mobile) if (mobile.gfx2d) then mob=
+ile.gfx2d:Destroy() mobile.gfx2d =3D nil end end
+ =
+
+ function Renderer2D:UpdateMobileModel			() end -- check equipment change e=
+tc ?? called every time when UpdateMobile() is called ..
+ =
+
+@@ -43,7 +43,7 @@
+ function Renderer2D:MobileGfxUpdateGeometry (gfx,iModelID,iAnimID,iFrame,i=
+Hue)
+ 	local sMatName,iWidth,iHeight,iCenterX,iCenterY,iFrames,u0,v0,u1,v1 =3D A=
+nim2DAtlas_Load(iModelID,iAnimID,iFrame,iHue)
+ 	if (not sMatName) then return end
+-	print(&quot;MobileGfxUpdateGeometry&quot;,sMatName,iWidth,iHeight,iCenterX,iCenterY=
+,iFrames,u0,v0,u1,v1)
++	--~ print(&quot;MobileGfxUpdateGeometry&quot;,sMatName,iWidth,iHeight,iCenterX,iCen=
+terY,iFrames,u0,v0,u1,v1)
+ 	--~ sMatName =3D &quot;BaseWhiteNoLighting&quot;
+ 	--~ print(&quot;MobileGfxUpdateGeometry&quot;,iAnimID,iFrame,iWidth,iHeight,iCenter=
+X,iCenterY,iFrames)
+ 	-- MobileGfxUpdateGeometry : cen=3D  12      -11
+
+Modified: trunk/lua/lib.2d.renderer.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.2d.renderer.lua (original)
++++ trunk/lua/lib.2d.renderer.lua Sat May 31 03:40:58 2008
+@@ -50,6 +50,17 @@
+ 	-- TODO : self:MousePickStep() ?
+ 	local xloc,yloc,zloc =3D GetPlayerPos()
+ 	self:SetCamPos(xloc,yloc,zloc)
++	=
+
++	=
+
++	local iDir =3D false
++	if (gKeyPressed[key_left] ) then iDir =3D kUODir_West end
++	if (gKeyPressed[key_right]) then iDir =3D kUODir_East end
++	if (gKeyPressed[key_up   ]) then iDir =3D kUODir_North end
++	if (gKeyPressed[key_down ]) then iDir =3D kUODir_South end
++	if (iDir) then
++		local bRunFlag =3D true
++		WalkStep_WalkInDir(iDir,bRunFlag,true)
++	end
+ end
+ =
+
+  =
+
+
+Modified: trunk/lua/lib.uoanim.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.uoanim.lua (original)
++++ trunk/lua/lib.uoanim.lua Sat May 31 03:40:58 2008
+@@ -18,7 +18,7 @@
+ 	if (o) then return unpack(o) end
+ 	local iRealID =3D Anim_GetRealID(iModelID,iAnimID) =
+
+ 	local pImage,iWidth,iHeight,iCenterX,iCenterY,iFrames =3D ExportAnimFrame=
+ToImage(iRealID,iFrame,iHue)
+-	print(&quot;Anim2DAtlas_Load&quot;,iRealID,iFrame,iHue,&quot;#&quot;,pImage,iWidth,iHeight,iC=
+enterX,iCenterY,iFrames)
++	--~ print(&quot;Anim2DAtlas_Load&quot;,iRealID,iFrame,iHue,&quot;#&quot;,pImage,iWidth,iHeigh=
+t,iCenterX,iCenterY,iFrames)
+ 	if (not pImage) then print(&quot;Anim2DAtlas_Load : dead anim &quot;,iModelID,iAnim=
+ID,iFrame,iHue) end
+ 	if (not pImage) then o =3D {} gAnimAtlasCache[n] =3D o return unpack(o) e=
+nd
+ 		=
+
+@@ -45,7 +45,7 @@
+ 	=
+
+ 	local u0,v0,u1,v1 =3D l,t,r,b
+ 	o =3D {sMatName,iWidth,iHeight,iCenterX,iCenterY,iFrames,u0,v0,u1,v1}
+-	print(&quot;anim2d&quot;,sMatName,iWidth,iHeight,iCenterX,iCenterY,iFrames,u0,v0,u1=
+,v1)
++	--~ print(&quot;anim2d&quot;,sMatName,iWidth,iHeight,iCenterX,iCenterY,iFrames,u0,v=
+0,u1,v1)
+ 	gAnimAtlasCache[n] =3D o
+ 	return unpack(o)
+ end
+
+Modified: trunk/lua/lib.uoutils.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.uoutils.lua (original)
++++ trunk/lua/lib.uoutils.lua Sat May 31 03:40:58 2008
+@@ -1,4 +1,13 @@
+ -- uo-specific little helpers =
+
++
++kUODir_North		=3D 0
++kUODir_NorthEast	=3D 1
++kUODir_East			=3D 2
++kUODir_SouthEast	=3D 3
++kUODir_South		=3D 4
++kUODir_SouthWest	=3D 5
++kUODir_West			=3D 6
++kUODir_NorthWest	=3D 7
+ =
+
+ =
+
+ -- returns tiletype,zloc
+@@ -36,6 +45,8 @@
+ 	elseif (dir =3D=3D 5 or dir =3D=3D 6 or dir =3D=3D 7) then return -1 -- w=
+est
+ 	else return 0 end
+ end
++
++
+ function GetDirY (dir) =
+
+ 	if (dir =3D=3D 0 or dir =3D=3D 1 or dir =3D=3D 7) then return -1 -- north
+ 	elseif (dir =3D=3D 3 or dir =3D=3D 4 or dir =3D=3D 5) then return 1 -- so=
+uth
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001020.html">[Iris-commit] [IRIS] r2211 - in /trunk/lua: lib.2d.cam.lua lib.2d.mobile.lua lib.2d.renderer.lua lib.uoanim.lua
+</A></li>
+	<LI>Next message: <A HREF="001022.html">[Iris-commit] [IRIS] r2213 - in /trunk: data/base/ui/sd_pd_enemy.png data/base/ui/sd_pd_enemylist_icon_bg.png data/base/ui/sd_pd_good.png data/base/ui/sd_pd_murderer.png data/base/ui/sd_pd_neutral.png data/base/ui/sd_pd_unknown.png plugins/hudenemylist.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1021">[ date ]</a>
+              <a href="thread.html#1021">[ thread ]</a>
+              <a href="subject.html#1021">[ subject ]</a>
+              <a href="author.html#1021">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

@@ -1,0 +1,455 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2601 - in /trunk: lua/lib.uoam.lua lua/net.walk.lua plugins/lib.spellbar.lua plugins/moblist.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-October/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2601%20-%20in%20/trunk%3A%20lua/lib.uoam.lua%0A%20lua/net.walk.lua%20plugins/lib.spellbar.lua%20plugins/moblist.lua&In-Reply-To=%3C20081019160005.1A8341524030%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="001405.html">
+   <LINK REL="Next"  HREF="001406.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2601 - in /trunk: lua/lib.uoam.lua lua/net.walk.lua plugins/lib.spellbar.lua plugins/moblist.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2601%20-%20in%20/trunk%3A%20lua/lib.uoam.lua%0A%20lua/net.walk.lua%20plugins/lib.spellbar.lua%20plugins/moblist.lua&In-Reply-To=%3C20081019160005.1A8341524030%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2601 - in /trunk: lua/lib.uoam.lua lua/net.walk.lua plugins/lib.spellbar.lua plugins/moblist.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sun Oct 19 17:14:25 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="001405.html">[Iris-commit] [IRIS] r2600 - in /trunk/lua: lib.2d.map.lua lib.3d.map.lua lib.compass.lua lib.map.lua lib.mapblock.3d.terrain.lua lib.unifont.lua widgets/widget.uotext.lua
+</A></li>
+        <LI>Next message: <A HREF="001406.html">[Iris-commit] [IRIS] r2602 - in /trunk: lua/lib.compass.lua lua/lib.uoam.lua plugins/moblist.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1407">[ date ]</a>
+              <a href="thread.html#1407">[ thread ]</a>
+              <a href="subject.html#1407">[ subject ]</a>
+              <a href="author.html#1407">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sun Oct 19 17:14:25 2008
+New Revision: 2601
+
+Log:
+uoam support added ingame, uoam : added facet-info support,  walk-request-t=
+imeout added (resync request if stuck)
+
+Modified:
+    trunk/lua/lib.uoam.lua
+    trunk/lua/net.walk.lua
+    trunk/plugins/lib.spellbar.lua
+    trunk/plugins/moblist.lua
+
+Modified: trunk/lua/lib.uoam.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.uoam.lua (original)
++++ trunk/lua/lib.uoam.lua Sun Oct 19 17:14:25 2008
+@@ -2,6 +2,15 @@
+ =
+
+ gUOAMSequenceNumber =3D 1
+ gUOAMChunkPrintToggle =3D false
++
++
++kUOAM_Facet =3D {}
++kUOAM_Facet.felu	=3D 0x66 -- MapGetMapIndex()=3D0  =
+
++kUOAM_Facet.tram	=3D 0x74 -- MapGetMapIndex()=3D1
++kUOAM_Facet.ilsh	=3D 0x69 -- MapGetMapIndex()=3D2  =
+
++kUOAM_Facet.malas	=3D 0x6D -- MapGetMapIndex()=3D3  =
+
++kUOAM_Facet.tokuno	=3D 0x73 -- MapGetMapIndex()=3D4  =
+
++
+ =
+
+ gUOAMPacketTemplate_Handshake =3D {
+ 0x05, 0x00, 0x0b, 0x03, 0x10, 0x00, 0x00, 0x00, =
+
+@@ -15,24 +24,73 @@
+ 0x2b, 0x10, 0x48, 0x60, 0x02, 0x00, 0x00, 0x00 }
+ =
+
+ gUOAMPacketTemplate_PosUpdate =3D {
+-0x05, 0x00, 0x00, 0x03, 0x10, 0x00, 0x00, 0x00, =
+
+-0x8c, 0x00, 0x00, 0x00, 0x18, 0x00, 0x00, 0x00, =
+
+-0x74, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, =
+
+-0x70, 0x61, 0x73, 0x73, 0x61, 0x62, 0x63, 0x64, =
+
+-0x65, 0x66, 0x67, 0x68, 0x69, 0x6a, 0x6b, 0x6c, =
+
+-0x6d, 0x6e, 0x6f, 0x00, 0x0a, 0x00, 0x02, 0x0f, =
+
+-0x75, 0x6e, 0x61, 0x6d, 0x65, 0x61, 0x62, 0x63, =
+
+-0x64, 0x65, 0x66, 0x67, 0x68, 0x69, 0x6a, 0x6b, =
+
+-0x6c, 0x6d, 0x6e, 0x6f, 0x70, 0x71, 0x72, 0x73, =
+
+-0x74, 0x75, 0x76, 0x77, 0x78, 0x79, 0x7a, 0x41, =
+
+-0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49, =
+
+-0x4a, 0x4b, 0x4c, 0x4d, 0x4e, 0x4f, 0x50, 0x51, =
+
+-0x52, 0x53, 0x54, 0x55, 0x56, 0x57, 0x00, 0x00, =
+
+-0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, =
+
+-0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, =
+
+-0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x74, =
+
+-0x78, 0x05, 0x00, 0x00, 0xfb, 0x0e, 0x00, 0x00, =
+
++0x05, 0x00, 0x00, 0x03, 0x10, 0x00, 0x00, 0x00,	-- 0
++0x8c, 0x00, 0x00, 0x00, 0x18, 0x00, 0x00, 0x00,	-- 8 =
+
++0x74, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00,	-- 16
++0x70, 0x61, 0x73, 0x73, 0x61, 0x62, 0x63, 0x64,	-- 24
++0x65, 0x66, 0x67, 0x68, 0x69, 0x6a, 0x6b, 0x6c,	-- 32
++0x6d, 0x6e, 0x6f, 0x00, 0x0a, 0x00, 0x02, 0x0f,	-- 40
++0x75, 0x6e, 0x61, 0x6d, 0x65, 0x61, 0x62, 0x63,	-- 48
++0x64, 0x65, 0x66, 0x67, 0x68, 0x69, 0x6a, 0x6b,	-- 56
++0x6c, 0x6d, 0x6e, 0x6f, 0x70, 0x71, 0x72, 0x73,	-- 64
++0x74, 0x75, 0x76, 0x77, 0x78, 0x79, 0x7a, 0x41,	-- 72
++0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49,	-- 80
++0x4a, 0x4b, 0x4c, 0x4d, 0x4e, 0x4f, 0x50, 0x51,	-- 88
++0x52, 0x53, 0x54, 0x55, 0x56, 0x57, 0x00, 0x00,	-- 96
++0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,	-- 104
++0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,	-- 112
++0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x74,	-- 120
++0x78, 0x05, 0x00, 0x00, 0xfb, 0x0e, 0x00, 0x00,	-- 128
+ 0x00, 0x00, 0x00, 0x00 }
++
++
++gNextUOAMStepT =3D 0
++gUOAMToggle =3D false
++gUOAMOtherPositions =3D {}
++
++-- {[name]=3D{xloc=3D?,yloc=3D?,bIsOnSameFacet=3D?},...}
++function UOAM_GetOtherPositions () return gUOAMOtherPositions end =
+
++
++function UOAM_GetMyFacetByte ()
++	local mapindex =3D MapGetMapIndex()
++	if (mapindex=3D=3D0) then return kUOAM_Facet.felu	end
++	if (mapindex=3D=3D1) then return kUOAM_Facet.tram	end
++	if (mapindex=3D=3D2) then return kUOAM_Facet.ilsh	end
++	if (mapindex=3D=3D3) then return kUOAM_Facet.malas	end
++	if (mapindex=3D=3D4) then return kUOAM_Facet.tokuno	end =
+
++	return kUOAM_Facet.felu
++end
++
++RegisterStepper(function ()
++	if (not gUOAMName) then return end
++	if (not gInGameStarted) then return end
++	local t =3D Client_GetTicks()
++	if (t &lt; gNextUOAMStepT) then return end
++	local xloc,yloc,zloc =3D GetPlayerPos()
++	=
+
++	local facetbyte =3D UOAM_GetMyFacetByte()
++	=
+
++	if (not xloc) then return end
++	if (not gUOAMInitDone) then
++		gUOAMInitDone =3D true
++		gUOAMConnection =3D NetConnect(gUOAMServer,gUOAMPort)
++		gUOAMSendFIFO =3D CreateFIFO()
++		gUOAMRecvFIFO =3D CreateFIFO()
++		=
+
++		UOAM_SendHandShake()
++		UOAM_SendPosUpdate(gUOAMName,gUOAMPass,0x00,facetbyte,xloc,yloc) =
+
++	end
++	=
+
++	--~ print(&quot;uoam-recv&quot;,FIFOHexDump(gUOAMRecvFIFO))
++	UOAM_RecvPositions(gUOAMRecvFIFO)
++	gUOAMRecvFIFO:Clear()
++	print(&quot;uoamstep&quot;,xloc,yloc,MapGetMapIndex(),gUOAMConnection:IsConnected())
++	gUOAMToggle =3D not gUOAMToggle =
+
++	UOAM_SendPosUpdate(gUOAMName,gUOAMPass,gUOAMToggle and 0x02 or 0x01,facet=
+byte,xloc,yloc)
++	-- toggle : 0x01 for keep alive, 0x02 to poll other char positions
++	gNextUOAMStepT =3D t + 1000
++end)
++
+ =
+
+ =
+
+ function TestUOAM ()
+@@ -53,29 +111,12 @@
+ 	--~ TestUOAMStream()
+ 	--~ os.exit(0)
+ =
+
+-	gUOAMConnection =3D NetConnect(gUOAMServer,gUOAMPort)
+-	gUOAMSendFIFO =3D CreateFIFO()
+-	gUOAMRecvFIFO =3D CreateFIFO()
+-	=
+
+-	UOAM_SendHandShake()
+-	local x,y =3D 24,24
+-	UOAM_SendPosUpdate(gUOAMName,gUOAMPass,0x00,x,y) =
+
+ 	=
+
+ 	=
+
+ 	=
+
+ 	--~ FIFOPushByteArray(gUOAMSendFIFO,gUOAMPacketTemplate_Handshake2) UOAM_=
+TrafficStep()
+-	local bMyToggle =3D false
+ 	while true do
+ 		for y =3D 1, 4000, 100 do
+-			print(&quot;step&quot;,x,y,gUOAMConnection:IsConnected())
+-			bMyToggle =3D not bMyToggle =
+
+-			UOAM_SendPosUpdate(gUOAMName,gUOAMPass,bMyToggle and 0x02 or 0x01,x,y)
+-			-- toggle : 0x01 for keep alive, 0x02 to poll other char positions
+-			Client_USleep(1000)
+-			=
+
+-			--~ print(&quot;uoam-recv&quot;,FIFOHexDump(gUOAMRecvFIFO))
+-			UOAM_RecvPositions(gUOAMRecvFIFO)
+-			gUOAMRecvFIFO:Clear()
+ 		end
+ 	end
+ 	=
+
+@@ -90,6 +131,7 @@
+ 	=
+
+ 	os.exit(0)
+ end
++
+ =
+
+ function UOAM_RecvPositions (fifo)
+ 	if (fifo:Size() &lt; 36) then return end
+@@ -100,6 +142,7 @@
+ 	local num1 =3D fifo:PeekNetUint8(24)
+ 	local num2 =3D fifo:PeekNetUint8(32)
+ 	fifo:PopRaw(36)
++	gUOAMOtherPositions =3D {}
+ 	for i =3D 1,num1 do =
+
+ 		if (fifo:Size() &gt;=3D 92) then
+ 			local name =3D fifo:PopFilledString(64)
+@@ -109,18 +152,17 @@
+ 			local d =3D fifo:PopUint8()
+ 			local e =3D fifo:PopUint8()
+ 			local f =3D fifo:PopUint8()
+-			local g =3D fifo:PopUint8()
++			local facetbyte =3D fifo:PopUint8()
+ 			local x =3D fifo:PopUint32()
+ 			local y =3D fifo:PopUint32()
+ 			local z =3D fifo:PopUint32()
+-			print(&quot;uoam:recv:&quot;,a,b,c,d,e,f,g,x,y,z,name)
++			print(&quot;uoam:recv:&quot;,a,b,c,d,e,f,facetbyte,x,y,z,name)
++			if (name ~=3D gUOAMName) then =
+
++				gUOAMOtherPositions[name] =3D {xloc=3Dx,yloc=3Dy,bIsOnSameFacet=3DUOAM=
+_GetMyFacetByte() =3D=3D facetbyte}
++			end
+ 		end =
+
+ 	end
+---~ uoam:recv:      drag    		0       0       0       0       0       0   =
+    109     86      1953    0
+---~ uoam:recv:      ghon    		0       0       0       0       0       0   =
+    109     1649    210     0
+---~ uoam:recv:      ghoniristest    0       0       0       0       0     =
+  0       116     24      24      0
+-
+-
++	NotifyListener(&quot;Hook_UOAM_PosUpdate&quot;)
+ end
+ =
+
+ function UOAM_SendHandShake ()
+@@ -179,12 +221,13 @@
+ 	gUOAMSequenceNumber =3D gUOAMSequenceNumber + 1
+ end
+ =
+
+-function UOAM_PushPosUpdateEx (fifo,seqnum,uname,upass,i22,x,y)
++function UOAM_PushPosUpdateEx (fifo,seqnum,uname,upass,i22,facet,x,y)
+ 	local bytes =3D gUOAMPacketTemplate_PosUpdate
+ 	OverwriteByteArrayPart(bytes,13,UOAM_Long2ByteArray(seqnum))
+ 	OverwriteByteArrayPart(bytes,23,{i22})
+ 	OverwriteByteArrayPart(bytes,25,StringToByteArrayZeroTerm(StrMaxLen(upass=
+,19)))
+ 	OverwriteByteArrayPart(bytes,49,StringToByteArrayZeroTerm(StrMaxLen(uname=
+,54)))
++	OverwriteByteArrayPart(bytes,128,{facet})
+ 	OverwriteByteArrayPart(bytes,129,UOAM_Long2ByteArray(x))
+ 	OverwriteByteArrayPart(bytes,133,UOAM_Long2ByteArray(y))
+ 	FIFOPushByteArray(fifo,bytes)
+
+Modified: trunk/lua/net.walk.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net.walk.lua (original)
++++ trunk/lua/net.walk.lua Sun Oct 19 17:14:25 2008
+@@ -44,6 +44,7 @@
+ gPlayerZLoc =3D nil
+ gFastWalkKeysUsed =3D false
+ =
+
++gWalkRequestAntiStuckTimeout =3D 0 -- Client_GetTicks()
+ gNextWalkRequestTime =3D 0
+ gNextWalkSequenceNumber =3D 0
+ gWalkRequests =3D {}
+@@ -169,7 +170,17 @@
+ function ExecWalkRequestIfPossible	(iDir,bRunFlag)
+ 	if (not Walk_RequestTimeOk()) then return end
+ 	if (not FastWalk_Ok()) then return end
+-	if ((not gFastWalkKeysUsed) and (not WalkQueueOkForNextSend())) then retu=
+rn end
++	if (not gFastWalkKeysUsed) then =
+
++		if (not WalkQueueOkForNextSend()) then
++			if (Client_GetTicks() &gt; gWalkRequestAntiStuckTimeout) then
++				print(&quot;walk:walk-request-timeout,sending resync-request&quot;)
++				Send_Movement_Resync_Request()
++			else
++				return =
+
++			end
++		end
++	end
++	gWalkRequestAntiStuckTimeout =3D Client_GetTicks() + 2000 -- might need r=
+esync
+ 	iDir =3D DirWrap(iDir)
+ 	local iFullDir =3D BitwiseOR(iDir,bRunFlag and kWalkFlag_Run or 0) -- inc=
+ludes runflag
+ 	=
+
+@@ -257,6 +268,7 @@
+ end
+ =
+
+ -- reset WalkSeq. and Stack
++-- WARNING ! don't forget doomlist, should't always need to be cleared tho=
+ugh, only on teleport ?
+ function ResetWalkQueue ()
+ 	--~ WalkLog(&quot;ResetWalkQueue start&quot;)
+ 	gNextWalkSequenceNumber =3D 0
+@@ -264,6 +276,7 @@
+ 	gWalkPathToGo =3D nil
+ 	--~ WalkLog(&quot;ResetWalkQueue end&quot;)
+ end
++function WalkClearDoomList () gDoomedWalkRequests =3D {} end
+ =
+
+ gDoomedWalkRequests =3D {}
+ =
+
+@@ -356,6 +369,7 @@
+ 	UpdatePlayerBodySerial(mobiledata.serial) -- is this packet really only u=
+sed for the player ??
+ 	=
+
+ 	ResetWalkQueue()
++	WalkClearDoomList()
+ 	SetPlayerPos(mobiledata.xloc,mobiledata.yloc,mobiledata.zloc,mobiledata.d=
+ir) -- always call this, affects gPlayerPos
+ 	gCurrentRenderer:NotifyPlayerTeleported()
+ 	MultiTexTerrain_NotifyTeleport()
+
+Modified: trunk/plugins/lib.spellbar.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/plugins/lib.spellbar.lua (original)
++++ trunk/plugins/lib.spellbar.lua Sun Oct 19 17:14:25 2008
+@@ -149,6 +149,9 @@
+  =
+
+ gSpellbarShortMessages[501284] =3D {r=3D0.5,g=3D0.0,b=3D0.0,txt=3D&quot;You may=
+ not enter.&quot; } -- You may not enter.
+ gSpellbarShortMessages[500111] =3D {r=3D0.5,g=3D0.0,b=3D0.0,txt=3D&quot;frozen&quot;=
+ 			} -- You are frozen and cannot move. =
+
++gSpellbarShortMessages[502381] =3D {r=3D1.0,g=3D0.0,b=3D0.0,txt=3D&quot;cannot =
+move!&quot; 		} -- You cannot move!
++gSpellbarShortMessages[502382] =3D {r=3D0.0,g=3D0.5,b=3D0.0,txt=3D&quot;can mov=
+e!&quot; 		} -- You can move!
++
+ =
+
+ --[[
+ Hook_Packet_Localized_Text      4294967295      You prepare to hit your op=
+ponent with a Death Strike.   1063091
+
+Modified: trunk/plugins/moblist.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/plugins/moblist.lua (original)
++++ trunk/plugins/moblist.lua Sun Oct 19 17:14:25 2008
+@@ -282,6 +282,7 @@
+ =
+
+ function MobListGetMainTargetSerial() return gMobList.maintarget_serial end
+ =
+
++RegisterListener(&quot;Hook_UOAM_PosUpdate&quot;,function () end)
+ RegisterListener(&quot;Hook_PostLoad&quot;,function () gMobList =3D GetDesktopWidget=
+():CreateChild(&quot;UOMobList&quot;) end)
+ =
+
+ end
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="001405.html">[Iris-commit] [IRIS] r2600 - in /trunk/lua: lib.2d.map.lua lib.3d.map.lua lib.compass.lua lib.map.lua lib.mapblock.3d.terrain.lua lib.unifont.lua widgets/widget.uotext.lua
+</A></li>
+	<LI>Next message: <A HREF="001406.html">[Iris-commit] [IRIS] r2602 - in /trunk: lua/lib.compass.lua lua/lib.uoam.lua plugins/moblist.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#1407">[ date ]</a>
+              <a href="thread.html#1407">[ thread ]</a>
+              <a href="subject.html#1407">[ subject ]</a>
+              <a href="author.html#1407">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>

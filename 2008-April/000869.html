@@ -1,0 +1,416 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+ <HEAD>
+   <TITLE> [Iris-commit] [IRIS] r2058 - in /trunk/lua: lib.3d.dynamic.lua lib.bodygfx.lua lib.corpse.lua net/net.corpse.lua obj/obj.dynamic.lua
+   </TITLE>
+   <LINK REL="Index" HREF="http://lists.berlios.de/pipermail/iris-commit/2008-April/index.html" >
+   <LINK REL="made" HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2058%20-%20in%20/trunk/lua%3A%20lib.3d.dynamic.lua%0A%20lib.bodygfx.lua%20lib.corpse.lua%20net/net.corpse.lua%20obj/obj.dynamic.lua&In-Reply-To=%3C20080418222833.8A5701C186E7%40zwischenwelt.org%3E">
+   <META NAME="robots" CONTENT="index,nofollow">
+   <style type="text/css">
+       pre {
+           white-space: pre-wrap;       /* css-2.1, curent FF, Opera, Safari */
+           }
+   </style>
+   <META http-equiv="Content-Type" content="text/html; charset=us-ascii">
+   <LINK REL="Previous"  HREF="000868.html">
+   <LINK REL="Next"  HREF="000870.html">
+ </HEAD>
+ <BODY BGCOLOR="#ffffff">
+   <H1>[Iris-commit] [IRIS] r2058 - in /trunk/lua: lib.3d.dynamic.lua lib.bodygfx.lua lib.corpse.lua net/net.corpse.lua obj/obj.dynamic.lua</H1>
+    <B>no-reply at zwischenwelt.org</B> 
+    <A HREF="mailto:iris-commit%40lists.berlios.de?Subject=Re%3A%20%5BIris-commit%5D%20%5BIRIS%5D%20r2058%20-%20in%20/trunk/lua%3A%20lib.3d.dynamic.lua%0A%20lib.bodygfx.lua%20lib.corpse.lua%20net/net.corpse.lua%20obj/obj.dynamic.lua&In-Reply-To=%3C20080418222833.8A5701C186E7%40zwischenwelt.org%3E"
+       TITLE="[Iris-commit] [IRIS] r2058 - in /trunk/lua: lib.3d.dynamic.lua lib.bodygfx.lua lib.corpse.lua net/net.corpse.lua obj/obj.dynamic.lua">no-reply at zwischenwelt.org
+       </A><BR>
+    <I>Sat Apr 19 00:28:33 CEST 2008</I>
+    <P><UL>
+        <LI>Previous message: <A HREF="000868.html">[Iris-commit] [IRIS] r2057 - in /trunk: data/config.lua.dist lua/gui/gui.paperdoll.lua lua/lib.mousepick.lua
+</A></li>
+        <LI>Next message: <A HREF="000870.html">[Iris-commit] [IRIS] r2059 - in /trunk/lua: lib.3d.dynamic.lua lib.3d.mousepick.lua lib.bodygfx.lua net/net.corpse.lua net/net.mobile.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#869">[ date ]</a>
+              <a href="thread.html#869">[ thread ]</a>
+              <a href="subject.html#869">[ subject ]</a>
+              <a href="author.html#869">[ author ]</a>
+         </LI>
+       </UL>
+    <HR>  
+<!--beginarticle-->
+<PRE>Author: ghoulsblade
+Date: Sat Apr 19 00:28:33 2008
+New Revision: 2058
+
+Log:
+corpses
+
+Modified:
+    trunk/lua/lib.3d.dynamic.lua
+    trunk/lua/lib.bodygfx.lua
+    trunk/lua/lib.corpse.lua
+    trunk/lua/net/net.corpse.lua
+    trunk/lua/obj/obj.dynamic.lua
+
+Modified: trunk/lua/lib.3d.dynamic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.3d.dynamic.lua (original)
++++ trunk/lua/lib.3d.dynamic.lua Sat Apr 19 00:28:33 2008
+@@ -61,9 +61,7 @@
+ end
+ =
+
+ function Renderer3D:UpdateDynamicItemPos ( dynamic )
+-	if (dynamic.gfx) then
+-		dynamic.gfx:SetPosition(self:UOPosToLocal(dynamic.xloc + dynamic.xadd,dy=
+namic.yloc + dynamic.yadd,dynamic.zloc * 0.1 + dynamic.zadd))
+-	end
++	if (dynamic.gfx) then dynamic.gfx:SetPosition(self:UOPosToLocal(dynamic.x=
+loc + dynamic.xadd,dynamic.yloc + dynamic.yadd,dynamic.zloc * 0.1 + dynamic=
+.zadd)) end	=
+
+ 	-- TODO update dynamic fastbatch?
+ end
+ =
+
+@@ -102,16 +100,47 @@
+ function Renderer3D:CreateDynamicGfx( item )
+ 	assert(not item.gfx)
+ =
+
+-	item.artid=3DCheckIfBoat(item.artid)
+-	=
+
+-	-- TODO: check if corpse
+-	-- item.artid=3DCheckIfCorpse(item.artid)
+-
++	item.artid =3D CheckIfBoat(item.artid)
++	=
+
+ 	-- FILTER: get correction
+ 	item.xadd,item.yadd,item.zadd =3D FilterPositionXYZ(item.artid)
+-
+-	-- Detect Multis
+-	if item.artid &gt;=3D gMulti_ID then
++	=
+
++	-- check if corpse
++	local bCorpse =3D item.artid_base =3D=3D kCorpseDynamicArtID
++	=
+
++	local bCorpseGFX =3D false
++	if (bCorpse) then
++		-- corpse
++		print(&quot;CORPSECODE,CreateDynamicGfx corpse&quot;,item.amount)
++		bCorpseGFX =3D true
++		=
+
++		local bodyid =3D item.amount
++		local hue =3D 0
++		local equip =3D {}
++		local bMoving,bTurning,bWarMode,bRunFlag =3D false,false,false,false
++		item.corpsegfx =3D CreateBodyGfx()
++		item.corpsegfx:SetCorpse()
++		item.corpsegfx:MarkForUpdate(bodyid,hue,equip)
++		item.corpsegfx:Update()
++		item.corpsegfx:SetState(bMoving,bTurning,bWarMode,bRunFlag)
++		item.gfx =3D item.corpsegfx.modelgfx
++		item.gfx:SetCastShadows(gDynamicsCastShadows)
++		--~ item.gfx:SetOrientation(qw,qx,qy,qz) -- GetStaticMeshOrientation(ite=
+m.artid)
++	=
+
++		-- just add the dynamic as a scene node
++		=
+
++		item.gfx:SetRenderingDistance(self.gDynamicMaxRenderDist)
++		-- set's position and add's xadd,yadd,zadd corrections
++		self:UpdateDynamicItemPos(item)
++		-- updates the layer-visibility
++		self:UpdateDynamicVisibility(item)
++	end
++	=
+
++	if (bCorpseGFX) then
++		-- already handled above
++	elseif item.artid &gt;=3D gMulti_ID then =
+
++		-- Multis
++	=
+
+ 		printdebug(&quot;multi&quot;,&quot;-----------------------------&quot;)
+ 		printdebug(&quot;multi&quot;, sprintf(&quot;Multi detected with ARTID&quot;,item.artid,vardu=
+mp(item)) )
+ =
+
+@@ -391,6 +420,13 @@
+ 	-- remove lightsource from dynamic
+ 	if (dynamic.lightname) then Client_RemoveLight(dynamic.lightname) dynamic=
+.lightname =3D nil end
+ =
+
++	-- remove corpsegfx entry
++	if (dynamic.corpsegfx) then
++		if (dynamic.gfx =3D=3D dynamic.corpsegfx.modelgfx) then dynamic.gfx =3D =
+nil end
++		dynamic.corpsegfx:Destroy()
++		dynamic.corpsegfx =3D nil
++	end
++	=
+
+ 	-- remove dynamic entry
+ 	if (dynamic.gfx) then
+ 		dynamic.gfx:Destroy()
+
+Modified: trunk/lua/lib.bodygfx.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.bodygfx.lua (original)
++++ trunk/lua/lib.bodygfx.lua Sat Apr 19 00:28:33 2008
+@@ -70,23 +70,27 @@
+ 	return hash
+ end
+ =
+
+-function BodyGfxGetStateAnimID	(bodyid,bWalk,bRun,bIdle,bHasMount,bWarMode=
+,bHasStaff)	=
+
++function BodyGfxGetStateAnimID	(bodyid,bWalk,bRun,bIdle,bHasMount,bWarMode=
+,bHasStaff,bIsCorpse)	=
+
+ 	if (not gGrannyLoaderType) then return 0 end
+ 	local modelinfo =3D GetGrannyModelInfo(bodyid)
+ 	local animtypeid =3D (modelinfo and modelinfo.typeid) or kAnimTypeID_Other
+ 	if (animtypeid =3D=3D kAnimTypeID_Monster) then -- monster
++		if (bIsCorpse) then return 2	end	-- 2:Die1,3:Die2
+ 		if (bWalk) then	return 0	end -- Walk
+ 		if (bRun ) then return 1	end	-- Walk/Run -- TODO : maybe fly here ? chec=
+k zloc
+ 		if (bIdle) then return 1	end	-- Idle
+ 	elseif (animtypeid =3D=3D kAnimTypeID_Sea) then -- sea
++		if (bIsCorpse) then return 8	end	-- 8:Die1
+ 		if (bWalk) then	return 0	end -- Walk
+ 		if (bRun ) then return 1	end	-- Run =
+
+ 		if (bIdle) then return 2	end	-- Idle
+ 	elseif (animtypeid =3D=3D kAnimTypeID_Animal) then -- animal
++		if (bIsCorpse) then return 8	end	-- 8:Die1,12:Die2
+ 		if (bWalk) then	return 0	end -- Walk
+ 		if (bRun ) then return 1	end	-- Run =
+
+ 		if (bIdle) then return 2	end	-- Idle
+ 	elseif (animtypeid =3D=3D kAnimTypeID_Human) then -- human
++		if (bIsCorpse) then return 8	end	-- 21:Die_Hard_Fwd_01,22:Die_Hard_Back_=
+01,129:die_slow_fire_01
+ 		if (gDisableHumanClientSideAnim) then return 4 end -- force idle
+ 		if (bHasMount) then =
+
+ 			if (bWalk) then	return 23	end -- Horse_Walk_01
+@@ -342,6 +346,10 @@
+ -- ##### ##### ##### ##### ##### anim,step
+ =
+
+ =
+
++function gBodyGfxPrototype:SetCorpse ()
++	self.bIsCorpse =3D true
++end
++
+ function gBodyGfxPrototype:Step		()
+ 	-- trigger update if marked
+ 	if (self.bDead) then return end
+@@ -355,9 +363,10 @@
+ 	=
+
+ 	-- anim step
+ 	if (self.curanimid) then -- add time and loop
+-		self.animtime =3D (self.animtime or 0) + gSecondsSinceLastFrame =
+
++		self.animtime =3D (self.animtime or 0) + gSecondsSinceLastFrame
+ 		while (self.animlen &gt; 0 and self.animtime &gt; self.animlen) do self.animti=
+me =3D self.animtime - self.animlen end =
+
+ 	end
++	if (self.bIsCorpse) then self.animtime =3D self.animlen end =
+
+ 	for k,partgfx in pairs(self.modelparts or {}) do partgfx:SetAnimTimePos(s=
+elf.animtime) end -- update parts
+ end
+ =
+
+@@ -400,7 +409,9 @@
+ 	--~ print(&quot;PartsSetAnim&quot;,bodyid,self.curanimid)
+ 	for k,v in pairs(self.modelparts or {}) do =
+
+ 		if (v:HasSkeleton()) then
+-			v:SetAnim(animname,self.iRepeatCount ~=3D 0) -- always manual abort usi=
+ng animend
++			local bLoop =3D self.iRepeatCount ~=3D 0
++			if (self.bIsCorpse) then bLoop =3D false end
++			v:SetAnim(animname,bLoop) -- always manual abort using animend
+ 			animlen =3D math.max(animlen,v:GetAnimLength(animname))
+ 			--~ print(k,animname,v:GetAnimLength(animname))
+ 		end
+@@ -464,5 +475,5 @@
+ 	local bRun	=3D (not bIdle) and (self.bRunFlag and self.bMoving)
+ 	local bWalk	=3D (not bIdle) and (not bRun)
+ 	=
+
+-	return BodyGfxGetStateAnimID(bodyid,bWalk,bRun,bIdle,mount,self.bWarMode,=
+bHasStaff)
+-end
++	return BodyGfxGetStateAnimID(bodyid,bWalk,bRun,bIdle,mount,self.bWarMode,=
+bHasStaff,self.bIsCorpse)
++end
+
+Modified: trunk/lua/lib.corpse.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/lib.corpse.lua (original)
++++ trunk/lua/lib.corpse.lua Sat Apr 19 00:28:33 2008
+@@ -1,6 +1,7 @@
+ -- handles special cases for corpses
+ -- see also net.corpse.lua
+ =
+
++kCorpseDynamicArtID =3D 0x2006
+ =
+
+ =
+
+ --[[
+@@ -15,7 +16,7 @@
+ =
+
+ anim
+ 		Die_Hard_Fwd_01
+-       Die_Hard_Back_01
++		Die_Hard_Back_01
+ =
+
+ =
+
+ ./lib.packet.lua:47:gPacketType.kPacket_Death	=3D { id=3Dhex2num(&quot;0x2C&quot;) }=
+ -- PCK_DeathMenu	=3D hex2num(&quot;0x2C&quot;)
+
+Modified: trunk/lua/net/net.corpse.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/net/net.corpse.lua (original)
++++ trunk/lua/net/net.corpse.lua Sat Apr 19 00:28:33 2008
+@@ -20,7 +20,7 @@
+ --21	Die_Hard_Fwd_01
+ --22	Die_Hard_Back_01
+ --sit anim id: 76
+---0x2006 - corpse schrift
++--0x2006=3DkCorpseDynamicArtID
+ -- TODO : what is the result of this packet?
+ function  gPacketHandler.kPacket_Corpse_Equipment() -- [0x89]
+ 	local input =3D GetRecvFIFO()
+@@ -30,11 +30,14 @@
+ =
+
+ 	printdebug(&quot;equip&quot;,sprintf(&quot;NET: kPacket_Corpse_Equipment: blocksize: %i =
+container_serial=3D0x%08x\n&quot;,blocksize,container_serial))
+ =
+
++	=
+
+ 	blocksize=3Dblocksize-7
+ 	=
+
++	print(&quot;CORPSECODE,kPacket_Corpse_Equipment&quot;,(blocksize - 1)/5)
+ 	while (blocksize &gt;=3D 5) do
+ 		local item_layer =3D input:PopNetUint8()
+ 		local item_serial =3D input:PopNetUint32()
++		print(&quot;CORPSECODE,kPacket_Corpse_Equipment + &quot;,item_layer,item_serial)
+ 		printdebug(&quot;equip&quot;,sprintf(&quot;NET: kPacket_Corpse_Equipment_Items: item_la=
+yer: %i item_serial=3D0x%08x\n&quot;,item_layer,item_serial))
+ 		blocksize=3Dblocksize-5
+ 	end
+@@ -51,6 +54,7 @@
+ 	local player_serial =3D input:PopNetUint32()
+ 	local corpse_serial =3D input:PopNetUint32()
+ 	local terminator =3D input:PopNetUint32()
++	print(&quot;CORPSECODE,kPacket_Death_Animation&quot;,player_serial,corpse_serial,te=
+rminator)
+ 	printdebug(&quot;animation&quot;,sprintf(&quot;NET: kPacket_Death_Animation: player_seri=
+al: 0x%08x corpse_serial=3D0x%08x\n&quot;,player_serial,corpse_serial))
+ --[[
+ 	local anim =3D {}
+
+Modified: trunk/lua/obj/obj.dynamic.lua
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D
+--- trunk/lua/obj/obj.dynamic.lua (original)
++++ trunk/lua/obj/obj.dynamic.lua Sat Apr 19 00:28:33 2008
+@@ -84,10 +84,9 @@
+ 	self:ApplyArtidStackManipulation()
+ 	=
+
+ 	=
+
+-	-- TODO : corpse is spawned
+-	if (dynamicdata and dynamicdata.artid_base =3D=3D hex2num(&quot;0x2006&quot;)) then
+-		print(&quot;TODO: char died. sethue,setdirection,setascorpse&quot;)
+-	end =
+
++	-- corspe   =
+
++	-- if (dynamicdata and dynamicdata.artid_base =3D=3D kCorpseDynamicArtID)=
+ then ... end =
+
++	-- nothing needs to be done for here, see gCurrentRenderer:AddDynamicItem=
+/CreateDynamicGfx
+ 	=
+
+ 	-- self is mobile equipment
+ 	local mobile =3D mobile or GetMobile(self.iContainerSerial)
+@@ -103,7 +102,7 @@
+ 		-- dynamicdata.artid_base		=
+
+ 		-- dynamicdata.layer			=
+
+ 		-- dynamicdata.iContainerSerial -- mobile serial
+-		-- dynamicdata.hue	=
+
++		-- dynamicdata.hue 	=
+
+ 		=
+
+ 		self.iContainerSerial =3D mobile.serial
+ 		=
+
+
+
+</PRE>
+
+<!--endarticle-->
+    <HR>
+    <P><UL>
+        <!--threads-->
+	<LI>Previous message: <A HREF="000868.html">[Iris-commit] [IRIS] r2057 - in /trunk: data/config.lua.dist lua/gui/gui.paperdoll.lua lua/lib.mousepick.lua
+</A></li>
+	<LI>Next message: <A HREF="000870.html">[Iris-commit] [IRIS] r2059 - in /trunk/lua: lib.3d.dynamic.lua lib.3d.mousepick.lua lib.bodygfx.lua net/net.corpse.lua net/net.mobile.lua
+</A></li>
+         <LI> <B>Messages sorted by:</B> 
+              <a href="date.html#869">[ date ]</a>
+              <a href="thread.html#869">[ thread ]</a>
+              <a href="subject.html#869">[ subject ]</a>
+              <a href="author.html#869">[ author ]</a>
+         </LI>
+       </UL>
+
+<hr>
+<a href="https://lists.berlios.de/mailman/listinfo/iris-commit">More information about the Iris-commit
+mailing list</a><br>
+</body></html>
